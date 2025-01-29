@@ -26,6 +26,7 @@
   "docs/en/index.md":"perforator/docs/opensource/en/index.md",
   "docs/en/reference/database.md":"perforator/docs/opensource/en/reference/database.md",
   "docs/en/reference/language-support/java.md":"perforator/docs/opensource/en/reference/language-support/java.md",
+  "docs/en/reference/language-support/overview.md":"perforator/docs/opensource/en/reference/language-support/overview.md",
   "docs/en/reference/language-support/python/merging.md":"perforator/docs/opensource/en/reference/language-support/python/merging.md",
   "docs/en/reference/language-support/python/parse_elf.md":"perforator/docs/opensource/en/reference/language-support/python/parse_elf.md",
   "docs/en/reference/language-support/python/profiling.md":"perforator/docs/opensource/en/reference/language-support/python/profiling.md",
