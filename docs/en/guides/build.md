@@ -1,6 +1,6 @@
 # How to build
 
-We use [yatool](https://github.com/yandex/yatool) to build Perforator. The only dependency is Python 3.12+.
+We use [yatool](https://github.com/yandex/yatool) to build Perforator. The only dependency is Python 3.12 or newer.
 
 To build any component, simply run from the repository root:
 ```bash

@@ -6,10 +6,9 @@ Perforator utilizes multiple ways to obtain current `*PyThreadState` in eBPF con
 
 ## Reading `*PyThreadState` from TLS
 
-In Python 3.12+, a pointer to current thread's `PyThreadState` is stored in a Thread Local Storage variable called `_PyThreadState_Current`. 
+In Python 3.12+, a pointer to current thread's `PyThreadState` is stored in a Thread Local Storage variable called `_PyThreadState_Current`.
 
-In an eBPF program, the pointer to userspace thread structure can be retrieved by reading `thread.fsbase` from the `task_struct` structure. This structure can be obtained with the `bpf_get_current_task()` helper.
-The Thread Local Image will be to the left of the pointer stored in `thread.fsbase`.
+In an eBPF program, the pointer to userspace thread structure can be retrieved by reading `thread.fsbase` from the `task_struct` structure. This structure can be obtained with the `bpf_get_current_task()` helper. The Thread Local Image will be to the left of the pointer stored in `thread.fsbase`.
 
 The exact offset of thread local variable `_PyThreadState_Current` in Thread Local Image is unknown yet. Therefore, the disassembler is used to find the offset of `_PyThreadState_Current`.
 

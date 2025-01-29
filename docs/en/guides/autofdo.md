@@ -1,9 +1,6 @@
 # How to use Perforator for continuous profile-guided optimization
 
-Perforator supports generating sPGO (sampling Profile-guided optimization)
-profiles for subsequent use in the compilation pipeline.
-This guide shows how to use such profiles for performance gains and outlines the
-hardware/software prerequisites of deployment/toolchain for profiles generation to work.
+Perforator supports generating sPGO (sampling Profile-guided optimization) profiles for subsequent use in the compilation pipeline. This guide shows how to use such profiles for performance gains and outlines the hardware/software prerequisites of deployment/toolchain for profiles generation to work.
 
 ## Toolchain prerequisites
 
@@ -19,9 +16,7 @@ hardware/software prerequisites of deployment/toolchain for profiles generation 
 
 Run the following command `./perforator/cmd/cli/perforator pgo <service-name>`, targeting your installation of Perforator.
 
-In case of failure, recheck the deployment prerequisites and try again; in case of success, check the `TakenBranchesToExecutableBytesRatio`
-value in the command output: we recommend it to be at least 1.0 for higher profile quality. If the value is less than 1.0,
-one might either increase profile sampling rate or reschedule the deployment to have more Intel CPU + Kernel >=5.7 nodes.
+In case of failure, recheck the deployment prerequisites and try again; in case of success, check the `TakenBranchesToExecutableBytesRatio` value in the command output: we recommend it to be at least 1.0 for higher profile quality. If the value is less than 1.0, one might either increase profile sampling rate or reschedule the deployment to have more Intel CPU + Kernel >=5.7 nodes.
 
 If everything goes well, you now have a sPGO profile for use in subsequent compilation.
 
@@ -32,11 +27,8 @@ If everything goes well, you now have a sPGO profile for use in subsequent compi
 
 {% note warning %}
 
-Build caches don't necessarily play nicely with `-fprofile-sample-use`:
-if the path doesn't change, but the profile content changes, build cache system might consider a compilation invocation as a cache hit,
-even though it clearly is not, since the profile has changed.
+Build caches don't necessarily play nicely with `-fprofile-sample-use`: if the path doesn't change, but the profile content changes, build cache system might consider a compilation invocation as a cache hit, even though it clearly is not, since the profile has changed.
 
-At best, this would lead to linker errors, at worst to some kind of UB at runtime.
-To avoid such situations, we recommend always generating random paths to the profile.
+At best, this would lead to linker errors, at worst to some kind of UB at runtime. To avoid such situations, we recommend always generating random paths to the profile.
 
 {% endnote %}

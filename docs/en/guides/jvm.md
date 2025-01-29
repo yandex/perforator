@@ -1,12 +1,10 @@
 # How to configure profiling for JVM applications
 
-Perforator is able to profile JVM application.
-This guide shows how to configure Perforator and application to get meaningful profiles.
+Perforator is able to profile JVM application. This guide shows how to configure Perforator and application to get meaningful profiles.
 
 {% note warning %}
 
-For now, JVM support is experimental and has known limitations.
-It will be improved in the future releases.
+For now, JVM support is experimental and has known limitations. It will be improved in the future releases.
 
 {% endnote %}
 
