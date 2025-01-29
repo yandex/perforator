@@ -4,10 +4,10 @@ items:
   - name: Tutorials
     labeled: true
     items:
-    - name: Optimizing Python applications
-      href: tutorials/python-profiling.md
     - name: Optimizing native applications
       href: tutorials/native-profiling.md
+    - name: Optimizing Python applications
+      href: tutorials/python-profiling.md
   - name: Explanation
     labeled: true
     items:
