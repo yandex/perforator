@@ -1116,6 +1116,7 @@ func (s *PerforatorServer) DiffProfiles(
 	var fgFormat render.Format
 	if req.RenderFormat == nil {
 		fgOptions = req.GetFlamegraphOptions()
+		fgFormat = render.HTMLFormat
 	} else {
 		switch v := (req.RenderFormat.Format).(type) {
 		case *perforator.RenderFormat_Flamegraph:
