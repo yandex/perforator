@@ -1,6 +1,9 @@
 title: Perforator
 href: index.md
 items:
+  - name: Intro
+    labeled: true
+    href: index.md
   - name: Tutorials
     labeled: true
     items:
