@@ -34,7 +34,7 @@ items:
   - name: Reference
     labeled: true
     items:
-    - name: Querylang
+    - name: Query language
       href: reference/querylang.md
     - name: Perfmap-based symbolization
       href: reference/perfmap.md
