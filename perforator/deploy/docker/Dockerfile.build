@@ -63,3 +63,7 @@ COPY --from=build /out/perforator/bundle/migrate /perforator/migrate
 FROM ubuntu:24.04 AS offline_processing
 COPY --from=build /out/perforator/bundle/offline_processing /perforator/offline_processing
 
+####################################################################################################################
+
+FROM scratch AS cli
+COPY --from=build /out/perforator/bundle/cli /perforator/cli
