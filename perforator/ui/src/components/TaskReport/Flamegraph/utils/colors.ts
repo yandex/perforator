@@ -1,7 +1,7 @@
 import type { Rgb } from 'culori/fn';
 import { convertHslToRgb, convertOklabToRgb, convertRgbToOklab, parseHex, serializeHex } from 'culori/fn';
 
-import type { NewFormatNode, NewProfileData } from 'src/models/Profile';
+import type { FormatNode, ProfileData } from 'src/models/Profile';
 
 
 function namehash(name: string, reversed = false): number {
@@ -68,7 +68,7 @@ export function darken(color: string, factor = DARKEN_FACTOR): string {
 
     return serializeHex(convertOklabToRgb(resultingColor)) as string;
 }
-export function prerenderColors(data: NewProfileData, opts?: { theme?: 'light' | 'dark' }): NewProfileData {
+export function prerenderColors(data: ProfileData, opts?: { theme?: 'light' | 'dark' }): ProfileData {
 
     function readString(id?: number) {
         if (!id) {return '';}
@@ -99,7 +99,7 @@ export function hsv2hsl(h: number, s: number, v: number) {
 }
 
 
-export function diffcolor(node: NewFormatNode, root: NewFormatNode) {
+export function diffcolor(node: FormatNode, root: FormatNode) {
     const lhs = node.eventCount;
     const rhs = root.baseEventCount && root.baseEventCount > 1e-5
         ? (node.baseEventCount ?? 0) * root.eventCount / root.baseEventCount

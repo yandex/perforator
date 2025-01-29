@@ -1,37 +1,4 @@
-type FrameX = number;
-type FrameWidth = number;
-type FrameText = number;
-type FrameEventCount = number;
-type FrameSampleCount = number;
-type FrameFillStyle = number;
-
-type FrameBaseEventCount = number;
-
-type FrameBaseSampleCount = number;
-type BaseFrameLevel = [
-    FrameX[],
-    FrameWidth[],
-    FrameText[],
-    FrameEventCount[],
-    FrameSampleCount[],
-    FrameFillStyle[],
-];
-
-type DiffFrameLevel = [
-    ...BaseFrameLevel,
-    FrameBaseEventCount[],
-    FrameBaseSampleCount[]
-];
-
-export type FrameLevel = BaseFrameLevel | DiffFrameLevel;
-
-export interface ProfileData {
-    levels: FrameLevel[];
-    stringTable: string[];
-}
-
-
-export interface NewFormatNode {
+export interface FormatNode {
     parentIndex: number;
     textId: number;
     sampleCount: number;
@@ -53,7 +20,7 @@ export interface NewFormatNode {
     inlined?: boolean;
 }
 
-export type NewProfileData = {
-    rows: NewFormatNode[][];
+export type ProfileData = {
+    rows: FormatNode[][];
     stringTable: string[];
 }

@@ -10,7 +10,7 @@ import { QUERY_INPUTS } from 'src/components/MergeProfilesForm/queryInputs';
 import { Select, type SelectProps } from 'src/components/Select/Select';
 import type { ShareStringBuilder } from 'src/components/ShareButton/utils';
 import { SHARE_FORMATS } from 'src/components/ShareButton/utils';
-import type { NewProfileData } from 'src/models/Profile';
+import type { ProfileData } from 'src/models/Profile';
 import type { SendError } from 'src/utils/error';
 import { fakeRum, type Rum } from 'src/utils/rum';
 
@@ -57,7 +57,7 @@ export class UIFactory {
 
     renderSelect = (props: SelectProps): React.ReactNode => (<Select {...props} />);
 
-    parseLegacyFormat: ((data: string) => NewProfileData) | undefined = undefined;
+    parseLegacyFormat: ((data: string) => ProfileData) | undefined = undefined;
 
     queryLanguageDocsLink = (): string => 'https://perforator.tech/docs/en/reference/querylang';
     footerCopyright = (): string => '';

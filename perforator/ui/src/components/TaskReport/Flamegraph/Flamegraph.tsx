@@ -9,13 +9,13 @@ import MagnifierIcon from '@gravity-ui/icons/svgs/magnifier.svg?raw';
 import { Button, Icon, Loader } from '@gravity-ui/uikit';
 
 import { Hotkey } from 'src/components/Hotkey/Hotkey';
-import type { NewProfileData } from 'src/models/Profile';
+import type { ProfileData } from 'src/models/Profile';
 import type { UserSettings } from 'src/providers/UserSettingsProvider/UserSettings.ts';
 
-import { renderFlamegraph as newFlame } from './new-renderer.ts';
 import type { GetStateFromQuery } from './query-utils.ts';
 import { getStateFromQueryParams, modifyQuery } from './query-utils.ts';
 import { RegexpDialog } from './RegexpDialog/RegexpDialog.tsx';
+import { renderFlamegraph as newFlame } from './renderer.ts';
 
 import './Flamegraph.scss';
 
@@ -24,7 +24,7 @@ export interface FlamegraphProps {
     isDiff: boolean;
     theme: 'light' | 'dark';
     userSettings: UserSettings;
-    newData: NewProfileData | null;
+    newData: ProfileData | null;
     loading: boolean;
 }
 

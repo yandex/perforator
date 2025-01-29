@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useThemeType } from '@gravity-ui/uikit';
 
 import { uiFactory } from 'src/factory';
-import type { NewProfileData } from 'src/models/Profile';
+import type { ProfileData } from 'src/models/Profile';
 import { useUserSettings } from 'src/providers/UserSettingsProvider/UserSettingsContext.ts';
 import { withMeasureTime } from 'src/utils/logging';
 
@@ -30,7 +30,7 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
     const { userSettings } = useUserSettings();
 
 
-    const [newData, setNewData] = React.useState<NewProfileData | undefined>();
+    const [newData, setNewData] = React.useState<ProfileData | undefined>();
 
     const getProfileData = async () => {
         const fetchingStart = performance.now();

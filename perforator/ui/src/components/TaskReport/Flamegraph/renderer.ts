@@ -14,7 +14,7 @@
 import type { RealTheme } from '@gravity-ui/uikit';
 
 import { uiFactory } from 'src/factory/index.ts';
-import type { NewFormatNode, NewProfileData } from 'src/models/Profile.ts';
+import type { FormatNode, ProfileData } from 'src/models/Profile.ts';
 import type { UserSettings } from 'src/providers/UserSettingsProvider/UserSettings.ts';
 
 import { hugenum } from './flame-utils.ts';
@@ -55,7 +55,7 @@ interface RenderOpts {
 
 type RenderFlamegraphType = (
     flamegraphContainer: HTMLDivElement,
-    profileData: NewProfileData,
+    profileData: ProfileData,
     options: RenderFlamegraphOptions,
 ) => () => void;
 
@@ -87,7 +87,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     const SEARCH_COLOR = theme === 'dark' ? darken('#ee00ee') : '#ee00ee';
 
 
-    function calculateDiffColor(node: NewFormatNode, root: NewFormatNode) {
+    function calculateDiffColor(node: FormatNode, root: FormatNode) {
         const color = diffcolor(node, root);
         return theme === 'dark' ? darken(color) : color;
     }
@@ -133,7 +133,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
         return profileData.stringTable[id];
     }
 
-    function getNodeTitle(node: NewFormatNode): string {
+    function getNodeTitle(node: FormatNode): string {
         const kind = readString(node.kind);
         let nodeTitle = maybeShorten(readString(node.textId)) + ' ' + readString(node.file);
         if (kind !== '') {
@@ -171,7 +171,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     let widthRatio = widthEv / canvasWidth!;
     let minVisibleEv = minVisibleWidth * widthRatio;
 
-    function countWidth(node: NewFormatNode) {
+    function countWidth(node: FormatNode) {
         return Math.min(node.eventCount / widthRatio, canvasWidth!);
     }
     function visible(eventCount: number) {
@@ -179,7 +179,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     }
 
 
-    function findFrame(frames: NewFormatNode[], x: number, left = 0, right = frames.length - 1) {
+    function findFrame(frames: FormatNode[], x: number, left = 0, right = frames.length - 1) {
         if (x < frames[left].x! || x > (frames[right].x! + countWidth(frames[right]))) {
             return null;
         }
@@ -225,7 +225,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
         return res;
     }
 
-    let currentNode: NewFormatNode | null = null;
+    let currentNode: FormatNode | null = null;
 
     type TitleArgs = {
         getPct: (arg: {
@@ -244,8 +244,8 @@ export const renderFlamegraph: RenderFlamegraphType = (
         wrapNumbers = (nubmers: string) => nubmers,
     }: TitleArgs) {
         // eslint-disable-next-line @typescript-eslint/no-shadow
-        return function (f: NewFormatNode, selectedFrame: NewFormatNode | null, root?: NewFormatNode): string {
-            const calcPercent = (baseFrame?: NewFormatNode | null) => baseFrame ? pct(f.eventCount, baseFrame.eventCount) : undefined;
+        return function (f: FormatNode, selectedFrame: FormatNode | null, root?: FormatNode): string {
+            const calcPercent = (baseFrame?: FormatNode | null) => baseFrame ? pct(f.eventCount, baseFrame.eventCount) : undefined;
             const percent = getPct({
                 rootPct: calcPercent(root),
                 selectedPct: calcPercent(selectedFrame),
@@ -262,7 +262,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
             if (isDiff) {
                 let delta = 0;
-                const anyFrame = (selectedFrame || root) as NewFormatNode;
+                const anyFrame = (selectedFrame || root) as FormatNode;
                 if (anyFrame.baseEventCount && f.baseEventCount && anyFrame.baseEventCount > 1e-3) {
                     delta =
                         f.eventCount / anyFrame.eventCount -
@@ -330,7 +330,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
         const marked: Record<number | string, number> = {};
 
-        function mark(f: NewFormatNode) {
+        function mark(f: FormatNode) {
             const width = countWidth(f);
             if (!(marked[f.x!] >= width)) {
                 marked[f.x!] = width;
