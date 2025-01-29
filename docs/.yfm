@@ -1,6 +1,5 @@
 strict: true
 langs: ['en']
-github-url-prefix: github.com/yandex/perforator/docs
 
 
 docs-viewer:
@@ -9,6 +8,8 @@ docs-viewer:
   project-name: perforator-opensource
   is-new-external: true
   langs: ['en']
+  show-revision: true
+  github-url-prefix: github.com/yandex/perforator/docs
   favicon-src: https://perforator.tech/favicon.svg
   logo-options:
     title: Perforator
