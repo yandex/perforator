@@ -46,7 +46,7 @@ class UserIDSearchHandler(http.server.SimpleHTTPRequestHandler):
             user_id = int(query_components.get("user_id", [0])[0])
 
             exists = search_user(user_ids, user_id)
-            
+
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
@@ -96,7 +96,7 @@ Now we have a simple working Python application.
 
 ## Recording a flamegraph
 
-We can collect a flamegraph which is a visual representation of the program's execution. 
+We can collect a flamegraph which is a visual representation of the program's execution.
 
 `perforator record` collects stacks from the desired process for some time and then generates a flamegraph. You can read more about it [here](../howto/cli/record.md).
 
@@ -195,7 +195,7 @@ class UserIDSearchHandler(http.server.SimpleHTTPRequestHandler):
             user_id = int(query_components.get("user_id", [0])[0])
 
             exists = search_user(user_ids, user_id)
-            
+
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
             self.end_headers()

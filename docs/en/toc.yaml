@@ -6,6 +6,8 @@ items:
     items:
     - name: Optimizing Python applications
       href: tutorials/python-profiling.md
+    - name: Optimizing native applications
+      href: tutorials/native-profiling.md
   - name: How-to guides
     labeled: true
     items:
