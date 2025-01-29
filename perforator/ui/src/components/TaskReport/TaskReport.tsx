@@ -29,7 +29,8 @@ export const TaskReport: React.FC<TaskReportProps> = props => {
     const isDiff = 'DiffProfiles' in (props.task?.Result || {});
     const mergeRenderFormat = props.task?.Spec?.MergeProfiles?.Format;
     const diffRenderFormat = props.task?.Spec?.DiffProfiles?.RenderFormat;
-    const format = getFormat((props.task?.Spec?.MergeProfiles?.Format)) ?? getFormat(diffRenderFormat);
+    const isLegacyFormat = isDiff && 'FlamegraphOptions' in (props.task?.Spec?.DiffProfiles || {});
+    const format = getFormat(mergeRenderFormat) ?? getFormat(diffRenderFormat) ?? (isLegacyFormat ? 'Flamegraph' : undefined);
 
     const renderContent = () => {
         if (!url) {
