@@ -1,0 +1,3 @@
+common:
+  - from: /tutorial/fdo.md
+    to: /en/guides/autofdo.md

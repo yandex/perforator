@@ -39,6 +39,7 @@
   "docs/en/reference/querylang.md":"perforator/docs/opensource/en/reference/querylang.md",
   "docs/en/toc.yaml":"perforator/docs/opensource/en/toc.yaml",
   "docs/en/tutorials/python-profiling.md":"perforator/docs/opensource/en/tutorials/python-profiling.md",
+  "docs/redirects.yaml":"perforator/docs/opensource/redirects.yaml",
   "docs/ya.make":"perforator/docs/opensource/ya.make",
   "go.mod":"perforator/opensource/github_toplevel/go.mod",
   "perforator/ui-union/ya.make":"perforator/ui-union/ya.make.external",
