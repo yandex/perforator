@@ -88,7 +88,7 @@ Serving on port 9007
 Let's send a request to the server and check if user with ID 13 exists.
 
 ```console
--$ curl "http://localhost:9007/search_user?user_id=13"
+$ curl "http://localhost:9007/search_user?user_id=13"
 The user 13 exists
 ```
 
@@ -103,7 +103,7 @@ We can collect a flamegraph which is a visual representation of the program's ex
 Let's collect a flamegraph of the application. But do not forget to replace the `--pid` with the PID of your application.
 
 ```console
--$ sudo perforator record --pid 3090163 --duration 1m --serve ":9006"
+$ sudo perforator record --pid 3090163 --duration 1m --serve ":9006"
 ```
 
 You should see the output with a lot of information about the system analysis. But the most important part is the URL of the flamegraph. Paste it in your browser and open it (e.g. `http://localhost:9006`).
@@ -141,7 +141,7 @@ Run this in a separate terminal.
 ## Collect the meaningful flamegraph and find the bottleneck
 
 ```console
--$ sudo perforator record --pid 3090163 --duration 1m --serve ":9006"
+$ sudo perforator record --pid 3090163 --duration 1m --serve ":9006"
 ```
 
 Now we can see the flamegraph which looks like this.
