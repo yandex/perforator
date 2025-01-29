@@ -25,6 +25,8 @@
   "docs/en/explanation/architecture/overview.md":"perforator/docs/opensource/en/explanation/architecture/overview.md",
   "docs/en/guides/autofdo.md":"perforator/docs/opensource/en/guides/autofdo.md",
   "docs/en/guides/build.md":"perforator/docs/opensource/en/guides/build.md",
+  "docs/en/guides/docker-compose.md":"perforator/docs/opensource/en/guides/docker-compose.md",
+  "docs/en/guides/helm-chart.md":"perforator/docs/opensource/en/guides/helm-chart.md",
   "docs/en/guides/jvm.md":"perforator/docs/opensource/en/guides/jvm.md",
   "docs/en/guides/migrate-schema.md":"perforator/docs/opensource/en/guides/migrate-schema.md",
   "docs/en/howto/cli/fetch.md":"perforator/docs/opensource/en/howto/cli/fetch.md",

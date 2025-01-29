@@ -40,6 +40,10 @@ items:
       href: guides/autofdo.md
     - name: Migrating database schema
       href: guides/migrate-schema.md
+    - name: Deploy Perforator in Kubernetes via Helm
+      href: guides/helm-chart.md
+    - name: Setup databases for testing via docker compose
+      href: guides/docker-compose.md
   - name: Reference
     labeled: true
     items:
