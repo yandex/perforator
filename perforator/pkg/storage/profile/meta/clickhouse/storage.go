@@ -158,7 +158,12 @@ func (s *Storage) ListSuggestions(
 ) ([]*meta.Suggestion, error) {
 	columns := labelsToColumns[query.Field]
 	if len(columns) == 0 {
-		return nil, fmt.Errorf("unknown field: %s", query.Field)
+		s.l.Debug(
+			ctx,
+			"Cannot find suggestions for unknown field",
+			log.String("field", query.Field),
+		)
+		return nil, nil
 	}
 	if len(columns) > 1 {
 		s.l.Debug(
