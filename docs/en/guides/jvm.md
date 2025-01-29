@@ -13,7 +13,7 @@ It will be improved in the future releases.
 ## Prerequisites
 
 * Application runs on HotSpot JVM.
-* JVM is TODO or newer.
+* JVM is 17 or newer.
 
 ## Configure JVM
 

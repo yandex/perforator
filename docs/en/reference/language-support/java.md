@@ -6,7 +6,7 @@ This page documents support for Java and other JVM-based languages.
 
 Following requirements must be met:
 
-* HotSpot JVM version TODO or newer is used.
+* HotSpot JVM version 17 or newer is used.
 
 * JVM is running with `-XX:+PreserveFramePointer` flag.
 
