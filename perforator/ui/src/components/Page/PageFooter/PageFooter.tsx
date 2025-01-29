@@ -30,7 +30,7 @@ export const PageFooter: React.FC = () => {
     return (
         <Footer
             className="page-footer"
-            copyright={`© ${new Date().getFullYear()} Yandex LLC`}
+            copyright={uiFactory().footerCopyright()}
             menuItems={items}
         />
     );
