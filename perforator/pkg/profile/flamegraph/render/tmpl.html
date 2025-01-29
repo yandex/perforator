@@ -41,6 +41,10 @@ a {color: #0366d6}
             //
             // This code is based on the flamegraph from the beautiful async-profiler.
             // See https://github.com/async-profiler/async-profiler/blob/d1498a6c7fda7c5987caf5e301c3de1deb9743c5/src/res/flame.html.
+            // Changes
+            // * added calling render function on window resize
+            // * do not use async-profiler colors
+            // * added diff capability
             'use strict';
 
             const LEVEL_HEIGHT = 20;
