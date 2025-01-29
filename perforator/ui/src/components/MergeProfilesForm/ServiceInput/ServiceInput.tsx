@@ -31,7 +31,7 @@ export const ServiceInput: React.FC<ServiceInputProps> = props => {
 
     return uiFactory().renderSelect({
         value: props.service,
-        placeholder: 'PodSetID regexp',
+        placeholder: 'Service regexp',
         onUpdate: props.onUpdate,
         listValues,
     });

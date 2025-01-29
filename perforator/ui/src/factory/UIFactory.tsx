@@ -37,7 +37,7 @@ export class UIFactory {
     defaultCluster = () => 'unknown';
 
     clusterName = () => 'Zone';
-    serviceName = () => 'Controller';
+    serviceName = () => 'Service';
     podName = () => 'Name';
     nodeName = () => 'Node';
 
