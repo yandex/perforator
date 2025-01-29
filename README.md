@@ -2,13 +2,10 @@
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/yandex/perforator/blob/main/LICENSE)
 [![eBPF code license](https://img.shields.io/badge/eBPF_code_License-GPLv2-blue.svg)](https://github.com/yandex/perforator/tree/main/perforator/agent/collector/progs/unwinder/LICENSE)
-[![Telegram](https://img.shields.io/badge/Telegram-en-2ba2d9.svg)](https://t.me/+mydXmJylZCsxZjli)
-[![Telegram](https://img.shields.io/badge/Telegram-ru-2ba2d9.svg)](https://t.me/+TFb-WWKCFIFjMTdi)
 
 # Perforator
 
 [Documentation](https://perforator.tech/docs/) |
-[Telegram](https://t.me/+mydXmJylZCsxZjli)
 
 Perforator is a production-ready, open-source Continuous Profiling app that can collect CPU profiles from your production without affecting its performance, made by Yandex. Perforator is deployed on 10k+ nodes in Yandex and already has helped many developers to fix performance issues in their services.
 
