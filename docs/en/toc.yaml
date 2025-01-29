@@ -8,6 +8,13 @@ items:
       href: tutorials/python-profiling.md
     - name: Optimizing native applications
       href: tutorials/native-profiling.md
+  - name: Explanation
+    labeled: true
+    items:
+    - name: Architecture
+      items:
+        - name: Overview
+          href: explanation/architecture/overview.md
   - name: How-to guides
     labeled: true
     items:
