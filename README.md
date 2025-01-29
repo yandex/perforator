@@ -23,15 +23,15 @@ Perforator runs on x86 64-bit Linux platforms consuming 512Mb of RAM (more on ve
 
 ## Quick start
 
-You can profile your laptop using local perforator record CLI command [TODO](...).
+You can profile your laptop using local [perforator record CLI command](https://perforator.tech/docs/en/tutorials/native-profiling).
 
-You can also deploy Perforator on playground/production Kubernetes cluster using our Helm chart [TODO](...).
+You can also deploy Perforator on playground/production Kubernetes cluster using our [Helm chart](https://perforator.tech/docs/en/guides/helm-chart).
 
 ## How to build
 
-- Instructions on how to build from source are located here [TODO](...).
+- Instructions on how to build from source are located [here](https://perforator.tech/docs/en/guides/build).
 
-- If you want to use prebuilt binaries, you can find them here [TODO](...).
+- If you want to use prebuilt binaries, you can find them [here](https://github.com/yandex/perforator/releases)...).
 
 ## How to Contribute
 
