@@ -1,0 +1,21 @@
+{{- $ca := genCA (printf "%s-storage-service" (include "perforator.fullname" .)) 3650 }}
+{{- $storageCert := genSignedCert (printf "%s-storage-service" (include "perforator.fullname" .)) nil (list (printf "%s-storage-service" (include "perforator.fullname" .))) 3650 $ca }}
+{{- $storageSecretName := printf "%s-storage-crt" (include "perforator.fullname" .) }}
+apiVersion: v1
+data:
+  ca.crt: |-
+{{ $ca.Cert | indent 4 }}
+kind: ConfigMap
+metadata:
+  name: {{ include "perforator.fullname" . }}-storage-ca.crt
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+data:
+  tls.crt: {{ include "perforator.secrets.lookup" (dict "nameSpace" .Release.Namespace "secretName" $storageSecretName "key" "tls.crt" "defaultVal" $storageCert.Cert) }}
+  tls.key: {{ include "perforator.secrets.lookup" (dict "nameSpace" .Release.Namespace "secretName" $storageSecretName "key" "tls.key" "defaultVal" $storageCert.Key) }}
+kind: Secret
+metadata:
+  name: {{ $storageSecretName }}
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/tls

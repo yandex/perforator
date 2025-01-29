@@ -1,0 +1,12 @@
+LIBRARY()
+
+NO_SANITIZE()
+
+NO_RUNTIME()
+
+IF (USE_ARCADIA_COMPILER_RUNTIME)
+    ADDINCL(GLOBAL contrib/libs/clang${CLANG_VER}-rt/include)
+ENDIF()
+
+END()
+

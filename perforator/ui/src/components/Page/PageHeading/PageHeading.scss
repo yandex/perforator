@@ -1,0 +1,16 @@
+.page-heading {
+    align-items: center;
+    display: flex;
+    height: var(--page-heading-height);
+    margin-bottom: var(--page-padding-top);
+}
+
+.page-heading__title {
+    font-size: var(--page-heading-font-size);
+    margin: 0;
+    line-height: var(--page-heading-line-height);
+}
+
+.page-heading__link-arrow {
+    margin-left: var(--g-spacing-1);
+}

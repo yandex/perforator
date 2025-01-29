@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <meta charset='utf-8'>
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMSIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHhtbG5zOnN2Z2pzPSJodHRwOi8vc3ZnanMuZGV2L3N2Z2pzIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCI+PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE4MCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjkwIiBjeT0iOTAiIHI9IjkwIiBmaWxsPSIjRkY0QjM0Ij48L2NpcmNsZT4KPHBhdGggZD0iTTExMS44NiA1NS4wODQ0SDEyNS45NjFWODQuOTQ2NUgxMzkuMjMzVjEyOS43NEgxMjUuOTYzTDEyNS45NjQgMTQzLjg0MUw4OS45MDggMTQzLjg0MVYxMjkuNzRIMTA2LjA1M0wxMDYuMDg1IDk4LjQzNzhINzcuMDIwNFYxNDMuODQxTDQxLjQ3NjYgMTQzLjgzOFY5OC40Mzc4SDUzLjc5NDRWNjYuNjk3NUg3Ny4wMjA0VjM3Ljk4MjNMOTguNTg3NSAzNy45ODIzVjIxLjcwNDFIMTExLjg2VjU1LjA4NDRaIiBmaWxsPSJ3aGl0ZSI+PC9wYXRoPgo8L3N2Zz48c3R5bGU+QG1lZGlhIChwcmVmZXJzLWNvbG9yLXNjaGVtZTogbGlnaHQpIHsgOnJvb3QgeyBmaWx0ZXI6IG5vbmU7IH0gfQpAbWVkaWEgKHByZWZlcnMtY29sb3Itc2NoZW1lOiBkYXJrKSB7IDpyb290IHsgZmlsdGVyOiBub25lOyB9IH0KPC9zdHlsZT48L3N2Zz4=">
+        <style>
+body {margin: 0; padding: 10px; background-color: #ffffff}
+h1 {margin: 5px 0 0 0; font-size: 18px; font-weight: normal; text-align: center}
+header {margin: -24px 0 5px 0; line-height: 24px}
+button {font: 16px sans-serif; cursor: pointer}
+p {margin: 5px 0 5px 0}
+a {color: #0366d6}
+#hl {position: absolute; display: none; overflow: hidden; white-space: nowrap; pointer-events: none; background-color: #ffffe0; outline: 1px solid #ffc000; z-index: 10}
+#hl span {padding: 0 3px 0 3px}
+.label {position: absolute; overflow: hidden; white-space: nowrap; pointer-events: none}
+.label span {padding: 0 3px 0 3px}
+#status {overflow: hidden; white-space: nowrap; text-overflow: ellipsis}
+#match {overflow: hidden; white-space: nowrap; display: none; text-align: right; flex-shrink: 0}
+#annotations { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: space-between}
+#reset {cursor: pointer}
+        </style>
+    </head>
+    <body style='font: 16px monospace'>
+        <h1>{{.Title}}</h1>
+        <header style='text-align: left'><button id='reverse' title='Reverse'>Reverse</button>&nbsp;&nbsp;<button id='search' title='Search'>Search</button></header>
+        <header style='text-align: right'>Showing {{len .Frames}} frames</header>
+        <div id='annotations'>
+            <p id='status'>&nbsp;</p>
+            <p id='match'>Matched: <span id='matchval'></span> <span id='reset' title='Clear'>&nbsp;&#x274c;</span></p>
+        </div>
+        <div id='labelContainer' style="position: relative">
+            <div id='flamegraph'>
+                <template id='labelTemplate'><div class="label"><span></span></div></template>
+                <canvas id='canvas' style='width: 100%; height: 4096px'></canvas>
+                <div id='hl'><span></span></div>
+            </div>
+        </div>
+        <script>
+            // Copyright The async-profiler authors
+            // SPDX-License-Identifier: Apache-2.0
+            //
+            // This code is based on the flamegraph from the beautiful async-profiler.
+            // See https://github.com/async-profiler/async-profiler/blob/d1498a6c7fda7c5987caf5e301c3de1deb9743c5/src/res/flame.html.
+            'use strict';
+
+            const LEVEL_HEIGHT = 20;
+            const BLOCK_SPACING = 1;
+            const BLOCK_HEIGHT = LEVEL_HEIGHT - BLOCK_SPACING;
+            const MAX_TEXT_LABELS = 500;
+
+            var levels = [], strtab = [];
+
+            var px, pattern;
+            var mainRoot = {level: 0, index: 0};
+            var root = mainRoot;
+            var reverse = true;
+            var diff = false;
+
+            const canvas = document.getElementById('canvas');
+            const c = canvas.getContext('2d');
+            const hl = document.getElementById('hl');
+            const labels = document.getElementById('labelContainer');
+            const labelTemplate = document.getElementById('labelTemplate');
+            const status = document.getElementById('status');
+            const annotations = document.getElementById('annotations');
+            const flamegraph = document.getElementById('flamegraph');
+            hl.style.height = BLOCK_HEIGHT;
+
+            let canvasWidth;
+            let canvasHeight;
+
+            function initCanvas() {
+                canvas.style.height = {{len .FrameLevels}} * LEVEL_HEIGHT;
+                canvasWidth = canvas.offsetWidth;
+                canvasHeight = canvas.offsetHeight;
+                canvas.style.width = canvasWidth + 'px';
+                canvas.width = canvasWidth * (devicePixelRatio || 1);
+                canvas.height = canvasHeight * (devicePixelRatio || 1);
+                if (devicePixelRatio) c.scale(devicePixelRatio, devicePixelRatio);
+            }
+
+            initCanvas();
+
+            c.font = document.body.style.font;
+            var textMetrics = c.measureText('O');
+            var charWidth = textMetrics.width || 6;
+            var charHeight = (textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent) || 12;
+            var diffmult = 1.0;
+
+            function drawLabel(text, x, y, w, opacity) {
+                let node = labelTemplate.content.cloneNode(true);
+                node.firstChild.firstChild.textContent = text;
+                node.firstChild.style.top = y + canvas.offsetTop + "px";
+                node.firstChild.style.left = x + canvas.offsetLeft + "px";
+                node.firstChild.style.width = w + "px";
+                node.firstChild.style.opacity = opacity;
+                return node;
+            }
+
+            function clearLabels() {
+                labels.replaceChildren(flamegraph);
+            }
+
+            function getColor(p) {
+                const v = Math.random();
+                return '#' + (p[0] + ((p[1] * v) << 16 | (p[2] * v) << 8 | (p[3] * v))).toString(16);
+            }
+
+            function pct(a, b) {
+                return (100 * a / b).toFixed(2);
+            }
+
+            function frame(pos) {
+                if (pos.level >= levels.length || pos.index >= levels[pos.level][0].length) {
+                    return null;
+                }
+
+                let f = {
+                    left: levels[pos.level][0][pos.index],
+                    width: levels[pos.level][1][pos.index],
+                    title: strtab[levels[pos.level][2][pos.index]],
+                    eventCount: levels[pos.level][3][pos.index],
+                    sampleCount: levels[pos.level][4][pos.index],
+                    color: strtab[levels[pos.level][5][pos.index]],
+                }
+
+                if (levels[pos.level].length >= 7) {
+                    f.baseEventCount = levels[pos.level][6][pos.index];
+                    f.baseSampleCount = levels[pos.level][7][pos.index];
+                }
+
+                return f;
+            }
+
+            function visible(f) {
+                return f.width * px > 1e-2;
+            }
+
+            function findFrame(frames, x) {
+                let left = 0;
+                let right = frames[0].length - 1;
+
+                while (left <= right) {
+                    const mid = (left + right) >>> 1;
+
+                    if (frames[0][mid] > x) {
+                        right = mid - 1;
+                    } else if (frames[0][mid] + frames[1][mid] <= x) {
+                        left = mid + 1;
+                    } else {
+                        return mid;
+                    }
+                }
+
+                if (frames[0][left] && (frames[0][left] - x) * px < 0.5) return left;
+                if (frames[0][right] && (x - (frames[0][right] + frames[1][right])) * px < 0.5) return right;
+
+                return null;
+            }
+
+            function search(r) {
+                if (r && (r = prompt('Enter regexp to search:', '')) === null) {
+                    return;
+                }
+
+                pattern = r ? RegExp(r) : undefined;
+                const matched = render(root);
+                document.getElementById('matchval').textContent = pct(matched, frame(root).width) + '%';
+                document.getElementById('match').style.display = r ? 'inherit' : 'none';
+            }
+
+            function hsv2hsl(h, s, v) {
+                const l = v - v * s / 2;
+                const m = Math.min(l, 1 - l);
+                return [h, m ? (v - l) / m : 0, l];
+            }
+
+            function diffcolor(node, root) {
+                const lhs = node.eventCount;
+                const rhs = root.baseEventCount > 1e-5
+                     ? node.baseEventCount * root.eventCount / root.baseEventCount
+                     : 0;
+
+                const diff = rhs > 1e-5 ? (lhs - rhs) / rhs : 1.0;
+                const d = Math.min(Math.abs(diff), 1.0);
+
+                if (d < 1e-3) {
+                    const value = Math.round(180 + 60 * (1 - d * 1e3));
+                    const hex = value.toString(16);
+                    return `#${hex}${hex}${hex}`;
+                }
+
+                let hoff = 0.16;
+                let hpow = 4.0;
+                let hcoef = -0.14;
+                if (diff <= 0) {
+                    hoff = 0.58;
+                    hpow = 2.0;
+                    hcoef = 0.10;
+                }
+
+                let soff = 0.0;
+                let spow = 4.5;
+                let scoef = 0.75;
+
+                const h = hoff + Math.pow(d, 1./hpow) * hcoef;
+                const s = soff + Math.pow(d, 1./spow) * scoef;
+                const hsl = hsv2hsl(h, s, 1.0);
+
+                return `hsl(${hsl[0] * 360}, ${hsl[1] * 100}%, ${hsl[2] * 100}%)`;
+            }
+
+            function rectCanvasPosition(rect, root) {
+                const rx0 = Math.max(rect.left - root.left, 0);
+                const rx1 = Math.min(rect.left - root.left + rect.width, root.width);
+                const left = rx0 * px;
+                const width = (rx1 - rx0) * px;
+
+                return [left, width];
+            }
+
+            function renderImpl(newRoot) {
+                if (root) {
+                    c.fillStyle = '#ffffff';
+                    c.fillRect(0, 0, canvasWidth, canvasHeight);
+                }
+                clearLabels();
+
+                if (reverse) {
+                    annotations.after(labels);
+                } else {
+                    annotations.before(labels);
+                }
+
+                root = newRoot || mainRoot;
+                px = canvasWidth / frame(root).width;
+
+                const rootFrame = frame(root);
+                const mainRootFrame = frame(mainRoot);
+                const x0 = frame(root).left;
+                const x1 = x0 + frame(root).width;
+                const diff = frame(mainRoot).baseEventCount !== undefined;
+                if (diff) {
+                    diffmult = mainRootFrame.eventCount / mainRootFrame.baseEventCount;
+                }
+
+                const marked = {};
+                let textLabelCount = 0;
+
+                function mark(f) {
+                    return marked[f.left] >= f.width || (marked[f.left] = f.width);
+                }
+
+                function totalMarked() {
+                    let keys = [];
+                    for (let key in marked) {
+                        keys.push(key);
+                    }
+                    keys = keys.sort(function(a, b) { return +a - +b; });
+                    console.log('keys: ', keys);
+                    let total = 0;
+                    let left = 0;
+                    for (let x of keys) {
+                        console.log(x, marked[x]);
+                        let right = +x + marked[x];
+                        console.log(left, ' |', right, '| ', total);
+                        if (right > left) {
+                            total += right - Math.max(left, x);
+                            left = right;
+                        }
+                    }
+                    console.log('total: ', total);
+                    return total;
+                }
+
+                const newLabels = [flamegraph];
+
+                function drawFrame(level, index, y, alpha) {
+                    const f = frame({level: level, index: index})
+
+                    if (!visible(f)) {
+                        return
+                    }
+
+                    if (f.left < x1 && f.left + f.width > x0) {
+                        const [rx, rw] = rectCanvasPosition(f, frame(root));
+
+                        c.fillStyle = pattern && f.title.match(pattern) && mark(f)
+                            ? '#ee00ee'
+                            : (diff ? diffcolor(f, frame(root)) : f.color);
+                        c.fillRect(rx, y, rw, BLOCK_HEIGHT);
+
+                        if (rw >= charWidth * 3 + 6 && textLabelCount < MAX_TEXT_LABELS) {
+                            const chars = Math.floor((f.width * px - 6) / charWidth);
+                            const title = f.title.length <= chars ? f.title : f.title.substring(0, chars - 2) + '..';
+                            // c.fillStyle = '#000000';
+                            // c.fillText(title, Math.round(rx + 3), Math.round(y + (charHeight + BLOCK_HEIGHT) / 2));
+                            const label = drawLabel(title, rx, y, rw, alpha ? 0.5 : 1);
+                            newLabels.push(label);
+                            textLabelCount += 1;
+                        }
+
+                        if (alpha) {
+                            c.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                            c.fillRect(rx, y, rw, BLOCK_HEIGHT);
+                        }
+                    }
+                }
+
+                for (let h = 0; h < levels.length; h++) {
+                    const y = reverse ? h * LEVEL_HEIGHT : canvasHeight - (h + 1) * LEVEL_HEIGHT;
+                    for (let i = 0; i < levels[h][0].length; i++) {
+                        drawFrame(h, i, y, h < root.level);
+                    }
+                }
+
+                labels?.replaceChildren(...newLabels);
+
+                console.log('Text labels: ', textLabelCount);
+
+                return totalMarked();
+            }
+
+            const HUGENUM_SUFFIXES = ["", "K", "M", "G", "T", "P", "E"]
+
+            function hugenum(num) {
+                let index = 0;
+                while (num > 1e3 && index < HUGENUM_SUFFIXES.length) {
+                    num /= 1e3;
+                    index += 1;
+                }
+                if (index == 0) {
+                    return num;
+                }
+                return num.toFixed(3) + HUGENUM_SUFFIXES[index];
+            }
+
+            function render(newRoot) {
+                let start = performance.now();
+                let res = renderImpl(newRoot)
+                let finish = performance.now();
+                console.log('Rendered flamegraph in ', finish - start, 'ms')
+                return res
+            }
+
+            canvas.onmousemove = function() {
+                const h = Math.floor((reverse ? event.offsetY : (canvasHeight - event.offsetY)) / LEVEL_HEIGHT);
+                if (h >= 0 && h < levels.length) {
+                    const pos = findFrame(levels[h], event.offsetX / px + frame(root).left);
+                    if (pos !== null) {
+                        let f = frame({level: h, index: pos});
+                        if (visible(f)) {
+                            const [left, width] = rectCanvasPosition(f, frame(root));
+                            hl.style.left = (left + canvas.offsetLeft) + 'px';
+                            hl.style.width = width + 'px';
+
+                            hl.style.top = ((reverse ? h * LEVEL_HEIGHT : canvasHeight - (h + 1) * LEVEL_HEIGHT) + canvas.offsetTop) + 'px';
+                            hl.firstChild.textContent = f.title;
+                            hl.style.display = 'block';
+
+                            const title = f.title + '\n(' + hugenum(f.eventCount) + ' {{.EventType}}, ' + hugenum(f.sampleCount) + ' samples, ' + pct(f.eventCount, frame(root).eventCount) + '%';
+                            if (diff) {
+                                let delta = 0;
+                                if (frame(root).baseEventCount > 1e-3) {
+                                    delta = f.eventCount / frame(root).eventCount - f.baseEventCount / frame(root).baseEventCount;
+                                } else {
+                                    delta = f.eventCount / frame(root).eventCount;
+                                }
+                                canvas.title = title + ', ' + (delta >= 0.0 ? '+' : '') + (delta * 100).toFixed(2) + '%)';
+                            } else {
+                                canvas.title = title + ')';
+                            }
+                            canvas.style.cursor = 'pointer';
+                            canvas.onclick = function() {
+                                if (f != root) {
+                                    render({level: h, index: pos});
+                                    canvas.onmousemove();
+                                }
+                            };
+                            status.textContent = 'Function: ' + canvas.title;
+                            return;
+                        }
+                    }
+                }
+                canvas.onmouseout();
+            }
+
+            canvas.onmouseout = function() {
+                hl.style.display = 'none';
+                status.textContent = '\xa0';
+                canvas.title = '';
+                canvas.style.cursor = '';
+                canvas.onclick = '';
+            }
+
+            document.getElementById('reverse').onclick = function() {
+                reverse = !reverse;
+                render();
+            }
+
+            document.getElementById('search').onclick = function() {
+                search(true);
+            }
+
+            document.getElementById('reset').onclick = function() {
+                search(false);
+            }
+
+            window.onkeydown = function() {
+                if (event.ctrlKey && event.key == "f") {
+                    event.preventDefault();
+                    search(true);
+                } else if (event.key == "Escape") {
+                    search(false);
+                }
+            }
+
+            {{ $diff := .Diff }}
+            diff ={{.Diff}};
+            levels = {{.HandRenderedFrameLevels}}
+            strtab = [{{- range .Strings}}"{{.}}",{{- end}}]
+
+            render();
+
+
+            window.addEventListener('resize',  () => requestAnimationFrame(() => {
+                canvas.style.width = '100%';
+                initCanvas();
+                render(root);
+            }))
+</script></body></html>

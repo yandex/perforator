@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "perforator.fullname" . }}-agent-config
+  namespace: {{ .Release.Namespace }}
+data:
+{{- if .Values.agent.config.useCustom }}  
+  config.yaml: |- {{- tpl .Values.agent.config.custom . | nindent 4 }}
+{{- else }}
+  config.yaml: |- {{- tpl (.Files.Get "config/agent.yaml") . | nindent 4 }}
+{{- end }}
+  

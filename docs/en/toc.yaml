@@ -1,0 +1,65 @@
+title: Perforator
+href: index.md
+items:
+  - name: Tutorials
+    labeled: true
+    items:
+    - name: Optimizing Python applications
+      href: tutorials/python-profiling.md
+  - name: How-to guides
+    labeled: true
+    items:
+    - name: Building Perforator
+      href: guides/build.md
+    - name: CLI
+      items:
+        - name: Install and Configure Perforator CLI
+          href: howto/cli/install.md
+        - name: List Services
+          href: howto/cli/list_services.md
+        - name: List Profiles
+          href: howto/cli/list_profiles.md
+        - name: Fetch Profile
+          href: howto/cli/fetch.md
+        - name: Collect Profile Locally
+          href: howto/cli/record.md
+        - name: Set up Microscope
+          href: howto/cli/microscope.md
+    - name: Profiling JVM applications
+      href: guides/jvm.md
+    - name: Using Perforator for continuous profile-guided optimization (PGO)
+      href: guides/autofdo.md
+    - name: Migrating database schema
+      href: guides/migrate-schema.md
+  - name: Reference
+    labeled: true
+    items:
+    - name: Querylang
+      href: reference/querylang.md
+    - name: Perfmap-based symbolization
+      href: reference/perfmap.md
+    - name: Databases
+      href: reference/database.md
+    - name: Language support
+      items:
+      - name: Python
+        items:
+          - name: Profiling
+            items:
+              - name: Overview
+                href: reference/language-support/python/profiling.md
+              - name: Parsing Python ELF
+                href: reference/language-support/python/parse_elf.md
+              - name: Current thread state
+                href: reference/language-support/python/threadstate.md
+              - name: Stack unwinding
+                href: reference/language-support/python/stack-unwinding.md
+              - name: Symbolization
+                href: reference/language-support/python/symbolization.md
+          - name: Python stack vs Native stack
+            href: reference/language-support/python/merging.md
+      - name: JVM-based languages
+        href: reference/language-support/java.md
+    - name: Microscope
+      href: reference/microscope.md
+

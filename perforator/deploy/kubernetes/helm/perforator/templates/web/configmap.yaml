@@ -1,0 +1,13 @@
+{{- if .Values.web.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "perforator.fullname" . }}-web-config
+  namespace: {{ .Release.Namespace }}
+data:  
+{{- if .Values.web.config.useCustom }}  
+  config.yaml: |- {{- tpl .Values.web.config.custom . | nindent 4 }}
+{{- else }}
+  config.yaml: |- {{- tpl (.Files.Get "config/web.yaml") . | nindent 4 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,22 @@
+.page-container {
+    --page-heading-font-size: var(--g-text-header-2-font-size);
+    --page-heading-line-height: var(--g-text-header-2-line-height);
+
+    --page-heading-height: var(--page-heading-line-height);
+    --page-padding-horizontal: var(--g-spacing-3);
+    --page-padding-top: var(--g-spacing-4);
+    --page-padding-bottom: 40px;
+
+    .page {
+        padding: var(--page-padding-top) var(--page-padding-horizontal) var(--page-padding-bottom);
+        position: relative;
+    }
+}
+
+.page-container.page-container_embed {
+    --page-padding-top: var(--g-spacing-1);
+
+    .gn-aside-header__content {
+        width: 100%;
+    }
+}

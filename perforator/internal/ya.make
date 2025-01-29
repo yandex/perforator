@@ -1,0 +1,11 @@
+RECURSE(
+    asyncfilecache
+    asynctask
+    buildinfo
+    linguist
+    offline_processing
+    symbolizer
+    unwinder
+    web
+    xmetrics
+)

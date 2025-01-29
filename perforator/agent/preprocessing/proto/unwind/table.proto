@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package NPerforator.NBinaryProcessing.NUnwind;
+
+option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/unwind";
+
+// Important rules we want to support for x86-64:
+// RA: [CFA-8]
+
+// CFA: RSP+s32
+// CFA: RBP+s32
+// CFA: <reg>+s32
+// CFA: *(rsp + s16) + s8 (hand-written in openssl/asm/linux/crypto)
+// CFA: *(rsp + 8 + r9 << 3) + 8 (hand-written in openssl/asm/linux/crypto)
+// CFA: reg7 + 8 + (((reg16 & 0xf) >= 0xb) << 3) (hand-written in .plt section)
+
+message UnwindRule {
+    message Unsupported {
+    }
+
+    // RA rules:
+    message CFAMinus8 {
+    }
+
+    message CFAPlusOffset {
+        sint32 offset = 1;
+    }
+
+    message Constant {
+        sint32 value = 1;
+    }
+
+    // CFA rules:
+    message RegisterPlusOffset {
+        uint32 register = 1;
+        sint32 offset = 2;
+    }
+
+    message RegisterDerefOffset {
+        uint32 register = 1;
+        sint32 offset = 2;
+        sint32 bias = 3;
+    }
+
+    message PLTSection {
+    }
+
+    oneof Kind {
+        Unsupported unsupported = 1;
+        CFAMinus8 cfa_minus8 = 2;
+        CFAPlusOffset cfa_plus_offset = 3;
+        RegisterPlusOffset register_offset = 4;
+        RegisterDerefOffset register_deref_offset = 5;
+        PLTSection plt_section = 6;
+        Constant constant = 7;
+    }
+
+    bool dereference = 100;
+}
+
+message UnwindTable {
+    // Index of the unique unwind rules used in the table.
+    repeated UnwindRule dict = 1;
+
+    // Addresses of the pc from the start.
+    //
+    // The addresses must be sorted and delta-encoded.
+    // See NPerforator::NBinaryProcessing::NUnwind::IntegrateUnwindTable.
+    repeated uint64 start_pc = 2;
+
+    // Number of bytes covered by the rule.
+    // Length of the array must be equal to the length of the @start_pc array.
+    repeated uint64 pc_range = 3;
+
+    // Index of the CFA rule in the dict.
+    // Length of the array must be equal to the length of the @start_pc array.
+    repeated uint32 cfa = 4;
+
+    // Index of the RBP rule in the dict.
+    // Length of the array must be equal to the length of the @start_pc array.
+    repeated uint32 rbp = 5;
+
+    // Index of the RA rule in the dict.
+    // Length of the array must be equal to the length of the @start_pc array.
+    repeated uint32 ra = 6;
+}

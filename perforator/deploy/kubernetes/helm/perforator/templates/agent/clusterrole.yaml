@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "perforator.fullname" . }}-pod-lister
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - nodes/log
+  - nodes/metrics
+  - nodes/proxy
+  - nodes/spec
+  - nodes/stats
+  verbs: ["get", "watch", "list"]

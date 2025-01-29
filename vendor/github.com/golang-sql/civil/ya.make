@@ -1,0 +1,11 @@
+GO_LIBRARY()
+
+LICENSE(Apache-2.0)
+
+VERSION(v0.0.0-20220223132316-b832511892a9)
+
+SRCS(
+    civil.go
+)
+
+END()

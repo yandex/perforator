@@ -1,0 +1,17 @@
+.hotkey {
+    display: inline-block;
+    margin-left: var(--g-spacing-2);
+    padding: 1px 4px;
+    position: relative;
+    top: -1px;
+
+    .g-hotkey__plus {
+        color: var(--g-color-text-brand-contrast);
+        opacity: .5;
+    }
+}
+
+.hotkey, .hotkey kbd {
+    font-size: 9px;
+    line-height: 13px;
+}

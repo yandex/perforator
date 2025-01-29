@@ -1,0 +1,7 @@
+.user-link__avatar {
+    --avatar-size: 32px;
+
+    border-radius: 50%;
+    height: var(--avatar-size);
+    width: var(--avatar-size);
+}

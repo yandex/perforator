@@ -1,0 +1,8 @@
+<clickhouse>
+    <macros>
+        <replica>clickhouse</replica>
+        <shard>01</shard>
+        <database>perforator</database>
+        <table>profiles</table>
+    </macros>
+</clickhouse>

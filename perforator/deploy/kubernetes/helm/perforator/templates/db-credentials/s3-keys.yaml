@@ -1,0 +1,10 @@
+{{- if (and .Values.databases.s3.secretKey .Values.databases.s3.accessKey) -}}
+apiVersion: v1
+data:
+  secret_key.txt: {{ .Values.databases.s3.secretKey | b64enc | quote }}
+  access_key.txt: {{ .Values.databases.s3.accessKey | b64enc | quote }}
+kind: Secret
+metadata:
+  name: {{ include "perforator.fullname" . }}-storage-s3-keys
+  namespace: {{ .Release.Namespace }}
+{{- end -}}

@@ -1,0 +1,2 @@
+docker-compose файл, который поднимает postgres, minio с бакетами, clickhouse с clickhouse keeper.
+Миграции накатываются с помощью нашей утилиты migrate, пока для запуска нужно собирать и класть бинарник в папку migrate.

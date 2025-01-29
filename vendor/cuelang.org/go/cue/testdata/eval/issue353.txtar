@@ -1,0 +1,42 @@
+-- in.cue --
+e: #Example
+
+e: a: "hello"
+
+#Example: {
+	a: string
+	{
+		value?: string
+	} | {
+		externalValue?: string
+	}
+}
+-- out/eval --
+(struct){
+  e: (#struct){ |((#struct){
+      a: (string){ "hello" }
+    }, (#struct){
+      a: (string){ "hello" }
+    }) }
+  #Example: (#struct){ |((#struct){
+      a: (string){ string }
+    }, (#struct){
+      a: (string){ string }
+    }) }
+}
+-- out/compile --
+--- in.cue
+{
+  e: 〈0;#Example〉
+  e: {
+    a: "hello"
+  }
+  #Example: {
+    a: string
+    ({
+      value?: string
+    }|{
+      externalValue?: string
+    })
+  }
+}

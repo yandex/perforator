@@ -1,0 +1,327 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2024 Yandex LLC. All Rights Reserved.
+
+// Profile is a common stacktrace profile format.
+// On-disk, the serialized proto should be zstd-compressed.
+//
+// This format is a significant, non-backward-compatible rewrite
+// of Google's original pprof profile.proto.
+//
+// Key differences from pprof:
+//
+// 1. Time-ordered samples support via Samples.SampleTimestamps.
+//
+// 2. Aggresive entity deduplication for stacks, threads, sample keys, etc.
+// Significantly reduces memory footprint.
+//
+// 3. Compact entity IDs instead of arbitrary ones. pprof supports arbitrary
+// entity IDs (e.g., Location.id as an address inside process address space)
+// requiring consumers to build ID->entity hash tables. This format requires
+// sequential IDs. For example, function name with ID 1337 must be defined
+// at Function.name[1337].
+//
+// 4. Structure-of-arrays instead of array-of-structures. This approach greatly
+// reduces amount of allocations from O(samples) to O(1) and simplifies profile
+// parsing. Uses array flattening for nested arrays - instead of
+// two-dimensional array we use two one-dimensional arrays: offsets and values.
+// See SampleLabels message for an example of a flattened array.
+//
+// 5. Multiple stacks per sample for different contexts & languages. This
+// reduces unique stack count. For example, kernel interrupt stacks are
+// not correlated with their userspace parts.
+//
+// 6. 32-bit entity IDs. Since Protobuf has 2GiB message size limit, there is
+// no need to use wider integers. This reduces parsed message size.
+// See: https://protobuf.dev/programming-guides/proto-limits/#total
+//
+// 7. buildid+offset address representation, as addr2line and other tools expect.
+// Offset represents address in binary virtual address space. In contrast, pprof
+// stores locations as addresses inside process address space backed by auxiliary
+// list of mappings. This adds additional complexity when deadling with ASRL,
+// and greatly complicates symbolization process: we need to parse executable
+// file to map process address space to the binary address space.
+// See https://github.com/google/pprof/blob/40e02aabc2ad57b2edbe892564a0730aa40b1e50/internal/elfexec/elfexec.go#L310.
+//
+// Our benchmarks show that a sample profile (~200MiB uncompresssed) converted
+// from pprof to the new format can be parsed 8x faster and consumes 10x less
+// memory when using C++ protobuf runtime.
+
+syntax = "proto3";
+
+package NPerforator.NProto.NProfile;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/profile";
+
+import "google/protobuf/timestamp.proto";
+
+// SampleStacks represents the stack trace information for a sample.
+message SampleStacks {
+    // IDs of user space stacks. References Profile.Stacks.
+    repeated uint32 user_stack_id = 1;
+    // IDs of kernel space stacks. References Profile.Stacks.
+    repeated uint32 kernel_stack_id = 2;
+    // TODO(sskvor): Per-language stacks. enum or string for language id?
+}
+
+// ValueType describes the semantics and measurement units of a value.
+message ValueType {
+    // Type of the value. References Profile.StringTable.
+    uint32 type = 1;
+    // Measurement unit. References Profile.StringTable.
+    uint32 unit = 2;
+}
+
+// SampleValues contains the actual measurements for a sample.
+message SampleValues {
+    // Type and unit of the measurements.
+    ValueType type = 1;
+    // Array of measured values for each sample.
+    repeated uint64 value = 2;
+}
+
+// SampleThreads contains thread information for samples.
+message SampleThreads {
+    // IDs of threads where samples were taken. References Profile.Threads.
+    repeated uint32 thread_id = 1;
+}
+
+// SampleLabels stores labels associated with samples.
+//
+// NOTE: Each sample can reference multiple labels.
+// In order to handle this without nested arrays,
+// we use two-level structure. First array (first_label_id) is indexed
+// with sample ids and contains offsets into second array – packed_label_id.
+// So, sample[i] label IDs are stored in subslice
+// packed_label_id[first_label_id[i] : first_label_id[i+1]].
+//
+// We use this technique extensively to keel number of allocations
+// that are required to parse a profile constant.
+message SampleLabels {
+    // Index of the first sample label inside packed_label_id array.
+    repeated uint32 first_label_id = 1;
+    // Packed label IDs where each element is (label_id << 1) | (is_number ? 1 : 0).
+    repeated uint32 packed_label_id = 2;
+}
+
+// SampleTimestamps contains timing information for samples.
+message SampleTimestamps {
+    // Start time of sampling.
+    google.protobuf.Timestamp start_timestamp = 1;
+    // Time differences between sample time and start_timestamp in nanoseconds.
+    repeated int64 delta_nanoseconds = 2;
+}
+
+// Samples represents all collected profile samples.
+message Samples {
+    // References to sample keys in Profile.SampleKeys.
+    repeated uint32 key = 1;
+    // Measured values for each sample.
+    repeated SampleValues values = 2;
+    // Optional timing information.
+    optional SampleTimestamps timestamps = 3;
+}
+
+// SampleKeys groups all metadata about samples.
+message SampleKeys {
+    // Sample stack traces.
+    SampleStacks stacks = 1;
+    // Labels associated with samples.
+    SampleLabels labels = 2;
+    // Process & thread information.
+    SampleThreads threads = 3;
+}
+
+// Stacks represents call stack information.
+// Stacks are expected to be stored in non-natural order:
+// First stack address is the most nested one.
+message Stacks {
+    // Offsets into address_id array for each stack
+    repeated uint32 offset = 1;
+    // IDs of frames in each stack. References Profile.StackFrames.
+    repeated uint32 frame_id = 2;
+}
+
+// StackFrames contains information about individual frames in stacks.
+message StackFrames {
+    // IDs of binaries containing the stack frame.
+    repeated uint32 binary_id = 1;
+    // Offsets within respective binaries.
+    repeated int64 binary_offset = 2;
+    // IDs of inline function chains.
+    // Inline chain is a result of symbolization,
+    // so inline_chain_id is expected to be zero for non-symbolized addresses.
+    repeated uint32 inline_chain_id = 3;
+}
+
+// InlineChains represents chains of probably inlined source locations.
+// One binary address often maps to multiple nested source locations due
+// to inlining.
+//
+// Inside one chain, frames are stored bottom-up (leaf-to-root) order.
+// For example, if printf calls memcpy and memcpy call is inlined into printf,
+// the first frame inside inlining chain should reference memcpy and the last
+// one should reference printf.
+message InlineChains {
+    // Offsets into line arrays.
+    repeated uint32 offset = 1;
+    // IDs of functions in the chain. References Profile.functions.
+    repeated uint32 function_id = 2;
+    // Source code lines.
+    repeated uint32 line = 3;
+    // Source code columns.
+    repeated uint32 column = 4;
+}
+
+// Functions contains information about program functions.
+message Functions {
+    // Function names. References Profile.strtab.
+    repeated uint32 name = 1;
+    // System-level names. References Profile.strtab.
+    repeated uint32 system_name = 2;
+    // Source file names. Rreferences Profile.strtab.
+    repeated uint32 filename = 3;
+    // Starting line numbers in source files.
+    repeated uint32 start_line = 4;
+}
+
+// Binaries represents executable files or shared libraries.
+message Binaries {
+    // Build IDs of binaries. References Profile.strtab.
+    repeated uint32 build_id = 1;
+    // Filesystem paths to binaries. References Profile.strtab.
+    repeated uint32 path = 2;
+}
+
+// Threads contains information about processes and threads
+message Threads {
+    // Process identifiers.
+    repeated uint32 process_id = 1;
+    // Thread identifiers.
+    repeated uint32 thread_id = 2;
+    // Process names. References Profile.strtab.
+    repeated uint32 process_name = 3;
+    // Thread names. References Profile.strtab.
+    repeated uint32 thread_name = 4;
+    // Offsets into container names flattened array.
+    repeated uint32 container_offset = 5;
+    // Container names. References Profile.strtab.
+    repeated uint32 container_names = 6;
+}
+
+// StringTable implements efficient string storage.
+message StringTable {
+    // Concatenated strings data.
+    // For better compression, individual strings should be sorted, if possible.
+    // There should be no null terminators between strings.
+    bytes strings = 1;
+    // Starting positions of strings in the data.
+    repeated uint32 offset = 2;
+    // Lengths of individual strings.
+    repeated uint32 length = 3;
+}
+
+// StringLabels represents key-value pairs where values are strings.
+message StringLabels {
+    // Label keys. References Profile.strtab.
+    repeated uint32 key = 1;
+    // Label values. References Profile.strtab.
+    repeated uint32 value = 2;
+}
+
+// NumberLabels represents key-value pairs where value are numbers.
+message NumberLabels {
+    // Label keys. References Profile.strtab.
+    repeated uint32 key = 1;
+    // Label values.
+    repeated int64 value = 2;
+}
+
+// Labels groups all profile labels.
+message Labels {
+    // String-type labels.
+    StringLabels strings = 1;
+    // Numeric-type labels.
+    NumberLabels numbers = 2;
+}
+
+// Comments stores profile-level comments.
+message Comments {
+    // Comment strings. References Profile.strtab.
+    repeated uint32 comment = 1;
+}
+
+// Features contains profile-wide feature flags.
+message Features {
+    // If true, addresses in binary_addresses should be adjusted by
+    // p_vaddr value of the first PT_LOAD ELF program header.
+    //
+    // pprof stores process mappings instead of binaries, and it is pretty
+    // difficult to handle them correctly. pprof tries to handle this using a
+    // few heuristics on the symbolization side. For example,
+    // https://github.com/google/pprof/blob/main/internal/binutils/binutils.go#L592.
+    //
+    // We take different approach. Each address inside Profile.addresses is
+    // defined as buildID+offset, where offset is an address inside address
+    // space of the binary. This allows us to simlify symbolization.
+    bool has_skewed_binary_offsets = 1;
+}
+
+// Metadata contains profile-wide metadata
+message Metadata {
+    // Host where profile was collected. References Profile.strtab.
+    int64 hostname = 1;
+    // Profile collection timestamp (UTC).
+    google.protobuf.Timestamp timestamp = 2;
+    // Profile duration in nanoseconds.
+    int64 duration_nanoseconds = 3;
+    // Type of events being sampled (e.g., "cpu,cycles" or "heap,bytes").
+    ValueType period_type = 4;
+    // Sampling period specification.
+    oneof period_value {
+        // Number of events between samples.
+        int64 period = 5;
+        // Samples per second.
+        int64 frequency = 6;
+    }
+    // Preferred sample value type. References Profile.strtab.
+    // Defaults to last sample value if unset.
+    int64 default_sample_type = 7;
+}
+
+// Profile is the root message containing all profile data.
+message Profile {
+    // String table for storing all strings used in the profile.
+    StringTable strtab = 1;
+
+    // Core profile components with their dependencies:
+    //
+    // samples -> [keys]
+    Samples samples = 2;
+    // sample_keys -> [stacks, labels*, threads]
+    SampleKeys sample_keys = 3;
+    // stacks -> [stack_frames*]
+    Stacks stacks = 4;
+    // stack_frames -> [binaries, inline_chains]
+    StackFrames stack_frames = 5;
+    // inline_chains -> [functions*]
+    InlineChains inline_chains = 6;
+    // functions -> []
+    Functions functions = 7;
+    // functions -> []
+    Binaries binaries = 8;
+    // functions -> []
+    Threads threads = 9;
+    // labels -> []
+    Labels labels = 10;
+
+    // Additional profile metadata.
+    // Comments are for informational purposes only and
+    // must not affect the interpretation of the profile.
+    Comments comments = 101;
+    // Profile feature flags.
+    // They can affect the profile interpretation
+    // and can be used to implement graceful migrations.
+    Features features = 102;
+    // Optional profile metadata.
+    optional Metadata metadata = 103;
+}

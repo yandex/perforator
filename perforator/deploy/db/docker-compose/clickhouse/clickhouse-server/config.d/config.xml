@@ -1,0 +1,35 @@
+<clickhouse>
+    <http_port>8123</http_port>
+    <tcp_port>9000</tcp_port>
+    <https_port>8443</https_port>
+    <tcp_port_secure>9440</tcp_port_secure>
+    <listen_host>0.0.0.0</listen_host>
+    <openSSL>
+        <server>
+        <certificateFile>/etc/clickhouse-server/certs/server.crt</certificateFile>
+        <privateKeyFile>/etc/clickhouse-server/certs/server.key</privateKeyFile>
+        <verificationMode>relaxed</verificationMode>
+        <caConfig>/etc/clickhouse-server/certs/ca.crt</caConfig>
+        <dhParamsFile>/etc/clickhouse-server/certs/dhparam.pem</dhParamsFile>
+        <cacheSessions>true</cacheSessions>
+        <disableProtocols>sslv2,sslv3,tlsv1</disableProtocols>
+        <preferServerCiphers>true</preferServerCiphers>
+        </server>
+    </openSSL>
+    <remote_servers>
+        <ontime_cluster>
+            <shard>
+                <replica>
+                    <host>clickhouse</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </ontime_cluster>
+    </remote_servers>
+    <zookeeper>
+        <node>
+            <host>clickhouse-keeper</host>
+            <port>9181</port>
+        </node>
+    </zookeeper>
+</clickhouse>

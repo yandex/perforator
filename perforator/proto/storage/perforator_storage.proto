@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+import "perforator/proto/pprofprofile/profile.proto";
+
+package NPerforator.NProto;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/storage";
+
+service PerforatorStorage {
+    rpc PushProfile(PushProfileRequest) returns (PushProfileResponse) {}
+
+    rpc AnnounceBinaries(AnnounceBinariesRequest) returns (AnnounceBinariesResponse) {}
+    rpc PushBinary(stream PushBinaryRequest) returns (PushBinaryResponse) {}
+}
+
+message PushProfileRequest {
+    oneof ProfileRepresentation {
+        // attributes are passed in profile.proto comments field
+        NPProf.Profile Profile = 1;
+        bytes ProfileBytes = 2;
+    }
+    map<string, string> Labels = 10;
+    // IDs of the binaries that contributed to the profile.
+    repeated string BuildIDs = 11;
+
+    // Environment variables from all samples.
+    repeated string Envs = 12;
+
+    // Event types of all the samples in the profile, for example "cpu.cycles" or "wall.seconds"
+    repeated string EventTypes = 13;
+}
+
+message PushProfileResponse {
+    string ID = 1;
+}
+
+message AnnounceBinariesRequest {
+    repeated string AvailableBuildIDs = 1;
+}
+
+message AnnounceBinariesResponse {
+    repeated string UnknownBuildIDs = 1;
+}
+
+message PushBinaryRequestHead {
+    string BuildID = 1;
+}
+
+message PushBinaryRequestBody {
+    bytes Binary = 1;
+}
+
+message PushBinaryRequest {
+    oneof Chunk {
+        PushBinaryRequestHead HeadChunk = 1;
+        PushBinaryRequestBody BodyChunk = 2;
+    }
+}
+
+message PushBinaryResponse {}
+
+message PushUnwindTableRequest {
+    string BuildID = 1;
+    bytes UnwindTable = 2;
+}
+
+message PushUnwindTableResponse {}
+
+message GetUnwindTableRequest {
+    string BuildID = 1;
+}
+
+message GetUnwindTableResponse {
+    bytes UnwindTable = 1;
+}

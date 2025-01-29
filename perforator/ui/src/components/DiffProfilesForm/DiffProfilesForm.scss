@@ -1,0 +1,19 @@
+.diff-profiles-form__list {
+    display: flex;
+    gap: 4px;
+    &-item {
+        position: relative;
+        flex-grow: 1;
+        width: 50%;
+    }
+}
+
+.diff-profiles-form__button {
+    width: 100%;
+}
+
+.diff-profiles-form__spacer_vertical {
+    background: var(--g-color-line-generic);
+    width: 1px;
+    margin: var(--g-spacing-4) var(--g-spacing-2);
+}

@@ -1,0 +1,162 @@
+// Issue #852
+
+-- in.cue --
+#E: {
+	c: int
+}
+#A: {
+	b: int
+	q: {
+		#E
+		d: int
+	}
+}
+a: #A & {
+	b: 3
+	q: {
+		c: 2
+		e: 43
+	}
+}
+
+// `a` is evaluated through the comprehension first. Ensure that
+// this does not bypass closedness checks.
+issue852: {
+	#A: {
+		[=~"^a-z$"]: string
+	}
+
+	a: #A
+
+	a: Foo: "foo"
+
+	for k, v in a {
+		b: "\(k)": v
+	}
+}
+
+dynamic: {
+	#D: {
+		key:   "foo"
+		(key): int
+	}
+	d: #D & {foo: 3}
+}
+-- out/eval --
+Errors:
+a.q: field not allowed: e:
+    ./in.cue:1:5
+    ./in.cue:6:5
+    ./in.cue:7:3
+    ./in.cue:11:4
+    ./in.cue:15:3
+issue852.a: field not allowed: Foo:
+    ./in.cue:30:14
+    ./in.cue:22:6
+    ./in.cue:26:5
+    ./in.cue:28:5
+
+Result:
+(_|_){
+  // [eval]
+  #E: (#struct){
+    c: (int){ int }
+  }
+  #A: (#struct){
+    b: (int){ int }
+    q: (#struct){
+      c: (int){ int }
+      d: (int){ int }
+    }
+  }
+  a: (_|_){
+    // [eval]
+    b: (int){ 3 }
+    q: (_|_){
+      // [eval]
+      c: (int){ 2 }
+      d: (int){ int }
+      e: (_|_){
+        // [eval] a.q: field not allowed: e:
+        //     ./in.cue:1:5
+        //     ./in.cue:6:5
+        //     ./in.cue:7:3
+        //     ./in.cue:11:4
+        //     ./in.cue:15:3
+      }
+    }
+  }
+  issue852: (_|_){
+    // [eval] issue852.a: field not allowed: Foo:
+    //     ./in.cue:30:14
+    //     ./in.cue:22:6
+    //     ./in.cue:26:5
+    //     ./in.cue:28:5
+    #A: (#struct){
+    }
+    a: (_|_){
+      // [eval]
+      Foo: (_|_){
+        // [eval] issue852.a: field not allowed: Foo:
+        //     ./in.cue:30:14
+        //     ./in.cue:22:6
+        //     ./in.cue:26:5
+        //     ./in.cue:28:5
+      }
+    }
+  }
+  dynamic: (struct){
+    #D: (#struct){
+      key: (string){ "foo" }
+      foo: (int){ int }
+    }
+    d: (#struct){
+      key: (string){ "foo" }
+      foo: (int){ 3 }
+    }
+  }
+}
+-- out/compile --
+--- in.cue
+{
+  #E: {
+    c: int
+  }
+  #A: {
+    b: int
+    q: {
+      〈2;#E〉
+      d: int
+    }
+  }
+  a: (〈0;#A〉 & {
+    b: 3
+    q: {
+      c: 2
+      e: 43
+    }
+  })
+  issue852: {
+    #A: {
+      [=~"^a-z$"]: string
+    }
+    a: 〈0;#A〉
+    a: {
+      Foo: "foo"
+    }
+    for k, v in 〈0;a〉 {
+      b: {
+        "\(〈2;k〉)": 〈2;v〉
+      }
+    }
+  }
+  dynamic: {
+    #D: {
+      key: "foo"
+      〈0;key〉: int
+    }
+    d: (〈0;#D〉 & {
+      foo: 3
+    })
+  }
+}

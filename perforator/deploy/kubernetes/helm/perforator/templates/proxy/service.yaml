@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "perforator.proxy.service.name" . }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.proxy.selectorLabels" . | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.proxy.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.proxy.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.proxy.service.type }}
+  {{- with .Values.proxy.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  ports:
+  - name: http
+    port: {{ .Values.proxy.service.ports.http.port }}
+    targetPort: http
+    {{- with .Values.proxy.service.ports.http.nodePort }}
+    nodePort: {{ . }}
+    {{- end }}
+  - name: grpc
+    port: {{ .Values.proxy.service.ports.grpc.port }}
+    targetPort: grpc
+    {{- with .Values.proxy.service.ports.grpc.nodePort }}
+    nodePort: {{ . }}
+    {{- end }}
+  {{- range .Values.proxy.service.ipFamilies }}
+  ipFamilies:
+    - {{ . }}
+  {{- end}}

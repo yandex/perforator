@@ -1,0 +1,272 @@
+-- in.cue --
+deployment: [string]: #Deployment
+
+deployment: foo: spec: replicas: 1
+
+#Deployment: {
+	#TypeMeta
+
+	spec: #Spec
+}
+
+#Spec: replicas: int
+
+#TypeMeta: {}
+
+recloseSimple: {
+	#foo: {}
+	a: {#foo} & {b: int}
+}
+
+// Reclosing
+reclose1: {
+	#D: {
+		x: int
+		y: int
+	}
+	#a: {
+		#D
+		b: {
+			c: int
+		}
+	}
+
+	z: #a.b
+	z: d: 3 // don't allow this
+}
+
+reclose2: {
+	#D: {
+		x: int
+		y: int
+	}
+	a: {
+		#D
+		b: {// keep open
+			c: int
+		}
+	}
+
+	z: a.b
+	z: d: 3 // allow this
+}
+
+reclose3: {
+	#Step: {
+		(#A | #B)
+		#Common
+	}
+	#Common: {
+		Name: string
+	}
+	#A: {
+		#Common
+		Something: int
+	}
+	#B: {
+		#Common
+		Else: int
+	}
+	x: #Step
+	x: #A & {
+		Name:      "a"
+		Something: 4
+	}
+}
+-- out/eval --
+Errors:
+reclose1.z: field not allowed: d:
+    ./in.cue:28:6
+    ./in.cue:33:5
+    ./in.cue:34:5
+recloseSimple.a: field not allowed: b:
+    ./in.cue:16:8
+    ./in.cue:17:5
+    ./in.cue:17:6
+    ./in.cue:17:15
+
+Result:
+(_|_){
+  // [eval]
+  deployment: (struct){
+    foo: (#struct){
+      spec: (#struct){
+        replicas: (int){ 1 }
+      }
+    }
+  }
+  #Deployment: (#struct){
+    spec: (#struct){
+      replicas: (int){ int }
+    }
+  }
+  #Spec: (#struct){
+    replicas: (int){ int }
+  }
+  #TypeMeta: (#struct){
+  }
+  recloseSimple: (_|_){
+    // [eval]
+    #foo: (#struct){
+    }
+    a: (_|_){
+      // [eval]
+      b: (_|_){
+        // [eval] recloseSimple.a: field not allowed: b:
+        //     ./in.cue:16:8
+        //     ./in.cue:17:5
+        //     ./in.cue:17:6
+        //     ./in.cue:17:15
+      }
+    }
+  }
+  reclose1: (_|_){
+    // [eval]
+    #D: (#struct){
+      x: (int){ int }
+      y: (int){ int }
+    }
+    #a: (#struct){
+      x: (int){ int }
+      y: (int){ int }
+      b: (#struct){
+        c: (int){ int }
+      }
+    }
+    z: (_|_){
+      // [eval]
+      c: (int){ int }
+      d: (_|_){
+        // [eval] reclose1.z: field not allowed: d:
+        //     ./in.cue:28:6
+        //     ./in.cue:33:5
+        //     ./in.cue:34:5
+      }
+    }
+  }
+  reclose2: (struct){
+    #D: (#struct){
+      x: (int){ int }
+      y: (int){ int }
+    }
+    a: (#struct){
+      x: (int){ int }
+      y: (int){ int }
+      b: (struct){
+        c: (int){ int }
+      }
+    }
+    z: (struct){
+      c: (int){ int }
+      d: (int){ 3 }
+    }
+  }
+  reclose3: (struct){
+    #Step: (#struct){ |((#struct){
+        Name: (string){ string }
+        Something: (int){ int }
+      }, (#struct){
+        Name: (string){ string }
+        Else: (int){ int }
+      }) }
+    #Common: (#struct){
+      Name: (string){ string }
+    }
+    #A: (#struct){
+      Name: (string){ string }
+      Something: (int){ int }
+    }
+    #B: (#struct){
+      Name: (string){ string }
+      Else: (int){ int }
+    }
+    x: (#struct){
+      Name: (string){ "a" }
+      Something: (int){ 4 }
+    }
+  }
+}
+-- out/compile --
+--- in.cue
+{
+  deployment: {
+    [string]: 〈1;#Deployment〉
+  }
+  deployment: {
+    foo: {
+      spec: {
+        replicas: 1
+      }
+    }
+  }
+  #Deployment: {
+    〈1;#TypeMeta〉
+    spec: 〈1;#Spec〉
+  }
+  #Spec: {
+    replicas: int
+  }
+  #TypeMeta: {}
+  recloseSimple: {
+    #foo: {}
+    a: ({
+      〈1;#foo〉
+    } & {
+      b: int
+    })
+  }
+  reclose1: {
+    #D: {
+      x: int
+      y: int
+    }
+    #a: {
+      〈1;#D〉
+      b: {
+        c: int
+      }
+    }
+    z: 〈0;#a〉.b
+    z: {
+      d: 3
+    }
+  }
+  reclose2: {
+    #D: {
+      x: int
+      y: int
+    }
+    a: {
+      〈1;#D〉
+      b: {
+        c: int
+      }
+    }
+    z: 〈0;a〉.b
+    z: {
+      d: 3
+    }
+  }
+  reclose3: {
+    #Step: {
+      (〈1;#A〉|〈1;#B〉)
+      〈1;#Common〉
+    }
+    #Common: {
+      Name: string
+    }
+    #A: {
+      〈1;#Common〉
+      Something: int
+    }
+    #B: {
+      〈1;#Common〉
+      Else: int
+    }
+    x: 〈0;#Step〉
+    x: (〈0;#A〉 & {
+      Name: "a"
+      Something: 4
+    })
+  }
+}

@@ -1,0 +1,15 @@
+ports:
+  http_port: {{ .Values.web.containerPorts.http }}
+  grpc_port: {{ .Values.web.containerPorts.grpc }} 
+  metrics_port: {{ .Values.web.containerPorts.metrics }} 
+s3:
+  endpoint: {{ .Values.databases.s3.endpoint }}
+  secret_key_path: "/etc/perforator/s3/secret_key.txt"
+  access_key_path: "/etc/perforator/s3/access_key.txt"
+  insecure: {{ .Values.databases.s3.insecure }}
+  force_path_style: {{ .Values.databases.s3.force_path_style }}	
+rendered_profiles:
+  bucket: {{ .Values.databases.s3.buckets.taskResults }}
+proxy_client:
+  http_host: {{ include "perforator.proxy.host.http" . }}
+  grpc_host: {{ include "perforator.proxy.host.grpc" . }}

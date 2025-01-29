@@ -1,0 +1,16 @@
+.query-language-editor {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+}
+
+.query-language-editor__wrapper {
+    border-radius: var(--g-border-radius-l);
+    border: 1px solid var(--g-color-line-generic);
+    overflow: hidden;
+    width: 100%;
+
+    .monaco-editor {
+        outline: none;
+    }
+}

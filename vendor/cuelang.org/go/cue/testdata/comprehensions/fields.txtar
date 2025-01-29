@@ -1,0 +1,83 @@
+Issue #560
+
+-- cue.mod/module.cue --
+module: "example.com"
+-- in.cue --
+import "strings"
+
+dynamic: {
+	for _, s in ["foo"] {
+		(s):       1
+		"\(s)bar": 2
+	}
+}
+
+issue560: {
+	#User: {
+		tags_str: string
+		tags_map: {
+			for k, v in strings.Split(tags_str, " ") {
+				"\(v)": string
+			}
+			"{a}": string
+		}
+	}
+
+	user: {
+		#User
+		tags_str: "b {c}"
+	}
+}
+-- out/eval --
+(struct){
+  dynamic: (struct){
+    foo: (int){ 1 }
+    foobar: (int){ 2 }
+  }
+  issue560: (struct){
+    #User: (#struct){
+      tags_str: (string){ string }
+      tags_map: (_|_){
+        // [incomplete] error in call to strings.Split: non-concrete value string:
+        //     ./in.cue:14:16
+        //     ./in.cue:12:13
+        "{a}": (string){ string }
+      }
+    }
+    user: (#struct){
+      tags_str: (string){ "b {c}" }
+      tags_map: (#struct){
+        "{a}": (string){ string }
+        b: (string){ string }
+        "{c}": (string){ string }
+      }
+    }
+  }
+}
+-- out/compile --
+--- in.cue
+{
+  dynamic: {
+    for _, s in [
+      "foo",
+    ] {
+      〈1;s〉: 1
+      "\(〈1;s〉)bar": 2
+    }
+  }
+  issue560: {
+    #User: {
+      tags_str: string
+      tags_map: {
+        for k, v in 〈import;strings〉.Split(〈1;tags_str〉, " ") {
+          "\(〈1;v〉)": string
+        }
+        "{a}": string
+      }
+    }
+    user: {
+      〈1;#User〉
+      tags_str: "b {c}"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{{- if and (.Values.gc.metrics.enabled) (.Values.gc.metrics.serviceMonitor.enabled) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "perforator.fullname" . }}-gc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.gc.selectorLabels" . | nindent 4 }}
+    {{- with .Values.gc.metrics.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.gc.metrics.serviceMonitor.jobLabel }}
+  jobLabel: {{ .Values.gc.metrics.serviceMonitor.jobLabel }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "perforator.selectorLabels" . | nindent 6 }}
+      {{- include "perforator.gc.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: metrics
+  endpoints:
+    - path: /metrics
+      port: metrics
+      {{- if .Values.gc.metrics.serviceMonitor.interval }}
+      interval: {{ .Values.gc.metrics.serviceMonitor.interval }}
+      {{- end }}
+      {{- if .Values.gc.metrics.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ .Values.gc.metrics.serviceMonitor.scrapeTimeout }}
+      {{- end }}
+      {{- if .Values.gc.metrics.serviceMonitor.relabelings }}
+      relabelings: {{- toYaml .Values.gc.metrics.serviceMonitor.relabelings | nindent 6 }}
+      {{- end }}
+      {{- if .Values.gc.metrics.serviceMonitor.metricRelabelings }}
+      metricRelabelings: {{- toYaml .Values.gc.metrics.serviceMonitor.metricRelabelings | nindent 6 }}
+      {{- end }}
+      {{- if .Values.gc.metrics.serviceMonitor.honorLabels }}
+      honorLabels: {{ .Values.gc.metrics.serviceMonitor.honorLabels }}
+      {{- end }}
+{{- end }}

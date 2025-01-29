@@ -1,0 +1,3 @@
+RECURSE(
+    s3testing
+)

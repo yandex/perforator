@@ -1,0 +1,2 @@
+ALTER TABLE profiles
+MATERIALIZE COLUMN expired;

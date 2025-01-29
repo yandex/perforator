@@ -1,0 +1,33 @@
+RECURSE(
+    atomicfs
+    certifi
+    clickhouse
+    debuginfod
+    disjointsegmentsets
+    endpointsetresolver
+    env
+    foreach
+    graceful
+    grpcutil
+    humantime
+    linux
+    maxprocs
+    mlock
+    must
+    polyheapprof
+    postgres
+    profile
+    profilequerylang
+    prototext
+    pubsub
+    s3
+    sampletype
+    sqlbuilder
+    storage
+    tls
+    tracing
+    weightedlru
+    xelf
+    xlog
+    xpflag
+)

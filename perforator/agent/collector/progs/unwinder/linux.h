@@ -1,0 +1,13 @@
+#pragma once
+
+#ifndef __LINUX_PAGE_CONSTANTS_HACK__
+#define __LINUX_PAGE_CONSTANTS_HACK__
+
+// Values for x86_64 as of 6.0.18-200.
+#define TOP_OF_KERNEL_STACK_PADDING 0
+#define THREAD_SIZE_ORDER 2
+#define PAGE_SHIFT 12
+#define PAGE_SIZE (1UL << PAGE_SHIFT)
+#define THREAD_SIZE (PAGE_SIZE << THREAD_SIZE_ORDER)
+
+#endif // __LINUX_PAGE_CONSTANTS_HACK__

@@ -1,0 +1,61 @@
+-- in.cue --
+{
+	#a: {b: 2.0, s: "abc"}
+	b: #a.b
+	c: #a.c
+	d: #a["d"]
+	e: #a.t[2:3]
+}
+-- out/def --
+#a: {
+	b: 2.0
+	s: "abc"
+}
+b: 2.0
+c: _|_ // undefined field "c"
+d: _|_ // undefined field "d"
+e: _|_ // undefined field "t"
+-- out/compile --
+--- in.cue
+{
+  {
+    #a: {
+      b: 2.0
+      s: "abc"
+    }
+    b: 〈0;#a〉.b
+    c: 〈0;#a〉.c
+    d: 〈0;#a〉["d"]
+    e: 〈0;#a〉.t[2:3]
+  }
+}
+-- out/eval --
+Errors:
+c: undefined field: c:
+    ./in.cue:4:8
+d: undefined field: d:
+    ./in.cue:5:8
+e: undefined field: t:
+    ./in.cue:6:8
+
+Result:
+(_|_){
+  // [eval]
+  #a: (#struct){
+    b: (float){ 2.0 }
+    s: (string){ "abc" }
+  }
+  b: (float){ 2.0 }
+  c: (_|_){
+    // [eval] c: undefined field: c:
+    //     ./in.cue:4:8
+  }
+  d: (_|_){
+    // [eval] d: undefined field: d:
+    //     ./in.cue:5:8
+  }
+  e: (_|_){
+    // [eval] e: undefined field: t:
+    //     ./in.cue:6:8
+  }
+}

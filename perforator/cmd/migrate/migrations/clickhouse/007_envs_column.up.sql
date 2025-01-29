@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS envs Array(String) CODEC(ZSTD(3))

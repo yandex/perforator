@@ -1,0 +1,109 @@
+.flamegraph {
+    --flamegraph-level-height: 20px;
+    --flamegraph-block-spacing: 1px;
+
+    font: 16px var(--flamegraph-font);
+
+    #profile {
+        // stylelint-disable-next-line color-named
+        color: black;
+        font-size: 16px;
+    }
+}
+
+.flamegraph__header, .flamegraph__annotations {
+    --flamegraph-button-height: 30px;
+
+    height: var(--flamegraph-button-height);
+    line-height: var(--flamegraph-button-height);
+    position: sticky;
+    top: 0;
+    left: 0;
+    background: var(--g-color-base-background);
+    z-index: 1;
+}
+
+.flamegraph__header {
+    margin-bottom: var(--g-spacing-2);
+    position: relative;
+}
+
+.flamegraph__title {
+    font-size: 1.1em;
+    font-weight: normal;
+    margin: 0;
+    text-align: center;
+}
+
+.flamegraph__buttons, .flamegraph__frames-count {
+    position: absolute;
+    top: 0;
+}
+
+.flamegraph__buttons {
+    left: 0;
+}
+
+.flamegraph__button {
+    margin-right: var(--g-spacing-3);
+}
+
+.flamegraph__frames-count {
+    right: 0;
+}
+
+.flamegraph__canvas {
+    width: 100%;
+}
+
+.flamegraph__label, .flamegraph__highlight {
+    line-height: calc(var(--flamegraph-level-height) - var(--flamegraph-block-spacing));
+}
+
+.flamegraph__label {
+    overflow: hidden;
+    pointer-events: none;
+    position: absolute;
+    white-space: nowrap;
+}
+
+.flamegraph__label span {
+    padding: 0 3px;
+}
+
+.flamegraph__highlight {
+    background-color: #ffffe0;
+    display: none;
+    outline: 1px solid #ffc000;
+    overflow: hidden;
+    pointer-events: none;
+    position: absolute;
+    white-space: nowrap;
+}
+
+.g-root_theme_dark .flamegraph__highlight {
+    color: #ccc;
+    outline: 1px solid #222c;
+
+}
+
+.flamegraph__highlight span {
+    padding: 0 3px;
+}
+
+.flamegraph__match {
+    display: none;
+    float: right;
+    margin-left: var(--g-spacing-4);
+    text-align: right;
+}
+
+.flamegraph__clear {
+    margin-left: var(--g-spacing-1);
+}
+
+.flamegraph__status {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

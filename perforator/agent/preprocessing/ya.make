@@ -1,0 +1,5 @@
+RECURSE(
+    bin
+    lib
+    proto
+)

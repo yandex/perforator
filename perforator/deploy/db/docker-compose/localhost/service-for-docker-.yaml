@@ -1,0 +1,22 @@
+# This is an example Service for minio container.
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  namespace: perforator
+spec:
+   ports:
+   - protocol: TCP
+     port: 9002
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: minio-service
+  namespace: perforator
+subsets:
+  - addresses:
+    # You should add an ip address in the docker subnet of corresponding container, for example: 172.17.0.3
+    - ip: <YOUR_IP_ADDDRESS>
+    ports:
+      - port: 9002

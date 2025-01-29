@@ -1,0 +1,33 @@
+.merge-profiles-form__header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--g-spacing-2);
+}
+
+.merge-profiles-form__time-interval-input_diff {
+    margin-top: calc(
+        var(--page-padding-top) + var(--page-heading-height) + var(--page-padding-top));
+}
+
+.merge-profiles-form__inputs {
+    margin-bottom: var(--g-spacing-3);
+}
+
+.merge-profiles-form__buttons {
+    display: flex;
+    gap: var(--g-spacing-2);
+
+    > .g-button {
+        flex-grow: 1;
+    }
+}
+
+.merge-profiles-form__table {
+    margin-top: var(--g-spacing-3);
+    overflow-y: auto;
+}
+
+.merge-profiles-form__table-heading {
+    margin: 0 0 var(--g-spacing-3);
+}

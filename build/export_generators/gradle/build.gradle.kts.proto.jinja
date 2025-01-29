@@ -1,0 +1,85 @@
+{%- set publish = target.publish -%}
+import com.google.protobuf.gradle.*
+
+val buildProtoDir = File("${buildDir}", "__proto__")
+
+plugins {
+    id("java-library")
+    id("com.google.protobuf") version "0.8.19"
+{%  if publish -%}
+    `maven-publish`
+    `signing`
+{%  endif -%}
+}
+
+{%  if publish -%}
+group = "{{ target.publish_group }}"
+version = project.properties["version"]
+{%  endif -%}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+dependencies {
+{%- for library in target.consumer -%}
+{%      set classpath = library.classpath -%}
+{%      if classpath|replace('"','') == classpath -%}
+{%          set classpath = '"' + classpath + '"' -%}
+{%      endif %}
+    api({{ classpath }})
+{%- endfor %}
+{%  if target.proto_namespace %}
+    protobuf(files(File(buildProtoDir, "{{ target.proto_namespace }}")))
+{%- else %}
+    protobuf(files(buildProtoDir))
+{%- endif %}
+}
+
+protobuf {
+    protoc {
+        // Download from repositories
+        artifact = "com.google.protobuf:protoc:
+{%- if target.proto_compiler_version -%}
+{{ target.proto_compiler_version }}
+{%- else -%}
+3.22.5
+{%- endif -%}
+"
+    }
+{%  if target.proto_grpc -%}
+    plugins {
+        id("grpc") {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.45.0"
+        }
+    }
+    generateProtoTasks {
+        ofSourceSet("main").forEach {
+            it.plugins {
+                id("grpc")
+            }
+        }
+    }
+{%- endif %}
+}
+
+val prepareProto = tasks.register<Copy>("prepareProto") {
+    from(rootDir) {
+{%  for proto in target.proto_files -%}
+        include("{{ proto }}")
+{%  endfor -%}
+    }
+    into(buildProtoDir)
+}
+
+afterEvaluate {
+    tasks.getByName("extractProto").dependsOn(prepareProto)
+}
+{%  if publish -%}
+{%  include 'publish.gradle.kts' -%}
+{%  endif -%}

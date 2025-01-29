@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "perforator.fullname" . }}-offlineprocessing
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.offlineprocessing.selectorLabels" . | nindent 4 }}
+  {{- with .Values.offlineprocessing.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.offlineprocessing.replicas }}
+  selector:
+    matchLabels:
+      {{- include "perforator.selectorLabels" . | nindent 6 }}
+      {{- include "perforator.offlineprocessing.selectorLabels" . | nindent 6 }}
+  {{- with .Values.offlineprocessing.deployment.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "perforator.selectorLabels" . | nindent 8 }}
+        {{- include "perforator.offlineprocessing.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.offlineprocessing.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      dnsPolicy: {{ .Values.offlineprocessing.dnsPolicy }}
+      {{- end }}
+      containers:
+      - name: {{ include "perforator.fullname" . }}-offlineprocessing
+        image: "{{ .Values.offlineprocessing.image.repository }}:{{ .Values.offlineprocessing.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.offlineprocessing.image.pullPolicy }}
+        args:
+        - /perforator/offline_processing
+        - app
+        - --config=/etc/perforator/config.yaml
+          {{- range .Values.offlineprocessing.extraArgs }}
+        - {{ . }}
+          {{- end}}
+        resources:
+        {{- toYaml .Values.offlineprocessing.resources | nindent 10 }}
+        securityContext:
+            {{- toYaml .Values.offlineprocessing.securityContext | nindent 10 }}
+        {{- if .Values.offlineprocessing.useHostNetwork }}
+        hostNetwork: true
+        {{- end }}
+        {{- with .Values.offlineprocessing.priorityClassName }}
+        priorityClassName: {{ . }}
+        {{- end }}
+        volumeMounts:
+        - name: cache
+          mountPath: /cache
+        - name: storage-s3-keys
+          mountPath: "/etc/perforator/s3"
+        - name: config
+          mountPath: /etc/perforator/
+        {{- if .Values.offlineprocessing.mounts.varlog }}
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        {{- end }}
+        {{- if .Values.offlineprocessing.mounts.dockercontainers }}
+        - name: dockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        {{- end }}
+        {{- range .Values.offlineprocessing.mounts.extra }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath }}
+            subPath: {{ .subPath }}
+            readOnly: {{ .readOnly }}
+        {{- end }}
+        env:
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.clickhouse" . | nindent 14 }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.postgresql" . | nindent 14 }}
+      volumes:
+      - name: cache
+        emptyDir: {}
+      - name: storage-s3-keys
+        secret:
+          secretName: {{ include "perforator.secretName.s3" . }}
+      - name: config
+        configMap:
+          name: {{ include "perforator.fullname" . }}-offlineprocessing-config
+      {{- if .Values.offlineprocessing.mounts.varlog }}
+      - name: varlog
+        hostPath:
+          path: /var/log
+      {{- end }}
+      {{- if .Values.offlineprocessing.mounts.dockercontainers }}
+      - name: dockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      {{- end }}
+      {{- range .Values.offlineprocessing.mounts.extra }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ .configMap }}
+      {{- end }}
+      {{- with .Values.offlineprocessing.nodeSelector }}  
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.offlineprocessing.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.offlineprocessing.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

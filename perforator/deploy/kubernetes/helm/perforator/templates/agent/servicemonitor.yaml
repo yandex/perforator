@@ -1,0 +1,40 @@
+{{- if and (.Values.agent.metrics.enabled) (.Values.agent.metrics.serviceMonitor.enabled) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "perforator.fullname" . }}-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.agent.selectorLabels" . | nindent 4 }}
+    {{- with .Values.agent.metrics.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.agent.metrics.serviceMonitor.jobLabel }}
+  jobLabel: {{ .Values.agent.metrics.serviceMonitor.jobLabel }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "perforator.selectorLabels" . | nindent 6 }}
+      {{- include "perforator.agent.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: metrics
+  endpoints:
+    - path: /metrics
+      port: metrics
+      {{- if .Values.agent.metrics.serviceMonitor.interval }}
+      interval: {{ .Values.agent.metrics.serviceMonitor.interval }}
+      {{- end }}
+      {{- if .Values.agent.metrics.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ .Values.agent.metrics.serviceMonitor.scrapeTimeout }}
+      {{- end }}
+      {{- if .Values.agent.metrics.serviceMonitor.relabelings }}
+      relabelings: {{- toYaml .Values.agent.metrics.serviceMonitor.relabelings | nindent 6 }}
+      {{- end }}
+      {{- if .Values.agent.metrics.serviceMonitor.metricRelabelings }}
+      metricRelabelings: {{- toYaml .Values.agent.metrics.serviceMonitor.metricRelabelings | nindent 6 }}
+      {{- end }}
+      {{- if .Values.agent.metrics.serviceMonitor.honorLabels }}
+      honorLabels: {{ .Values.agent.metrics.serviceMonitor.honorLabels }}
+      {{- end }}
+{{- end }}

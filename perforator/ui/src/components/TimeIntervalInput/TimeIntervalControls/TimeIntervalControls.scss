@@ -1,0 +1,19 @@
+.time-interval-selector__controls {
+    align-items: center;
+    display: flex;
+    height: calc(var(--page-padding-top) + var(--page-heading-height) + var(--page-padding-top));
+    justify-content: end;
+    padding-right: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+
+    &_header {
+        right: var(--page-padding-horizontal);
+    }
+}
+
+.time-interval-selector__controls-buttons {
+    display: flex;
+    gap: 2px;
+}

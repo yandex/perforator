@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "perforator.fullname" . }}-storage
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.storage.selectorLabels" . | nindent 4 }}
+  {{- with .Values.storage.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.storage.replicas }}
+  selector:
+    matchLabels:
+      {{- include "perforator.selectorLabels" . | nindent 6 }}
+      {{- include "perforator.storage.selectorLabels" . | nindent 6 }}
+  {{- with .Values.storage.deployment.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "perforator.selectorLabels" . | nindent 8 }}
+        {{- include "perforator.storage.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.storage.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      dnsPolicy: {{ .Values.storage.dnsPolicy }}
+      {{- end }}
+      containers:
+      - name: {{ include "perforator.fullname" . }}-storage
+        image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
+        args:
+        - /perforator/storage
+        - --config=/etc/perforator/config.yaml
+        - --push-binary-write-replica-probability-percent=100
+        - --metrics-port={{ .Values.storage.containerPorts.metrics }}
+        - --log-level={{ .Values.storage.logLevel }}
+          {{- range .Values.storage.extraArgs }}
+        - {{ . }}
+          {{- end}}
+        resources:
+        {{- toYaml .Values.storage.resources | nindent 10 }}
+        securityContext:
+            {{- toYaml .Values.storage.securityContext | nindent 10 }}
+        {{- if .Values.storage.useHostNetwork }}
+        hostNetwork: true
+        {{- end }}
+        {{- with .Values.storage.priorityClassName }}
+        priorityClassName: {{ . }}
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.storage.containerPorts.grpc }}
+          name: grpc
+        - containerPort: {{ .Values.storage.containerPorts.metrics }}
+          name: metrics
+        volumeMounts:
+        - name: storage-cert
+          mountPath: "/etc/perforator/certificates"
+        - name: storage-s3-keys
+          mountPath: "/etc/perforator/s3"
+        - name: config
+          mountPath: /etc/perforator/
+        {{- if .Values.storage.mounts.varlog }}
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        {{- end }}
+        {{- if .Values.storage.mounts.dockercontainers }}
+        - name: dockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        {{- end }}
+        {{- range .Values.storage.mounts.extra }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath }}
+            subPath: {{ .subPath }}
+            readOnly: {{ .readOnly }}
+        {{- end }}
+        env:
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.clickhouse" . | nindent 14 }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.postgresql" . | nindent 14 }}
+      volumes:
+      - name: storage-cert
+        secret:
+          secretName: {{ printf "%s-storage-crt" (include "perforator.fullname" .) }}
+      - name: storage-s3-keys
+        secret:
+          secretName: {{ include "perforator.secretName.s3" . }}
+      - name: config
+        configMap:
+          name: {{ include "perforator.fullname" . }}-storage-config
+      {{- if .Values.storage.mounts.varlog }}
+      - name: varlog
+        hostPath:
+          path: /var/log
+      {{- end }}
+      {{- if .Values.storage.mounts.dockercontainers }}
+      - name: dockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      {{- end }}
+      {{- range .Values.storage.mounts.extra }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ .configMap }}
+      {{- end }}
+      {{- with .Values.storage.nodeSelector }}  
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.storage.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.storage.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

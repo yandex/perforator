@@ -1,0 +1,66 @@
+{{- if .Values.ingress.http.enabled -}}
+{{- $serviceName := ternary (include "perforator.proxy.service.name" .) (include "perforator.web.service.name" .) .Values.ingress.useProxyBackend -}}
+{{- $port := ternary .Values.proxy.service.ports.http.port .Values.web.service.ports.http.port .Values.ingress.useProxyBackend -}}
+{{- if and .Values.ingress.http.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.ingress.http.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.ingress.http.annotations "kubernetes.io/ingress.class" .Values.ingress.http.className}}
+  {{- end }}
+{{- end }}
+apiVersion: {{ include "perforator.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+  name: {{ include "perforator.fullname" . }}-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+  {{- with .Values.ingress.http.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and .Values.ingress.http.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.http.className }}
+  {{- end }}
+  {{- if .Values.ingress.http.tls }}
+  tls:
+    {{- range .Values.ingress.http.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.http.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
+            pathType: {{ .pathType }}
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: {{ $serviceName }}
+                port:
+                  number: {{ $port }}
+              {{- else }}
+              serviceName: {{ $serviceName }}
+              servicePort: {{ $port }}
+              {{- end }}
+          {{- end }}
+    {{- end }}
+  {{- if .Values.ingress.http.tls }}
+  tls:
+    {{- range .Values.ingress.http.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,14 @@
+.profiles-table > .g-table__table {
+    width: 100%;
+}
+
+.profiles-table {
+    &__actions-panel {
+        position: fixed;
+        bottom: var(--g-spacing-3);
+        left: var(--gn-aside-header-size);
+        right: 0;
+        z-index: 3;
+        margin: var(--g-spacing-3) var(--g-spacing-5);
+    }
+}

@@ -1,0 +1,15 @@
+RECURSE(
+    binary
+    blob
+    bundle
+    client
+    creds
+    databases
+    gc
+    microscope
+    profile
+    server
+    storage
+    tvm
+    util
+)

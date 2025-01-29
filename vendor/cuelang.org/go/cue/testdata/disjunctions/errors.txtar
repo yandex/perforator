@@ -1,0 +1,173 @@
+-- in.cue --
+issue570: {
+	results: #DecodeOutput
+	results: result: "hello"
+
+	#Output: {
+		result: _
+	} | {
+		error: string
+	}
+
+	#DecodeOutput: #Output & {
+		result?: [... string]
+		...
+	}
+}
+
+issue516: {
+	#Def: {
+		match: metrics: string: {}
+	} | {}
+
+	x: #Def
+	x: match: metrics: "foo": {}
+}
+
+// issue #465
+explicitDefaultError: {
+	a: string | *_|_
+
+	if a != "" {
+	}
+}
+-- out/eval --
+Errors:
+issue516.x: 2 errors in empty disjunction:
+issue516.x: field not allowed: match:
+    ./in.cue:20:6
+    ./in.cue:22:5
+    ./in.cue:23:5
+issue516.x.match.metrics: field not allowed: foo:
+    ./in.cue:19:19
+    ./in.cue:22:5
+    ./in.cue:23:21
+issue570.results: 2 errors in empty disjunction:
+issue570.results: field not allowed: result:
+    ./in.cue:2:11
+    ./in.cue:3:11
+    ./in.cue:7:6
+    ./in.cue:11:17
+    ./in.cue:12:3
+issue570.results.result: conflicting values "hello" and [...string] (mismatched types string and list):
+    ./in.cue:2:11
+    ./in.cue:3:19
+    ./in.cue:12:12
+
+Result:
+(_|_){
+  // [eval]
+  issue570: (_|_){
+    // [eval]
+    results: (_|_){
+      // [eval] issue570.results: 2 errors in empty disjunction:
+      // issue570.results: field not allowed: result:
+      //     ./in.cue:2:11
+      //     ./in.cue:3:11
+      //     ./in.cue:7:6
+      //     ./in.cue:11:17
+      //     ./in.cue:12:3
+      // issue570.results.result: conflicting values "hello" and [...string] (mismatched types string and list):
+      //     ./in.cue:2:11
+      //     ./in.cue:3:19
+      //     ./in.cue:12:12
+      result: (_|_){
+        // [eval] issue570.results: field not allowed: result:
+        //     ./in.cue:2:11
+        //     ./in.cue:3:11
+        //     ./in.cue:7:6
+        //     ./in.cue:11:17
+        //     ./in.cue:12:3
+      }
+      error: (string){ string }
+    }
+    #Output: (#struct){ |((#struct){
+        result: (_){ _ }
+      }, (#struct){
+        error: (string){ string }
+      }) }
+    #DecodeOutput: (#struct){ |((#struct){
+        result: (list){
+        }
+      }, (#struct){
+        error: (string){ string }
+      }) }
+  }
+  issue516: (_|_){
+    // [eval]
+    #Def: (#struct){ |((#struct){
+        match: (#struct){
+          metrics: (#struct){
+            string: (#struct){
+            }
+          }
+        }
+      }, (#struct){
+      }) }
+    x: (_|_){
+      // [eval] issue516.x: 2 errors in empty disjunction:
+      // issue516.x: field not allowed: match:
+      //     ./in.cue:20:6
+      //     ./in.cue:22:5
+      //     ./in.cue:23:5
+      // issue516.x.match.metrics: field not allowed: foo:
+      //     ./in.cue:19:19
+      //     ./in.cue:22:5
+      //     ./in.cue:23:21
+      match: (_|_){
+        // [eval] issue516.x: field not allowed: match:
+        //     ./in.cue:20:6
+        //     ./in.cue:22:5
+        //     ./in.cue:23:5
+      }
+    }
+  }
+  explicitDefaultError: (_|_){
+    // [incomplete] explicitDefaultError: non-concrete value string in operand to !=:
+    //     ./in.cue:30:5
+    //     ./in.cue:28:5
+    a: (string){ string }
+  }
+}
+-- out/compile --
+--- in.cue
+{
+  issue570: {
+    results: 〈0;#DecodeOutput〉
+    results: {
+      result: "hello"
+    }
+    #Output: ({
+      result: _
+    }|{
+      error: string
+    })
+    #DecodeOutput: (〈0;#Output〉 & {
+      result?: [
+        ...string,
+      ]
+      ...
+    })
+  }
+  issue516: {
+    #Def: ({
+      match: {
+        metrics: {
+          string: {}
+        }
+      }
+    }|{})
+    x: 〈0;#Def〉
+    x: {
+      match: {
+        metrics: {
+          foo: {}
+        }
+      }
+    }
+  }
+  explicitDefaultError: {
+    a: (string|*_|_(explicit error (_|_ literal) in source))
+    if (〈0;a〉 != "") {}
+  }
+}

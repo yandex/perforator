@@ -1,0 +1,3 @@
+IF (MODULE_LANG == PY3)
+    STYLE_PYTHON()
+ENDIF()

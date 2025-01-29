@@ -1,0 +1,13 @@
+RECURSE(
+    adt
+    compile
+    convert
+    debug
+    dep
+    eval
+    export
+    runtime
+    subsume
+    validate
+    walk
+)

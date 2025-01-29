@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "perforator.fullname" . }}-gc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.gc.selectorLabels" . | nindent 4 }}
+  {{- with .Values.gc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.gc.replicas }}
+  selector:
+    matchLabels:
+      {{- include "perforator.selectorLabels" . | nindent 6 }}
+      {{- include "perforator.gc.selectorLabels" . | nindent 6 }}
+  {{- with .Values.gc.deployment.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "perforator.selectorLabels" . | nindent 8 }}
+        {{- include "perforator.gc.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.gc.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      dnsPolicy: {{ .Values.gc.dnsPolicy }}
+      {{- end }}
+      containers:
+      - name: {{ include "perforator.fullname" . }}-gc
+        image: "{{ .Values.gc.image.repository }}:{{ .Values.gc.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.gc.image.pullPolicy }}
+        args:
+        - /perforator/gc
+        - --config=/etc/perforator/config.yaml
+        - --delete-page-size={{ .Values.gc.deletePageSize }}
+        - --interval={{ .Values.gc.deleteInterval }}
+        - --metrics-port={{ .Values.gc.containerPorts.metrics }}
+        - --log-level={{ .Values.gc.logLevel }}
+          {{- range .Values.gc.extraArgs }}
+        - {{ . }}
+          {{- end}}
+        resources:
+        {{- toYaml .Values.gc.resources | nindent 10 }}
+        securityContext:
+            {{- toYaml .Values.gc.securityContext | nindent 10 }}
+        {{- if .Values.gc.useHostNetwork }}
+        hostNetwork: true
+        {{- end }}
+        {{- with .Values.gc.priorityClassName }}
+        priorityClassName: {{ . }}
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.gc.containerPorts.metrics }}
+          name: metrics
+        volumeMounts:
+        - name: storage-s3-keys
+          mountPath: "/etc/perforator/s3"
+        - name: config
+          mountPath: /etc/perforator/
+        {{- if .Values.gc.mounts.varlog }}
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        {{- end }}
+        {{- if .Values.gc.mounts.dockercontainers }}
+        - name: dockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        {{- end }}
+        {{- range .Values.gc.mounts.extra }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath }}
+            subPath: {{ .subPath }}
+            readOnly: {{ .readOnly }}
+        {{- end }}
+        env:
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.clickhouse" . | nindent 14 }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.postgresql" . | nindent 14 }}
+      volumes:
+      - name: storage-s3-keys
+        secret:
+          secretName: {{ include "perforator.secretName.s3" . }}
+      - name: config
+        configMap:
+          name: {{ include "perforator.fullname" . }}-gc-config
+      {{- if .Values.gc.mounts.varlog }}
+      - name: varlog
+        hostPath:
+          path: /var/log
+      {{- end }}
+      {{- if .Values.gc.mounts.dockercontainers }}
+      - name: dockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      {{- end }}
+      {{- range .Values.gc.mounts.extra }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ .configMap }}
+      {{- end }}
+      {{- with .Values.gc.nodeSelector }}  
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gc.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gc.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

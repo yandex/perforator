@@ -1,0 +1,12 @@
+.sample-size-input {
+    align-items: center;
+    display: flex;
+}
+
+.sample-size-input__caption {
+    margin-right: var(--g-spacing-3);
+}
+
+.sample-size-input__select {
+    min-width: 70px;
+}

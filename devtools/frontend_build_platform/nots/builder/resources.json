@@ -1,0 +1,24 @@
+{
+  "info": {
+    "created": "2024-12-10T10:19:09.954Z",
+    "pr": {
+      "id": 7416930,
+      "author": "khoden",
+      "summary": "FBP-1923: nots: дедупликация действий после сборки, пропуск pnpm install на актуальных node_modules"
+    }
+  },
+  "by_platform": {
+    "darwin": {
+      "uri": "sbr:7636596310"
+    },
+    "darwin-arm64": {
+      "uri": "sbr:7636593796"
+    },
+    "linux": {
+      "uri": "sbr:7636600706"
+    },
+    "linux-aarch64": {
+      "uri": "sbr:7636598279"
+    }
+  }
+}

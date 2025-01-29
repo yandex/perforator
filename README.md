@@ -1,0 +1,47 @@
+<img width="64" src="docs/_assets/logo.svg" /><br/>
+
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/yandex/perforator/blob/main/LICENSE)
+[![eBPF code license](https://img.shields.io/badge/eBPF_code_License-GPLv2-blue.svg)](https://github.com/yandex/perforator/tree/main/perforator/agent/collector/progs/unwinder/LICENSE)
+[![Telegram](https://img.shields.io/badge/Telegram-en-2ba2d9.svg)](https://t.me/+mydXmJylZCsxZjli)
+[![Telegram](https://img.shields.io/badge/Telegram-ru-2ba2d9.svg)](https://t.me/+TFb-WWKCFIFjMTdi)
+
+# Perforator
+
+[Documentation](https://perforator.tech/docs/) |
+[Telegram](https://t.me/+mydXmJylZCsxZjli)
+
+Perforator is a production-ready, open-source Continuous Profiling app that can collect CPU profiles from your production without affecting its performance, made by Yandex. Perforator is deployed on 10k+ nodes in Yandex and already has helped many developers to fix performance issues in their services.
+
+## Main features
+- Efficient and high-quality collection of kernel + userspace stacks via eBPF technology.
+- Scalable storage for storing profiles and binaries.
+- Support of unwinding without frame pointers and debug symbols on host.
+- Convenient query language and UI to inspect CPU usage of applications via flamegraphs on any specified timeline.
+- Supported languages: C++, Go, Rust, Java, Python, Node.js.
+- Support of generating sPGO profiles for building your applications with Profile Guided Optimization (PGO).
+
+## Minimal system requirements
+
+Perforator runs on x86 64-bit Linux platforms consuming 512Mb of RAM (more on very large hosts with many CPUs) and <1% of host CPUs.
+
+## Quick start
+
+You can profile your laptop using local perforator record CLI command [TODO](...).
+
+You can also deploy Perforator on playground/production Kubernetes cluster using our Helm chart [TODO](...).
+
+## How to build
+
+- Instructions on how to build from source are located here [TODO](...).
+
+- If you want to use prebuilt binaries, you can find them here [TODO](...).
+
+## How to Contribute
+
+We are welcome to contributions! The [contributor's guide](CONTRIBUTING.md) provides more details on how to get started as a contributor.
+
+## License
+
+This project is licensed under the MIT License (MIT). [MIT License](https://github.com/yandex/perforator/tree/main/LICENSE)
+
+The eBPF source code is licensed under the GPL 2.0 license. [GPL 2.0](https://github.com/yandex/perforator/tree/main/perforator/agent/collector/progs/unwinder/LICENSE)

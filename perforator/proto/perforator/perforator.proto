@@ -1,0 +1,462 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+package NPerforator.NProto;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/perforator";
+
+////////////////////////////////////////////////////////////////////////////////
+
+service Perforator {
+    // Select services matching filter.
+    rpc ListServices(ListServicesRequest) returns (ListServicesResponse) {
+        option (google.api.http) = {
+            get: "/api/v0/services"
+        };
+    }
+
+    // Show options for autocomplete.
+    rpc ListSuggestions(ListSuggestionsRequest) returns (ListSuggestionsResponse) {
+        option (google.api.http) = {
+            get: "/api/v0/suggestions"
+        };
+    }
+
+    // Select profiles matching filter.
+    rpc ListProfiles(ListProfilesRequest) returns (ListProfilesResponse) {
+        option (google.api.http) = {
+            get: "/api/v0/profiles"
+        };
+    }
+
+    // Get single profile.
+    rpc GetProfile(GetProfileRequest) returns (GetProfileResponse) {
+        option (google.api.http) = {
+            post: "/api/v0/profiles/{ProfileID}"
+            body: "*"
+        };
+    }
+
+    // Build aggregated profile.
+    rpc MergeProfiles(MergeProfilesRequest) returns (MergeProfilesResponse) {
+        option (google.api.http) = {
+            post: "/api/v0/profiles/merge"
+            body: "*"
+        };
+    }
+
+    rpc UploadProfile(UploadProfileRequest) returns (UploadProfileResponse) {
+        option (google.api.http) = {
+            post: "/api/v0/profiles"
+            body: "*"
+        };
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message Paginated {
+    uint64 Offset = 1;
+    uint64 Limit = 2;
+}
+
+message TimeInterval {
+    google.protobuf.Timestamp From = 1;
+    google.protobuf.Timestamp To = 2;
+}
+
+message SortOrder {
+    enum SortDirection {
+        Ascending = 0;
+        Descending = 1;
+    }
+
+    repeated string Columns = 1;
+    SortDirection Direction = 2;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message ListServicesRequest {
+    Paginated Paginated = 1;
+    string Prefix = 2;
+    optional string Regex = 3;
+    optional ListServicesOrderByClause OrderBy = 4;
+    google.protobuf.Duration MaxStaleAge = 5;
+}
+
+message ListServicesResponse {
+    reserved 1;
+    repeated ServiceMeta Services = 2;
+}
+
+message ServiceMeta {
+    string ServiceID = 1;
+    google.protobuf.Timestamp LastUpdate = 2;
+    uint64 ProfileCount = 3;
+}
+
+enum ListServicesOrderByClause {
+    Unspecified = 0;
+    Services = 1;
+    ProfileCount = 2;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message ListSuggestionsRequest {
+    string Field = 1;
+    optional string Regex = 2;
+    optional string Selector = 3;
+    Paginated Paginated = 4;
+}
+
+message ListSuggestionsResponse {
+    bool SuggestSupported = 1;
+    repeated Suggestion Suggestions = 2;
+}
+
+message Suggestion {
+    string Value = 1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message ListProfilesRequest {
+    ProfileQuery Query = 1;
+    Paginated Paginated = 2;
+    SortOrder OrderBy = 3;
+}
+
+message ListProfilesResponse {
+    repeated ProfileMeta Profiles = 1;
+}
+
+message ProfileMeta {
+    // ID of the profile. May be empty for the new profiles.
+    string ProfileID = 1;
+
+    // Profile system.
+    string System = 4;
+
+    // Main profile event type. May not be set, if EventTypes is populated.
+    string EventType = 7;
+
+    // List of the event types in the profiles. For example, [cpu.cycles wall.seconds]
+    repeated string EventTypes = 11;
+
+    // Cluster of the profiling target.
+    string Cluster = 6;
+
+    // Name of the profiled service.
+    string Service = 2;
+
+    // Name of the profile workload.
+    string PodID = 8;
+
+    // Name of the profiled host.
+    string NodeID = 9;
+
+    // Timestamp. Must be set.
+    google.protobuf.Timestamp Timestamp = 3;
+
+    // List of the all binaries that participated in the profile.
+    repeated string BuildIDs = 10;
+
+    // Extra profile annotations.
+    map<string, string> Attributes = 5;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message GetProfileRequest {
+    string ProfileID = 1;
+    RenderFormat Format = 2;
+}
+
+message GetProfileResponse {
+    // pprof.Profile or flamegraph
+    bytes Profile = 1;
+
+    // Profile metainformation.
+    ProfileMeta ProfileMeta = 2;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message ProfileQuery {
+    // Service name. Optional.
+    string Service = 1;
+
+    // Time interval. Optional.
+    TimeInterval TimeInterval = 2;
+
+    reserved 3 to 8;
+    reserved "NodeID", "PodID", "BuildID", "CPU", "ProfilerVersion", "ProfileID";
+
+
+    // Selector string. Optional. Example: `{service=perforator.storage-production, build_id~=a}`
+    // Time interval can be additionally specified in selector in format `{ts>"now - 1h", ts <= "now - 30m"}`
+    // See perforator/pkg/humantime for timestamps formats
+    string Selector = 9;
+
+    // Merging thousands of profiles is expensive.
+    // Set MaxSamples to control sample rate.
+    uint32 MaxSamples = 10;
+}
+
+message MergeProfilesRequest {
+    // How to render profiles: pprof/flamegraph, raw/symbolized
+    RenderFormat Format = 1;
+
+    // Query to select profiles.
+    ProfileQuery Query = 2;
+
+    // Merging thousands of profiles is expensive.
+    // Set MaxSamples to control sample rate.
+    uint32 MaxSamples = 3 [deprecated=true];
+}
+
+message MergeProfilesResponse {
+    oneof Result {
+        // Raw profile bytes in the requested format (e.g. raw pprof or flamegraph svg).
+        bytes Profile = 1;
+
+        // External profile result URL. Fetch it via plain HTTP GET request.
+        string ProfileURL = 3;
+    }
+
+    // Info about profiles that participated in the merged profile.
+    repeated ProfileMeta ProfileMeta = 2;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message PGOMeta {
+    // Total amount of lbr-profiles accounted by resulting profile.
+    uint64 TotalProfiles = 1;
+
+    // Total amount of lbr-stacks accounted by resulting profile.
+    uint64 TotalSamples = 2;
+
+    // Total amount of taken branches accounted by resulting profile.
+    uint64 TotalBranches = 3;
+
+    // Total amount of suspicious lbr-entries.
+    uint64 BogusLbrEntries = 4;
+
+    // TotalBranches / (total size of executable sections of the binary).
+    float TakenBranchesToExecutableBytesRatio = 5;
+
+    // Total amount of different branches accounted by resulting profile.
+    uint64 BranchCountMapSize = 6;
+
+    // Total amount of different ranges accounted by resulting profile.
+    uint64 RangeCountMapSize = 7;
+
+    // Total amount of different addresses accounted by resulting profile.
+    uint64 AddressCountMapSize = 8;
+
+    // BuildID, guessed from the samples, for which the resulting profile is generated.
+    string GuessedBuildID = 9;
+}
+
+message GeneratePGOProfileRequest {
+    // Service name (podset-id).
+    string Service = 1;
+
+    // The format to render aggregated data in (autofdo/bolt).
+    PGOProfileFormat Format = 2;
+}
+
+message GeneratePGOProfileResponse {
+    oneof Result {
+        // Raw sPGO-profile bytes in text format.
+        bytes Profile = 1;
+
+        // External profile result URL. Fetch it via plain HTTP GET request.
+        string ProfileURL = 3;
+    }
+
+    // Some metadata of the resulting profile.
+    PGOMeta PGOMeta = 2;
+}
+
+message AutoFDOOptions {
+    // Empty
+}
+
+message BoltOptions {
+    // Empty
+}
+
+message PGOProfileFormat {
+    oneof Format {
+        // Generate a profile for compilation/linking optimizations (with "-fprofile-sample-use" flag)
+        AutoFDOOptions AutoFDO = 1;
+
+        // Generate a profile for post-link optimization with llvm-bolt (with "-pa" flag)
+        BoltOptions Bolt = 2;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message DiffProfilesRequest {
+
+    // Diff (new, right) profile selector.
+    ProfileQuery DiffQuery = 1;
+
+    // Baseline (old, left) profile selector.
+    ProfileQuery BaselineQuery = 2;
+
+    // How to symbolize profiles.
+    SymbolizeOptions SymbolizeOptions = 3;
+
+    // How to render profiles.
+    // @deprecated
+    FlamegraphOptions FlamegraphOptions = 4 [deprecated=true];
+
+    RenderFormat RenderFormat = 5;
+}
+
+message DiffProfilesResponse {
+    oneof Result {
+        // Raw profile bytes in the requested format (e.g. raw pprof or flamegraph svg).
+        bytes Profile = 1;
+
+        // External profile result URL. Fetch it via plain HTTP GET request.
+        string ProfileURL = 2;
+    }
+
+    // ID of the merge task of the diff profile.
+    string DiffTaskID = 3;
+
+    // ID of the merge task of the baseline profile.
+    string BaselineTaskID = 4;
+
+    // Info about diff profiles that participated in the merged profile.
+    repeated ProfileMeta DiffProfileMeta = 5;
+
+    // Info about baseline profiles that participated in the merged profile.
+    repeated ProfileMeta BaselineProfileMeta = 6;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message UploadProfileRequest {
+    // Serialized profile.
+    bytes Profile = 1;
+
+    // Profile metainformation.
+    // Note that ProfileMeta.ProfileID is meaningless.
+    ProfileMeta ProfileMeta = 2;
+}
+
+message UploadProfileResponse {
+    // ID of the uploaded profile.
+    string ProfileID = 1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message SymbolizeOptions {
+    // Convert raw instruction addresses to the function names & other metadata.
+    // Super slow.
+    // Enabled by default.
+    optional bool Symbolize = 1;
+
+    // Convert raw function names to human-readable form.
+    // Enabled by default.
+    optional bool Demangle = 2;
+
+    // Decode inlined functions.
+    // Enabled by default.
+    optional bool Inlines = 3;
+
+    // Embed dwarf discriminator numbers into high 32 bits of the line numbers.
+    // We do not control pprof.Profile format, so we cannot add discriminator field.
+    optional bool EmbedDwarfDiscriminators = 4;
+}
+
+message FlamegraphOptions {
+    reserved "ResultFormat";
+    reserved 6;
+
+    // Truncate stacks deeper than @MaxDepth.
+    optional uint32 MaxDepth = 1;
+
+    // Minimum relative function weight to draw.
+    // 1.0 means "full flamegraph".
+    optional double MinWeight = 2;
+
+    // Build flamegrph from the top.
+    optional bool Inverse = 3;
+
+    // Show line numvers, if available
+    optional bool ShowLineNumbers = 4;
+
+    // Show file names after function names.
+    // Enabled by default.
+    optional bool ShowFileNames = 5;
+
+    // NB: This enum should match the same enumeration in the
+    // perforator/pkg/profile/flamegraph/render package.
+    enum AddressRenderPolicy {
+        // Do not display raw addreses. Unsymolized functions will be rendered
+        // as something like <unsymbolized function>.
+        // This mode is recommended by default.
+        RenderAddressesNever = 0;
+        // Display raw addresses for unsymbolized functions only.
+        // This can be useful for debugging missing symbols.
+        RenderAddressesUnsymbolized = 1;
+        // Always display raw addresses, even for properly symbolized code.
+        // This can be useful for debugging symbolization.
+        RenderAddressesAlways = 2;
+    };
+
+    // How to display raw addresses in the flamegraph.
+    optional AddressRenderPolicy RenderAddresses = 7;
+}
+
+message RawProfileOptions {
+    // Empty
+}
+
+message LLVMPGOProfileOptions {
+    // Empty
+}
+
+
+message PostprocessOptions {
+    optional bool MergePythonAndNativeStacks = 1;
+}
+
+message RenderFormat {
+    // How to symbolize the profile.
+    SymbolizeOptions Symbolize = 1;
+    PostprocessOptions Postprocessing = 6;
+
+    oneof Format {
+        // Build flamegraph.
+        FlamegraphOptions Flamegraph = 2;
+
+        // Return raw profile, potentiatlly symbolized.
+        RawProfileOptions RawProfile = 3;
+
+        // Return profile suitable for the LLVM PGO.
+        // See https://clang.llvm.org/docs/UsersManual.html#sample-profile-text-format.
+        // @deprecated
+        LLVMPGOProfileOptions LLVMPGOProfile = 4 [deprecated=true];
+
+        // Build flamegraph.
+        // Json is parsed faster in the ui.
+        // html can be shown without ui.
+        FlamegraphOptions JSONFlamegraph = 7;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////

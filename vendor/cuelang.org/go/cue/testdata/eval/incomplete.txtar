@@ -1,0 +1,79 @@
+-- in.cue --
+s: string
+
+e1:  s + s
+e2:  >"bar" & s // okay
+e3:  >s & "foo" // okay
+e3b: >s
+
+e4: >e1 & s
+e5: <e5 & s
+
+E: {
+	a: c - b
+	b: c - a
+	c: a+b & >=5
+}
+
+a:    int
+okay: (>10 & <a) + 3
+-- out/eval --
+(struct){
+  s: (string){ string }
+  e1: (_|_){
+    // [incomplete] e1: non-concrete value string in operand to +:
+    //     ./in.cue:3:6
+    //     ./in.cue:1:4
+  }
+  e2: (string){ >"bar" }
+  e3: (string){ "foo" }
+  e3b: (string){ string }
+  e4: (_|_){
+    // [incomplete] e1: non-concrete value string in operand to +:
+    //     ./in.cue:3:6
+    //     ./in.cue:1:4
+  }
+  e5: (_|_){
+    // [cycle] cycle error
+  }
+  E: (struct){
+    a: (_|_){
+      // [cycle] cycle error:
+      //     ./in.cue:12:5
+    }
+    b: (_|_){
+      // [cycle] cycle error:
+      //     ./in.cue:13:5
+    }
+    c: (_|_){
+      // [cycle] cycle error:
+      //     ./in.cue:12:5
+      // cycle error:
+      //     ./in.cue:13:5
+    }
+  }
+  a: (int){ int }
+  okay: (_|_){
+    // [incomplete] okay: non-concrete value >10 & int in operand to +:
+    //     ./in.cue:18:7
+    //     ./in.cue:18:8
+  }
+}
+-- out/compile --
+--- in.cue
+{
+  s: string
+  e1: (〈0;s〉 + 〈0;s〉)
+  e2: (>"bar" & 〈0;s〉)
+  e3: (>〈0;s〉 & "foo")
+  e3b: >〈0;s〉
+  e4: (>〈0;e1〉 & 〈0;s〉)
+  e5: (<〈0;e5〉 & 〈0;s〉)
+  E: {
+    a: (〈0;c〉 - 〈0;b〉)
+    b: (〈0;c〉 - 〈0;a〉)
+    c: ((〈0;a〉 + 〈0;b〉) & >=5)
+  }
+  a: int
+  okay: ((>10 & <〈0;a〉) + 3)
+}

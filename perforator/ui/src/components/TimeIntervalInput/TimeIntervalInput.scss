@@ -1,0 +1,17 @@
+.time-interval-selector {
+    margin-bottom: var(--g-spacing-3);
+
+    &_gravity {
+        .g-date-range-date-selection-control {
+            --_--g-date-timeline-color-selection: var(--g-color-base-selection);
+            --_--g-date-timeline-color-selection-hover: var(--g-color-base-selection-hover);
+        }
+    }
+}
+
+.time-interval-selector__ruler {
+    --g-button-height: 24px;
+
+    border: 1px solid var(--g-color-line-generic);
+    border-radius: var(--g-border-radius-s);
+}

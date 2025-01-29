@@ -1,0 +1,169 @@
+-- in.cue --
+a: """
+	multi
+	line
+	"""
+
+b: "message: \(a)!"
+
+c: d: a
+
+bin1: '\(a)'
+
+bin2: '''
+	multi
+	\(b)
+	'''
+-- out/definition --
+a: """
+	multi
+	line
+	"""
+b: "message: \(a)!"
+c: {
+	d: a
+}
+bin1: '\(a)'
+bin2: '''
+		multi
+		\(b)
+		'''
+-- out/doc --
+[]
+[a]
+[b]
+[c]
+[c d]
+[bin1]
+[bin2]
+-- out/value --
+== Simplified
+{
+	a: """
+		multi
+		line
+		"""
+	b: """
+		message: multi
+		line!
+		"""
+	c: {
+		d: """
+			multi
+			line
+			"""
+	}
+	bin1: '''
+		multi
+		line
+		'''
+	bin2: '''
+		multi
+		message: multi
+		line!
+		'''
+}
+== Raw
+{
+	a: """
+		multi
+		line
+		"""
+	b: """
+		message: multi
+		line!
+		"""
+	c: {
+		d: """
+			multi
+			line
+			"""
+	}
+	bin1: '''
+		multi
+		line
+		'''
+	bin2: '''
+		multi
+		message: multi
+		line!
+		'''
+}
+== Final
+{
+	a: """
+		multi
+		line
+		"""
+	b: """
+		message: multi
+		line!
+		"""
+	c: {
+		d: """
+			multi
+			line
+			"""
+	}
+	bin1: '''
+		multi
+		line
+		'''
+	bin2: '''
+		multi
+		message: multi
+		line!
+		'''
+}
+== All
+{
+	a: """
+		multi
+		line
+		"""
+	b: """
+		message: multi
+		line!
+		"""
+	c: {
+		d: """
+			multi
+			line
+			"""
+	}
+	bin1: '''
+		multi
+		line
+		'''
+	bin2: '''
+		multi
+		message: multi
+		line!
+		'''
+}
+== Eval
+{
+	a: """
+		multi
+		line
+		"""
+	b: """
+		message: multi
+		line!
+		"""
+	c: {
+		d: """
+			multi
+			line
+			"""
+	}
+	bin1: '''
+		multi
+		line
+		'''
+	bin2: '''
+		multi
+		message: multi
+		line!
+		'''
+}

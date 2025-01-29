@@ -1,0 +1,21 @@
+.select__popup {
+    --select-item-padding-horizontal: 16px;
+
+    margin-top: var(--g-spacing-1);
+    max-height: 40vh;
+
+    .g-select-list__option, .g-select-empty-placeholder {
+        margin: 0;
+        padding: 0 var(--select-item-padding-horizontal);
+    }
+}
+
+.select__input {
+    border-bottom: 1px solid var(--g-color-line-generic);
+    padding: 4px var(--select-item-padding-horizontal);
+}
+
+.select__empty {
+    color: var(--g-color-text-secondary);
+    margin: 10px 0;
+}

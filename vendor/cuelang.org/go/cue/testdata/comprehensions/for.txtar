@@ -1,0 +1,89 @@
+-- in.cue --
+b: {for k, v in a {"\(k)": v + 1}}
+a: {b: 1, c: 2}
+
+x: {for k, v in y {"\(k)": v}}
+y: {} // check that empty struct after reference works.
+
+k: {for v in e {v}}
+e: int
+
+comprehensionBinds: {
+	a: {for _ in [1] {a: _}}
+	b: {for _, _ in [1] {a: _}}
+}
+-- out/eval --
+Errors:
+k: invalid operand e (found int, want list or struct):
+    ./in.cue:7:14
+
+Result:
+(_|_){
+  // [eval]
+  b: (struct){
+    b: (int){ 2 }
+    c: (int){ 3 }
+  }
+  a: (struct){
+    b: (int){ 1 }
+    c: (int){ 2 }
+  }
+  x: (struct){
+  }
+  y: (struct){
+  }
+  k: (_|_){
+    // [eval] k: invalid operand e (found int, want list or struct):
+    //     ./in.cue:7:14
+  }
+  e: (int){ int }
+  comprehensionBinds: (struct){
+    a: (struct){
+      a: (_){ _ }
+    }
+    b: (struct){
+      a: (_){ _ }
+    }
+  }
+}
+-- out/compile --
+--- in.cue
+{
+  b: {
+    for k, v in 〈1;a〉 {
+      "\(〈1;k〉)": (〈1;v〉 + 1)
+    }
+  }
+  a: {
+    b: 1
+    c: 2
+  }
+  x: {
+    for k, v in 〈1;y〉 {
+      "\(〈1;k〉)": 〈1;v〉
+    }
+  }
+  y: {}
+  k: {
+    for _, v in 〈1;e〉 {
+      〈1;v〉
+    }
+  }
+  e: int
+  comprehensionBinds: {
+    a: {
+      for _, _ in [
+        1,
+      ] {
+        a: _
+      }
+    }
+    b: {
+      for _, _ in [
+        1,
+      ] {
+        a: _
+      }
+    }
+  }
+}

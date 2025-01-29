@@ -1,0 +1,14 @@
+RECURSE(
+    binary
+    cgroups
+    config
+    copy
+    deploy_system
+    dso
+    machine
+    perfmap
+    process
+    profile
+    profiler
+    storage
+)

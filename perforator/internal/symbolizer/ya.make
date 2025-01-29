@@ -1,0 +1,11 @@
+RECURSE(
+    auth
+    autofdo
+    binaryprovider
+    cli
+    cmd
+    pprofmetrics
+    proxy
+    quality_monitoring
+    symbolize
+)

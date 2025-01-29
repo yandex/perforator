@@ -1,0 +1,16 @@
+.page-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    &.gn-footer {
+        padding: 0 var(--g-spacing-3);
+        .gn-footer__list {
+            gap: 12px;
+        }
+    }
+    .page-footer__menu-item {
+        padding: 0;
+    }
+}

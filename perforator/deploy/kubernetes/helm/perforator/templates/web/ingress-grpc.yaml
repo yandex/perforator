@@ -1,0 +1,66 @@
+{{- if .Values.ingress.grpc.enabled -}}
+{{- $serviceName := ternary (include "perforator.proxy.service.name" .) (include "perforator.web.service.name" .) .Values.ingress.useProxyBackend -}}
+{{- $port := ternary .Values.proxy.service.ports.grpc.port .Values.web.service.ports.grpc.port .Values.ingress.useProxyBackend -}}
+{{- if and .Values.ingress.grpc.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.ingress.grpc.annotations "kubernetes.io/ingress.grpc.class") }}
+  {{- $_ := set .Values.ingress.grpc.annotations "kubernetes.io/ingress.grpc.class" .Values.ingress.grpc.className}}
+  {{- end }}
+{{- end }}
+apiVersion: {{ include "perforator.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+  name: {{ include "perforator.fullname" . }}-ingress-grpc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+  {{- with .Values.ingress.grpc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and .Values.ingress.grpc.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.grpc.className }}
+  {{- end }}
+  {{- if .Values.ingress.grpc.tls }}
+  tls:
+    {{- range .Values.ingress.grpc.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.grpc.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
+            pathType: {{ .pathType }}
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: {{ $serviceName }}
+                port:
+                  number: {{ $port }}
+              {{- else }}
+              serviceName: {{ $serviceName }}
+              servicePort: {{ $port }}
+              {{- end }}
+          {{- end }}
+    {{- end }}
+  {{- if .Values.ingress.grpc.tls }}
+  tls:
+    {{- range .Values.ingress.grpc.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+{{- end }}

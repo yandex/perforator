@@ -1,0 +1,38 @@
+#name: detect conflicting value
+#evalFull
+-- in.cue --
+a: 8000.9
+a: 7080 | int
+-- out/def --
+a: _|_ // conflicting values 8000.9 and int (mismatched types float and int)
+-- out/legacy-debug --
+<0>{a: _|_((8000.9 & (int | int)):conflicting values 8000.9 and int (mismatched types float and int))}
+-- out/compile --
+--- in.cue
+{
+  a: 8000.9
+  a: (7080|int)
+}
+-- out/eval --
+Errors:
+a: 2 errors in empty disjunction:
+a: conflicting values 8000.9 and 7080 (mismatched types float and int):
+    ./in.cue:1:4
+    ./in.cue:2:4
+a: conflicting values 8000.9 and int (mismatched types float and int):
+    ./in.cue:1:4
+    ./in.cue:2:11
+
+Result:
+(_|_){
+  // [eval]
+  a: (_|_){
+    // [eval] a: 2 errors in empty disjunction:
+    // a: conflicting values 8000.9 and 7080 (mismatched types float and int):
+    //     ./in.cue:1:4
+    //     ./in.cue:2:4
+    // a: conflicting values 8000.9 and int (mismatched types float and int):
+    //     ./in.cue:1:4
+    //     ./in.cue:2:11
+  }
+}

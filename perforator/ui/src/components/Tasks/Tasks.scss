@@ -1,0 +1,28 @@
+.tasks__form-row {
+    // reset https://github.com/gravity-ui/components/blame/be23d4e5949ac918ac945bbf829044520c7d0106/src/components/FormRow/FormRow.scss#L10
+    margin-block-end: 0;
+    --gc-form-row-label-width: 100px;
+}
+
+.tasks-table > .g-table__table {
+    width: 100%;
+}
+
+.tasks__user-input {
+    width: 160px;
+}
+
+.tasks__staff-card {
+    display: inline-block;
+}
+
+.tasks-table {
+    &__actions-panel {
+        position: fixed;
+        bottom: var(--g-spacing-3);
+        left: var(--gn-aside-header-size);
+        right: 0;
+        z-index: 3;
+        margin: var(--g-spacing-3) var(--g-spacing-5);
+    }
+}

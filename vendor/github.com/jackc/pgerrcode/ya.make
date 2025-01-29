@@ -1,0 +1,14 @@
+GO_LIBRARY()
+
+LICENSE(
+    MIT AND
+    PostgreSQL
+)
+
+VERSION(v0.0.0-20240316143900-6e2875d9b438)
+
+SRCS(
+    errcode.go
+)
+
+END()

@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "perforator/proto/perforator/perforator.proto";
+
+package NPerforator.NProto;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/perforator";
+
+////////////////////////////////////////////////////////////////////////////////
+
+service MicroscopeService {
+   // Save all profiles for given selector
+   rpc SetMicroscope(SetMicroscopeRequest) returns (SetMicroscopeResponse) {}
+   
+   // List user microscopes
+   rpc ListMicroscopes(ListMicroscopesRequest) returns (ListMicroscopesResponse) {}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message SetMicroscopeRequest {
+    // Time interval must be specified in selector
+    string Selector = 1;
+}
+
+message SetMicroscopeResponse {
+    string ID = 1;
+}
+
+message ListMicroscopesRequest {
+    Paginated Paginated = 1;
+    // if user is empty return all microscopes
+    string User = 2;
+    google.protobuf.Timestamp StartsAfter = 3;
+}
+
+message Microscope {
+    string Selector = 1;
+    string ID = 2;
+    string User = 3;
+    TimeInterval Interval = 4;
+}
+
+message ListMicroscopesResponse {
+    repeated Microscope Microscopes = 1;
+}

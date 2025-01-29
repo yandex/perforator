@@ -1,0 +1,70 @@
+GO_LIBRARY()
+
+LICENSE(MIT)
+
+VERSION(v1.1.12)
+
+SRCS(
+    adapter.go
+    any.go
+    any_array.go
+    any_bool.go
+    any_float.go
+    any_int32.go
+    any_int64.go
+    any_invalid.go
+    any_nil.go
+    any_number.go
+    any_object.go
+    any_str.go
+    any_uint32.go
+    any_uint64.go
+    config.go
+    iter.go
+    iter_array.go
+    iter_float.go
+    iter_int.go
+    iter_object.go
+    iter_skip.go
+    iter_skip_strict.go
+    iter_str.go
+    jsoniter.go
+    pool.go
+    reflect.go
+    reflect_array.go
+    reflect_dynamic.go
+    reflect_extension.go
+    reflect_json_number.go
+    reflect_json_raw_message.go
+    reflect_map.go
+    reflect_marshaler.go
+    reflect_native.go
+    reflect_optional.go
+    reflect_slice.go
+    reflect_struct_decoder.go
+    reflect_struct_encoder.go
+    stream.go
+    stream_float.go
+    stream_int.go
+    stream_str.go
+)
+
+GO_TEST_SRCS(
+    example_test.go
+    stream_test.go
+)
+
+END()
+
+RECURSE(
+    any_tests
+    api_tests
+    benchmarks
+    extension_tests
+    extra
+    gotest
+    misc_tests
+    skip_tests
+    #type_tests
+    value_tests
+)

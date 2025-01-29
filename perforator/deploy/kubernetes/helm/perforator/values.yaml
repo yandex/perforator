@@ -1,0 +1,755 @@
+# Default values for perforator.
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# TODO: it might be better to use separate fields for database credentials for each perforator component.
+
+databases:
+  postgresql:
+    # Postgresql endpoints.
+    endpoints: []
+    # - host: "some-endpoint.net"
+    #   port: 6432
+    
+    # SSLmode for client connection.
+    sslmode: "require"
+    # Data base name.
+    db: "perforator"
+    # User base name.
+    user: "perforator"
+    # Passwords for postgresql data base
+    password: ""
+    # Name of existing Secret to use. Used when password is empty.
+    secretName: null
+    # Key in Secret to get password from.
+    secretKey: null
+
+  clickhouse:
+    replicas: []
+    #  - "some-endpoint.net:9440"
+    
+    # Turn off certificate verification for tls connection.
+    insecure: false
+    # Data base name.
+    db: "perforator"
+    # User base name.
+    user: "perforator"
+    # Passwords for clickhouse data base
+    password: ""
+    # Name of existing Secret to use. Used when password is empty.
+    secretName: null
+    # Key in Secret to get password from.
+    secretKey: null
+
+  s3:
+    buckets:
+      # Bucket to store profiles.
+      profiles: ""
+      # Bucket to store binaries.
+      binaries: ""
+      # Bucket to store task results.
+      taskResults: ""
+      # Bucket to store processed binaries.
+      binariesGSYM: ""
+
+    # Endpoint for s3 storage.
+    endpoint: ""
+    # Turn off certificate verification for tls connection.
+    insecure: false
+    # Use path-Style URL insted of virtual hosted-style URL e.g. https://example.com/bucketname insted of https://bucketname.example.com.
+    force_path_style: false
+    # Access key for s3 storage
+    accessKey: ""
+    # Secret key for s3 storage
+    secretKey: ""
+    # Name of existing Secret to use. Used when accessKey and secretKey are empty. Keys of the secret must match the config file.
+    secretName: null
+
+agent:
+  config:
+    # Create a new user provided config for the agent.
+    useCustom: false
+    # Custom config content. This is passed into tpl function which allows templating from values.
+    custom: ''
+    # Label used to describe nodes topology.
+    topologyLableKey: "topology.kubernetes.io/zone"
+
+  image:
+    # Perforator agent image repository.
+    repository: ""
+    # Perforator agent image tag. When empty, the chart's appVersion is used.
+    tag: ""
+    # Perforator agent image pull policy.
+    pullPolicy: Always
+
+  # Perforator agent log level
+  logLevel: info
+  # Additional arguments to pass to the perforator agent
+  extraArgs: []
+  # Perforator agent pod security context
+  podSecurityContext: {}
+  # Resource requests and limits for the perforator agent container.
+  resources: {}
+  # Perforator agent container security context, it needs to be privileged.
+  containerSecurityContext:
+    privileged: true
+
+  mounts:
+    # Mount dir path for the storage ca.crt for agent-storage communication.
+    certificate: "/etc/perforator/certificates"
+    # Mount /var/log from the host into the container for log collection.
+    varlog: false
+    # Mount /var/lib/docker/containers from the host into the container for log collection.
+    dockercontainers: false
+    # Extra volume mounts to add into the perforator agent container.
+    extra: []
+    # - name: perforator-config
+    #   mountPath: /config
+    #   subPath: ""
+    #   configMap: perforator-config
+    #   readOnly: true
+  
+  # NodeSelector to apply to perforator agent pods.
+  nodeSelector: {}
+  # Tolerations to apply to perforator agent pods.
+  tolerations: []
+  # Affinity configuration for pods.
+  affinity: {}
+  # Annotations to add to perforator agent daemon set.
+  annotations: {}
+  daemonset:
+    # Perforator agent daemon set updateStrategy.
+    updateStrategy: {}
+      # type: RollingUpdate
+      # rollingUpdate:
+      #   maxUnavailable: 1
+  useHostNetwork: false
+  # DNS policy for the pod.
+  dnsPolicy: ClusterFirst
+  # priorityClassName to apply to perforator agent pods.
+  priorityClassName: ""
+
+  metrics:
+    # Enable Prometheus metrics.
+    enabled: false
+    # Metrics service configuration.
+    service:
+      # Metrics service type for perforator agent.
+      type: ClusterIP
+      # Load balancer static IP for perforator agent.
+      loadBalancerIP:
+      # Annotations to be added for service.
+      annotations: {}
+      # The ip families. Options: IPv4, IPv6
+      ipFamilies: []
+      # Metrics service ports.
+      ports:
+        metrics:   
+          # Metrics service port to expose.
+          port: 8005
+          # Node port to expose.
+          nodePort:
+
+    serviceMonitor:
+      # Create ServiceMonitor resources for perforator agent.
+      enabled: false
+      # Additional labels that can be used so ServiceMonitor can be discovered by Prometheus.
+      additionalLabels: {}
+      # Interval at which metrics should be scraped
+      interval: ""
+      # Timeout after which the scrape is ended
+      scrapeTimeout: ""
+      # RelabelConfigs to apply to samples before scraping
+      relabelings: []
+      # MetricRelabelConfigs to apply to samples before ingestion
+      metricRelabelings: []
+      # HonorLabels parameter for the scrape endpoint
+      honorLabels: false
+      # The name of the label on the target service to use as the job name in prometheus.
+      jobLabel: ""
+
+  containerPorts:
+    metrics: 9156
+      
+storage:
+  config:
+    # Create a new user provided config for the storage.
+    useCustom: false
+    # Custom config content. This is passed into tpl function which allows templating from values.
+    custom: ''
+
+  # Number of pods to deploy.
+  replicas: 1
+  # Perforator storage log level
+  logLevel: info
+  # Additional arguments to pass to the perforator storage
+  extraArgs: []
+
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: Always
+
+  # Security context to apply to the perforator storage pod.
+  podSecurityContext: {}
+  # Security context to apply to the perforator storage container.
+  securityContext: {}
+  # Resource requests and limits for the perforator storage container.
+  resources: {}
+
+  mounts:
+    # Mount /var/log from the host into the container for log collection.
+    varlog: false
+    # Mount /var/lib/docker/containers from the host into the container for log collection.
+    dockercontainers: false
+    # Extra volume mounts to add into the perforator storage container.
+    extra: []
+    # - name: perforator-config
+    #   mountPath: /config
+    #   subPath: ""
+    #   configMap: perforator-config
+    #   readOnly: true
+  
+  # NodeSelector to apply to perforator storage pods.
+  nodeSelector: {}
+  # Tolerations to apply to perforator storage pods.
+  tolerations: []
+  # Affinity configuration for pods.
+  affinity: {}
+  # Annotations to add to perforator storage daemon set.
+  annotations: {}
+  deployment:
+    # Perforator storage deployment updateStrategy.
+    updateStrategy: {}
+      # type: RollingUpdate
+      # rollingUpdate:
+      #   maxUnavailable: 1
+  useHostNetwork: false
+  # DNS policy for the pod.
+  dnsPolicy: ClusterFirst
+  # priorityClassName to apply to perforator storage pods.
+  priorityClassName: ""
+
+  service:
+    # Service type for perforator storage.
+    type: ClusterIP
+    # Load balancer static IP for perforator storage.
+    loadBalancerIP:
+    # Annotations to be added for service.
+    annotations: {}
+    # The ip families. Options: IPv4, IPv6
+    ipFamilies: []
+    # Service ports.
+    ports:
+      grpc:   
+        # Service grpc port for perforator storage.
+        port: 7618
+        # Service grpc nodePort port for perforator storage.
+        nodePort:
+
+  metrics:
+    # Enable Prometheus metrics.
+    enabled: false
+    # Metrics service configuration.
+    service:
+      # Metrics service type for perforator storage.
+      type: ClusterIP
+      # Load balancer static IP for perforator storage.
+      loadBalancerIP:
+      # Annotations to be added for service.
+      annotations: {}
+      # The ip families. Options: IPv4, IPv6
+      ipFamilies: []
+      # Metrics service ports.
+      ports:
+        metrics:   
+          # Metrics service port to expose.
+          port: 8005
+          # Node port to expose.
+          nodePort:
+
+    serviceMonitor:
+      # Create ServiceMonitor resources for perforator storage.
+      enabled: false
+      # Additional labels that can be used so ServiceMonitor can be discovered by Prometheus.
+      additionalLabels: {}
+      # Interval at which metrics should be scraped
+      interval: ""
+      # Timeout after which the scrape is ended
+      scrapeTimeout: ""
+      # RelabelConfigs to apply to samples before scraping
+      relabelings: []
+      # MetricRelabelConfigs to apply to samples before ingestion
+      metricRelabelings: []
+      # HonorLabels parameter for the scrape endpoint
+      honorLabels: false
+      # The name of the label on the target service to use as the job name in prometheus.
+      jobLabel: ""
+
+  containerPorts:
+    grpc: 81
+    metrics: 85
+
+  # Overrides storage hostname inside kubernetes cluster.
+  hostname: ""
+
+proxy:
+  config:
+    # Create a new user provided config for the proxy.
+    useCustom: false
+    # Custom config content. This is passed into tpl function which allows templating from values.
+    custom: ''
+  # URL prefix to retrive finished task with, for example:"https://example.com/static/results/" in case of enabled web, or https://example.com/bucketname/ in case of direct use of s3.
+  url_prefix:
+  # Number of pods to deploy.
+  replicas: 1
+  # Perforator proxy log level
+  logLevel: info
+  # Additional arguments to pass to the perforator proxy
+  extraArgs: []
+
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: Always
+
+  # Security context to apply to the perforator proxy pod.
+  podSecurityContext: {}
+  # Security context to apply to the perforator proxy container.
+  securityContext: {}
+  # Resource requests and limits for the perforator proxy container.
+  resources: {}
+
+  mounts:
+    # Mount /var/log from the host into the container for log collection.
+    varlog: false
+
+    # Mount /var/lib/docker/containers from the host into the container for log collection.
+    dockercontainers: false
+
+    # Extra volume mounts to add into the perforator proxy container.
+    extra: []
+    # - name: perforator-config
+    #   mountPath: /config
+    #   subPath: ""
+    #   configMap: perforator-config
+    #   readOnly: true
+  
+  # NodeSelector to apply to perforator proxy pods.
+  nodeSelector: {}
+  # Tolerations to apply to perforator proxy pods.
+  tolerations: []
+  # Affinity configuration for pods.
+  affinity: {}
+  # Annotations to add to perforator proxy daemon set.
+  annotations: {}
+  deployment:
+    # Perforator proxy deployment updateStrategy.
+    updateStrategy: {}
+      # type: RollingUpdate
+      # rollingUpdate:
+      #   maxUnavailable: 1
+  useHostNetwork: false
+  # DNS policy for the pod.
+  dnsPolicy: ClusterFirst
+  # priorityClassName to apply to perforator proxy pods.
+  priorityClassName: ""
+
+  service:
+    # Service type for perforator proxy.
+    type: ClusterIP
+    # Load balancer static IP for perforator proxy.
+    loadBalancerIP:
+    # Annotations to be added for service.
+    annotations: {}
+    # The ip families. Options: IPv4, IPv6
+    ipFamilies: []
+    # Service ports.
+    ports:
+      http:   
+        # Service htpp port for perforator proxy.
+        port: 80
+        # Service http nodePort port for perforator proxy.
+        nodePort:
+      grpc:   
+        # Service grpc port for perforator proxy.
+        port: 7618
+        # Service grpc nodePort port for perforator proxy.
+        nodePort:
+
+  metrics:
+    # Enable Prometheus metrics.
+    enabled: false
+    # Metrics service configuration.
+    service:
+      # Metrics service type for perforator proxy.
+      type: ClusterIP
+      # Load balancer static IP for perforator proxy.
+      loadBalancerIP:
+      # Annotations to be added for service.
+      annotations: {}
+      # The ip families. Options: IPv4, IPv6
+      ipFamilies: []
+      # Metrics service ports.
+      ports:
+        metrics:   
+          # Metrics service port to expose.
+          port: 8005
+          # Node port to expose.
+          nodePort:
+
+    serviceMonitor:
+      # Create ServiceMonitor resources for perforator proxy.
+      enabled: false
+      # Additional labels that can be used so ServiceMonitor can be discovered by Prometheus.
+      additionalLabels: {}
+      # Interval at which metrics should be scraped
+      interval: ""
+      # Timeout after which the scrape is ended
+      scrapeTimeout: ""
+      # RelabelConfigs to apply to samples before scraping
+      relabelings: []
+      # MetricRelabelConfigs to apply to samples before ingestion
+      metricRelabelings: []
+      # HonorLabels parameter for the scrape endpoint
+      honorLabels: false
+      # The name of the label on the target service to use as the job name in prometheus.
+      jobLabel: ""
+
+  containerPorts:
+    http: 80
+    grpc: 81
+    metrics: 85
+  # Overrides proxy hostname inside kubernetes cluster.
+  hostname: ""
+
+web:
+  # Proxy does not support ui, if web server is disabled you must support ui with other means.
+  enabled: true
+  config:
+    #Create a new user provided config for the proxy.
+    useCustom: false
+    #Custom config content. This is passed into tpl function which allows templating from values.
+    custom: ''
+
+  # Number of pods to deploy.
+  replicas: 1
+  # Perforator web log level
+  logLevel: info
+  # Additional arguments to pass to the perforator web
+  extraArgs: []
+
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: Always
+    
+  # Security context to apply to the perforator proxy pod.
+  podSecurityContext: {}
+  # Security context to apply to the perforator proxy container.
+  securityContext: {}
+  # Resource requests and limits for the perforator proxy container.
+  resources: {}
+
+  mounts:
+    # Mount /var/log from the host into the container for log collection.
+    varlog: false
+    # Mount /var/lib/docker/containers from the host into the container for log collection.
+    dockercontainers: false
+    # Extra volume mounts to add into the perforator proxy container.
+    extra: []
+    # - name: perforator-config
+    #   mountPath: /config
+    #   subPath: ""
+    #   configMap: perforator-config
+    #   readOnly: true
+  
+  # NodeSelector to apply to perforator proxy pods.
+  nodeSelector: {}
+  # Tolerations to apply to perforator proxy pods.
+  tolerations: []
+  # Affinity configuration for pods.
+  affinity: {}
+  # Annotations to add to perforator proxy daemon set.
+  annotations: {}
+  deployment:
+    # Perforator proxy deployment updateStrategy.
+    updateStrategy: {}
+      # type: RollingUpdate
+      # rollingUpdate:
+      #   maxUnavailable: 1
+  useHostNetwork: false
+  # DNS policy for the pod.
+  dnsPolicy: ClusterFirst
+  # priorityClassName to apply to perforator proxy pods.
+  priorityClassName: ""
+
+  service:
+    # Service type for perforator web.
+    type: ClusterIP
+    # Load balancer static IP for perforator web.
+    loadBalancerIP:
+    # Annotations to be added for service.
+    annotations: {}
+    # The ip families. Options: IPv4, IPv6
+    ipFamilies: []
+    # Service ports.
+    ports:
+      http:   
+        # Service htpp port for perforator web.
+        port: 80
+        # Service http nodePort port for perforator web.
+        nodePort:
+      grpc:   
+        # Service grpc port for perforator web.
+        port: 7618
+        # Service grpc nodePort port for perforator web.
+        nodePort:
+
+  metrics:
+    # Enable Prometheus metrics.
+    enabled: false
+    # Metrics service configuration.
+    service:
+      # Metrics service type for perforator web.
+      type: ClusterIP
+      # Load balancer static IP for perforator web.
+      loadBalancerIP:
+      # Annotations to be added for service.
+      annotations: {}
+      # The ip families. Options: IPv4, IPv6
+      ipFamilies: []
+      # Metrics service ports.
+      ports:
+        metrics:   
+          # Metrics service port to expose.
+          port: 8005
+          # Node port to expose.
+          nodePort:
+
+    serviceMonitor:
+      # Create ServiceMonitor resources for perforator web.
+      enabled: false
+      # Additional labels that can be used so ServiceMonitor can be discovered by Prometheus.
+      additionalLabels: {}
+      # Interval at which metrics should be scraped
+      interval: ""
+      # Timeout after which the scrape is ended
+      scrapeTimeout: ""
+      # RelabelConfigs to apply to samples before scraping
+      relabelings: []
+      # MetricRelabelConfigs to apply to samples before ingestion
+      metricRelabelings: []
+      # HonorLabels parameter for the scrape endpoint
+      honorLabels: false
+      # The name of the label on the target service to use as the job name in prometheus.
+      jobLabel: ""
+
+  containerPorts:
+    http: 80
+    grpc: 81
+    metrics: 85
+
+ingress:
+  # Direct all requests to proxy instead of web server for both ingresses, by default all traffic is directed to web server.
+  useProxyBackend: false
+  http:
+    # Enables http ingress for web server.
+    enabled: false
+    # Annotations for http ingress.
+    annotations: {}
+    # Specifies http ingress class name for example: nginx.
+    className: ""
+    # Specifies hosts.
+    hosts:
+      - host: example.com
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+    #  - secretName: example-tls-secret
+    #    hosts:
+    #      - example.com
+  grpc:
+    # Enables grpc ingress for web server.
+    enabled: false
+    # Annotations for grpc ingress.
+    annotations: {}
+    # Specifies grpc ingress class name for example: nginx.
+    className: ""
+    # Specifies hosts.
+    hosts:
+      - host: grpc.example.com
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+    #  - secretName: example-tls-secret
+    #    hosts:
+    #      - example.com
+
+gc:
+  config:
+    # Create a new user provided config for the gc.
+    useCustom: false
+    # Custom config content. This is passed into tpl function which allows templating from values.
+    custom: ''
+
+  # Number of pods to deploy.
+  replicas: 1
+  # Number of objects to be deleted per gc iteration.
+  deletePageSize : 500
+  # Interval between gc iterations.
+  deleteInterval: "5m"
+  # Perforator gc log level 
+  logLevel: info
+  # Additional arguments to pass to the perforator gc
+  extraArgs: []
+
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: Always
+
+  # Security context to apply to the perforator gc pod.
+  podSecurityContext: {}
+  # Security context to apply to the perforator gc container.
+  securityContext: {}
+  # Resource requests and limits for the perforator gc container.
+  resources: {}
+
+  mounts:
+    # Mount /var/log from the host into the container for log collection.
+    varlog: false
+    # Mount /var/lib/docker/containers from the host into the container for log collection.
+    dockercontainers: false
+    # Extra volume mounts to add into the perforator gc container.
+    extra: []
+    # - name: perforator-config
+    #   mountPath: /config
+    #   subPath: ""
+    #   configMap: perforator-config
+    #   readOnly: true
+  
+  # NodeSelector to apply to perforator gc pods.
+  nodeSelector: {}
+  # Tolerations to apply to perforator gc pods.
+  tolerations: []
+  # Affinity configuration for pods.
+  affinity: {}
+  # Annotations to add to perforator gc daemon set.
+  annotations: {}
+  deployment:
+    # Perforator gc deployment updateStrategy.
+    updateStrategy: {}
+      # type: RollingUpdate
+      # rollingUpdate:
+      #   maxUnavailable: 1
+  useHostNetwork: false
+  # DNS policy for the pod.
+  dnsPolicy: ClusterFirst
+  # priorityClassName to apply to perforator gc pods.
+  priorityClassName: ""
+
+  metrics:
+    # Enable Prometheus metrics.
+    enabled: false
+    # Metrics service configuration.
+    service:
+      # Metrics service type for perforator gc.
+      type: ClusterIP
+      # Load balancer static IP for perforator gc.
+      loadBalancerIP:
+      # Annotations to be added for service.
+      annotations: {}
+      # The ip families. Options: IPv4, IPv6
+      ipFamilies: []
+      # Metrics service ports.
+      ports:
+        metrics:   
+          # Metrics service port to expose.
+          port: 8005
+          # Node port to expose.
+          nodePort:
+
+    serviceMonitor:
+      # Create ServiceMonitor resources for perforator gc.
+      enabled: false
+      # Additional labels that can be used so ServiceMonitor can be discovered by Prometheus.
+      additionalLabels: {}
+      # Interval at which metrics should be scraped
+      interval: ""
+      # Timeout after which the scrape is ended
+      scrapeTimeout: ""
+      # RelabelConfigs to apply to samples before scraping
+      relabelings: []
+      # MetricRelabelConfigs to apply to samples before ingestion
+      metricRelabelings: []
+      # HonorLabels parameter for the scrape endpoint
+      honorLabels: false
+      # The name of the label on the target service to use as the job name in prometheus.
+      jobLabel: ""
+
+  containerPorts:
+    metrics: 85
+
+offlineprocessing:
+  config:
+    #Create a new user provided config for the offlineprocessing.
+    useCustom: false
+    #Custom config content. This is passed into tpl function which allows templating from values.
+    custom: ''
+
+  # Number of pods to deploy.
+  replicas: 1
+  # Perforator offlineprocessing log level
+  logLevel: info
+  # Additional arguments to pass to the perforator offlineprocessing
+  extraArgs: []
+
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: Always
+
+  # Security context to apply to the perforator offlineprocessing pod.
+  podSecurityContext: {}
+  # Security context to apply to the perforator offlineprocessing container.
+  securityContext: {}
+  # Resource requests and limits for the perforator offlineprocessing container.
+  resources: {}
+
+  mounts:
+    # Mount /var/log from the host into the container for log collection.
+    varlog: false
+    # Mount /var/lib/docker/containers from the host into the container for log collection.
+    dockercontainers: false
+    # Extra volume mounts to add into the perforator offlineprocessing container.
+    extra: []
+    # - name: perforator-config
+    #   mountPath: /config
+    #   subPath: ""
+    #   configMap: perforator-config
+    #   readOnly: true
+  
+  # NodeSelector to apply to perforator offlineprocessing pods.
+  nodeSelector: {}
+  # Tolerations to apply to perforator offlineprocessing pods.
+  tolerations: []
+  # Affinity configuration for pods.
+  affinity: {}
+  # Annotations to add to perforator offlineprocessing daemon set.
+  annotations: {}
+  deployment:
+    # Perforator offlineprocessing deployment updateStrategy.
+    updateStrategy: {}
+      # type: RollingUpdate
+      # rollingUpdate:
+      #   maxUnavailable: 1
+  useHostNetwork: false
+  # DNS policy for the pod.
+  dnsPolicy: ClusterFirst
+  # priorityClassName to apply to perforator offlineprocessing pods.
+  priorityClassName: ""

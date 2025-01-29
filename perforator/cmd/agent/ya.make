@@ -1,0 +1,9 @@
+GO_PROGRAM()
+
+ALLOCATOR(TCMALLOC)
+
+SRCS(
+    main.go
+)
+
+END()

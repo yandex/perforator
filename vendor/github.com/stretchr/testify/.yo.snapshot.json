@@ -1,0 +1,152 @@
+{
+	"Version": "v1.10.0",
+	"GoVersion": "1.17",
+	"Sum": "h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=",
+	"Packages": {
+		"github.com/stretchr/testify": {
+			"Imports": null,
+			"TestImports": [
+				"github.com/stretchr/testify/assert",
+				"testing"
+			]
+		},
+		"github.com/stretchr/testify/assert": {
+			"Imports": [
+				"bufio",
+				"bytes",
+				"encoding/json",
+				"errors",
+				"fmt",
+				"github.com/davecgh/go-spew/spew",
+				"github.com/pmezard/go-difflib/difflib",
+				"github.com/stretchr/testify/assert/yaml",
+				"math",
+				"net/http",
+				"net/http/httptest",
+				"net/url",
+				"os",
+				"reflect",
+				"regexp",
+				"runtime",
+				"runtime/debug",
+				"strings",
+				"time",
+				"unicode",
+				"unicode/utf8"
+			],
+			"TestImports": [
+				"bufio",
+				"bytes",
+				"encoding/json",
+				"errors",
+				"fmt",
+				"io",
+				"math",
+				"net/http",
+				"net/url",
+				"os",
+				"path/filepath",
+				"reflect",
+				"regexp",
+				"runtime",
+				"strings",
+				"testing",
+				"time"
+			]
+		},
+		"github.com/stretchr/testify/assert/internal/unsafetests": {
+			"Imports": null,
+			"TestImports": [
+				"fmt",
+				"github.com/stretchr/testify/assert",
+				"testing",
+				"unsafe"
+			]
+		},
+		"github.com/stretchr/testify/assert/yaml": {
+			"Imports": [
+				"gopkg.in/yaml.v3"
+			],
+			"TestImports": null
+		},
+		"github.com/stretchr/testify/http": {
+			"Imports": [
+				"github.com/stretchr/testify/mock",
+				"net/http"
+			],
+			"TestImports": null
+		},
+		"github.com/stretchr/testify/mock": {
+			"Imports": [
+				"errors",
+				"fmt",
+				"github.com/davecgh/go-spew/spew",
+				"github.com/pmezard/go-difflib/difflib",
+				"github.com/stretchr/objx",
+				"github.com/stretchr/testify/assert",
+				"path",
+				"reflect",
+				"regexp",
+				"runtime",
+				"strings",
+				"sync",
+				"time"
+			],
+			"TestImports": [
+				"errors",
+				"fmt",
+				"github.com/stretchr/testify/assert",
+				"github.com/stretchr/testify/require",
+				"regexp",
+				"runtime",
+				"sync",
+				"testing",
+				"time"
+			]
+		},
+		"github.com/stretchr/testify/require": {
+			"Imports": [
+				"github.com/stretchr/testify/assert",
+				"net/http",
+				"net/url",
+				"time"
+			],
+			"TestImports": [
+				"encoding/json",
+				"errors",
+				"github.com/stretchr/testify/assert",
+				"testing",
+				"time"
+			]
+		},
+		"github.com/stretchr/testify/suite": {
+			"Imports": [
+				"flag",
+				"fmt",
+				"github.com/stretchr/testify/assert",
+				"github.com/stretchr/testify/require",
+				"os",
+				"reflect",
+				"regexp",
+				"runtime/debug",
+				"sync",
+				"testing",
+				"time"
+			],
+			"TestImports": [
+				"bytes",
+				"errors",
+				"flag",
+				"github.com/stretchr/testify/assert",
+				"github.com/stretchr/testify/require",
+				"io/ioutil",
+				"math/rand",
+				"os",
+				"os/exec",
+				"strings",
+				"testing",
+				"time"
+			]
+		}
+	}
+}

@@ -1,0 +1,11 @@
+GO_LIBRARY()
+
+LICENSE(BSD-3-Clause)
+
+VERSION(v0.0.0-20231012003039-104605ab7028)
+
+SRCS(
+    internal.go
+)
+
+END()

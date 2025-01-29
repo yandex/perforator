@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "perforator.fullname" . }}-proxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.proxy.selectorLabels" . | nindent 4 }}
+  {{- with .Values.proxy.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.proxy.replicas }}
+  selector:
+    matchLabels:
+      {{- include "perforator.selectorLabels" . | nindent 6 }}
+      {{- include "perforator.proxy.selectorLabels" . | nindent 6 }}
+  {{- with .Values.proxy.deployment.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "perforator.selectorLabels" . | nindent 8 }}
+        {{- include "perforator.proxy.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.proxy.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      dnsPolicy: {{ .Values.proxy.dnsPolicy }}
+      {{- end }}
+      containers:
+      - name: {{ include "perforator.fullname" . }}-proxy
+        image: "{{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.proxy.image.pullPolicy }}
+        args:
+        - /perforator/proxy
+        - --config=/etc/perforator/config.yaml
+        - --metrics-port={{ .Values.proxy.containerPorts.metrics }}
+        - --grpc-port={{ .Values.proxy.containerPorts.grpc }}
+        - --http-port={{ .Values.proxy.containerPorts.http }}
+        - --cache-path=/cache
+        - --log-level={{ .Values.proxy.logLevel }}
+          {{- range .Values.proxy.extraArgs }}
+        - {{ . }}
+          {{- end}}
+        resources:
+        {{- toYaml .Values.proxy.resources | nindent 10 }}
+        securityContext:
+            {{- toYaml .Values.proxy.securityContext | nindent 10 }}
+        {{- if .Values.proxy.useHostNetwork }}
+        hostNetwork: true
+        {{- end }}
+        {{- with .Values.proxy.priorityClassName }}
+        priorityClassName: {{ . }}
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.proxy.containerPorts.http }}
+          name: http
+        - containerPort: {{ .Values.proxy.containerPorts.grpc }}
+          name: grpc
+        - containerPort: {{ .Values.proxy.containerPorts.metrics }}
+          name: metrics
+        volumeMounts:
+        - name: storage-s3-keys
+          mountPath: "/etc/perforator/s3"
+        - name: config
+          mountPath: /etc/perforator/
+        {{- if .Values.proxy.mounts.varlog }}
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        {{- end }}
+        {{- if .Values.proxy.mounts.dockercontainers }}
+        - name: dockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        {{- end }}
+        {{- range .Values.proxy.mounts.extra }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath }}
+            subPath: {{ .subPath }}
+            readOnly: {{ .readOnly }}
+        {{- end }}
+        env:
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.clickhouse" . | nindent 14 }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.postgresql" . | nindent 14 }}
+      volumes:
+      - name: storage-s3-keys
+        secret:
+          secretName: {{ include "perforator.secretName.s3" . }}
+      - name: config
+        configMap:
+          name: {{ include "perforator.fullname" . }}-proxy-config
+      {{- if .Values.proxy.mounts.varlog }}
+      - name: varlog
+        hostPath:
+          path: /var/log
+      {{- end }}
+      {{- if .Values.proxy.mounts.dockercontainers }}
+      - name: dockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      {{- end }}
+      {{- range .Values.proxy.mounts.extra }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ .configMap }}
+      {{- end }}
+      {{- with .Values.proxy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.proxy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.proxy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

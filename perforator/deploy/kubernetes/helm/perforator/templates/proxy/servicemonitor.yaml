@@ -1,0 +1,40 @@
+{{- if and (.Values.proxy.metrics.enabled) (.Values.proxy.metrics.serviceMonitor.enabled) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "perforator.fullname" . }}-proxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.proxy.selectorLabels" . | nindent 4 }}
+    {{- with .Values.proxy.metrics.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.proxy.metrics.serviceMonitor.jobLabel }}
+  jobLabel: {{ .Values.proxy.metrics.serviceMonitor.jobLabel }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "perforator.selectorLabels" . | nindent 6 }}
+      {{- include "perforator.proxy.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: metrics
+  endpoints:
+    - path: /metrics
+      port: metrics
+      {{- if .Values.proxy.metrics.serviceMonitor.interval }}
+      interval: {{ .Values.proxy.metrics.serviceMonitor.interval }}
+      {{- end }}
+      {{- if .Values.proxy.metrics.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ .Values.proxy.metrics.serviceMonitor.scrapeTimeout }}
+      {{- end }}
+      {{- if .Values.proxy.metrics.serviceMonitor.relabelings }}
+      relabelings: {{- toYaml .Values.proxy.metrics.serviceMonitor.relabelings | nindent 6 }}
+      {{- end }}
+      {{- if .Values.proxy.metrics.serviceMonitor.metricRelabelings }}
+      metricRelabelings: {{- toYaml .Values.proxy.metrics.serviceMonitor.metricRelabelings | nindent 6 }}
+      {{- end }}
+      {{- if .Values.proxy.metrics.serviceMonitor.honorLabels }}
+      honorLabels: {{ .Values.proxy.metrics.serviceMonitor.honorLabels }}
+      {{- end }}
+{{- end }}

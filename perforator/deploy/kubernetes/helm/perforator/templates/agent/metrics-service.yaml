@@ -1,0 +1,34 @@
+{{- if .Values.agent.metrics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "perforator.agent.service.name" . }}-metrics
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.agent.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: metrics
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.agent.metrics.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.agent.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.agent.metrics.service.type }}
+  {{- with .Values.agent.metrics.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  ports:
+  - name: metrics
+    port: {{ .Values.agent.metrics.service.ports.metrics.port }}
+    targetPort: metrics
+    {{- with .Values.agent.metrics.service.ports.metrics.nodePort }}
+    nodePort: {{ . }}
+    {{- end }}
+  {{- range .Values.agent.metrics.service.ipFamilies }}
+  ipFamilies:
+    - {{ . }}
+  {{- end}}
+{{- end }}

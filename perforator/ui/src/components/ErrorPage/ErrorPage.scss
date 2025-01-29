@@ -1,0 +1,11 @@
+.error-page {
+    align-items: center;
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+}
+
+.error-page__title {
+    font-weight: 100;
+    max-width: 30vw;
+}

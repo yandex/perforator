@@ -1,0 +1,34 @@
+{{- if .Values.proxy.metrics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "perforator.proxy.service.name" . }}-metrics
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.proxy.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: metrics
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.proxy.metrics.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.proxy.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.proxy.metrics.service.type }}
+  {{- with .Values.proxy.metrics.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  ports:
+  - name: metrics
+    port: {{ .Values.proxy.metrics.service.ports.metrics.port }}
+    targetPort: metrics
+    {{- with .Values.proxy.metrics.service.ports.metrics.nodePort }}
+    nodePort: {{ . }}
+    {{- end }}
+  {{- range .Values.proxy.metrics.service.ipFamilies }}
+  ipFamilies:
+    - {{ . }}
+  {{- end}}
+{{- end }}

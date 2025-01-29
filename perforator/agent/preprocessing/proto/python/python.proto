@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package NPerforator.NBinaryProcessing.NPython;
+
+option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/python";
+
+message PythonVersion {
+    uint32 Major = 1;
+    uint32 Minor = 2;
+    uint32 Micro = 3;
+}
+
+message PythonConfig {
+    PythonVersion Version = 1;
+    int64 PyThreadStateTLSOffset = 2;
+    uint64 RelativePyRuntimeAddress = 3;
+}

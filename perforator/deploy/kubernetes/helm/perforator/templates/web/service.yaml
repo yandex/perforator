@@ -1,0 +1,39 @@
+{{- if .Values.web.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "perforator.web.service.name" . }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.web.selectorLabels" . | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.web.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.web.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.web.service.type }}
+  {{- with .Values.web.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  ports:
+  - name: http
+    port: {{ .Values.web.service.ports.http.port }}
+    targetPort: http
+    {{- with .Values.web.service.ports.http.nodePort }}
+    nodePort: {{ . }}
+    {{- end }}
+  - name: grpc
+    port: {{ .Values.web.service.ports.grpc.port }}
+    targetPort: grpc
+    {{- with .Values.web.service.ports.grpc.nodePort }}
+    nodePort: {{ . }}
+    {{- end }}
+  {{- range .Values.web.service.ipFamilies }}
+  ipFamilies:
+    - {{ . }}
+  {{- end}}
+{{- end }}

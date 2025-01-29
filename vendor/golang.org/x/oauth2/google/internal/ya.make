@@ -1,0 +1,5 @@
+RECURSE(
+    externalaccountauthorizeduser
+    impersonate
+    stsexchange
+)

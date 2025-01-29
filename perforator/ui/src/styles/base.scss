@@ -1,0 +1,20 @@
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-size-adjust: none;
+}
+
+body {
+    overflow: auto;
+
+    line-height: 1.43;
+}
+
+#content {
+    padding: 2em;
+}

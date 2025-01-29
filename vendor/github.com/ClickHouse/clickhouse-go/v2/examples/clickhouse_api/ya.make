@@ -1,0 +1,49 @@
+GO_LIBRARY()
+
+LICENSE(Apache-2.0)
+
+VERSION(v2.18.0)
+
+SRCS(
+    append_struct.go
+    array.go
+    async.go
+    auth.go
+    batch.go
+    batch_release_connection.go
+    big_int.go
+    bind.go
+    bind_special.go
+    client_info.go
+    columnar_insert.go
+    compression.go
+    connect.go
+    connect_settings.go
+    context.go
+    custom_types.go
+    decimal.go
+    dynamic_scan_types.go
+    exec.go
+    external_data.go
+    geo.go
+    json.go
+    map.go
+    multi_host.go
+    nested.go
+    nullable.go
+    open_telemetry.go
+    progress.go
+    query_parameters.go
+    query_row.go
+    query_rows.go
+    scan_struct.go
+    select_struct.go
+    ssl.go
+    ssl_no_verify.go
+    tuple.go
+    type_convert.go
+    utils.go
+    uuid.go
+)
+
+END()

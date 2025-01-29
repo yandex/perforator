@@ -1,0 +1,25 @@
+.definition-list {
+    display: table;
+    margin: var(--g-spacing-3) 0;
+
+    .definition-list__row {
+        display: table-row;
+    }
+
+    dt, dd {
+        display: table-cell;
+        vertical-align: middle;
+    }
+
+    dt {
+        font-weight: bold;
+        padding-right: var(--g-spacing-3);
+        white-space: nowrap;
+    }
+
+    .definition-list__row:not(:last-child) {
+        dt, dd {
+            padding-bottom: var(--g-spacing-1);
+        }
+    }
+}

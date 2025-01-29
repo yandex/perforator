@@ -1,0 +1,442 @@
+// TODO: merge the resulting files. This can only be done if off-by-one handling
+// is moved to expr handling too.
+//
+// For now this is better than panicking.
+
+-- x.cue --
+fieldAlias: simple: {
+	X="a-b": 4
+	foo:     X
+
+	bar?: Y
+
+	Y="a-c": 5
+}
+
+valueAlias: merge: {
+	// Merge fields, rename alias to avoid conflict.
+	// TODO: merged values can still be simplified.
+	value: X={#value: X.b, b: 2}
+	value: Y={#value: Y.b, b: 2, v: X: 3}
+}
+
+valueAlias: selfRef: struct: {
+	a: b: X={#foo: X.b, b: 2}
+}
+
+valueAlias: selfRefValue: struct: {
+	// Note: this resolves to a cycle error, which is considered
+	// to be equal to "incomplete". As a result, in case of
+	// non-final evaluation, reference will remain. This is not
+	// an issue exclusive to value aliases, and falls within the
+	// range of what is acceptable for now.
+	// TODO: solve this issue.
+	a: X=or(X)
+}
+
+valueAlias: selfRefValue: pattern: {
+	// this triggers the verbatim "adt" path. Note that there
+	// is no need to rename the variable here as the expression
+	// was known to compile and is known to be correct.
+	a: [string]: X=or(X)
+}
+
+issue1308: {
+	let _xA = 1
+	sub: [{_A: _xA}]
+}
+-- y.cue --
+fieldAlias: cross: {
+	baz: 3
+	X="d-2": E=[D="cue"]: C="foo\(baz)": {
+		name: "xx"
+		foo:  C.name
+		bar:  X
+		baz:  D
+		qux:  E
+	}
+}
+-- out/definition --
+fieldAlias: {
+	simple: {
+		X_1="a-b": 4
+		foo:       X_1
+		bar?:      Y_1
+		Y_1="a-c": 5
+	}
+	cross: {
+		baz: 3
+		X_2="d-2": {
+			E=[D="cue"]: {
+				C="foo\(baz)": {
+					name: "xx"
+					foo:  C.name
+					bar:  X_2
+					baz:  D
+					qux:  E
+				}
+			}
+		}
+	}
+}
+valueAlias: {
+	merge: {
+		// Merge fields, rename alias to avoid conflict.
+		// TODO: merged values can still be simplified.
+		value: X_3={
+			#value: X_3.b & X_3.b
+			b:      2
+			v: {
+				X: 3
+			}
+		}
+	}
+	selfRef: {
+		struct: {
+			a: {
+				b: X_4={
+					#foo: X_4.b
+					b:    2
+				}
+			}
+		}
+	}
+	selfRefValue: {
+		struct: {
+			// Note: this resolves to a cycle error, which is considered
+			// to be equal to "incomplete". As a result, in case of
+			// non-final evaluation, reference will remain. This is not
+			// an issue exclusive to value aliases, and falls within the
+			// range of what is acceptable for now.
+			// TODO: solve this issue.
+			a: X_8=or(X_8)
+		}
+		pattern: {
+			// this triggers the verbatim "adt" path. Note that there
+			// is no need to rename the variable here as the expression
+			// was known to compile and is known to be correct.
+			a: {
+				[string]: X=or(X)
+			}
+		}
+	}
+}
+issue1308: {
+	let _xA = 1
+	sub: [{
+		_A: _xA
+	}]
+}
+-- out/doc --
+[]
+[fieldAlias]
+[fieldAlias simple]
+[fieldAlias simple "a-b"]
+[fieldAlias simple foo]
+[fieldAlias simple "a-c"]
+[fieldAlias cross]
+[fieldAlias cross baz]
+[fieldAlias cross "d-2"]
+[valueAlias]
+[valueAlias merge]
+[valueAlias merge value]
+- Merge fields, rename alias to avoid conflict.
+TODO: merged values can still be simplified.
+
+[valueAlias merge value #value]
+[valueAlias merge value b]
+[valueAlias merge value v]
+[valueAlias merge value v X]
+[valueAlias selfRef]
+[valueAlias selfRef struct]
+[valueAlias selfRef struct a]
+[valueAlias selfRef struct a b]
+[valueAlias selfRef struct a b #foo]
+[valueAlias selfRef struct a b b]
+[valueAlias selfRefValue]
+[valueAlias selfRefValue struct]
+[valueAlias selfRefValue struct a]
+- Note: this resolves to a cycle error, which is considered
+to be equal to "incomplete". As a result, in case of
+non-final evaluation, reference will remain. This is not
+an issue exclusive to value aliases, and falls within the
+range of what is acceptable for now.
+TODO: solve this issue.
+
+[valueAlias selfRefValue pattern]
+[valueAlias selfRefValue pattern a]
+- this triggers the verbatim "adt" path. Note that there
+is no need to rename the variable here as the expression
+was known to compile and is known to be correct.
+
+[issue1308]
+[issue1308 sub]
+[issue1308 sub 0]
+[issue1308 sub 0 _A]
+-- out/value --
+== Simplified
+{
+	fieldAlias: {
+		simple: {
+			"a-b": 4
+			foo:   4
+			"a-c": 5
+		}
+		cross: {
+			baz: 3
+			"d-2": {}
+		}
+	}
+	valueAlias: {
+		merge: {
+			// Merge fields, rename alias to avoid conflict.
+			// TODO: merged values can still be simplified.
+			value: {
+				b: 2
+				v: {
+					X: 3
+				}
+			}
+		}
+		selfRef: {
+			struct: {
+				a: {
+					b: {
+						b: 2
+					}
+				}
+			}
+		}
+		selfRefValue: {
+			struct: {
+				// Note: this resolves to a cycle error, which is considered
+				// to be equal to "incomplete". As a result, in case of
+				// non-final evaluation, reference will remain. This is not
+				// an issue exclusive to value aliases, and falls within the
+				// range of what is acceptable for now.
+				// TODO: solve this issue.
+				a: or(X)
+			}
+			pattern: {
+				// this triggers the verbatim "adt" path. Note that there
+				// is no need to rename the variable here as the expression
+				// was known to compile and is known to be correct.
+				a: {}
+			}
+		}
+	}
+	issue1308: {
+		sub: [{}]
+	}
+}
+== Raw
+{
+	fieldAlias: {
+		simple: {
+			"a-b":     4
+			foo:       4
+			bar?:      Y_1
+			Y_1="a-c": 5
+		}
+		cross: {
+			baz: 3
+			"d-2": {}
+		}
+	}
+	valueAlias: {
+		merge: {
+			// Merge fields, rename alias to avoid conflict.
+			// TODO: merged values can still be simplified.
+			value: {
+				#value: 2
+				b:      2
+				v: {
+					X: 3
+				}
+			}
+		}
+		selfRef: {
+			struct: {
+				a: {
+					b: {
+						#foo: 2
+						b:    2
+					}
+				}
+			}
+		}
+		selfRefValue: {
+			struct: {
+				// Note: this resolves to a cycle error, which is considered
+				// to be equal to "incomplete". As a result, in case of
+				// non-final evaluation, reference will remain. This is not
+				// an issue exclusive to value aliases, and falls within the
+				// range of what is acceptable for now.
+				// TODO: solve this issue.
+				a: or(X)
+			}
+			pattern: {
+				// this triggers the verbatim "adt" path. Note that there
+				// is no need to rename the variable here as the expression
+				// was known to compile and is known to be correct.
+				a: {}
+			}
+		}
+	}
+	issue1308: {
+		sub: [{
+			_A: 1
+		}]
+	}
+}
+== Final
+{
+	fieldAlias: {
+		simple: {
+			"a-b": 4
+			foo:   4
+			"a-c": 5
+		}
+		cross: {
+			baz: 3
+			"d-2": {}
+		}
+	}
+	valueAlias: {
+		merge: {
+			value: {
+				b: 2
+				v: {
+					X: 3
+				}
+			}
+		}
+		selfRef: {
+			struct: {
+				a: {
+					b: {
+						b: 2
+					}
+				}
+			}
+		}
+		selfRefValue: {
+			struct: {
+				a: _|_ // cycle error
+			}
+			pattern: {
+				a: {}
+			}
+		}
+	}
+	issue1308: {
+		sub: [{}]
+	}
+}
+== All
+{
+	fieldAlias: {
+		simple: {
+			"a-b":     4
+			foo:       4
+			bar?:      Y_1
+			Y_1="a-c": 5
+		}
+		cross: {
+			baz: 3
+			"d-2": {}
+		}
+	}
+	valueAlias: {
+		merge: {
+			// Merge fields, rename alias to avoid conflict.
+			// TODO: merged values can still be simplified.
+			value: {
+				#value: 2
+				b:      2
+				v: {
+					X: 3
+				}
+			}
+		}
+		selfRef: {
+			struct: {
+				a: {
+					b: {
+						#foo: 2
+						b:    2
+					}
+				}
+			}
+		}
+		selfRefValue: {
+			struct: {
+				// Note: this resolves to a cycle error, which is considered
+				// to be equal to "incomplete". As a result, in case of
+				// non-final evaluation, reference will remain. This is not
+				// an issue exclusive to value aliases, and falls within the
+				// range of what is acceptable for now.
+				// TODO: solve this issue.
+				a: or(X)
+			}
+			pattern: {
+				// this triggers the verbatim "adt" path. Note that there
+				// is no need to rename the variable here as the expression
+				// was known to compile and is known to be correct.
+				a: {}
+			}
+		}
+	}
+	issue1308: {
+		sub: [{
+			_A: 1
+		}]
+	}
+}
+== Eval
+{
+	fieldAlias: {
+		simple: {
+			"a-b":     4
+			foo:       4
+			bar?:      Y_1
+			Y_1="a-c": 5
+		}
+		cross: {
+			baz: 3
+			"d-2": {}
+		}
+	}
+	valueAlias: {
+		merge: {
+			value: {
+				#value: 2
+				b:      2
+				v: {
+					X: 3
+				}
+			}
+		}
+		selfRef: {
+			struct: {
+				a: {
+					b: {
+						#foo: 2
+						b:    2
+					}
+				}
+			}
+		}
+		selfRefValue: {
+			struct: {
+				a: or(X)
+			}
+			pattern: {
+				a: {}
+			}
+		}
+	}
+	issue1308: {
+		sub: [{}]
+	}
+}

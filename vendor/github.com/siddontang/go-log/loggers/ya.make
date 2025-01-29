@@ -1,0 +1,11 @@
+GO_LIBRARY()
+
+LICENSE(MIT)
+
+VERSION(v0.0.0-20190221022429-1e957dd83bed)
+
+SRCS(
+    loggers.go
+)
+
+END()

@@ -1,0 +1,24 @@
+{
+  "info": {
+    "created": "2024-11-12T17:08:52.062Z",
+    "pr": {
+      "id": 7207759,
+      "author": "khoden",
+      "summary": "FBP-1873: nots: регрессия после FBP-1830 4"
+    }
+  },
+  "by_platform": {
+    "darwin": {
+      "uri": "sbr:7452448437"
+    },
+    "darwin-arm64": {
+      "uri": "sbr:7452447564"
+    },
+    "linux": {
+      "uri": "sbr:7452450736"
+    },
+    "linux-aarch64": {
+      "uri": "sbr:7452449557"
+    }
+  }
+}

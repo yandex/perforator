@@ -1,0 +1,5 @@
+RECURSE(
+    collapsed
+    convert
+    render
+)

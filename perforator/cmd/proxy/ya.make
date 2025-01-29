@@ -1,0 +1,11 @@
+GO_PROGRAM(proxy)
+
+IF (OS_LINUX)
+    ALLOCATOR(TCMALLOC)
+ENDIF()
+
+SRCS(
+    main.go
+)
+
+END()

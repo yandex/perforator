@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "perforator.fullname" . }}-offlineprocessing-config
+  namespace: {{ .Release.Namespace }}
+data:  
+{{- if .Values.offlineprocessing.config.useCustom }}  
+  config.yaml: |- {{- tpl .Values.offlineprocessing.config.custom . | nindent 4 }}
+{{- else }}
+  config.yaml: |- {{- tpl (.Files.Get "config/offlineprocessing.yaml") . | nindent 4 }}
+{{- end }}

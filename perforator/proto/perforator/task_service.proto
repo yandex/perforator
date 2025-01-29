@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "perforator/proto/perforator/perforator.proto";
+
+package NPerforator.NProto;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/perforator";
+
+////////////////////////////////////////////////////////////////////////////////
+
+service TaskService {
+    // Schedule async (i.e. heavy profiles merging) task.
+    rpc StartTask(StartTaskRequest) returns (StartTaskResponse) {
+        option (google.api.http) = {
+            post: "/api/v0/tasks"
+            body: "*"
+        };
+    }
+
+    // Get task result.
+    rpc GetTask(GetTaskRequest) returns (GetTaskResponse) {
+        option (google.api.http) = {
+            get: "/api/v0/tasks/{TaskID}"
+        };
+    }
+
+    // Get task result.
+    rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {
+        option (google.api.http) = {
+            get: "/api/v0/tasks"
+        };
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message StartTaskRequest {
+    TaskSpec Spec = 1;
+    string IdempotencyKey = 2;
+}
+
+message StartTaskResponse {
+    string TaskID = 1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message GetTaskRequest {
+    string TaskID = 1;
+}
+
+message GetTaskResponse {
+    TaskSpec Spec = 1;
+    TaskStatus Status = 2;
+    TaskResult Result = 3;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message ListTasksRequest {
+    TaskQuery Query = 1;
+    Paginated Pagination = 2;
+}
+
+message ListTasksResponse {
+    repeated Task Tasks = 1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message TaskQuery {
+    optional string Author = 2;
+    optional google.protobuf.Timestamp From = 3;
+    optional google.protobuf.Timestamp To = 4;
+}
+
+message Task {
+    TaskMeta Meta = 1;
+    TaskSpec Spec = 2;
+    TaskStatus Status = 3;
+    TaskResult Result = 4;
+}
+
+message TaskMeta {
+    string ID = 1;
+    int64 CreationTime = 2;
+    string Author = 3;
+    string IdempotencyKey = 4;
+}
+
+message TaskSpec {
+    oneof Kind {
+        MergeProfilesRequest MergeProfiles = 1;
+        DiffProfilesRequest DiffProfiles = 2;
+        GeneratePGOProfileRequest GeneratePGOProfile = 3;
+    }
+
+    TraceBaggage TraceBaggage = 100;
+}
+
+message TaskResult {
+    oneof Kind {
+        MergeProfilesResponse MergeProfiles = 1;
+        DiffProfilesResponse DiffProfiles = 2;
+        GeneratePGOProfileResponse GeneratePGOProfile = 3;
+    }
+}
+
+message TaskStatus {
+    TaskState State = 1;
+    int64 LastPing = 2;
+    string Error = 3;
+    repeated TaskExecution Attempts = 4;
+}
+
+enum TaskState {
+    Unknown = 0;
+    Created = 1;
+    Running = 2;
+    Failed = 3;
+    Finished = 4;
+}
+
+message TaskExecution {
+    string Executor = 1;
+    int64 StartTime = 2;
+    int64 LastSeenTime = 3;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+message TraceBaggage {
+    map<string, string> Baggage = 1;
+}
+
+////////////////////////////////////////////////////////////////////////////////

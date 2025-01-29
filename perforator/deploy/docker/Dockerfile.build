@@ -1,0 +1,65 @@
+FROM ubuntu:24.04 AS build
+
+RUN apt update \
+ && apt install -y python3.12 python-is-python3
+
+WORKDIR /perforator
+
+COPY . /perforator
+
+RUN --mount=type=cache,target=/root/.ya/build,sharing=locked --mount=type=cache,target=/root/.ya/tools,sharing=locked \
+ ./ya make -r --output /out perforator/bundle
+
+####################################################################################################################
+
+FROM ubuntu:24.04 AS autofdo_build
+
+RUN apt update && \
+ apt install -y libunwind-dev libgflags-dev libssl-dev libelf-dev protobuf-compiler \
+ cmake libzstd-dev clang g++ git build-essential
+
+WORKDIR /autofdo
+
+RUN git clone --recursive --depth 1 https://github.com/google/autofdo.git
+RUN cd autofdo && \
+ git checkout 8f9ab68921f364a6433086245ca3f19befacfeb1 && git submodule update --init --recursive && \
+ mkdir build && cd build && \
+ cmake -DENABLE_TOOL=LLVM -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release ../ && \
+ make -j $(nproc) create_llvm_prof
+
+####################################################################################################################
+
+FROM ubuntu:24.04 AS agent
+COPY --from=build /out/perforator/bundle/agent /perforator/agent
+
+####################################################################################################################
+
+FROM ubuntu:24.04 AS gc
+COPY --from=build /out/perforator/bundle/gc /perforator/gc
+
+####################################################################################################################
+
+FROM ubuntu:24.04 AS storage
+COPY --from=build /out/perforator/bundle/storage /perforator/storage
+
+####################################################################################################################
+
+FROM ubuntu:24.04 AS proxy
+COPY --from=build /out/perforator/bundle/proxy /perforator/proxy
+COPY --from=autofdo_build /autofdo/autofdo/build/create_llvm_prof /perforator/create_llvm_prof
+
+####################################################################################################################
+
+FROM ubuntu:24.04 AS web
+COPY --from=build /out/perforator/bundle/web /perforator/web
+
+####################################################################################################################
+
+FROM ubuntu:24.04 AS migrate
+COPY --from=build /out/perforator/bundle/migrate /perforator/migrate
+
+####################################################################################################################
+
+FROM ubuntu:24.04 AS offline_processing
+COPY --from=build /out/perforator/bundle/offline_processing /perforator/offline_processing
+

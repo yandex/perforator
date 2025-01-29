@@ -1,0 +1,5 @@
+RECURSE(
+    autofdo
+    gsym
+    symbolize
+)

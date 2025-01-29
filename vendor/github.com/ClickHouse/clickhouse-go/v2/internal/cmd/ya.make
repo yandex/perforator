@@ -1,0 +1,3 @@
+RECURSE(
+    release_prep
+)

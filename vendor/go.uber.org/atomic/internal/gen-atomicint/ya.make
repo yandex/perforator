@@ -1,0 +1,13 @@
+GO_PROGRAM()
+
+LICENSE(MIT)
+
+VERSION(v1.11.0)
+
+SRCS(
+    main.go
+)
+
+GO_EMBED_PATTERN(*.tmpl)
+
+END()

@@ -1,0 +1,5 @@
+TS_TEST_JEST_FOR(RELATIVE ../)
+
+    TS_TEST_SRCS(../src)
+
+END()

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package NPerforator.NBinaryProcessing;
+
+import "perforator/agent/preprocessing/proto/unwind/table.proto";
+import "perforator/agent/preprocessing/proto/tls/tls.proto";
+import "perforator/agent/preprocessing/proto/python/python.proto";
+
+option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse";
+
+message BinaryAnalysis {
+    NPerforator.NBinaryProcessing.NUnwind.UnwindTable UnwindTable = 1;
+    NPerforator.NBinaryProcessing.NTls.TLSConfig TLSConfig = 2;
+    NPerforator.NBinaryProcessing.NPython.PythonConfig PythonConfig = 3;
+}

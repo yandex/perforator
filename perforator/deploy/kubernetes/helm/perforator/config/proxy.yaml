@@ -1,0 +1,59 @@
+server:
+  insecure: true
+storage:
+  databases:
+    clickhouse:
+      replicas: {{ toYaml .Values.databases.clickhouse.replicas | nindent 8 }}
+      db: {{ .Values.databases.clickhouse.db }}
+      user: {{ .Values.databases.clickhouse.user }}
+      password_env: "CLICKHOUSE_PASSWORD"
+      insecure: {{ .Values.databases.clickhouse.insecure }}
+    postgres:
+      auth:
+        user: {{ .Values.databases.postgresql.user }}
+        password_env: "POSTGRES_PASSWORD"
+      db: {{ .Values.databases.postgresql.db }}
+      endpoints: {{ toYaml .Values.databases.postgresql.endpoints | nindent 8 }}
+      sslmode: {{ .Values.databases.postgresql.sslmode }}
+    s3:
+      endpoint: {{ .Values.databases.s3.endpoint }}
+      secret_key_path: "/etc/perforator/s3/secret_key.txt"
+      access_key_path: "/etc/perforator/s3/access_key.txt"
+      insecure: {{ .Values.databases.s3.insecure }}
+      force_path_style: {{ .Values.databases.s3.force_path_style }}
+  profiles:
+    meta:
+      batching:
+        size: 1000
+        interval: "1s"
+      read_request_retries: 10
+    bucket: {{ .Values.databases.s3.buckets.profiles }}
+    blob_download_concurrency: 64
+  binaries:
+    meta: "postgres"
+    bucket: {{ .Values.databases.s3.buckets.binaries }}
+  microscope: "postgres"
+  tasks:
+    type: "postgres"
+    ping_period: "3s"
+    ping_timeout: "15s"
+binary_provider:
+  file_cache:
+    max_size: "500G"
+    max_items: 1000000
+    root_path: "/cache/binaries"
+  max_simultaneous_downloads: 30
+rendered_profiles:
+  url_prefix: {{ .Values.proxy.url_prefix | quote }}
+  bucket: {{ .Values.databases.s3.buckets.taskResults }}
+profile_blacklist:
+  profiler_version:
+    - "13641102"
+microscope:
+  throttle:
+    microscopes_per_user_limit: 20
+    limit_window: "24h"
+list_services_settings:
+  default_max_timestamp_prune_interval: "168h" # one week
+pgo_config:
+  create_llvm_prof_path: /perforator/create_llvm_prof

@@ -1,0 +1,33 @@
+Incomplete errors should not unify with values.
+
+-- in.cue --
+a: or([])
+a: "t"
+
+b: _|_
+b: "t"
+-- out/eval --
+Errors:
+explicit error (_|_ literal) in source:
+    ./in.cue:4:4
+
+Result:
+(_|_){
+  // [user]
+  a: (_|_){
+    // [incomplete] empty list in call to or:
+    //     ./in.cue:1:4
+  }
+  b: (_|_){
+    // [user] explicit error (_|_ literal) in source:
+    //     ./in.cue:4:4
+  }
+}
+-- out/compile --
+--- in.cue
+{
+  a: or([])
+  a: "t"
+  b: _|_(explicit error (_|_ literal) in source)
+  b: "t"
+}

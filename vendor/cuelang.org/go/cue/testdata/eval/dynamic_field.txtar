@@ -1,0 +1,107 @@
+-- in.cue --
+a: "foo"
+"\(a)": b: c: d: e
+e: 2
+
+b: "bar"
+X="\(b)": {
+	a: 1
+}
+c: X
+
+withError: {
+	issue799: {key: int32} & {"\(1 & 2)": 123}
+}
+
+parenExprRefParent: {
+	a: (x): {}
+	x: "foo"
+}
+parenExprRefEqual: {
+	(x): {}
+	x: "foo"
+}
+-- out/eval --
+Errors:
+invalid interpolation: conflicting values 2 and 1:
+    ./in.cue:12:28
+    ./in.cue:12:31
+    ./in.cue:12:35
+
+Result:
+(_|_){
+  // [eval]
+  a: (string){ "foo" }
+  e: (int){ 2 }
+  b: (string){ "bar" }
+  c: (struct){
+    a: (int){ 1 }
+  }
+  withError: (_|_){
+    // [eval]
+    issue799: (_|_){
+      // [eval] invalid interpolation: conflicting values 2 and 1:
+      //     ./in.cue:12:28
+      //     ./in.cue:12:31
+      //     ./in.cue:12:35
+      key: (int){ &(>=-2147483648, <=2147483647, int) }
+    }
+  }
+  parenExprRefParent: (struct){
+    a: (struct){
+      foo: (struct){
+      }
+    }
+    x: (string){ "foo" }
+  }
+  parenExprRefEqual: (struct){
+    x: (string){ "foo" }
+    foo: (struct){
+    }
+  }
+  foo: (struct){
+    b: (struct){
+      c: (struct){
+        d: (int){ 2 }
+      }
+    }
+  }
+  bar: (struct){
+    a: (int){ 1 }
+  }
+}
+-- out/compile --
+--- in.cue
+{
+  a: "foo"
+  "\(〈0;a〉)": {
+    b: {
+      c: {
+        d: 〈3;e〉
+      }
+    }
+  }
+  e: 2
+  b: "bar"
+  "\(〈0;b〉)": {
+    a: 1
+  }
+  c: 〈0;("\(〈0;b〉)")〉
+  withError: {
+    issue799: ({
+      key: &(int, >=-2147483648, <=2147483647)
+    } & {
+      "\((1 & 2))": 123
+    })
+  }
+  parenExprRefParent: {
+    a: {
+      〈1;x〉: {}
+    }
+    x: "foo"
+  }
+  parenExprRefEqual: {
+    〈0;x〉: {}
+    x: "foo"
+  }
+}

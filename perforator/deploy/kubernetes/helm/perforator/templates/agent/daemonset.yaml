@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "perforator.fullname" . }}-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.agent.selectorLabels" . | nindent 4 }}
+  {{- with .Values.agent.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "perforator.selectorLabels" . | nindent 6 }}
+      {{- include "perforator.agent.selectorLabels" . | nindent 6 }}
+  {{- with .Values.agent.daemonset.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "perforator.selectorLabels" . | nindent 8 }}
+        {{- include "perforator.agent.selectorLabels" . | nindent 8 }}
+    spec:
+      hostPID: true
+      {{- with .Values.agent.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "perforator.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      dnsPolicy: {{ .Values.agent.dnsPolicy }}
+      {{- end }}
+      containers:
+      - name: {{ include "perforator.fullname" . }}-agent
+        image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+        args:
+        - /perforator/agent
+        - --config=/etc/perforator/config.yaml
+        - --log-level={{ .Values.agent.logLevel }}
+          {{- range .Values.agent.extraArgs }}
+        - {{ . }}
+          {{- end}}
+        env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        resources:
+        {{- toYaml .Values.agent.resources | nindent 10 }}
+        {{- with .Values.agent.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- if .Values.agent.useHostNetwork }}
+        hostNetwork: true
+        {{- end }}
+        {{- with .Values.agent.priorityClassName }}
+        priorityClassName: {{ . }}
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.agent.containerPorts.metrics }}
+          name: metrics
+        volumeMounts:
+        - name: sys
+          mountPath: /sys
+        - name: config
+          mountPath: /etc/perforator
+        - name: ca-cert
+          mountPath: {{ .Values.agent.mounts.certificate }}
+        {{- if .Values.agent.mounts.varlog }}
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        {{- end }}
+        {{- if .Values.agent.mounts.dockercontainers }}
+        - name: dockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        {{- end }}
+        {{- range .Values.agent.mounts.extra }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath }}
+            subPath: {{ .subPath }}
+            readOnly: {{ .readOnly }}
+        {{- end }}
+      # it may be desirable to set a high priority class to ensure that a DaemonSet Pod
+      # preempts running Pods
+      # priorityClassName: important
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: config
+        configMap:
+          name: {{ include "perforator.fullname" . }}-agent-config
+      - name: ca-cert
+        configMap:
+          name: {{ include "perforator.fullname" . }}-storage-ca.crt
+      {{- if .Values.agent.mounts.varlog }}
+      - name: varlog
+        hostPath:
+          path: /var/log
+      {{- end }}
+      {{- if .Values.agent.mounts.dockercontainers }}
+      - name: dockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      {{- end }}
+      {{- range .Values.agent.mounts.extra }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ .configMap }}
+      {{- end }}
+      {{- with .Values.agent.nodeSelector }}  
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

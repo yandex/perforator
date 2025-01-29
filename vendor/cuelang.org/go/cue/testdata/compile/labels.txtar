@@ -1,0 +1,113 @@
+-- in.cue --
+package compile
+
+import "list"
+
+dis1: "dev" | "prd"
+dis2: *"dev" | "prd"
+
+con1: string
+let con2 = string
+
+ok0: [string]:                      string
+ok1: [name=string]:                 string
+ok2: [con1]:                        string
+ok3: [con2]:                        string
+ok4: ["foo"]:                       string
+ok5: [1]:                           string // disallowed in evaluator
+ok6: [name=1]:                      string // disallowed in evaluator
+ok7: [dis1]:                        string
+ok8: [dis2]:                        string
+ok9: [name=dis2]:                   string
+ok10: [{foo:                        "bar"}]: string // disallowed in evaluator
+ok11: [list.FlattenN([string], 1)]: string   // disallowed in evaluator
+
+bad1: [ for x in [1, 2, 3] {x}]: string
+
+disallowTopAsLabel: {
+	_: 1
+	a: _ // Should not compile to a reference.
+}
+
+// TODO: disallow dollar as label? This is according to the spec, but it
+// will be a breaking change and $ was reserved for referring to the root of
+// a file, which we very likely will never implement.
+// disallowDollarAsLabel: {
+//   $: 1
+// }
+
+saneReferencesInComprehensions: {
+	for _ in [1] {
+		a: _ // Should not compile to a reference.
+	}
+}
+-- out/compile --
+bad1: comprehension values not allowed in this position:
+    ./in.cue:24:9
+disallowTopAsLabel: cannot use _ as label:
+    ./in.cue:27:2
+--- in.cue
+{
+  dis1: ("dev"|"prd")
+  dis2: (*"dev"|"prd")
+  con1: string
+  ok0: {
+    [string]: string
+  }
+  ok1: {
+    [string]: string
+  }
+  ok2: {
+    [〈1;con1〉]: string
+  }
+  ok3: {
+    [〈1;let con2〉]: string
+  }
+  ok4: {
+    ["foo"]: string
+  }
+  ok5: {
+    [1]: string
+  }
+  ok6: {
+    [1]: string
+  }
+  ok7: {
+    [〈1;dis1〉]: string
+  }
+  ok8: {
+    [〈1;dis2〉]: string
+  }
+  ok9: {
+    [〈1;dis2〉]: string
+  }
+  ok10: {
+    [{
+      foo: "bar"
+    }]: string
+  }
+  ok11: {
+    [〈import;list〉.FlattenN([
+      string,
+    ], 1)]: string
+  }
+  bad1: {
+    [_|_(comprehension values not allowed in this position)]: string
+  }
+  disallowTopAsLabel: {
+    _|_(cannot use _ as label)
+    a: _
+  }
+  saneReferencesInComprehensions: {
+    for _, _ in [
+      1,
+    ] {
+      a: _
+    }
+  }
+}
+-- out/eval --
+bad1: comprehension values not allowed in this position:
+    ./in.cue:24:9
+disallowTopAsLabel: cannot use _ as label:
+    ./in.cue:27:2

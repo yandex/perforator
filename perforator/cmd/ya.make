@@ -1,0 +1,10 @@
+RECURSE(
+    agent
+    cli
+    gc
+    migrate
+    offline_processing
+    proxy
+    storage
+    web
+)

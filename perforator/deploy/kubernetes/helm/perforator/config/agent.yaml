@@ -1,0 +1,23 @@
+debug: false
+bpf:
+  page_table_scale_factor_gb: 200
+process_discovery:
+  concurrency: 4
+egress:
+  interval: "1m"
+storage:
+  ca_cert_path: {{ include "perforator.storage.certificateAuthorityPath" . }}
+  host: {{ include "perforator.storage.host" . }}
+upload_scheduler:
+  max_opened_binaries_queue: 20
+  max_closed_binaries_queue: 1000
+  max_simultaneous_uploads: 10
+perf_events:
+- type: CPUClock
+  frequency: 99
+pods_deploy_system:
+  deploy_system: "kubernetes"
+  kubernetes:
+    topology_lable_key: {{ .Values.agent.config.topologyLableKey | quote }}
+  pod_options:
+    default: true

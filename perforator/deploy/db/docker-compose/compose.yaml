@@ -1,0 +1,129 @@
+version: '3.7'
+
+services:
+  postgres:
+    build:
+      dockerfile: ./postgres/docker/Dockerfile
+    restart: always
+    container_name: postgres
+    environment:
+      POSTGRES_USER: "perforator"
+      POSTGRES_PASSWORD: "perforator"
+      POSTGRES_DB: "perforator"
+    command: >
+      -c ssl=on 
+      -c ssl_cert_file=/etc/postgres/certs/server.crt
+      -c ssl_key_file=/etc/postgres/certs/server.key
+      -c ssl_ca_file=/etc/postgres/certs/ca.crt
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    networks:
+    - perforator_network
+
+  clickhouse:
+    build:
+      dockerfile: ./clickhouse/clickhouse-server/docker/Dockerfile
+    restart: always
+    depends_on:
+      - clickhouse-keeper
+    container_name: clickhouse
+    environment:
+      CLICKHOUSE_USER: "perforator"
+      CLICKHOUSE_PASSWORD: "perforator"
+      CLICKHOUSE_DB: "perforator"
+    ports:
+      - "8123:8123"
+      - "8443:8443"
+      - "9000:9000"
+      - "9440:9440"
+    volumes:
+      - ./clickhouse/clickhouse-server/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ./clickhouse/macros/macros.xml:/etc/clickhouse-server/config.d/macros.xml
+      - clickhouse-data:/var/lib/clickhouse
+    networks:
+    - perforator_network
+
+  clickhouse-keeper:
+    image: clickhouse/clickhouse-keeper
+    container_name: clickhouse-keeper
+    volumes:
+      - ./clickhouse/clickhouse-keeper/keeper_config.xml:/etc/clickhouse-keeper/keeper_config.xml
+    ports:
+      - "9181:9181"
+    networks:
+    - perforator_network
+
+  # Creates a container that builds and applies migrations for postgres and clickhouse dbs
+  migrate:
+    build:
+      dockerfile: ./migrate/Dockerfile
+    depends_on:
+      - postgres
+      - clickhouse
+      - minio
+    # Maybe move it to .env file and add references including for the clickhouse and postgres containers.
+    environment:
+      PS_DB_HOST: "postgres"
+      PS_DB_PORT: 5432
+      PS_DB_USER: "perforator"
+      PS_DB_PASSWORD: "perforator"
+      PS_DB_NAME: "perforator"
+      CH_DB_HOST: "clickhouse"
+      CH_DB_PORT: 9000
+      CH_DB_USER: "perforator"
+      CH_DB_PASSWORD: "perforator"
+      CH_DB_NAME: "perforator"
+    entrypoint: >
+      sh -c "sleep 25;
+             ./migrate postgres up --hosts $${PS_DB_HOST} --port $${PS_DB_PORT} --db $${PS_DB_NAME} --user $${PS_DB_USER} --pass $${PS_DB_PASSWORD} --insecure;
+             ./migrate clickhouse up --hosts $${CH_DB_HOST} --port $${CH_DB_PORT} --db $${CH_DB_NAME} --user $${CH_DB_USER} --pass $${CH_DB_PASSWORD} --insecure;
+             "
+    networks:
+    - perforator_network
+
+  minio:
+    image: minio/minio:latest
+    restart: always
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: "perforator"
+      MINIO_ROOT_PASSWORD: "perforator"
+      MINIO_USE_SSL: true
+    entrypoint: sh -c "minio server /data --console-address ':9002'"
+    ports:
+      - "9001:9000"
+      - "9002:9002"
+    volumes:
+      - minio-data:/data
+      - ./minio/certificates:/root/.minio/certs
+    networks:
+    - perforator_network
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc alias set myminio --insecure https://minio:9000 perforator perforator;
+      /usr/bin/mc mb --insecure myminio/perforator-profile;
+      /usr/bin/mc mb --insecure myminio/perforator-binary;
+      /usr/bin/mc mb --insecure myminio/perforator-task-results;
+      /usr/bin/mc mb --insecure myminio/perforator-binary-gsym;
+      /usr/bin/mc anonymous set download --insecure myminio/perforator-task-results;
+      "
+    networks:
+    - perforator_network
+
+volumes:
+  postgres-data:
+  clickhouse-data:
+  minio-data:
+
+networks: 
+  perforator_network:
+     driver: bridge

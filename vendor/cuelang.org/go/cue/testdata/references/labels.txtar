@@ -1,0 +1,285 @@
+-- in.cue --
+// Label aliases
+
+// direct
+a: [X=string]: X
+a: bar:        _
+
+// in struct
+b: [X=string]: {X}
+b: bar: _
+
+// in structs
+c: [X=string]: X
+c: [Y=string]: {{{Y}}}
+c: bar: _
+
+// in sub field
+d: [X=string]: name: X
+d: bar: {}
+
+// nested
+e: [X=string]: [Y=string]: X + Y
+e: foo: bar:               _
+
+// Field aliases
+
+bar: 3
+f1: C="foo\(bar)": {
+	name: "xx"
+	foo:  C.name
+}
+
+// nested
+f1: D="foo\(bar)": E="foo\(bar)baz": {
+	name: "xx"
+	a:    D["foo\(bar)baz"].name
+	b:    E.name
+}
+
+// Combo
+
+c1: C="foo\(bar)": [D=string]: {
+	name: D
+	foo:  C.x.name
+}
+c1: foo3: x: _
+
+emptyLabel: {
+	"": 1
+	a:  emptyLabel[""]
+}
+
+underscore: a: {
+	// Issue #1454
+	foo: #Foo
+	foo: "_":     "bar"
+	#Foo: [=~""]: string
+}
+
+underscore: c: {
+	foo: "_":    "any"
+	foo: [=~""]: string
+}
+
+underscore: d: {
+	bar: "_":       "any"
+	#bar: [string]: string
+	bar: #bar
+}
+
+underscore: e: {
+	baz: "_h":     "any"
+	#baz: [=~"_"]: string
+	baz: #baz
+}
+
+// TODO: support. Also not yet supported in old implementation.
+// c10: {
+//  C=[string]: {
+//   name: "x"
+//   foo: C.name
+//  }
+// }
+// c2: c1 & { x: _ }
+-- out/eval --
+(struct){
+  a: (struct){
+    bar: (string){ "bar" }
+  }
+  b: (struct){
+    bar: (string){ "bar" }
+  }
+  c: (struct){
+    bar: (string){ "bar" }
+  }
+  d: (struct){
+    bar: (struct){
+      name: (string){ "bar" }
+    }
+  }
+  e: (struct){
+    foo: (struct){
+      bar: (string){ "foobar" }
+    }
+  }
+  bar: (int){ 3 }
+  f1: (struct){
+    foo3: (struct){
+      name: (string){ "xx" }
+      foo: (string){ "xx" }
+      foo3baz: (struct){
+        name: (string){ "xx" }
+        a: (string){ "xx" }
+        b: (string){ "xx" }
+      }
+    }
+  }
+  c1: (struct){
+    foo3: (struct){
+      x: (struct){
+        name: (string){ "x" }
+        foo: (string){ "x" }
+      }
+    }
+  }
+  emptyLabel: (struct){
+    "": (int){ 1 }
+    a: (int){ 1 }
+  }
+  underscore: (struct){
+    a: (struct){
+      foo: (#struct){
+        "_": (string){ "bar" }
+      }
+      #Foo: (#struct){
+      }
+    }
+    c: (struct){
+      foo: (struct){
+        "_": (string){ "any" }
+      }
+    }
+    d: (struct){
+      bar: (#struct){
+        "_": (string){ "any" }
+      }
+      #bar: (#struct){
+      }
+    }
+    e: (struct){
+      baz: (#struct){
+        "_h": (string){ "any" }
+      }
+      #baz: (#struct){
+      }
+    }
+  }
+}
+-- out/compile --
+--- in.cue
+{
+  a: {
+    [string]: 〈0;-〉
+  }
+  a: {
+    bar: _
+  }
+  b: {
+    [string]: {
+      〈1;-〉
+    }
+  }
+  b: {
+    bar: _
+  }
+  c: {
+    [string]: 〈0;-〉
+  }
+  c: {
+    [string]: {
+      {
+        {
+          〈3;-〉
+        }
+      }
+    }
+  }
+  c: {
+    bar: _
+  }
+  d: {
+    [string]: {
+      name: 〈1;-〉
+    }
+  }
+  d: {
+    bar: {}
+  }
+  e: {
+    [string]: {
+      [string]: (〈1;-〉 + 〈0;-〉)
+    }
+  }
+  e: {
+    foo: {
+      bar: _
+    }
+  }
+  bar: 3
+  f1: {
+    "foo\(〈1;bar〉)": {
+      name: "xx"
+      foo: 〈1;("foo\(〈1;bar〉)")〉.name
+    }
+  }
+  f1: {
+    "foo\(〈1;bar〉)": {
+      "foo\(〈2;bar〉)baz": {
+        name: "xx"
+        a: 〈2;("foo\(〈1;bar〉)")〉["foo\(〈3;bar〉)baz"].name
+        b: 〈1;("foo\(〈2;bar〉)baz")〉.name
+      }
+    }
+  }
+  c1: {
+    "foo\(〈1;bar〉)": {
+      [string]: {
+        name: 〈1;-〉
+        foo: 〈2;("foo\(〈1;bar〉)")〉.x.name
+      }
+    }
+  }
+  c1: {
+    foo3: {
+      x: _
+    }
+  }
+  emptyLabel: {
+    "": 1
+    a: 〈1;emptyLabel〉[""]
+  }
+  underscore: {
+    a: {
+      foo: 〈0;#Foo〉
+      foo: {
+        "_": "bar"
+      }
+      #Foo: {
+        [=~""]: string
+      }
+    }
+  }
+  underscore: {
+    c: {
+      foo: {
+        "_": "any"
+      }
+      foo: {
+        [=~""]: string
+      }
+    }
+  }
+  underscore: {
+    d: {
+      bar: {
+        "_": "any"
+      }
+      #bar: {
+        [string]: string
+      }
+      bar: 〈0;#bar〉
+    }
+  }
+  underscore: {
+    e: {
+      baz: {
+        "_h": "any"
+      }
+      #baz: {
+        [=~"_"]: string
+      }
+      baz: 〈0;#baz〉
+    }
+  }
+}

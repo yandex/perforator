@@ -1,0 +1,25 @@
+# Note: this dockerfile assumes that context contains already built binaries.
+# See docs for details.
+
+FROM ubuntu:24.04 AS agent
+COPY /agent /perforator/agent
+
+FROM ubuntu:24.04 AS gc
+COPY /gc /perforator/gc
+
+FROM ubuntu:24.04 AS storage
+COPY /storage /perforator/storage
+
+FROM ubuntu:24.04 AS proxy
+COPY /proxy /perforator/proxy
+COPY /create_llvm_prof /perforator/create_llvm_prof
+
+FROM ubuntu:24.04 AS web
+COPY /web /perforator/web
+
+FROM ubuntu:24.04 AS migrate
+COPY /migrate /perforator/migrate
+
+FROM ubuntu:24.04 AS offline_processing
+COPY /offline_processing /perforator/offline_processing
+
