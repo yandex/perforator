@@ -5,7 +5,7 @@
 
 # Perforator
 
-[Documentation](https://perforator.tech/docs/) |
+[Documentation](https://perforator.tech/docs/)
 
 Perforator is a production-ready, open-source Continuous Profiling app that can collect CPU profiles from your production without affecting its performance, made by Yandex. Perforator is deployed on 10k+ nodes in Yandex and already has helped many developers to fix performance issues in their services.
 
@@ -31,7 +31,7 @@ You can also deploy Perforator on playground/production Kubernetes cluster using
 
 - Instructions on how to build from source are located [here](https://perforator.tech/docs/en/guides/build).
 
-- If you want to use prebuilt binaries, you can find them [here](https://github.com/yandex/perforator/releases)...).
+- If you want to use prebuilt binaries, you can find them [here](https://github.com/yandex/perforator/releases).
 
 ## How to Contribute
 
