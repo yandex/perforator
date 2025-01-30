@@ -1,0 +1,102 @@
+on:
+  release:
+    types:
+      # TODO: is this right?
+      - created
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tespkg/actions-cache/restore@91b54a6e03abb8fcec12d3743633d23a1cfcd269
+        with:
+          endpoint: storage.yandexcloud.net
+          accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
+          secretKey: ${{ secrets.CACHE_SECRET_KEY }}
+          bucket: ${{ secrets.CACHE_BUCKET }}
+          # Don't bother trying github cache, we don't fit in its 10GB limit
+          use-fallback: false
+          key: v1-${{ github.sha }}
+          restore-keys: |
+            v1-
+          path: ~/.ya/build
+      - name: Build binaries
+        run: |
+          ./ya make -r --musl -DSTRIP ./perforator/bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: ./perforator/bundle
+  build-autofdo:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/cache@v4
+        with:
+          path: ./autofdo/build
+          key: v1-${{ github.sha }}
+          restore-keys: |
+            v1-
+      - name: Build AutoFDO
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libunwind-dev libgflags-dev libssl-dev libelf-dev protobuf-compiler \
+              cmake libzstd-dev clang g++ git build-essential
+          git clone --recursive --depth 1 https://github.com/google/autofdo.git
+          cd autofdo
+          git checkout 8f9ab68921f364a6433086245ca3f19befacfeb1
+          git submodule update --init --recursive
+          mkdir build
+          cd build
+          cmake -DENABLE_TOOL=LLVM -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release ../
+          make -j $(nproc) create_llvm_prof
+      - uses: actions/upload-artifact@v4
+        with:
+          name: autofdo
+          path: ./autofdo/build/create_llvm_prof  
+  release-cli:
+    runs-on: ubuntu-24.04
+    needs:
+      - build
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: binaries
+      - name: Attach binaries to release
+        run: |
+          chmod +x ./cli
+          chmod +x ./migrate
+          gh -R ${{ github.repository }} release upload ${{ github.event.release.tag_name }} ./cli ./migrate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release-images:
+    runs-on: ubuntu-24.04
+    needs:
+      - build
+      - build-autofdo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: autofdo
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build and push images
+        run: |
+          mv ./create_llvm_prof ./dist/
+          chmod +x ./dist/create_llvm_prof
+          function build {
+              chmod +x ./dist/$1
+              docker build -f perforator/deploy/docker/Dockerfile.prebuilt --target $1 --push --tag ghcr.io/${{ github.repository }}/$1:${{ github.event.release.tag_name }} ./dist
+          }
+          build agent
+          build gc
+          build migrate
+          build offline_processing
+          build proxy
+          build storage
+          build web
+

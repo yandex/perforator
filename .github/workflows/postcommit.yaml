@@ -1,0 +1,25 @@
+on:
+  push:
+    branches: 
+      - main
+jobs:
+  ya:
+   name: Postcommit checks
+   runs-on: ubuntu-24.04
+   steps:
+    - uses: actions/checkout@v4
+    - uses: tespkg/actions-cache@91b54a6e03abb8fcec12d3743633d23a1cfcd269
+      with:
+        endpoint: storage.yandexcloud.net
+        accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
+        secretKey: ${{ secrets.CACHE_SECRET_KEY }}
+        bucket: ${{ secrets.CACHE_BUCKET }}
+        # Don't bother trying github cache, we don't fit in its 10GB limit
+        use-fallback: false
+        key: v1-${{ github.sha }}
+        restore-keys: |
+          v1-
+        path: ~/.ya/build
+    - name: Run ya make
+      run: ./ya make ./perforator -DCI=github -DSTRIP -r --musl
+

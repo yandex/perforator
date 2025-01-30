@@ -1,5 +1,7 @@
 {
   ".":"perforator/opensource/github_toplevel",
+  ".github/workflows/postcommit.yaml":"perforator/opensource/github_toplevel/.github/workflows/postcommit.yaml",
+  ".github/workflows/release.yaml":"perforator/opensource/github_toplevel/.github/workflows/release.yaml",
   "CONTRIBUTING.md":"perforator/opensource/github_toplevel/CONTRIBUTING.md",
   "LICENSE":"perforator/opensource/github_toplevel/LICENSE",
   "README.md":"perforator/opensource/github_toplevel/README.md",
