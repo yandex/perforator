@@ -5,7 +5,7 @@ langs: ['en']
 
 docs-viewer:
   metrika: 99681271
-  no-index: true
+  no-index: false
   project-name: perforator-opensource
   is-new-external: true
   langs: ['en']
