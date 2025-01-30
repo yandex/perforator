@@ -1,6 +1,6 @@
 # Query Language
 
-When you're profiling your application, you almost always want to filter the profiles by some properties. For instance, you might need to select only samples from a specific pod that were collected during a specific time. Query language used in Perforator can help you with that.
+When you're profiling an application, you almost always want to filter the profiles by some properties. For instance, you might need to select only samples from a specific pod that were collected at a specific time. The query language used in Perforator can help you with that.
 
 
 ## Selector
