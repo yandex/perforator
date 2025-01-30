@@ -11,7 +11,7 @@ This guide provides instructions on how to deploy Perforator on a Kubernetes clu
 
 {% note warn %}
 
-Make sure you have necessary [buckets](https://github.com/yandex/perforator/blob/main/perforator/deploy/db/docker-compose/compose.yaml#L113-L117) in your S3 storage.
+Make sure you have necessary [buckets](https://github.com/yandex/perforator/blob/be7ed14b5b875217984d3aab5d93ca10289cb134/perforator/deploy/db/docker-compose/compose.yaml#L86-L90) in your S3 storage.
 
 {% endnote %}
 
@@ -23,7 +23,7 @@ For testing purposes, you can set up databases using [docker compose](docker-com
 
 ## Adding Helm Repository
 
-```console
+```
 helm repo add perforator https://perforator.tech/helm-charts
 helm repo update
 ```
