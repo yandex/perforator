@@ -5,6 +5,7 @@ import type { ProfileTaskQuery } from 'src/models/Task';
 
 import { apiClient } from './api';
 import { makeSelector } from './selector';
+import { uiFactory } from 'src/factory'
 
 
 export const taskQueryToSearchParams = (query: ProfileTaskQuery): { [key: string]: string } => (
@@ -18,7 +19,7 @@ export const taskQueryToSearchParams = (query: ProfileTaskQuery): { [key: string
 export const defaultProfileTaskQuery = (): ProfileTaskQuery => ({
     from: 'now-1d',
     to: 'now',
-    maxProfiles: 10,
+    maxProfiles: uiFactory().defaultSampleSize(),
 });
 
 

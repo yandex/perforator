@@ -2,10 +2,10 @@ import React from 'react';
 
 import { Select } from '@gravity-ui/uikit';
 
+import { uiFactory } from 'src/factory';
+
 import './SampleSizeInput.scss';
 
-
-const SAMPLE_SIZES = [1, 2, 5, 10, 20, 50, 100];
 
 export interface SampleSizeInputProps {
     value: number;
@@ -13,7 +13,7 @@ export interface SampleSizeInputProps {
 }
 
 export const SampleSizeInput: React.FC<SampleSizeInputProps> = props => {
-    const options = SAMPLE_SIZES.map(size => ({
+    const options = uiFactory().sampleSizes().map(size => ({
         content: size,
         value: size.toString(),
     }));

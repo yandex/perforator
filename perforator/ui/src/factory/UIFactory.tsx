@@ -60,5 +60,9 @@ export class UIFactory {
     parseLegacyFormat: ((data: string) => ProfileData) | undefined = undefined;
 
     queryLanguageDocsLink = (): string => 'https://perforator.tech/docs/en/reference/querylang';
+
     footerCopyright = (): string => '';
+
+    sampleSizes = () => [1, 10, 50, 100, 500, 1000];
+    defaultSampleSize = () => 100;
 }
