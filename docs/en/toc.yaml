@@ -52,6 +52,8 @@ items:
     items:
     - name: Query language
       href: reference/querylang.md
+    - name: System requirements
+      href: reference/system-requirements.md
     - name: Perfmap-based symbolization
       href: reference/perfmap.md
     - name: Databases
@@ -80,4 +82,3 @@ items:
         href: reference/language-support/java.md
     - name: Microscope
       href: reference/microscope.md
-

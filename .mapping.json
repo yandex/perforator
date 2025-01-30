@@ -51,6 +51,7 @@
   "docs/en/reference/microscope/microscope.md":"perforator/docs/opensource/en/reference/microscope/microscope.md",
   "docs/en/reference/perfmap.md":"perforator/docs/opensource/en/reference/perfmap.md",
   "docs/en/reference/querylang.md":"perforator/docs/opensource/en/reference/querylang.md",
+  "docs/en/reference/system-requirements.md":"perforator/docs/opensource/en/reference/system-requirements.md",
   "docs/en/toc.yaml":"perforator/docs/opensource/en/toc.yaml",
   "docs/en/tutorials/native-profiling.md":"perforator/docs/opensource/en/tutorials/native-profiling.md",
   "docs/en/tutorials/python-profiling.md":"perforator/docs/opensource/en/tutorials/python-profiling.md",
