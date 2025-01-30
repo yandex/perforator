@@ -567,7 +567,7 @@ ingress:
       - host: example.com
         paths:
           - path: /
-            pathType: ImplementationSpecific
+            pathType: Prefix
     tls: []
     #  - secretName: example-tls-secret
     #    hosts:
@@ -584,7 +584,7 @@ ingress:
       - host: grpc.example.com
         paths:
           - path: /
-            pathType: ImplementationSpecific
+            pathType: Prefix
     tls: []
     #  - secretName: example-tls-secret
     #    hosts:
