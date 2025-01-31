@@ -22,7 +22,7 @@ jobs:
           path: ~/.ya/build
       - name: Build binaries
         run: |
-          ./ya make -r --musl -DSTRIP ./perforator/bundle
+          ./ya make -r --musl --gc ./perforator/bundle
       - uses: actions/upload-artifact@v4
         with:
           name: binaries

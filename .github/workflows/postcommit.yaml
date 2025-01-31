@@ -21,5 +21,5 @@ jobs:
           v1-
         path: ~/.ya/build
     - name: Run ya make
-      run: ./ya make ./perforator -DCI=github -DSTRIP -r --musl
+      run: ./ya make ./perforator -DCI=github --gc -r --musl
 
