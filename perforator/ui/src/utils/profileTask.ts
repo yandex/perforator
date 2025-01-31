@@ -1,11 +1,11 @@
 import { createSearchParams } from 'react-router-dom';
 
+import { uiFactory } from 'src/factory';
 import type { FlamegraphOptions, RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
 import type { ProfileTaskQuery } from 'src/models/Task';
 
 import { apiClient } from './api';
 import { makeSelector } from './selector';
-import { uiFactory } from 'src/factory'
 
 
 export const taskQueryToSearchParams = (query: ProfileTaskQuery): { [key: string]: string } => (
