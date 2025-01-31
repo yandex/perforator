@@ -23,6 +23,8 @@ spec:
   {{- end }}
   template:
     metadata:
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
       labels:
         {{- include "perforator.selectorLabels" . | nindent 8 }}
         {{- include "perforator.web.selectorLabels" . | nindent 8 }}
@@ -40,7 +42,7 @@ spec:
       - name: {{ include "perforator.fullname" . }}-web
         image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.web.image.pullPolicy }}
-        args: 
+        args:
         - /perforator/web
         - --config=/etc/perforator/config.yaml
         - --log-level={{ .Values.web.logLevel }}
@@ -106,7 +108,7 @@ spec:
           configMap:
             name: {{ .configMap }}
       {{- end }}
-      {{- with .Values.web.nodeSelector }}  
+      {{- with .Values.web.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}

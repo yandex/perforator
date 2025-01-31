@@ -22,6 +22,8 @@ spec:
   {{- end }}
   template:
     metadata:
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
       labels:
         {{- include "perforator.selectorLabels" . | nindent 8 }}
         {{- include "perforator.storage.selectorLabels" . | nindent 8 }}
@@ -118,7 +120,7 @@ spec:
           configMap:
             name: {{ .configMap }}
       {{- end }}
-      {{- with .Values.storage.nodeSelector }}  
+      {{- with .Values.storage.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}

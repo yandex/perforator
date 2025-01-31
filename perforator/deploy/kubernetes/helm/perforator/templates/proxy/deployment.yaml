@@ -22,6 +22,8 @@ spec:
   {{- end }}
   template:
     metadata:
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
       labels:
         {{- include "perforator.selectorLabels" . | nindent 8 }}
         {{- include "perforator.proxy.selectorLabels" . | nindent 8 }}
