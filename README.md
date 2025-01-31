@@ -15,9 +15,9 @@ Perforator is a production-ready, open-source Continuous Profiling app that can 
 - Efficient and high-quality collection of kernel + userspace stacks via eBPF technology.
 - Scalable storage for storing profiles and binaries.
 - Support of unwinding without frame pointers and debug symbols on host.
-- Convenient query language and UI to inspect CPU usage of applications via flamegraphs on any specified timeline.
-- Supported languages: C++, Go, Rust, Java, Python, Node.js.
-- Support of generating sPGO profiles for building your applications with Profile Guided Optimization (PGO).
+- Convenient query language and UI to inspect CPU usage of applications via flamegraphs.
+- Support for C++, C, Go, and Rust, with experimental support for Java and Python.
+- Generation of sPGO profiles for building applications with Profile Guided Optimization (PGO) via [AutoFDO](https://github.com/google/autofdo).
 
 ## Minimal system requirements
 
