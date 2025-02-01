@@ -11,6 +11,7 @@ Perforator supports generating sPGO (sampling Profile-guided optimization) profi
 
 * Intel CPU
 * Linux Kernel >=5.7
+* LBR (Last Branch Records) available for reading. Many cloud providers disable LBR by default.
 
 ## Acquiring the sPGO profile
 
