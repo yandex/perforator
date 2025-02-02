@@ -25,9 +25,10 @@ void FillLineInfo(TLineInfo& lineInfo, llvm::DILineInfo&& info) {
     lineInfo.Discriminator = info.Discriminator;
 }
 
-}
+} // anonymous namespace
 
 extern "C" {
+
 void* MakeSymbolizer(char** error) {
     void* buf = ::operator new(sizeof(NPerforator::NSymbolize::TCodeSymbolizer));
     NPerforator::NSymbolize::TCodeSymbolizer* symbolizer = nullptr;
@@ -95,4 +96,4 @@ void DestroySymbolizer(void* symb) {
     ::operator delete(symb);
 }
 
-}
+} // extern "C"
