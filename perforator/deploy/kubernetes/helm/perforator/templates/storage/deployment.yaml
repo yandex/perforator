@@ -35,8 +35,8 @@ spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
-      dnsPolicy: {{ .Values.storage.dnsPolicy }}
       {{- end }}
+      dnsPolicy: {{ .Values.storage.dnsPolicy }}
       containers:
       - name: {{ include "perforator.fullname" . }}-storage
         image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag | default .Chart.AppVersion }}"

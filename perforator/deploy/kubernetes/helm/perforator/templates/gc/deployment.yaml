@@ -35,8 +35,8 @@ spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
-      dnsPolicy: {{ .Values.gc.dnsPolicy }}
       {{- end }}
+      dnsPolicy: {{ .Values.gc.dnsPolicy }}
       containers:
       - name: {{ include "perforator.fullname" . }}-gc
         image: "{{ .Values.gc.image.repository }}:{{ .Values.gc.image.tag | default .Chart.AppVersion }}"

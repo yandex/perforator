@@ -35,8 +35,8 @@ spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
-      dnsPolicy: {{ .Values.offlineprocessing.dnsPolicy }}
       {{- end }}
+      dnsPolicy: {{ .Values.offlineprocessing.dnsPolicy }}
       containers:
       - name: {{ include "perforator.fullname" . }}-offlineprocessing
         image: "{{ .Values.offlineprocessing.image.repository }}:{{ .Values.offlineprocessing.image.tag | default .Chart.AppVersion }}"
