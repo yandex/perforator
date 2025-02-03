@@ -8,6 +8,7 @@ storage:
       user: {{ .Values.databases.clickhouse.user }}
       password_env: "CLICKHOUSE_PASSWORD"
       insecure: {{ .Values.databases.clickhouse.insecure }}
+      ca_cert_path: {{ .Values.databases.clickhouse.ca_cert_path }}
     postgres:
       auth:
         user: {{ .Values.databases.postgresql.user }}
@@ -15,12 +16,14 @@ storage:
       db: {{ .Values.databases.postgresql.db }}
       endpoints: {{ toYaml .Values.databases.postgresql.endpoints | nindent 8 }}
       sslmode: {{ .Values.databases.postgresql.sslmode }}
+      sslrootcert: {{ .Values.databases.postgresql.sslrootcert }}
     s3:
       endpoint: {{ .Values.databases.s3.endpoint }}
       secret_key_path: "/etc/perforator/s3/secret_key.txt"
       access_key_path: "/etc/perforator/s3/access_key.txt"
       insecure: {{ .Values.databases.s3.insecure }}
       force_path_style: {{ .Values.databases.s3.force_path_style }}
+      ca_cert_path: {{ .Values.databases.s3.ca_cert_path }}
   profiles:
     meta:
       batching:

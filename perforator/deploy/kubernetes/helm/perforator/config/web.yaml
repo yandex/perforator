@@ -8,6 +8,7 @@ s3:
   access_key_path: "/etc/perforator/s3/access_key.txt"
   insecure: {{ .Values.databases.s3.insecure }}
   force_path_style: {{ .Values.databases.s3.force_path_style }}	
+  ca_cert_path: {{ .Values.databases.s3.ca_cert_path }}
 rendered_profiles:
   bucket: {{ .Values.databases.s3.buckets.taskResults }}
 proxy_client:
