@@ -29,17 +29,17 @@ items:
     - name: CLI
       items:
         - name: Install and Configure Perforator CLI
-          href: howto/cli/install.md
+          href: guides/cli/install.md
         - name: List Services
-          href: howto/cli/list_services.md
+          href: guides/cli/list_services.md
         - name: List Profiles
-          href: howto/cli/list_profiles.md
+          href: guides/cli/list_profiles.md
         - name: Fetch Profile
-          href: howto/cli/fetch.md
+          href: guides/cli/fetch.md
         - name: Collect Profile Locally
-          href: howto/cli/record.md
+          href: guides/cli/record.md
         - name: Set up Microscope
-          href: howto/cli/microscope.md
+          href: guides/cli/microscope.md
     - name: Profiling JVM applications
       href: guides/jvm.md
     - name: Using Perforator for continuous profile-guided optimization (PGO)

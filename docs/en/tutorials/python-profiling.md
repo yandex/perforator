@@ -98,7 +98,7 @@ Now we have a simple working Python application.
 
 We can collect a flamegraph which is a visual representation of the program's execution.
 
-`perforator record` collects stacks from the desired process for some time and then generates a flamegraph. You can read more about it [here](../howto/cli/record.md).
+`perforator record` collects stacks from the desired process for some time and then generates a flamegraph. You can read more about it [here](../guides/cli/record.md).
 
 Let's collect a flamegraph of the application. But do not forget to replace the `--pid` with the PID of your application.
 

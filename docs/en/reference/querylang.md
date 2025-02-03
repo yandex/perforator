@@ -18,7 +18,7 @@ You can enter the selector in the input field in the UI. After that, you'll see 
 
 ![Selector example](../../_assets/selector_example.png)
 
-Alternatively, you can set a selector to build a profile in [the CLI](../howto/cli/fetch.md).
+Alternatively, you can set a selector to build a profile in [the CLI](../guides/cli/fetch.md).
 
 
 ## Supported fields
