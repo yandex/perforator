@@ -11,8 +11,6 @@ PEERDIR(
     library/cpp/dwarf_backtrace
     library/cpp/dwarf_backtrace/registry
     library/cpp/terminate_handler
-
-    yt/yt/library/ytprof
 )
 
 END()

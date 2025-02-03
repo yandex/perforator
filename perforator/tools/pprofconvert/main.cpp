@@ -26,9 +26,6 @@
 
 #include <type_traits>
 
-#include <absl/debugging/stacktrace.h>
-#include <yt/yt/library/ytprof/profile.h>
-
 
 template <typename Range>
 size_t CountBits(Range&& range) {
@@ -54,9 +51,6 @@ bool FilterWellKnownHighCardinalityLabels(const NPerforator::NProfile::TLabel& l
 
 int main(int argc, const char* argv[]) {
     Y_ENSURE(argc > 1);
-
-    // absl::SetStackUnwinder(NYT::NYTProf::AbslStackUnwinder);
-    // tcmalloc::MallocExtension::SetProfileSamplingRate(1);
 
     if (argv[1] == "convert"sv) {
         auto start = Now();
@@ -172,11 +166,6 @@ int main(int argc, const char* argv[]) {
         Y_ENSURE(profile.ParseFromArcadiaStream(&in));
 
         Cerr << "Parsed profile in " << HumanReadable(Now() - start) << Endl;
-
-        auto heapprof = NYT::NYTProf::CaptureHeapProfile(tcmalloc::ProfileType::kHeap);
-        TFileOutput heapout{"heap.pb"};
-        heapprof.SerializeToArcadiaStream(&heapout);
-        heapout.Finish();
 
         auto arrstats = [](const char* name, auto&& arr) {
             Cerr << name << " size: " << arr.size() << "\n";
