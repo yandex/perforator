@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2024-12-10T10:19:09.954Z",
+    "created": "2025-01-27T06:33:47.933Z",
     "pr": {
-      "id": 7416930,
+      "id": 7331537,
       "author": "khoden",
-      "summary": "FBP-1923: nots: дедупликация действий после сборки, пропуск pnpm install на актуальных node_modules"
+      "summary": "FBP-1640: nots: Сделать output.tar главным артефактом сборки, чтобы можно было использовать его в BUNDLE()"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:7636596310"
+      "uri": "sbr:7907781064"
     },
     "darwin-arm64": {
-      "uri": "sbr:7636593796"
+      "uri": "sbr:7907780806"
     },
     "linux": {
-      "uri": "sbr:7636600706"
+      "uri": "sbr:7907781752"
     },
     "linux-aarch64": {
-      "uri": "sbr:7636598279"
+      "uri": "sbr:7907781322"
     }
   }
 }

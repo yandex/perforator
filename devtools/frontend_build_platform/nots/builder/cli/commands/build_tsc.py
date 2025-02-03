@@ -40,5 +40,5 @@ def build_tsc_func(args: TscBuilderOptions):
     for ts_config in ts_configs:
         TscBuilder(options=args, ts_config=ts_config).build()
 
-    # Step 3 - create 'output.tar'
+    # Step 3 - create '<module_name>.output.tar'
     TscBuilder.bundle_dirs(out_dirs, args.bindir, args.output_file)

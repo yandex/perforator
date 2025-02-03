@@ -25,5 +25,5 @@ def build_webpack_func(args: WebpackBuilderOptions):
     builder = WebpackBuilder(options=args, ts_config_path=args.tsconfigs[0])
     builder.build()
 
-    # Step 3 - create 'output.tar'
+    # Step 3 - create '<module_name>.output.tar'
     builder.bundle()

@@ -44,7 +44,7 @@ def register_base_args(parser: ArgumentParser) -> None:
         '--trace',
         action=YesNoAction,
         default=False,
-        help="Add to the output.tar *.trace file (Trace Events Format, Chrome DevTools compatible)",
+        help="Add to the <module_name>.output.tar *.trace file (Trace Events Format, Chrome DevTools compatible)",
     )
     parser.add_argument('--verbose', action=YesNoAction, default=False, help="Use logging")
 
@@ -68,7 +68,9 @@ def __with_builders_options(parser: ArgumentParser):
     """Common arguments for all builders"""
 
     parser.add_argument(
-        '--output-file', required=True, help="Absolute path to output.tar, expected to be generated during build"
+        '--output-file',
+        required=True,
+        help="Absolute path to <module_name>.output.tar, expected to be generated during build",
     )
 
     parser.add_argument(

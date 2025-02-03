@@ -32,5 +32,5 @@ def build_next_func(args: NextBuilderOptions):
     builder = NextBuilder(options=args, ts_config_path=args.tsconfigs[0])
     builder.build()
 
-    # Step 3 - create 'output.tar'
+    # Step 3 - create '<module_name>.output.tar'
     builder.bundle()

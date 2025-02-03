@@ -4,6 +4,7 @@ import stat
 import subprocess
 
 import library.python.archive as archive
+
 from build.plugins.lib.nots.package_manager import (
     constants as pm_constants,
     PackageJson,
@@ -48,9 +49,18 @@ def _extract_output_tar(moddir_abs: str):
     Args:
         moddir_abs: absolute path of the module
     """
-    output_tar_path = os.path.join(moddir_abs, pm_constants.OUTPUT_TAR_FILENAME)
-    if not os.path.exists(output_tar_path):
+    output_tar_uuid_path = os.path.join(moddir_abs, pm_constants.OUTPUT_TAR_UUID_FILENAME)
+    if not os.path.exists(output_tar_uuid_path):
         return
+
+    with open(output_tar_uuid_path) as f:
+        content = f.read()
+        output_tar_filename = content.split(':', 1)[0]
+
+    output_tar_path = os.path.join(moddir_abs, output_tar_filename)
+
+    if not os.path.exists(output_tar_path):
+        raise FileNotFoundError(output_tar_path)
 
     archive.extract_tar(output_tar_path, moddir_abs, fail_on_duplicates=False)
 

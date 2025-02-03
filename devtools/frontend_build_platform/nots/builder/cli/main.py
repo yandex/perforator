@@ -2,9 +2,14 @@ import os.path
 import sys
 import tarfile
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from pprint import pformat
 
+import library.python.fs
+
+from build.plugins.lib.nots.package_manager import (
+    constants as pm_constants,
+)
 from devtools.frontend_build_platform.libraries.logging import init_logging, timeit_options
 from devtools.frontend_build_platform.nots.builder.api import BuildError
 from devtools.frontend_build_platform.nots.builder.cli.cli_args import AllOptions, get_args_parser, parse_args
@@ -21,13 +26,13 @@ def on_crash(exctype, value, traceback):
 sys.excepthook = on_crash
 
 
-def __add_uuid_for_output(output_file: str):
-    uuid_file_name = f'{output_file}.uuid'
+def __add_uuid_for_output(bindir: str, output_file: str):
+    uuid_file_name = f'{bindir}/{pm_constants.OUTPUT_TAR_UUID_FILENAME}'
 
     with open(uuid_file_name, 'w') as f:
         output_filename = os.path.basename(output_file)
         uuid_str = uuid.uuid1().hex
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(UTC).isoformat()
 
         f.write(f"{output_filename}: {uuid_str} - {timestamp}")
 
@@ -39,6 +44,13 @@ def __add_tracing_to_output(dir_name: str, output_file: str):
 
     with tarfile.open(output_file, "a") as tf:
         tf.add(traces_dir_path, arcname=traces_dir)
+
+
+def __produce_old_output_tar(output_file: str):
+    # TODO FBP-1978 (remove the function)
+    old_output_tar_file = os.path.join(os.path.dirname(output_file), 'output.tar')
+
+    library.python.fs.hardlink_or_copy(output_file, old_output_tar_file)
 
 
 # @timeit тут нельзя, т.к. измерение включается внутри
@@ -60,13 +72,16 @@ def main():
 
     output_file = getattr(args, 'output_file', args.node_modules_bundle)
 
-    # There is no output.tar for TS_PACKAGE module without dependencies
+    # There is no <module_name>.output.tar for TS_PACKAGE module
     if os.path.isfile(output_file):
         if args.trace:
             __add_tracing_to_output(args.bindir, output_file)
 
         if output_file != args.node_modules_bundle:
-            __add_uuid_for_output(output_file)
+            # TODO FBP-1978 (remove call)
+            __produce_old_output_tar(output_file)
+
+            __add_uuid_for_output(args.bindir, output_file)
 
 
 if __name__ == "__main__":

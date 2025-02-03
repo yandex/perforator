@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2024-11-12T17:08:52.062Z",
+    "created": "2025-01-27T09:27:09.284Z",
     "pr": {
-      "id": 7207759,
+      "id": 7331537,
       "author": "khoden",
-      "summary": "FBP-1873: nots: регрессия после FBP-1830 4"
+      "summary": "FBP-1640: nots: Сделать output.tar главным артефактом сборки, чтобы можно было использовать его в BUNDLE()"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:7452448437"
+      "uri": "sbr:7909144210"
     },
     "darwin-arm64": {
-      "uri": "sbr:7452447564"
+      "uri": "sbr:7909140682"
     },
     "linux": {
-      "uri": "sbr:7452450736"
+      "uri": "sbr:7909149204"
     },
     "linux-aarch64": {
-      "uri": "sbr:7452449557"
+      "uri": "sbr:7909147173"
     }
   }
 }

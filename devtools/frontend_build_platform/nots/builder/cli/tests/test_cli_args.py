@@ -109,7 +109,7 @@ def test_build_tsc_args():
         --trace yes
         --verbose yes
         build-tsc
-        --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/output.tar
+        --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/dummy_arcadia_typescript_simple.output.tar
         --tsconfigs tsconfig.json
         --vcs-info
     """
@@ -136,7 +136,7 @@ def test_build_tsc_args():
         node_modules_bundle='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/workspace_node_modules.tar',
         # Command-specific
         command='build-tsc',
-        output_file='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/output.tar',
+        output_file='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/dummy_arcadia_typescript_simple.output.tar',
         tsconfigs=['tsconfig.json'],
         vcs_info=None,
     )
@@ -155,7 +155,7 @@ def test_build_next_args():
         --trace no
         --verbose no
         build-next
-        --output-file /Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13/output.tar
+        --output-file /Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13/dummy_arcadia_nextjs13.output.tar
         --tsconfigs tsconfig.json
         --vcs-info
         --ts-next-command build
@@ -187,7 +187,7 @@ def test_build_next_args():
         # Command-specific
         bundler_config='next.config.js',
         command='build-next',
-        output_file='/Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13/output.tar',
+        output_file='/Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13/dummy_arcadia_nextjs13.output.tar',
         output_dirs=['.next'],
         ts_next_command='build',
         tsconfigs=['tsconfig.json'],
@@ -208,7 +208,7 @@ def test_build_vite_args():
         --trace no
         --verbose no
         build-vite
-        --output-file /Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project/output.tar
+        --output-file /Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project/dummy_arcadia_typescript_vite_project.output.tar
         --tsconfigs tsconfig.json
         --vcs-info
         --bundler-config-path /Users/khoden/arcadia/devtools/dummy_arcadia/typescript/vite_project/vite.config.ts
@@ -239,7 +239,7 @@ def test_build_vite_args():
         # Command-specific
         bundler_config='vite.config.ts',
         command='build-vite',
-        output_file='/Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project/output.tar',
+        output_file='/Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project/dummy_arcadia_typescript_vite_project.output.tar',
         output_dirs=['dist'],
         tsconfigs=['tsconfig.json'],
         vcs_info=None,
@@ -261,7 +261,7 @@ def test_build_webpack_args():
         --verbose yes
         build-webpack
         --bundler-config-path /Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js
-        --output-file /Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/output.tar
+        --output-file /Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/dummy_arcadia_typescript_with_simple_bundling.output.tar
         --output-dirs dev-bundle prod-bundle
         --tsconfigs tsconfig.json
         --vcs-info
@@ -291,7 +291,7 @@ def test_build_webpack_args():
         # Command-specific
         bundler_config='webpack.config.js',
         command='build-webpack',
-        output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/output.tar',
+        output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/dummy_arcadia_typescript_with_simple_bundling.output.tar',
         output_dirs=['dev-bundle', 'prod-bundle'],
         tsconfigs=['tsconfig.json'],
         vcs_info=None,
@@ -313,7 +313,7 @@ def test_build_webpack_with_env_args():
         --verbose yes
         build-webpack
         --bundler-config-path /Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js
-        --output-file /Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/output.tar
+        --output-file /Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/dummy_arcadia_typescript_with_simple_bundling.output.tar
         --output-dirs dev-bundle prod-bundle
         --tsconfigs tsconfig.json
         --vcs-info
@@ -345,7 +345,7 @@ def test_build_webpack_with_env_args():
         # Command-specific
         bundler_config='webpack.config.js',
         command='build-webpack',
-        output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/output.tar',
+        output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/dummy_arcadia_typescript_with_simple_bundling.output.tar',
         output_dirs=['dev-bundle', 'prod-bundle'],
         tsconfigs=['tsconfig.json'],
         vcs_info=None,
