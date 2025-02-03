@@ -137,13 +137,10 @@ NOINLINE bool locate_rule(struct unwind_table_page_leaf* page, u64 pc, struct un
         }
         u64 mpc = page->pc[m];
 
-        DWARF_TRACE("bs step %d: pc[%d]=%llx\n", i, m, mpc);
         if (mpc <= pc) {
             l = m;
-            DWARF_TRACE("bs step %d left: l=%d, r=%d\n", i, l, r);
         } else {
             r = m;
-            DWARF_TRACE("bs step %d right: l=%d, r=%d\n", i, l, r);
         }
     }
 
