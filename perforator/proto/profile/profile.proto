@@ -85,12 +85,26 @@ message ValueType {
     uint32 unit = 2;
 }
 
+// Auxiliary container of unsigned 128-bit integer.
+message uint128 {
+    // Low 64 bits of an integer.
+    // For example, 1 is stored as {lo:1, hi: 0}, and 2^64 as {lo:0, hi:1}.
+    uint64 lo = 1;
+    // High 64 bits of an integer.
+    uint64 hi = 2;
+}
+
 // SampleValues contains the actual measurements for a sample.
 message SampleValues {
     // Type and unit of the measurements.
     ValueType type = 1;
     // Array of measured values for each sample.
     repeated uint64 value = 2;
+    // Optional precomputed sum of all values.
+    // Producers are encouraged to populate this value to make
+    // the profile easier for consumers to interpret.
+    // Consumers are allowed to ignore the presence of this value.
+    optional uint128 value_sum = 3;
 }
 
 // SampleThreads contains thread information for samples.
@@ -277,13 +291,13 @@ message Features {
     // We take different approach. Each address inside Profile.addresses is
     // defined as buildID+offset, where offset is an address inside address
     // space of the binary. This allows us to simlify symbolization.
-    bool has_skewed_binary_offsets = 1;
+    optional bool has_skewed_binary_offsets = 1;
 }
 
 // Metadata contains profile-wide metadata
 message Metadata {
     // Host where profile was collected. References Profile.strtab.
-    int64 hostname = 1;
+    uint32 hostname = 1;
     // Profile collection timestamp (UTC).
     google.protobuf.Timestamp timestamp = 2;
     // Profile duration in nanoseconds.
@@ -299,7 +313,7 @@ message Metadata {
     }
     // Preferred sample value type. References Profile.strtab.
     // Defaults to last sample value if unset.
-    int64 default_sample_type = 7;
+    uint32 default_sample_type = 7;
 }
 
 // Profile is the root message containing all profile data.
@@ -321,9 +335,9 @@ message Profile {
     InlineChains inline_chains = 6;
     // functions -> []
     Functions functions = 7;
-    // functions -> []
+    // binaries -> []
     Binaries binaries = 8;
-    // functions -> []
+    // threads -> []
     Threads threads = 9;
     // labels -> []
     Labels labels = 10;

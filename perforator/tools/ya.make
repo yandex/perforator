@@ -7,4 +7,5 @@ ENDIF()
 RECURSE(
     cpu_burner
     lbr_to_autofdo
+    pprofconvert
 )
