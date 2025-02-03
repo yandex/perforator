@@ -39,12 +39,15 @@ class BaseBuilder(object):
         if not output_dirs:
             raise RuntimeError("Please define `output_dirs`")
 
-        paths_to_pack = []
+        paths_to_pack = {}
         for output_dir in output_dirs:
-            arcname = output_dir[2:] if output_dir.startswith("./") else output_dir
-            paths_to_pack.append((os.path.join(build_path, output_dir), arcname))
+            arcname = os.path.normpath(output_dir)
+            path_to_pack = os.path.normpath(os.path.join(build_path, output_dir))
+            paths_to_pack[path_to_pack] = arcname
 
-        archive.tar(set(paths_to_pack), bundle_path, compression_filter=None, compression_level=None, fixed_mtime=0)
+        archive.tar(
+            list(paths_to_pack.items()), bundle_path, compression_filter=None, compression_level=None, fixed_mtime=0
+        )
 
     @timeit
     def __init__(
@@ -95,6 +98,7 @@ class BaseBuilder(object):
         self._copy_src_files_to_bindir()
 
         self._build()
+        self._run_javascript_after_build()
 
     @timeit
     def _get_copy_ignore_list(self) -> set[str]:
@@ -265,9 +269,8 @@ class BaseBuilder(object):
         return env
 
     @timeit
-    def _exec(self):
-        args = [self.options.nodejs_bin, self._get_script_path()] + self._get_exec_args()
-        env = self._get_envs()
+    def _exec_nodejs_script(self, script_path: str, script_args: list[str], env: dict):
+        args = [self.options.nodejs_bin, script_path] + script_args
 
         if self.options.verbose:
             sys.stderr.write("\n")
@@ -301,7 +304,12 @@ class BaseBuilder(object):
 
     @timeit
     def bundle(self):
-        return self.bundle_dirs(self.output_dirs, self.options.bindir, self.options.output_file)
+        output_dirs = self.output_dirs
+
+        if self.options.after_build_js and self.options.after_build_outdir:
+            output_dirs.append(self.options.after_build_outdir)
+
+        return self.bundle_dirs(output_dirs, self.options.bindir, self.options.output_file)
 
     @timeit
     def _build(self):
@@ -309,8 +317,23 @@ class BaseBuilder(object):
         self._create_bin_tsconfig()
 
         # Action (building)
-        self._exec()
+        self._exec_nodejs_script(
+            script_path=self._get_script_path(),
+            script_args=self._get_exec_args(),
+            env=self._get_envs(),
+        )
 
         # Post-operations
         self._assert_output_dirs_exists()
         self._make_bins_executable()
+
+    @timeit
+    def _run_javascript_after_build(self):
+        if not self.options.after_build_js:
+            return
+
+        self._exec_nodejs_script(
+            script_path=self.options.after_build_js,
+            script_args=self.options.after_build_args.split("<~~~>"),
+            env=self._get_envs(),
+        )

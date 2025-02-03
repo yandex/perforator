@@ -55,3 +55,9 @@ class TscBuilder(BaseBuilder):
 
     def _config_filename(self):
         return self.ts_config_path
+
+    def _run_javascript_after_build(self):
+        pass
+
+    def run_javascript_after_build(self):
+        super()._run_javascript_after_build()

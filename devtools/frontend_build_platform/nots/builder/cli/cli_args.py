@@ -96,6 +96,24 @@ def __with_builders_options(parser: ArgumentParser):
         help="Environment variable in VAR format, can be set many times",
     )
 
+    parser.add_argument(
+        "--after-build-js",
+        required=False,
+        help="Path of the script to run after build",
+    )
+
+    parser.add_argument(
+        "--after-build-args",
+        required=False,
+        help="List of args for the script to run after build",
+    )
+
+    parser.add_argument(
+        "--after-build-outdir",
+        required=False,
+        help="Output directory for the script to run after build",
+    )
+
     return parser
 
 

@@ -139,6 +139,9 @@ def test_build_tsc_args():
         output_file='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/dummy_arcadia_typescript_simple.output.tar',
         tsconfigs=['tsconfig.json'],
         vcs_info=None,
+        after_build_js=None,
+        after_build_args=None,
+        after_build_outdir=None,
     )
 
 
@@ -192,6 +195,9 @@ def test_build_next_args():
         ts_next_command='build',
         tsconfigs=['tsconfig.json'],
         vcs_info=None,
+        after_build_js=None,
+        after_build_args=None,
+        after_build_outdir=None,
     )
 
 
@@ -243,6 +249,9 @@ def test_build_vite_args():
         output_dirs=['dist'],
         tsconfigs=['tsconfig.json'],
         vcs_info=None,
+        after_build_js=None,
+        after_build_args=None,
+        after_build_outdir=None,
     )
 
 
@@ -295,6 +304,9 @@ def test_build_webpack_args():
         output_dirs=['dev-bundle', 'prod-bundle'],
         tsconfigs=['tsconfig.json'],
         vcs_info=None,
+        after_build_js=None,
+        after_build_args=None,
+        after_build_outdir=None,
     )
 
 
@@ -349,4 +361,65 @@ def test_build_webpack_with_env_args():
         output_dirs=['dev-bundle', 'prod-bundle'],
         tsconfigs=['tsconfig.json'],
         vcs_info=None,
+        after_build_js=None,
+        after_build_args=None,
+        after_build_outdir=None,
+    )
+
+
+# noinspection SpellCheckingInspection
+def test_build_webpack_with_after_build():
+    # arrange
+    command_args = """
+        --arcadia-root /Users/khoden/arcadia
+        --arcadia-build-root /Users/khoden/.ya/build/build_root/emev/00008e
+        --local-cli yes
+        --moddir devtools/dummy_arcadia/typescript/with_simple_bundling
+        --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
+        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-type pnpm
+        --trace no
+        --verbose yes
+        build-webpack
+        --bundler-config-path /Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js
+        --output-file /Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/output.tar
+        --output-dirs dev-bundle prod-bundle
+        --tsconfigs tsconfig.json
+        --vcs-info
+        --after-build-js path/to/script.js
+        --after-build-args some-args
+        --after-build-outdir dist
+    """
+
+    # act + assert
+    assert __convert_args_to_dict(command_args) == dict(
+        # Base
+        arcadia_build_root='/Users/khoden/.ya/build/build_root/emev/00008e',
+        arcadia_root='/Users/khoden/arcadia',
+        moddir='devtools/dummy_arcadia/typescript/with_simple_bundling',
+        nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
+        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_type='pnpm',
+        yatool_prebuilder_path=None,
+        env=[],
+        # Flags
+        local_cli=True,
+        bundle=True,
+        trace=False,
+        verbose=True,
+        # Calculated
+        bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
+        bundler_config_path='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js',
+        curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling',
+        node_modules_bundle='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/workspace_node_modules.tar',
+        # Command-specific
+        bundler_config='webpack.config.js',
+        command='build-webpack',
+        output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/output.tar',
+        output_dirs=['dev-bundle', 'prod-bundle'],
+        tsconfigs=['tsconfig.json'],
+        vcs_info=None,
+        after_build_js='path/to/script.js',
+        after_build_args='some-args',
+        after_build_outdir='dist',
     )

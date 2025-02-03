@@ -80,6 +80,15 @@ class CommonBuildersOptions(BaseOptions):
     env: list[str]
     """Environment variables lint in VAR format"""
 
+    after_build_js: str | None
+    """Path of the script to run after build"""
+
+    after_build_args: str | None
+    """List of args for the script to run after build"""
+
+    after_build_outdir: str | None
+    """Path to folder to add in output.tar"""
+
 
 @dataclass
 class CommonBundlersOptions(CommonBuildersOptions):
