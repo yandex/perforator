@@ -1,0 +1,137 @@
+{
+    "kubeletconfig": {
+        "enableServer": true,
+        "staticPodPath": "/etc/kubernetes/manifests",
+        "podLogsDir": "/var/log/pods",
+        "syncFrequency": "1m0s",
+        "fileCheckFrequency": "20s",
+        "httpCheckFrequency": "20s",
+        "address": "0.0.0.0",
+        "port": 10250,
+        "tlsCertFile": "/var/lib/kubelet/pki/kubelet.crt",
+        "tlsPrivateKeyFile": "/var/lib/kubelet/pki/kubelet.key",
+        "tlsCipherSuites": [
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256"
+        ],
+        "rotateCertificates": true,
+        "authentication": {
+            "x509": {
+                "clientCAFile": "/etc/kubernetes/pki/ca.crt"
+            },
+            "webhook": {
+                "enabled": true,
+                "cacheTTL": "2m0s"
+            },
+            "anonymous": {
+                "enabled": false
+            }
+        },
+        "authorization": {
+            "mode": "Webhook",
+            "webhook": {
+                "cacheAuthorizedTTL": "5m0s",
+                "cacheUnauthorizedTTL": "30s"
+            }
+        },
+        "registryPullQPS": 10,
+        "registryBurst": 20,
+        "eventRecordQPS": 50,
+        "eventBurst": 100,
+        "enableDebuggingHandlers": true,
+        "healthzPort": 10248,
+        "healthzBindAddress": "127.0.0.1",
+        "oomScoreAdj": -999,
+        "clusterDomain": "cluster.local",
+        "clusterDNS": [
+            "10.113.128.2"
+        ],
+        "streamingConnectionIdleTimeout": "4h0m0s",
+        "nodeStatusUpdateFrequency": "10s",
+        "nodeStatusReportFrequency": "5m0s",
+        "nodeLeaseDurationSeconds": 40,
+        "imageMinimumGCAge": "2m0s",
+        "imageMaximumGCAge": "0s",
+        "imageGCHighThresholdPercent": 85,
+        "imageGCLowThresholdPercent": 80,
+        "volumeStatsAggPeriod": "1m0s",
+        "cgroupRoot": "/",
+        "cgroupsPerQOS": true,
+        "cgroupDriver": "cgroupfs",
+        "cpuManagerPolicy": "none",
+        "cpuManagerReconcilePeriod": "10s",
+        "memoryManagerPolicy": "None",
+        "topologyManagerPolicy": "none",
+        "topologyManagerScope": "container",
+        "runtimeRequestTimeout": "2m0s",
+        "hairpinMode": "hairpin-veth",
+        "maxPods": 110,
+        "podPidsLimit": -1,
+        "resolvConf": "/run/systemd/resolve/resolv.conf",
+        "cpuCFSQuota": true,
+        "cpuCFSQuotaPeriod": "100ms",
+        "nodeStatusMaxImages": 25,
+        "maxOpenFiles": 1000000,
+        "contentType": "application/vnd.kubernetes.protobuf",
+        "kubeAPIQPS": 50,
+        "kubeAPIBurst": 100,
+        "serializeImagePulls": true,
+        "evictionHard": {
+            "memory.available": "100Mi",
+            "nodefs.available": "10%",
+            "nodefs.inodesFree": "5%"
+        },
+        "evictionPressureTransitionPeriod": "5m0s",
+        "enableControllerAttachDetach": true,
+        "makeIPTablesUtilChains": true,
+        "iptablesMasqueradeBit": 14,
+        "iptablesDropBit": 15,
+        "failSwapOn": true,
+        "memorySwap": {},
+        "containerLogMaxSize": "10Mi",
+        "containerLogMaxFiles": 5,
+        "containerLogMaxWorkers": 1,
+        "containerLogMonitorInterval": "10s",
+        "configMapAndSecretChangeDetectionStrategy": "Watch",
+        "kubeReserved": {
+            "cpu": "70m",
+            "ephemeral-storage": "39Gi",
+            "memory": "2762Mi"
+        },
+        "enforceNodeAllocatable": [
+            "pods"
+        ],
+        "volumePluginDir": "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/",
+        "kernelMemcgNotification": true,
+        "logging": {
+            "format": "text",
+            "flushFrequency": "5s",
+            "verbosity": 2,
+            "options": {
+                "text": {
+                    "infoBufferSize": "0"
+                },
+                "json": {
+                    "infoBufferSize": "0"
+                }
+            }
+        },
+        "enableSystemLogHandler": true,
+        "enableSystemLogQuery": false,
+        "shutdownGracePeriod": "25s",
+        "shutdownGracePeriodCriticalPods": "10s",
+        "enableProfilingHandler": true,
+        "enableDebugFlagsHandler": true,
+        "seccompDefault": false,
+        "memoryThrottlingFactor": 0.9,
+        "registerNode": true,
+        "localStorageCapacityIsolation": true,
+        "containerRuntimeEndpoint": "unix:///run/containerd/containerd.sock"
+    }
+}

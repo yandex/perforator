@@ -1,5 +1,7 @@
 package deploysystemmodel
 
+import "context"
+
 type Container interface {
 	Name() string
 	CgroupBaseName() string
@@ -16,6 +18,7 @@ type Pod interface {
 }
 
 type PodsLister interface {
+	Init(ctx context.Context) error
 	List() ([]Pod, error)
 	GetHost() string
 }

@@ -219,7 +219,7 @@ func newPodsCgroupTracker(c *config.PodsDeploySystemConfig, l log.Logger) (*Pods
 		// TODO: add porto support.
 		return nil, fmt.Errorf("unfortunately we don't support porto yet")
 	case "kubernetes", "k8s":
-		podsLister, err = kubelet.NewPodsLister(c.KubernetesConfig.TopologyLableKey)
+		podsLister, err = kubelet.NewPodsLister(c.KubernetesConfig.TopologyLableKey, c.KubernetesConfig.KubeletCgroupRoot)
 		if err != nil {
 			return nil, err
 		}
@@ -292,7 +292,12 @@ func (p *Profiler) updatePodsCgroups(ctx context.Context) error {
 }
 
 func (p *Profiler) runPodsCgroupTracker(ctx context.Context) error {
-	err := p.updatePodsCgroups(ctx)
+	err := p.podsCgroupTracker.podsLister.Init(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to initialize pods lister: %w", err)
+	}
+
+	err = p.updatePodsCgroups(ctx)
 	if err != nil {
 		return err
 	}

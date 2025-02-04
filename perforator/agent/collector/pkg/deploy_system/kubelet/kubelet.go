@@ -13,6 +13,9 @@ import (
 	"time"
 
 	kube "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/yandex/perforator/perforator/internal/kubeletclient"
 )
 
 const (
@@ -45,19 +48,12 @@ func getNodeURL() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("can't get node url %w", err)
 	}
-	url := fmt.Sprintf("https://%s:%s/pods", name, kubeletPort)
+	url := fmt.Sprintf("https://%s:%s", name, kubeletPort)
 
 	return url, nil
 }
 
 func (p *PodsLister) getPods() ([]kube.Pod, error) {
-	// Need to read it everytime, because it might change.
-	// TODO: May be add some retry policy
-	token, err := os.ReadFile(tokenPath)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't read service account token, %w", err)
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), getPodsRequestTimeout)
 	defer cancel()
 
@@ -65,8 +61,6 @@ func (p *PodsLister) getPods() ([]kube.Pod, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Set("Authorization", "Bearer "+string(token))
 
 	resp, err := p.client.Do(req)
 	if err != nil {
@@ -86,6 +80,53 @@ func (p *PodsLister) getPods() ([]kube.Pod, error) {
 	}
 
 	return podList.Items, nil
+}
+
+type kubeletConfigWrapper struct {
+	Config kubeletConfig `json:"kubeletconfig"`
+}
+
+type kubeletConfig struct {
+	CgroupRoot   string `json:"cgroupRoot"`
+	CgroupDriver string `json:"cgroupDriver"`
+}
+
+func resolveCgroupRoot(ctx context.Context, client *kubeletclient.Client) (string, error) {
+	url, err := getNodeURL()
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve kubelet API endpoint: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/configz", url), nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading /configz response body: %w", err)
+	}
+
+	var config kubeletConfigWrapper
+	err = json.Unmarshal(body, &config)
+	if err != nil {
+		return "", fmt.Errorf("error unmarshalling /configz response body: %w", err)
+	}
+
+	root := config.Config.CgroupRoot
+	if config.Config.CgroupDriver == "systemd" {
+		root = path.Join(root, "kubepods.slice")
+	} else if config.Config.CgroupDriver == "cgroupfs" {
+		root = path.Join(root, "kubepods")
+	} else {
+		return "", fmt.Errorf("unsupported cgroup driver %q (expected systemd or cgroupfs)", config.Config.CgroupDriver)
+	}
+	return root, nil
 }
 
 func (p *PodsLister) getTopology(topologyLableKey string) (string, error) {
@@ -155,23 +196,29 @@ func getOwner(pod *kube.Pod) (string, error) {
 
 }
 
+// podInfo is subset of v1.Pod enough to derive cgroup names
+type podInfo struct {
+	// UID is .ObjectMeta.UID
+	UID types.UID
+	// QOSClass is .Status.QOSClass
+	QOSClass kube.PodQOSClass
+}
+
 // BuildCgroup returns unified cgroup for cgroup v2 in a format like:
 // "/sys/fs/cgroup/kubepods/<POD_QOSClass>/pod<POD_UID>"
 // or freezer cgroup for cgroup v1
 // "/sys/fs/cgroup/freezer/kubepods/<POD_QOSClass>/pod<POD_UID>".
-func buildCgroup(pod *kube.Pod) (string, error) {
-	podUID := string(pod.ObjectMeta.UID)
-	podQOSClass, ok := qosClassToCgroupSubstr[pod.Status.QOSClass]
+func buildCgroup(cgroupRoot string, systemDRewrites bool, pod podInfo) (string, error) {
+	podUID := string(pod.UID)
+	podQOSClass, ok := qosClassToCgroupSubstr[pod.QOSClass]
 	if !ok {
-		return "", fmt.Errorf("error building pod's cgroup: got unknown PodQOSClass: %v. Pod's UID: %v", pod.Status.QOSClass, pod.ObjectMeta.UID)
+		return "", fmt.Errorf("error building pod's cgroup: got unknown PodQOSClass: %v. Pod's UID: %v", pod.QOSClass, pod.UID)
+	}
+	podName := "pod" + podUID
+	if systemDRewrites {
+		podName = fmt.Sprintf("kubepods-%s-pod%s.scope", podQOSClass, podUID)
+		podQOSClass = "kubepods-" + podQOSClass + ".slice"
 	}
 
-	// TODO: change agent so it can support cgroup v2, at this moment it works only with v1 with freezer hierarchy
-	/* if isCgroup2UnifiedMode() {
-		return path.Join("/sys/fs/cgroup/kubepods", podQOSClass, "pod"+podUID)
-	}
-
-	return path.Join("/sys/fs/cgroup/freezer/kubepods", podQOSClass, "pod"+podUID) */
-
-	return path.Join("/kubepods", podQOSClass, "pod"+podUID), nil
+	return path.Join(cgroupRoot, podQOSClass, podName), nil
 }

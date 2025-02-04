@@ -2,6 +2,7 @@ RECURSE(
     asyncfilecache
     asynctask
     buildinfo
+    kubeletclient
     linguist
     offline_processing
     symbolizer

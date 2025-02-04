@@ -76,7 +76,8 @@ type PodProfileOptions struct {
 }
 
 type KubernetesConfig struct {
-	TopologyLableKey string `yaml:"topology_lable_key,omitempty"`
+	TopologyLableKey  string `yaml:"topology_lable_key,omitempty"`
+	KubeletCgroupRoot string `yaml:"kubelet_cgroup_root,omitempty"`
 }
 
 type PodsDeploySystemConfig struct {

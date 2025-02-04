@@ -1,13 +1,16 @@
 package kubelet
 
 import (
+	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
 
 	deploysystemmodel "github.com/yandex/perforator/perforator/agent/collector/pkg/deploy_system/model"
+	"github.com/yandex/perforator/perforator/internal/kubeletclient"
 )
 
 const (
@@ -16,8 +19,8 @@ const (
 )
 
 type kubeContainer struct {
-	name string
-	id   string
+	name   string
+	cgroup string
 }
 
 func (c *kubeContainer) Name() string {
@@ -25,7 +28,7 @@ func (c *kubeContainer) Name() string {
 }
 
 func (c *kubeContainer) CgroupBaseName() string {
-	return c.id
+	return c.cgroup
 }
 
 type Pod struct {
@@ -78,9 +81,11 @@ func (p *Pod) IsPerforatorEnabled() (*bool, string) {
 }
 
 type PodsLister struct {
-	client   *http.Client
-	nodeName string
-	nodeURL  string
+	client          *kubeletclient.Client
+	nodeName        string
+	nodeURL         string
+	systemDRewrites bool
+	cgroupRoot      string
 
 	// In most cases equals to the value of topology.kubernetes.io/zone lable. See https://kubernetes.io/docs/reference/labels-annotations-taints/#topologykubernetesiozone
 	topology string
@@ -111,13 +116,21 @@ func (p *PodsLister) List() ([]deploysystemmodel.Pod, error) {
 			if len(parts) != 2 {
 				continue
 			}
+			containerCgroup := parts[1]
+			if p.systemDRewrites {
+				containerCgroup = containerCgroup + ".scope"
+			}
+
 			containers = append(containers, &kubeContainer{
-				name: container.Name,
-				id:   parts[1],
+				name:   container.Name,
+				cgroup: containerCgroup,
 			})
 		}
 
-		cgroup, err := buildCgroup(&pod)
+		cgroup, err := buildCgroup(p.cgroupRoot, p.systemDRewrites, podInfo{
+			UID:      pod.ObjectMeta.UID,
+			QOSClass: pod.Status.QOSClass,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +153,7 @@ func (p *PodsLister) List() ([]deploysystemmodel.Pod, error) {
 	return res, nil
 }
 
-func NewPodsLister(topologyLableKey string) (*PodsLister, error) {
+func NewPodsLister(topologyLableKey string, cgroupRoot string) (*PodsLister, error) {
 	if topologyLableKey == "" {
 		topologyLableKey = defaultTopologyLableKey
 	}
@@ -161,12 +174,14 @@ func NewPodsLister(topologyLableKey string) (*PodsLister, error) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := &http.Client{Transport: tr}
+	httpclient := &http.Client{Transport: tr}
+	client := kubeletclient.New(httpclient)
 
 	podLister := &PodsLister{
-		nodeName: name,
-		nodeURL:  url,
-		client:   client,
+		nodeName:   name,
+		nodeURL:    url + "/pods",
+		client:     client,
+		cgroupRoot: cgroupRoot,
 	}
 
 	topology, err := podLister.getTopology(topologyLableKey)
@@ -176,4 +191,15 @@ func NewPodsLister(topologyLableKey string) (*PodsLister, error) {
 	podLister.topology = topology
 
 	return podLister, nil
+}
+
+func (p *PodsLister) Init(ctx context.Context) error {
+	if p.cgroupRoot == "" {
+		var err error
+		p.cgroupRoot, err = resolveCgroupRoot(ctx, p.client)
+		if err != nil {
+			return fmt.Errorf("failed to detect kubelet cgroup root: %w", err)
+		}
+	}
+	return nil
 }
