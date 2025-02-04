@@ -79,14 +79,19 @@ int main(int argc, const char* argv[]) {
             TFileInput in{argv[2]};
             TFileOutput out{argv[3]};
 
+            auto start = Now();
+
             NPerforator::NProto::NPProf::Profile oldp;
             Y_ENSURE(oldp.ParseFromArcadiaStream(&in));
-            Cerr << "Parsed profile with strtab of size " << oldp.string_table_size() << Endl;
 
             NPerforator::NProto::NProfile::Profile newp;
             NPerforator::NProfile::ConvertFromPProf(oldp, &newp);
 
             Y_ENSURE(newp.SerializeToArcadiaStream(&out));
+
+            auto end = Now();
+
+            Cout << "Converted profile in " << HumanReadable(end - start) << Endl;
         }
 
         return 0;
@@ -281,6 +286,8 @@ int main(int argc, const char* argv[]) {
     if (argv[1] == "merge"sv) {
         Y_ENSURE(argc > 3);
 
+        auto start = Now();
+
         NPerforator::NProto::NProfile::Profile merged;
         NPerforator::NProfile::TProfileMerger merger{&merged, {
             .KeepProcesses = false,
@@ -288,19 +295,23 @@ int main(int argc, const char* argv[]) {
             .LabelFilter = FilterWellKnownHighCardinalityLabels,
         }};
 
+        int cnt = 0;
+
         NPerforator::NProto::NProfile::Profile profile;
         for (int i = 3; i < argc; ++i) {
             TFileInput in{argv[i]};
             Y_ENSURE(profile.ParseFromArcadiaStream(&in));
 
             merger.Add(profile);
-            Cerr << "Merged " << i << " profile" << Endl;
+            Cerr << "Merged profile #" << cnt++ << Endl;
         }
 
         merger.Finish();
 
         TFileOutput out{argv[2]};
         merged.SerializeToArcadiaStream(&out);
+
+        Cerr << "Merged " << cnt << " profiles in " << HumanReadable(Now() - start) << Endl;
 
         return 0;
     }
