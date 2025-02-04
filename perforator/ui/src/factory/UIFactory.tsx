@@ -38,7 +38,7 @@ export class UIFactory {
 
     clusterName = () => 'Zone';
     serviceName = () => 'Service';
-    podName = () => 'Name';
+    podName = () => 'Pod';
     nodeName = () => 'Node';
 
     makeServiceUrl = (cluster: string, service: Optional<string>): Optional<string> => undefined;

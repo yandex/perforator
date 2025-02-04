@@ -125,7 +125,7 @@ const prepareProfileColumns = ({ compact }: { compact?: boolean } = {}) => {
         },
         {
             id: 'ProfileID',
-            name: 'ProfileID',
+            name: 'Profile ID',
             template: (profile: Profile) => {
                 const href = `/profile/${profile.ProfileID}?timestamp=${parseDate(profile.Timestamp ?? '')!.valueOf()}`;
                 return renderLink(href, profile.ProfileID, true);
