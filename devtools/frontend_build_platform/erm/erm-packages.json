@@ -1708,7 +1708,7 @@
     "title": "Node.js",
     "description": "Интерпретатор JS.\n\nНаравне с pnpm является основополагающими ресурсами.\nИменно он запускается во всех процессах сборки, линтинга и тестирования под капотом у `ya tool nots`.",
     "type": "NODE_JS",
-    "default": "20.18.1",
+    "default": "20.18.2",
     "links": {
       "Home": "https://nodejs.org/",
       "Sources": "https://github.com/nodejs/node",
@@ -1717,6 +1717,31 @@
       "Release schedule": "https://github.com/nodejs/Release#release-schedule"
     },
     "versions": {
+      "23.6.1": {
+        "add_date": "2025-02-04T05:39:55",
+        "resources": [
+          {
+            "id": 7966048149,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 7966049741,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 7966051283,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 7966052222,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "23.6.0": {
         "add_date": "2025-01-21T05:35:13",
         "resources": [
@@ -1862,6 +1887,31 @@
           },
           {
             "id": 7401173821,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "22.13.1": {
+        "add_date": "2025-02-04T05:36:55",
+        "resources": [
+          {
+            "id": 7966042664,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 7966044326,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 7966046219,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 7966047159,
             "platform": "darwin",
             "arch": "arm64"
           }
@@ -2313,6 +2363,31 @@
           {
             "id": 6360057114,
             "platform": "linux",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "20.18.2": {
+        "add_date": "2025-02-04T05:34:12",
+        "resources": [
+          {
+            "id": 7966036507,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 7966037972,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 7966040021,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 7966041198,
+            "platform": "darwin",
             "arch": "arm64"
           }
         ]
@@ -2988,6 +3063,31 @@
           {
             "id": 6359606944,
             "platform": "linux",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "18.20.6": {
+        "add_date": "2025-02-04T05:31:26",
+        "resources": [
+          {
+            "id": 7966029790,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 7966031619,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 7966033492,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 7966035205,
+            "platform": "darwin",
             "arch": "arm64"
           }
         ]
