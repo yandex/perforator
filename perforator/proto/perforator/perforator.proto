@@ -231,6 +231,46 @@ message MergeProfilesResponse {
 
     // Info about profiles that participated in the merged profile.
     repeated ProfileMeta ProfileMeta = 2;
+
+    // Merged profile statistics.
+    // Can be used to estimate quality of the profile.
+    // See perforator/pkg/profile/quality.
+    ProfileStatistics Statistics = 4;
+}
+
+message ProfileStatistics {
+    // Sum of the profile samples values. A profile sample can contain multiple
+    // values. For example, CPU profiles produced by Perforator often contain
+    // two sample types: "cpu.cycles" & "wall.seconds". For such profiles, the
+    // sample_value_sum will have two entries:
+    // {"cpu.cycles": sum_of_cpu_cycles, "wall.seconds": sum_of_walltime_seconds}.
+    map<string, double> sample_value_sum = 1;
+
+    // Number of unique sample keys in the profile.
+    // Sample key is a unique combination of sample stack and labels.
+    // If this value is low, the profile is probably malformed.
+    uint64 unique_sample_count = 2;
+
+    // Number of stack frames in the profile. Average stack depth can be
+    // computed as total_frame_count / unique_sample_count.
+    uint64 total_frame_count = 3;
+
+    // Number of unmapped frames (frames which were not attributed to a binary).
+    // If this value is high, then the profile is probably malformed.
+    uint64 unmapped_frame_count = 5;
+
+    // Number of unsymbolized frames (frames without source line info).
+    // If this value is high, then the profile is probably not readable.
+    uint64 unsymbolized_frame_count = 6;
+
+    // Number of different executable binaries in the profile.
+    uint64 total_binary_count = 7;
+
+    // Number of unavailable binaries in the profile. The binary is unavailable
+    // when the Perforator backend was not available to fetch it by build id,
+    // so frames from that binary are probably not symbolized.
+    // If this value is high, the profile is probably not readable.
+    uint64 unavailable_binary_count = 8;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

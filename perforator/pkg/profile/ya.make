@@ -3,6 +3,7 @@ RECURSE(
     labels
     parse
     python
+    quality
     samplefilter
 )
 

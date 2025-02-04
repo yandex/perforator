@@ -50,6 +50,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/polyheapprof"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
 	"github.com/yandex/perforator/perforator/pkg/profile/python"
+	"github.com/yandex/perforator/perforator/pkg/profile/quality"
 	"github.com/yandex/perforator/perforator/pkg/profile/samplefilter"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
@@ -1084,15 +1085,19 @@ func (s *PerforatorServer) MergeProfiles(
 		return nil, err
 	}
 
+	statistics := quality.CalculateProfileStatistics(mergedProfile)
+
 	if url != "" {
 		return &perforator.MergeProfilesResponse{
 			Result:      &perforator.MergeProfilesResponse_ProfileURL{ProfileURL: url},
 			ProfileMeta: extractProtoMetasFromRawProfiles(rawProfiles),
+			Statistics:  statistics,
 		}, nil
 	} else {
 		return &perforator.MergeProfilesResponse{
 			Result:      &perforator.MergeProfilesResponse_Profile{Profile: buf},
 			ProfileMeta: extractProtoMetasFromRawProfiles(rawProfiles),
+			Statistics:  statistics,
 		}, nil
 	}
 }
