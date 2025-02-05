@@ -235,6 +235,15 @@ private:
 };
 
 class TConverterContext {
+    static constexpr TStringBuf KernelSpecialMapping{"[kernel]"};
+    static constexpr TStringBuf PythonSpecialMapping{"[python]"};
+
+    enum class ESpecialMappingKind {
+        None,
+        Kernel,
+        Python,
+    };
+
 public:
     explicit TConverterContext(const NProto::NPProf::Profile& from, NProto::NProfile::Profile* to)
         : OldProfile_{from}
@@ -271,6 +280,7 @@ private:
         Y_ABORT_UNLESS(BinaryMapping_.IsEmpty());
 
         TMaybe<ui64> oldKernelMappingId;
+        TMaybe<ui64> oldPythonMappingId;
         for (auto&& [i, mapping] : Enumerate(OldProfile_.mapping())) {
             Y_ENSURE(mapping.id() != 0, "Mapping id should be nonzero");
 
@@ -279,13 +289,18 @@ private:
             builder.SetPath(ConvertString(mapping.filename()));
             BinaryMapping_.Add(mapping.id(), i, builder.Finish());
 
-            if (OldProfile_.string_table(mapping.filename()) == "[kernel]"sv) {
+            if (OldProfile_.string_table(mapping.filename()) == KernelSpecialMapping) {
                 Y_ENSURE(!oldKernelMappingId, "Found more than one kernel mapping");
                 oldKernelMappingId = mapping.id();
+            }
+            if (OldProfile_.string_table(mapping.filename()) == PythonSpecialMapping) {
+                Y_ENSURE(!oldPythonMappingId, "Found more than one python mapping");
+                oldPythonMappingId = mapping.id();
             }
         }
 
         OldKernelMappingId_ = oldKernelMappingId.GetOrElse(Max<ui64>());
+        OldPythonMappingId_ = oldPythonMappingId.GetOrElse(Max<ui64>());
     }
 
     void ConvertFunctions() {
@@ -331,8 +346,18 @@ private:
             frame.SetInlineChain(chain.Finish());
 
             LocationMapping_.Add(location.id(), i, frame.Finish());
-            if (IsKernelLocation(location.id())) {
+
+            switch (ClassifySpecialMapping(location.id())) {
+            case ESpecialMappingKind::None:
+                break;
+
+            case ESpecialMappingKind::Kernel:
                 OldKernelLocationIds_.Insert(location.id());
+                break;
+
+            case ESpecialMappingKind::Python:
+                OldPythonLocationIds_.Insert(location.id());
+                break;
             }
         }
     }
@@ -374,6 +399,10 @@ private:
         for (ui64 location : sample.location_id()) {
             auto frame = LocationMapping_.GetNewIndex(location);
 
+            if (OldPythonLocationIds_.Contains(location)) {
+                continue;
+            }
+
             if (OldKernelLocationIds_.Contains(location)) {
                 Y_ENSURE(insideKernel, "Unexpected mixed userspace & kernelspace stack");
                 kstack.AddStackFrame(frame);
@@ -387,10 +416,17 @@ private:
         builder.SetUserStack(ustack.Finish());
     }
 
-    bool IsKernelLocation(ui64 oldLocation) const {
+    ESpecialMappingKind ClassifySpecialMapping(ui64 oldLocation) const {
         ui64 oldPosition = LocationMapping_.GetOldPosition(oldLocation);
         ui64 mappingId = OldProfile_.location(oldPosition).mapping_id();
-        return mappingId == OldKernelMappingId_;
+
+        if (mappingId == OldKernelMappingId_) {
+            return ESpecialMappingKind::Kernel;
+        } else if (mappingId == OldPythonMappingId_) {
+            return ESpecialMappingKind::Python;
+        } else {
+            return ESpecialMappingKind::None;
+        }
     }
 
     void ConvertSampleValues(TProfileBuilder::TSampleBuilder& builder, const NProto::NPProf::Sample& sample) {
@@ -443,7 +479,9 @@ private:
     NDetail::TIndexedEntityRemapping<TStackFrameId> LocationMapping_;
     TVector<TValueTypeId> ValueTypes_;
     TCompactIntegerSet<ui64> OldKernelLocationIds_;
+    TCompactIntegerSet<ui64> OldPythonLocationIds_;
     ui64 OldKernelMappingId_ = Max<ui64>();
+    ui64 OldPythonMappingId_ = Max<ui64>();
 };
 
 ////////////////////////////////////////////////////////////////////////////////
