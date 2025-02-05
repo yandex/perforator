@@ -91,31 +91,31 @@ type kubeletConfig struct {
 	CgroupDriver string `json:"cgroupDriver"`
 }
 
-func resolveCgroupRoot(ctx context.Context, client *kubeletclient.Client) (string, error) {
+func resolveCgroupRoot(ctx context.Context, client *kubeletclient.Client) (string, bool, error) {
 	url, err := getNodeURL()
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve kubelet API endpoint: %w", err)
+		return "", false, fmt.Errorf("failed to resolve kubelet API endpoint: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/configz", url), nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return "", false, fmt.Errorf("failed to create request: %w", err)
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to send request: %w", err)
+		return "", false, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("error reading /configz response body: %w", err)
+		return "", false, fmt.Errorf("error reading /configz response body: %w", err)
 	}
 
 	var config kubeletConfigWrapper
 	err = json.Unmarshal(body, &config)
 	if err != nil {
-		return "", fmt.Errorf("error unmarshalling /configz response body: %w", err)
+		return "", false, fmt.Errorf("error unmarshalling /configz response body: %w", err)
 	}
 
 	root := config.Config.CgroupRoot
@@ -124,9 +124,9 @@ func resolveCgroupRoot(ctx context.Context, client *kubeletclient.Client) (strin
 	} else if config.Config.CgroupDriver == "cgroupfs" {
 		root = path.Join(root, "kubepods")
 	} else {
-		return "", fmt.Errorf("unsupported cgroup driver %q (expected systemd or cgroupfs)", config.Config.CgroupDriver)
+		return "", false, fmt.Errorf("unsupported cgroup driver %q (expected systemd or cgroupfs)", config.Config.CgroupDriver)
 	}
-	return root, nil
+	return root, (config.Config.CgroupDriver == "systemd"), nil
 }
 
 func (p *PodsLister) getTopology(topologyLableKey string) (string, error) {

@@ -196,7 +196,9 @@ func NewPodsLister(topologyLableKey string, cgroupRoot string) (*PodsLister, err
 func (p *PodsLister) Init(ctx context.Context) error {
 	if p.cgroupRoot == "" {
 		var err error
-		p.cgroupRoot, err = resolveCgroupRoot(ctx, p.client)
+		var systemd bool
+		p.cgroupRoot, systemd, err = resolveCgroupRoot(ctx, p.client)
+		p.systemDRewrites = systemd
 		if err != nil {
 			return fmt.Errorf("failed to detect kubelet cgroup root: %w", err)
 		}
