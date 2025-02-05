@@ -609,10 +609,13 @@ export const renderFlamegraph: RenderFlamegraphType = (
     render({ pattern: searchPattern, subtree: { initialH: h, initialI: pos } });
 
     const onResize = () => requestAnimationFrame(() => {
+
+        const initialH = Number(getState('frameDepth', '0'));
+        const initialI = Number(getState('framePos', '0'));
         //@ts-ignore
         canvas.style.width = null;
         initCanvas();
-        render({ pattern: searchPattern });
+        render({ subtree: { initialH, initialI }, pattern: searchPattern });
     });
     window.addEventListener('resize', onResize);
 
