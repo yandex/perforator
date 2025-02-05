@@ -1,3 +1,8 @@
+# 0.2.2
+
+Enhancements:
++ Support custom CA for ClickHouse, PostgresSQL and object storage (#25)
+
 # 0.2.1
 
 Fixes:
