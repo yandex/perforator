@@ -66,7 +66,7 @@ spec:
         - containerPort: {{ .Values.storage.containerPorts.metrics }}
           name: metrics
         volumeMounts:
-        - name: storage-cert
+        - name: storage-tls
           mountPath: "/etc/perforator/certificates"
         - name: storage-s3-keys
           mountPath: "/etc/perforator/s3"
@@ -96,9 +96,9 @@ spec:
           valueFrom:
             secretKeyRef: {{ include "perforator.secretKeyRef.postgresql" . | nindent 14 }}
       volumes:
-      - name: storage-cert
+      - name: storage-tls
         secret:
-          secretName: {{ printf "%s-storage-crt" (include "perforator.fullname" .) }}
+          secretName: {{ include "perforator.storage.tlsSecretName" . }}
       - name: storage-s3-keys
         secret:
           secretName: {{ include "perforator.secretName.s3" . }}

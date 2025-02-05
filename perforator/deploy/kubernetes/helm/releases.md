@@ -1,3 +1,11 @@
+# 0.2.3
+
+Fixes:
++ Fix CA certificate recreating on helm upgrade 
+
+Enhancements:
++ Support custom CA for agent-storage communication 
+
 # 0.2.2
 
 Enhancements:

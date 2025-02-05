@@ -6,7 +6,7 @@ process_discovery:
 egress:
   interval: "1m"
 storage:
-  ca_cert_path: {{ include "perforator.storage.certificateAuthorityPath" . }}
+  ca_cert_path: {{ include "perforator.storage.tlsCACert" . }}
   host: {{ include "perforator.storage.host" . }}
 upload_scheduler:
   max_opened_binaries_queue: 20

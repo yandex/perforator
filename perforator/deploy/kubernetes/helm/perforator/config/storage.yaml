@@ -35,8 +35,8 @@ storage:
     bucket: {{ .Values.databases.s3.buckets.binaries }}
   microscope: "postgres"
 tls:
-  certificate_file: "/etc/perforator/certificates/tls.crt"
-  key_file: "/etc/perforator/certificates/tls.key"
+  certificate_file: {{ include "perforator.storage.tlsCert" . }}
+  key_file: {{ include "perforator.storage.tlsCertKey" . }}
 microscope_puller:
   pull_interval: "30s"
   pull_batch_size: 1000
