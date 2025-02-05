@@ -25,6 +25,8 @@ databases:
     secretName: null
     # Key in Secret to get password from.
     secretKey: null
+    # Root certificate for SSL
+    sslrootcert: null
 
   clickhouse:
     replicas: []
@@ -42,6 +44,8 @@ databases:
     secretName: null
     # Key in Secret to get password from.
     secretKey: null
+    # Root certificate for SSL
+    ca_cert_path: null
 
   s3:
     buckets:
@@ -66,6 +70,8 @@ databases:
     secretKey: ""
     # Name of existing Secret to use. Used when accessKey and secretKey are empty. Keys of the secret must match the config file.
     secretName: null
+    # Root certificate for SSL
+    ca_cert_path: null
 
 agent:
   config:
