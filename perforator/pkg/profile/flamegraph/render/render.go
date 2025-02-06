@@ -399,6 +399,11 @@ func (f *FlameGraph) renderBlocksToJSON(blocks []*block, w io.Writer) error {
 	nodeLevels := make([][]format.RenderingNode, maxLevel+1)
 
 	for _, block := range blocks {
+		// Skip disappeared (present in baseline, but not in the diff profile) blocks
+		if block.weight == 0.0 {
+			continue
+		}
+
 		blocksByLevels[block.level] = append(blocksByLevels[block.level], block)
 	}
 
