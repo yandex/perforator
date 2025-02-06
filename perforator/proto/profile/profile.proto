@@ -51,7 +51,7 @@
 // 7. buildid+offset address representation, as addr2line and other tools expect.
 // Offset represents address in binary virtual address space. In contrast, pprof
 // stores locations as addresses inside process address space backed by auxiliary
-// list of mappings. This adds additional complexity when deadling with ASRL,
+// list of mappings. This adds additional complexity when deadling with ASLR,
 // and greatly complicates symbolization process: we need to parse executable
 // file to map process address space to the binary address space.
 // See https://github.com/google/pprof/blob/40e02aabc2ad57b2edbe892564a0730aa40b1e50/internal/elfexec/elfexec.go#L310.
