@@ -24,7 +24,7 @@ For testing purposes, you can set up databases using [docker compose](docker-com
 ## Adding Helm Repository
 
 ```
-helm repo add perforator https://perforator.tech/helm-charts
+helm repo add perforator https://helm.perforator.tech
 helm repo update
 ```
 
