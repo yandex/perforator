@@ -1,10 +1,15 @@
+# Unreleased
+
+Enhancements:
++ Add default images for all components
+
 # 0.2.3
 
 Fixes:
-+ Fix CA certificate recreating on helm upgrade 
++ Fix CA certificate recreating on helm upgrade (6b9207e)
 
 Enhancements:
-+ Support custom CA for agent-storage communication 
++ Support custom CA for agent-storage communication (6b9207e)
 
 # 0.2.2
 

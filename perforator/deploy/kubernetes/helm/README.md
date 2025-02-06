@@ -1,4 +1,2 @@
-Здесь находится helm chart для всех компонент perforator.
-За основу взяты куберовские манифесты из папки manifests.
-Основные темплейты лежат в папке templates.
-Файлы с расширением .tpl содержат вспомогательные темплейты и функции.
+Official Helm chart.
+See https://perforator.tech/docs/en/guides/helm-chart for details.
