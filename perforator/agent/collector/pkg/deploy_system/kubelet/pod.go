@@ -81,11 +81,11 @@ func (p *Pod) IsPerforatorEnabled() (*bool, string) {
 }
 
 type PodsLister struct {
-	client          *kubeletclient.Client
-	nodeName        string
-	nodeURL         string
-	systemDRewrites bool
-	cgroupRoot      string
+	client                   *kubeletclient.Client
+	nodeName                 string
+	nodeURL                  string
+	kubeletSettingsOverrides KubeletSettingsOverrides
+	kubeletSettings          kubeletCgroupSettings
 
 	// In most cases equals to the value of topology.kubernetes.io/zone lable. See https://kubernetes.io/docs/reference/labels-annotations-taints/#topologykubernetesiozone
 	topology string
@@ -117,7 +117,7 @@ func (p *PodsLister) List() ([]deploysystemmodel.Pod, error) {
 				continue
 			}
 			containerCgroup := parts[1]
-			if p.systemDRewrites {
+			if p.kubeletSettings.systemd {
 				containerCgroup = containerCgroup + ".scope"
 			}
 
@@ -127,7 +127,7 @@ func (p *PodsLister) List() ([]deploysystemmodel.Pod, error) {
 			})
 		}
 
-		cgroup, err := buildCgroup(p.cgroupRoot, p.systemDRewrites, podInfo{
+		cgroup, err := buildCgroup(&p.kubeletSettings, podInfo{
 			UID:      pod.ObjectMeta.UID,
 			QOSClass: pod.Status.QOSClass,
 		})
@@ -153,7 +153,7 @@ func (p *PodsLister) List() ([]deploysystemmodel.Pod, error) {
 	return res, nil
 }
 
-func NewPodsLister(topologyLableKey string, cgroupRoot string) (*PodsLister, error) {
+func NewPodsLister(topologyLableKey string, kubeletSettingsOverrides KubeletSettingsOverrides) (*PodsLister, error) {
 	if topologyLableKey == "" {
 		topologyLableKey = defaultTopologyLableKey
 	}
@@ -178,10 +178,10 @@ func NewPodsLister(topologyLableKey string, cgroupRoot string) (*PodsLister, err
 	client := kubeletclient.New(httpclient)
 
 	podLister := &PodsLister{
-		nodeName:   name,
-		nodeURL:    url + "/pods",
-		client:     client,
-		cgroupRoot: cgroupRoot,
+		nodeName:                 name,
+		nodeURL:                  url + "/pods",
+		client:                   client,
+		kubeletSettingsOverrides: kubeletSettingsOverrides,
 	}
 
 	topology, err := podLister.getTopology(topologyLableKey)
@@ -194,14 +194,31 @@ func NewPodsLister(topologyLableKey string, cgroupRoot string) (*PodsLister, err
 }
 
 func (p *PodsLister) Init(ctx context.Context) error {
-	if p.cgroupRoot == "" {
+	var resolveNeeded bool
+	if p.kubeletSettingsOverrides.CgroupDriver == "" {
+		resolveNeeded = true
+	}
+	if p.kubeletSettingsOverrides.CgroupRoot == "" {
+		resolveNeeded = true
+	}
+	var resolved kubeletCgroupSettings
+	if resolveNeeded {
 		var err error
-		var systemd bool
-		p.cgroupRoot, systemd, err = resolveCgroupRoot(ctx, p.client)
-		p.systemDRewrites = systemd
+		resolved, err = resolveKubeletCgroupSettings(ctx, p.client)
 		if err != nil {
 			return fmt.Errorf("failed to detect kubelet cgroup root: %w", err)
 		}
 	}
+	if p.kubeletSettingsOverrides.CgroupDriver != "" {
+		if p.kubeletSettingsOverrides.CgroupDriver == "systemd" {
+			resolved.systemd = true
+		} else if p.kubeletSettingsOverrides.CgroupDriver != "cgroupfs" {
+			return fmt.Errorf("invalid value for cgroup driver override (expected cgroupfs or systemd): %q", p.kubeletSettingsOverrides.CgroupDriver)
+		}
+	}
+	if p.kubeletSettingsOverrides.CgroupRoot != "" {
+		resolved.root = p.kubeletSettingsOverrides.CgroupRoot
+	}
+	p.kubeletSettings = resolved
 	return nil
 }

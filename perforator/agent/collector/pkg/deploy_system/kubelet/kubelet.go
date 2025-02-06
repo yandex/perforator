@@ -91,42 +91,53 @@ type kubeletConfig struct {
 	CgroupDriver string `json:"cgroupDriver"`
 }
 
-func resolveCgroupRoot(ctx context.Context, client *kubeletclient.Client) (string, bool, error) {
+type KubeletSettingsOverrides struct {
+	CgroupRoot   string `json:"cgroupRoot"`
+	CgroupDriver string `json:"cgroupDriver"`
+}
+
+type kubeletCgroupSettings struct {
+	root    string
+	systemd bool
+}
+
+func resolveKubeletCgroupSettings(ctx context.Context, client *kubeletclient.Client) (kubeletCgroupSettings, error) {
+	var s kubeletCgroupSettings
 	url, err := getNodeURL()
 	if err != nil {
-		return "", false, fmt.Errorf("failed to resolve kubelet API endpoint: %w", err)
+		return s, fmt.Errorf("failed to resolve kubelet API endpoint: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/configz", url), nil)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to create request: %w", err)
+		return s, fmt.Errorf("failed to create request: %w", err)
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to send request: %w", err)
+		return s, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", false, fmt.Errorf("error reading /configz response body: %w", err)
+		return s, fmt.Errorf("error reading /configz response body: %w", err)
 	}
 
 	var config kubeletConfigWrapper
 	err = json.Unmarshal(body, &config)
 	if err != nil {
-		return "", false, fmt.Errorf("error unmarshalling /configz response body: %w", err)
+		return s, fmt.Errorf("error unmarshalling /configz response body: %w", err)
 	}
 
-	root := config.Config.CgroupRoot
 	if config.Config.CgroupDriver == "systemd" {
-		root = path.Join(root, "kubepods.slice")
+		s.root = path.Join(config.Config.CgroupRoot, "kubepods.slice")
+		s.systemd = true
 	} else if config.Config.CgroupDriver == "cgroupfs" {
-		root = path.Join(root, "kubepods")
+		s.root = path.Join(config.Config.CgroupRoot, "kubepods")
 	} else {
-		return "", false, fmt.Errorf("unsupported cgroup driver %q (expected systemd or cgroupfs)", config.Config.CgroupDriver)
+		return kubeletCgroupSettings{}, fmt.Errorf("unsupported cgroup driver %q (expected systemd or cgroupfs)", config.Config.CgroupDriver)
 	}
-	return root, (config.Config.CgroupDriver == "systemd"), nil
+	return s, nil
 }
 
 func (p *PodsLister) getTopology(topologyLableKey string) (string, error) {
@@ -208,17 +219,17 @@ type podInfo struct {
 // "/sys/fs/cgroup/kubepods/<POD_QOSClass>/pod<POD_UID>"
 // or freezer cgroup for cgroup v1
 // "/sys/fs/cgroup/freezer/kubepods/<POD_QOSClass>/pod<POD_UID>".
-func buildCgroup(cgroupRoot string, systemDRewrites bool, pod podInfo) (string, error) {
+func buildCgroup(settings *kubeletCgroupSettings, pod podInfo) (string, error) {
 	podUID := string(pod.UID)
 	podQOSClass, ok := qosClassToCgroupSubstr[pod.QOSClass]
 	if !ok {
 		return "", fmt.Errorf("error building pod's cgroup: got unknown PodQOSClass: %v. Pod's UID: %v", pod.QOSClass, pod.UID)
 	}
 	podName := "pod" + podUID
-	if systemDRewrites {
+	if settings.systemd {
 		podName = fmt.Sprintf("kubepods-%s-pod%s.scope", podQOSClass, podUID)
 		podQOSClass = "kubepods-" + podQOSClass + ".slice"
 	}
 
-	return path.Join(cgroupRoot, podQOSClass, podName), nil
+	return path.Join(settings.root, podQOSClass, podName), nil
 }

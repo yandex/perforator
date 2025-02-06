@@ -50,7 +50,11 @@ func TestBuildCgroup(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			s, err := buildCgroup(tc.cgroupRoot, tc.systemDRewrites, podInfo{
+			settings := kubeletCgroupSettings{
+				root:    tc.cgroupRoot,
+				systemd: tc.systemDRewrites,
+			}
+			s, err := buildCgroup(&settings, podInfo{
 				UID:      tc.uid,
 				QOSClass: tc.qosClass,
 			})

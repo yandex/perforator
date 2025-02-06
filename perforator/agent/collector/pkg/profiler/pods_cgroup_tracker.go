@@ -219,7 +219,12 @@ func newPodsCgroupTracker(c *config.PodsDeploySystemConfig, l log.Logger) (*Pods
 		// TODO: add porto support.
 		return nil, fmt.Errorf("unfortunately we don't support porto yet")
 	case "kubernetes", "k8s":
-		podsLister, err = kubelet.NewPodsLister(c.KubernetesConfig.TopologyLableKey, c.KubernetesConfig.KubeletCgroupRoot)
+		var kubeletOverrides kubelet.KubeletSettingsOverrides
+
+		kubeletOverrides.CgroupDriver = c.KubernetesConfig.KubeletCgroupDriver
+		kubeletOverrides.CgroupRoot = c.KubernetesConfig.KubeletCgroupRoot
+
+		podsLister, err = kubelet.NewPodsLister(c.KubernetesConfig.TopologyLableKey, kubeletOverrides)
 		if err != nil {
 			return nil, err
 		}
