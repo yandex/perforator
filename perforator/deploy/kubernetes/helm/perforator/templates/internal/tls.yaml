@@ -1,4 +1,4 @@
-{{- $ca := genCA (printf "%s-storage-service" (include "perforator.fullname" .)) 3650 }}
+{{- $ca := genCA (printf "%s-storage-service-ca" (include "perforator.fullname" .)) 3650 }}
 {{- $storageCert := genSignedCert (printf "%s-storage-service" (include "perforator.fullname" .)) nil (list (printf "%s-storage-service" (include "perforator.fullname" .))) 3650 $ca }}
 {{- $storageSecretName := printf "%s-storage-crt" (include "perforator.fullname" .) }}
 apiVersion: v1
