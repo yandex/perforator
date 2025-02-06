@@ -1,6 +1,6 @@
 # How to configure profiling for JVM applications
 
-Perforator is able to profile JVM application. This guide shows how to configure Perforator and application to get meaningful profiles.
+Perforator is able to profile JVM application. This guide shows how to configure application to get meaningful profiles.
 
 {% note warning %}
 
@@ -28,16 +28,3 @@ __PERFORATOR_ENABLE_PERFMAP=java=true,percentage=50
 ```
 
 See [reference](../reference/perfmap.md#configuration) for configuration options.
-
-## Configure agent
-
-Add the following options to the top level of the agent configuration
-
-```json
-{
-    "enable_perf_map": true,
-    "enable_perf_maps_jvm": true
-}
-```
-
-After that, restart the agent.
