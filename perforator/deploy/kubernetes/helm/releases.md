@@ -2,6 +2,7 @@
 
 Enhancements:
 + Add default images for all components
++ (experimental) Add support for automated migrations (see `.databases.{postgresql,clickhouse}.migrations` for details)
 
 # 0.2.3
 

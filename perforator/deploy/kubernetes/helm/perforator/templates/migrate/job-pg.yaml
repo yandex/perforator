@@ -1,0 +1,47 @@
+{{- if .Values.databases.postgresql.migrations.enabled }}
+
+
+{{- $pghosts := "" }}
+{{- range .Values.databases.postgresql.endpoints }}
+{{ $pghosts = printf "%s%s," $pghosts .host }}
+{{- end }}
+{{ $pghosts = $pghosts | trimSuffix "," }}
+{{- $insecure := "" }}
+{{- if eq .Values.databases.postgresql.sslmode "disable" }}
+  {{- $insecure = " --insecure" }}
+{{- end }}
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "perforator.fullname" . }}-init-postgres-{{ lower (randAlphaNum 5) }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.migrationspg.selectorLabels" . | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+  {{- with .Values.databases.postgresql.migrations.annotations }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  finalizers: {{ .Values.databases.clickhouse.migrations.finalizers }}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: init
+        image:  "{{ .Values.databases.postgresql.migrations.image.repository }}:{{ .Values.databases.postgresql.migrations.image.tag | default .Chart.AppVersion }}"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          /perforator/migrate postgres up --db {{ .Values.databases.postgresql.db }} --hosts {{ $pghosts }} --user {{ .Values.databases.postgresql.user }} --pass ${PASSWORD} {{ $insecure }} {{ .Values.databases.postgresql.migrations.extraArgs }}
+        env:
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              {{ include "perforator.secretKeyRef.postgresql" . | nindent 14 }}
+  ttlSecondsAfterFinished: {{ .Values.databases.clickhouse.migrations.ttlSecondsAfterFinished }}
+{{- end}}

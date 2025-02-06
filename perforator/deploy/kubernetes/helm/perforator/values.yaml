@@ -27,6 +27,26 @@ databases:
     secretKey: null
     # Root certificate for SSL
     sslrootcert: null
+    # Experimental: automated migrations.
+    migrations:
+      # Create a Job which runs migrations.
+      enabled: false
+      # Extra flags for the migration tool.
+      extraFlags: ""
+      # Migration tool image info
+      image:
+        # Image repository.
+        repository: ghcr.io/yandex/perforator/migrate
+        # Image tag. When empty, the chart's appVersion is used.
+        tag: ""
+        # Image pull policy.
+        pullPolicy: Always
+      # Finalizers for the Job.
+      finalizers: []
+      # Job TTL after failure or completion. Defaults to 3 days.
+      ttlSecondsAfterFinished: 259200
+      # Custom annotations
+      annotations: {}
 
   clickhouse:
     replicas: []
@@ -46,6 +66,26 @@ databases:
     secretKey: null
     # Root certificate for SSL
     ca_cert_path: null
+    # Experimental: automated migrations.
+    migrations: 
+      # Create a Job which runs migrations.
+      enabled: false
+      # Extra flags for the migration tool.
+      extraFlags: ""
+      # Migration tool image info
+      image:
+        # Image repository.
+        repository: ghcr.io/yandex/perforator/migrate
+        # Image tag. When empty, the chart's appVersion is used.
+        tag: ""
+        # Image pull policy.
+        pullPolicy: Always
+      # Finalizers for the Job.
+      finalizers: []
+      # Job TTL after failure or completion. Defaults to 3 days.
+      ttlSecondsAfterFinished: 259200
+      # Custom annotations
+      annotations: {}
 
   s3:
     buckets:

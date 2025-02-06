@@ -93,6 +93,20 @@ perforator.component: offlineprocessing
 {{- end }}
 
 {{/*
+PostgreSQL migration job selector labels
+*/}}
+{{- define "perforator.migrationspg.selectorLabels" -}}
+app.kubernetes.io/component: migrations-pg
+{{- end }}
+
+{{/*
+ClickHouse migration job selector labels
+*/}}
+{{- define "perforator.migrationsch.selectorLabels" -}}
+app.kubernetes.io/component: migrations-ch
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "perforator.serviceAccountName" -}}

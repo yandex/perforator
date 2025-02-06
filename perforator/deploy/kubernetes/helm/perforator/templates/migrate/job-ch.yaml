@@ -1,0 +1,47 @@
+{{- if .Values.databases.clickhouse.migrations.enabled }}
+
+{{- $chhosts := "" }}
+{{- range .Values.databases.clickhouse.replicas }}
+  {{- $hostparts := splitn ":" 2 . }}
+  {{- $chhosts = printf "%s%s," $chhosts $hostparts._0 }}
+{{- end }}
+{{ $chhosts = $chhosts | trimSuffix "," }}
+{{- $insecure := "" }}
+{{- if .Values.databases.clickhouse.insecure }}
+  {{- $insecure = " --insecure" }}
+{{- end }}
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "perforator.fullname" . }}-init-clickhouse-{{ lower (randAlphaNum 5) }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.migrationsch.selectorLabels" . | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+  {{- with .Values.databases.clickhouse.migrations.annotations }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  finalizers: {{ .Values.databases.clickhouse.migrations.finalizers }}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: init
+        image:  "{{ .Values.databases.clickhouse.migrations.image.repository }}:{{ .Values.databases.clickhouse.migrations.image.tag | default .Chart.AppVersion }}"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          /perforator/migrate clickhouse up --db {{ .Values.databases.clickhouse.db }} --hosts {{ $chhosts }} --user {{ .Values.databases.clickhouse.user }} --pass ${PASSWORD} {{ $insecure }} {{ .Values.databases.clickhouse.migrations.extraArgs }}
+        env:
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              {{ include "perforator.secretKeyRef.clickhouse" . | nindent 14 }}
+  ttlSecondsAfterFinished: {{ .Values.databases.clickhouse.migrations.ttlSecondsAfterFinished }}
+{{- end}}
