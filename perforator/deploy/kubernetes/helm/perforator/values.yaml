@@ -166,6 +166,8 @@ agent:
     storageHostnameOverride: ""
     # Label used to describe nodes topology.
     topologyLableKey: "topology.kubernetes.io/zone"
+    # Kubernetes cluster domain.
+    clusterDomain: "cluster.local"
 
   tls:
     # Enable agent TLS for agent-storage communication.

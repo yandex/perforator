@@ -222,6 +222,7 @@ func newPodsCgroupTracker(c *config.PodsDeploySystemConfig, l log.Logger, cgroup
 	case "kubernetes", "k8s":
 		var kubeletOverrides kubelet.KubeletSettingsOverrides
 
+		kubeletOverrides.ClusterDomain = c.KubernetesConfig.ClusterDomain
 		kubeletOverrides.CgroupDriver = c.KubernetesConfig.KubeletCgroupDriver
 		kubeletOverrides.CgroupRoot = c.KubernetesConfig.KubeletCgroupRoot
 		kubeletOverrides.CgroupsQOSMode = c.KubernetesConfig.KubeletCgroupQOSMode
@@ -288,7 +289,7 @@ func newPodsCgroupTracker(c *config.PodsDeploySystemConfig, l log.Logger, cgroup
 	return podsCgroupTracker, nil
 }
 
-//////////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////////
 
 func (p *Profiler) updatePodsCgroups(ctx context.Context) error {
 	cgroups, err := p.podsCgroupTracker.refreshCgroups(ctx)

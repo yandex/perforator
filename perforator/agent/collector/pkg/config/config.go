@@ -81,6 +81,7 @@ type KubernetesConfig struct {
 	KubeletCgroupDriver          string   `yaml:"kubelet_cgroup_driver,omitempty"`
 	KubeletCgroupQOSMode         string   `yaml:"kubelet_cgroup_qos_mode,omitempty"`
 	KubeletCgroupContainerPrefix string   `yaml:"kubelet_cgroup_container_prefix,omitempty"`
+	ClusterDomain                string   `yaml:"cluster_domain,omitempty"`
 }
 
 type PodsDeploySystemConfig struct {
