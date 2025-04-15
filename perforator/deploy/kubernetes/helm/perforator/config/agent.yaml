@@ -23,6 +23,6 @@ pods_deploy_system:
   deploy_system: "kubernetes"
   kubernetes:
     topology_lable_key: {{ .Values.agent.config.topologyLableKey | quote }}
-    cluster_domain: {{ .Values.agent.config.clusterDomain | quote }}
+    api_server_host: {{ .Values.agent.config.apiServerHost | quote }}
   pod_options:
     default: true
