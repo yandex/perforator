@@ -54,4 +54,11 @@ int main(int argc, const char* argv[]) {
     } else {
         Cout << "Found `autoTSSkey` address: " << *autoTSSKeyAddress << Endl;
     }
+
+    auto interpHeadAddress = analyzer.ParseInterpHeadAddress();
+    if (!interpHeadAddress) {
+        Cout << "Found no `interp_head` address" << Endl;
+    } else {
+        Cout << "Found `interp_head` address: " << *interpHeadAddress << Endl;
+    }
 }

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.3.0)
+VERSION(v0.13.0)
 
 SRCS(
     aws_provider.go
@@ -12,6 +12,7 @@ SRCS(
     info.go
     programmatic_provider.go
     url_provider.go
+    x509_provider.go
 )
 
 GO_TEST_SRCS(
@@ -23,6 +24,7 @@ GO_TEST_SRCS(
     info_test.go
     programmatic_provider_test.go
     url_provider_test.go
+    x509_provider_test.go
 )
 
 END()

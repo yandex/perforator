@@ -1,9 +1,8 @@
 #pragma once
 
 #include "binary.h"
-#include "core.h"
 #include "process.h"
-
+#include "thread.h"
 #include <bpf/bpf.h>
 
 #include <perforator/lib/tls/magic_bytes.h>
@@ -158,12 +157,8 @@ static ALWAYS_INLINE void collect_tls_values(struct process_info* proc_info, str
         return;
     }
 
-    struct task_struct* task = (void*)bpf_get_current_task();
-
-    unsigned long fsbase = BPF_CORE_READ(task, thread.fsbase);
-    u64 uthread = (u64) fsbase;
-
-    BPF_TRACE("tls: read fsbase %p", fsbase);
+    unsigned long tcb = get_tcb_pointer();
+    BPF_TRACE("tls: read tcb %p", tcb);
 
     int resultIndex = 0;
     for (int i = 0; i < MAX_TRACKED_THREAD_LOCALS_PER_BINARY; ++i) {
@@ -173,7 +168,7 @@ static ALWAYS_INLINE void collect_tls_values(struct process_info* proc_info, str
         }
 
         bool collected = collect_tls_value(
-            uthread,
+            (u64) tcb,
             tls_config->offsets[i],
             &result->values[resultIndex]
         );

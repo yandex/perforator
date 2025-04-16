@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.2.2)
+VERSION(v0.2.6)
 
 SRCS(
     oauth2adapt.go

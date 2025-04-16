@@ -1,0 +1,30 @@
+{
+  "PyThreadState": {
+    "prev": 0,
+    "next": 8,
+    "frame": 24
+  },
+  "PyFrameObject": {
+    "f_back": 24,
+    "f_code": 32,
+    "f_lineno": 124,
+    "f_lasti": 120
+  },
+  "PyInterpreterState": {
+    "threads.head": 8,
+    "next": 0
+  },
+  "PyASCIIObject": {
+    "length": 16,
+    "state": 32,
+    "data": 48,
+    "ascii_bit": 6,
+    "compact_bit": 5,
+    "static_bit": 7
+  },
+  "PyCodeObject": {
+    "co_firstlineno": 36,
+    "co_filename": 96,
+    "co_name": 104
+  }
+}

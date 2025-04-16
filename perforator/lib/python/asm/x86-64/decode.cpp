@@ -289,13 +289,13 @@ Example 2:
  */
 TMaybe<ui64> DecodeAutoTSSKeyAddress(
     const llvm::Triple& triple,
-    ui64 pyGILStateCheckAddress,
+    ui64 pyGILStateEnsureAddress,
     TConstArrayRef<ui8> bytecode
 ) {
     auto instructionEvaluator = NPerforator::NAsm::NX86::MakeDefaultInstructionEvaluator();
     NPerforator::NAsm::NX86::TBytecodeEvaluator evaluator(
         triple,
-        NPerforator::NAsm::NX86::MakeInitialState(pyGILStateCheckAddress),
+        NPerforator::NAsm::NX86::MakeInitialState(pyGILStateEnsureAddress),
         bytecode,
         *instructionEvaluator,
         NPerforator::NAsm::NX86::MakeStopOnCallCondition()
@@ -316,6 +316,51 @@ TMaybe<ui64> DecodeAutoTSSKeyAddress(
         auto ediValue = GetRegisterValueOrAddress(result->State, llvm::X86::EDI);
         if (ediValue) {
             return ediValue;
+        }
+    }
+
+    return Nothing();
+}
+
+/*
+ * Disassembles PyInterpreterState_Head function to find the address of interp_head field on _PyRuntime.
+
+Example:
+ 0000000000150f90 <PyInterpreterState_Head>:
+  150f90:       f3 0f 1e fa             endbr64
+  150f94:       48 8b 05 bd f2 17 00    mov    0x17f2bd(%rip),%rax        # 2d0258 <interp_head>
+  150f9b:       c3                      retq
+  150f9c:       0f 1f 40 00             nopl   0x0(%rax)
+ */
+TMaybe<ui64> DecodeInterpHeadAddress(
+    const llvm::Triple& triple,
+    ui64 pyInterpreterStateHeadAddress,
+    TConstArrayRef<ui8> bytecode
+) {
+    auto instructionEvaluator = NPerforator::NAsm::NX86::MakeDefaultInstructionEvaluator();
+    NPerforator::NAsm::NX86::TBytecodeEvaluator evaluator(
+        triple,
+        NPerforator::NAsm::NX86::MakeInitialState(pyInterpreterStateHeadAddress),
+        bytecode,
+        *instructionEvaluator,
+        NPerforator::NAsm::NX86::MakeStopOnPassControlFlowCondition()
+    );
+
+    auto result = evaluator.Evaluate();
+
+    if (!result.has_value()) {
+        return Nothing();
+    }
+
+    if (result.has_value()) {
+        auto raxValue = GetRegisterValueOrAddress(result->State, llvm::X86::RAX);
+        if (raxValue) {
+            return raxValue;
+        }
+
+        auto eaxValue = GetRegisterValueOrAddress(result->State, llvm::X86::EAX);
+        if (eaxValue) {
+            return eaxValue;
         }
     }
 

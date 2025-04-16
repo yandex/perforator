@@ -12,6 +12,10 @@ namespace NPerforator::NPthread {
 TLibPthreadAnalyzer::TLibPthreadAnalyzer(const llvm::object::ObjectFile& file) : File_(file) {}
 
 void TLibPthreadAnalyzer::ParseSymbolLocations() {
+    if (Symbols_) {
+        return;
+    }
+
     Symbols_ = MakeHolder<TSymbols>();
     auto dynamicSymbols = NELF::RetrieveDynamicSymbols(File_, kPthreadGetspecificSymbol);
     if (dynamicSymbols) {
@@ -47,8 +51,10 @@ TMaybe<TAccessTSSInfo> ParseAccessTSSInfoImpl(
 }
 
 TMaybe<TAccessTSSInfo> TLibPthreadAnalyzer::ParseAccessTSSInfo() {
+    ParseSymbolLocations();
+
     if (!Symbols_) {
-        ParseSymbolLocations();
+        return Nothing();
     }
 
     if (!Symbols_->PthreadGetspecific) {

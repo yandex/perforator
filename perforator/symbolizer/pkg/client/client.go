@@ -560,7 +560,12 @@ func (c *Client) UploadProfile(ctx context.Context, meta *perforator.ProfileMeta
 	return res.GetProfileID(), nil
 }
 
-func (c *Client) UploadRenderedProfile(ctx context.Context, meta *perforator.ProfileMeta, profile *pprof.Profile) (profileID string, taskID string, err error) {
+func (c *Client) UploadRenderedProfile(
+	ctx context.Context,
+	meta *perforator.ProfileMeta,
+	flamegraphOptions *perforator.FlamegraphOptions,
+	profile *pprof.Profile,
+) (profileID string, taskID string, err error) {
 	profileID, err = c.UploadProfile(ctx, meta, profile)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to upload profile: %w", err)
@@ -578,10 +583,7 @@ func (c *Client) UploadRenderedProfile(ctx context.Context, meta *perforator.Pro
 				Symbolize: ptr.Bool(false),
 			},
 			Format: &perforator.RenderFormat_Flamegraph{
-				Flamegraph: &perforator.FlamegraphOptions{
-					MaxDepth:  ptr.Uint32(256),
-					MinWeight: ptr.T(1e-10),
-				},
+				Flamegraph: flamegraphOptions,
 			},
 		},
 		Query: &perforator.ProfileQuery{

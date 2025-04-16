@@ -69,8 +69,8 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
     };
 
     const prerenderedNewData = React.useMemo(() => {
-        uiFactory().rum()?.startDataRendering?.(pageName, '', false);
         if (profileData) {
+            uiFactory().rum()?.startDataRendering?.(pageName, '', false);
             return prerenderColors(profileData, { theme });
         }
         return null;
@@ -81,7 +81,7 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
 
     React.useEffect(() => {
         if (!isMounted.current) {
-            uiFactory().rum()?.makeSpaSubPage?.(pageName);
+            uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, { flamegraphFormat: props.format });
             isMounted.current = true;
             getProfileDataWithCatch();
 

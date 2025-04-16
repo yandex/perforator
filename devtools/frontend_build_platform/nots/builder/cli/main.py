@@ -60,7 +60,7 @@ def _postprocess_output(args: AllOptions) -> None:
     if args.command == 'build-package' and not with_after_build:
         output_file = args.node_modules_bundle
 
-    if os.path.isfile(output_file):
+    if output_file and os.path.isfile(output_file):
         if args.trace:
             __add_tracing_to_output(args.bindir, output_file)
 

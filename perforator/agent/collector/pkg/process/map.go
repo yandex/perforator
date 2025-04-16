@@ -606,21 +606,27 @@ func (a *processAnalyzer) registerMapping(m *dso.Mapping) {
 	a.exemappings = append(a.exemappings, m)
 }
 
-func (a *processAnalyzer) findInterpreterBinary(mappings []*dso.Mapping) (binary unwinder.InterpreterBinary, baseAddress uint64) {
+func (a *processAnalyzer) fillSpecialBinaryInfo(pi *unwinder.ProcessInfo, mappings []*dso.Mapping) {
 	for _, m := range mappings {
 		if m.DSO == nil {
 			continue
 		}
 
-		if m.DSO.InterpreterType != unwinder.InterpreterTypeNone {
-			return unwinder.InterpreterBinary{
-				Id:   unwinder.BinaryId(m.DSO.ID),
-				Type: m.DSO.InterpreterType,
-			}, m.BaseAddress
+		switch m.DSO.SpecialBinaryType {
+		case unwinder.SpecialBinaryTypePythonInterpreter:
+			pi.InterpreterBinary = unwinder.SpecialBinary{
+				Id:           unwinder.BinaryId(m.DSO.ID),
+				Type:         m.DSO.SpecialBinaryType,
+				StartAddress: m.BaseAddress,
+			}
+		case unwinder.SpecialBinaryTypePthreadGlibc:
+			pi.PthreadBinary = unwinder.SpecialBinary{
+				Id:           unwinder.BinaryId(m.DSO.ID),
+				Type:         m.DSO.SpecialBinaryType,
+				StartAddress: m.BaseAddress,
+			}
 		}
 	}
-
-	return unwinder.InterpreterBinary{}, 0
 }
 
 func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
@@ -632,13 +638,19 @@ func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
 
 	pi := unwinder.ProcessInfo{
 		UnwindType: unwinder.UnwindTypeDwarf,
+		PthreadBinary: unwinder.SpecialBinary{
+			Type: unwinder.SpecialBinaryTypeNone,
+		},
+		InterpreterBinary: unwinder.SpecialBinary{
+			Type: unwinder.SpecialBinaryTypeNone,
+		},
 	}
 	if len(a.exemappings) > 0 && a.exemappings[0].DSO != nil {
 		pi.MainBinaryId = unwinder.BinaryId(a.exemappings[0].DSO.ID)
 	} else {
 		pi.MainBinaryId = unwinder.BinaryId(math.MaxUint64)
 	}
-	pi.InterpreterBinary, pi.InterpreterBinaryStartAddress = a.findInterpreterBinary(a.exemappings)
+	a.fillSpecialBinaryInfo(&pi, a.exemappings)
 
 	a.log.Debug(ctx, "Put process info", log.Any("info", pi))
 	err := a.reg.bpf.AddProcess(a.proc.id, &pi)

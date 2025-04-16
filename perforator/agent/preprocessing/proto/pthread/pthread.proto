@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package NPerforator.NBinaryProcessing.NPthread;
+
+option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/pthread";
+
+message PthreadKeyData {
+    uint64 Size = 1;
+    uint64 ValueOffset = 2;
+    uint64 SeqOffset = 3;
+}
+
+message PthreadConfig {
+    PthreadKeyData KeyData = 1;
+    uint64 FirstSpecificBlockOffset = 2;
+    uint64 SpecificArrayOffset = 3;
+    uint64 StructPthreadPointerOffset = 4;
+    uint64 KeySecondLevelSize = 5;
+    uint64 KeyFirstLevelSize = 6;
+    uint64 KeysMax = 7;
+}

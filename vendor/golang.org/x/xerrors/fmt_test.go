@@ -527,10 +527,10 @@ func (e formatError) GoString() string {
 
 type fmtTwiceErr struct {
 	format string
-	args   []interface{}
+	args   []any
 }
 
-func fmtTwice(format string, a ...interface{}) error {
+func fmtTwice(format string, a ...any) error {
 	return fmtTwiceErr{format, a}
 }
 
@@ -555,14 +555,14 @@ type panicValue struct{}
 
 func (panicValue) String() string { panic("panic") }
 
-var rePath = regexp.MustCompile(`( [^ ]*)xerrors.*test\.`)
-var reLine = regexp.MustCompile(":[0-9]*\n?$")
+var rePath = regexp.MustCompile(`( [^ ]+)\/(xerrors_test|fmt_test)\.`)
+var reLine = regexp.MustCompile(":[0-9]+\n?$")
 
 func cleanPath(s string) string {
 	s = rePath.ReplaceAllString(s, "/path.")
 	s = reLine.ReplaceAllString(s, ":xxx")
-	s = strings.Replace(s, "\n   ", "", -1)
-	s = strings.Replace(s, " /", "/", -1)
+	s = strings.ReplaceAll(s, "\n   ", "")
+	s = strings.ReplaceAll(s, " /", "/")
 	return s
 }
 
@@ -588,11 +588,11 @@ type testPrinter struct {
 	str string
 }
 
-func (p *testPrinter) Print(a ...interface{}) {
+func (p *testPrinter) Print(a ...any) {
 	p.str += fmt.Sprint(a...)
 }
 
-func (p *testPrinter) Printf(format string, a ...interface{}) {
+func (p *testPrinter) Printf(format string, a ...any) {
 	p.str += fmt.Sprintf(format, a...)
 }
 

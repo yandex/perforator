@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.40.0)
+VERSION(v1.49.0)
 
 SRCS(
     acl.go
@@ -10,7 +10,10 @@ SRCS(
     client.go
     copy.go
     doc.go
+    dynamic_delay.go
     grpc_client.go
+    grpc_dp.go
+    grpc_metrics.go
     hmac.go
     http_client.go
     iam.go
@@ -29,9 +32,12 @@ GO_TEST_SRCS(
     client_test.go
     conformance_test.go
     copy_test.go
+    dynamic_delay_test.go
     grpc_client_test.go
+    grpc_metrics_test.go
     headers_test.go
     hmac_test.go
+    http_client_test.go
     integration_test.go
     invoke_test.go
     mock_test.go
@@ -53,6 +59,9 @@ END()
 
 RECURSE(
     control
+    dataflux
+    experimental
     # gotest
     internal
+    transfermanager
 )

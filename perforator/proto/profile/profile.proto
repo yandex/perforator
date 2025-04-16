@@ -71,10 +71,16 @@ import "google/protobuf/timestamp.proto";
 // SampleStacks represents the stack trace information for a sample.
 message SampleStacks {
     // IDs of user space stacks. References Profile.Stacks.
-    repeated uint32 user_stack_id = 1;
+    // Deprecated: use first_stack_id + stack_id instead.
+    repeated uint32 user_stack_id = 1 [deprecated=true];
     // IDs of kernel space stacks. References Profile.Stacks.
-    repeated uint32 kernel_stack_id = 2;
-    // TODO(sskvor): Per-language stacks. enum or string for language id?
+    // Deprecated: use first_stack_id + stack_id instead.
+    repeated uint32 kernel_stack_id = 2 [deprecated=true];
+
+    // Offsets into stack_id array for each sample.
+    repeated uint32 first_stack_id = 3;
+    // IDs of stacks associated with each sample. References Profile.Stacks.
+    repeated uint32 stack_id = 4;
 }
 
 // ValueType describes the semantics and measurement units of a value.
@@ -159,10 +165,42 @@ message SampleKeys {
     SampleThreads threads = 3;
 }
 
+enum StackKind {
+    // This value should never be used.
+    Unknown = 0;
+    // This is a primary userspace stack, often consisting of native frames.
+    Userspace = 1;
+    // This is a primary kernelspace stack, often consisting of native frames.
+    Kernelspace = 2;
+    // This is an alternative stack whose semantics are determined by the
+    // @runtime_name field of the stack.
+    //
+    // We store stacks from interpreted languages this way. Such stacks consist
+    // of frames from a language that cannot be unwound directly using
+    // the native unwinding algorithm. Native stacks of interpreted languages
+    // show the internals of the interpreter, not the actual interpreted code
+    // that is executed. However, sometimes we can associate language-specific
+    // frames with a native stack.
+    //
+    // We also store LBR stacks for sPGO profiles among other stacks using kind
+    // Other and runtime_name "lbr".
+    Other = 3;
+};
+
 // Stacks represents call stack information.
 // Stacks are expected to be stored in non-natural order:
 // First stack address is the most nested one.
 message Stacks {
+    // Origin of this stack. A sample can reference
+    // multiple stacks of different kinds.
+    // NOTE: When @kind is not equal to StackKind.Other, @runtime_name should be empty.
+    repeated StackKind kind = 3;
+    // Human-readable name of the language or runtime this stack belongs to.
+    // For example, "v8", "hotspot" or "cpython". Often this should be a name
+    // of the sub-profiler that generated the stack.
+    // NOTE: When @runtime_name is not empty, @kind should be set to StackKind.Other.
+    // References Profile.strtab.
+    repeated uint32 runtime_name = 4;
     // Offsets into address_id array for each stack
     repeated uint32 offset = 1;
     // IDs of frames in each stack. References Profile.StackFrames.

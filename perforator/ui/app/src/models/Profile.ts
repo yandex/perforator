@@ -7,6 +7,10 @@ export interface FormatNode {
     selfSampleCount?: number;
     /** added during render */
     selfEventCount?: number;
+    /** added during render */
+    baseSelfSampleCount?: number;
+    /** added during render */
+    baseSelfEventCount?: number;
     sampleCount: number;
     eventCount: number;
     /**

@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-04-08T15:28:05.585Z",
+    "created": "2025-04-14T16:35:11.328Z",
     "pr": {
-      "id": 7792938,
-      "author": "khoden",
-      "summary": "FBP-1954: nots/builder: не упаковывать в output.tar папку `.next/cache`"
+      "id": 8398405,
+      "author": "vturov",
+      "summary": "Не упаковывать node_modules по умолчанию"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:8467050617"
+      "uri": "sbr:8508285494"
     },
     "darwin-arm64": {
-      "uri": "sbr:8467048249"
+      "uri": "sbr:8508284114"
     },
     "linux": {
-      "uri": "sbr:8467054946"
+      "uri": "sbr:8508287772"
     },
     "linux-aarch64": {
-      "uri": "sbr:8467052632"
+      "uri": "sbr:8508286571"
     }
   }
 }

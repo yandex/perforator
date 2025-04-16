@@ -24,11 +24,11 @@ func BenchmarkErrorf(b *testing.B) {
 	err := xerrors.New("foo")
 	// pi := big.NewFloat(3.14) // Something expensive.
 	num := big.NewInt(5)
-	args := func(a ...interface{}) []interface{} { return a }
+	args := func(a ...any) []any { return a }
 	benchCases := []struct {
 		name   string
 		format string
-		args   []interface{}
+		args   []any
 	}{
 		{"no_format", "msg: %v", args(err)},
 		{"with_format", "failed %d times: %v", args(5, err)},

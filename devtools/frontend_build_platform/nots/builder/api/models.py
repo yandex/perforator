@@ -38,8 +38,8 @@ class BaseOptions:
     local_cli = False
     """Is run locally (from `nots`) or on the distbuild"""
 
-    bundle = True
-    """Bundle the result into a tar archive"""
+    nm_bundle = False
+    """Bundle node_modules into a tar archive"""
 
     trace = False
     """storing execution time, build the Chrome Tools compatible trace file"""
@@ -49,7 +49,7 @@ class BaseOptions:
 
     # Calculated options
     node_modules_bundle: str
-    """path to node_modules.tar bundle, calculated"""
+    """path to node_modules.tar bundle if nm_bundle is True, calculated"""
 
     bindir: str
     """module build path ($BINDIR), calculated"""

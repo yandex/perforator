@@ -16,11 +16,11 @@ type BPFManager struct {
 	mutex sync.Mutex
 }
 
-func NewBPFManager(l log.Logger, bpf *machine.BPF) (*BPFManager, error) {
+func NewBPFManager(l log.Logger, bpf *machine.BPF) *BPFManager {
 	return &BPFManager{
 		l:   l,
 		bpf: bpf,
-	}, nil
+	}
 }
 
 func (m *BPFManager) Add(id uint64, info *tls.TLSConfig) error {

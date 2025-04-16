@@ -372,7 +372,7 @@ func (c *SampleConsumer) processPythonFrame(loc *profile.LocationBuilder, frame 
 	}
 
 	loc.AddFrame().
-		SetName(symbol.QualName).
+		SetName(symbol.Name).
 		SetFilename(symbol.FileName).
 		SetStartLine(int64(frame.SymbolKey.CoFirstlineno)).
 		Finish()

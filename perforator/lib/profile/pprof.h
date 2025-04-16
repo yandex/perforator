@@ -10,8 +10,6 @@ namespace NPerforator::NProfile {
 
 void ConvertFromPProf(const NProto::NPProf::Profile& from, NProto::NProfile::Profile* to);
 
-void ConvertFromPProf2(const NProto::NPProf::Profile& from, NProto::NProfile::Profile* to);
-
 void ConvertToPProf(const NProto::NProfile::Profile& from, NProto::NPProf::Profile* to);
 
 ////////////////////////////////////////////////////////////////////////////////

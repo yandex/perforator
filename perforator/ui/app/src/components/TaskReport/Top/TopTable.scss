@@ -9,6 +9,7 @@
     }
     .g-table__table {
         width: 100%;
+        font-variant-numeric: tabular-nums;
     }
     &__name_highlight {
         background-color: var(--g-color-base-info-medium);

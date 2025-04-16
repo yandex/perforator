@@ -27,27 +27,14 @@ from __future__ import annotations
 import io
 import os
 import sys
-import warnings
-from collections.abc import Iterable
-from typing import Any
 
-from ._types import Attribute, Color, Highlight
-
-
-def __getattr__(name: str) -> list[str]:
-    if name == "__ALL__":
-        warnings.warn(
-            "__ALL__ is deprecated and will be removed in termcolor 3. "
-            "Use __all__ instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return ["colored", "cprint"]
-    msg = f"module '{__name__}' has no attribute '{name}'"
-    raise AttributeError(msg)
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import Any
 
 
-ATTRIBUTES: dict[Attribute, int] = {
+ATTRIBUTES: dict[str, int] = {
     "bold": 1,
     "dark": 2,
     "underline": 4,
@@ -57,7 +44,7 @@ ATTRIBUTES: dict[Attribute, int] = {
     "strike": 9,
 }
 
-HIGHLIGHTS: dict[Highlight, int] = {
+HIGHLIGHTS: dict[str, int] = {
     "on_black": 40,
     "on_grey": 40,  # Actually black but kept for backwards compatibility
     "on_red": 41,
@@ -77,7 +64,7 @@ HIGHLIGHTS: dict[Highlight, int] = {
     "on_white": 107,
 }
 
-COLORS: dict[Color, int] = {
+COLORS: dict[str, int] = {
     "black": 30,
     "grey": 30,  # Actually black but kept for backwards compatibility
     "red": 31,
@@ -117,11 +104,11 @@ def _can_do_colour(
         return True
 
     # Then check env vars:
-    if "ANSI_COLORS_DISABLED" in os.environ:
+    if os.environ.get("ANSI_COLORS_DISABLED"):
         return False
-    if "NO_COLOR" in os.environ:
+    if os.environ.get("NO_COLOR"):
         return False
-    if "FORCE_COLOR" in os.environ:
+    if os.environ.get("FORCE_COLOR"):
         return True
 
     # Then check system:
@@ -138,9 +125,9 @@ def _can_do_colour(
 
 def colored(
     text: object,
-    color: Color | None = None,
-    on_color: Highlight | None = None,
-    attrs: Iterable[Attribute] | None = None,
+    color: str | None = None,
+    on_color: str | None = None,
+    attrs: Iterable[str] | None = None,
     *,
     no_color: bool | None = None,
     force_color: bool | None = None,
@@ -186,9 +173,9 @@ def colored(
 
 def cprint(
     text: object,
-    color: Color | None = None,
-    on_color: Highlight | None = None,
-    attrs: Iterable[Attribute] | None = None,
+    color: str | None = None,
+    on_color: str | None = None,
+    attrs: Iterable[str] | None = None,
     *,
     no_color: bool | None = None,
     force_color: bool | None = None,

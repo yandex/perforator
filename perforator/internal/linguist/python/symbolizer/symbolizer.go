@@ -28,7 +28,7 @@ type symbolizerMetrics struct {
 
 type Symbol struct {
 	FileName string
-	QualName string
+	Name     string
 }
 
 type Symbolizer struct {
@@ -85,7 +85,7 @@ func (s *Symbolizer) Symbolize(key *unwinder.PythonSymbolKey) (*Symbol, bool) {
 
 	newSymbol := &Symbol{
 		FileName: copy.ZeroTerminatedString(symbol.FileName[:]),
-		QualName: copy.ZeroTerminatedString(symbol.QualName[:]),
+		Name:     copy.ZeroTerminatedString(symbol.Name[:]),
 	}
 	_ = s.cache.Add(*key, newSymbol)
 

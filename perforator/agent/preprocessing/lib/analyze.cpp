@@ -3,6 +3,7 @@
 
 #include <perforator/lib/tls/parser/tls.h>
 #include <perforator/lib/llvmex/llvm_exception.h>
+#include <perforator/lib/pthread/pthread.h>
 #include <perforator/lib/python/python.h>
 
 #include <library/cpp/streams/zstd/zstd.h>
@@ -12,6 +13,8 @@
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Object/ObjectFile.h>
 #include <llvm/Support/TargetSelect.h>
+
+#include <util/generic/maybe.h>
 
 namespace NPerforator::NBinaryProcessing::NTls {
 
@@ -62,6 +65,31 @@ NPerforator::NBinaryProcessing::NPython::PythonConfig BuildPythonConfig(llvm::ob
 
 } // namespace NPerforator::NBinaryProcessing::NPython
 
+namespace NPerforator::NBinaryProcessing::NPthread {
+
+TMaybe<NPerforator::NBinaryProcessing::NPthread::PthreadConfig> BuildPthreadConfig(llvm::object::ObjectFile* objectFile) {
+    auto analyzer = NPerforator::NPthread::TLibPthreadAnalyzer{*objectFile};
+    auto accessTSSInfo = analyzer.ParseAccessTSSInfo();
+    if (!accessTSSInfo) {
+        return Nothing();
+    }
+
+    NPerforator::NBinaryProcessing::NPthread::PthreadConfig conf;
+    conf.MutableKeyData()->SetSize(accessTSSInfo->PthreadKeyData.Size);
+    conf.MutableKeyData()->SetValueOffset(accessTSSInfo->PthreadKeyData.ValueOffset);
+    conf.MutableKeyData()->SetSeqOffset(accessTSSInfo->PthreadKeyData.SeqOffset);
+    conf.SetFirstSpecificBlockOffset(accessTSSInfo->FirstSpecificBlockOffset);
+    conf.SetSpecificArrayOffset(accessTSSInfo->SpecificArrayOffset);
+    conf.SetStructPthreadPointerOffset(accessTSSInfo->StructPthreadPointerOffset);
+    conf.SetKeySecondLevelSize(accessTSSInfo->KeySecondLevelSize);
+    conf.SetKeyFirstLevelSize(accessTSSInfo->KeyFirstLevelSize);
+    conf.SetKeysMax(accessTSSInfo->KeysMax);
+
+    return MakeMaybe(conf);
+}
+
+} // namespace NPerforator::NBinaryProcessing::NPthread
+
 namespace NPerforator::NBinaryProcessing {
 
 void SerializeBinaryAnalysis(BinaryAnalysis&& analysis, IOutputStream* out) {
@@ -93,11 +121,15 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path) {
     auto unwtable = NUnwind::BuildUnwindTable(objectFile.getBinary());
     auto tlsConfig = NTls::BuildTlsConfig(objectFile.getBinary());
     auto pythonConfig = NPython::BuildPythonConfig(objectFile.getBinary());
+    auto pthreadConfig = NPthread::BuildPthreadConfig(objectFile.getBinary());
 
     NPerforator::NBinaryProcessing::BinaryAnalysis result;
     *result.MutableUnwindTable() = std::move(unwtable);
     *result.MutableTLSConfig() = std::move(tlsConfig);
     *result.MutablePythonConfig() = std::move(pythonConfig);
+    if (pthreadConfig) {
+        *result.MutablePthreadConfig() = std::move(pthreadConfig.GetRef());
+    }
 
     return result;
 }

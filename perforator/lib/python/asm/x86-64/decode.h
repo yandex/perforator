@@ -61,7 +61,13 @@ TMaybe<ui64> DecodePyGetVersion(
 
 TMaybe<ui64> DecodeAutoTSSKeyAddress(
     const llvm::Triple& triple,
-    ui64 pyGILStateCheckAddress,
+    ui64 pyGILStateEnsureAddress,
+    TConstArrayRef<ui8> bytecode
+);
+
+TMaybe<ui64> DecodeInterpHeadAddress(
+    const llvm::Triple& triple,
+    ui64 pyInterpreterStateHeadAddress,
     TConstArrayRef<ui8> bytecode
 );
 

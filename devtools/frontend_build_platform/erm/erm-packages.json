@@ -1714,6 +1714,10 @@
         "add_date": "2023-11-14T05:30:42",
         "resources": []
       },
+      "13.5.11": {
+        "add_date": "2025-04-15T05:30:54",
+        "resources": []
+      },
       "13.5.10": {
         "add_date": "2025-04-08T05:30:56",
         "resources": []
@@ -1817,6 +1821,31 @@
       "Release schedule": "https://github.com/nodejs/Release#release-schedule"
     },
     "versions": {
+      "23.11.0": {
+        "add_date": "2025-04-15T05:33:54",
+        "resources": [
+          {
+            "id": 8510774877,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 8510775902,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 8510776719,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 8510778541,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "23.10.0": {
         "add_date": "2025-04-01T05:35:44",
         "resources": [
@@ -3342,6 +3371,31 @@
           }
         ]
       },
+      "18.20.8": {
+        "add_date": "2025-04-15T05:31:52",
+        "resources": [
+          {
+            "id": 8510771416,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 8510772412,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 8510773050,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 8510773638,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "18.20.7": {
         "add_date": "2025-03-11T05:31:28",
         "resources": [
@@ -4482,7 +4536,7 @@
     "title": "Stylelint",
     "description": "Инструмент для линтинга файлов стилей.\n\nИспользуется в макросе [TS_STYLELINT()](https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-stylelint).",
     "type": "NPM_PACKAGE",
-    "default": "16.16.0",
+    "default": "16.17.0",
     "links": {
       "Home": "https://stylelint.io/",
       "Sources": "https://github.com/stylelint/stylelint",
@@ -4492,6 +4546,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "16.17.0": {
+        "add_date": "2025-04-15T05:36:10",
+        "resources": []
+      },
       "16.16.0": {
         "add_date": "2025-04-01T05:39:04",
         "resources": []
@@ -4700,7 +4758,7 @@
     "title": "Vite",
     "description": "Современный сборщик frontend проектов\n\nПод капотом используется более низкоуровневый сборщик [rollup](https://rollupjs.org/).\n\nДля транспиляции TypeScript может использовать нативные способы: [esbuild](https://esbuild.github.io/), [SWC](https://swc.rs/)\n\nПоэтому, если требуется использовать `rollup` или `esbuild`/`SWC` на проекте - то `vite` - ваш выбор.\n\nВ tier-0 используется в модуле/макросе [`TS_VITE()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_VITE).",
     "type": "NPM_PACKAGE",
-    "default": "6.2.3",
+    "default": "6.2.4",
     "links": {
       "Home": "https://vitejs.dev/",
       "Sources": "https://github.com/vitejs/vite/tree/main",
@@ -4710,6 +4768,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "6.2.4": {
+        "add_date": "2025-04-15T05:36:22",
+        "resources": []
+      },
       "6.2.3": {
         "add_date": "2025-04-08T05:31:14",
         "resources": []
@@ -4760,6 +4822,10 @@
       },
       "6.0.2": {
         "add_date": "2024-12-17T05:43:59",
+        "resources": []
+      },
+      "5.4.16": {
+        "add_date": "2025-04-15T05:36:22",
         "resources": []
       },
       "5.4.15": {
@@ -4912,6 +4978,10 @@
       },
       "5.0.0": {
         "add_date": "2023-11-30T13:43:58",
+        "resources": []
+      },
+      "4.5.11": {
+        "add_date": "2025-04-15T05:36:22",
         "resources": []
       },
       "4.5.10": {

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.3.0)
+VERSION(v0.13.0)
 
 GO_SKIP_TESTS(TestWithEndpointAndPoolSize)
 
@@ -19,6 +19,7 @@ SRCS(
 )
 
 GO_TEST_SRCS(
+    directpath_test.go
     grpctransport_test.go
     pool_test.go
 )

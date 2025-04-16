@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.176.1)
+VERSION(v0.215.0)
 
 SRCS(
     buffer.go
@@ -26,16 +26,11 @@ GO_TEST_SRCS(
     media_test.go
     params_test.go
     resumable_test.go
+    retry_test.go
     send_test.go
     util_test.go
     version_test.go
 )
-
-IF (OS_LINUX)
-    SRCS(
-        retryable_linux.go
-    )
-ENDIF()
 
 END()
 

@@ -2,7 +2,7 @@
 
 PY3_LIBRARY()
 
-VERSION(2.5.0)
+VERSION(3.0.0)
 
 LICENSE(MIT)
 
@@ -12,7 +12,6 @@ PY_SRCS(
     TOP_LEVEL
     termcolor/__init__.py
     termcolor/__main__.py
-    termcolor/_types.py
     termcolor/termcolor.py
 )
 

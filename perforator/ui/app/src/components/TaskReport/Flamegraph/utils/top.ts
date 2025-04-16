@@ -2,6 +2,8 @@ import type { FormatNode, ProfileData, StringifiableFields } from 'src/models/Pr
 
 import type { H, I } from '../renderer';
 
+import type { TopKeys } from './top-types';
+
 
 export type TableFunctionTop = FunctionTop
 
@@ -24,10 +26,15 @@ function populateWithSelfEventCount(rows: ProfileData['rows']) {
         for (let i = 0; i < rows[h].length; i++) {
             row[i].selfEventCount = row[i].eventCount;
             row[i].selfSampleCount = row[i].sampleCount;
+            row[i].baseSelfEventCount = (row[i].baseEventCount ?? 0);
+            row[i].baseSelfSampleCount = (row[i].baseSampleCount ?? 0);
             if (row[i].parentIndex !== -1) {
                 const parentIndex = row[i].parentIndex;
-                rows[h - 1][parentIndex].selfEventCount! -= row[i].eventCount;
-                rows[h - 1][parentIndex].selfSampleCount! -= row[i].sampleCount;
+                const parentNode = rows[h - 1][parentIndex];
+                parentNode.selfEventCount = parentNode.selfEventCount ? parentNode.selfEventCount - row[i].eventCount : 0;
+                parentNode.selfSampleCount = parentNode.selfSampleCount ? parentNode.selfSampleCount - row[i].sampleCount : 0;
+                parentNode.baseSelfEventCount = parentNode.baseSelfEventCount ? parentNode.baseSelfEventCount - (row[i].baseEventCount ?? 0) : 0;
+                parentNode.baseSelfSampleCount = parentNode.baseSelfSampleCount ? parentNode.baseSelfSampleCount - (row[i].baseSampleCount ?? 0) : 0;
             }
         }
     }
@@ -45,12 +52,6 @@ function populateWithChildren(rows: ProfileData['rows']) {
         }
     }
 }
-
-type Field = 'eventCount' | 'sampleCount';
-
-type CountType = 'self' | 'all'
-
-type TopKeys = `${CountType}.${Field}`;
 
 type FunctionTop = Record<TopKeys, number> & Pick<FormatNode, StringifiableFields | 'inlined'> &
 { shortestPath?: I[] }
@@ -79,6 +80,10 @@ export function calculateTop(rows: ProfileData['rows'], stringTableLength: numbe
                     'all.sampleCount': 0,
                     'self.eventCount': 0,
                     'self.sampleCount': 0,
+                    'diff.all.eventCount': 0,
+                    'diff.all.sampleCount': 0,
+                    'diff.self.eventCount': 0,
+                    'diff.self.sampleCount': 0,
                     textId: node.textId,
                     file: node.file,
                     frameOrigin: node.frameOrigin,
@@ -89,6 +94,8 @@ export function calculateTop(rows: ProfileData['rows'], stringTableLength: numbe
             const funcTopData = res.get(funcKey)!;
             funcTopData['self.eventCount'] += node.selfEventCount!;
             funcTopData['self.sampleCount'] += node.selfSampleCount!;
+            funcTopData['diff.self.eventCount'] += (node.baseSelfEventCount ?? 0);
+            funcTopData['diff.self.sampleCount'] += (node.baseSelfSampleCount ?? 0);
         }
     }
 
@@ -123,6 +130,8 @@ function calcTotalTime<K>(res: Map<K, FunctionTop>, rows: FormatNode[][], getNod
         if (!funcTopData.shortestPath || !isSubpath(indexesPath, funcTopData.shortestPath)) {
             funcTopData['all.eventCount'] += node.eventCount;
             funcTopData['all.sampleCount'] += node.sampleCount;
+            funcTopData['diff.all.eventCount'] += (node.baseEventCount ?? 0);
+            funcTopData['diff.all.sampleCount'] += (node.baseSampleCount ?? 0);
             funcTopData.shortestPath = [...indexesPath];
         }
 

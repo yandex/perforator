@@ -400,7 +400,7 @@ func uploadProfile(app *cli.App, opts *recordOptions, profile *pprof.Profile, st
 		Timestamp: timestamppb.New(startTime),
 	}
 
-	profileID, taskID, err = app.Client().UploadRenderedProfile(app.Context(), meta, profile)
+	profileID, taskID, err = app.Client().UploadRenderedProfile(app.Context(), meta, &opts.flamegraphOptions, profile)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to upload profile: %w", err)
 	}

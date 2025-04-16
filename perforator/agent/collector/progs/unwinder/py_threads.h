@@ -2,24 +2,20 @@
 
 #include "metrics.h"
 #include "pidns.h"
+#include "pthread.h"
 #include "py_types.h"
+#include "thread.h"
 
 #include <bpf/bpf.h>
 
 #include <stddef.h>
 
-static ALWAYS_INLINE void* python_read_py_thread_state_ptr_from_tls(u64 offset) {
-    if (offset == 0) {
-        return NULL;
-    }
+static ALWAYS_INLINE void* python_read_py_thread_state_ptr_static_tls(u64 offset) {
+    unsigned long tcb = get_tcb_pointer();
 
-    struct task_struct* task = (void*)bpf_get_current_task();
+    BPF_TRACE("python: read tcb %p, offset %d", tcb, offset);
 
-    unsigned long fsbase = BPF_CORE_READ(task, thread.fsbase);
-
-    BPF_TRACE("python: read fsbase %p, offset %d", fsbase, offset);
-
-    void* uaddr = (void*) (fsbase - offset);
+    void* uaddr = (void*) (tcb - offset);
 
     void* py_thread_state_addr = NULL;
     long err = bpf_probe_read_user(&py_thread_state_addr, sizeof(void*), uaddr);
@@ -30,6 +26,69 @@ static ALWAYS_INLINE void* python_read_py_thread_state_ptr_from_tls(u64 offset) 
     }
 
     return py_thread_state_addr;
+}
+
+static ALWAYS_INLINE bool read_tss_key(u32* key_dst, struct python_state* state) {
+    if (state == NULL || key_dst == NULL || state->auto_tss_key_address == 0) {
+        return false;
+    }
+
+    u32 is_initialized = 0;
+    long err = bpf_probe_read_user(&is_initialized, sizeof(u32), (void*) (state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.is_initialized));
+    if (err != 0) {
+        BPF_TRACE("python: failed to read is_initialized at address %p: %d", state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.is_initialized, err);
+        return false;
+    }
+
+    if (is_initialized == 0) {
+        BPF_TRACE("python: tss is not initialized, auto tss key address %p, offset %d", state->auto_tss_key_address, state->config.offsets.py_tss_t_offsets.is_initialized);
+        return false;
+    }
+
+    err = bpf_probe_read_user(key_dst, sizeof(u32), (void*) (state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.key));
+    if (err != 0) {
+        BPF_TRACE("python: failed to read tss key at address %p: %d", state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.key, err);
+        return false;
+    }
+
+    return true;
+}
+
+static ALWAYS_INLINE void* python_read_py_thread_state_ptr_pthread_tss(struct python_state* state) {
+    if (state == NULL) {
+        return NULL;
+    }
+
+    if (state->auto_tss_key_address == 0) {
+        BPF_TRACE("python: no auto tss key address found");
+        return NULL;
+    }
+
+    u32 tss_key = 0;
+    if (!read_tss_key(&tss_key, state)) {
+        BPF_TRACE("python: failed to read tss key");
+        return NULL;
+    }
+
+    BPF_TRACE("python: read tss key %u", tss_key);
+
+    return pthread_read_tss(&state->pthread_config, tss_key);
+}
+
+static ALWAYS_INLINE void* python_read_py_thread_state_ptr_from_tls(struct python_state* state) {
+    if (state == NULL) {
+        return NULL;
+    }
+
+    if (state->config.py_thread_state_tls_offset != 0) {
+        return python_read_py_thread_state_ptr_static_tls(state->config.py_thread_state_tls_offset);
+    } else if (state->found_pthread_config) {
+        return python_read_py_thread_state_ptr_pthread_tss(state);
+    } else {
+        BPF_TRACE("python: no tls read tried");
+    }
+
+    return NULL;
 }
 
 static ALWAYS_INLINE void* python_get_py_thread_state_from_cache(u32 current_ns_pid, u32 inner_ns_tid) {
@@ -57,7 +116,7 @@ static ALWAYS_INLINE void* python_get_current_thread_state_from_cache(u32 curren
 }
 
 static ALWAYS_INLINE u32 python_read_native_thread_id(void* py_thread_state, struct python_thread_state_offsets* thread_state_offsets) {
-    if (py_thread_state == NULL || thread_state_offsets == NULL) {
+    if (py_thread_state == NULL || thread_state_offsets == NULL || thread_state_offsets->native_thread_id == PYTHON_UNSPECIFIED_OFFSET) {
         return 0;
     }
 
@@ -222,10 +281,12 @@ static ALWAYS_INLINE void* python_get_thread_state_and_update_cache(
     }
 
     // Attempt to read the PyThreadState pointer from TLS
-    void* current_thread_state = python_read_py_thread_state_ptr_from_tls(state->config.py_thread_state_tls_offset);
+    void* current_thread_state = python_read_py_thread_state_ptr_from_tls(state);
     void* fill_cache_thread_state = current_thread_state;
     if (fill_cache_thread_state == NULL) {
         fill_cache_thread_state = python_get_head_thread_state((void*) state->py_runtime_address, &state->config.offsets);
+    } else {
+        BPF_TRACE("python: successfully retrieved PyThreadState from TLS: %p", fill_cache_thread_state);
     }
 
     python_fill_threads_cache(state, fill_cache_thread_state);

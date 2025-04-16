@@ -613,6 +613,14 @@ func (b *BPF) AddPythonConfig(id unwinder.BinaryId, pythonInfo *unwinder.PythonC
 	return b.maps.PythonStorage.Update(id, pythonInfo, ebpf.UpdateAny)
 }
 
+func (b *BPF) AddPthreadConfig(id unwinder.BinaryId, pthreadInfo *unwinder.PthreadConfig) error {
+	return b.maps.PthreadStorage.Update(id, pthreadInfo, ebpf.UpdateAny)
+}
+
+func (b *BPF) DeletePthreadConfig(id unwinder.BinaryId) error {
+	return b.maps.PthreadStorage.Delete(&id)
+}
+
 // TODO: we can use batch lookups into bpf maps
 func (b *BPF) SymbolizePython(key *unwinder.PythonSymbolKey) (res unwinder.PythonSymbol, exists bool) {
 	err := b.maps.PythonSymbols.Lookup(key, &res)

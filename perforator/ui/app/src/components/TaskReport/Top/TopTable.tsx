@@ -7,6 +7,7 @@ import type { ProgressColorStops, TableColumnConfig, TableSettingsData, TableSor
 import { Icon, Link as UIKitLink, Progress, Table, TextInput, withTableSettings, withTableSorting } from '@gravity-ui/uikit';
 
 import { Link } from 'src/components/Link/Link';
+import { NegativePositiveProgress } from 'src/components/NegativePositiveProgress/NegativePositiveProgress';
 import { uiFactory } from 'src/factory';
 import type { ProfileData, StringifiedNode } from 'src/models/Profile';
 import { useUserSettings } from 'src/providers/UserSettingsProvider';
@@ -22,6 +23,7 @@ import { shorten } from '../Flamegraph/shorten';
 import type { ReadString } from '../Flamegraph/utils/node-title';
 import { getNodeTitleFull } from '../Flamegraph/utils/node-title';
 import type { TableFunctionTop } from '../Flamegraph/utils/top';
+import { isNonDiffKey, isSelfKey, type NonDiffTopKeys, type TopKeys } from '../Flamegraph/utils/top-types';
 
 import './TopTable.scss';
 
@@ -63,16 +65,106 @@ function compareFields(field: string) {
 interface TopColumnsOpts {
     getNodeTitle: (node: TableFunctionTop) => string;
     eventType?: string;
-    totalEventCount?: number;
+    totalEventCount: number;
+    totalBaseEventCount?: number;
     numTemplating?: NumTemplatingFormat;
+    isDiff?: boolean;
 }
+
+function getNameType(key: TopKeys) {
+    if (isSelfKey(key)) {
+        return 'Self';
+    } else {
+        return 'Total';
+    }
+}
+
+function getHelpContent(key: TopKeys) {
+    if (isSelfKey(key)) {
+        return 'Time the function takes to run without its children';
+    } else {
+        return 'Time the function takes to run, with children';
+    }
+}
+
+function getProgressSteps(key: TopKeys) {
+    if (isSelfKey(key)) {
+        return selfTimeColorStops;
+    } else {
+        return totalTimeColorStops;
+    }
+}
+
 
 function topColumns (
     readString: ReadString,
     search: string,
-    { getNodeTitle, eventType, totalEventCount, numTemplating }: TopColumnsOpts,
+    { getNodeTitle, eventType, totalEventCount, totalBaseEventCount, numTemplating, isDiff }: TopColumnsOpts,
 ): TableColumnConfig<TableFunctionTop>[] {
     const regex = new RegExp(search);
+
+    const calcDiff = (field: NonDiffTopKeys) => (node: TableFunctionTop) => {
+        return node[field] / totalEventCount - node[`diff.${field}`] / totalBaseEventCount!;
+    };
+
+    const compareCalculatedDiffFields = (field: NonDiffTopKeys) => {
+        if (!totalBaseEventCount || !totalEventCount) {
+            return 0;
+        }
+        const diffCalc = calcDiff(field);
+        return (l: TableFunctionTop, r: TableFunctionTop) => {
+            return diffCalc(l) - diffCalc(r);
+        };
+    };
+
+    function createTableConfigField(key: TopKeys): TableColumnConfig<TableFunctionTop> {
+        const nonDiffKey = isNonDiffKey(key);
+        const startingName = isDiff ? nonDiffKey ? 'Diff ' : 'Baseline ' : '';
+        const name = `${startingName}${getNameType(key)} ${eventType}`;
+        const max = nonDiffKey ? totalEventCount : totalBaseEventCount;
+        function templateWithPct(count: number): string {
+            if (!max) {
+                return '0';
+            }
+            return templateBigNumber(count) + ' (' + pct(count, max) + '%)';
+        }
+        return {
+            id: key,
+            name: () => <>
+                {name}
+                <HelpPopover placement={['bottom', 'bottom']} content={getHelpContent(key)}/>
+            </>,
+            template: (node) => {
+                const count = node[key];
+                // everything < 0.5 is visually indistinguishable from 0
+                const value = max ? Math.max(count * 100 / max, 1) : 0;
+                return <Progress
+                    text={templateWithPct(count)}
+                    size="m"
+                    value={value}
+                    colorStops={getProgressSteps(key)}
+                />;
+            },
+            meta: {
+                defaultSortOrder: 'desc',
+                selectedByDefault: !isDiff,
+                sort: compareFields(key),
+                _originalName: name,
+            },
+        };
+    }
+
+
+    function diffItemTemplate(key: Extract<NonDiffTopKeys, `${string}.eventCount`>) {
+        return (node: TableFunctionTop) => {
+            if (!totalEventCount || !totalBaseEventCount) {
+                return null;
+            }
+            const count = (node[key] / totalEventCount - node[`diff.${key}`] / totalBaseEventCount);
+            const value = count * 50;
+            return <NegativePositiveProgress value={value} text={(value * 2).toPrecision(3) + '%'} />;
+        };
+    }
 
     function templateBigNumber(n: number) {
         switch (numTemplating) {
@@ -86,9 +178,6 @@ function topColumns (
         return n.toString();
     }
 
-    function templateWithPct(count: number): string {
-        return templateBigNumber(count) + ' (' + pct(count, totalEventCount!) + '%)';
-    }
     const itemTemplate = (item: TableFunctionTop) => {
         const name = getNodeTitle(item);
         const match = name.match(regex);
@@ -120,30 +209,8 @@ function topColumns (
             meta: { copy: true },
             template: itemTemplate,
         },
-        {
-            id: 'self.eventCount',
-            name: () => <>{`Self ${eventType}`} <HelpPopover placement={['bottom', 'bottom']} content={'Time the function takes to run without its children'}/></>,
-            template: ({ 'self.eventCount': count }) =>
-                <Progress
-                    text={templateWithPct(count)}
-                    size="m"
-                    value={count === 0 ? 0 : Math.max(count / totalEventCount! * 100, 1)}
-                    colorStops={selfTimeColorStops}
-                />,
-            meta: { defaultSortOrder: 'desc', sort: compareFields('self.eventCount') },
-        },
-        {
-            id: 'all.eventCount',
-            name: () => <>{`Total ${eventType}`} <HelpPopover placement={['bottom', 'bottom']} content={'Time the function takes to run, with children'}/></>,
-            template: ({ 'all.eventCount': count }) =>
-                <Progress
-                    text={templateWithPct(count)}
-                    size="m"
-                    value={count === 0 ? 0 : Math.max(count / totalEventCount! * 100, 2)}
-                    colorStops={totalTimeColorStops}
-                />,
-            meta: { defaultSortOrder: 'desc', sort: compareFields('all.eventCount') },
-        },
+        createTableConfigField('self.eventCount'),
+        createTableConfigField('all.eventCount'),
         {
             id: 'self.sampleCount',
             name: 'Self Samples',
@@ -160,7 +227,33 @@ function topColumns (
             template: ({ file }) => readString(file),
             meta: { selectedByDefault: false, disabled: true },
         },
+        ...(isDiff ? [
+            createTableConfigField('diff.self.eventCount'),
+
+            createTableConfigField('diff.all.eventCount'),
+
+            {
+                id: 'diffcalc.self.eventCount',
+                name: `Delta in self ${eventType}`,
+                template: diffItemTemplate('self.eventCount'),
+                meta: {
+                    defaultSortOrder: 'desc',
+                    sort:  compareCalculatedDiffFields('self.eventCount'),
+                },
+            },
+            {
+                id: 'diffcalc.all.eventCount',
+                name: `Delta in total ${eventType}`,
+                template: diffItemTemplate('all.eventCount'),
+                meta: {
+                    defaultSortOrder: 'desc',
+                    sort:  compareCalculatedDiffFields('all.eventCount'),
+                },
+            },
+
+        ] : []),
     ];
+
 
 }
 
@@ -173,6 +266,8 @@ export const TopTable: React.FC<TopTableProps> = ({
     topData,
     profileData,
 }) => {
+    const totalBaseEventCount = useMemo(() => profileData.rows[0][0].baseEventCount, [profileData.rows]);
+    const isDiff = Boolean(totalBaseEventCount);
     const readString = useCallback((id?: number) => {
         if (id === undefined) {
             return '';
@@ -183,7 +278,7 @@ export const TopTable: React.FC<TopTableProps> = ({
     const eventType = React.useMemo(() => {
         return readString(profileData?.meta.eventType);
     }, [readString, profileData?.meta.eventType]);
-    const totalEventCount = React.useMemo(() => profileData?.rows[0][0].eventCount, [profileData?.rows]);
+    const totalEventCount = React.useMemo(() => profileData.rows[0][0].eventCount, [profileData.rows]);
 
     const { userSettings } = useUserSettings();
     const maybeShorten = useCallback((str: string) => {
@@ -191,7 +286,7 @@ export const TopTable: React.FC<TopTableProps> = ({
     }, [userSettings.shortenFrameTexts]);
     const getNodeTitle = useCallback((node: TableFunctionTop) => getNodeTitleFull(readString, maybeShorten, node), [maybeShorten, readString]);
     const numTemplating = useMemo(() => userSettings.numTemplating, [userSettings.numTemplating]);
-    const [sortState, setSortState] = useState<TableSortState[number]>({ column: 'self.eventCount', order: 'desc' });
+    const [sortState, setSortState] = useState<TableSortState[number]>({ column: (isDiff ? 'diffcalc.self.eventCount' : 'self.eventCount'), order: 'desc' });
     const [getQuery, setQuery] = useTypedQuery<QueryKeys>();
     const searchQuery = getQuery('topQuery');
     const setSearchQuery = useCallback((query: string) => {
@@ -201,16 +296,22 @@ export const TopTable: React.FC<TopTableProps> = ({
     const [isSeaching, startTransition] = useTransition();
     const [settings, setSettings] = useState<TableSettingsData>([]);
     const regexError = useRegexError(searchValue);
-    const boundTopColumns = useCallback(() => topColumns(readString, regexError ? '' : searchValue, { getNodeTitle, eventType, totalEventCount, numTemplating }),
-        [eventType, numTemplating, readString, regexError, searchValue, getNodeTitle, totalEventCount],
+    const boundTopColumns = useCallback(() => topColumns(readString, regexError ? '' : searchValue, { getNodeTitle, eventType, totalEventCount, numTemplating, isDiff, totalBaseEventCount }),
+        [readString, regexError, searchValue, getNodeTitle, eventType, totalEventCount, numTemplating, isDiff, totalBaseEventCount],
     );
 
 
     const topSlice = useMemo( () => {
-        let data;
+        let data = [];
         if (searchValue && !regexError) {
             const regex = new RegExp(searchValue);
-            data = topData.filter(item => regex.test(getNodeTitle(item)));
+            // not a .filter() for optimization purposes
+            for (let i = 0; i < topData.length; i++) {
+                const item = topData[i];
+                if (regex.test(getNodeTitle(item))) {
+                    data.push(item);
+                }
+            }
         }
         else {
             data = topData;

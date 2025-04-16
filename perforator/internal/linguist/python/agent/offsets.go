@@ -149,7 +149,7 @@ func extractPyThreadStateOffsets(data map[string]int) unwinder.PythonThreadState
 	if val, ok := data["current_frame"]; ok {
 		offsets.CurrentFrame = uint32(val)
 	} else if val, ok := data["frame"]; ok {
-		// For Python 3.10
+		// For CPython before 3.11
 		offsets.CurrentFrame = uint32(val)
 	} else {
 		offsets.CurrentFrame = UnspecifiedOffset
@@ -194,17 +194,19 @@ func extractPyCodeObjectOffsets(data map[string]int) unwinder.PythonCodeObjectOf
 	}
 
 	if val, ok := data["co_qualname"]; ok {
-		offsets.Qualname = uint32(val)
+		offsets.Name = uint32(val)
+	} else if val, ok := data["co_name"]; ok {
+		offsets.Name = uint32(val)
 	} else {
-		offsets.Qualname = UnspecifiedOffset
+		offsets.Name = UnspecifiedOffset
 	}
 
 	return offsets
 }
 
-// Extract PyInterpreterFrame offsets from JSON data
-func extractPyInterpreterFrameOffsets(data map[string]int) unwinder.PythonInterpreterFrameOffsets {
-	var offsets unwinder.PythonInterpreterFrameOffsets
+// Extract frame offsets from JSON data
+func extractPyFrameOffsets(data map[string]int) unwinder.PyFrameOffsets {
+	var offsets unwinder.PyFrameOffsets
 
 	if val, ok := data["f_code"]; ok {
 		offsets.FCode = uint32(val)
@@ -216,6 +218,8 @@ func extractPyInterpreterFrameOffsets(data map[string]int) unwinder.PythonInterp
 	}
 
 	if val, ok := data["previous"]; ok {
+		offsets.Previous = uint32(val)
+	} else if val, ok := data["f_back"]; ok {
 		offsets.Previous = uint32(val)
 	} else {
 		offsets.Previous = UnspecifiedOffset
@@ -337,7 +341,9 @@ func convertToPythonInternalsOffsets(data jsonOffsets) *unwinder.PythonInternals
 	}
 
 	if data.PyInterpreterFrame != nil {
-		offsets.PyInterpreterFrameOffsets = extractPyInterpreterFrameOffsets(data.PyInterpreterFrame)
+		offsets.PyFrameOffsets = extractPyFrameOffsets(data.PyInterpreterFrame)
+	} else if data.PyFrameObject != nil {
+		offsets.PyFrameOffsets = extractPyFrameOffsets(data.PyFrameObject)
 	}
 
 	if data.PyCFrame != nil {

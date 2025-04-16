@@ -5,6 +5,7 @@
 package xerrors_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -70,7 +71,7 @@ type poser struct {
 
 func (p *poser) Error() string     { return p.msg }
 func (p *poser) Is(err error) bool { return p.f(err) }
-func (p *poser) As(err interface{}) bool {
+func (p *poser) As(err any) bool {
 	switch x := err.(type) {
 	case **poser:
 		*x = p
@@ -84,6 +85,20 @@ func (p *poser) As(err interface{}) bool {
 	return true
 }
 
+func TestErrorsIs(t *testing.T) {
+	var errSentinel = errors.New("sentinel")
+
+	got := errors.Is(xerrors.Errorf("%w", errSentinel), errSentinel)
+	if !got {
+		t.Error("got false, want true")
+	}
+
+	got = errors.Is(xerrors.Errorf("%w: %s", errSentinel, "foo"), errSentinel)
+	if !got {
+		t.Error("got false, want true")
+	}
+}
+
 func TestAs(t *testing.T) {
 	var errT errorT
 	var errP *os.PathError
@@ -93,7 +108,7 @@ func TestAs(t *testing.T) {
 
 	testCases := []struct {
 		err    error
-		target interface{}
+		target any
 		match  bool
 	}{{
 		nil,
@@ -163,7 +178,7 @@ func TestAs(t *testing.T) {
 
 func TestAsValidation(t *testing.T) {
 	var s string
-	testCases := []interface{}{
+	testCases := []any{
 		nil,
 		(*int)(nil),
 		"error",

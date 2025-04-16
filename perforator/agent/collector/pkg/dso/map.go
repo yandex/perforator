@@ -28,8 +28,8 @@ type dso struct {
 	// Unique ID of the DSO. It is used by eBPF.
 	ID uint64
 
-	// Type of the interpreter.
-	InterpreterType unwinder.InterpreterType
+	// Type of the binary if it is special. (e.g. libpthread, python interpreter)
+	SpecialBinaryType unwinder.SpecialBinaryType
 
 	// Build info of the binary.
 	buildInfo *xelf.BuildInfo
@@ -206,9 +206,9 @@ func (d *Registry) register(ctx context.Context, buildInfo *xelf.BuildInfo, file
 
 	item := d.trackingFetch(buildID, 10*time.Minute, func() *dso {
 		return &dso{
-			ID:              d.nextid.Add(1) - 1,
-			buildInfo:       buildInfo,
-			InterpreterType: unwinder.InterpreterTypeNone,
+			ID:                d.nextid.Add(1) - 1,
+			buildInfo:         buildInfo,
+			SpecialBinaryType: unwinder.SpecialBinaryTypeNone,
 		}
 	})
 
@@ -316,7 +316,11 @@ func (d *Registry) populateDSO(ctx context.Context, dso *dso, f *os.File) {
 	}
 
 	if analysis.PythonConfig != nil {
-		dso.InterpreterType = unwinder.InterpreterTypePython
+		dso.SpecialBinaryType = unwinder.SpecialBinaryTypePythonInterpreter
+	}
+
+	if analysis.PthreadConfig != nil {
+		dso.SpecialBinaryType = unwinder.SpecialBinaryTypePthreadGlibc
 	}
 
 	dso.bpfAllocation, err = d.bpfBinaryManager.Add(buildID, dso.ID, analysis)

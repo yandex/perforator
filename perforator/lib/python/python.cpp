@@ -20,7 +20,7 @@ namespace NPerforator::NLinguist::NPython {
 TPythonAnalyzer::TPythonAnalyzer(const llvm::object::ObjectFile& file) : File_(file) {}
 
 void TPythonAnalyzer::ParseSymbolLocations() {
-    if (Symbols_ != nullptr) {
+    if (Symbols_) {
         return;
     }
 
@@ -31,7 +31,8 @@ void TPythonAnalyzer::ParseSymbolLocations() {
         kPyThreadStateGetCurrentSymbol,
         kPyGetVersionSymbol,
         kPyRuntimeSymbol,
-        kPyGILStateCheckSymbol
+        kPyGILStateEnsureSymbol,
+        kPyInterpreterStateHeadSymbol
     );
 
     auto setSymbolIfFound = [&](const THashMap<TStringBuf, NPerforator::NELF::TLocation>& symbols, TStringBuf symbolName, TMaybe<NELF::TLocation>& target) {
@@ -45,7 +46,8 @@ void TPythonAnalyzer::ParseSymbolLocations() {
         setSymbolIfFound(*dynamicSymbols, kPyThreadStateGetCurrentSymbol, Symbols_->GetCurrentThreadState);
         setSymbolIfFound(*dynamicSymbols, kPyGetVersionSymbol, Symbols_->PyGetVersion);
         setSymbolIfFound(*dynamicSymbols, kPyRuntimeSymbol, Symbols_->PyRuntime);
-        setSymbolIfFound(*dynamicSymbols, kPyGILStateCheckSymbol, Symbols_->PyGILStateCheck);
+        setSymbolIfFound(*dynamicSymbols, kPyGILStateEnsureSymbol, Symbols_->PyGILStateEnsure);
+        setSymbolIfFound(*dynamicSymbols, kPyInterpreterStateHeadSymbol, Symbols_->PyInterpreterStateHead);
     }
 
     auto symbols = NELF::RetrieveSymbols(File_, kCurrentFastGetSymbol);
@@ -61,7 +63,6 @@ TMaybe<TPythonVersion> TryParseVersionFromPyVersionSymbol(
     const llvm::object::ObjectFile& file,
     const NPerforator::NELF::TLocation& pyVersion
 ) {
-
     if (pyVersion.Address == 0) {
         return Nothing();
     }
@@ -194,6 +195,10 @@ TMaybe<TParsedPythonVersion> ParseVersion(
 TMaybe<TParsedPythonVersion> TPythonAnalyzer::ParseVersion() {
     ParseSymbolLocations();
 
+    if (!Symbols_) {
+        return Nothing();
+    }
+
     #define TRY_ELF_TYPE(ELFT) \
     if (auto res = NPerforator::NLinguist::NPython::ParseVersion<ELFT>(File_, *Symbols_.Get())) { \
         return res; \
@@ -206,11 +211,13 @@ TMaybe<TParsedPythonVersion> TPythonAnalyzer::ParseVersion() {
 }
 
 TMaybe<NAsm::ThreadImageOffsetType> TPythonAnalyzer::ParseTLSPyThreadState() {
-    if (!Symbols_) {
-        ParseSymbolLocations();
+    if (File_.getArch() != llvm::Triple::x86 && File_.getArch() != llvm::Triple::x86_64) {
+        return Nothing();
     }
 
-    if (File_.getArch() != llvm::Triple::x86 && File_.getArch() != llvm::Triple::x86_64) {
+    ParseSymbolLocations();
+
+    if (!Symbols_) {
         return Nothing();
     }
 
@@ -263,30 +270,60 @@ TMaybe<ui64> TPythonAnalyzer::ParseAutoTSSKeyAddress() {
         return Nothing();
     }
 
-    if (!Symbols_ || Symbols_->PyRuntime->Address == 0) {
+    ParseSymbolLocations();
+
+    if (!Symbols_) {
         return Nothing();
     }
 
-    if (!Symbols_->PyGILStateCheck || Symbols_->PyGILStateCheck->Address == 0) {
+    if (!Symbols_->PyGILStateEnsure || Symbols_->PyGILStateEnsure->Address == 0) {
         return Nothing();
     }
 
-    NPerforator::NELF::TLocation& pyGILStateCheckSymbol = *Symbols_->PyGILStateCheck;
-    if (pyGILStateCheckSymbol.Size == 0) {
+    NPerforator::NELF::TLocation& pyGILStateEnsureSymbol = *Symbols_->PyGILStateEnsure;
+    if (pyGILStateEnsureSymbol.Size == 0) {
         // fallback in case symbol size is not specified in symbol table of ELF
-        pyGILStateCheckSymbol.Size = 100;
+        pyGILStateEnsureSymbol.Size = 100;
     }
 
-    auto bytecode = NPerforator::NELF::RetrieveContentFromTextSection(File_, pyGILStateCheckSymbol);
+    auto bytecode = NPerforator::NELF::RetrieveContentFromTextSection(File_, pyGILStateEnsureSymbol);
     if (!bytecode) {
         return Nothing();
     }
 
     return NAsm::NX86::DecodeAutoTSSKeyAddress(
         File_.makeTriple(),
-        pyGILStateCheckSymbol.Address,
+        pyGILStateEnsureSymbol.Address,
         *bytecode
     );
+}
+
+TMaybe<ui64> TPythonAnalyzer::ParseInterpHeadAddress() {
+    if (File_.getArch() != llvm::Triple::x86 && File_.getArch() != llvm::Triple::x86_64) {
+        return Nothing();
+    }
+
+    ParseSymbolLocations();
+
+    if (!Symbols_) {
+        return Nothing();
+    }
+
+    if (!Symbols_->PyInterpreterStateHead || Symbols_->PyInterpreterStateHead->Address == 0) {
+        return Nothing();
+    }
+
+    NPerforator::NELF::TLocation& pyInterpreterStateHeadSymbol = *Symbols_->PyInterpreterStateHead;
+    if (pyInterpreterStateHeadSymbol.Size == 0) {
+        pyInterpreterStateHeadSymbol.Size = 30;
+    }
+
+    auto bytecode = NPerforator::NELF::RetrieveContentFromTextSection(File_, pyInterpreterStateHeadSymbol);
+    if (!bytecode) {
+        return Nothing();
+    }
+
+    return NAsm::NX86::DecodeInterpHeadAddress(File_.makeTriple(), pyInterpreterStateHeadSymbol.Address, *bytecode);
 }
 
 } // namespace NPerforator::NLinguist::NPython

@@ -38,7 +38,7 @@ def register_base_args(parser: ArgumentParser) -> None:
     parser.add_argument(
         '--local-cli', action=YesNoAction, default=False, help="Is run locally (from `nots`) or on the distbuild"
     )
-    parser.add_argument('--bundle', action=YesNoAction, default=True, help="Bundle the result into a tar archive")
+    parser.add_argument('--nm-bundle', action=YesNoAction, default=False, help="Bundle node_modules into a tar archive")
 
     parser.add_argument(
         '--trace',
@@ -193,7 +193,9 @@ def parse_args(parser, custom_args: list[str] = None) -> AllOptions:
     bindir = os.path.join(args.arcadia_build_root, args.moddir)
     setattr(args, 'bindir', bindir)
 
-    node_modules_bundle = os.path.join(bindir, pm_constants.NODE_MODULES_WORKSPACE_BUNDLE_FILENAME)
+    node_modules_bundle = (
+        os.path.join(bindir, pm_constants.NODE_MODULES_WORKSPACE_BUNDLE_FILENAME) if args.nm_bundle else False
+    )
     setattr(args, 'node_modules_bundle', node_modules_bundle)
 
     if hasattr(args, 'bundler_config_path'):

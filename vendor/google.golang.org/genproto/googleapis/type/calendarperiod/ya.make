@@ -1,0 +1,11 @@
+GO_LIBRARY()
+
+LICENSE(Apache-2.0)
+
+VERSION(v0.0.0-20241118233622-e639e219e697)
+
+SRCS(
+    calendar_period.pb.go
+)
+
+END()
