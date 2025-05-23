@@ -70,12 +70,7 @@ import "google/protobuf/timestamp.proto";
 
 // SampleStacks represents the stack trace information for a sample.
 message SampleStacks {
-    // IDs of user space stacks. References Profile.Stacks.
-    // Deprecated: use first_stack_id + stack_id instead.
-    repeated uint32 user_stack_id = 1 [deprecated=true];
-    // IDs of kernel space stacks. References Profile.Stacks.
-    // Deprecated: use first_stack_id + stack_id instead.
-    repeated uint32 kernel_stack_id = 2 [deprecated=true];
+    reserved 1, 2;
 
     // Offsets into stack_id array for each sample.
     repeated uint32 first_stack_id = 3;
@@ -332,6 +327,9 @@ message Features {
     // We take different approach. Each address inside Profile.addresses is
     // defined as buildID+offset, where offset is an address inside address
     // space of the binary. This allows us to simlify symbolization.
+    //
+    // However, we have to enable this feature for profiles converted from
+    // pprof, because there is no way to adjust addresses without parsing ELF.
     optional bool has_skewed_binary_offsets = 1;
 }
 

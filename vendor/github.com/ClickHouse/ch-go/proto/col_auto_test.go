@@ -46,6 +46,19 @@ func TestColAuto_Infer(t *testing.T) {
 		ColumnTypeUUID,
 		ColumnTypeArray.Sub(ColumnTypeUUID),
 		ColumnTypeNullable.Sub(ColumnTypeUUID),
+		ColumnTypeDecimal,
+		ColumnTypeDecimal32,
+		ColumnTypeDecimal64,
+		ColumnTypeDecimal128,
+		ColumnTypeDecimal256,
+		"Decimal(2)",
+		"Decimal(20, 2)",
+		"Decimal32(1)",
+		"Decimal64(2)",
+		"Decimal128(3)",
+		"Decimal256(4)",
+		"Array(Nullable(Int8))",
+		"Nullable(DateTime64(3))",
 	} {
 		r := AutoResult("foo")
 		require.NoError(t, r.Data.(Inferable).Infer(columnType))

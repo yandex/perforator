@@ -12,12 +12,14 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/uprobe"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	python_models "github.com/yandex/perforator/perforator/internal/linguist/python/models"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/linux"
+	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/tls"
 )
 
@@ -300,7 +302,7 @@ func (c *SampleConsumer) processUserSpaceLocation(ctx context.Context, loc *prof
 			// This logic is broken for binaries with multiple executable sections (e.g. BOLT-ed binaries),
 			// as the offset seems to always become zero for any but first executable mapping.
 			// TODO : PERFORATOR-560
-			offset = mapping.Begin - mapping.BaseAddress - mapping.BuildInfo.FirstPhdrOffset
+			offset = mapping.Begin - mapping.BaseAddress - mapping.BuildInfo.FirstPhdr.Vaddr
 		}
 
 		m := loc.SetMapping().
@@ -454,6 +456,8 @@ func (c *SampleConsumer) recordSample(ctx context.Context) {
 		c.recordCPUSample(ctx)
 	case unwinder.SampleTypeTracepointSignalDeliver:
 		err = c.recordSignalSample(ctx)
+	case unwinder.SampleTypeUprobe:
+		c.recordUprobeSample(ctx)
 	default:
 		c.p.log.Warn("Skipped sample of unknown type", log.Stringer("type", c.sample.SampleType))
 	}
@@ -516,6 +520,60 @@ func (c *SampleConsumer) recordSignalSample(ctx context.Context) error {
 	builder.Finish()
 
 	return nil
+}
+
+func (c *SampleConsumer) resolveUprobe(ctx context.Context) *uprobe.UprobeInfo {
+	topStackIP := c.sample.Userstack[0]
+	if topStackIP == 0 {
+		return nil
+	}
+
+	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.ProcessID(c.sample.Pid), topStackIP)
+	if err != nil {
+		c.p.log.Warn("Failed to resolve uprobe mapping", log.UInt64("top_stack_ip", topStackIP), log.Error(err))
+		return nil
+	}
+
+	// Sanity check, this must never happen
+	if mapping.BuildInfo == nil {
+		c.p.log.Error("No build info for resolved mapping", log.UInt64("top_stack_ip", topStackIP))
+		return nil
+	}
+
+	return c.p.bpf.UprobeRegistry().ResolveUprobe(uprobe.Key{
+		Offset:  topStackIP - mapping.BaseAddress - mapping.BuildInfo.FirstPhdr.Vaddr + mapping.BuildInfo.FirstPhdr.Off,
+		InodeID: mapping.Inode.ID,
+		Device:  mapping.Device,
+	})
+}
+
+func (c *SampleConsumer) recordUprobeSample(ctx context.Context) {
+	uprobeInfo := c.resolveUprobe(ctx)
+	if uprobeInfo == nil {
+		c.p.log.Warn("Failed to resolve uprobe info", log.UInt64("top_stack_ip", c.sample.Userstack[0]))
+		return
+	}
+
+	c.p.log.Debug("Resolved uprobe info", log.Any("uprobe_info", uprobeInfo))
+
+	sampleTypeKind := uprobeInfo.SampleType
+	if sampleTypeKind == "" {
+		// fallback to "uprobe.count"
+		sampleTypeKind = sampletype.SampleTypeUprobe
+	}
+	sampleTypes := []profile.SampleType{{Kind: sampleTypeKind, Unit: "count"}}
+
+	// We create a separate profile for each sample type kind.
+	// If multiple uprobes are configured with different samples types -> samples will be in different profiles
+	// If not sample type is specified for each uprobe -> all samples will be in the same profile
+	builder := c.initBuilderCommon(sampleTypeKind, sampleTypes)
+
+	builder.AddValue(1)
+	c.collectPythonStackInto(builder)
+	c.collectKernelStackInto(builder)
+	c.collectUserStackInto(ctx, builder)
+
+	builder.Finish()
 }
 
 func (c *SampleConsumer) logSample(err error) {

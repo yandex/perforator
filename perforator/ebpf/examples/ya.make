@@ -4,4 +4,5 @@ RECURSE(
     03-stack-usage
     04-offcpu-time
     05-lpm-trie
+    06-tracepoint-string
 )

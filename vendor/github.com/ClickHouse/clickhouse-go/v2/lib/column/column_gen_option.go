@@ -20,13 +20,13 @@ package column
 import "github.com/ClickHouse/ch-go/proto"
 
 // ColStrProvider defines provider of proto.ColStr
-type ColStrProvider func() proto.ColStr
+type ColStrProvider func(name string) proto.ColStr
 
 // colStrProvider provide proto.ColStr for Column() when type is String
 var colStrProvider ColStrProvider = defaultColStrProvider
 
 // defaultColStrProvider defines sample provider for proto.ColStr
-func defaultColStrProvider() proto.ColStr {
+func defaultColStrProvider(string) proto.ColStr {
 	return proto.ColStr{}
 }
 
@@ -35,7 +35,7 @@ func defaultColStrProvider() proto.ColStr {
 //
 //	It is more suitable for scenarios where a lot of data is written in batches
 func WithAllocBufferColStrProvider(cap int) {
-	colStrProvider = func() proto.ColStr {
+	colStrProvider = func(string) proto.ColStr {
 		return proto.ColStr{Buf: make([]byte, 0, cap)}
 	}
 }

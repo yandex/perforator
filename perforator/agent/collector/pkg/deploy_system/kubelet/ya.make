@@ -3,6 +3,7 @@ GO_LIBRARY()
 SRCS(
     kubelet.go
     pod.go
+    prometheus.go
     transport.go
 )
 

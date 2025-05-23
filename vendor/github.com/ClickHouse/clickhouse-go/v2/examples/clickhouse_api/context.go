@@ -20,11 +20,12 @@ package clickhouse_api
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
+
 	"github.com/ClickHouse/clickhouse-go/v2"
 	clickhouse_tests "github.com/ClickHouse/clickhouse-go/v2/tests"
 	"github.com/google/uuid"
-	"net"
-	"time"
 )
 
 func UseContext() error {
@@ -54,19 +55,15 @@ func UseContext() error {
 	}
 	// we can use context to pass settings to a specific API call
 	ctx := clickhouse.Context(context.Background(), clickhouse.WithSettings(clickhouse.Settings{
-		"allow_experimental_object_type": "1",
+		"async_insert": "1",
 	}))
 
-	conn.Exec(ctx, "DROP TABLE IF EXISTS example")
-
-	// to create a JSON column we need allow_experimental_object_type=1
-	if err = conn.Exec(ctx, `
-		CREATE TABLE example (
-				Col1 JSON
-			) 
-			Engine Memory
-		`); err != nil {
-		return err
+	var settingValue bool
+	if err := conn.QueryRow(ctx, "SELECT getSetting('async_insert')").Scan(&settingValue); err != nil {
+		return fmt.Errorf("failed to get setting value: %v", err)
+	}
+	if !settingValue {
+		return fmt.Errorf("expected setting value to be true, got false")
 	}
 
 	// queries can be cancelled using the context

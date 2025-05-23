@@ -2,50 +2,55 @@ package clickhouse
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+
+	"github.com/yandex/perforator/perforator/pkg/certifi"
 )
 
 type Config struct {
-	Replicas                    []string `yaml:"replicas"`
-	Database                    string   `yaml:"db"`
-	User                        string   `yaml:"user"`
-	PasswordEnvironmentVariable string   `yaml:"password_env"`
+	Replicas                    []string                `yaml:"replicas"`
+	Database                    string                  `yaml:"db"`
+	User                        string                  `yaml:"user"`
+	PasswordEnvironmentVariable string                  `yaml:"password_env"`
+	TLS                         certifi.ClientTLSConfig `yaml:"tls"`
+
 	// TODO: all the followng fields should be replaced with
 	// TLSConfig (https://github.com/yandex/perforator/blob/283248e4d7c0bd8c66c9ff28178fb635be5581ab/perforator/pkg/storage/client/client.go#L114)
-	Plaintext          bool   `yaml:"plaintext,omitempty"`
-	InsecureSkipVerify bool   `yaml:"insecure,omitempty"`
-	CACertPath         string `yaml:"ca_cert_path,omitempty"`
+	PlaintextDeprecated  bool   `yaml:"plaintext,omitempty"`
+	InsecureSkipVerify   bool   `yaml:"insecure,omitempty"`
+	CACertPathDeprecated string `yaml:"ca_cert_path,omitempty"`
+}
+
+func (c *Config) FillDefault() {
+	// TLS backward compatibility.
+	// Previously, clickhouse client used TLS by default, so we need to enable tls if these values ​​are present.
+	if c.CACertPathDeprecated != "" {
+		c.TLS.Enabled = true
+		c.TLS.CAFile = c.CACertPathDeprecated
+	}
+
+	if c.InsecureSkipVerify {
+		c.TLS.Enabled = true
+		c.TLS.InsecureSkipVerify = c.InsecureSkipVerify
+	}
+
+	if c.PlaintextDeprecated {
+		c.TLS.Enabled = false
+	}
 }
 
 func Connect(ctx context.Context, conf *Config) (driver.Conn, error) {
+	conf.FillDefault()
 	password := os.Getenv(conf.PasswordEnvironmentVariable)
 
-	tlsConf := &tls.Config{
-		InsecureSkipVerify: conf.InsecureSkipVerify,
-	}
-
-	if !conf.InsecureSkipVerify && conf.CACertPath != "" {
-		cert, err := os.ReadFile(conf.CACertPath)
-		if err != nil {
-			return nil, err
-		}
-
-		certPool := x509.NewCertPool()
-		if !certPool.AppendCertsFromPEM(cert) {
-			return nil, fmt.Errorf("failed to add server CA's certificate")
-		}
-
-		tlsConf.RootCAs = certPool
-	}
-	if conf.Plaintext {
-		tlsConf = nil
+	tlsConf, err := conf.TLS.BuildTLSConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure TLS: %w", err)
 	}
 
 	conn, err := clickhouse.Open(&clickhouse.Options{

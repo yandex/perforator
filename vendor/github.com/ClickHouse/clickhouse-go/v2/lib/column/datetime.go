@@ -21,10 +21,11 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"github.com/ClickHouse/ch-go/proto"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/ClickHouse/ch-go/proto"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/timezone"
 )
@@ -121,7 +122,7 @@ func (col *DateTime) Append(v any) (nulls []uint8, err error) {
 		nulls = make([]uint8, len(v))
 		for i := range v {
 			switch {
-			case v != nil:
+			case v[i] != nil:
 				col.col.Append(time.Unix(*v[i], 0))
 			default:
 				col.col.Append(time.Time{})
@@ -131,9 +132,6 @@ func (col *DateTime) Append(v any) (nulls []uint8, err error) {
 	case []time.Time:
 		nulls = make([]uint8, len(v))
 		for i := range v {
-			if err := dateOverflow(minDateTime, maxDateTime, v[i], defaultDateTimeFormatNoZone); err != nil {
-				return nil, err
-			}
 			col.col.Append(v[i])
 		}
 
@@ -142,9 +140,6 @@ func (col *DateTime) Append(v any) (nulls []uint8, err error) {
 		for i := range v {
 			switch {
 			case v[i] != nil:
-				if err := dateOverflow(minDateTime, maxDateTime, *v[i], defaultDateTimeFormatNoZone); err != nil {
-					return nil, err
-				}
 				col.col.Append(*v[i])
 			default:
 				nulls[i] = 1
@@ -223,16 +218,10 @@ func (col *DateTime) AppendRow(v any) error {
 			col.col.Append(time.Time{})
 		}
 	case time.Time:
-		if err := dateOverflow(minDateTime, maxDateTime, v, defaultDateTimeFormatNoZone); err != nil {
-			return err
-		}
 		col.col.Append(v)
 	case *time.Time:
 		switch {
 		case v != nil:
-			if err := dateOverflow(minDateTime, maxDateTime, *v, defaultDateTimeFormatNoZone); err != nil {
-				return err
-			}
 			col.col.Append(*v)
 		default:
 			col.col.Append(time.Time{})
@@ -309,19 +298,11 @@ func (col *DateTime) row(i int) time.Time {
 }
 
 func (col *DateTime) parseDateTime(value string) (tv time.Time, err error) {
-	defer func() {
-		if err == nil {
-			err = dateOverflow(minDateTime, maxDateTime, tv, defaultDateFormatNoZone)
-		}
-	}()
-
 	if tv, err = time.Parse(defaultDateTimeFormatWithZone, value); err == nil {
 		return tv, nil
 	}
 	if tv, err = time.Parse(defaultDateTimeFormatNoZone, value); err == nil {
-		return time.Date(
-			tv.Year(), tv.Month(), tv.Day(), tv.Hour(), tv.Minute(), tv.Second(), tv.Nanosecond(), time.Local,
-		), nil
+		return getTimeWithDifferentLocation(tv, time.Local), nil
 	}
 	return time.Time{}, err
 }

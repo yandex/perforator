@@ -50,10 +50,20 @@ func (t *PodsCgroupTracker) buildCgroupConfig(
 	pod deploysystemmodel.Pod,
 ) *CgroupConfig {
 	labels := t.makeCommonProfileLabels()
+
+	for k, v := range pod.Labels() {
+		labels[k] = v
+	}
+
 	labels["pod"] = pod.ID()
 	labels["cluster"] = pod.Topology()
 	labels["service"] = pod.ServiceName()
 	labels["cgroup"] = pod.CgroupName()
+
+	// User can explicitly override any gathered label
+	for key, val := range t.conf.Labels {
+		labels[key] = val
+	}
 
 	cgroupConfig := &CgroupConfig{
 		Name:   pod.CgroupName(),
@@ -69,10 +79,6 @@ func (t *PodsCgroupTracker) makeCommonProfileLabels() (labels map[string]string)
 		"host":             t.hostname,
 		"cpu":              t.cpuModelName,
 		"profiler_version": buildinfo.Info.SVNRevision,
-	}
-
-	for key, val := range t.conf.Labels {
-		labels[key] = val
 	}
 
 	return

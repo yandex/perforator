@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: termcolor
-Version: 3.0.0
+Version: 3.1.0
 Summary: ANSI color formatting for output in terminal
 Project-URL: Changelog, https://github.com/termcolor/termcolor/releases
 Project-URL: Homepage, https://github.com/termcolor/termcolor
@@ -8,6 +8,7 @@ Project-URL: Source, https://github.com/termcolor/termcolor
 Author-email: Konstantin Lepa <konstantin.lepa@gmail.com>
 Maintainer: Hugo van Kemenade
 License-Expression: MIT
+License-File: COPYING.txt
 Keywords: ANSI,ANSI color,ANSI colour,color,colour,formatting,termcolor,terminal
 Classifier: Development Status :: 5 - Production/Stable
 Classifier: Environment :: Console
@@ -24,6 +25,7 @@ Classifier: Programming Language :: Python :: 3.14
 Classifier: Programming Language :: Python :: Implementation :: CPython
 Classifier: Programming Language :: Python :: Implementation :: PyPy
 Classifier: Topic :: Terminals
+Classifier: Typing :: Typed
 Requires-Python: >=3.9
 Provides-Extra: tests
 Requires-Dist: pytest; extra == 'tests'
@@ -84,6 +86,9 @@ for i in range(10):
     cprint(i, "magenta", end=" ")
 
 cprint("Attention!", "red", attrs=["bold"], file=sys.stderr)
+
+# You can also specify 0-255 RGB ints via a tuple
+cprint("Both foreground and background can use tuples", (100, 150, 250), (50, 60, 70))
 ```
 
 ## Text properties
@@ -106,6 +111,9 @@ cprint("Attention!", "red", attrs=["bold"], file=sys.stderr)
 | `light_blue`    | `on_light_blue`    |             |
 | `light_magenta` | `on_light_magenta` |             |
 | `light_cyan`    | `on_light_cyan`    |             |
+
+You can also use any arbitrary RGB color specified as a tuple of 0-255 integers, for
+example, `(100, 150, 250)`.
 
 ## Terminal properties
 

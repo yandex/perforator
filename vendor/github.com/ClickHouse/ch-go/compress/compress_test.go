@@ -28,8 +28,8 @@ func TestCompress(t *testing.T) {
 	for i := range MethodValues() {
 		m := MethodValues()[i]
 		t.Run(m.String(), func(t *testing.T) {
-			w := NewWriter()
-			require.NoError(t, w.Compress(m, data))
+			w := NewWriter(LevelZero, m)
+			require.NoError(t, w.Compress(data))
 
 			gold.Bytes(t, w.Data, "data_compressed_"+strings.ToLower(m.String()))
 
@@ -87,15 +87,16 @@ func BenchmarkWriter_Compress(b *testing.B) {
 			b.ReportAllocs()
 			b.SetBytes(int64(len(data)))
 
-			w := NewWriter()
+			w := NewWriter(LevelZero, m)
 
 			// First round to warmup.
-			if err := w.Compress(m, data); err != nil {
+			if err := w.Compress(data); err != nil {
 				b.Fatal(err)
 			}
 
+			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				if err := w.Compress(m, data); err != nil {
+				if err := w.Compress(data); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -120,8 +121,8 @@ func BenchmarkReader_Read(b *testing.B) {
 	for i := range MethodValues() {
 		m := MethodValues()[i]
 		b.Run(m.String(), func(b *testing.B) {
-			w := NewWriter()
-			if err := w.Compress(m, data); err != nil {
+			w := NewWriter(LevelZero, m)
+			if err := w.Compress(data); err != nil {
 				b.Fatal(err)
 			}
 			b.ReportAllocs()

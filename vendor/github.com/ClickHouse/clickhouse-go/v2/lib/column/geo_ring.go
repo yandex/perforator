@@ -86,9 +86,15 @@ func (col *Ring) Append(v any) (nulls []uint8, err error) {
 		}
 		return col.set.Append(values)
 	case []*orb.Ring:
+		nulls = make([]uint8, len(v))
 		values := make([][]orb.Point, 0, len(v))
-		for _, v := range v {
-			values = append(values, *v)
+		for i, v := range v {
+			if v == nil {
+				nulls[i] = 1
+				values = append(values, orb.Ring{})
+			} else {
+				values = append(values, *v)
+			}
 		}
 		return col.set.Append(values)
 	default:

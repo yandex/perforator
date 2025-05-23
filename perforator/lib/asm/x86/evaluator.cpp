@@ -128,10 +128,34 @@ TEvaluationStopCondition MakeStopOnCallCondition() {
     };
 }
 
+TEvaluationStopCondition MakeStopOnRetCondition() {
+    return [](const TState&, const llvm::MCInst& inst) -> bool {
+        return IsRet(inst);
+    };
+}
+
 TState MakeInitialState(ui64 initialRIP) {
     TState state;
     state.SetImmediate(llvm::X86::RIP, initialRIP);
     return state;
+}
+
+TMaybe<ui64> GetRegisterValueOrAddress(const TState& state, unsigned int reg) {
+    if (!state.HasKnownValue(reg)) {
+        return Nothing();
+    }
+
+    auto immValue = state.GetImmediateValue(reg);
+    if (immValue) {
+        return static_cast<ui64>(*immValue);
+    }
+
+    auto memAddr = state.GetMemoryAddress(reg);
+    if (memAddr) {
+        return static_cast<ui64>(*memAddr);
+    }
+
+    return Nothing();
 }
 
 unsigned int GetBaseRegister(unsigned int reg) {

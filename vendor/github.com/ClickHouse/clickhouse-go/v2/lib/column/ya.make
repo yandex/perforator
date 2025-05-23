@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.18.0)
+VERSION(v2.33.1)
 
 SRCS(
     array.go
@@ -14,10 +14,11 @@ SRCS(
     column_gen_option.go
     date.go
     date32.go
-    date_helpers.go
     datetime.go
     datetime64.go
     decimal.go
+    dynamic.go
+    dynamic_gen.go
     enum.go
     enum16.go
     enum8.go
@@ -30,20 +31,26 @@ SRCS(
     ipv4.go
     ipv6.go
     json.go
+    json_reflect.go
     lowcardinality.go
     map.go
     nested.go
     nothing.go
     nullable.go
+    object_json.go
+    sharedvariant.go
     simple_aggregate_function.go
     slice_helper.go
     string.go
+    time_helper.go
     tuple.go
     uuid.go
+    variant.go
 )
 
 END()
 
 RECURSE(
     codegen
+    orderedmap
 )

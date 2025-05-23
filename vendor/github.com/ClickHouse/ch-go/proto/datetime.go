@@ -15,9 +15,6 @@ func ToDateTime(t time.Time) DateTime {
 
 // Time returns DateTime as time.Time.
 func (d DateTime) Time() time.Time {
-	if d == 0 {
-		return time.Time{}
-	}
 	// https://clickhouse.com/docs/en/sql-reference/data-types/datetime/#usage-remarks
 	// ClickHouse stores UTC timestamps that are timezone-agnostic.
 	return time.Unix(int64(d), 0)

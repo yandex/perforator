@@ -1,5 +1,9 @@
 {{- if .Values.databases.clickhouse.migrations.enabled }}
 
+{{- if and (or .Values.databases.clickhouse.tls.insecureSkipVerify .Values.databases.clickhouse.insecure) (or .Values.databases.clickhouse.tls.certCAFilename .Values.databases.clickhouse.ca_cert_path) -}}
+{{- fail "Cannot specify both TLS certificate verification skip (databases.clickhouse.tls.insecureSkipVerify or databases.clickhouse.insecure) and CA certificate (databases.clickhouse.tls.certCAFilename or databases.clickhouse.ca_cert_path) at the same time" -}}
+{{- end -}}
+
 {{- $chhosts := "" }}
 {{- $port := "" }}
 {{- $endpoints := include "perforator.clickhouse.endpoints" . | fromYamlArray }}
@@ -9,9 +13,21 @@
   {{- $port = $hostparts._1 }}
 {{- end }}
 {{ $chhosts = $chhosts | trimSuffix "," }}
-{{- $insecure := "" }}
-{{- if .Values.databases.clickhouse.insecure }}
-  {{- $insecure = " --tls-trust-all" }}
+
+{{- $tlsOpts := "" }}
+{{- if .Values.databases.clickhouse.tls.enabled }}
+  {{- if or .Values.databases.clickhouse.tls.insecureSkipVerify .Values.databases.clickhouse.insecure }}
+    {{- $tlsOpts = printf "%s --tls-trust-all" $tlsOpts }}
+  {{- end }}
+  
+  {{- $caCertPath := include "perforator.clickhouse.tlsCACert" . }}
+  {{- if $caCertPath }}
+    {{- $tlsOpts = printf "%s --tls-ca %s" $tlsOpts $caCertPath }}
+  {{- else if .Values.databases.clickhouse.ca_cert_path }}
+    {{- $tlsOpts = printf "%s --tls-ca %s" $tlsOpts .Values.databases.clickhouse.ca_cert_path }}
+  {{- end }}
+{{- else }}
+  {{- $tlsOpts = " --plaintext" }}
 {{- end }}
 
 apiVersion: batch/v1
@@ -40,7 +56,7 @@ spec:
         - -c
         - |
           set -eu
-          /perforator/migrate clickhouse up --db {{ .Values.databases.clickhouse.db }} --hosts {{ $chhosts }} --port {{ $port }} --user {{ .Values.databases.clickhouse.user }} --pass ${PASSWORD} {{ $insecure }} {{ .Values.databases.clickhouse.migrations.extraArgs }}
+          /perforator/migrate clickhouse up --db {{ .Values.databases.clickhouse.db }} --hosts {{ $chhosts }} --port {{ $port }} --user {{ .Values.databases.clickhouse.user }} --pass ${PASSWORD}{{ if $tlsOpts }} {{ $tlsOpts | trim }}{{ end }} {{ .Values.databases.clickhouse.migrations.extraFlags }}
         env:
         - name: PASSWORD
           valueFrom:
@@ -51,6 +67,10 @@ spec:
           value: {{ .value }}
         {{- end }}
         volumeMounts:
+        {{- if include "perforator.clickhouse.tlsSecretName" . }}
+        - name: clickhouse-tls
+          mountPath: "/etc/perforator/certificates/clickhouse"
+        {{- end }}
         {{- range .Values.databases.clickhouse.migrations.extraMounts }}
         - name: {{ .name }}
           mountPath: {{ .mountPath }}
@@ -58,6 +78,11 @@ spec:
           readOnly: {{ .readOnly }}
         {{- end }}
       volumes:
+      {{- if include "perforator.clickhouse.tlsSecretName" . }}
+      - name: clickhouse-tls
+        secret:
+          secretName: {{ include "perforator.clickhouse.tlsSecretName" . }}
+      {{- end }}
       {{- range .Values.databases.clickhouse.migrations.extraMounts }}
       - name: {{ .name }}
         configMap:

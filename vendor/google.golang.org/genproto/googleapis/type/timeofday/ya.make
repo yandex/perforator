@@ -1,0 +1,11 @@
+GO_LIBRARY()
+
+LICENSE(Apache-2.0)
+
+VERSION(v0.0.0-20250124145028-65684f501c47)
+
+SRCS(
+    timeofday.pb.go
+)
+
+END()

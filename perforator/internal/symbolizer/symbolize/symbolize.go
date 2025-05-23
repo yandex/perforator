@@ -25,20 +25,10 @@ const (
 	UnknownLine = "<unknown>"
 )
 
-type BinaryPathProvider interface {
-	Path(mapping *pprof.Mapping) string
-}
-
 type localSymbolizationPathProvider struct{}
 
 func (*localSymbolizationPathProvider) Path(mapping *pprof.Mapping) string {
 	return mapping.File
-}
-
-type nilPathProvider struct{}
-
-func (*nilPathProvider) Path(*pprof.Mapping) string {
-	return ""
 }
 
 type symbolizerMetrics struct {
@@ -109,7 +99,7 @@ func addLine(profile *pprof.Profile, location *pprof.Location, lineInfo *C.TLine
 	}
 
 	// Do not demangle function names, if requested.
-	if d := opts.Demangle; d != nil && !*d {
+	if opts != nil && opts.Demangle != nil && !*opts.Demangle {
 		function.Name = function.SystemName
 	}
 
@@ -217,6 +207,7 @@ func (s *Symbolizer) symbolizeLocation(
 		s.logger.Trace(ctx, "Unknown binary",
 			log.String("buildid", location.Mapping.BuildID),
 			log.String("address", fmt.Sprintf("%x", location.Address)),
+			log.String("original_file", location.Mapping.File),
 		)
 		s.metrics.unknownBinaries.Inc()
 		return
@@ -255,8 +246,13 @@ func (s *Symbolizer) symbolizeLocation(
 }
 
 // inplace symbolization using local binaries paths
-func (s *Symbolizer) SymbolizeLocalProfile(ctx context.Context, profile *pprof.Profile) error {
-	return s.symbolize(ctx, profile, &localSymbolizationPathProvider{}, &nilPathProvider{}, nil)
+func (s *Symbolizer) SymbolizeLocalProfile(
+	ctx context.Context,
+	profile *pprof.Profile,
+	binaryPathProvider BinaryPathProvider,
+	gsymBinaryPathProvider BinaryPathProvider,
+) error {
+	return s.symbolize(ctx, profile, binaryPathProvider, gsymBinaryPathProvider, nil)
 }
 
 func (s *Symbolizer) SymbolizeStorageProfile(

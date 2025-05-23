@@ -207,7 +207,11 @@ func (p *Profiler) shouldDiscoverProcess(pid linux.ProcessID) bool {
 // Prepare and load eBPF programs, tune rlimits, ...
 func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	// Load eBPF programs
-	p.bpf, err = machine.NewBPF(&p.conf.BPF, p.log, r)
+	p.bpf, err = machine.NewBPF(
+		&p.conf.BPF,
+		p.log,
+		r,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eBPF subsystem: %w", err)
 	}

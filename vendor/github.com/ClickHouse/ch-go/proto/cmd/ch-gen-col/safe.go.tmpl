@@ -118,3 +118,11 @@ func (c {{ .Type }}) EncodeColumn(b *Buffer) {
 	}
 	{{- end }}
 }
+
+func (c {{ .Type }}) WriteColumn(w *Writer) {
+	{{- if .Byte }}
+		w.ChainWrite([]byte(c))
+	{{- else }}
+		w.ChainBuffer(c.EncodeColumn)
+	{{- end }}
+}

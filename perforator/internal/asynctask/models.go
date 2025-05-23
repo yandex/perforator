@@ -21,6 +21,7 @@ var (
 
 type TaskService interface {
 	GetTask(ctx context.Context, id TaskID) (*Task, error)
+	CountTasks(ctx context.Context, filter *TaskFilter) (uint64, error)
 	ListTasks(ctx context.Context, filter *TaskFilter, limit uint64, offset uint64) ([]Task, error)
 	AddTask(ctx context.Context, meta *perforator.TaskMeta, spec *perforator.TaskSpec) (TaskID, error)
 	FinishTask(ctx context.Context, id TaskID, result *perforator.TaskResult) error

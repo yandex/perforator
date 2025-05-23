@@ -12,6 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,6 +28,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/uprobe"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
@@ -41,6 +44,10 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/perforator"
+)
+
+var (
+	ErrInvalidUprobeFormat = errors.New("invalid uprobe format, expected 'uprobe:/path/to/executable:symbol[+offset]'")
 )
 
 type recordOptions struct {
@@ -80,7 +87,7 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.wholeSystem, "whole-system", "a", false, "Profile whole system")
 	cmd.Flags().Uint64VarP(&o.freq, "freq", "F", 99, "Profiling frequency")
 	cmd.Flags().Uint64VarP(&o.interval, "count", "c", 0, "Profiling interval")
-	cmd.Flags().StringVarP(&o.event, "event", "e", "", "Perf event to profile")
+	cmd.Flags().StringVarP(&o.event, "event", "e", "", "Perf event or uprobe (uprobe format is uprobe:/path/to/executable:symbol[+offset])")
 	cmd.Flags().DurationVarP(&o.duration, "duration", "d", 0, "Profiling duration")
 	cmd.Flags().StringVarP(&o.renderFormat, "format", "f", "flamegraph", "Profile visualization format")
 	cmd.Flags().BoolVarP(&o.debug, "debug", "", false, "Run perforator in debug mode")
@@ -179,7 +186,60 @@ func record(opts *recordOptions, args []string) error {
 	return nil
 }
 
-func parsePerfEvents(opts *recordOptions) ([]config.PerfEventConfig, error) {
+// Parses symbol in format symbol[+offset]
+func parseSymbol(symbolNotation string) (symbol string, offset uint64, err error) {
+	offset = 0
+
+	if idx := strings.IndexByte(symbolNotation, '+'); idx >= 0 {
+		symbol = symbolNotation[:idx]
+		offsetStr := symbolNotation[idx+1:]
+
+		if numericOffsetStr, isHex := strings.CutPrefix(offsetStr, "0x"); isHex {
+			offset, err = strconv.ParseUint(numericOffsetStr, 16, 64)
+		} else {
+			offset, err = strconv.ParseUint(numericOffsetStr, 10, 64)
+		}
+	} else {
+		symbol = symbolNotation
+	}
+
+	return
+}
+
+func parseUprobeConfigsFromEvent(event string, pids []int) ([]machine.UprobeConfig, error) {
+	uprobeStr := strings.TrimPrefix(event, sampletype.UprobeSampleTypePrefix)
+	parts := strings.SplitN(uprobeStr, ":", 2)
+	if len(parts) != 2 {
+		return nil, ErrInvalidUprobeFormat
+	}
+
+	binaryPath := parts[0]
+	symbolPart := parts[1]
+
+	symbol, offset, err := parseSymbol(symbolPart)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse symbol: %w", err)
+	}
+
+	baseUprobeConfig := machine.UprobeConfig{
+		Config: uprobe.Config{
+			Path:        binaryPath,
+			Symbol:      symbol,
+			LocalOffset: offset,
+			SampleType:  event,
+		},
+	}
+
+	result := make([]machine.UprobeConfig, 0, len(pids))
+	for _, pid := range pids {
+		result = append(result, baseUprobeConfig)
+		result[len(result)-1].Pid = pid
+	}
+
+	return result, nil
+}
+
+func parsePerfEvents(opts *recordOptions) (perfEvents []config.PerfEventConfig, err error) {
 	if opts.event == "" {
 		if opts.signals {
 			// Do not setup default perf events in `perforator record --signals` mode.
@@ -201,6 +261,29 @@ func parsePerfEvents(opts *recordOptions) ([]config.PerfEventConfig, error) {
 	return []config.PerfEventConfig{cfg}, nil
 }
 
+type events struct {
+	perfEvents []config.PerfEventConfig
+	uprobes    []machine.UprobeConfig
+}
+
+func parseEvents(opts *recordOptions) (events events, err error) {
+	switch {
+	case strings.HasPrefix(opts.event, "uprobe:"):
+		uprobeConfigs, err := parseUprobeConfigsFromEvent(opts.event, opts.pids)
+		if err != nil {
+			return events, fmt.Errorf("failed to parse uprobe configs: %w", err)
+		}
+		events.uprobes = append(events.uprobes, uprobeConfigs...)
+	default:
+		events.perfEvents, err = parsePerfEvents(opts)
+		if err != nil {
+			return events, fmt.Errorf("failed to parse perf events: %w", err)
+		}
+	}
+
+	return
+}
+
 func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, args []string) (*binaryStorage, error) {
 	storage, err := newBinaryStorage(ctx, logger)
 	if err != nil {
@@ -209,9 +292,9 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 
 	registry := xmetrics.NewRegistry(xmetrics.WithFormat(xmetrics.FormatText))
 
-	perfevents, err := parsePerfEvents(opts)
+	events, err := parseEvents(opts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse events: %w", err)
 	}
 
 	prof, err := profiler.NewProfiler(&config.Config{
@@ -221,6 +304,7 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 			TraceLBR:      ptr.Bool(false),
 			TraceSignals:  ptr.Bool(opts.signals),
 			TraceWallTime: ptr.Bool(opts.walltime),
+			Uprobes:       events.uprobes,
 		},
 		ProcessDiscovery: config.ProcessDiscoveryConfig{
 			IgnoreUnrelatedProcesses: true,
@@ -231,7 +315,7 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 		SampleConsumer: config.SampleConsumerConfig{
 			PerfBufferWatermark: ptr.Int(0),
 		},
-		PerfEvents:        perfevents,
+		PerfEvents:        events.perfEvents,
 		EnablePerfMaps:    ptr.Bool(!opts.disablePerfMap),
 		EnablePerfMapsJVM: ptr.Bool(!opts.disablePerfMapJVM),
 	}, logger.WithContext(ctx), registry, profiler.WithStorage(storage))
@@ -341,7 +425,10 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 }
 
 func symbolizeProfile(ctx context.Context, logger xlog.Logger, storage *binaryStorage, opts *recordOptions, format *perforator.RenderFormat) (*pprof.Profile, error) {
-	sampleType := deduceProfileSampleType(opts)
+	sampleType, err := deduceProfileSampleType(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deduce profile sample type: %w", err)
+	}
 	logger.Debug(ctx, "Deduced profile sample type", log.String("type", sampleType))
 
 	profiles := make([]*pprof.Profile, 0, len(storage.profiles))
@@ -427,14 +514,18 @@ func renderProfile(ctx context.Context, logger xlog.Logger, profile *pprof.Profi
 	return nil
 }
 
-func deduceProfileSampleType(opts *recordOptions) string {
+func deduceProfileSampleType(opts *recordOptions) (string, error) {
 	if opts.walltime {
-		return sampletype.SampleTypeWall
+		return sampletype.SampleTypeWall, nil
 	}
 	if opts.signals {
-		return sampletype.SampleTypeSignal
+		return sampletype.SampleTypeSignal, nil
 	}
-	return sampletype.SampleTypeCPU
+	if strings.HasPrefix(opts.event, "uprobe:") {
+		return opts.event, nil
+	}
+
+	return sampletype.SampleTypeCPU, nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////

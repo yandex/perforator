@@ -173,15 +173,14 @@ private:
 
     void VisitSampleKeys(const NProto::NProfile::SampleKeys& keys) override {
         RequireCongruentContainers(
-            keys.stacks().user_stack_id(),
-            keys.stacks().kernel_stack_id(),
+            keys.stacks().first_stack_id(),
             keys.labels().first_label_id(),
             keys.threads().thread_id()
         );
 
         RequireFlattenedArray(keys.labels().first_label_id(), keys.labels().packed_label_id());
-        ExpectEntityArray(keys.stacks().user_stack_id(), Profile_.stacks().offset(), "stack");
-        ExpectEntityArray(keys.stacks().kernel_stack_id(), Profile_.stacks().offset(), "stack");
+        RequireFlattenedArray(keys.stacks().first_stack_id(), keys.stacks().stack_id());
+        ExpectEntityArray(keys.stacks().stack_id(), Profile_.stacks().offset(), "stack");
         ExpectEntityArray(keys.threads().thread_id(), Profile_.threads().thread_id(), "thread");
 
         // Packed labels require custom checks.
@@ -209,7 +208,7 @@ private:
 
         ExpectEntityArray(
             samples.key(),
-            Profile_.sample_keys().stacks().user_stack_id(),
+            Profile_.sample_keys().stacks().first_stack_id(),
             "sample_keys"
         );
     }

@@ -80,6 +80,23 @@ func (c ColMap[K, V]) Row(i int) map[K]V {
 	return m
 }
 
+// RowKV returns a slice of KV[K, V] for a given row.
+func (c ColMap[K, V]) RowKV(i int) []KV[K, V] {
+	var start int
+	end := int(c.Offsets[i])
+	if i > 0 {
+		start = int(c.Offsets[i-1])
+	}
+	v := make([]KV[K, V], 0, end-start)
+	for idx := start; idx < end; idx++ {
+		v = append(v, KV[K, V]{
+			Key:   c.Keys.Row(idx),
+			Value: c.Values.Row(idx),
+		})
+	}
+	return v
+}
+
 // KV is a key-value pair.
 type KV[K comparable, V any] struct {
 	Key   K
@@ -147,6 +164,16 @@ func (c ColMap[K, V]) EncodeColumn(b *Buffer) {
 	c.Values.EncodeColumn(b)
 }
 
+func (c ColMap[K, V]) WriteColumn(w *Writer) {
+	if c.Rows() == 0 {
+		return
+	}
+
+	c.Offsets.WriteColumn(w)
+	c.Keys.WriteColumn(w)
+	c.Values.WriteColumn(w)
+}
+
 // Prepare ensures Preparable column propagation.
 func (c ColMap[K, V]) Prepare() error {
 	if v, ok := c.Keys.(Preparable); ok {
@@ -164,18 +191,18 @@ func (c ColMap[K, V]) Prepare() error {
 
 // Infer ensures Inferable column propagation.
 func (c *ColMap[K, V]) Infer(t ColumnType) error {
-	elems := strings.Split(string(t.Elem()), ",")
-	if len(elems) != 2 {
+	keytype, valtype, hascomma := strings.Cut(string(t.Elem()), ",")
+	if !hascomma || strings.ContainsRune(valtype, ',') {
 		return errors.New("invalid map type")
 	}
 	if v, ok := c.Keys.(Inferable); ok {
-		ct := ColumnType(strings.TrimSpace(elems[0]))
+		ct := ColumnType(strings.TrimSpace(keytype))
 		if err := v.Infer(ct); err != nil {
 			return errors.Wrap(err, "infer data")
 		}
 	}
 	if v, ok := c.Values.(Inferable); ok {
-		ct := ColumnType(strings.TrimSpace(elems[1]))
+		ct := ColumnType(strings.TrimSpace(valtype))
 		if err := v.Infer(ct); err != nil {
 			return errors.Wrap(err, "infer data")
 		}

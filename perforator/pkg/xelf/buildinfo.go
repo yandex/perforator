@@ -9,10 +9,10 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 
 type BuildInfo struct {
-	BuildID         string
-	LoadBias        uint64
-	FirstPhdrOffset uint64
-	HasDebugInfo    bool
+	BuildID      string
+	LoadBias     uint64
+	FirstPhdr    *elf.Prog
+	HasDebugInfo bool
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -36,7 +36,7 @@ func ReadBuildInfo(r io.ReaderAt) (*BuildInfo, error) {
 		return nil, err
 	}
 
-	bi.FirstPhdrOffset, err = parseFirstPhdrOffset(f)
+	bi.FirstPhdr, err = parseFirstPhdrInfo(f)
 	if err != nil {
 		return nil, err
 	}
@@ -73,16 +73,16 @@ func parseLoadBias(f *elf.File) (uint64, error) {
 	return 0, nil
 }
 
-func parseFirstPhdrOffset(f *elf.File) (uint64, error) {
-	for _, prog := range f.Progs {
-		if prog.Type != elf.PT_LOAD {
+func parseFirstPhdrInfo(f *elf.File) (prog *elf.Prog, err error) {
+	for _, p := range f.Progs {
+		if p.Type != elf.PT_LOAD {
 			continue
 		}
 
-		return prog.Vaddr, nil
+		return p, nil
 	}
 
-	return 0, nil
+	return nil, nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////

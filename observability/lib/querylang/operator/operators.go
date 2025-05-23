@@ -77,7 +77,7 @@ func (op Operator) String() string {
 	case Regex:
 		return "Regex"
 	case Exists:
-		return "Exists"
+		return "*"
 	case Glob:
 		return "Glob"
 	case ISubstring:

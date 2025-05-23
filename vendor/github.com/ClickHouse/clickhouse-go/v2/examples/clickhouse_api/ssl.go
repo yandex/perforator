@@ -21,10 +21,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/ClickHouse/clickhouse-go/v2"
-	"io/ioutil"
 	"os"
 	"path"
+
+	"github.com/ClickHouse/clickhouse-go/v2"
 )
 
 func SSLVersion() error {
@@ -37,7 +37,7 @@ func SSLVersion() error {
 		return err
 	}
 	t := &tls.Config{}
-	caCert, err := ioutil.ReadFile(path.Join(cwd, "../../tests/resources/CAroot.crt"))
+	caCert, err := os.ReadFile(path.Join(cwd, "../../tests/resources/CAroot.crt"))
 	if err != nil {
 		return err
 	}

@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/column/orderedmap"
 )
 
 func MapInsertRead() error {
@@ -73,13 +73,15 @@ func MapInsertRead() error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		if err := rows.Scan(&col1, &col2, &col3); err != nil {
 			return err
 		}
 		fmt.Printf("row: col1=%v, col2=%v, col3=%v\n", col1, col2, col3)
 	}
-	rows.Close()
+
 	return rows.Err()
 }
 
@@ -108,7 +110,7 @@ func IterableOrderedMapInsertRead() error {
 	}
 	var i int64
 	for i = 0; i < 10; i++ {
-		om := NewOrderedMap()
+		om := &orderedmap.Map[string, string]{}
 		kv1 := strconv.Itoa(int(i))
 		kv2 := strconv.Itoa(int(i + 1))
 		om.Put(kv1, kv1)
@@ -125,54 +127,15 @@ func IterableOrderedMapInsertRead() error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
-		var col1 OrderedMap
+		var col1 orderedmap.Map[string, string]
 		if err := rows.Scan(&col1); err != nil {
 			return err
 		}
 		fmt.Printf("row: col1=%v\n", col1)
 	}
-	rows.Close()
+
 	return rows.Err()
-}
-
-// OrderedMap is a simple (non thread safe) ordered map
-type OrderedMap struct {
-	Keys   []any
-	Values []any
-}
-
-func NewOrderedMap() column.IterableOrderedMap {
-	return &OrderedMap{}
-}
-
-func (om *OrderedMap) Put(key any, value any) {
-	om.Keys = append(om.Keys, key)
-	om.Values = append(om.Values, value)
-}
-
-func (om *OrderedMap) Iterator() column.MapIterator {
-	return NewOrderedMapIterator(om)
-}
-
-type OrderedMapIter struct {
-	om        *OrderedMap
-	iterIndex int
-}
-
-func NewOrderedMapIterator(om *OrderedMap) column.MapIterator {
-	return &OrderedMapIter{om: om, iterIndex: -1}
-}
-
-func (i *OrderedMapIter) Next() bool {
-	i.iterIndex++
-	return i.iterIndex < len(i.om.Keys)
-}
-
-func (i *OrderedMapIter) Key() any {
-	return i.om.Keys[i.iterIndex]
-}
-
-func (i *OrderedMapIter) Value() any {
-	return i.om.Values[i.iterIndex]
 }

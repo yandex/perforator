@@ -3,6 +3,7 @@
 #include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
 #include <library/cpp/containers/absl_flat_hash/flat_hash_set.h>
 
+#include <util/generic/bitmap.h>
 #include <util/generic/vector.h>
 
 #include <concepts>
@@ -78,7 +79,7 @@ public:
 
     void Insert(K key) {
         if (IsLittle(key)) {
-            Little_[key] = true;
+            Little_.Set(key);
         } else {
             Big_.insert(key);
         }
@@ -86,7 +87,7 @@ public:
 
     bool Contains(K key) const {
         if (IsLittle(key)) {
-            return Little_[key];
+            return Little_.Get(key);
         } else {
             return Big_.contains(key);
         }
@@ -94,11 +95,11 @@ public:
 
 private:
     bool IsLittle(K key) const {
-        return key < Little_.size();
+        return key < Little_.Size();
     }
 
 private:
-    TVector<bool> Little_;
+    TDynBitMap Little_;
     absl::flat_hash_set<K> Big_;
 };
 

@@ -15,3 +15,5 @@ ELSE()
 ENDIF()
 
 END()
+
+RECURSE(subsetresolver)

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.21.2)
+VERSION(v1.23.0)
 
 SRCS(
     alert_policy_client.go
@@ -10,6 +10,7 @@ SRCS(
     auxiliary_go123.go
     doc.go
     group_client.go
+    helpers.go
     metric_client.go
     notification_channel_client.go
     query_client.go

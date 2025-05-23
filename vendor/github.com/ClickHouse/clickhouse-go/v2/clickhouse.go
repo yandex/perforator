@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync/atomic"
 	"time"
 
@@ -239,7 +240,10 @@ func DefaultDialStrategy(ctx context.Context, connID int, opt *Options, dial Dia
 		case ConnOpenInOrder:
 			num = i
 		case ConnOpenRoundRobin:
-			num = (int(connID) + i) % len(opt.Addr)
+			num = (connID + i) % len(opt.Addr)
+		case ConnOpenRandom:
+			random := rand.Int()
+			num = (random + i) % len(opt.Addr)
 		}
 
 		if r, err = dial(ctx, opt.Addr[num], opt); err == nil {
@@ -265,6 +269,8 @@ func (ch *clickhouse) acquire(ctx context.Context) (conn *connect, err error) {
 	select {
 	case <-timer.C:
 		return nil, ErrAcquireConnTimeout
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	case ch.open <- struct{}{}:
 	}
 	select {

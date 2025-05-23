@@ -86,9 +86,15 @@ func (col *Polygon) Append(v any) (nulls []uint8, err error) {
 		}
 		return col.set.Append(values)
 	case []*orb.Polygon:
+		nulls = make([]uint8, len(v))
 		values := make([][]orb.Ring, 0, len(v))
-		for _, v := range v {
-			values = append(values, *v)
+		for i, v := range v {
+			if v == nil {
+				nulls[i] = 1
+				values = append(values, orb.Polygon{})
+			} else {
+				values = append(values, *v)
+			}
 		}
 		return col.set.Append(values)
 	default:

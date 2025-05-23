@@ -8,6 +8,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/internal/asynctask"
@@ -85,8 +86,23 @@ func (s *PerforatorServer) ListTasks(ctx context.Context, req *perforator.ListTa
 		To:     query.GetTo().AsTime(),
 	}
 
-	tasks, err := s.tasks.ListTasks(ctx, filter, limit, offset)
-	if err != nil {
+	g, ctx := errgroup.WithContext(ctx)
+
+	var count uint64
+	var tasks []asynctask.Task
+	g.Go(func() error {
+		var err error
+		count, err = s.tasks.CountTasks(ctx, filter)
+		return err
+	})
+
+	g.Go(func() error {
+		var err error
+		tasks, err = s.tasks.ListTasks(ctx, filter, limit, offset)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 
@@ -101,7 +117,8 @@ func (s *PerforatorServer) ListTasks(ctx context.Context, req *perforator.ListTa
 	}
 
 	return &perforator.ListTasksResponse{
-		Tasks: res,
+		Tasks:      res,
+		TotalCount: int64(count),
 	}, nil
 }
 

@@ -2,28 +2,6 @@
 
 Golang SQL database client for [ClickHouse](https://clickhouse.com/).
 
-## Versions
-
-There are two version of this client, v1 and v2, available as separate branches. 
-
-**v1 is now in a state of a maintenance - we will only accept PRs for bug and security fixes.**
-
-Users should use v2 which is production ready and [significantly faster than v1](#benchmark).
-
-v2 has breaking changes for users migrating from v1. These were not properly tracked prior to this client being officially supported. We endeavour to track known differences [here](https://github.com/ClickHouse/clickhouse-go/blob/main/v1_v2_CHANGES.md) and resolve where possible.
-
-## Supported ClickHouse Versions
-
-The client is tested against the currently [supported versions](https://github.com/ClickHouse/ClickHouse/blob/master/SECURITY.md) of ClickHouse
-
-## Supported Golang Versions
-
-| Client Version | Golang Versions |
-|----------------|-----------------|
-| => 2.0 <= 2.2  | 1.17, 1.18      |
-| >= 2.3         | 1.18.4+, 1.19   |
-| >= 2.14        | 1.20, 1.21      |
-
 ## Key features
 
 * Uses ClickHouse native format for optimal performance. Utilises low level [ch-go](https://github.com/ClickHouse/ch-go) client for encoding/decoding and compression (versions >= 2.3.0).
@@ -54,6 +32,22 @@ Support for the ClickHouse protocol advanced features using `Context`:
 	* Progress
 	* Profile info
 	* Profile events
+
+
+## Supported ClickHouse Versions
+
+The client is tested against the currently [supported versions](https://github.com/ClickHouse/ClickHouse/blob/master/SECURITY.md) of ClickHouse
+
+## Supported Golang Versions
+
+| Client Version | Golang Versions        |
+|----------------|------------------------|
+| => 2.0 <= 2.2  | 1.17, 1.18             |
+| >= 2.3         | 1.18.4+, 1.19          |
+| >= 2.14        | 1.20, 1.21             |
+| >= 2.19        | 1.21, 1.22             |
+| >= 2.28        | 1.22, 1.23             |
+| >= 2.29        | 1.21, 1.22, 1.23, 1.24 |
 
 ## Documentation
 
@@ -151,8 +145,9 @@ conn.SetConnMaxLifetime(time.Hour)
 * username/password - auth credentials
 * database - select the current default database
 * dial_timeout -  a duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix such as "300ms", "1s". Valid time units are "ms", "s", "m". (default 30s)
-* connection_open_strategy - round_robin/in_order (default in_order).
-    * round_robin      - choose a round-robin server from the set
+* connection_open_strategy - random/round_robin/in_order (default in_order).
+    * random      - choose random server from the set
+    * round_robin - choose a round-robin server from the set
     * in_order    - first live server is chosen in specified order
 * debug - enable debug output (boolean value)
 * compress - compress - specify the compression algorithm - “none” (default), `zstd`, `lz4`, `gzip`, `deflate`, `br`. If set to `true`, `lz4` will be used.
@@ -165,6 +160,7 @@ conn.SetConnMaxLifetime(time.Hour)
 * read_timeout - a duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix such as "300ms", "1s". Valid time units are "ms", "s", "m" (default 5m).
 * max_compression_buffer - max size (bytes) of compression buffer during column by column compression (default 10MiB)
 * client_info_product - optional list (comma separated) of product name and version pair separated with `/`. This value will be pass a part of client info. e.g. `client_info_product=my_app/1.0,my_module/0.1` More details in [Client info](#client-info) section.
+* http_proxy - HTTP proxy address
 
 SSL/TLS parameters:
 
@@ -178,6 +174,8 @@ clickhouse://username:password@host1:9000,host2:9000/database?dial_timeout=200ms
 ```
 
 ### HTTP Support (Experimental)
+
+**Note**: using HTTP protocol is possible only with `database/sql` interface.
 
 The native format can be used over the HTTP protocol. This is useful in scenarios where users need to proxy traffic e.g. using [ChProxy](https://www.chproxy.org/) or via load balancers.
 
@@ -208,7 +206,19 @@ conn := clickhouse.OpenDB(&clickhouse.Options{
 })
 ```
 
-**Note**: using HTTP protocol is possible only with `database/sql` interface.
+#### Proxy support
+
+HTTP proxy can be set in the DSN string by specifying the `http_proxy` parameter.
+(make sure to URL encode the proxy address)
+
+```sh
+http://host1:8123,host2:8123/database?dial_timeout=200ms&max_execution_time=60&http_proxy=http%3A%2F%2Fproxy%3A8080
+```
+
+If you are using `clickhouse.OpenDB`, set the `HTTProxy` field in the `clickhouse.Options`.
+
+An alternative way is to enable proxy by setting the `HTTP_PROXY` (for HTTP) or `HTTPS_PROXY` (for HTTPS) environment variables.
+See more details in the [Go documentation](https://pkg.go.dev/net/http#ProxyFromEnvironment).
 
 ## Compression
 
@@ -319,7 +329,7 @@ go get -u github.com/ClickHouse/clickhouse-go/v2
 * [batch struct](examples/clickhouse_api/append_struct.go)
 * [columnar](examples/clickhouse_api/columnar_insert.go)
 * [scan struct](examples/clickhouse_api/scan_struct.go)
-* [query parameters](examples/clickhouse_api/query_parameters.go) (deprecated in favour of native query parameters)
+* [query parameters](examples/clickhouse_api/query_parameters.go)
 * [bind params](examples/clickhouse_api/bind.go) (deprecated in favour of native query parameters)
 * [client info](examples/clickhouse_api/client_info.go)
 
@@ -331,6 +341,10 @@ go get -u github.com/ClickHouse/clickhouse-go/v2
 * [query parameters](examples/std/query_parameters.go)
 * [bind params](examples/std/bind.go) (deprecated in favour of native query parameters)
 * [client info](examples/std/client_info.go)
+
+## Third-party libraries
+
+* [clickhouse-go-rows-utils](https://github.com/EpicStep/clickhouse-go-rows-utils) - utilities that simplify working with rows.
 
 ## ClickHouse alternatives - ch-go
 

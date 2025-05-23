@@ -192,6 +192,11 @@ func appendNullableRowPlain[T any](col *Array, arr []*T) error {
 func (col *Array) append(elem reflect.Value, level int) error {
 	if level < col.depth {
 		switch elem.Kind() {
+		// allows to traverse pointers to slices and slices cast to `any`
+		case reflect.Interface, reflect.Ptr:
+			if !elem.IsNil() {
+				return col.append(elem.Elem(), level)
+			}
 		// reflect.Value.Len() & reflect.Value.Index() is called in `append` method which is only valid for
 		// Slice, Array and String that make sense here.
 		case reflect.Slice, reflect.Array, reflect.String:

@@ -12,6 +12,7 @@ storage:
     ca_file_path: {{ include "perforator.agent.tlsCACert" . }}
     certificate_file_path: {{ include "perforator.agent.tlsCert" . }}
     key_file_path: {{ include "perforator.agent.tlsCertKey" . }}
+    insecure_skip_verify: {{ .Values.agent.tls.insecureSkipVerify }}
 upload_scheduler:
   max_opened_binaries_queue: 20
   max_closed_binaries_queue: 1000
@@ -24,5 +25,6 @@ pods_deploy_system:
   kubernetes:
     topology_lable_key: {{ .Values.agent.config.topologyLableKey | quote }}
     api_server_host: {{ .Values.agent.config.apiServerHost | quote }}
+  labels: {{ toYaml .Values.agent.config.labels.profiles | nindent 6 }}
   pod_options:
     default: true

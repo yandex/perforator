@@ -62,6 +62,10 @@ spec:
         volumeMounts:
         - name: cache
           mountPath: /cache
+        {{- if include "perforator.s3.tlsSecretName" . }}
+        - name: s3-tls
+          mountPath: "/etc/perforator/certificates/s3"
+        {{- end }}
         - name: storage-s3-keys
           mountPath: "/etc/perforator/s3"
         - name: config
@@ -96,6 +100,11 @@ spec:
       volumes:
       - name: cache
         emptyDir: {}
+      {{- if include "perforator.s3.tlsSecretName" . }}
+      - name: s3-tls
+        secret:
+          secretName: {{ include "perforator.s3.tlsSecretName" . }}
+      {{- end }}
       - name: storage-s3-keys
         secret:
           secretName: {{ include "perforator.secretName.s3" . }}

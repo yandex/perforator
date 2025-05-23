@@ -7,6 +7,10 @@ storage:
       db: {{ .Values.databases.clickhouse.db }}
       user: {{ .Values.databases.clickhouse.user }}
       password_env: "CLICKHOUSE_PASSWORD"
+      tls:
+        enabled: {{ .Values.databases.clickhouse.tls.enabled }}
+        ca_file_path: {{ include "perforator.clickhouse.tlsCACert" . }}
+        insecure_skip_verify: {{ .Values.databases.clickhouse.tls.insecureSkipVerify }}
       insecure: {{ .Values.databases.clickhouse.insecure }}
       ca_cert_path: {{ .Values.databases.clickhouse.ca_cert_path }}
     postgres:
@@ -21,6 +25,10 @@ storage:
       endpoint: {{ include "perforator.s3.endpoint" . }}
       secret_key_path: "/etc/perforator/s3/secret_key.txt"
       access_key_path: "/etc/perforator/s3/access_key.txt"
+      tls:
+        enabled: {{ .Values.databases.s3.tls.enabled }}
+        ca_file_path: {{ include "perforator.s3.tlsCACert" . }}
+        insecure_skip_verify: {{ .Values.databases.s3.tls.insecureSkipVerify }}
       insecure: {{ .Values.databases.s3.insecure }}
       force_path_style: {{ .Values.databases.s3.force_path_style }}
       ca_cert_path: {{ .Values.databases.s3.ca_cert_path }}

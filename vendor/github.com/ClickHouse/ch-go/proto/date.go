@@ -33,6 +33,9 @@ func (d Date) String() string {
 
 // ToDate returns Date of time.Time.
 func ToDate(t time.Time) Date {
+	if t.IsZero() {
+		return 0
+	}
 	_, offset := t.Zone()
 	return Date((t.Unix() + int64(offset)) / secInDay)
 }

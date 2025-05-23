@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v2.19.1)
+VERSION(v2.26.3)
 
 SRCS(
     grpc_api_configuration.go

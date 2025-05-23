@@ -6,7 +6,7 @@
     "title": "@yatool/nots",
     "description": "Основной инструмент для жизни frontend в arcadia (tier-0).\n\nУправляет зависимостями и собирает код, запускает тесты.\n\nВ erm является внутренним инструментом, используется исключительно из `nots/bootstrap`.",
     "type": "NPM_PACKAGE",
-    "default": "0.48.0",
+    "default": "0.49.3",
     "links": {
       "Home": "https://a.yandex-team.ru/arcadia/devtools/frontend_build_platform/nots/cli",
       "Sources": "https://a.yandex-team.ru/arcadia/devtools/frontend_build_platform/nots/cli",
@@ -16,6 +16,46 @@
     "specifier": ">=0.30.4",
     "internal": true,
     "versions": {
+      "0.49.3": {
+        "add_date": "2025-05-21T13:35:45",
+        "resources": [
+          {
+            "id": 8769386409,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
+      "0.49.2": {
+        "add_date": "2025-05-19T00:08:25",
+        "resources": [
+          {
+            "id": 8744430572,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
+      "0.49.0": {
+        "add_date": "2025-04-29T20:49:38",
+        "resources": [
+          {
+            "id": 8625139708,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
+      "0.48.1": {
+        "add_date": "2025-04-23T08:31:11",
+        "resources": [
+          {
+            "id": 8572156468,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
       "0.48.0": {
         "add_date": "2025-02-28T14:21:31",
         "resources": [
@@ -1167,7 +1207,7 @@
     "title": "ESLint",
     "description": "Статический анализатор кода (линтер).\n\nОсуществляет поиск, а иногда и исправление частых ошибок.\nМожет следить за стилем кода, форматированием.\n\nРасширяем плагинами (Typescript, Prettier, Stylelint).\n\n[Подробнее про линтинг в tier-0](https://docs.yandex-team.ru/frontend-in-arcadia/index/quick-start#lint)",
     "type": "NPM_PACKAGE",
-    "default": "9.23.0",
+    "default": "9.26.0",
     "links": {
       "Home": "https://eslint.org",
       "Sources": "https://github.com/eslint/eslint",
@@ -1176,6 +1216,18 @@
     },
     "useDirectly": true,
     "versions": {
+      "9.26.0": {
+        "add_date": "2025-05-20T05:30:37",
+        "resources": []
+      },
+      "9.25.1": {
+        "add_date": "2025-05-06T05:32:53",
+        "resources": []
+      },
+      "9.24.0": {
+        "add_date": "2025-04-22T05:30:34",
+        "resources": []
+      },
       "9.23.0": {
         "add_date": "2025-04-08T05:30:43",
         "resources": []
@@ -1525,7 +1577,7 @@
     "title": "Next.js",
     "description": "Сборщик-бандлер от проекта Next.js\n\nОчень opinionated, но кому-то подходит.\n\nВ tier-0 используется в модуле/макросе [`TS_NEXT()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_NEXT).",
     "type": "NPM_PACKAGE",
-    "default": "15.2.4",
+    "default": "15.3.1",
     "links": {
       "Home": "https://nextjs.org",
       "Sources": "https://github.com/vercel/next.js",
@@ -1534,6 +1586,14 @@
     },
     "useDirectly": true,
     "versions": {
+      "15.3.1": {
+        "add_date": "2025-05-06T05:33:21",
+        "resources": []
+      },
+      "15.3.0": {
+        "add_date": "2025-04-29T05:30:52",
+        "resources": []
+      },
       "15.2.4": {
         "add_date": "2025-04-08T05:30:56",
         "resources": []
@@ -1592,6 +1652,14 @@
       },
       "15.0.0": {
         "add_date": "2024-11-05T05:31:52",
+        "resources": []
+      },
+      "14.2.28": {
+        "add_date": "2025-04-29T05:30:52",
+        "resources": []
+      },
+      "14.2.27": {
+        "add_date": "2025-04-22T05:30:47",
         "resources": []
       },
       "14.2.26": {
@@ -1812,7 +1880,7 @@
     "title": "Node.js",
     "description": "Интерпретатор JS.\n\nНаравне с pnpm является основополагающими ресурсами.\nИменно он запускается во всех процессах сборки, линтинга и тестирования под капотом у `ya tool nots`.",
     "type": "NODE_JS",
-    "default": "20.19.0",
+    "default": "20.19.1",
     "links": {
       "Home": "https://nodejs.org/",
       "Sources": "https://github.com/nodejs/node",
@@ -1821,6 +1889,31 @@
       "Release schedule": "https://github.com/nodejs/Release#release-schedule"
     },
     "versions": {
+      "24.0.0": {
+        "add_date": "2025-05-20T05:31:26",
+        "resources": [
+          {
+            "id": 8755631211,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 8755633142,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 8755635497,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 8755637336,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "23.11.0": {
         "add_date": "2025-04-15T05:33:54",
         "resources": [
@@ -2116,6 +2209,31 @@
           },
           {
             "id": 7401173821,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "22.15.0": {
+        "add_date": "2025-05-09T12:56:26",
+        "resources": [
+          {
+            "id": 8679131784,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 8679135070,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 8679137949,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 8679140167,
             "platform": "darwin",
             "arch": "arm64"
           }
@@ -2617,6 +2735,31 @@
           {
             "id": 6360057114,
             "platform": "linux",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "20.19.1": {
+        "add_date": "2025-05-09T12:52:49",
+        "resources": [
+          {
+            "id": 8679120490,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 8679122916,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 8679124734,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 8679127146,
+            "platform": "darwin",
             "arch": "arm64"
           }
         ]
@@ -3852,7 +3995,7 @@
     "title": "npm CLI",
     "description": "Стандартный пакетный менеджер Node.js\n\nВ erm является внутренним инструментом: используется в `pnpm` при публикации пакетов.",
     "type": "NPM_PACKAGE",
-    "default": "11.2.0",
+    "default": "11.3.0",
     "links": {
       "Home": "https://www.npmjs.com/",
       "Sources": "https://github.com/npm/cli",
@@ -3862,6 +4005,16 @@
     "specifier": ">=10.1.0",
     "internal": true,
     "versions": {
+      "11.3.0": {
+        "add_date": "2025-04-29T05:31:33",
+        "resources": [
+          {
+            "id": 8618982601,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
       "11.2.0": {
         "add_date": "2025-03-25T05:34:08",
         "resources": [
@@ -4153,7 +4306,7 @@
   "playwright": {
     "description": "Раннер для тестов Playwright, позволяет выполнять end-to-end тесты с учётом специфики различных браузеров и устройств",
     "type": "NPM_PACKAGE",
-    "default": "1.51.1",
+    "default": "1.52.0",
     "links": {
       "Home": "https://playwright.dev/",
       "Sources": "https://github.com/microsoft/playwright",
@@ -4163,6 +4316,10 @@
     "specifier": ">=1.41.2",
     "useDirectly": true,
     "versions": {
+      "1.52.0": {
+        "add_date": "2025-05-06T05:41:00",
+        "resources": []
+      },
       "1.51.1": {
         "add_date": "2025-04-01T05:38:53",
         "resources": []
@@ -4536,7 +4693,7 @@
     "title": "Stylelint",
     "description": "Инструмент для линтинга файлов стилей.\n\nИспользуется в макросе [TS_STYLELINT()](https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-stylelint).",
     "type": "NPM_PACKAGE",
-    "default": "16.17.0",
+    "default": "16.19.1",
     "links": {
       "Home": "https://stylelint.io/",
       "Sources": "https://github.com/stylelint/stylelint",
@@ -4546,6 +4703,18 @@
     },
     "useDirectly": true,
     "versions": {
+      "16.19.1": {
+        "add_date": "2025-05-13T05:32:08",
+        "resources": []
+      },
+      "16.19.0": {
+        "add_date": "2025-05-09T12:59:51",
+        "resources": []
+      },
+      "16.18.0": {
+        "add_date": "2025-04-22T05:31:02",
+        "resources": []
+      },
       "16.17.0": {
         "add_date": "2025-04-15T05:36:10",
         "resources": []
@@ -4660,7 +4829,7 @@
     "title": "TypeScript",
     "description": "Официальная реализация языка TypeScript\n\nВ проекте используется только `tsc` - компилятор/траспиллер TS в JS.\nТакже ожидается наличие `tsconfig.json` на проекте.\n\nВ tier-0 используется напрямую в модуле/макросе [`TS_TSC()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_TSC).\nНо опосредованно может использоваться и в других макросах.",
     "type": "NPM_PACKAGE",
-    "default": "5.8.2",
+    "default": "5.8.3",
     "links": {
       "Home": "https://www.typescriptlang.org",
       "Sources": "https://github.com/microsoft/TypeScript/",
@@ -4672,6 +4841,10 @@
     "useDirectly": true,
     "defaultBinName": "tsc",
     "versions": {
+      "5.8.3": {
+        "add_date": "2025-04-22T05:31:11",
+        "resources": []
+      },
       "5.8.2": {
         "add_date": "2025-03-18T05:35:21",
         "resources": []
@@ -4758,7 +4931,7 @@
     "title": "Vite",
     "description": "Современный сборщик frontend проектов\n\nПод капотом используется более низкоуровневый сборщик [rollup](https://rollupjs.org/).\n\nДля транспиляции TypeScript может использовать нативные способы: [esbuild](https://esbuild.github.io/), [SWC](https://swc.rs/)\n\nПоэтому, если требуется использовать `rollup` или `esbuild`/`SWC` на проекте - то `vite` - ваш выбор.\n\nВ tier-0 используется в модуле/макросе [`TS_VITE()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_VITE).",
     "type": "NPM_PACKAGE",
-    "default": "6.2.4",
+    "default": "6.3.5",
     "links": {
       "Home": "https://vitejs.dev/",
       "Sources": "https://github.com/vitejs/vite/tree/main",
@@ -4768,6 +4941,26 @@
     },
     "useDirectly": true,
     "versions": {
+      "6.3.5": {
+        "add_date": "2025-05-20T05:34:12",
+        "resources": []
+      },
+      "6.3.3": {
+        "add_date": "2025-05-09T13:00:08",
+        "resources": []
+      },
+      "6.3.2": {
+        "add_date": "2025-05-06T05:41:28",
+        "resources": []
+      },
+      "6.2.6": {
+        "add_date": "2025-04-29T05:31:49",
+        "resources": []
+      },
+      "6.2.5": {
+        "add_date": "2025-04-22T05:31:21",
+        "resources": []
+      },
       "6.2.4": {
         "add_date": "2025-04-15T05:36:22",
         "resources": []
@@ -4822,6 +5015,18 @@
       },
       "6.0.2": {
         "add_date": "2024-12-17T05:43:59",
+        "resources": []
+      },
+      "5.4.19": {
+        "add_date": "2025-05-20T05:34:12",
+        "resources": []
+      },
+      "5.4.18": {
+        "add_date": "2025-04-29T05:31:49",
+        "resources": []
+      },
+      "5.4.17": {
+        "add_date": "2025-04-22T05:31:21",
         "resources": []
       },
       "5.4.16": {
@@ -4980,6 +5185,18 @@
         "add_date": "2023-11-30T13:43:58",
         "resources": []
       },
+      "4.5.14": {
+        "add_date": "2025-05-20T05:34:12",
+        "resources": []
+      },
+      "4.5.13": {
+        "add_date": "2025-04-29T05:31:49",
+        "resources": []
+      },
+      "4.5.12": {
+        "add_date": "2025-04-22T05:31:21",
+        "resources": []
+      },
       "4.5.11": {
         "add_date": "2025-04-15T05:36:22",
         "resources": []
@@ -5034,7 +5251,7 @@
     "title": "webpack",
     "description": "Классический сборщик frontend проектов\n\nВ tier-0 используется в модуле/макросе [`TS_WEBPACK()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_WEBPACK).",
     "type": "NPM_PACKAGE",
-    "default": "5.98.0",
+    "default": "5.99.7",
     "links": {
       "Home": "https://webpack.js.org",
       "Sources": "https://github.com/webpack/webpack",
@@ -5044,6 +5261,22 @@
     },
     "useDirectly": true,
     "versions": {
+      "5.99.7": {
+        "add_date": "2025-05-13T05:32:48",
+        "resources": []
+      },
+      "5.99.6": {
+        "add_date": "2025-05-06T05:41:41",
+        "resources": []
+      },
+      "5.99.5": {
+        "add_date": "2025-04-29T05:31:56",
+        "resources": []
+      },
+      "5.99.1": {
+        "add_date": "2025-04-22T05:31:29",
+        "resources": []
+      },
       "5.98.0": {
         "add_date": "2025-03-04T05:34:58",
         "resources": []

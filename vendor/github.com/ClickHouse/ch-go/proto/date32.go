@@ -25,6 +25,9 @@ func (d Date32) String() string {
 
 // ToDate32 returns Date32 of time.Time.
 func ToDate32(t time.Time) Date32 {
+	if t.IsZero() {
+		return 0
+	}
 	_, offset := t.Zone()
 	return Date32((t.Unix() + int64(offset)) / secInDay)
 }

@@ -2,10 +2,12 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.18.0)
+VERSION(v2.33.1)
 
 SRCS(
+    batch.go
     bind.go
+    chcol.go
     clickhouse.go
     clickhouse_options.go
     clickhouse_rows.go

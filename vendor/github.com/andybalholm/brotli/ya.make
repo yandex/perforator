@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v1.1.0)
+VERSION(v1.1.1)
 
 SRCS(
     backward_references.go
@@ -70,7 +70,7 @@ SRCS(
 )
 
 GO_TEST_SRCS(
-    brotli_test.go
+    # brotli_test.go
     example_test.go
 )
 

@@ -18,6 +18,7 @@ export const Profile: React.FC<ProfileProps> = () => {
     const [searchParams] = useSearchParams();
     const timestamp = Number(searchParams.get('timestamp') ?? 0);
     const eventType = searchParams.get('event_type');
+    const serviceName = searchParams.get('service');
 
 
     React.useEffect(() => {
@@ -27,7 +28,7 @@ export const Profile: React.FC<ProfileProps> = () => {
         const query: ProfileTaskQuery = {
             from: new Date(timestamp - 1).toISOString(),
             to: new Date(timestamp + 1).toISOString(),
-            selector: `{id = "${profileId!}", event_type = "${eventType}"}`,
+            selector: `{id = "${profileId!}", event_type = "${eventType}", service="${serviceName}"}`,
             maxProfiles: 1,
         };
 

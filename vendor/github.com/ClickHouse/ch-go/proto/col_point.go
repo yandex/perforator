@@ -61,3 +61,8 @@ func (c ColPoint) EncodeColumn(b *Buffer) {
 	c.X.EncodeColumn(b)
 	c.Y.EncodeColumn(b)
 }
+
+func (c ColPoint) WriteColumn(w *Writer) {
+	c.X.WriteColumn(w)
+	c.Y.WriteColumn(w)
+}

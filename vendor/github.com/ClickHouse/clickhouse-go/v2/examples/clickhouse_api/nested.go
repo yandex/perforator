@@ -20,8 +20,9 @@ package clickhouse_api
 import (
 	"context"
 	"fmt"
-	"github.com/ClickHouse/clickhouse-go/v2"
 	"strconv"
+
+	"github.com/ClickHouse/clickhouse-go/v2"
 )
 
 func NestedUnFlattened() error {
@@ -109,13 +110,15 @@ func NestedUnFlattened() error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		if err := rows.Scan(&col1, &col2); err != nil {
 			return err
 		}
 		fmt.Printf("row: col1=%v, col2=%v\n", col1, col2)
 	}
-	rows.Close()
+
 	return rows.Err()
 }
 

@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,8 +12,6 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/pkg/certifi"
@@ -111,14 +109,6 @@ type TvmConfig struct {
 	CacheDir         string `yaml:"cache_dir"`
 }
 
-type TLSConfig struct {
-	Enabled               bool   `yaml:"enabled"`
-	CAFile                string `yaml:"ca_file_path"`
-	ClientCertificateFile string `yaml:"certificate_file_path"`
-	ClientKeyFile         string `yaml:"key_file_path"`
-	ServerNameOverride    string `yaml:"server_name_override,omitempty"`
-}
-
 type GRPCConfig struct {
 	MaxSendMessageSize uint32 `yaml:"max_send_message_size"`
 }
@@ -141,18 +131,92 @@ func (t *Timeouts) fillDefault() {
 	}
 }
 
+// RetryConfig defines settings for gRPC retry policy for client
+type RetryConfig struct {
+	MaxAttempts          int           `yaml:"max_attempts"`
+	InitialBackoff       time.Duration `yaml:"initial_backoff"`
+	MaxBackoff           time.Duration `yaml:"max_backoff"`
+	BackoffMultiplier    float64       `yaml:"backoff_multiplier"`
+	RetryableStatusCodes []string      `yaml:"retryable_status_codes"`
+}
+
+func (r *RetryConfig) fillDefault() {
+	if r.MaxAttempts == 0 {
+		r.MaxAttempts = 5
+	}
+	if r.InitialBackoff == time.Duration(0) {
+		r.InitialBackoff = 200 * time.Millisecond
+	}
+	if r.MaxBackoff == time.Duration(0) {
+		r.MaxBackoff = 5 * time.Second
+	}
+	if r.BackoffMultiplier == 0 {
+		r.BackoffMultiplier = 2
+	}
+	if len(r.RetryableStatusCodes) == 0 {
+		r.RetryableStatusCodes = []string{"CANCELLED", "UNKNOWN", "RESOURCE_EXHAUSTED", "INTERNAL", "UNAVAILABLE"}
+	}
+}
+
+// The gRPC service config only accepts time values in seconds format.
+// See: https://github.com/grpc/grpc-go/blob/master/examples/features/retry/client/main.go#L42
+func formatDurationForGRPC(d time.Duration) string {
+	return fmt.Sprintf("%.6fs", d.Seconds())
+}
+
+// setupRetryPolicy creates a gRPC dial option with the specified retry policy
+// See:
+// https://github.com/grpc/grpc/blob/master/doc/service_config.md
+// https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto
+func setupRetryPolicy(retryConfig RetryConfig) ([]grpc.DialOption, error) {
+	serviceConfig := map[string]interface{}{
+		"methodConfig": []map[string]interface{}{
+			{
+				"name": []map[string]interface{}{
+					{"service": "NPerforator.NProto.PerforatorStorage"},
+				},
+				"retryPolicy": map[string]interface{}{
+					"maxAttempts":          int(retryConfig.MaxAttempts),
+					"initialBackoff":       formatDurationForGRPC(retryConfig.InitialBackoff),
+					"maxBackoff":           formatDurationForGRPC(retryConfig.MaxBackoff),
+					"backoffMultiplier":    retryConfig.BackoffMultiplier,
+					"retryableStatusCodes": retryConfig.RetryableStatusCodes,
+				},
+			},
+		},
+	}
+
+	serviceConfigJSON, err := json.Marshal(serviceConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithDefaultServiceConfig(string(serviceConfigJSON)))
+	// Both maxAttempts fields must be specified. See: https://github.com/grpc/grpc-go/blob/v1.65.0/service_config.go#L284-L286
+	opts = append(opts, grpc.WithMaxCallAttempts(retryConfig.MaxAttempts))
+
+	return opts, nil
+}
+
 type Config struct {
 	TvmConfig          *TvmConfig                            `yaml:"tvm"`
-	TLS                TLSConfig                             `yaml:"tls"`
+	TLS                certifi.ClientTLSConfig               `yaml:"tls"`
 	GRPCConfig         GRPCConfig                            `yaml:"grpc,omitempty"`
 	EndpointSet        endpointsetresolver.EndpointSetConfig `yaml:"endpoint_set,omitempty"`
 	Host               string                                `yaml:"host,omitempty"`
 	Port               uint32                                `yaml:"port,omitempty"`
 	ProfileCompression string                                `yaml:"profile_compression,omitempty"`
 	RPCTimeouts        Timeouts                              `yaml:"timeouts"`
+	Retry              RetryConfig                           `yaml:"retry,omitempty"`
 
 	CertificateNameDeprecated string `yaml:"name,omitempty"`
 	CACertPathDeprecated      string `yaml:"ca_cert_path,omitempty"`
+}
+
+func (c *Config) fillDefault() {
+	c.RPCTimeouts.fillDefault()
+	c.Retry.fillDefault()
 }
 
 type Client struct {
@@ -167,6 +231,7 @@ type Client struct {
 
 func NewStorageClient(conf *Config, l xlog.Logger) (*Client, error) {
 	l = l.WithName("storage.Client")
+	conf.fillDefault()
 
 	if conf.Host == "" && conf.EndpointSet.ID == "" {
 		return nil, errors.New("endpointset or host must be specified")
@@ -189,33 +254,17 @@ func NewStorageClient(conf *Config, l xlog.Logger) (*Client, error) {
 
 	var opts []grpc.DialOption
 
-	if conf.TLS.Enabled {
-		caCertPool, err := certifi.CertPoolFromFile(conf.TLS.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create CA certificate pool: %w", err)
-		}
-
-		tlsConf := &tls.Config{
-			RootCAs: caCertPool,
-		}
-
-		if conf.TLS.ClientCertificateFile != "" && conf.TLS.ClientKeyFile != "" {
-			cert, err := tls.LoadX509KeyPair(conf.TLS.ClientCertificateFile, conf.TLS.ClientKeyFile)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load server key pair: %w", err)
-			}
-			tlsConf.Certificates = []tls.Certificate{cert}
-		}
-
-		if conf.TLS.ServerNameOverride != "" {
-			tlsConf.ServerName = conf.TLS.ServerNameOverride
-		}
-
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConf)))
-
-	} else {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	retryOpt, err := setupRetryPolicy(conf.Retry)
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure retry policy: %w", err)
 	}
+	opts = append(opts, retryOpt...)
+
+	tlsOpts, err := conf.TLS.GRPCDialOptions()
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure TLS: %w", err)
+	}
+	opts = append(opts, tlsOpts...)
 
 	opts = append(opts,
 		grpc.WithDefaultCallOptions(
@@ -241,16 +290,13 @@ func NewStorageClient(conf *Config, l xlog.Logger) (*Client, error) {
 		opts = append(opts, resolverOpts...)
 	}
 
-	conn, err := grpc.Dial(target, opts...)
+	conn, err := grpc.NewClient(target, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	configCopy := *conf
-	configCopy.RPCTimeouts.fillDefault()
-
 	return &Client{
-		conf:             configCopy,
+		conf:             *conf,
 		compressionFunc:  compressFunc,
 		compressionCodec: conf.ProfileCompression,
 		creds:            creds,

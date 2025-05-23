@@ -19,6 +19,8 @@ type Config struct {
 	ServicesOffset        uint64        `yaml:"services_offset"`
 	MaxSamplesToMerge     uint32        `yaml:"max_samples_to_merge"`
 
+	Timeout time.Duration `yaml:"timeout"`
+
 	ServicesCheckingConcurrency      int           `yaml:"services_checking_concurrency"`
 	SleepAfterFailedServicesChecking time.Duration `yaml:"sleep_after_failed_services_checking"`
 
@@ -44,6 +46,10 @@ func (c *Config) fillDefault() {
 	}
 	if c.Client.MaxReceiveMessageSize == 0 {
 		c.Client.MaxReceiveMessageSize = 100 * 1024 * 1024 // 100M
+	}
+
+	if c.Timeout == time.Duration(0) {
+		c.Timeout = time.Minute
 	}
 
 	if c.Tracing == nil {

@@ -4,6 +4,7 @@ SRCS(
     fetch.go
     list.go
     microscope.go
+    profile.go
     root.go
     sink.go
     symbolize.go

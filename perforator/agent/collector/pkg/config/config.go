@@ -177,7 +177,7 @@ func (c *Config) FillDefault() {
 		c.BPF.Debug = c.Debug
 	}
 
-	if (c.BPF.TraceSignals == nil || !*c.BPF.TraceSignals) && len(c.PerfEvents) == 0 {
+	if (c.BPF.TraceSignals == nil || !*c.BPF.TraceSignals) && len(c.PerfEvents) == 0 && len(c.BPF.Uprobes) == 0 {
 		c.PerfEvents = []PerfEventConfig{{
 			Type:      perfevent.CPUCycles,
 			Frequency: ptr.Uint64(99),

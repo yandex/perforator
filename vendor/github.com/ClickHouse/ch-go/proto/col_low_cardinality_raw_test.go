@@ -60,6 +60,7 @@ func TestColLowCardinalityRaw_DecodeColumn(t *testing.T) {
 			}
 			requireNoShortRead(t, buf.Buf, colAware(dec, rows))
 		})
+		t.Run("WriteColumn", checkWriteColumn(col))
 	})
 	t.Run("Blank", func(t *testing.T) {
 		// Blank columns (i.e. row count is zero) are not encoded.

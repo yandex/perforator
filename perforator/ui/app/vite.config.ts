@@ -8,7 +8,7 @@ import { setupVite } from './src/vite/setup';
 
 export default defineConfig(({ command }): UserConfig => {
     const uiHost = process.env.PERFORATOR_UI_HOST || '0.0.0.0';
-    const uiPort = process.env.PERFORATOR_UI_PORT || 1984;
+    const uiPort = Number(process.env.PERFORATOR_UI_PORT || 1984);
     const uiUrl = `http://${uiHost}:${uiPort}`;
 
     const viteSettings = setupVite(command);
@@ -48,6 +48,7 @@ export default defineConfig(({ command }): UserConfig => {
                     changeOrigin: true,
                 },
             },
+            ...(viteSettings.https ? { https: viteSettings.https } : {}),
         },
     };
 });

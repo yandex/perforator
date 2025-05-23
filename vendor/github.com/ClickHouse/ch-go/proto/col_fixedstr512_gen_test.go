@@ -66,6 +66,7 @@ func TestColFixedStr512_DecodeColumn(t *testing.T) {
 		var v ColFixedStr512
 		v.EncodeColumn(nil) // should be no-op
 	})
+	t.Run("WriteColumn", checkWriteColumn(data))
 }
 func TestColFixedStr512Array(t *testing.T) {
 	const rows = 50

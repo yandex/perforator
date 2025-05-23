@@ -367,6 +367,10 @@ type MergeProfilesRequest struct {
 	Format     *RenderFormat
 }
 
+func (c *Client) GetProfileByURL(profileURL string) ([]byte, error) {
+	return c.fetchResult(nil, profileURL, false)
+}
+
 func (c *Client) fetchResult(profileBytes []byte, profileURL string, asURL bool) ([]byte, error) {
 	buf := profileBytes
 	if profileURL != "" {

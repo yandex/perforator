@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/yandex/perforator/perforator/pkg/certifi"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope/filter"
 )
@@ -14,24 +15,13 @@ type TvmAuth struct {
 	SecretEnvName string `yaml:"secret_env"`
 }
 
-type TLSConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	ClientCAFile    string `yaml:"ca_file_path"`
-	CertificateFile string `yaml:"certificate_file_path"`
-	KeyFile         string `yaml:"key_file_path"`
-	VerifyClient    bool   `yaml:"verify_client"`
-
-	CertificateFileDeprecated string `yaml:"certificate_file"`
-	KeyFileDeprecated         string `yaml:"key_file"`
-}
-
 type Config struct {
-	Port                   uint32         `yaml:"port"`
-	MetricsPort            uint32         `yaml:"metrics_port"`
-	StorageConfig          bundle.Config  `yaml:"storage"`
-	TvmAuth                *TvmAuth       `yaml:"tvm"`
-	TLS                    TLSConfig      `yaml:"tls"`
-	MicroscopePullerConfig *filter.Config `yaml:"microscope_puller"`
+	Port                   uint32                  `yaml:"port"`
+	MetricsPort            uint32                  `yaml:"metrics_port"`
+	StorageConfig          bundle.Config           `yaml:"storage"`
+	TvmAuth                *TvmAuth                `yaml:"tvm"`
+	TLS                    certifi.ServerTLSConfig `yaml:"tls"`
+	MicroscopePullerConfig *filter.Config          `yaml:"microscope_puller"`
 }
 
 func ParseConfig(path string, strict bool) (conf *Config, err error) {
@@ -51,12 +41,11 @@ func ParseConfig(path string, strict bool) (conf *Config, err error) {
 }
 
 func (c *Config) FillDefault() {
-
 	// TLS backward compatibility.
 	// Previously, agent communicated with storage via only TLS, so you need to enable tls if these values ​​are present.
 	if c.TLS.CertificateFileDeprecated != "" {
 		c.TLS.Enabled = true
-		c.TLS.CertificateFile = c.TLS.CertificateFileDeprecated
+		c.TLS.CertFile = c.TLS.CertificateFileDeprecated
 	}
 
 	if c.TLS.KeyFileDeprecated != "" {

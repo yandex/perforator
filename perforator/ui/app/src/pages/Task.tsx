@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useParams } from 'react-router-dom';
 
-import { TaskCard } from 'src/components/TaskCard/TaskCard';
+import { TaskCard as RawTaskCard } from 'src/components/TaskCard/TaskCard';
 import { TaskReport } from 'src/components/TaskReport/TaskReport';
 import type { TaskResult } from 'src/models/Task';
 import { TaskState } from 'src/models/Task';
@@ -12,6 +12,8 @@ import type { Page } from './Page';
 
 
 const POLLING_PERIOD = 1000;  // 1s
+
+const TaskCard = React.memo(RawTaskCard);
 
 export const Task: Page = props => {
     const pollingInterval = React.useRef<number | undefined>(undefined);

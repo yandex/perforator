@@ -1,6 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
+    tlsconfig.go
     utils.go
 )
 

@@ -43,3 +43,18 @@ func (c ColFixedStr256) EncodeColumn(b *Buffer) {
 	dst := b.Buf[offset:]
 	copy(dst, src)
 }
+
+func (c ColFixedStr256) WriteColumn(w *Writer) {
+	v := c
+	if len(v) == 0 {
+		return
+	}
+	const size = 256
+
+	s := *(*slice)(unsafe.Pointer(&v))
+	s.Len *= size
+	s.Cap *= size
+
+	src := *(*[]byte)(unsafe.Pointer(&s))
+	w.ChainWrite(src)
+}

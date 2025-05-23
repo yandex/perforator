@@ -3,6 +3,7 @@ RECURSE(
     elf
     llvmex
     permutation
+    php
     profile
     pthread
     python

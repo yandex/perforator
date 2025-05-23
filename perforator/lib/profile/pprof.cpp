@@ -260,6 +260,7 @@ public:
         ConvertLocations();
         ConvertComments();
         ConvertSamples();
+        std::move(Builder_).Finish();
     }
 
 private:
@@ -392,28 +393,49 @@ private:
     }
 
     void ConvertSampleStack(TProfileBuilder::TSampleKeyBuilder& builder, const NProto::NPProf::Sample& sample) {
-        auto kstack = Builder_.AddStack();
-        auto ustack = Builder_.AddStack();
+        auto kernelStack = Builder_
+            .AddStack()
+            .SetKind(NProto::NProfile::StackKind::Kernelspace);
+
+        auto userStack = Builder_
+            .AddStack()
+            .SetKind(NProto::NProfile::StackKind::Userspace);
+
+        // Python needs special treatment here. We began to support multiple
+        // stacks in the old pprof format for Python (the first interpreted
+        // language we supported), but we implemented a rather unsatisfactory
+        // workaround by storing Python frames immediately after the main stack.
+        // Therefore, Python was treated differently due to historical reasons
+        // in order to preserve backward compatibility.
+        TMaybe<TProfileBuilder::TStackBuilder> pythonStack;
 
         bool insideKernel = true;
         for (ui64 location : sample.location_id()) {
-            auto frame = LocationMapping_.GetNewIndex(location);
+            TStackFrameId frame = LocationMapping_.GetNewIndex(location);
 
             if (OldPythonLocationIds_.Contains(location)) {
-                continue;
-            }
-
-            if (OldKernelLocationIds_.Contains(location)) {
+                if (!pythonStack) {
+                    pythonStack.ConstructInPlace(Builder_
+                        .AddStack()
+                        .SetKind(NProto::NProfile::StackKind::Other)
+                        .SetRuntimeName(Builder_.AddString("python"))
+                    );
+                }
+                pythonStack->AddStackFrame(frame);
+            } else if (OldKernelLocationIds_.Contains(location)) {
                 Y_ENSURE(insideKernel, "Unexpected mixed userspace & kernelspace stack");
-                kstack.AddStackFrame(frame);
+                kernelStack.AddStackFrame(frame);
             } else {
                 insideKernel = false;
-                ustack.AddStackFrame(frame);
+                userStack.AddStackFrame(frame);
             }
         }
 
-        builder.SetKernelStack(kstack.Finish());
-        builder.SetUserStack(ustack.Finish());
+        builder.AddStack(kernelStack.Finish());
+        builder.AddStack(userStack.Finish());
+        if (pythonStack) {
+            builder.AddStack(pythonStack->Finish());
+        }
     }
 
     ESpecialMappingKind ClassifySpecialMapping(ui64 oldLocation) const {
@@ -648,12 +670,53 @@ private:
             }
 
             // Fill Sample.stack
-            ConvertSampleStack(oldSample, newSample.GetKey().GetKernelStack());
-            ConvertSampleStack(oldSample, newSample.GetKey().GetUserStack());
+            IterateSampleStacks(newSample.GetKey(), [&, this](const TStack& stack) {
+                ConvertSampleStack(oldSample, stack);
+            });
 
             // Fill Sample.labels
             ConvertSampleThreadInfo(oldSample, newSample.GetKey().GetThread());
             ConvertSampleLabels(oldSample, newSample.GetKey());
+        }
+    }
+
+    // This function is a bit complex. We try to restore the natural order of stacks.
+    void IterateSampleStacks(const TSampleKey& key, TFunctionRef<void(const TStack& stack)> consumer) {
+        TMaybe<i32> kstackId;
+        TMaybe<i32> ustackId;
+
+        for (i32 i = 0; i < key.GetStackCount(); ++i) {
+            auto&& stack = key.GetStack(i);
+            switch (stack.GetStackKind()) {
+            case NPerforator::NProto::NProfile::StackKind::Userspace:
+                Y_ENSURE(ustackId.Empty(), "Multiple userspace stacks in one sample are not supported");
+                ustackId = i;
+                break;
+
+            case NPerforator::NProto::NProfile::StackKind::Kernelspace:
+                Y_ENSURE(kstackId.Empty(), "Multiple kernelspace stacks in one sample are not supported");
+                kstackId = i;
+                break;
+
+            case NPerforator::NProto::NProfile::StackKind::Other:
+                break;
+
+            default:
+                Y_ENSURE(false, "Unsupported stack kind " << StackKind_Name(stack.GetStackKind()));
+            }
+        }
+
+        if (kstackId) {
+            consumer(key.GetStack(*kstackId));
+        }
+        if (ustackId) {
+            consumer(key.GetStack(*ustackId));
+        }
+        for (i32 i = 0; i < key.GetStackCount(); ++i) {
+            auto&& stack = key.GetStack(i);
+            if (stack.GetStackKind() == NPerforator::NProto::NProfile::StackKind::Other) {
+                consumer(stack);
+            }
         }
     }
 

@@ -1,6 +1,8 @@
 import React from 'react';
 
 import { parseFromWebStream } from '@discoveryjs/json-ext';
+import type { QueryKeys } from '@perforator/flamegraph';
+import { prerenderColors as prerenderColorsOriginal } from '@perforator/flamegraph';
 
 import { useThemeType } from '@gravity-ui/uikit';
 
@@ -11,8 +13,6 @@ import { useUserSettings } from 'src/providers/UserSettingsProvider/UserSettings
 import { withMeasureTime } from 'src/utils/logging';
 
 import { useTypedQuery } from '../Flamegraph/query-utils';
-import type { QueryKeys } from '../Flamegraph/renderer';
-import { prerenderColors as prerenderColorsOriginal } from '../Flamegraph/utils/colors';
 import { Visualisation } from '../Visualisation/Visualisation';
 
 

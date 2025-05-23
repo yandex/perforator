@@ -167,3 +167,9 @@ func (c ColTuple) EncodeColumn(b *Buffer) {
 		v.EncodeColumn(b)
 	}
 }
+
+func (c ColTuple) WriteColumn(w *Writer) {
+	for _, v := range c {
+		v.WriteColumn(w)
+	}
+}

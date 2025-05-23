@@ -86,6 +86,11 @@ func (c *ColFixedStr) DecodeColumn(r *Reader, rows int) error {
 	return nil
 }
 
+// WriteColumn writes ColFixedStr rows to *Writer.
+func (c ColFixedStr) WriteColumn(w *Writer) {
+	w.ChainWrite(c.Buf)
+}
+
 // Array returns new Array(FixedString).
 func (c *ColFixedStr) Array() *ColArr[[]byte] {
 	return &ColArr[[]byte]{

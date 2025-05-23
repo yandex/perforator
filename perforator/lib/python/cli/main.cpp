@@ -61,4 +61,13 @@ int main(int argc, const char* argv[]) {
     } else {
         Cout << "Found `interp_head` address: " << *interpHeadAddress << Endl;
     }
+
+    auto unicodeTypeSize = analyzer.ParseUnicodeType();
+    if (unicodeTypeSize == NPerforator::NLinguist::NPython::EUnicodeType::UCS2) {
+        Cout << "Found UCS2 unicode type" << Endl;
+    } else if (unicodeTypeSize == NPerforator::NLinguist::NPython::EUnicodeType::UCS4) {
+        Cout << "Found UCS4 unicode type" << Endl;
+    } else {
+        Cout << "Found no unicode type size" << Endl;
+    }
 }

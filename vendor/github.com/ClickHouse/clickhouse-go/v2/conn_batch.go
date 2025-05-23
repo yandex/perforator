@@ -22,7 +22,8 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strings"
+	"slices"
+	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -32,27 +33,15 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 )
 
-var splitInsertRe = regexp.MustCompile(`(?i)\sVALUES\s*\(`)
+var insertMatch = regexp.MustCompile(`(?i)(INSERT\s+INTO\s+[^( ]+(?:\s*\([^()]*(?:\([^()]*\)[^()]*)*\))?)(?:\s*VALUES)?`)
 var columnMatch = regexp.MustCompile(`INSERT INTO .+\s\((?P<Columns>.+)\)$`)
 
 func (c *connect) prepareBatch(ctx context.Context, query string, opts driver.PrepareBatchOptions, release func(*connect, error), acquire func(context.Context) (*connect, error)) (driver.Batch, error) {
-	//defer func() {
-	//	if err := recover(); err != nil {
-	//		fmt.Printf("panic occurred on %d:\n", c.num)
-	//	}
-	//}()
-	query = splitInsertRe.Split(query, -1)[0]
-	colMatch := columnMatch.FindStringSubmatch(query)
-	var columns []string
-	if len(colMatch) == 2 {
-		columns = strings.Split(colMatch[1], ",")
-		for i := range columns {
-			columns[i] = strings.Trim(strings.TrimSpace(columns[i]), "`\"")
-		}
+	query, _, queryColumns, verr := extractNormalizedInsertQueryAndColumns(query)
+	if verr != nil {
+		return nil, verr
 	}
-	if !strings.HasSuffix(strings.TrimSpace(strings.ToUpper(query)), "VALUES") {
-		query += " VALUES"
-	}
+
 	options := queryOptions(ctx)
 	if deadline, ok := ctx.Deadline(); ok {
 		c.conn.SetDeadline(deadline)
@@ -71,19 +60,20 @@ func (c *connect) prepareBatch(ctx context.Context, query string, opts driver.Pr
 		return nil, err
 	}
 	// resort batch to specified columns
-	if err = block.SortColumns(columns); err != nil {
+	if err = block.SortColumns(queryColumns); err != nil {
 		return nil, err
 	}
 
 	b := &batch{
-		ctx:         ctx,
-		query:       query,
-		conn:        c,
-		block:       block,
-		released:    false,
-		connRelease: release,
-		connAcquire: acquire,
-		onProcess:   onProcess,
+		ctx:          ctx,
+		query:        query,
+		conn:         c,
+		block:        block,
+		released:     false,
+		connRelease:  release,
+		connAcquire:  acquire,
+		onProcess:    onProcess,
+		closeOnFlush: opts.CloseOnFlush,
 	}
 
 	if opts.ReleaseConnection {
@@ -94,16 +84,17 @@ func (c *connect) prepareBatch(ctx context.Context, query string, opts driver.Pr
 }
 
 type batch struct {
-	err         error
-	ctx         context.Context
-	query       string
-	conn        *connect
-	sent        bool // sent signalize that batch is send to ClickHouse.
-	released    bool // released signalize that conn was returned to pool and can't be used.
-	block       *proto.Block
-	connRelease func(*connect, error)
-	connAcquire func(context.Context) (*connect, error)
-	onProcess   *onProcess
+	err          error
+	ctx          context.Context
+	query        string
+	conn         *connect
+	sent         bool // sent signalize that batch is send to ClickHouse.
+	released     bool // released signalize that conn was returned to pool and can't be used.
+	closeOnFlush bool // closeOnFlush signalize that batch should close query and release conn when use Flush
+	block        *proto.Block
+	connRelease  func(*connect, error)
+	connAcquire  func(context.Context) (*connect, error)
+	onProcess    *onProcess
 }
 
 func (b *batch) release(err error) {
@@ -131,11 +122,48 @@ func (b *batch) Append(v ...any) error {
 	if b.err != nil {
 		return b.err
 	}
+
+	if len(v) > 0 {
+		if r, ok := v[0].(*rows); ok {
+			return b.appendRowsBlocks(r)
+		}
+	}
+
 	if err := b.block.Append(v...); err != nil {
 		b.err = errors.Wrap(ErrBatchInvalid, err.Error())
 		b.release(err)
 		return err
 	}
+	return nil
+}
+
+// appendRowsBlocks is an experimental feature that allows rows blocks be appended directly to the batch.
+// This API is not stable and may be changed in the future.
+// See: tests/batch_block_test.go
+func (b *batch) appendRowsBlocks(r *rows) error {
+	var lastReadLock *proto.Block
+	var blockNum int
+
+	for r.Next() {
+		if lastReadLock == nil { // make sure the first block is logged
+			b.conn.debugf("[batch.appendRowsBlocks] blockNum = %d", blockNum)
+		}
+
+		// rows.Next() will read the next block from the server only if the current block is empty
+		// only if new block is available we should flush the current block
+		// the last block will be handled by the batch.Send() method
+		if lastReadLock != nil && lastReadLock != r.block {
+			if err := b.Flush(); err != nil {
+				return err
+			}
+			blockNum++
+			b.conn.debugf("[batch.appendRowsBlocks] blockNum = %d", blockNum)
+		}
+
+		b.block = r.block
+		lastReadLock = r.block
+	}
+
 	return nil
 }
 
@@ -259,7 +287,14 @@ func (b *batch) Flush() error {
 	}
 	if b.block.Rows() != 0 {
 		if err := b.conn.sendData(b.block, ""); err != nil {
+			// broken pipe/conn reset aren't generally recoverable on retry
+			if errors.Is(err, syscall.EPIPE) || errors.Is(err, syscall.ECONNRESET) {
+				b.release(err)
+			}
 			return err
+		}
+		if b.closeOnFlush {
+			b.release(b.closeQuery())
 		}
 	}
 	b.block.Reset()
@@ -268,6 +303,10 @@ func (b *batch) Flush() error {
 
 func (b *batch) Rows() int {
 	return b.block.Rows()
+}
+
+func (b *batch) Columns() []column.Interface {
+	return slices.Clone(b.block.Columns)
 }
 
 func (b *batch) closeQuery() error {

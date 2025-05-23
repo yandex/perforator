@@ -11,6 +11,11 @@ import (
 	"github.com/ClickHouse/ch-go/internal/gold"
 )
 
+func TestNullable(t *testing.T) {
+	require.Equal(t, Null[string]().Or("foo"), "foo")
+	require.Equal(t, NewNullable("bar").Or("foo"), "bar")
+}
+
 func TestColNullable_EncodeColumn(t *testing.T) {
 	const rows = 10
 	data := new(ColStr).Nullable()

@@ -6,6 +6,7 @@ package zstd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -278,13 +279,21 @@ func TestEncoderRegression(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
+					err = enc.Close()
+					if err != nil {
+						t.Error(err)
+					}
+					_, err = enc.Write([]byte{1, 2, 3, 4})
+					if !errors.Is(err, ErrEncoderClosed) {
+						t.Errorf("unexpected error: %v", err)
+					}
 					encoded = dst.Bytes()
 					if len(encoded) > enc.MaxEncodedSize(len(in)) {
 						t.Errorf("max encoded size for %v: got: %d, want max: %d", len(in), len(encoded), enc.MaxEncodedSize(len(in)))
 					}
 					got, err = dec.DecodeAll(encoded, make([]byte, 0, len(in)/2))
 					if err != nil {
-						t.Logf("error: %v\nwant: %v\ngot:  %v", err, in, got)
+						t.Logf("error: %v\nwant: %v\ngot:  %v", err, len(in), len(got))
 						t.Error(err)
 					}
 				})
@@ -462,7 +471,7 @@ func TestWithEncoderPadding(t *testing.T) {
 		// Test the added padding is invisible.
 		dst := e.EncodeAll(src, nil)
 		if len(dst)%padding != 0 {
-			t.Fatalf("wanted size to be mutiple of %d, got size %d with remainder %d", padding, len(dst), len(dst)%padding)
+			t.Fatalf("wanted size to be multiple of %d, got size %d with remainder %d", padding, len(dst), len(dst)%padding)
 		}
 		got, err := d.DecodeAll(dst, nil)
 		if err != nil {
@@ -474,7 +483,7 @@ func TestWithEncoderPadding(t *testing.T) {
 		// Test when we supply data as well.
 		dst = e.EncodeAll(src, make([]byte, rng.Int()&255))
 		if len(dst)%padding != 0 {
-			t.Fatalf("wanted size to be mutiple of %d, got size %d with remainder %d", padding, len(dst), len(dst)%padding)
+			t.Fatalf("wanted size to be multiple of %d, got size %d with remainder %d", padding, len(dst), len(dst)%padding)
 		}
 
 		// Test using the writer.
@@ -490,7 +499,7 @@ func TestWithEncoderPadding(t *testing.T) {
 		}
 		dst = buf.Bytes()
 		if len(dst)%padding != 0 {
-			t.Fatalf("wanted size to be mutiple of %d, got size %d with remainder %d", padding, len(dst), len(dst)%padding)
+			t.Fatalf("wanted size to be multiple of %d, got size %d with remainder %d", padding, len(dst), len(dst)%padding)
 		}
 		// Test the added padding is invisible.
 		got, err = d.DecodeAll(dst, nil)
@@ -513,7 +522,7 @@ func TestWithEncoderPadding(t *testing.T) {
 		}
 		dst = buf.Bytes()
 		if len(dst)%padding != 0 {
-			t.Fatalf("wanted size to be mutiple of %d, got size %d with remainder %d", padding, len(dst), len(dst)%padding)
+			t.Fatalf("wanted size to be multiple of %d, got size %d with remainder %d", padding, len(dst), len(dst)%padding)
 		}
 		// Test the added padding is invisible.
 		got, err = d.DecodeAll(dst, nil)

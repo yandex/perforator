@@ -1,3 +1,3 @@
 RECURSE(
-    release_prep
+    release
 )

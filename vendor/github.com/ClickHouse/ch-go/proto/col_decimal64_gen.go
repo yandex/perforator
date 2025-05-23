@@ -42,7 +42,7 @@ func (c *ColDecimal64) AppendArr(vs []Decimal64) {
 	*c = append(*c, vs...)
 }
 
-// LowCardinality returns LowCardinality for Decimal64 .
+// LowCardinality returns LowCardinality for Decimal64.
 func (c *ColDecimal64) LowCardinality() *ColLowCardinality[Decimal64] {
 	return &ColLowCardinality[Decimal64]{
 		index: c,

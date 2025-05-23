@@ -28,26 +28,34 @@ static ALWAYS_INLINE void* python_read_py_thread_state_ptr_static_tls(u64 offset
     return py_thread_state_addr;
 }
 
-static ALWAYS_INLINE bool read_tss_key(u32* key_dst, struct python_state* state) {
+static ALWAYS_INLINE bool read_tss_key(i32* key_dst, struct python_state* state) {
     if (state == NULL || key_dst == NULL || state->auto_tss_key_address == 0) {
         return false;
     }
 
-    u32 is_initialized = 0;
-    long err = bpf_probe_read_user(&is_initialized, sizeof(u32), (void*) (state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.is_initialized));
+    long err;
+    if (state->config.offsets.py_tss_t_offsets.is_initialized != PYTHON_UNSPECIFIED_OFFSET) {
+        u32 is_initialized = 0;
+        err = bpf_probe_read_user(&is_initialized, sizeof(u32), (void*) (state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.is_initialized));
+        if (err != 0) {
+            BPF_TRACE("python: failed to read is_initialized at address %p: %d", state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.is_initialized, err);
+            return false;
+        }
+
+        if (is_initialized == 0) {
+            BPF_TRACE("python: tss is not initialized, auto tss key address %p, offset %d", state->auto_tss_key_address, state->config.offsets.py_tss_t_offsets.is_initialized);
+            return false;
+        }
+    }
+
+    u32 extra_offset =  (state->config.offsets.py_tss_t_offsets.key != PYTHON_UNSPECIFIED_OFFSET) ? state->config.offsets.py_tss_t_offsets.key : 0;
+    err = bpf_probe_read_user(key_dst, sizeof(i32), (void*) (state->auto_tss_key_address + extra_offset));
     if (err != 0) {
-        BPF_TRACE("python: failed to read is_initialized at address %p: %d", state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.is_initialized, err);
+        BPF_TRACE("python: failed to read tss key at address %p: %d", state->auto_tss_key_address + extra_offset, err);
         return false;
     }
 
-    if (is_initialized == 0) {
-        BPF_TRACE("python: tss is not initialized, auto tss key address %p, offset %d", state->auto_tss_key_address, state->config.offsets.py_tss_t_offsets.is_initialized);
-        return false;
-    }
-
-    err = bpf_probe_read_user(key_dst, sizeof(u32), (void*) (state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.key));
-    if (err != 0) {
-        BPF_TRACE("python: failed to read tss key at address %p: %d", state->auto_tss_key_address + state->config.offsets.py_tss_t_offsets.key, err);
+    if (*key_dst < 0) {
         return false;
     }
 
@@ -64,7 +72,7 @@ static ALWAYS_INLINE void* python_read_py_thread_state_ptr_pthread_tss(struct py
         return NULL;
     }
 
-    u32 tss_key = 0;
+    i32 tss_key = 0;
     if (!read_tss_key(&tss_key, state)) {
         BPF_TRACE("python: failed to read tss key");
         return NULL;
@@ -72,7 +80,7 @@ static ALWAYS_INLINE void* python_read_py_thread_state_ptr_pthread_tss(struct py
 
     BPF_TRACE("python: read tss key %u", tss_key);
 
-    return pthread_read_tss(&state->pthread_config, tss_key);
+    return pthread_read_tss(&state->pthread_config, (u32) tss_key);
 }
 
 static ALWAYS_INLINE void* python_read_py_thread_state_ptr_from_tls(struct python_state* state) {
@@ -161,29 +169,16 @@ static NOINLINE void python_upsert_thread_state(struct python_state* state, void
              (void*) py_thread_state, state->thread_key.inner_ns_tid);
 }
 
-static ALWAYS_INLINE void* python_retrieve_main_interpreterstate(void* py_runtime_ptr, struct python_runtime_state_offsets* runtime_state_offsets) {
-    if (py_runtime_ptr == NULL || runtime_state_offsets == NULL) {
+static ALWAYS_INLINE void* python_calculate_main_interpreter_state_address(struct python_state* state) {
+    if (state == NULL) {
         return NULL;
     }
 
-    void* main_interpreter_state = NULL;
-    long err = bpf_probe_read_user(
-        &main_interpreter_state,
-        sizeof(void*),
-        py_runtime_ptr + runtime_state_offsets->py_interpreters_main
-    );
-    if (err != 0) {
-        BPF_TRACE("python: failed to read main PyInterpreterState: %d", err);
-        return NULL;
-    }
-    if (main_interpreter_state == NULL) {
-        BPF_TRACE("python: main *PyInterpreterState is NULL");
-        return NULL;
+    if (state->py_runtime_address != 0) {
+        return (void*) (state->py_runtime_address + state->config.offsets.py_runtime_state_offsets.py_interpreters_main);
     }
 
-    BPF_TRACE("python: successfully retrieved main PyInterpreterState %p", main_interpreter_state);
-
-    return main_interpreter_state;
+    return (void*) state->py_interp_head_address;
 }
 
 static ALWAYS_INLINE void* python_retrieve_thread_state_from_interpreterstate(void* py_interpreter_state, struct python_interpreter_state_offsets* interpreter_state_offsets) {
@@ -206,21 +201,26 @@ static ALWAYS_INLINE void* python_retrieve_thread_state_from_interpreterstate(vo
 }
 
 static ALWAYS_INLINE void* python_get_head_thread_state(
-    void* py_runtime_ptr,
-    struct python_internals_offsets* offsets
+    struct python_state* state
 ) {
-    if (py_runtime_ptr == NULL || offsets == NULL) {
+    if (state == NULL) {
         return NULL;
     }
 
-    void* main_interpreter_state = python_retrieve_main_interpreterstate(py_runtime_ptr, &offsets->py_runtime_state_offsets);
-    void* head_thread_state = python_retrieve_thread_state_from_interpreterstate(main_interpreter_state, &offsets->py_interpreter_state_offsets);
-
-    if (head_thread_state == NULL) {
-        BPF_TRACE("python: head *PyThreadState from *PyInterpreterState is NULL");
+    void* main_interpreter_state_address = python_calculate_main_interpreter_state_address(state);
+    if (main_interpreter_state_address == NULL) {
+        return NULL;
+    }
+    void* main_interpreter_state = NULL;
+    long err = bpf_probe_read_user(&main_interpreter_state, sizeof(void*), main_interpreter_state_address);
+    if (err != 0) {
+        BPF_TRACE("python: failed to read main *PyInterpreterState: %d", err);
+        return NULL;
     }
 
-    BPF_TRACE("python: successfully retrieved head *PyThreadState from *PyInterpreterState");
+    void* head_thread_state = python_retrieve_thread_state_from_interpreterstate(main_interpreter_state, &state->config.offsets.py_interpreter_state_offsets);
+
+    BPF_TRACE("python: retrieved head *PyThreadState from *PyInterpreterState %p", head_thread_state);
 
     return head_thread_state;
 }
@@ -284,7 +284,7 @@ static ALWAYS_INLINE void* python_get_thread_state_and_update_cache(
     void* current_thread_state = python_read_py_thread_state_ptr_from_tls(state);
     void* fill_cache_thread_state = current_thread_state;
     if (fill_cache_thread_state == NULL) {
-        fill_cache_thread_state = python_get_head_thread_state((void*) state->py_runtime_address, &state->config.offsets);
+        fill_cache_thread_state = python_get_head_thread_state(state);
     } else {
         BPF_TRACE("python: successfully retrieved PyThreadState from TLS: %p", fill_cache_thread_state);
     }

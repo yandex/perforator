@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.18.0)
+VERSION(v2.33.1)
 
 SRCS(
     append_struct.go
@@ -22,11 +22,15 @@ SRCS(
     context.go
     custom_types.go
     decimal.go
+    dynamic.go
     dynamic_scan_types.go
     exec.go
     external_data.go
     geo.go
-    json.go
+    json_fast_structs.go
+    json_paths.go
+    json_strings.go
+    json_structs.go
     map.go
     multi_host.go
     nested.go
@@ -44,6 +48,7 @@ SRCS(
     type_convert.go
     utils.go
     uuid.go
+    variant.go
 )
 
 END()

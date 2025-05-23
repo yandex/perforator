@@ -34,8 +34,13 @@ enum {
     MAX_PYTHON_THREADS = 16384,
     MAX_PYTHON_THREAD_STATE_WALK = 32,
     PYTHON_MAX_STACK_DEPTH = 128,
-    PYTHON_MAX_FUNCNAME_LENGTH = 256,
-    PYTHON_MAX_FILENAME_LENGTH = 256,
+
+    // This constant should be a power of 2.
+    PYTHON_SYMBOL_BUFFER_SIZE = 1024,
+
+    // This constant is intentionally PYTHON_SYMBOL_BUFFER_SIZE - 1,
+    // we use it for ending length to satisfy the BPF verifier.
+    PYTHON_STRING_LENGTH_VERIFIER_MASK = (1 << 10) - 1,
     MAX_PYTHON_SYMBOLS_SIZE = 200000,
     PYTHON_CFRAME_LINENO_ID = -1,
     PYTHON_UNSPECIFIED_OFFSET = -1,
@@ -48,9 +53,12 @@ enum python_frame_owner : u8 {
     FRAME_OWNED_BY_CSTACK = 3,
 };
 
-struct python_ascii_object_offsets {
+struct python_string_object_offsets {
+    // These fields are present for both PyUnicodeObject and PyASCIIObject
     u32 length;
     u32 data;
+
+    // These fields are only present for PyASCIIObject
     u32 state;
     u8 ascii_bit;
     u8 compact_bit;
@@ -68,7 +76,7 @@ struct python_frame_object_offsets {
     u32 f_back;
 };
 
-struct py_frame_offsets {
+struct python_frame_offsets {
     u32 f_code;
     u32 previous;
     u32 owner;
@@ -87,18 +95,20 @@ struct python_internals_offsets {
     struct python_runtime_state_offsets py_runtime_state_offsets;
     struct python_thread_state_offsets py_thread_state_offsets;
     struct python_cframe_offsets py_cframe_offsets;
-    struct py_frame_offsets py_frame_offsets;
+    struct python_frame_offsets py_frame_offsets;
     struct python_interpreter_state_offsets py_interpreter_state_offsets;
     struct python_code_object_offsets py_code_object_offsets;
-    struct python_ascii_object_offsets py_ascii_object_offsets;
+    struct python_string_object_offsets py_string_object_offsets;
     struct python_tss_t_offsets py_tss_t_offsets;
 };
 
 struct python_config {
     u64 py_thread_state_tls_offset;
     u64 py_runtime_relative_address;
+    u64 py_interp_head_relative_address;
     u64 auto_tss_key_relative_address;
     u32 version;
+    u32 unicode_type_size_log2;
 
     struct python_internals_offsets offsets;
 };
@@ -114,8 +124,13 @@ struct python_symbol_key {
 };
 
 struct python_symbol {
-    char file_name[PYTHON_MAX_FILENAME_LENGTH];
-    char name[PYTHON_MAX_FUNCNAME_LENGTH];
+    // Both lengths are in codepoints.
+    u8 name_length;
+    u8 filename_length;
+    u8 codepoint_size; // 1 for ascii, 2 for ucs2, 4 for ucs4
+    // The layout is [name][filename].
+    // We can store expensive ucs4 encoded strings here for legacy CPython.
+    char data[PYTHON_SYMBOL_BUFFER_SIZE];
 };
 
 struct python_code_object {
@@ -133,6 +148,7 @@ struct python_state {
     struct pthread_config pthread_config;
     bool found_pthread_config;
     u64 py_runtime_address;
+    u64 py_interp_head_address;
     u64 auto_tss_key_address;
     struct python_frame frames[PYTHON_MAX_STACK_DEPTH];
     u32 frame_count;

@@ -61,6 +61,10 @@ func (s *InMemoryTaskService) GetTask(ctx context.Context, id asynctask.TaskID) 
 	return s.getTask(id)
 }
 
+func (s *InMemoryTaskService) CountTasks(ctx context.Context, filter *asynctask.TaskFilter) (uint64, error) {
+	return s.countTasks(ctx, filter)
+}
+
 func (s *InMemoryTaskService) ListTasks(ctx context.Context, filter *asynctask.TaskFilter, limit uint64, offset uint64) ([]asynctask.Task, error) {
 	return s.getTasks(ctx, filter, int(limit), int(offset))
 }
@@ -281,6 +285,18 @@ type InMemoryTaskFilter struct {
 	To     time.Time
 }
 
+func (s *InMemoryTaskService) countTasks(ctx context.Context, filter *asynctask.TaskFilter) (uint64, error) {
+	var count uint64 = 0
+	for _, task := range s.taskMap {
+		if s.isFiltered(task, filter) {
+			continue
+		}
+
+		count += 1
+	}
+	return count, nil
+}
+
 func (s *InMemoryTaskService) getTasks(ctx context.Context, filter *asynctask.TaskFilter, limit int, offset int) ([]asynctask.Task, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
@@ -289,7 +305,6 @@ func (s *InMemoryTaskService) getTasks(ctx context.Context, filter *asynctask.Ta
 	var res []asynctask.Task
 	for _, task := range s.taskMap {
 		if s.isFiltered(task, filter) {
-			fmt.Printf("%v\n\n", task)
 			continue
 		}
 

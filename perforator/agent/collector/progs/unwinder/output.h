@@ -27,12 +27,15 @@ enum sample_type : u32 {
     // Perf events
     SAMPLE_TYPE_PERF_EVENT,
 
-    // Krpobes
+    // Kprobes
     SAMPLE_TYPE_KPROBE_FINISH_TASK_SWITCH,
 
-    // Tracpoints
+    // Tracepoints
     SAMPLE_TYPE_TRACEPOINT_SIGNAL_DELIVER,
     SAMPLE_TYPE_TRACEPOINT_SCHED_SWITCH,
+
+    // Uprobes
+    SAMPLE_TYPE_UPROBE,
 };
 
 struct record_sample {

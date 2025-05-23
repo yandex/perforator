@@ -42,7 +42,7 @@ func (c *ColFixedStr16) AppendArr(vs [][16]byte) {
 	*c = append(*c, vs...)
 }
 
-// LowCardinality returns LowCardinality for FixedStr16 .
+// LowCardinality returns LowCardinality for FixedStr16.
 func (c *ColFixedStr16) LowCardinality() *ColLowCardinality[[16]byte] {
 	return &ColLowCardinality[[16]byte]{
 		index: c,

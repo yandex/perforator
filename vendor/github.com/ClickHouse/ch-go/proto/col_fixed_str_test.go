@@ -86,6 +86,7 @@ func TestColFixedStr_EncodeColumn(t *testing.T) {
 			require.Equal(t, 10, v.Size)
 		})
 	})
+	t.Run("WriteColumn", checkWriteColumn(data))
 }
 
 func BenchmarkColFixedStr_DecodeColumn(b *testing.B) {

@@ -18,12 +18,12 @@
 package clickhouse
 
 import (
-	"bytes"
 	"context"
 	"errors"
+	"io"
+
 	chproto "github.com/ClickHouse/ch-go/proto"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
-	"io"
 )
 
 // release is ignored, because http used by std with empty release function
@@ -50,14 +50,36 @@ func (h *httpConnect) query(ctx context.Context, release func(*connect, error), 
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-	// detect compression from http Content-Encoding header - note user will need to have set enable_http_compression
-	// for CH to respond with compressed data - we don't set this automatically as they might not have permissions
-	var body []byte
-	//adding Accept-Encoding:gzip on your request means response won’t be automatically decompressed per https://github.com/golang/go/blob/master/src/net/http/transport.go#L182-L190
+
+	if res.ContentLength == 0 {
+		block := &proto.Block{}
+		return &rows{
+			block:     block,
+			columns:   block.ColumnsNames(),
+			structMap: &structMap{},
+		}, nil
+	}
 
 	rw := h.compressionPool.Get()
-	body, err = rw.read(res)
+	// The HTTPReaderWriter.NewReader will create a reader that will decompress it if needed,
+	// cause adding Accept-Encoding:gzip on your request means response won’t be automatically decompressed
+	// per https://github.com/golang/go/blob/master/src/net/http/transport.go#L182-L190.
+	// Note user will need to have set enable_http_compression for CH to respond with compressed data. we don't set this
+	// automatically as they might not have permissions.
+	reader, err := rw.NewReader(res)
+	if err != nil {
+		res.Body.Close()
+		h.compressionPool.Put(rw)
+		return nil, err
+	}
+	chReader := chproto.NewReader(reader)
+	block, err := h.readData(chReader, options.userLocation)
+	if err != nil && !errors.Is(err, io.EOF) {
+		res.Body.Close()
+		h.compressionPool.Put(rw)
+		return nil, err
+	}
+
 	bufferSize := h.blockBufferSize
 	if options.blockBufferSize > 0 {
 		// allow block buffer sze to be overridden per query
@@ -67,35 +89,9 @@ func (h *httpConnect) query(ctx context.Context, release func(*connect, error), 
 		errCh  = make(chan error)
 		stream = make(chan *proto.Block, bufferSize)
 	)
-
-	if len(body) == 0 {
-		// queries with no results can get an empty body
-		go func() {
-			close(stream)
-			close(errCh)
-		}()
-		return &rows{
-			err:       nil,
-			stream:    stream,
-			errors:    errCh,
-			block:     &proto.Block{},
-			columns:   []string{},
-			structMap: &structMap{},
-		}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	h.compressionPool.Put(rw)
-	reader := chproto.NewReader(bytes.NewReader(body))
-	block, err := h.readData(ctx, reader)
-	if err != nil {
-		return nil, err
-	}
-
 	go func() {
 		for {
-			block, err := h.readData(ctx, reader)
+			block, err := h.readData(chReader, options.userLocation)
 			if err != nil {
 				// ch-go wraps EOF errors
 				if !errors.Is(err, io.EOF) {
@@ -110,10 +106,15 @@ func (h *httpConnect) query(ctx context.Context, release func(*connect, error), 
 			case stream <- block:
 			}
 		}
+		res.Body.Close()
+		h.compressionPool.Put(rw)
 		close(stream)
 		close(errCh)
 	}()
 
+	if block == nil {
+		block = &proto.Block{}
+	}
 	return &rows{
 		block:     block,
 		stream:    stream,

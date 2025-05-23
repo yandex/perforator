@@ -163,8 +163,9 @@ private:
                 builder.SetThread(MapThread(key.GetThread()));
             }
 
-            builder.SetKernelStack(MapStack(key.GetKernelStack()));
-            builder.SetUserStack(MapStack(key.GetUserStack()));
+            for (i32 i = 0; i < key.GetStackCount(); ++i) {
+                builder.AddStack(MapStack(key.GetStack(i)));
+            }
 
             for (i32 i = 0; i < key.GetLabelCount(); ++i) {
                 TLabel label = key.GetLabel(i);
@@ -240,6 +241,8 @@ private:
         return Stacks_.TryMap(stack.GetIndex(), [&, this] {
             auto builder = Builder_.AddStack();
 
+            builder.SetKind(stack.GetStackKind());
+            builder.SetRuntimeName(MapString(stack.GetStackRuntimeName()));
             for (i32 i = 0; i < stack.GetStackFrameCount(); ++i) {
                 builder.AddStackFrame(MapStackFrame(stack.GetStackFrame(i)));
             }
@@ -346,7 +349,7 @@ public:
     {}
 
     void Finish() {
-        Builder_.Finish();
+        std::move(Builder_).Finish();
     }
 
     void Add(const NProto::NProfile::Profile& proto) {
@@ -372,7 +375,7 @@ void TProfileMerger::Add(const NProto::NProfile::Profile& proto) {
     return Impl_->Add(proto);
 }
 
-void TProfileMerger::Finish() {
+void TProfileMerger::Finish() && {
     return Impl_->Finish();
 }
 
@@ -387,7 +390,7 @@ void MergeProfiles(
     for (auto& profile : profiles) {
         merger.Add(profile);
     }
-    merger.Finish();
+    std::move(merger).Finish();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

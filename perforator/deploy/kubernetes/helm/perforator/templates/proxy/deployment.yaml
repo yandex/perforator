@@ -71,6 +71,14 @@ spec:
         - containerPort: {{ .Values.proxy.containerPorts.metrics }}
           name: metrics
         volumeMounts:
+        {{- if include "perforator.clickhouse.tlsSecretName" . }}
+        - name: clickhouse-tls
+          mountPath: "/etc/perforator/certificates/clickhouse"
+        {{- end }}
+        {{- if include "perforator.s3.tlsSecretName" . }}
+        - name: s3-tls
+          mountPath: "/etc/perforator/certificates/s3"
+        {{- end }}
         - name: storage-s3-keys
           mountPath: "/etc/perforator/s3"
         - name: config
@@ -103,6 +111,16 @@ spec:
           value: {{ .value }}
         {{- end }}
       volumes:
+      {{- if include "perforator.clickhouse.tlsSecretName" . }}
+      - name: clickhouse-tls
+        secret:
+          secretName: {{ include "perforator.clickhouse.tlsSecretName" . }}
+      {{- end }}
+      {{- if include "perforator.s3.tlsSecretName" . }}
+      - name: s3-tls
+        secret:
+          secretName: {{ include "perforator.s3.tlsSecretName" . }}
+      {{- end }}
       - name: storage-s3-keys
         secret:
           secretName: {{ include "perforator.secretName.s3" . }}

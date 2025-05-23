@@ -183,6 +183,38 @@ func (b Block) EncodeRawBlock(buf *Buffer, version int, input []InputColumn) err
 	return nil
 }
 
+func (b Block) WriteBlock(w *Writer, version int, input []InputColumn) error {
+	w.ChainBuffer(func(buf *Buffer) {
+		if FeatureBlockInfo.In(version) {
+			b.Info.Encode(buf)
+		}
+		buf.PutInt(b.Columns)
+		buf.PutInt(b.Rows)
+	})
+
+	for _, col := range input {
+		if r := col.Data.Rows(); r != b.Rows {
+			return errors.Errorf("%q has %d rows, expected %d", col.Name, r, b.Rows)
+		}
+		w.ChainBuffer(func(buf *Buffer) {
+			col.EncodeStart(buf, version)
+		})
+		if v, ok := col.Data.(Preparable); ok {
+			if err := v.Prepare(); err != nil {
+				return errors.Wrapf(err, "prepare %q", col.Name)
+			}
+		}
+		if col.Data.Rows() == 0 {
+			continue
+		}
+		if v, ok := col.Data.(StateEncoder); ok {
+			w.ChainBuffer(v.EncodeState)
+		}
+		col.Data.WriteColumn(w)
+	}
+	return nil
+}
+
 // This constrains can prevent accidental OOM and allow early detection
 // of erroneous column or row count.
 //

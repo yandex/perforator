@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.20.5)
+VERSION(v1.21.1)
 
 SRCS(
     counter_validations.go

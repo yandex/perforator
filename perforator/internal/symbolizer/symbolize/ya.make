@@ -19,6 +19,7 @@ SRCS(
     binaries.go
     cachedbinaries.go
     errors.go
+    interface.go
 )
 
 END()

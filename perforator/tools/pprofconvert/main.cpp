@@ -187,14 +187,7 @@ int main(int argc, const char* argv[]) {
 
         ui64 total = 0;
         ui64 zero = 0;
-        for (ui32 id : profile.sample_keys().stacks().user_stack_id()) {
-            if (id == 0) {
-                ++zero;
-            }
-            ++total;
-        }
-        Cerr << "Found " << zero << " / " << total << " zero locations" << Endl;
-        for (ui32 id : profile.sample_keys().stacks().kernel_stack_id()) {
+        for (ui32 id : profile.sample_keys().stacks().stack_id()) {
             if (id == 0) {
                 ++zero;
             }
@@ -256,7 +249,7 @@ int main(int argc, const char* argv[]) {
                     merger.Add(profile);
                 }
 
-                merger.Finish();
+                std::move(merger).Finish();
             });
         }
 
@@ -275,7 +268,7 @@ int main(int argc, const char* argv[]) {
         for (auto& profile : profiles) {
             merger.Add(profile);
         }
-        merger.Finish();
+        std::move(merger).Finish();
 
         TFileOutput out{argv[2]};
         merged.SerializeToArcadiaStream(&out);
@@ -306,7 +299,7 @@ int main(int argc, const char* argv[]) {
             Cerr << "Merged profile #" << cnt++ << Endl;
         }
 
-        merger.Finish();
+        std::move(merger).Finish();
 
         TFileOutput out{argv[2]};
         merged.SerializeToArcadiaStream(&out);
@@ -314,58 +307,6 @@ int main(int argc, const char* argv[]) {
         Cerr << "Merged " << cnt << " profiles in " << HumanReadable(Now() - start) << Endl;
 
         return 0;
-    }
-
-    if (argv[1] == "check"sv) {
-        Y_ENSURE(argc == 3);
-        TFileInput in{argv[2]};
-        NPerforator::NProto::NProfile::Profile profile;
-        Y_ENSURE(profile.ParseFromArcadiaStream(&in));
-
-        NPerforator::NProfile::TProfile prof{&profile};
-
-        for (auto sample : prof.Samples()) {
-            if (sample.GetValue(0) == 0) {
-                continue;
-            }
-
-            auto stack = sample.GetKey().GetKernelStack();
-            if (stack.GetStackFrameCount() < 1) {
-                continue;
-            }
-
-            for (i32 i = 0; i < sample.GetKey().GetLabelCount(); ++i) {
-                auto label = sample.GetKey().GetLabel(i);
-
-                Cout << "{" << label.GetKey() << ":";
-                if (label.IsNumber()) {
-                    Cout << label.GetNumber();
-                } else {
-                    Cout << '"' << label.GetString() << '"';
-                }
-                Cout << "}";
-            }
-
-            for (i32 i = 0; i < stack.GetStackFrameCount(); ++i) {
-                auto inlining = stack.GetStackFrame(i).GetInlineChain();
-                Cout << "[";
-                for (i32 i = 0; i < inlining.GetLineCount(); ++i) {
-                    Cout << *inlining.GetLine(i).GetFunction().GetIndex() << ":" << inlining.GetLine(i).GetFunction().GetName() << ',';
-                }
-                Cout << "]";
-            }
-            Cout << "\n";
-
-            continue;
-
-            auto address = stack.GetStackFrame(0);
-            if (address.GetInlineChain().GetLineCount() < 1) {
-                continue;
-            }
-
-            auto name = address.GetInlineChain().GetLine(0).GetFunction().GetName();
-            Cout << name << Endl;
-        }
     }
 
     if (argv[1] == "dump"sv) {

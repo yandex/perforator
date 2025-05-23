@@ -42,7 +42,7 @@ func (c *ColEnum16) AppendArr(vs []Enum16) {
 	*c = append(*c, vs...)
 }
 
-// LowCardinality returns LowCardinality for Enum16 .
+// LowCardinality returns LowCardinality for Enum16.
 func (c *ColEnum16) LowCardinality() *ColLowCardinality[Enum16] {
 	return &ColLowCardinality[Enum16]{
 		index: c,

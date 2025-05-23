@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v4.1.21)
+VERSION(v4.1.22)
 
 SRCS(
     compressing_reader.go

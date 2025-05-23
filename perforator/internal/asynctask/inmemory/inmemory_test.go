@@ -220,6 +220,28 @@ func TestListTasks(t *testing.T) {
 			require.True(t, equalTasks(test.expected, res))
 		})
 	}
+
+	for _, test := range []struct {
+		name     string
+		filter   *asynctask.TaskFilter
+		expected uint64
+	}{
+		{
+			name: "simple",
+			filter: &asynctask.TaskFilter{
+				Author: "Alice",
+				From:   time.UnixMicro(200000),
+				To:     time.UnixMicro(220000),
+			},
+			expected: 4,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			res, err := taskService.CountTasks(context.Background(), test.filter)
+			require.NoError(t, err)
+			require.True(t, test.expected == res)
+		})
+	}
 }
 
 func equalTasks(t1, t2 []asynctask.Task) bool {

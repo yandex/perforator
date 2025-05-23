@@ -20,6 +20,7 @@ package clickhouse_api
 import (
 	"context"
 	"fmt"
+
 	"github.com/ClickHouse/clickhouse-go/v2"
 )
 
@@ -45,10 +46,11 @@ func ProgressProfileLogs() error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 	}
 
 	fmt.Printf("Total Rows: %d\n", totalRows)
-	rows.Close()
 	return rows.Err()
 }

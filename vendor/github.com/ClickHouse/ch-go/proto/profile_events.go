@@ -50,7 +50,7 @@ func (d *ProfileEvents) Result() Results {
 	}
 }
 
-//go:generate go run github.com/dmarkham/enumer -type ProfileEventType -trimprefix Profile -output profile_enum.go
+//go:generate go run github.com/dmarkham/enumer -type ProfileEventType -trimprefix Profile -text -json -output profile_enum.go
 
 type ProfileEventType byte
 
@@ -61,10 +61,10 @@ const (
 
 // ProfileEvent is detailed profiling event from Server.
 type ProfileEvent struct {
-	ThreadID uint64
-	Host     string
-	Time     time.Time
-	Type     ProfileEventType
-	Name     string
-	Value    int64
+	Type     ProfileEventType `json:"type"`
+	Name     string           `json:"name"`
+	Value    int64            `json:"value"`
+	Host     string           `json:"host_name"`
+	Time     time.Time        `json:"current_time"`
+	ThreadID uint64           `json:"thread_id"`
 }

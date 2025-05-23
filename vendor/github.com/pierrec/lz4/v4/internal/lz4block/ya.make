@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v4.1.21)
+VERSION(v4.1.22)
 
 SRCS(
     block.go
@@ -19,6 +19,12 @@ ENDIF()
 IF (ARCH_ARM64)
     SRCS(
         decode_arm64.s
+    )
+ENDIF()
+
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        decode_arm.s
     )
 ENDIF()
 

@@ -63,14 +63,12 @@ func (e *ColEnum) parse(t ColumnType) error {
 	for _, elem := range strings.Split(elements, ",") {
 		def := strings.TrimSpace(elem)
 		// 'hello' = 1
-		parts := strings.SplitN(def, "=", 2)
-		if len(parts) != 2 {
+		left, right, hascomma := strings.Cut(def, "=")
+		if !hascomma {
 			return errors.Errorf("bad enum definition %q", def)
 		}
-		var (
-			left  = strings.TrimSpace(parts[0]) // 'hello'
-			right = strings.TrimSpace(parts[1]) // 1
-		)
+		left = strings.TrimSpace(left)   // 'hello'
+		right = strings.TrimSpace(right) // 1
 		idx, err := strconv.Atoi(right)
 		if err != nil {
 			return errors.Errorf("bad right side of definition %q", right)
@@ -167,6 +165,10 @@ func (e *ColEnum) Prepare() error {
 
 func (e *ColEnum) EncodeColumn(b *Buffer) {
 	e.raw().EncodeColumn(b)
+}
+
+func (e *ColEnum) WriteColumn(w *Writer) {
+	e.raw().WriteColumn(w)
 }
 
 func (e *ColEnum) Type() ColumnType { return e.t }

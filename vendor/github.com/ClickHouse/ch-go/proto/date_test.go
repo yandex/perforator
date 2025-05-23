@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestDate_Time(t *testing.T) {
@@ -36,20 +35,44 @@ func TestDate_Time(t *testing.T) {
 }
 
 func TestToDate(t *testing.T) {
+	const secInMinute = 60
+	const secInHour = 60 * secInMinute
 	for _, tc := range []struct {
-		Value string
+		name     string
+		Value    time.Time
+		expected *Date
 	}{
-		{Value: "2006-01-02T06:04:03+07:00"},
-		{Value: "2008-01-02T06:44:15+03:00"},
-		{Value: "2009-01-01T06:03:31+12:00"},
-		{Value: "2006-12-31T22:04:41-06:30"},
+		{
+			name:  "2006-01-02T06:04:03+07:00",
+			Value: time.Date(2006, 1, 2, 6, 4, 3, 0, time.FixedZone("UTC+7", 7*secInHour)),
+		},
+		{
+			name:  "2008-01-02T06:44:15+03:00",
+			Value: time.Date(2008, 1, 2, 6, 44, 15, 0, time.FixedZone("UTC+3", 3*secInHour)),
+		},
+		{
+			name:  "2009-01-01T06:03:31+12:00",
+			Value: time.Date(2009, 1, 1, 6, 3, 31, 0, time.FixedZone("UTC+12", 12*secInHour)),
+		},
+		{
+			name:  "2006-12-31T22:04:41-06:30",
+			Value: time.Date(2006, 12, 31, 22, 4, 41, 0, time.FixedZone("UTC-6:30", -6*secInHour-30*secInMinute)),
+		},
+		{
+			name:     "zero value",
+			Value:    time.Time{},
+			expected: new(Date),
+		},
 	} {
-		t.Run(tc.Value, func(t *testing.T) {
-			v, err := time.Parse(time.RFC3339, tc.Value)
-			require.NoError(t, err)
-			d := ToDate(v)
-			expected := NewDate(v.Year(), v.Month(), v.Day())
-			assert.Equal(t, v.Format(DateLayout), d.String())
+		t.Run(tc.name, func(t *testing.T) {
+			d := ToDate(tc.Value)
+			var expected Date
+			if tc.expected != nil {
+				expected = *tc.expected
+			} else {
+				expected = NewDate(tc.Value.Year(), tc.Value.Month(), tc.Value.Day())
+				assert.Equal(t, tc.Value.Format(DateLayout), d.String())
+			}
 			assert.Equal(t, expected.String(), d.String())
 			assert.Equal(t, expected, d)
 		})

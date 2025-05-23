@@ -20,7 +20,6 @@ package clickhouse
 import (
 	"context"
 	"io"
-	"io/ioutil"
 )
 
 func (h *httpConnect) exec(ctx context.Context, query string, args ...any) error {
@@ -34,7 +33,7 @@ func (h *httpConnect) exec(ctx context.Context, query string, args ...any) error
 	if res != nil {
 		defer res.Body.Close()
 		// we don't care about result, so just discard it to reuse connection
-		_, _ = io.Copy(ioutil.Discard, res.Body)
+		_, _ = io.Copy(io.Discard, res.Body)
 	}
 
 	return err

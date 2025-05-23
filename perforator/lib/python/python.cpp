@@ -32,7 +32,9 @@ void TPythonAnalyzer::ParseSymbolLocations() {
         kPyGetVersionSymbol,
         kPyRuntimeSymbol,
         kPyGILStateEnsureSymbol,
-        kPyInterpreterStateHeadSymbol
+        kPyInterpreterStateHeadSymbol,
+        kPyUnicodeUCS2FromStringSymbol,
+        kPyUnicodeUCS4FromStringSymbol
     );
 
     auto setSymbolIfFound = [&](const THashMap<TStringBuf, NPerforator::NELF::TLocation>& symbols, TStringBuf symbolName, TMaybe<NELF::TLocation>& target) {
@@ -48,6 +50,8 @@ void TPythonAnalyzer::ParseSymbolLocations() {
         setSymbolIfFound(*dynamicSymbols, kPyRuntimeSymbol, Symbols_->PyRuntime);
         setSymbolIfFound(*dynamicSymbols, kPyGILStateEnsureSymbol, Symbols_->PyGILStateEnsure);
         setSymbolIfFound(*dynamicSymbols, kPyInterpreterStateHeadSymbol, Symbols_->PyInterpreterStateHead);
+        setSymbolIfFound(*dynamicSymbols, kPyUnicodeUCS2FromStringSymbol, Symbols_->PyUnicodeUCS2FromString);
+        setSymbolIfFound(*dynamicSymbols, kPyUnicodeUCS4FromStringSymbol, Symbols_->PyUnicodeUCS4FromString);
     }
 
     auto symbols = NELF::RetrieveSymbols(File_, kCurrentFastGetSymbol);
@@ -324,6 +328,24 @@ TMaybe<ui64> TPythonAnalyzer::ParseInterpHeadAddress() {
     }
 
     return NAsm::NX86::DecodeInterpHeadAddress(File_.makeTriple(), pyInterpreterStateHeadSymbol.Address, *bytecode);
+}
+
+EUnicodeType TPythonAnalyzer::ParseUnicodeType() {
+    ParseSymbolLocations();
+
+    if (!Symbols_) {
+        return EUnicodeType::Unknown;
+    }
+
+    if (Symbols_->PyUnicodeUCS2FromString) {
+        return EUnicodeType::UCS2;
+    }
+
+    if (Symbols_->PyUnicodeUCS4FromString) {
+        return EUnicodeType::UCS4;
+    }
+
+    return EUnicodeType::Unknown;
 }
 
 } // namespace NPerforator::NLinguist::NPython

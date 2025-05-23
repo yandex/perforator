@@ -7,17 +7,38 @@ import (
 	"github.com/go-faster/city"
 )
 
-//go:generate go run github.com/dmarkham/enumer -transform snake_upper -type Method -output method_enum.go
+//go:generate go run github.com/dmarkham/enumer -transform upper -type Method -output method_enum.go
 
 // Method is compression codec.
 type Method byte
 
 // Possible compression methods.
 const (
-	None Method = 0x02
-	LZ4  Method = 0x82
-	ZSTD Method = 0x90
+	None Method = iota
+	LZ4
+	LZ4HC
+	ZSTD
+	NumMethods int = iota
 )
+
+type methodEncoding byte
+
+const (
+	encodedNone  methodEncoding = 0x02
+	encodedLZ4   methodEncoding = 0x82
+	encodedLZ4HC methodEncoding = encodedLZ4
+	encodedZSTD  methodEncoding = 0x90
+)
+
+var methodTable = map[Method]methodEncoding{
+	None:  encodedNone,
+	LZ4:   encodedLZ4,
+	LZ4HC: encodedLZ4HC,
+	ZSTD:  encodedZSTD,
+}
+
+// Level for supporting compression codecs.
+type Level uint32
 
 // Constants for compression encoding.
 //

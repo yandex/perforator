@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.20.5)
+VERSION(v1.21.1)
 
 SRCS(
     build_info_collector.go
@@ -39,7 +39,7 @@ GO_TEST_SRCS(
     desc_test.go
     gauge_test.go
     go_collector_latest_test.go
-    go_collector_metrics_go122_test.go
+    go_collector_metrics_go123_test.go
     go_collector_test.go
     histogram_test.go
     metric_test.go
@@ -64,7 +64,7 @@ GO_XTEST_SRCS(
 
 IF (OS_LINUX)
     SRCS(
-        process_collector_other.go
+        process_collector_procfsenabled.go
     )
 
     GO_TEST_SRCS(process_collector_test.go)
@@ -72,8 +72,18 @@ ENDIF()
 
 IF (OS_DARWIN)
     SRCS(
-        process_collector_other.go
+        process_collector_darwin.go
     )
+
+    IF(CGO_ENABLED)
+        SRCS(
+            CGO_EXPORT
+            process_collector_mem_cgo_darwin.c
+        )
+        CGO_SRCS(process_collector_mem_cgo_darwin.go)
+    ELSE()
+        SRCS(process_collector_mem_nocgo_darwin.go)
+    ENDIF()
 ENDIF()
 
 IF (OS_WINDOWS)

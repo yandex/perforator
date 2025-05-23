@@ -2,9 +2,10 @@ import React from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
+import { Hotkey } from '@perforator/flamegraph';
+
 import { Button, DropdownMenu } from '@gravity-ui/uikit';
 
-import { Hotkey } from 'src/components/Hotkey/Hotkey';
 import { LocalStorageKey } from 'src/const/localStorage';
 import { uiFactory } from 'src/factory';
 import type { ProfileTaskQuery } from 'src/models/Task';

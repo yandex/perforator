@@ -42,7 +42,7 @@ func (c *ColUInt128) AppendArr(vs []UInt128) {
 	*c = append(*c, vs...)
 }
 
-// LowCardinality returns LowCardinality for UInt128 .
+// LowCardinality returns LowCardinality for UInt128.
 func (c *ColUInt128) LowCardinality() *ColLowCardinality[UInt128] {
 	return &ColLowCardinality[UInt128]{
 		index: c,

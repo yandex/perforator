@@ -2,10 +2,11 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.29.8)
+VERSION(v1.34.1)
 
 SRCS(
     doc.go
+    fcntl.go
     mutex.go
     nodmesg.go
     sqlite.go
@@ -14,15 +15,11 @@ SRCS(
 
 GO_TEST_SRCS(
     # all_test.go
+    fcntl_test.go
+    func_test.go
     # null_test.go
     # sqlite_go18_test.go
 )
-
-IF (ARCH_ARM64)
-    SRCS(
-        bind_blob.go
-    )
-ENDIF()
 
 IF (OS_LINUX)
     SRCS(
@@ -36,27 +33,29 @@ IF (OS_LINUX AND ARCH_X86_64)
     )
 ENDIF()
 
-IF (OS_DARWIN)
+IF (OS_LINUX AND ARCH_ARM64)
     SRCS(
-        rulimit.go
+        bind_blob_musl.go
     )
 ENDIF()
 
-IF (OS_DARWIN AND ARCH_X86_64)
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
     SRCS(
         bind_blob.go
+    )
+ENDIF()
+
+IF (OS_DARWIN)
+    SRCS(
+        bind_blob.go
+        rulimit.go
     )
 ENDIF()
 
 IF (OS_WINDOWS)
     SRCS(
-        norlimit.go
-    )
-ENDIF()
-
-IF (OS_WINDOWS AND ARCH_X86_64)
-    SRCS(
         bind_blob.go
+        norlimit.go
     )
 ENDIF()
 

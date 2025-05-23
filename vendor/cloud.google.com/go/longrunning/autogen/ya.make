@@ -2,13 +2,14 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.6.2)
+VERSION(v0.6.4)
 
 SRCS(
     auxiliary.go
     auxiliary_go123.go
     doc.go
     from_conn.go
+    helpers.go
     info.go
     operations_client.go
 )

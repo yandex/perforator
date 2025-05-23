@@ -20,8 +20,10 @@ package clickhouse
 import (
 	"context"
 	"fmt"
-	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 	"io"
+
+	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	"github.com/pkg/errors"
 )
 
 type onProcess struct {
@@ -33,51 +35,137 @@ type onProcess struct {
 }
 
 func (c *connect) firstBlock(ctx context.Context, on *onProcess) (*proto.Block, error) {
-	for {
-		select {
-		case <-ctx.Done():
-			c.cancel()
-			return nil, ctx.Err()
-		default:
+	// if context is already timedout/cancelled — we're done
+	select {
+	case <-ctx.Done():
+		c.cancel()
+		return nil, ctx.Err()
+	default:
+	}
+
+	// do reads in background
+	resultCh := make(chan *proto.Block, 1)
+	errCh := make(chan error, 1)
+
+	go func() {
+		block, err := c.firstBlockImpl(ctx, on)
+		if err != nil {
+			errCh <- err
+			return
 		}
+		resultCh <- block
+	}()
+
+	// select on context or read channels (results/errors)
+	select {
+	case <-ctx.Done():
+		c.cancel()
+		return nil, ctx.Err()
+
+	case err := <-errCh:
+		return nil, err
+
+	case block := <-resultCh:
+		return block, nil
+	}
+}
+
+func (c *connect) firstBlockImpl(ctx context.Context, on *onProcess) (*proto.Block, error) {
+	c.readerMutex.Lock()
+	defer c.readerMutex.Unlock()
+
+	for {
+		if c.reader == nil {
+			return nil, errors.New("unexpected state: c.reader is nil")
+		}
+
 		packet, err := c.reader.ReadByte()
 		if err != nil {
 			return nil, err
 		}
+
 		switch packet {
 		case proto.ServerData:
 			return c.readData(ctx, packet, true)
+
 		case proto.ServerEndOfStream:
 			c.debugf("[end of stream]")
 			return nil, io.EOF
+
 		default:
 			if err := c.handle(ctx, packet, on); err != nil {
+				// handling error, return
 				return nil, err
 			}
+
+			// handled okay, read next byte
 		}
 	}
 }
 
 func (c *connect) process(ctx context.Context, on *onProcess) error {
-	for {
-		select {
-		case <-ctx.Done():
-			c.cancel()
-			return ctx.Err()
-		default:
+	// if context is already timedout/cancelled — we're done
+	select {
+	case <-ctx.Done():
+		c.cancel()
+		return ctx.Err()
+	default:
+	}
+
+	// do reads in background
+	errCh := make(chan error, 1)
+	doneCh := make(chan bool, 1)
+
+	go func() {
+		err := c.processImpl(ctx, on)
+		if err != nil {
+			errCh <- err
+			return
 		}
+
+		doneCh <- true
+	}()
+
+	// select on context or read channel (errors)
+	select {
+	case <-ctx.Done():
+		c.cancel()
+		return ctx.Err()
+
+	case err := <-errCh:
+		return err
+
+	case <-doneCh:
+		return nil
+	}
+}
+
+func (c *connect) processImpl(ctx context.Context, on *onProcess) error {
+	c.readerMutex.Lock()
+	defer c.readerMutex.Unlock()
+
+	for {
+		if c.reader == nil {
+			return errors.New("unexpected state: c.reader is nil")
+		}
+
 		packet, err := c.reader.ReadByte()
 		if err != nil {
 			return err
 		}
+
 		switch packet {
 		case proto.ServerEndOfStream:
 			c.debugf("[end of stream]")
 			return nil
 		}
+
 		if err := c.handle(ctx, packet, on); err != nil {
+			// handling error, return
 			return err
 		}
+
+		// handled okay, read next byte
 	}
 }
 

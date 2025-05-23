@@ -6,10 +6,6 @@ package proto
 func inferGenerated(t ColumnType) Column {
 	switch t {
 	{{- range . }}
-	case ColumnTypeArray.Sub({{ .ColumnType }}):
-		return new({{ .Type }}).Array()
-	case ColumnTypeNullable.Sub({{ .ColumnType }}):
-		return new({{ .Type }}).Nullable()
 	case {{ .ColumnType }}:
 		return new({{ .Type }})
 	{{- end }}

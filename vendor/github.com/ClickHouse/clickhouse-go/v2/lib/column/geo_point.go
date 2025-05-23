@@ -89,11 +89,16 @@ func (col *Point) Append(v any) (nulls []uint8, err error) {
 		}
 	case []*orb.Point:
 		nulls = make([]uint8, len(v))
-		for _, v := range v {
-			col.col.Append(proto.Point{
-				X: v.Lon(),
-				Y: v.Lat(),
-			})
+		for i, v := range v {
+			if v == nil {
+				nulls[i] = 1
+				col.col.Append(proto.Point{})
+			} else {
+				col.col.Append(proto.Point{
+					X: v.Lon(),
+					Y: v.Lat(),
+				})
+			}
 		}
 	default:
 		if valuer, ok := v.(driver.Valuer); ok {

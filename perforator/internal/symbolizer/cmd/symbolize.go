@@ -23,8 +23,8 @@ import (
 
 type (
 	symbolizeLocalArgs struct {
-		OutputPath             string
-		LocalBinaryStoragePath string
+		OutputPath       string
+		LocalBinaryPaths []string
 	}
 
 	symbolizeStorageArgs struct {
@@ -84,7 +84,16 @@ var (
 			}
 			defer symbolizer.Destroy()
 
-			err = symbolizer.SymbolizeLocalProfile(context.Background(), profile)
+			binaryPathProvider, err := symbolize.NewFixedBinariesPathProvider(localArgs.LocalBinaryPaths)
+			if err != nil {
+				return err
+			}
+			err = symbolizer.SymbolizeLocalProfile(
+				context.Background(),
+				profile,
+				binaryPathProvider,
+				symbolize.NewNilPathProvider(),
+			)
 			if err != nil {
 				return err
 			}
@@ -205,13 +214,14 @@ func init() {
 		"symbolized_profile.pprof",
 		"Path to uncompressed symbolized output",
 	)
-	symbolizeLocalCmd.Flags().StringVarP(
-		&localArgs.LocalBinaryStoragePath,
-		"local-bin",
-		"l",
-		"./",
-		"Path to the local binary cache dir",
+	symbolizeLocalCmd.Flags().StringSliceVarP(
+		&localArgs.LocalBinaryPaths,
+		"binary",
+		"b",
+		[]string{},
+		"Binaries to fetch debug info from, separated with commas",
 	)
+
 	must.Must(symbolizeLocalCmd.MarkFlagFilename("output"))
 
 	symbolizeCmd.AddCommand(symbolizeLocalCmd)

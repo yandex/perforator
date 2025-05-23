@@ -110,117 +110,194 @@ static ALWAYS_INLINE void python_reset_state(struct python_state* state) {
     state->code_object.name = 0;
 }
 
-static ALWAYS_INLINE bool python_read_code_object(struct python_code_object* result_object, struct python_config* config, void* code) {
-    if (result_object == NULL || config == NULL) {
+static ALWAYS_INLINE bool python_read_code_object(struct python_state *state, void* code) {
+    if (state == NULL) {
         return false;
     }
-    result_object->filename = 0;
-    result_object->name = 0;
+    state->code_object.filename = 0;
+    state->code_object.name = 0;
 
-    long err = bpf_probe_read_user(&result_object->name, sizeof(void*), code + config->offsets.py_code_object_offsets.name);
+    long err = bpf_probe_read_user(&state->code_object.name, sizeof(void*), code + state->config.offsets.py_code_object_offsets.name);
     if (err != 0) {
         BPF_TRACE(
             "python: failed to read name at offset %d: %d",
-            config->offsets.py_code_object_offsets.name,
+            state->config.offsets.py_code_object_offsets.name,
             err
         );
         return false;
     }
 
-    err = bpf_probe_read_user(&result_object->filename, sizeof(void*), code + config->offsets.py_code_object_offsets.filename);
+    err = bpf_probe_read_user(&state->code_object.filename, sizeof(void*), code + state->config.offsets.py_code_object_offsets.filename);
     if (err != 0) {
         BPF_TRACE(
             "python: failed to read filename at offset %d: %d",
-            config->offsets.py_code_object_offsets.filename,
+            state->config.offsets.py_code_object_offsets.filename,
             err
         );
         return false;
     }
 
-    BPF_TRACE("python: read filename and name pointers: %p, %p", result_object->filename, result_object->name);
+    BPF_TRACE("python: read filename and name pointers: %p, %p", state->code_object.filename, state->code_object.name);
 
     return true;
 }
 
-static ALWAYS_INLINE bool python_read_python_ascii_string(char* buffer, size_t buffer_size, struct python_config* config, void* py_object) {
-    if (buffer == NULL || buffer_size <= 0) {
+// Returns true if operation succeeds
+static ALWAYS_INLINE bool python_read_ascii_object(char* buf, size_t buf_size, u8* res_length, struct python_config* config, void* py_object) {
+    if (buf == NULL || buf_size == 0 || res_length == NULL) {
         return false;
     }
-    buffer[0] = '\0';
-
-    size_t length = 0;
-    long err = bpf_probe_read_user(&length, sizeof(length), (void*) py_object + config->offsets.py_ascii_object_offsets.length);
-    if (err != 0) {
-        BPF_TRACE("python: failed to read ascii string length: %d", err);
-        return false;
-    }
-    ++length;
-
-    BPF_TRACE("python: read ascii string length %d, buffer_size %u", length, buffer_size);
 
     u32 status = 0;
-    err = bpf_probe_read_user(&status, sizeof(u32), (void*) py_object + config->offsets.py_ascii_object_offsets.state);
+    long err = bpf_probe_read_user(&status, sizeof(u32), (void*) py_object + config->offsets.py_string_object_offsets.state);
     if (err != 0) {
         BPF_TRACE("python: failed to read ascii status: %d", err);
         return false;
     }
 
-    if ((status & (1 << config->offsets.py_ascii_object_offsets.ascii_bit)) == 0
-        || (status & (1 << config->offsets.py_ascii_object_offsets.compact_bit)) == 0) {
+    if ((status & (1 << config->offsets.py_string_object_offsets.ascii_bit)) == 0
+        || (status & (1 << config->offsets.py_string_object_offsets.compact_bit)) == 0) {
         metric_increment(METRIC_PYTHON_NON_ASCII_COMPACT_STRINGS_COUNT);
         return false;
     }
 
-    BPF_TRACE("python: found string status %u", ((status << 24) >> 24));
+    BPF_TRACE("python: found ascii string status %u", ((status << 24) >> 24));
 
-    if (length > buffer_size) {
-        length = buffer_size;
+    size_t length = 0;
+    err = bpf_probe_read_user(&length, sizeof(length), (void*) py_object + config->offsets.py_string_object_offsets.length);
+    if (err != 0) {
+        BPF_TRACE("python: failed to read ascii string length: %d", err);
+        return false;
     }
 
-    err = bpf_probe_read_user_str(buffer, length, (void*) py_object + config->offsets.py_ascii_object_offsets.data);
-    if (err < 0)  {
+    if (length == (size_t) -1) {
+        return false;
+    }
+
+    BPF_TRACE("python: read ascii string length %d, buf_size %u", length, buf_size);
+
+    ++length;
+    if (length > buf_size) {
+        length = buf_size;
+    }
+    length &= PYTHON_STRING_LENGTH_VERIFIER_MASK;
+
+    err = bpf_probe_read_user_str(buf, length, (void*) py_object + config->offsets.py_string_object_offsets.data);
+    if (err <= 0)  {
         BPF_TRACE("python: failed to read ascii string data: %d", err);
         return false;
     }
 
+    // In this case `err` is the length of the string including the null terminator.
+    *res_length = err - 1;
     BPF_TRACE("python: Successfully read ASCII string of length %d", err);
-
     return true;
 }
 
-static ALWAYS_INLINE bool python_read_symbol(struct python_symbol* result_symbol, struct python_config* config, struct python_code_object* code_object) {
-    if (result_symbol == NULL || code_object == NULL || config == NULL) {
+// Returns true if operation succeeded
+static ALWAYS_INLINE bool python_read_unicode_object(char* buf, size_t buf_size, u8* res_length, struct python_state* state, void* py_object) {
+    if (buf == NULL || buf_size == 0 || res_length == NULL || state == NULL) {
         return false;
     }
 
-    if (code_object->filename != 0) {
-        if (!python_read_python_ascii_string(result_symbol->file_name, sizeof(result_symbol->file_name), config, (void*) code_object->filename)) {
-            BPF_TRACE("python: failed to read code object filename");
-            return false;
-        }
+    void* str = NULL;
+    long err = bpf_probe_read_user(&str, sizeof(void*), (void*) py_object + state->config.offsets.py_string_object_offsets.data);
+    if (err != 0) {
+        BPF_TRACE("python: failed to read string pointer: %d", err);
+        return false;
     }
 
-    if (code_object->name != 0) {
-        if (!python_read_python_ascii_string(result_symbol->name, sizeof(result_symbol->name), config, (void*) code_object->name)) {
-            BPF_TRACE("python: failed to read code object name");
-            return false;
-        }
+    if (str == NULL) {
+        BPF_TRACE("python: read NULL string pointer");
+        return false;
+    }
+
+    size_t length = 0;
+    err = bpf_probe_read_user(&length, sizeof(length), (void*) py_object + state->config.offsets.py_string_object_offsets.length);
+    if (err != 0) {
+        BPF_TRACE("python: failed to read unicode string length: %d", err);
+        return false;
+    }
+
+    if (length == (size_t) -1) {
+        return false;
+    }
+
+    u32 bytes_length = (length << state->config.unicode_type_size_log2);
+    if (bytes_length > buf_size) {
+        bytes_length = buf_size;
+    }
+
+    bytes_length &= PYTHON_STRING_LENGTH_VERIFIER_MASK;
+    err = bpf_probe_read_user(buf, bytes_length, (void*) str);
+    if (err != 0) {
+        BPF_TRACE("python: failed to read unicode string: %d", err);
+        return false;
+    }
+
+    *res_length = length;
+
+    return true;
+}
+
+static ALWAYS_INLINE u8 python_read_string_object(char* buf, size_t buf_size, u8* res_length, struct python_state* state, void* py_object) {
+     if (state == NULL || py_object == NULL) {
+        return false;
+    }
+
+    if (state->config.unicode_type_size_log2 == 0) {
+        return python_read_ascii_object(buf, buf_size, res_length, &state->config, py_object);
+    }
+
+    return python_read_unicode_object(buf, buf_size, res_length, state, py_object);
+}
+
+static ALWAYS_INLINE bool python_read_symbol(struct python_state* state) {
+    if (state == NULL) {
+        return false;
+    }
+
+    state->symbol.codepoint_size = (1 << state->config.unicode_type_size_log2);
+
+    char* buf = state->symbol.data;
+    if (!python_read_string_object(buf, sizeof(state->symbol.data), &state->symbol.name_length, state, (void*) state->code_object.name)) {
+        BPF_TRACE("python: failed to read code object name");
+        return false;
+    }
+
+    u32 bytes_name_length = (state->symbol.name_length << state->config.unicode_type_size_log2);
+    if (bytes_name_length >= sizeof(state->symbol.data)) {
+        bytes_name_length = sizeof(state->symbol.data);
+    }
+    // make verifier happy
+    bytes_name_length &= PYTHON_STRING_LENGTH_VERIFIER_MASK;
+
+    buf = state->symbol.data + bytes_name_length;
+    if (!python_read_string_object(
+        buf,
+        sizeof(state->symbol.data) - bytes_name_length,
+        &state->symbol.filename_length,
+        state,
+        (void*) state->code_object.filename
+    )) {
+        BPF_TRACE("python: failed to read code object filename");
+        return false;
     }
 
     return true;
 }
 
-static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, void* frame, struct python_config* config, struct python_state* state) {
-    if (config == NULL || state == NULL || res_frame == NULL) {
+static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, void* frame, struct python_state* state) {
+    if (state == NULL || res_frame == NULL) {
         return false;
     }
 
     void* code = NULL;
-    long err = bpf_probe_read_user(&code, sizeof(void*), (void*) frame + config->offsets.py_frame_offsets.f_code);
+    long err = bpf_probe_read_user(&code, sizeof(void*), (void*) frame + state->config.offsets.py_frame_offsets.f_code);
     if (err != 0) {
         BPF_TRACE(
             "python: failed to read PyCodeObject* at offset %d: %d",
-            config->offsets.py_frame_offsets.f_code,
+            state->config.offsets.py_frame_offsets.f_code,
             err
         );
         return false;
@@ -233,7 +310,7 @@ static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, v
 
     state->symbol_key.pid = state->pid;
     state->symbol_key.code_object = (u64) code;
-    err = bpf_probe_read(&state->symbol_key.co_firstlineno, sizeof(int), (void*) code + config->offsets.py_code_object_offsets.co_firstlineno);
+    err = bpf_probe_read(&state->symbol_key.co_firstlineno, sizeof(int), (void*) code + state->config.offsets.py_code_object_offsets.co_firstlineno);
     if (err != 0) {
         BPF_TRACE("python: failed to read co_firstlineno: %d", err);
         return false;
@@ -252,11 +329,12 @@ static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, v
         return true;
     }
 
-    if (!python_read_code_object(&state->code_object, config, code)) {
+    if (!python_read_code_object(state, code)) {
         return false;
     }
 
-    if (!python_read_symbol(&state->symbol, config, &state->code_object)) {
+    if (!python_read_symbol(state)) {
+        metric_increment(METRIC_PYTHON_FAILED_TO_READ_SYMBOL_COUNT);
         return false;
     }
 
@@ -270,10 +348,9 @@ static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, v
 
 static ALWAYS_INLINE void python_walk_stack(
     void* py_frame,
-    struct python_config* config,
     struct python_state* state
 ) {
-    if (config == NULL || state == NULL) {
+    if (state == NULL) {
         return;
     }
 
@@ -283,7 +360,7 @@ static ALWAYS_INLINE void python_walk_stack(
         }
 
         enum python_frame_owner owner = FRAME_OWNED_BY_THREAD;
-        if (!python_read_frame_owner(&owner, py_frame, config)) {
+        if (!python_read_frame_owner(&owner, py_frame, &state->config)) {
             break;
         }
 
@@ -298,7 +375,7 @@ static ALWAYS_INLINE void python_walk_stack(
             goto move_to_next_frame;
         }
 
-        if (!python_process_frame(&state->frames[i], py_frame, config, state)) {
+        if (!python_process_frame(&state->frames[i], py_frame, state)) {
             break;
         }
         state->frame_count = i + 1;
@@ -306,7 +383,7 @@ static ALWAYS_INLINE void python_walk_stack(
         BPF_TRACE("python: Successfully processed frame %d", i);
 
 move_to_next_frame:
-        py_frame = python_read_previous_frame(py_frame, config);
+        py_frame = python_read_previous_frame(py_frame, &state->config);
     }
 
     BPF_TRACE("python: Collected %d frames", state->frame_count);
@@ -329,6 +406,9 @@ static ALWAYS_INLINE bool python_retrieve_configs(
     state->config = *config;
     if (config->py_runtime_relative_address != 0) {
         state->py_runtime_address = proc_info->interpreter_binary.start_address + config->py_runtime_relative_address;
+    }
+    if (config->py_interp_head_relative_address != 0) {
+        state->py_interp_head_address = proc_info->interpreter_binary.start_address + config->py_interp_head_relative_address;
     }
     if (config->auto_tss_key_relative_address != 0) {
         state->auto_tss_key_address = proc_info->interpreter_binary.start_address + config->auto_tss_key_relative_address;
@@ -384,5 +464,5 @@ static ALWAYS_INLINE void python_collect_stack(
     BPF_TRACE("python: Successfully read python frame addr %p", py_frame);
 
     python_reset_state(state);
-    python_walk_stack(py_frame, &state->config, state);
+    python_walk_stack(py_frame, state);
 }

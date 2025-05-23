@@ -20,6 +20,8 @@ constexpr TStringBuf kPyGetVersionSymbol = "Py_GetVersion";
 constexpr TStringBuf kPyRuntimeSymbol = "_PyRuntime";
 constexpr TStringBuf kPyGILStateEnsureSymbol = "PyGILState_Ensure";
 constexpr TStringBuf kPyInterpreterStateHeadSymbol = "PyInterpreterState_Head";
+constexpr TStringBuf kPyUnicodeUCS2FromStringSymbol = "PyUnicodeUCS2_FromString";
+constexpr TStringBuf kPyUnicodeUCS4FromStringSymbol = "PyUnicodeUCS4_FromString";
 
 const re2::RE2 kPythonVersionRegex(R"(([23])\.(\d+)(?:\.(\d{1,2}))?([^\.]|$))");
 
@@ -46,6 +48,12 @@ struct TParsedPythonVersion {
     }
 };
 
+enum class EUnicodeType {
+    Unknown,
+    UCS2,
+    UCS4
+};
+
 class TPythonAnalyzer {
 public:
     struct TSymbols {
@@ -56,6 +64,8 @@ public:
         TMaybe<NPerforator::NELF::TLocation> PyRuntime;
         TMaybe<NPerforator::NELF::TLocation> PyGILStateEnsure;
         TMaybe<NPerforator::NELF::TLocation> PyInterpreterStateHead;
+        TMaybe<NPerforator::NELF::TLocation> PyUnicodeUCS2FromString;
+        TMaybe<NPerforator::NELF::TLocation> PyUnicodeUCS4FromString;
     };
 
 public:
@@ -75,6 +85,11 @@ public:
 
     // Parses the absolute address of interp_head by disassembling PyInterpreterState_Head
     TMaybe<ui64> ParseInterpHeadAddress();
+
+    // Return the default unicode type.
+    // This should be used for CPython before 3.3
+    //  when every character in PyUnicodeObject was encoded via PyUnicodeType
+    EUnicodeType ParseUnicodeType();
 
 private:
     void ParseSymbolLocations();

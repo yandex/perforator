@@ -5,12 +5,14 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/pthread"
-	pythonbpf "github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/python"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/tls"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/unwindtable"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/pthread"
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/python"
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/tls"
+	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
+	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
 
 type Allocation struct {
@@ -25,12 +27,9 @@ type Allocation struct {
 }
 
 type BPFBinaryManager struct {
-	l log.Logger
-
-	tables  *unwindtable.BPFManager
-	tls     *tls.BPFManager
-	python  *pythonbpf.BPFManager
-	pthread *pthread.BPFManager
+	l      log.Logger
+	bpf    *machine.BPF
+	tables *unwindtable.BPFManager
 }
 
 func NewBPFBinaryManager(l log.Logger, r metrics.Registry, bpf *machine.BPF) (*BPFBinaryManager, error) {
@@ -42,11 +41,9 @@ func NewBPFBinaryManager(l log.Logger, r metrics.Registry, bpf *machine.BPF) (*B
 	}
 
 	return &BPFBinaryManager{
-		l:       l,
-		tables:  unwmanager,
-		tls:     tls.NewBPFManager(l, bpf),
-		python:  pythonbpf.NewBPFManager(l, bpf),
-		pthread: pthread.NewBPFManager(l, bpf),
+		l:      l,
+		bpf:    bpf,
+		tables: unwmanager,
 	}, nil
 }
 
@@ -61,29 +58,37 @@ func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.Binary
 		}
 	}()
 
-	err = m.tls.Add(id, analysis.TLSConfig)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err != nil {
-			m.tls.Release(id)
-		}
-	}()
+	binId := unwinder.BinaryId(id)
 
-	err = m.python.Add(id, analysis.PythonConfig)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
+	if analysis.TLSConfig != nil {
+		err = m.bpf.AddTLSConfig(binId, convertToUnwindTLSConfig(analysis.TLSConfig))
 		if err != nil {
-			m.python.Release(id)
+			return nil, err
 		}
-	}()
+		defer func() {
+			if err != nil {
+				m.releaseTLS(binId)
+			}
+		}()
+	}
 
-	err = m.pthread.Add(id, analysis.PthreadConfig)
-	if err != nil {
-		return nil, err
+	if analysis.PythonConfig != nil {
+		err = m.bpf.AddPythonConfig(binId, convertToUnwindPythonConfig(analysis.PythonConfig))
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if err != nil {
+				m.releasePython(binId)
+			}
+		}()
+	}
+
+	if analysis.PthreadConfig != nil {
+		err = m.bpf.AddPthreadConfig(binId, convertToUnwindPthreadConfig(analysis.PthreadConfig))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	alloc = &Allocation{
@@ -98,9 +103,62 @@ func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.Binary
 
 func (m *BPFBinaryManager) Release(a *Allocation) {
 	m.tables.Release(a.UnwindTableAllocation)
-	m.tls.Release(a.id)
-	m.python.Release(a.id)
-	m.pthread.Release(a.id)
+	binId := unwinder.BinaryId(a.id)
+	m.releasePthread(binId)
+	m.releasePython(binId)
+	m.releaseTLS(binId)
+}
+
+func (m *BPFBinaryManager) releasePython(id unwinder.BinaryId) {
+	err := m.bpf.DeletePythonConfig(id)
+	if err != nil {
+		m.l.Error("Failed to delete python config", log.Error(err))
+	}
+}
+
+func (m *BPFBinaryManager) releasePthread(id unwinder.BinaryId) {
+	err := m.bpf.DeletePthreadConfig(id)
+	if err != nil {
+		m.l.Error("Failed to delete pthread config", log.Error(err))
+	}
+}
+
+func (m *BPFBinaryManager) releaseTLS(id unwinder.BinaryId) {
+	err := m.bpf.DeleteTLSConfig(id)
+	if err != nil {
+		m.l.Error("Failed to delete TLS config", log.Error(err))
+	}
+}
+
+func convertToUnwindTLSConfig(config *tls.TLSConfig) *unwinder.TlsBinaryConfig {
+	tlsConf := &unwinder.TlsBinaryConfig{}
+	for idx, variable := range config.Variables {
+		tlsConf.Offsets[idx] = variable.Offset
+	}
+	for idx := len(config.Variables); idx < len(tlsConf.Offsets); idx++ {
+		tlsConf.Offsets[idx] = uint64(^int64(-1))
+	}
+	return tlsConf
+}
+
+func convertToUnwindPythonConfig(config *python.PythonConfig) *unwinder.PythonConfig {
+	return python_agent.ParsePythonUnwinderConfig(config)
+}
+
+func convertToUnwindPthreadConfig(config *pthread.PthreadConfig) *unwinder.PthreadConfig {
+	return &unwinder.PthreadConfig{
+		KeyData: unwinder.PthreadKeyData{
+			Size:        config.KeyData.Size,
+			ValueOffset: config.KeyData.ValueOffset,
+			SeqOffset:   config.KeyData.SeqOffset,
+		},
+		FirstSpecificBlockOffset:   config.FirstSpecificBlockOffset,
+		SpecificArrayOffset:        config.SpecificArrayOffset,
+		StructPthreadPointerOffset: config.StructPthreadPointerOffset,
+		KeySecondLevelSize:         config.KeySecondLevelSize,
+		KeyFirstLevelSize:          config.KeyFirstLevelSize,
+		KeysMax:                    config.KeysMax,
+	}
 }
 
 func (m *BPFBinaryManager) MoveFromCache(a *Allocation) bool {

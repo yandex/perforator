@@ -132,4 +132,5 @@ func TestColInterval(t *testing.T) {
 		var v ColInterval
 		v.EncodeColumn(nil) // should be no-op
 	})
+	t.Run("WriteColumn", checkWriteColumn(data))
 }

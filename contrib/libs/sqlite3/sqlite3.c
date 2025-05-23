@@ -28491,7 +28491,7 @@ SQLITE_PRIVATE sqlite3_mutex_methods const *sqlite3DefaultMutex(void){
 #include "windows.h"
 
 #ifdef __CYGWIN__
-# include <sys/cygwin.h>
+# error #include <sys/cygwin.h>
 # include <errno.h> /* amalgamator: dontcache */
 #endif
 

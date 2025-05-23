@@ -93,6 +93,7 @@ func TestArrLowCardinalityStr(t *testing.T) {
 		dec := new(ColStr).LowCardinality().Array()
 		requireNoShortRead(t, buf.Buf, colAware(dec, rows))
 	})
+	t.Run("WriteColumn", checkWriteColumn(col))
 }
 
 func TestColLowCardinality_DecodeColumn(t *testing.T) {

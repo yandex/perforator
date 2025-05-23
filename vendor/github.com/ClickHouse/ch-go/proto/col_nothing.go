@@ -71,3 +71,7 @@ func (c ColNothing) EncodeColumn(b *Buffer) {
 	}
 	b.PutRaw(make([]byte, c))
 }
+
+func (c ColNothing) WriteColumn(w *Writer) {
+	w.ChainBuffer(c.EncodeColumn)
+}

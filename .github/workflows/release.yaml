@@ -41,9 +41,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libunwind-dev libgflags-dev libssl-dev libelf-dev protobuf-compiler \
               cmake libzstd-dev clang g++ git build-essential
-          git clone --recursive --depth 1 https://github.com/google/autofdo.git
+          git clone --recursive --revision 8f9ab68921f364a6433086245ca3f19befacfeb1 --depth 1 https://github.com/google/autofdo.git
           cd autofdo
-          git checkout 8f9ab68921f364a6433086245ca3f19befacfeb1
           git submodule update --init --recursive
           mkdir build
           cd build

@@ -19,6 +19,7 @@ package clickhouse
 
 import (
 	"context"
+	"maps"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/ext"
@@ -43,12 +44,13 @@ type CustomSetting struct {
 type Parameters map[string]string
 type (
 	QueryOption  func(*QueryOptions) error
+	AsyncOptions struct {
+		ok   bool
+		wait bool
+	}
 	QueryOptions struct {
-		span  trace.SpanContext
-		async struct {
-			ok   bool
-			wait bool
-		}
+		span     trace.SpanContext
+		async    AsyncOptions
 		queryID  string
 		quotaKey string
 		events   struct {
@@ -163,26 +165,68 @@ func ignoreExternalTables() QueryOption {
 	}
 }
 
+// Context returns a derived context with the given ClickHouse QueryOptions.
+// Existing QueryOptions will be overwritten per option if present.
+// The QueryOptions Settings map will be initialized if nil.
 func Context(parent context.Context, options ...QueryOption) context.Context {
-	opt := queryOptions(parent)
+	var opt QueryOptions
+	if ctxOpt, ok := parent.Value(_contextOptionKey).(QueryOptions); ok {
+		opt = ctxOpt
+	}
+
 	for _, f := range options {
 		f(&opt)
 	}
+
+	if opt.settings == nil {
+		opt.settings = make(Settings)
+	}
+
 	return context.WithValue(parent, _contextOptionKey, opt)
 }
 
+// queryOptions returns a mutable copy of the QueryOptions struct within the given context.
+// If ClickHouse context was not provided, an empty struct with a valid Settings map is returned.
+// If the context has a deadline greater than 1s then max_execution_time setting is appended.
 func queryOptions(ctx context.Context) QueryOptions {
-	if o, ok := ctx.Value(_contextOptionKey).(QueryOptions); ok {
-		if deadline, ok := ctx.Deadline(); ok {
-			if sec := time.Until(deadline).Seconds(); sec > 1 {
-				o.settings["max_execution_time"] = int(sec + 5)
-			}
+	var opt QueryOptions
+
+	if ctxOpt, ok := ctx.Value(_contextOptionKey).(QueryOptions); ok {
+		opt = ctxOpt.clone()
+	} else {
+		opt = QueryOptions{
+			settings: make(Settings),
 		}
-		return o
 	}
-	return QueryOptions{
-		settings: make(Settings),
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return opt
 	}
+
+	if sec := time.Until(deadline).Seconds(); sec > 1 {
+		opt.settings["max_execution_time"] = int(sec + 5)
+	}
+
+	return opt
+}
+
+// queryOptionsAsync returns the AsyncOptions struct within the given context's QueryOptions.
+func queryOptionsAsync(ctx context.Context) AsyncOptions {
+	if opt, ok := ctx.Value(_contextOptionKey).(QueryOptions); ok {
+		return opt.async
+	}
+
+	return AsyncOptions{}
+}
+
+// queryOptionsUserLocation returns the *time.Location within the given context's QueryOptions.
+func queryOptionsUserLocation(ctx context.Context) *time.Location {
+	if opt, ok := ctx.Value(_contextOptionKey).(QueryOptions); ok {
+		return opt.userLocation
+	}
+
+	return nil
 }
 
 func (q *QueryOptions) onProcess() *onProcess {
@@ -210,4 +254,32 @@ func (q *QueryOptions) onProcess() *onProcess {
 			}
 		},
 	}
+}
+
+// clone returns a copy of QueryOptions where Settings and Parameters are safely mutable.
+func (q *QueryOptions) clone() QueryOptions {
+	c := QueryOptions{
+		span:            q.span,
+		async:           q.async,
+		queryID:         q.queryID,
+		quotaKey:        q.quotaKey,
+		events:          q.events,
+		settings:        nil,
+		parameters:      nil,
+		external:        q.external,
+		blockBufferSize: q.blockBufferSize,
+		userLocation:    q.userLocation,
+	}
+
+	if q.settings != nil {
+		c.settings = make(Settings, len(q.settings))
+		maps.Copy(c.settings, q.settings)
+	}
+
+	if q.parameters != nil {
+		c.parameters = make(Parameters, len(q.parameters))
+		maps.Copy(c.parameters, q.parameters)
+	}
+
+	return c
 }

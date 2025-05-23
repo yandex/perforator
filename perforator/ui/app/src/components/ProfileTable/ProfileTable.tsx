@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { AxiosError } from 'axios';
 
-import ArrowUpRightFromSquareIcon from '@gravity-ui/icons/svgs/arrow-up-right-from-square.svg?raw';
+import { ArrowUpRightFromSquare } from '@gravity-ui/icons';
 import type { TableSortState } from '@gravity-ui/uikit';
 import {
     Icon,
@@ -43,7 +43,7 @@ const CompactLink: React.FC<{href: string; routerLink?: boolean}> = ({ href, rou
     const LocalLink = routerLink ? RouterLink : Link;
     return (
         <LocalLink href={href}>
-            <Icon data={ArrowUpRightFromSquareIcon} />
+            <Icon data={ArrowUpRightFromSquare} />
         </LocalLink>
     );
 };
@@ -127,7 +127,7 @@ const prepareProfileColumns = ({ compact }: { compact?: boolean } = {}) => {
             id: 'ProfileID',
             name: 'Profile ID',
             template: (profile: Profile) => {
-                const href = `/profile/${profile.ProfileID}?timestamp=${parseDate(profile.Timestamp ?? '')!.valueOf()}&event_type=${profile.EventType}`;
+                const href = `/profile/${profile.ProfileID}?timestamp=${parseDate(profile.Timestamp ?? '')!.valueOf()}&event_type=${profile.EventType}&service=${profile.Service}`;
                 return renderLink(href, profile.ProfileID, true);
             },
         },

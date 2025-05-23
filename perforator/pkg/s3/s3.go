@@ -1,10 +1,7 @@
 package s3
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"net/http"
 	"os"
 	"strconv"
 
@@ -15,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/perforator/pkg/certifi"
 )
 
 const (
@@ -32,10 +30,13 @@ type Config struct {
 	SecretKeyEnv  string `yaml:"secret_key_env"`
 	AccessKeyEnv  string `yaml:"access_key_env"`
 
-	Region             string `yaml:"region"`
-	ForcePathStyle     *bool  `yaml:"force_path_style"`
-	InsecureSkipVerify bool   `yaml:"insecure,omitempty"`
-	CACertPath         string `yaml:"ca_cert_path,omitempty"`
+	Region         string `yaml:"region"`
+	ForcePathStyle *bool  `yaml:"force_path_style"`
+
+	TLS certifi.ClientTLSConfig `yaml:"tls"`
+
+	InsecureSkipVerify   bool   `yaml:"insecure,omitempty"`
+	CACertPathDeprecated string `yaml:"ca_cert_path,omitempty"`
 }
 
 func (c *Config) fillDefault() {
@@ -47,6 +48,18 @@ func (c *Config) fillDefault() {
 	}
 	if c.SecretKeyEnv == "" && c.SecretKeyPath == "" {
 		c.SecretKeyEnv = defaultSecretKeyEnv
+	}
+
+	// TLS backward compatibility.
+	// Previously, s3 client used TLS by default, so we need to enable tls if these values ​​are present.
+	if c.CACertPathDeprecated != "" {
+		c.TLS.Enabled = true
+		c.TLS.CAFile = c.CACertPathDeprecated
+	}
+
+	if c.InsecureSkipVerify {
+		c.TLS.Enabled = true
+		c.TLS.InsecureSkipVerify = c.InsecureSkipVerify
 	}
 }
 
@@ -114,28 +127,12 @@ func NewClient(c *Config, reg metrics.Registry) (*s3.S3, error) {
 		config = config.WithS3ForcePathStyle(*c.ForcePathStyle)
 	}
 
-	tlsConf := &tls.Config{
-		InsecureSkipVerify: c.InsecureSkipVerify,
+	httpClient, err := c.TLS.HTTPClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure TLS: %w", err)
 	}
-	if !c.InsecureSkipVerify && c.CACertPath != "" {
-		cert, err := os.ReadFile(c.CACertPath)
-		if err != nil {
-			return nil, err
-		}
-
-		certPool := x509.NewCertPool()
-		if !certPool.AppendCertsFromPEM(cert) {
-			return nil, fmt.Errorf("failed to add server CA's certificate, path: %s", c.CACertPath)
-		}
-
-		tlsConf.RootCAs = certPool
-	}
-
-	config = config.WithHTTPClient(&http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConf,
-		},
-	})
+	config = config.WithHTTPClient(httpClient).
+		WithDisableSSL(!c.TLS.Enabled) // We must explicitly pass this flag, otherwise, s3 client will use TLS by default, even when the HTTP client was created with a nil tls.Config.
 
 	session, err := session.NewSession(config)
 	if err != nil {

@@ -145,7 +145,7 @@ func (col *IPv4) Append(v any) (nulls []uint8, err error) {
 		ips := make([]netip.Addr, len(v), len(v))
 		for i := range v {
 			switch {
-			case v != nil:
+			case v[i] != nil:
 				ip, err := strToIPV4(*v[i])
 				if err != nil {
 					return nulls, err
@@ -164,7 +164,7 @@ func (col *IPv4) Append(v any) (nulls []uint8, err error) {
 		nulls = make([]uint8, len(v))
 		for i := range v {
 			switch {
-			case v != nil:
+			case v[i] != nil:
 				col.col.Append(proto.ToIPv4(*v[i]))
 			default:
 				nulls[i] = 1
@@ -196,7 +196,7 @@ func (col *IPv4) Append(v any) (nulls []uint8, err error) {
 		nulls = make([]uint8, len(v))
 		for i := range v {
 			switch {
-			case v != nil:
+			case v[i] != nil:
 				col.col.Append(proto.IPv4(*v[i]))
 			default:
 				nulls[i] = 1

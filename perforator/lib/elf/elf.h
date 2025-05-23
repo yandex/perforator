@@ -61,4 +61,6 @@ TMaybe<TConstArrayRef<ui8>> RetrieveContentFromRodataSection(
     const TLocation& location
 );
 
+bool IsElfFile(const llvm::object::ObjectFile& file);
+
 } // namespace NPerforator::NELF

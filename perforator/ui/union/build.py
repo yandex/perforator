@@ -54,7 +54,7 @@ def main():
     pnpm = os.path.join(args.pnpm_dir, 'node_modules', 'pnpm', 'dist', 'pnpm.cjs')
 
     run_command([node, pnpm, 'install'])
-    run_command([node, pnpm, '--filter', '"../packages/**"', 'run', 'build'])
+    run_command([node, pnpm, '--filter', '../packages/**', 'run', 'build'])
     run_command([node, pnpm, 'run', 'build'])
 
     with tarfile.open(os.path.join(args.bindir, 'output.tar'), 'w') as tar:

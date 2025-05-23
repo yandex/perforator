@@ -62,6 +62,7 @@ func TestColDecimal64_DecodeColumn(t *testing.T) {
 		var v ColDecimal64
 		v.EncodeColumn(nil) // should be no-op
 	})
+	t.Run("WriteColumn", checkWriteColumn(data))
 }
 func TestColDecimal64Array(t *testing.T) {
 	const rows = 50

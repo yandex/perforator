@@ -4,13 +4,13 @@ import "time"
 
 // Log from server.
 type Log struct {
-	Time     time.Time
-	Host     string
-	QueryID  string
-	ThreadID uint64
-	Priority int8
-	Source   string
-	Text     string
+	QueryID  string    `json:"query_id"`
+	Source   string    `json:"source"`
+	Text     string    `json:"text"`
+	Time     time.Time `json:"event_time"`
+	Host     string    `json:"host_name"`
+	ThreadID uint64    `json:"thread_id"`
+	Priority int8      `json:"priority"`
 }
 
 // Logs from ServerCodeLog packet.

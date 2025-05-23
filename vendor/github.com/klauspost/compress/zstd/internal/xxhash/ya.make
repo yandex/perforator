@@ -6,11 +6,10 @@ LICENSE(
     MIT
 )
 
-VERSION(v1.17.9)
+VERSION(v1.18.0)
 
 SRCS(
     xxhash.go
-    xxhash_asm.go
     xxhash_safe.go
 )
 
@@ -19,12 +18,20 @@ GO_TEST_SRCS(xxhash_test.go)
 IF (ARCH_X86_64)
     SRCS(
         xxhash_amd64.s
+        xxhash_asm.go
     )
 ENDIF()
 
 IF (ARCH_ARM64)
     SRCS(
         xxhash_arm64.s
+        xxhash_asm.go
+    )
+ENDIF()
+
+IF (OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        xxhash_other.go
     )
 ENDIF()
 

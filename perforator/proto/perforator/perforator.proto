@@ -133,6 +133,7 @@ message ListProfilesRequest {
 
 message ListProfilesResponse {
     repeated ProfileMeta Profiles = 1;
+    bool HasMore = 2;
 }
 
 message ProfileMeta {

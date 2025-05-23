@@ -106,6 +106,20 @@ IF (OS_LINUX AND ARCH_ARM64)
     )
 ENDIF()
 
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        asm_linux_arm.s
+        fcntl_linux_32bit.go
+        syscall_linux_arm.go
+        syscall_linux_gc_arm.go
+        zerrors_linux_arm.go
+        zptrace_armnn_linux.go
+        zsyscall_linux_arm.go
+        zsysnum_linux_arm.go
+        ztypes_linux_arm.go
+    )
+ENDIF()
+
 IF (OS_DARWIN)
     SRCS(
         aliases.go

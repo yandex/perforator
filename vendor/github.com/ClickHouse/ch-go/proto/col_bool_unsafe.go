@@ -34,3 +34,13 @@ func (c *ColBool) DecodeColumn(r *Reader, rows int) error {
 	}
 	return nil
 }
+
+// WriteColumn writes Bool rows to *Writer.
+func (c ColBool) WriteColumn(w *Writer) {
+	if len(c) == 0 {
+		return
+	}
+	s := *(*slice)(unsafe.Pointer(&c))    // #nosec G103
+	src := *(*[]byte)(unsafe.Pointer(&s)) // #nosec G103
+	w.ChainWrite(src)
+}

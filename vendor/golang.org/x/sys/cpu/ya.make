@@ -59,6 +59,14 @@ IF (OS_LINUX AND ARCH_ARM64)
     )
 ENDIF()
 
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        cpu_arm.go
+        cpu_linux.go
+        cpu_linux_arm.go
+    )
+ENDIF()
+
 IF (OS_DARWIN AND ARCH_X86_64)
     SRCS(
         asm_darwin_x86_gc.s

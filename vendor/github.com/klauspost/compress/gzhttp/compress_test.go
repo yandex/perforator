@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/klauspost/compress/gzip"
+	"github.com/klauspost/compress/zstd"
 )
 
 var (
@@ -88,6 +89,41 @@ func TestMustNewGzipHandler(t *testing.T) {
 	handler.ServeHTTP(res3, req3)
 
 	assertEqual(t, http.DetectContentType([]byte(testBody)), res3.Header().Get("Content-Type"))
+
+	// send compress request body with `AllowCompressedRequests`
+	handler = newTestHandlerLevel(testBody, AllowCompressedRequests(true))
+
+	var b bytes.Buffer
+	writerGzip := gzip.NewWriter(&b)
+	writerGzip.Write(testBody)
+	writerGzip.Close()
+
+	req5, _ := http.NewRequest("POST", "/whatever", &b)
+	req5.Header.Set("Content-Encoding", "gzip")
+	resp5 := httptest.NewRecorder()
+	handler.ServeHTTP(resp5, req5)
+	res5 := resp5.Result()
+
+	assertEqual(t, 200, res5.StatusCode)
+
+	body, _ := io.ReadAll(res5.Body)
+	assertEqual(t, len(testBody), len(body))
+
+	// send compress request body without `AllowCompressedRequests`
+	writerGzip = gzip.NewWriter(&b)
+	writerGzip.Write(testBody)
+	writerGzip.Close()
+
+	handler = newTestHandlerLevel(b.Bytes())
+
+	req6, _ := http.NewRequest("POST", "/whatever", &b)
+	resp6 := httptest.NewRecorder()
+	handler.ServeHTTP(resp6, req6)
+	res6 := resp6.Result()
+
+	assertEqual(t, 200, res6.StatusCode)
+	body, _ = io.ReadAll(res6.Body)
+	assertEqual(t, b.Len(), len(body))
 }
 
 func TestGzipHandlerSmallBodyNoCompression(t *testing.T) {
@@ -626,7 +662,7 @@ func TestFlushAfterWrite3(t *testing.T) {
 	}
 	handler := gz(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
-		//rw.Write(nil)
+		// rw.Write(nil)
 		rw.(http.Flusher).Flush()
 	}))
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -1562,6 +1598,44 @@ var sniffTests = []struct {
 	{"Incorrect RAR v5+", []byte("Rar \x1A\x07\x01\x00"), "application/octet-stream"},
 }
 
+func TestNoContentTypeWhenNoContent(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	wrapper, err := NewWrapper()
+	assertNil(t, err)
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	resp := httptest.NewRecorder()
+	wrapper(handler).ServeHTTP(resp, req)
+	res := resp.Result()
+
+	assertEqual(t, http.StatusNoContent, res.StatusCode)
+	assertEqual(t, "", res.Header.Get("Content-Type"))
+
+}
+
+func TestNoContentTypeWhenNoBody(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	wrapper, err := NewWrapper()
+	assertNil(t, err)
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	resp := httptest.NewRecorder()
+	wrapper(handler).ServeHTTP(resp, req)
+	res := resp.Result()
+
+	assertEqual(t, http.StatusOK, res.StatusCode)
+	assertEqual(t, "", res.Header.Get("Content-Type"))
+
+}
+
 func TestContentTypeDetect(t *testing.T) {
 	for _, tt := range sniffTests {
 		t.Run(tt.desc, func(t *testing.T) {
@@ -1756,14 +1830,32 @@ func runBenchmark(b *testing.B, req *http.Request, handler http.Handler) {
 }
 
 func newTestHandler(body []byte) http.Handler {
+	var gzBuf bytes.Buffer
+	var zstdBuf bytes.Buffer
+	gz := gzip.NewWriter(&gzBuf)
+	gz.Write(body)
+	gz.Close()
+	zs, _ := zstd.NewWriter(&zstdBuf)
+	zs.Write(body)
+	zs.Close()
 	return GzipHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/gzipped":
+			// Add header. Write body as is.
 			w.Header().Set("Content-Encoding", "gzip")
 			w.Write(body)
 		case "/zstd":
+			// Add header. Write body as is.
 			w.Header().Set("Content-Encoding", "zstd")
 			w.Write(body)
+		case "/gzipped/do":
+			// Add header. Write gzipped body.
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Write(gzBuf.Bytes())
+		case "/zstd/do":
+			// Add header. Write zstd body.
+			w.Header().Set("Content-Encoding", "zstd")
+			w.Write(zstdBuf.Bytes())
 		default:
 			w.Write(body)
 		}
@@ -1803,11 +1895,6 @@ func TestGzipHandlerNilContentType(t *testing.T) {
 
 // This test is an adapted version of net/http/httputil.Test1xxResponses test.
 func Test1xxResponses(t *testing.T) {
-	// do not test 1xx responses on builds prior to go1.20.
-	if !shouldWrite1xxResponses() {
-		return
-	}
-
 	wrapper, _ := NewWrapper()
 	handler := wrapper(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

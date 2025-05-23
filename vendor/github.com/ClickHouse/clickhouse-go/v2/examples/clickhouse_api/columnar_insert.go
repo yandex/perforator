@@ -71,5 +71,23 @@ func ColumnInsert() error {
 	if err := batch.Column(3).Append(col4); err != nil {
 		return err
 	}
+
+	// AppendRow is a shortcut for Append(row)
+	if err := batch.Column(0).AppendRow(uint64(1_000)); err != nil {
+		return err
+	}
+
+	if err := batch.Column(1).AppendRow("Golang SQL database driver"); err != nil {
+		return err
+	}
+
+	if err := batch.Column(2).AppendRow([]uint8{1, 2, 3, 4, 5, 6, 7, 8, 9}); err != nil {
+		return err
+	}
+
+	if err := batch.Column(3).AppendRow(time.Now()); err != nil {
+		return err
+	}
+
 	return batch.Send()
 }

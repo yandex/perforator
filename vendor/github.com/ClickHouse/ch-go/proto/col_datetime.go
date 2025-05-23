@@ -61,6 +61,10 @@ func (c ColDateTime) Row(i int) time.Time {
 	return c.Data[i].Time().In(c.loc())
 }
 
+func (c *ColDateTime) AppendRaw(v DateTime) {
+	c.Data = append(c.Data, v)
+}
+
 func (c *ColDateTime) Append(v time.Time) {
 	c.Data = append(c.Data, ToDateTime(v))
 }
@@ -75,7 +79,7 @@ func (c *ColDateTime) AppendArr(vs []time.Time) {
 	c.Data = append(c.Data, dates...)
 }
 
-// LowCardinality returns LowCardinality for Enum8 .
+// LowCardinality returns LowCardinality for Enum8.
 func (c *ColDateTime) LowCardinality() *ColLowCardinality[time.Time] {
 	return &ColLowCardinality[time.Time]{
 		index: c,

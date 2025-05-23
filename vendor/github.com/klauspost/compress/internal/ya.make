@@ -2,6 +2,7 @@ RECURSE(
     cpuinfo
     fuzz
     godebug
+    le
     lz4ref
     race
     snapref

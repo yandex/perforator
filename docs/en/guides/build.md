@@ -30,6 +30,7 @@ While this guide assumes you are using Docker, any other BuildKit-compatible too
 Example usage
 
 ```bash
+cd perforator/deploy/docker
 # See above for possible ${COMPONENT} values
 # Add flags such as `--tag` or `--push` as necessary
 docker build -f Dockerfile.build --platform linux/amd64 --target ${COMPONENT} ../../..

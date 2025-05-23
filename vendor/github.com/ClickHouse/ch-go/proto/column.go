@@ -2,6 +2,7 @@ package proto
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/go-faster/errors"
@@ -12,6 +13,7 @@ type ColInput interface {
 	Type() ColumnType
 	Rows() int
 	EncodeColumn(b *Buffer)
+	WriteColumn(w *Writer)
 }
 
 // ColResult column.
@@ -73,8 +75,8 @@ func (c ColumnType) Base() ColumnType {
 	}
 	var (
 		v     = string(c)
-		start = strings.Index(v, "(")
-		end   = strings.LastIndex(v, ")")
+		start = strings.IndexByte(v, '(')
+		end   = strings.LastIndexByte(v, ')')
 	)
 	if start <= 0 || end <= 0 || end < start {
 		return c
@@ -82,30 +84,64 @@ func (c ColumnType) Base() ColumnType {
 	return c[:start]
 }
 
+// reduces Decimal(P, ...) to Decimal32/Decimal64/Decimal128/Decimal256
+// returns c if any errors occur during conversion
+func (c ColumnType) decimalDowncast() ColumnType {
+	if c.Base() != ColumnTypeDecimal {
+		return c
+	}
+	elem := c.Elem()
+	precStr, _, _ := strings.Cut(string(elem), ",")
+	precStr = strings.TrimSpace(precStr)
+	prec, err := strconv.Atoi(precStr)
+	if err != nil {
+		return c
+	}
+	switch {
+	case prec < 10:
+		return ColumnTypeDecimal32
+	case prec < 19:
+		return ColumnTypeDecimal64
+	case prec < 39:
+		return ColumnTypeDecimal128
+	case prec < 77:
+		return ColumnTypeDecimal256
+	default:
+		return c
+	}
+}
+
 // Conflicts reports whether two types conflict.
 func (c ColumnType) Conflicts(b ColumnType) bool {
 	if c == b {
 		return false
 	}
-	{
-		a := c
-		if b.Base() == ColumnTypeEnum8 || b.Base() == ColumnTypeEnum16 {
-			a, b = b, a
-		}
-		switch {
-		case a.Base() == ColumnTypeEnum8 && b == ColumnTypeInt8:
-			return false
-		case a.Base() == ColumnTypeEnum16 && b == ColumnTypeInt16:
-			return false
-		}
+	cBase := c.Base()
+	bBase := b.Base()
+	if (cBase == ColumnTypeEnum8 && b == ColumnTypeInt8) ||
+		(cBase == ColumnTypeEnum16 && b == ColumnTypeInt16) ||
+		(bBase == ColumnTypeEnum8 && c == ColumnTypeInt8) ||
+		(bBase == ColumnTypeEnum16 && c == ColumnTypeInt16) {
+		return false
 	}
-	if c.Base() != b.Base() {
+	if cBase == ColumnTypeDecimal || bBase == ColumnTypeDecimal {
+		return c.decimalDowncast() != b.decimalDowncast()
+	}
+
+	if cBase != bBase {
 		return true
 	}
+	switch cBase {
+	case ColumnTypeEnum8, ColumnTypeEnum16:
+		return false
+	}
+
 	if c.normalizeCommas() == b.normalizeCommas() {
 		return false
 	}
-	switch c.Base() {
+	switch cBase {
+	case ColumnTypeArray, ColumnTypeNullable, ColumnTypeLowCardinality:
+		return c.Elem().Conflicts(b.Elem())
 	case ColumnTypeDateTime, ColumnTypeDateTime64:
 		// TODO(ernado): improve check
 		return false
@@ -149,8 +185,8 @@ func (c ColumnType) Elem() ColumnType {
 	}
 	var (
 		v     = string(c)
-		start = strings.Index(v, "(")
-		end   = strings.LastIndex(v, ")")
+		start = strings.IndexByte(v, '(')
+		end   = strings.LastIndexByte(v, ')')
 	)
 	if start <= 0 || end <= 0 || end < start {
 		// No element.
@@ -206,6 +242,7 @@ const (
 	ColumnTypeBool           ColumnType = "Bool"
 	ColumnTypeTuple          ColumnType = "Tuple"
 	ColumnTypeNullable       ColumnType = "Nullable"
+	ColumnTypeDecimal        ColumnType = "Decimal"
 	ColumnTypeDecimal32      ColumnType = "Decimal32"
 	ColumnTypeDecimal64      ColumnType = "Decimal64"
 	ColumnTypeDecimal128     ColumnType = "Decimal128"
@@ -213,6 +250,7 @@ const (
 	ColumnTypePoint          ColumnType = "Point"
 	ColumnTypeInterval       ColumnType = "Interval"
 	ColumnTypeNothing        ColumnType = "Nothing"
+	ColumnTypeJSON           ColumnType = "JSON"
 )
 
 // colWrap wraps Column with type t.

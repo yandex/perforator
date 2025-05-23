@@ -61,6 +61,7 @@ public:
         return !operator==(other);
     }
 
+    // NOLINTNEXTLINE(readability-identifier-naming)
     struct absl_container_eq {
         using is_transparent = void;
 
@@ -81,6 +82,7 @@ public:
         }
     };
 
+    // NOLINTNEXTLINE(readability-identifier-naming)
     struct absl_container_hash {
         using is_transparent = void;
 
@@ -441,6 +443,10 @@ private:
 
     void FillEntityAt(const TStackInfo& info, TStackId id) {
         auto& stacks = *Profile_.mutable_stacks();
+
+        CheckedAddAt(stacks.mutable_kind(), id, info.Kind);
+        CheckedAddAt(stacks.mutable_runtime_name(), id, *info.RuntimeName);
+
         CheckedAddAt(stacks.mutable_offset(), id, stacks.frame_id_size());
         for (const TStackFrameId& frame : info.Stack) {
             stacks.add_frame_id(*frame);
@@ -450,8 +456,12 @@ private:
     void FillEntityAt(const TSampleKeyInfo& info, TSampleKeyId id) {
         auto& keys = *Profile_.mutable_sample_keys();
         CheckedAddAt(keys.mutable_threads()->mutable_thread_id(), id, *info.Thread);
-        CheckedAddAt(keys.mutable_stacks()->mutable_kernel_stack_id(), id, *info.KernelStack);
-        CheckedAddAt(keys.mutable_stacks()->mutable_user_stack_id(), id, *info.UserStack);
+
+        CheckedAddAt(keys.mutable_stacks()->mutable_first_stack_id(), id, keys.stacks().stack_id_size());
+        for (const TStackId& stack : info.Stacks) {
+            keys.mutable_stacks()->add_stack_id(*stack);
+        }
+
         CheckedAddAt(keys.mutable_labels()->mutable_first_label_id(), id, keys.labels().packed_label_id_size());
         for (auto&& label : info.Labels) {
             keys.mutable_labels()->add_packed_label_id(*label);
@@ -628,7 +638,7 @@ TSampleId TProfileBuilder::AddSample(const TSampleInfo& info) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void TProfileBuilder::Finish() {
+void TProfileBuilder::Finish() && {
     return Impl_->Finish();
 }
 

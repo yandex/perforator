@@ -19,925 +19,769 @@ package column
 
 import (
 	"fmt"
-	"github.com/ClickHouse/ch-go/proto"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/chcol"
+	"math"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ClickHouse/ch-go/proto"
 )
 
-// inverse mapping - go types to clickhouse types
-var kindMappings = map[reflect.Kind]string{
-	reflect.String:  "String",
-	reflect.Int:     "Int64",
-	reflect.Int8:    "Int8",
-	reflect.Int16:   "Int16",
-	reflect.Int32:   "Int32",
-	reflect.Int64:   "Int64",
-	reflect.Uint:    "UInt64",
-	reflect.Uint8:   "UInt8",
-	reflect.Uint16:  "UInt16",
-	reflect.Uint32:  "UInt32",
-	reflect.Uint64:  "UInt64",
-	reflect.Float32: "Float32",
-	reflect.Float64: "Float64",
-	reflect.Bool:    "Bool",
+const JSONObjectSerializationVersion uint64 = 0
+const JSONStringSerializationVersion uint64 = 1
+const JSONUnsetSerializationVersion uint64 = math.MaxUint64
+const DefaultMaxDynamicPaths = 1024
+
+type JSON struct {
+	chType Type
+	tz     *time.Location
+	name   string
+	rows   int
+
+	serializationVersion uint64
+
+	jsonStrings String
+
+	typedPaths      []string
+	typedPathsIndex map[string]int
+	typedColumns    []Interface
+
+	skipPaths      []string
+	skipPathsIndex map[string]int
+
+	dynamicPaths      []string
+	dynamicPathsIndex map[string]int
+	dynamicColumns    []*Dynamic
+
+	maxDynamicPaths   int
+	maxDynamicTypes   int
+	totalDynamicPaths int
 }
 
-// complex types for which a mapping exists - currently we map to String but could enhance in the future for other types
-var typeMappings = map[string]struct{}{
-	// currently JSON doesn't support DateTime, Decimal or IP so mapped to String
-	"time.Time":       {},
-	"decimal.Decimal": {},
-	"net.IP":          {},
-	"uuid.UUID":       {},
-}
+func (c *JSON) parse(t Type, tz *time.Location) (_ *JSON, err error) {
+	c.chType = t
+	c.tz = tz
+	tStr := string(t)
 
-type JSON interface {
-	Interface
-	appendEmptyValue() error
-}
+	c.serializationVersion = JSONUnsetSerializationVersion
+	c.typedPathsIndex = make(map[string]int)
+	c.skipPathsIndex = make(map[string]int)
+	c.dynamicPathsIndex = make(map[string]int)
+	c.maxDynamicPaths = DefaultMaxDynamicPaths
+	c.maxDynamicTypes = DefaultMaxDynamicTypes
 
-type JSONParent interface {
-	upsertValue(name string, ct string) (*JSONValue, error)
-	upsertList(name string) (*JSONList, error)
-	upsertObject(name string) (*JSONObject, error)
-	insertEmptyColumn(name string) error
-	columnNames() []string
-	rows() int
-}
-
-func parseType(name string, vType reflect.Type, values any, isArray bool, jCol JSONParent, numEmpty int) error {
-	_, ok := typeMappings[vType.String()]
-	if !ok {
-		return &UnsupportedColumnTypeError{
-			t: Type(vType.String()),
-		}
-	}
-	ct := "String"
-	if isArray {
-		ct = fmt.Sprintf("Array(%s)", ct)
-	}
-	col, err := jCol.upsertValue(name, ct)
-	if err != nil {
-		return err
-	}
-	col.origType = vType
-
-	//pre pad with empty - e.g. for new values in maps
-	for i := 0; i < numEmpty; i++ {
-		if isArray {
-			// empty array for nil of the right type
-			err = col.AppendRow([]string{})
-		} else {
-			// empty value of the type
-			err = col.AppendRow(fmt.Sprint(reflect.New(vType).Elem().Interface()))
-		}
-		if err != nil {
-			return err
-		}
-	}
-	if isArray {
-		iValues := reflect.ValueOf(values)
-		sValues := make([]string, iValues.Len(), iValues.Len())
-		for i := 0; i < iValues.Len(); i++ {
-			sValues[i] = fmt.Sprint(iValues.Index(i).Interface())
-		}
-		return col.AppendRow(sValues)
-	}
-	return col.AppendRow(fmt.Sprint(values))
-}
-
-func parsePrimitive(name string, kind reflect.Kind, values any, isArray bool, jCol JSONParent, numEmpty int) error {
-	ct, ok := kindMappings[kind]
-	if !ok {
-		return &UnsupportedColumnTypeError{
-			t: Type(fmt.Sprintf("%s - %s", kind, reflect.TypeOf(values).String())),
-		}
-	}
-	var err error
-	if isArray {
-		ct = fmt.Sprintf("Array(%s)", ct)
-		// if we have a []any we will need to cast to the target column type - this will be based on the first
-		// values types. Inconsistent slices will fail.
-		values, err = convertSlice(values)
-		if err != nil {
-			return err
-		}
-	}
-	col, err := jCol.upsertValue(name, ct)
-	if err != nil {
-		return err
+	if tStr == "JSON" {
+		return c, nil
 	}
 
-	//pre pad with empty - e.g. for new values in maps
-	for i := 0; i < numEmpty; i++ {
-		if isArray {
-			// empty array for nil of the right type
-			err = col.AppendRow(reflect.MakeSlice(reflect.TypeOf(values), 0, 0).Interface())
-		} else {
-			err = col.AppendRow(nil)
-		}
-		if err != nil {
-			return err
-		}
+	if !strings.HasPrefix(tStr, "JSON(") || !strings.HasSuffix(tStr, ")") {
+		return nil, &UnsupportedColumnTypeError{t: t}
 	}
 
-	return col.AppendRow(values)
-}
+	typePartsStr := strings.TrimPrefix(tStr, "JSON(")
+	typePartsStr = strings.TrimSuffix(typePartsStr, ")")
 
-// converts a []any of primitives to a typed slice
-// maybe this can be done with reflection but likely slower. investigate.
-// this uses the first value to determine the type - subsequent values must currently be of the same type - we might cast later
-// but wider driver doesn't support e.g. int to int64
-func convertSlice(values any) (any, error) {
-	rValues := reflect.ValueOf(values)
-	if rValues.Len() == 0 || rValues.Index(0).Kind() != reflect.Interface {
-		return values, nil
-	}
-	var fType reflect.Type
-	for i := 0; i < rValues.Len(); i++ {
-		elem := rValues.Index(i).Elem()
-		if elem.IsValid() {
-			fType = elem.Type()
-			break
-		}
-	}
-	if fType == nil {
-		return []any{}, nil
-	}
-	typedSlice := reflect.MakeSlice(reflect.SliceOf(fType), 0, rValues.Len())
-	for i := 0; i < rValues.Len(); i++ {
-		value := rValues.Index(i)
-		if value.IsNil() {
-			typedSlice = reflect.Append(typedSlice, reflect.Zero(fType))
+	typeParts := splitWithDelimiters(typePartsStr)
+	for _, typePart := range typeParts {
+		typePart = strings.TrimSpace(typePart)
+
+		if strings.HasPrefix(typePart, "max_dynamic_paths=") {
+			v := strings.TrimPrefix(typePart, "max_dynamic_paths=")
+			if maxPaths, err := strconv.Atoi(v); err == nil {
+				c.maxDynamicPaths = maxPaths
+			}
+
 			continue
 		}
-		if rValues.Index(i).Elem().Type() != fType {
-			return nil, &Error{
-				ColumnType: fmt.Sprint(fType),
-				Err:        fmt.Errorf("inconsistent slices are not supported - expected %s got %s", fType, rValues.Index(i).Elem().Type()),
+
+		if strings.HasPrefix(typePart, "max_dynamic_types=") {
+			v := strings.TrimPrefix(typePart, "max_dynamic_types=")
+			if maxTypes, err := strconv.Atoi(v); err == nil {
+				c.maxDynamicTypes = maxTypes
 			}
-		}
-		typedSlice = reflect.Append(typedSlice, rValues.Index(i).Elem())
-	}
-	return typedSlice.Interface(), nil
-}
 
-func (jCol *JSONList) createNewOffsets(num int) {
-	for i := 0; i < num; i++ {
-		//single depth so can take 1st
-		if jCol.offsets[0].values.col.Rows() == 0 {
-			// first entry in the column
-			jCol.offsets[0].values.col.Append(0)
-		} else {
-			// entry for this object to see offset from last - offsets are cumulative
-			jCol.offsets[0].values.col.Append(jCol.offsets[0].values.col.Row(jCol.offsets[0].values.col.Rows() - 1))
+			continue
 		}
-	}
-}
 
-func getStructFieldName(field reflect.StructField) (string, bool) {
-	name := field.Name
-	tag := field.Tag.Get("json")
-	// not a standard but we allow - to omit fields
-	if tag == "-" {
-		return name, true
-	}
-	if tag != "" {
-		return tag, false
-	}
-	// support ch tag as well as this is used elsewhere
-	tag = field.Tag.Get("ch")
-	if tag == "-" {
-		return name, true
-	}
-	if tag != "" {
-		return tag, false
-	}
-	return name, false
-}
+		if strings.HasPrefix(typePart, "SKIP REGEXP") {
+			pattern := strings.TrimPrefix(typePart, "SKIP REGEXP")
+			pattern = strings.Trim(pattern, " '")
+			c.skipPaths = append(c.skipPaths, pattern)
+			c.skipPathsIndex[pattern] = len(c.skipPaths) - 1
 
-// ensures numeric keys and ` are escaped properly
-func getMapFieldName(name string) string {
-	if !escapeColRegex.MatchString(name) {
-		return fmt.Sprintf("`%s`", colEscape.Replace(name))
-	}
-	return colEscape.Replace(name)
-}
-
-func parseSlice(name string, values any, jCol JSONParent, preFill int) error {
-	fType := reflect.TypeOf(values).Elem()
-	sKind := fType.Kind()
-	rValues := reflect.ValueOf(values)
-
-	if sKind == reflect.Interface {
-		//use the first element to determine if it is a complex or primitive map - after this we need consistent dimensions
-		if rValues.Len() == 0 {
-			return nil
+			continue
 		}
-		var value reflect.Value
-		for i := 0; i < rValues.Len(); i++ {
-			value = rValues.Index(i).Elem()
-			if value.IsValid() {
-				break
-			}
-		}
-		if !value.IsValid() {
-			return nil
-		}
-		fType = value.Type()
-		sKind = value.Kind()
-	}
 
-	if _, ok := typeMappings[fType.String()]; ok {
-		return parseType(name, fType, values, true, jCol, preFill)
-	} else if sKind == reflect.Struct || sKind == reflect.Map || sKind == reflect.Slice {
-		if rValues.Len() == 0 {
-			return nil
+		if strings.HasPrefix(typePart, "SKIP") {
+			path := strings.TrimPrefix(typePart, "SKIP")
+			path = strings.Trim(path, " `")
+			c.skipPaths = append(c.skipPaths, path)
+			c.skipPathsIndex[path] = len(c.skipPaths) - 1
+
+			continue
 		}
-		col, err := jCol.upsertList(name)
+
+		typedPathParts := strings.SplitN(typePart, " ", 2)
+		if len(typedPathParts) != 2 {
+			continue
+		}
+
+		typedPath := strings.Trim(typedPathParts[0], "`")
+		typeName := strings.TrimSpace(typedPathParts[1])
+
+		c.typedPaths = append(c.typedPaths, typedPath)
+		c.typedPathsIndex[typedPath] = len(c.typedPaths) - 1
+
+		col, err := Type(typeName).Column("", tz)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("failed to init column of type \"%s\" at path \"%s\": %w", typeName, typedPath, err)
 		}
-		col.createNewOffsets(preFill + 1)
-		for i := 0; i < rValues.Len(); i++ {
-			// increment offset
-			col.offsets[0].values.col[col.offsets[0].values.col.Rows()-1] += 1
-			value := rValues.Index(i)
-			sKind = value.Kind()
-			if sKind == reflect.Interface {
-				sKind = value.Elem().Kind()
-			}
-			switch sKind {
-			case reflect.Struct:
-				col.isNested = true
-				if err = iterateStruct(value, col, 0); err != nil {
-					return err
-				}
-			case reflect.Map:
-				col.isNested = true
-				if err = iterateMap(value, col, 0); err != nil {
-					return err
-				}
-			case reflect.Slice:
-				if err = parseSlice("", value.Interface(), col, 0); err != nil {
-					return err
-				}
-			default:
-				// only happens if slice has a primitive mixed with complex types in a []any
-				return &Error{
-					ColumnType: fmt.Sprint(sKind),
-					Err:        fmt.Errorf("slices must be same dimension in column %s", col.Name()),
-				}
-			}
+
+		c.typedColumns = append(c.typedColumns, col)
+	}
+
+	return c, nil
+}
+
+func (c *JSON) hasTypedPath(path string) bool {
+	_, ok := c.typedPathsIndex[path]
+	return ok
+}
+
+func (c *JSON) hasDynamicPath(path string) bool {
+	_, ok := c.dynamicPathsIndex[path]
+	return ok
+}
+
+func (c *JSON) hasSkipPath(path string) bool {
+	_, ok := c.skipPathsIndex[path]
+	return ok
+}
+
+// pathHasNestedValues returns true if the provided path has child paths in typed or dynamic paths
+func (c *JSON) pathHasNestedValues(path string) bool {
+	for _, typedPath := range c.typedPaths {
+		if strings.HasPrefix(typedPath, path+".") {
+			return true
 		}
+	}
+
+	for _, dynamicPath := range c.dynamicPaths {
+		if strings.HasPrefix(dynamicPath, path+".") {
+			return true
+		}
+	}
+
+	return false
+}
+
+// valueAtPath returns the row value at the specified path, typed or dynamic
+func (c *JSON) valueAtPath(path string, row int, ptr bool) any {
+	if colIndex, ok := c.typedPathsIndex[path]; ok {
+		return c.typedColumns[colIndex].Row(row, ptr)
+	}
+
+	if colIndex, ok := c.dynamicPathsIndex[path]; ok {
+		return c.dynamicColumns[colIndex].Row(row, ptr)
+	}
+
+	return nil
+}
+
+// scanTypedPathToValue scans the provided typed path into a `reflect.Value`
+func (c *JSON) scanTypedPathToValue(path string, row int, value reflect.Value) error {
+	colIndex, ok := c.typedPathsIndex[path]
+	if !ok {
+		return fmt.Errorf("typed path \"%s\" does not exist in JSON column", path)
+	}
+
+	col := c.typedColumns[colIndex]
+	err := col.ScanRow(value.Addr().Interface(), row)
+	if err != nil {
+		return fmt.Errorf("failed to scan %s column into typed path \"%s\": %w", col.Type(), path, err)
+	}
+
+	return nil
+}
+
+// scanDynamicPathToValue scans the provided typed path into a `reflect.Value`
+func (c *JSON) scanDynamicPathToValue(path string, row int, value reflect.Value) error {
+	colIndex, ok := c.dynamicPathsIndex[path]
+	if !ok {
+		return fmt.Errorf("dynamic path \"%s\" does not exist in JSON column", path)
+	}
+
+	col := c.dynamicColumns[colIndex]
+	err := col.ScanRow(value.Addr().Interface(), row)
+	if err != nil {
+		return fmt.Errorf("failed to scan %s column into dynamic path \"%s\": %w", col.Type(), path, err)
+	}
+
+	return nil
+}
+
+func (c *JSON) rowAsJSON(row int) *chcol.JSON {
+	obj := chcol.NewJSON()
+
+	for i, path := range c.typedPaths {
+		col := c.typedColumns[i]
+		obj.SetValueAtPath(path, col.Row(row, false))
+	}
+
+	for i, path := range c.dynamicPaths {
+		col := c.dynamicColumns[i]
+		obj.SetValueAtPath(path, col.Row(row, false))
+	}
+
+	return obj
+}
+
+func (c *JSON) Name() string {
+	return c.name
+}
+
+func (c *JSON) Type() Type {
+	return c.chType
+}
+
+func (c *JSON) Rows() int {
+	return c.rows
+}
+
+func (c *JSON) Row(row int, ptr bool) any {
+	switch c.serializationVersion {
+	case JSONObjectSerializationVersion:
+		return c.rowAsJSON(row)
+	case JSONStringSerializationVersion:
+		return c.jsonStrings.Row(row, ptr)
+	default:
 		return nil
 	}
-	return parsePrimitive(name, sKind, values, true, jCol, preFill)
 }
 
-func parseStruct(name string, structVal reflect.Value, jCol JSONParent, preFill int) error {
-	col, err := jCol.upsertObject(name)
-	if err != nil {
-		return err
-	}
-	return iterateStruct(structVal, col, preFill)
-}
-
-func iterateStruct(structVal reflect.Value, col JSONParent, preFill int) error {
-	// structs generally have consistent field counts but we ignore nil values that are any as we can't infer from
-	// these until they occur - so we might need to either backfill when to do occur or insert empty based on previous
-	if structVal.Kind() == reflect.Interface {
-		// can happen if passed from []any
-		structVal = structVal.Elem()
-	}
-
-	currentColumns := col.columnNames()
-	columnLookup := make(map[string]struct{})
-	numRows := col.rows()
-	for _, name := range currentColumns {
-		columnLookup[name] = struct{}{}
-	}
-	addedColumns := make([]string, structVal.NumField(), structVal.NumField())
-	newColumn := false
-
-	for i := 0; i < structVal.NumField(); i++ {
-		fName, omit := getStructFieldName(structVal.Type().Field(i))
-		if omit {
-			continue
-		}
-		field := structVal.Field(i)
-		if !field.CanInterface() {
-			// can't interface - likely not exported so ignore the field
-			continue
-		}
-		kind := field.Kind()
-		value := field.Interface()
-		fType := field.Type()
-		//resolve underlying kind
-		if kind == reflect.Interface {
-			if value == nil {
-				// ignore nil fields
-				continue
-			}
-			kind = reflect.TypeOf(value).Kind()
-			field = reflect.ValueOf(value)
-			fType = field.Type()
-		}
-		if _, ok := columnLookup[fName]; !ok && len(currentColumns) > 0 {
-			// new column - need to handle missing
-			preFill = numRows
-			newColumn = true
-		}
-		if _, ok := typeMappings[fType.String()]; ok {
-			if err := parseType(fName, fType, value, false, col, preFill); err != nil {
-				return err
-			}
-		} else {
-			switch kind {
-			case reflect.Slice:
-				if reflect.ValueOf(value).Len() == 0 {
-					continue
-				}
-				if err := parseSlice(fName, value, col, preFill); err != nil {
-					return err
-				}
-			case reflect.Struct:
-				if err := parseStruct(fName, field, col, preFill); err != nil {
-					return err
-				}
-			case reflect.Map:
-				if err := parseMap(fName, field, col, preFill); err != nil {
-					return err
-				}
-			default:
-				if err := parsePrimitive(fName, kind, value, false, col, preFill); err != nil {
-					return err
-				}
-			}
-		}
-		addedColumns[i] = fName
-		if newColumn {
-			// reset as otherwise prefill overflow to other fields. But don't reset if this prefill has come from
-			// a higher level
-			preFill = 0
-		}
-	}
-	// handle missing
-	missingColumns := difference(currentColumns, addedColumns)
-	for _, name := range missingColumns {
-		if err := col.insertEmptyColumn(name); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func parseMap(name string, mapVal reflect.Value, jCol JSONParent, preFill int) error {
-	if mapVal.Type().Key().Kind() != reflect.String {
-		return &Error{
-			ColumnType: fmt.Sprint(mapVal.Type().Key().Kind()),
-			Err:        fmt.Errorf("map keys must be string for column %s", name),
-		}
-	}
-	col, err := jCol.upsertObject(name)
-	if err != nil {
-		return err
-	}
-	return iterateMap(mapVal, col, preFill)
-}
-
-func iterateMap(mapVal reflect.Value, col JSONParent, preFill int) error {
-	// maps can have inconsistent numbers of elements - we must ensure they are consistent in the encoding
-	// two inconsistent options - 1. new - map has new columns 2. massing - map has missing columns
-	// for (1) we need to update previous, for (2) we need to ensure we add a null entry
-	if mapVal.Kind() == reflect.Interface {
-		// can happen if passed from []any
-		mapVal = mapVal.Elem()
-	}
-
-	currentColumns := col.columnNames()
-	//gives us a fast lookup for large maps
-	columnLookup := make(map[string]struct{})
-	numRows := col.rows()
-	// true if we need nil values
-	for _, name := range currentColumns {
-		columnLookup[name] = struct{}{}
-	}
-	addedColumns := make([]string, len(mapVal.MapKeys()), len(mapVal.MapKeys()))
-	newColumn := false
-	for i, key := range mapVal.MapKeys() {
-		if newColumn {
-			// reset as otherwise prefill overflow to other fields. But don't reset if this prefill has come from
-			// a higher level
-			preFill = 0
-		}
-
-		name := getMapFieldName(key.Interface().(string))
-		if _, ok := columnLookup[name]; !ok && len(currentColumns) > 0 {
-			// new column - need to handle
-			preFill = numRows
-			newColumn = true
-		}
-		field := mapVal.MapIndex(key)
-		kind := field.Kind()
-		fType := field.Type()
-
-		if kind == reflect.Interface {
-			if field.Interface() == nil {
-				// ignore nil fields
-				continue
-			}
-			kind = reflect.TypeOf(field.Interface()).Kind()
-			field = reflect.ValueOf(field.Interface())
-			fType = field.Type()
-		}
-		if _, ok := typeMappings[fType.String()]; ok {
-			if err := parseType(name, fType, field.Interface(), false, col, preFill); err != nil {
-				return err
-			}
-		} else {
-			switch kind {
-			case reflect.Struct:
-				if err := parseStruct(name, field, col, preFill); err != nil {
-					return err
-				}
-			case reflect.Slice:
-				if err := parseSlice(name, field.Interface(), col, preFill); err != nil {
-					return err
-				}
-			case reflect.Map:
-				if err := parseMap(name, field, col, preFill); err != nil {
-					return err
-				}
-			default:
-				if err := parsePrimitive(name, kind, field.Interface(), false, col, preFill); err != nil {
-					return err
-				}
-			}
-		}
-		addedColumns[i] = name
-	}
-	// handle missing
-	missingColumns := difference(currentColumns, addedColumns)
-	for _, name := range missingColumns {
-		if err := col.insertEmptyColumn(name); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func appendStructOrMap(jCol *JSONObject, data any) error {
-	vData := reflect.ValueOf(data)
-	kind := vData.Kind()
-	if kind == reflect.Struct {
-		return iterateStruct(vData, jCol, 0)
-	}
-	if kind == reflect.Map {
-		if reflect.TypeOf(data).Key().Kind() != reflect.String {
-			return &Error{
-				ColumnType: fmt.Sprint(reflect.TypeOf(data).Key().Kind()),
-				Err:        fmt.Errorf("map keys must be string for column %s", jCol.Name()),
-			}
-		}
-		if jCol.columns == nil && vData.Len() == 0 {
-			// if map is empty, we need to create an empty Tuple to make sure subcolumns protocol is happy
-			// _dummy is a ClickHouse internal name for empty Tuple subcolumn
-			// it has the same effect as `INSERT INTO single_json_type_table VALUES ('{}');`
-			jCol.upsertValue("_dummy", "Int8")
-			return jCol.insertEmptyColumn("_dummy")
-		}
-		return iterateMap(vData, jCol, 0)
-	}
-	return &UnsupportedColumnTypeError{
-		t: Type(fmt.Sprint(kind)),
-	}
-}
-
-type JSONValue struct {
-	Interface
-	// represents the type e.g. uuid - these may have been mapped to a Column type support by JSON e.g. String
-	origType reflect.Type
-}
-
-func (jCol *JSONValue) Reset() {
-	jCol.Interface.Reset()
-}
-
-func (jCol *JSONValue) appendEmptyValue() error {
-	switch jCol.Interface.(type) {
-	case *Array:
-		if jCol.Rows() > 0 {
-			return jCol.AppendRow(reflect.MakeSlice(reflect.TypeOf(jCol.Row(0, false)), 0, 0).Interface())
-		}
-		return &Error{
-			ColumnType: "unknown",
-			Err:        fmt.Errorf("can't add empty value to column %s - no entries to infer type", jCol.Name()),
-		}
+func (c *JSON) ScanRow(dest any, row int) error {
+	switch c.serializationVersion {
+	case JSONObjectSerializationVersion:
+		return c.scanRowObject(dest, row)
+	case JSONStringSerializationVersion:
+		return c.scanRowString(dest, row)
 	default:
-		// can't just append nil here as we need a custom nil value for the type
-		if jCol.origType != nil {
-			return jCol.AppendRow(fmt.Sprint(reflect.New(jCol.origType).Elem().Interface()))
+		return fmt.Errorf("unsupported JSON serialization version for scan: %d", c.serializationVersion)
+	}
+}
+
+func (c *JSON) scanRowObject(dest any, row int) error {
+	switch v := dest.(type) {
+	case *chcol.JSON:
+		obj := c.rowAsJSON(row)
+		*v = *obj
+		return nil
+	case **chcol.JSON:
+		obj := c.rowAsJSON(row)
+		**v = *obj
+		return nil
+	case chcol.JSONDeserializer:
+		obj := c.rowAsJSON(row)
+		err := v.DeserializeClickHouseJSON(obj)
+		if err != nil {
+			return fmt.Errorf("failed to deserialize using DeserializeClickHouseJSON: %w", err)
 		}
-		return jCol.AppendRow(nil)
+
+		return nil
 	}
-}
 
-func (jCol *JSONValue) Type() Type {
-	return Type(fmt.Sprintf("%s %s", jCol.Name(), jCol.Interface.Type()))
-}
-
-type JSONList struct {
-	Array
-	name     string
-	isNested bool // indicates if this a list of objects i.e. a Nested
-}
-
-func (jCol *JSONList) Name() string {
-	return jCol.name
-}
-
-func (jCol *JSONList) columnNames() []string {
-	return jCol.Array.values.(*JSONObject).columnNames()
-}
-
-func (jCol *JSONList) rows() int {
-	return jCol.values.(*JSONObject).Rows()
-}
-
-func createJSONList(name string, tz *time.Location) (jCol *JSONList) {
-	// lists are represented as Nested which are in turn encoded as Array(Tuple()). We thus pass a Array(JSONObject())
-	// as this encodes like a tuple
-	lCol := &JSONList{
-		name: name,
-	}
-	lCol.values = &JSONObject{tz: tz}
-	// depth should always be one as nested arrays aren't possible
-	lCol.depth = 1
-	lCol.scanType = scanTypeSlice
-	offsetScanTypes := []reflect.Type{lCol.scanType}
-	lCol.offsets = []*offset{{
-		scanType: offsetScanTypes[0],
-	}}
-	return lCol
-}
-
-func (jCol *JSONList) appendEmptyValue() error {
-	// only need to bump the offsets
-	jCol.createNewOffsets(1)
-	return nil
-}
-
-func (jCol *JSONList) insertEmptyColumn(name string) error {
-	return jCol.values.(*JSONObject).insertEmptyColumn(name)
-}
-
-func (jCol *JSONList) upsertValue(name string, ct string) (*JSONValue, error) {
-	// check if column exists and reuse if same type, error if same name and different type
-	jObj := jCol.values.(*JSONObject)
-	cols := jObj.columns
-	for i := range cols {
-		sCol := cols[i]
-		if sCol.Name() == name {
-			vCol, ok := cols[i].(*JSONValue)
-			if !ok {
-				sType := cols[i].Type()
-				return nil, &Error{
-					ColumnType: fmt.Sprint(sType),
-					Err:        fmt.Errorf("type mismatch in column %s - expected value, got %s", name, sType),
-				}
-			}
-			tType := vCol.Interface.Type()
-			if tType != Type(ct) {
-				return nil, &Error{
-					ColumnType: ct,
-					Err:        fmt.Errorf("type mismatch in column %s - expected %s, got %s", name, tType, ct),
-				}
-			}
-			return vCol, nil
+	switch val := reflect.ValueOf(dest); val.Kind() {
+	case reflect.Pointer:
+		if val.Elem().Kind() == reflect.Struct {
+			return c.scanIntoStruct(dest, row)
+		} else if val.Elem().Kind() == reflect.Map {
+			return c.scanIntoMap(dest, row)
 		}
 	}
-	col, err := Type(ct).Column(name, jObj.tz)
-	if err != nil {
-		return nil, err
-	}
-	vCol := &JSONValue{
-		Interface: col,
-	}
-	jCol.values.(*JSONObject).columns = append(cols, vCol) // nolint:gocritic
-	return vCol, nil
+
+	return fmt.Errorf("destination must be a pointer to struct or map, or %s. hint: enable \"output_format_native_write_json_as_string\" setting for string decoding", scanTypeJSON.String())
 }
 
-func (jCol *JSONList) upsertList(name string) (*JSONList, error) {
-	// check if column exists and reuse if same type, error if same name and different type
-	jObj := jCol.values.(*JSONObject)
-	cols := jCol.values.(*JSONObject).columns
-	for i := range cols {
-		sCol := cols[i]
-		if sCol.Name() == name {
-			sCol, ok := cols[i].(*JSONList)
-			if !ok {
-				return nil, &Error{
-					ColumnType: fmt.Sprint(cols[i].Type()),
-					Err:        fmt.Errorf("type mismatch in column %s - expected list, got %s", name, cols[i].Type()),
-				}
-			}
-			return sCol, nil
+func (c *JSON) scanRowString(dest any, row int) error {
+	return c.jsonStrings.ScanRow(dest, row)
+}
+
+func (c *JSON) Append(v any) (nulls []uint8, err error) {
+	switch c.serializationVersion {
+	case JSONObjectSerializationVersion:
+		return c.appendObject(v)
+	case JSONStringSerializationVersion:
+		return c.appendString(v)
+	default:
+		// Unset serialization preference, try string first unless its specifically JSON
+		switch v.(type) {
+		case []chcol.JSON:
+			c.serializationVersion = JSONObjectSerializationVersion
+			return c.appendObject(v)
+		case []*chcol.JSON:
+			c.serializationVersion = JSONObjectSerializationVersion
+			return c.appendObject(v)
+		case []chcol.JSONSerializer:
+			c.serializationVersion = JSONObjectSerializationVersion
+			return c.appendObject(v)
 		}
-	}
-	lCol := createJSONList(name, jObj.tz)
-	jCol.values.(*JSONObject).columns = append(cols, lCol) // nolint:gocritic
-	return lCol, nil
 
-}
-
-func (jCol *JSONList) upsertObject(name string) (*JSONObject, error) {
-	// check if column exists and reuse if same type, error if same name and different type
-	jObj := jCol.values.(*JSONObject)
-	cols := jObj.columns
-	for i := range cols {
-		sCol := cols[i]
-		if sCol.Name() == name {
-			sCol, ok := cols[i].(*JSONObject)
-			if !ok {
-				sType := cols[i].Type()
-				return nil, &Error{
-					ColumnType: fmt.Sprint(sType),
-					Err:        fmt.Errorf("type mismatch in column %s, expected object got %s", name, sType),
-				}
-			}
-			return sCol, nil
+		var err error
+		if _, err = c.appendString(v); err == nil {
+			c.serializationVersion = JSONStringSerializationVersion
+			return nil, nil
+		} else if _, err = c.appendObject(v); err == nil {
+			c.serializationVersion = JSONObjectSerializationVersion
+			return nil, nil
 		}
-	}
-	// lists are represented as Nested which are in turn encoded as Array(Tuple()). We thus pass a Array(JSONObject())
-	// as this encodes like a tuple
-	oCol := &JSONObject{
-		name: name,
-		tz:   jObj.tz,
-	}
-	jCol.values.(*JSONObject).columns = append(cols, oCol) // nolint:gocritic
-	return oCol, nil
-}
 
-func (jCol *JSONList) Type() Type {
-	cols := jCol.values.(*JSONObject).columns
-	subTypes := make([]string, len(cols))
-	for i, v := range cols {
-		subTypes[i] = string(v.Type())
-	}
-	// can be a list of lists or a nested
-	if jCol.isNested {
-		return Type(fmt.Sprintf("%s Nested(%s)", jCol.name, strings.Join(subTypes, ", ")))
-	}
-	return Type(fmt.Sprintf("%s Array(%s)", jCol.name, strings.Join(subTypes, ", ")))
-}
-
-type JSONObject struct {
-	columns  []JSON
-	name     string
-	root     bool
-	encoding uint8
-	tz       *time.Location
-}
-
-func (jCol *JSONObject) Reset() {
-	for i := range jCol.columns {
-		jCol.columns[i].Reset()
+		return nil, fmt.Errorf("unsupported type \"%s\" for JSON column, must use slice of string, []byte, struct, map, or *%s: %w", reflect.TypeOf(v).String(), scanTypeJSON.String(), err)
 	}
 }
 
-func (jCol *JSONObject) Name() string {
-	return jCol.name
-}
-
-func (jCol *JSONObject) columnNames() []string {
-	columns := make([]string, len(jCol.columns), len(jCol.columns))
-	for i := range jCol.columns {
-		columns[i] = jCol.columns[i].Name()
-	}
-	return columns
-}
-
-func (jCol *JSONObject) rows() int {
-	return jCol.Rows()
-}
-
-func (jCol *JSONObject) appendEmptyValue() error {
-	for i := range jCol.columns {
-		if err := jCol.columns[i].appendEmptyValue(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (jCol *JSONObject) insertEmptyColumn(name string) error {
-	for i := range jCol.columns {
-		if jCol.columns[i].Name() == name {
-			if err := jCol.columns[i].appendEmptyValue(); err != nil {
-				return err
+func (c *JSON) appendObject(v any) (nulls []uint8, err error) {
+	switch vv := v.(type) {
+	case []chcol.JSON:
+		for i, obj := range vv {
+			err := c.AppendRow(obj)
+			if err != nil {
+				return nil, fmt.Errorf("failed to AppendRow at index %d: %w", i, err)
 			}
-			return nil
 		}
-	}
-	return &Error{
-		ColumnType: "unknown",
-		Err:        fmt.Errorf("column %s is missing - empty value cannot be appended", name),
-	}
-}
 
-func (jCol *JSONObject) upsertValue(name string, ct string) (*JSONValue, error) {
-	for i := range jCol.columns {
-		sCol := jCol.columns[i]
-		if sCol.Name() == name {
-			vCol, ok := jCol.columns[i].(*JSONValue)
-			if !ok {
-				sType := jCol.columns[i].Type()
-				return nil, &Error{
-					ColumnType: fmt.Sprint(sType),
-					Err:        fmt.Errorf("type mismatch in column %s, expected value got %s", name, sType),
-				}
+		return nil, nil
+	case []*chcol.JSON:
+		for i, obj := range vv {
+			err := c.AppendRow(obj)
+			if err != nil {
+				return nil, fmt.Errorf("failed to AppendRow at index %d: %w", i, err)
 			}
-			if vCol.Interface.Type() != Type(ct) {
-				return nil, &Error{
-					ColumnType: ct,
-					Err:        fmt.Errorf("type mismatch in column %s, expected %s got %s", name, vCol.Interface.Type(), ct),
-				}
-			}
-			return vCol, nil
 		}
-	}
-	col, err := Type(ct).Column(name, jCol.tz)
-	if err != nil {
-		return nil, err
-	}
-	vCol := &JSONValue{
-		Interface: col,
-	}
-	jCol.columns = append(jCol.columns, vCol)
-	return vCol, nil
-}
 
-func (jCol *JSONObject) upsertList(name string) (*JSONList, error) {
-	for i := range jCol.columns {
-		sCol := jCol.columns[i]
-		if sCol.Name() == name {
-			sCol, ok := jCol.columns[i].(*JSONList)
-			if !ok {
-				sType := jCol.columns[i].Type()
-				return nil, &Error{
-					ColumnType: fmt.Sprint(sType),
-					Err:        fmt.Errorf("type mismatch in column %s, expected list got %s", name, sType),
-				}
+		return nil, nil
+	case []chcol.JSONSerializer:
+		for i, obj := range vv {
+			err := c.AppendRow(obj)
+			if err != nil {
+				return nil, fmt.Errorf("failed to AppendRow at index %d: %w", i, err)
 			}
-			return sCol, nil
 		}
+
+		return nil, nil
 	}
-	lCol := createJSONList(name, jCol.tz)
-	jCol.columns = append(jCol.columns, lCol)
-	return lCol, nil
-}
 
-func (jCol *JSONObject) upsertObject(name string) (*JSONObject, error) {
-	// check if it exists
-	for i := range jCol.columns {
-		sCol := jCol.columns[i]
-		if sCol.Name() == name {
-			sCol, ok := jCol.columns[i].(*JSONObject)
-			if !ok {
-				sType := jCol.columns[i].Type()
-				return nil, &Error{
-					ColumnType: fmt.Sprint(sType),
-					Err:        fmt.Errorf("type mismatch in column %s, expected object got %s", name, sType),
-				}
-			}
-			return sCol, nil
-		}
-	}
-	// not present so create
-	oCol := &JSONObject{
-		name: name,
-		tz:   jCol.tz,
-	}
-	jCol.columns = append(jCol.columns, oCol)
-	return oCol, nil
-}
-
-func (jCol *JSONObject) Type() Type {
-	if jCol.root {
-		return "Object('json')"
-	}
-	return jCol.FullType()
-}
-
-func (jCol *JSONObject) FullType() Type {
-	subTypes := make([]string, len(jCol.columns))
-	for i, v := range jCol.columns {
-		subTypes[i] = string(v.Type())
-	}
-	if jCol.root {
-		return Type(fmt.Sprintf("Tuple(%s)", strings.Join(subTypes, ", ")))
-	}
-	return Type(fmt.Sprintf("%s Tuple(%s)", jCol.name, strings.Join(subTypes, ", ")))
-}
-
-func (jCol *JSONObject) ScanType() reflect.Type {
-	return scanTypeMap
-}
-
-func (jCol *JSONObject) Rows() int {
-	if len(jCol.columns) != 0 {
-		return jCol.columns[0].Rows()
-	}
-	return 0
-}
-
-// ClickHouse returns JSON as a tuple i.e. these will never be invoked
-
-func (jCol *JSONObject) Row(i int, ptr bool) any {
-	panic("Not implemented")
-}
-
-func (jCol *JSONObject) ScanRow(dest any, row int) error {
-	panic("Not implemented")
-}
-
-func (jCol *JSONObject) Append(v any) (nulls []uint8, err error) {
-	jSlice := reflect.ValueOf(v)
-	if jSlice.Kind() != reflect.Slice {
+	value := reflect.Indirect(reflect.ValueOf(v))
+	if value.Kind() != reflect.Slice {
 		return nil, &ColumnConverterError{
 			Op:   "Append",
-			To:   string(jCol.Type()),
-			From: fmt.Sprintf("slice of structs/map or strings required - received %T", v),
+			To:   string(c.chType),
+			From: fmt.Sprintf("%T", v),
+			Hint: "value must be a slice",
 		}
 	}
-	for i := 0; i < jSlice.Len(); i++ {
-		if err := jCol.AppendRow(jSlice.Index(i).Interface()); err != nil {
+	for i := 0; i < value.Len(); i++ {
+		if err := c.AppendRow(value.Index(i)); err != nil {
 			return nil, err
 		}
 	}
+
 	return nil, nil
 }
 
-func (jCol *JSONObject) AppendRow(v any) error {
-	if reflect.ValueOf(v).Kind() == reflect.Struct || reflect.ValueOf(v).Kind() == reflect.Map {
-		if jCol.columns != nil && jCol.encoding == 1 {
-			return &Error{
-				ColumnType: fmt.Sprint(jCol.Type()),
-				Err:        fmt.Errorf("encoding of JSON columns cannot be mixed in a batch - %s cannot be added as previously String", reflect.ValueOf(v).Kind()),
-			}
+func (c *JSON) appendString(v any) (nulls []uint8, err error) {
+	nulls, err = c.jsonStrings.Append(v)
+	if err != nil {
+		return nil, err
+	}
+
+	c.rows = c.jsonStrings.Rows()
+	return nulls, nil
+}
+
+func (c *JSON) AppendRow(v any) error {
+	switch c.serializationVersion {
+	case JSONObjectSerializationVersion:
+		return c.appendRowObject(v)
+	case JSONStringSerializationVersion:
+		return c.appendRowString(v)
+	default:
+		// Unset serialization preference, try string first unless its specifically JSON
+		switch v.(type) {
+		case chcol.JSON:
+			c.serializationVersion = JSONObjectSerializationVersion
+			return c.appendRowObject(v)
+		case *chcol.JSON:
+			c.serializationVersion = JSONObjectSerializationVersion
+			return c.appendRowObject(v)
+		case chcol.JSONSerializer:
+			c.serializationVersion = JSONObjectSerializationVersion
+			return c.appendRowObject(v)
 		}
-		err := appendStructOrMap(jCol, v)
+
+		var err error
+		if err = c.appendRowString(v); err == nil {
+			c.serializationVersion = JSONStringSerializationVersion
+			return nil
+		} else if err = c.appendRowObject(v); err == nil {
+			c.serializationVersion = JSONObjectSerializationVersion
+			return nil
+		}
+
+		return fmt.Errorf("unsupported type \"%s\" for JSON column, must use string, []byte, *struct, map, or *clickhouse.JSON: %w", reflect.TypeOf(v).String(), err)
+	}
+}
+
+func (c *JSON) appendRowObject(v any) error {
+	var obj *chcol.JSON
+	switch vv := v.(type) {
+	case chcol.JSON:
+		obj = &vv
+	case *chcol.JSON:
+		obj = vv
+	case chcol.JSONSerializer:
+		var err error
+		obj, err = vv.SerializeClickHouseJSON()
+		if err != nil {
+			return fmt.Errorf("failed to serialize using SerializeClickHouseJSON: %w", err)
+		}
+	}
+
+	if obj == nil && v != nil {
+		var err error
+		switch val := reflect.ValueOf(v); val.Kind() {
+		case reflect.Pointer:
+			if val.Elem().Kind() == reflect.Struct {
+				obj, err = structToJSON(v)
+			} else if val.Elem().Kind() == reflect.Map {
+				obj, err = mapToJSON(v)
+			}
+		case reflect.Struct:
+			obj, err = structToJSON(v)
+		case reflect.Map:
+			obj, err = mapToJSON(v)
+		}
+
+		if err != nil {
+			return fmt.Errorf("failed to convert value to JSON: %w", err)
+		}
+	}
+
+	if obj == nil {
+		obj = chcol.NewJSON()
+	}
+	valuesByPath := obj.ValuesByPath()
+
+	// Match typed paths first
+	for i, typedPath := range c.typedPaths {
+		// Even if value is nil, we must append a value for this row.
+		// nil is a valid value for most column types, with most implementations putting a zero value.
+		// If the column doesn't support appending nil, then the user must provide a zero value.
+		value, _ := valuesByPath[typedPath]
+
+		col := c.typedColumns[i]
+		err := col.AppendRow(value)
+		if err != nil {
+			return fmt.Errorf("failed to append type %s to json column at typed path %s: %w", col.Type(), typedPath, err)
+		}
+	}
+
+	// Verify all dynamic paths have an equal number of rows by appending nil for all unspecified dynamic paths
+	for _, dynamicPath := range c.dynamicPaths {
+		if _, ok := valuesByPath[dynamicPath]; !ok {
+			valuesByPath[dynamicPath] = nil
+		}
+	}
+
+	// Match or add dynamic paths
+	for objPath, value := range valuesByPath {
+		if c.hasTypedPath(objPath) || c.hasSkipPath(objPath) {
+			continue
+		}
+
+		if dynamicPathIndex, ok := c.dynamicPathsIndex[objPath]; ok {
+			err := c.dynamicColumns[dynamicPathIndex].AppendRow(value)
+			if err != nil {
+				return fmt.Errorf("failed to append to json column at dynamic path \"%s\": %w", objPath, err)
+			}
+		} else {
+			// Path doesn't exist, add new dynamic path + column
+			parsedColDynamic, _ := Type("Dynamic").Column("", c.tz)
+			colDynamic := parsedColDynamic.(*Dynamic)
+
+			// New path must back-fill nils for each row
+			for i := 0; i < c.rows; i++ {
+				err := colDynamic.AppendRow(nil)
+				if err != nil {
+					return fmt.Errorf("failed to back-fill json column at new dynamic path \"%s\" index %d: %w", objPath, i, err)
+				}
+			}
+
+			err := colDynamic.AppendRow(value)
+			if err != nil {
+				return fmt.Errorf("failed to append to json column at new dynamic path \"%s\": %w", objPath, err)
+			}
+
+			c.dynamicPaths = append(c.dynamicPaths, objPath)
+			c.dynamicPathsIndex[objPath] = len(c.dynamicPaths) - 1
+			c.dynamicColumns = append(c.dynamicColumns, colDynamic)
+			c.totalDynamicPaths++
+		}
+	}
+
+	c.rows++
+	return nil
+}
+
+func (c *JSON) appendRowString(v any) error {
+	err := c.jsonStrings.AppendRow(v)
+	if err != nil {
 		return err
 	}
-	switch v := v.(type) {
-	case string:
-		if jCol.columns != nil && jCol.encoding == 0 {
-			return &Error{
-				ColumnType: fmt.Sprint(jCol.Type()),
-				Err:        fmt.Errorf("encoding of JSON columns cannot be mixed in a batch - %s cannot be added as previously Struct/Map", reflect.ValueOf(v).Kind()),
-			}
-		}
-		jCol.encoding = 1
-		if jCol.columns == nil {
-			jCol.columns = append(jCol.columns, &JSONValue{Interface: &String{}})
-		}
-		jCol.columns[0].AppendRow(v)
+
+	c.rows++
+	return nil
+}
+
+func (c *JSON) encodeObjectHeader(buffer *proto.Buffer) {
+	buffer.PutUVarInt(uint64(c.maxDynamicPaths))
+	buffer.PutUVarInt(uint64(c.totalDynamicPaths))
+
+	for _, dynamicPath := range c.dynamicPaths {
+		buffer.PutString(dynamicPath)
+	}
+
+	for _, col := range c.dynamicColumns {
+		col.encodeHeader(buffer)
+	}
+}
+
+func (c *JSON) encodeObjectData(buffer *proto.Buffer) {
+	for _, col := range c.typedColumns {
+		col.Encode(buffer)
+	}
+
+	for _, col := range c.dynamicColumns {
+		col.encodeData(buffer)
+	}
+
+	// SharedData per row, empty for now.
+	for i := 0; i < c.rows; i++ {
+		buffer.PutUInt64(0)
+	}
+}
+
+func (c *JSON) encodeStringData(buffer *proto.Buffer) {
+	c.jsonStrings.Encode(buffer)
+}
+
+func (c *JSON) WriteStatePrefix(buffer *proto.Buffer) error {
+	switch c.serializationVersion {
+	case JSONObjectSerializationVersion:
+		buffer.PutUInt64(JSONObjectSerializationVersion)
+		c.encodeObjectHeader(buffer)
+
+		return nil
+	case JSONStringSerializationVersion:
+		buffer.PutUInt64(JSONStringSerializationVersion)
+
+		return nil
 	default:
-		return &ColumnConverterError{
-			Op:   "AppendRow",
-			To:   "String",
-			From: fmt.Sprintf("json row must be struct, map or string - received %T", v),
+		// If the column is an array, it can be empty but still require a prefix.
+		// Use string encoding since it's smaller
+		buffer.PutUInt64(JSONStringSerializationVersion)
+
+		return nil
+	}
+}
+
+func (c *JSON) Encode(buffer *proto.Buffer) {
+	switch c.serializationVersion {
+	case JSONObjectSerializationVersion:
+		c.encodeObjectData(buffer)
+		return
+	case JSONStringSerializationVersion:
+		c.encodeStringData(buffer)
+		return
+	}
+}
+
+func (c *JSON) ScanType() reflect.Type {
+	return scanTypeJSON
+}
+
+func (c *JSON) Reset() {
+	c.rows = 0
+
+	switch c.serializationVersion {
+	case JSONObjectSerializationVersion:
+		for _, col := range c.typedColumns {
+			col.Reset()
+		}
+
+		for _, col := range c.dynamicColumns {
+			col.Reset()
+		}
+
+		return
+	case JSONStringSerializationVersion:
+		c.jsonStrings.Reset()
+		return
+	}
+}
+
+func (c *JSON) decodeObjectHeader(reader *proto.Reader) error {
+	maxDynamicPaths, err := reader.UVarInt()
+	if err != nil {
+		return fmt.Errorf("failed to read max dynamic paths for json column: %w", err)
+	}
+	c.maxDynamicPaths = int(maxDynamicPaths)
+
+	totalDynamicPaths, err := reader.UVarInt()
+	if err != nil {
+		return fmt.Errorf("failed to read total dynamic paths for json column: %w", err)
+	}
+	c.totalDynamicPaths = int(totalDynamicPaths)
+
+	c.dynamicPaths = make([]string, 0, totalDynamicPaths)
+	for i := 0; i < int(totalDynamicPaths); i++ {
+		dynamicPath, err := reader.Str()
+		if err != nil {
+			return fmt.Errorf("failed to read dynamic path name bytes at index %d for json column: %w", i, err)
+		}
+
+		c.dynamicPaths = append(c.dynamicPaths, dynamicPath)
+		c.dynamicPathsIndex[dynamicPath] = len(c.dynamicPaths) - 1
+	}
+
+	c.dynamicColumns = make([]*Dynamic, 0, totalDynamicPaths)
+	for _, dynamicPath := range c.dynamicPaths {
+		parsedColDynamic, _ := Type("Dynamic").Column("", c.tz)
+		colDynamic := parsedColDynamic.(*Dynamic)
+
+		err := colDynamic.decodeHeader(reader)
+		if err != nil {
+			return fmt.Errorf("failed to decode dynamic header at path %s for json column: %w", dynamicPath, err)
+		}
+
+		c.dynamicColumns = append(c.dynamicColumns, colDynamic)
+	}
+
+	return nil
+}
+
+func (c *JSON) decodeObjectData(reader *proto.Reader, rows int) error {
+	for i, col := range c.typedColumns {
+		typedPath := c.typedPaths[i]
+
+		err := col.Decode(reader, rows)
+		if err != nil {
+			return fmt.Errorf("failed to decode %s typed path %s for json column: %w", col.Type(), typedPath, err)
 		}
 	}
+
+	for i, col := range c.dynamicColumns {
+		dynamicPath := c.dynamicPaths[i]
+
+		err := col.decodeData(reader, rows)
+		if err != nil {
+			return fmt.Errorf("failed to decode dynamic path %s for json column: %w", dynamicPath, err)
+		}
+	}
+
+	// SharedData per row, ignored for now. May cause stream offset issues if present
+	_, err := reader.ReadRaw(8 * rows) // one UInt64 per row
+	if err != nil {
+		return fmt.Errorf("failed to read shared data for json column: %w", err)
+	}
+
 	return nil
 }
 
-func (jCol *JSONObject) Decode(reader *proto.Reader, rows int) error {
-	panic("Not implemented")
+func (c *JSON) decodeStringData(reader *proto.Reader, rows int) error {
+	return c.jsonStrings.Decode(reader, rows)
 }
 
-func (jCol *JSONObject) Encode(buffer *proto.Buffer) {
-	if jCol.root && jCol.encoding == 0 {
-		buffer.PutString(string(jCol.FullType()))
+func (c *JSON) ReadStatePrefix(reader *proto.Reader) error {
+	jsonSerializationVersion, err := reader.UInt64()
+	if err != nil {
+		return fmt.Errorf("failed to read json serialization version: %w", err)
 	}
-	for _, c := range jCol.columns {
-		c.Encode(buffer)
+
+	c.serializationVersion = jsonSerializationVersion
+
+	switch jsonSerializationVersion {
+	case JSONObjectSerializationVersion:
+		err := c.decodeObjectHeader(reader)
+		if err != nil {
+			return fmt.Errorf("failed to decode json object header: %w", err)
+		}
+
+		return nil
+	case JSONStringSerializationVersion:
+		return nil
+	default:
+		return fmt.Errorf("unsupported JSON serialization version for prefix decode: %d", jsonSerializationVersion)
 	}
 }
 
-func (jCol *JSONObject) ReadStatePrefix(reader *proto.Reader) error {
-	_, err := reader.UInt8()
-	return err
+func (c *JSON) Decode(reader *proto.Reader, rows int) error {
+	c.rows = rows
+
+	switch c.serializationVersion {
+	case JSONObjectSerializationVersion:
+		err := c.decodeObjectData(reader, rows)
+		if err != nil {
+			return fmt.Errorf("failed to decode json object data: %w", err)
+		}
+
+		return nil
+	case JSONStringSerializationVersion:
+		err := c.decodeStringData(reader, rows)
+		if err != nil {
+			return fmt.Errorf("failed to decode json string data: %w", err)
+		}
+
+		return nil
+	default:
+		return fmt.Errorf("unsupported JSON serialization version for decode: %d", c.serializationVersion)
+	}
 }
 
-func (jCol *JSONObject) WriteStatePrefix(buffer *proto.Buffer) error {
-	buffer.PutUInt8(jCol.encoding)
-	return nil
-}
+// splitWithDelimiters splits the string while considering backticks and parentheses
+func splitWithDelimiters(s string) []string {
+	var parts []string
+	var currentPart strings.Builder
+	var brackets int
+	inBackticks := false
 
-var (
-	_ Interface           = (*JSONObject)(nil)
-	_ CustomSerialization = (*JSONObject)(nil)
-)
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '`':
+			inBackticks = !inBackticks
+			currentPart.WriteByte(s[i])
+		case '(':
+			brackets++
+			currentPart.WriteByte(s[i])
+		case ')':
+			brackets--
+			currentPart.WriteByte(s[i])
+		case ',':
+			if !inBackticks && brackets == 0 {
+				parts = append(parts, currentPart.String())
+				currentPart.Reset()
+			} else {
+				currentPart.WriteByte(s[i])
+			}
+		default:
+			currentPart.WriteByte(s[i])
+		}
+	}
+
+	if currentPart.Len() > 0 {
+		parts = append(parts, currentPart.String())
+	}
+
+	return parts
+}

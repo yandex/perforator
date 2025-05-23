@@ -31,6 +31,10 @@ type Enum16 struct {
 	chType Type
 	col    proto.ColEnum16
 	name   string
+
+	continuous bool
+	minEnum    int16
+	maxEnum    int16
 }
 
 func (col *Enum16) Reset() {
@@ -179,9 +183,17 @@ func (col *Enum16) Append(v any) (nulls []uint8, err error) {
 func (col *Enum16) AppendRow(elem any) error {
 	switch elem := elem.(type) {
 	case int16:
-		return col.AppendRow(int(elem))
+		if col.continuous && elem >= col.minEnum && elem <= col.maxEnum {
+			col.col.Append(proto.Enum16(elem))
+		} else {
+			return col.AppendRow(int(elem))
+		}
 	case *int16:
-		return col.AppendRow(int(*elem))
+		if col.continuous && *elem >= col.minEnum && *elem <= col.maxEnum {
+			col.col.Append(proto.Enum16(*elem))
+		} else {
+			return col.AppendRow(int(*elem))
+		}
 	case int:
 		v := proto.Enum16(elem)
 		_, ok := col.vi[v]

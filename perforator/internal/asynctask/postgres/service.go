@@ -90,6 +90,56 @@ func (s *TaskService) GetTask(ctx context.Context, id asynctask.TaskID) (*asynct
 	return task, nil
 }
 
+func enrichBuilderWithTaskFilter(builder *sqlbuilder.SelectQueryBuilder, filter *asynctask.TaskFilter) *sqlbuilder.SelectQueryBuilder {
+	if author := filter.Author; author != "" {
+		builder.Where(fmt.Sprintf(`(meta->>'Author') = '%s'`, author))
+	}
+
+	if ts := filter.From.UnixMicro(); ts != 0 {
+		builder.Where(fmt.Sprintf(`(meta->>'CreationTime')::bigint > %d`, ts))
+	}
+
+	if ts := filter.To.UnixMicro(); ts != 0 {
+		builder.Where(fmt.Sprintf(`(meta->>'CreationTime')::bigint < %d`, ts))
+	}
+
+	return builder
+}
+
+func (s *TaskService) CountTasks(ctx context.Context, filter *asynctask.TaskFilter) (uint64, error) {
+	alive, err := s.cluster.WaitForAlive(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("can't list tasks: %w", err)
+	}
+
+	builder := sqlbuilder.Select().
+		From(tasksTable).
+		Values("count(*)")
+
+	builder = enrichBuilderWithTaskFilter(builder, filter)
+
+	query, err := builder.Query()
+	if err != nil {
+		return 0, fmt.Errorf("can't list tasks: %w", err)
+	}
+	s.logger.Debug(ctx, "Counting tasks in postgres", log.String("sql", query))
+
+	row := alive.DBx().QueryRowContext(ctx, query)
+	if err = row.Err(); err != nil {
+		return 0, err
+	}
+
+	var count uint64
+
+	err = row.Scan(&count)
+
+	if err != nil {
+		return 0, fmt.Errorf("can't list tasks: %w", err)
+	}
+
+	return count, nil
+}
+
 func (s *TaskService) ListTasks(ctx context.Context, filter *asynctask.TaskFilter, limit uint64, offset uint64) ([]asynctask.Task, error) {
 	alive, err := s.cluster.WaitForAlive(ctx)
 	if err != nil {
@@ -106,17 +156,7 @@ func (s *TaskService) ListTasks(ctx context.Context, filter *asynctask.TaskFilte
 		Offset(offset).
 		Limit(limit)
 
-	if author := filter.Author; author != "" {
-		builder.Where(fmt.Sprintf(`(meta->>'Author') = '%s'`, author))
-	}
-
-	if ts := filter.From.UnixMicro(); ts != 0 {
-		builder.Where(fmt.Sprintf(`(meta->>'CreationTime')::bigint > %d`, ts))
-	}
-
-	if ts := filter.To.UnixMicro(); ts != 0 {
-		builder.Where(fmt.Sprintf(`(meta->>'CreationTime')::bigint < %d`, ts))
-	}
+	builder = enrichBuilderWithTaskFilter(builder, filter)
 
 	query, err := builder.Query()
 	if err != nil {

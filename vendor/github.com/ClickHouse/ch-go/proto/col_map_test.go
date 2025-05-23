@@ -117,3 +117,57 @@ func TestColMap(t *testing.T) {
 		requireNoShortRead(t, buf.Buf, colAware(dec, rows))
 	})
 }
+
+func TestColMap_RowKV(t *testing.T) {
+	v := ColMap[string, string]{
+		Keys: &ColStr{}, Values: &ColStr{},
+	}
+	require.Equal(t, ColumnType("Map(String, String)"), v.Type())
+	v.AppendKV([]KV[string, string]{
+		{"foo", "bar"},
+		{"baz", "hello"},
+	})
+	v.AppendKV([]KV[string, string]{
+		{"like", "100"},
+		{"dislike", "200"},
+	})
+	const rows = 2
+
+	var buf Buffer
+	v.EncodeColumn(&buf)
+
+	t.Run("Ok", func(t *testing.T) {
+		br := bytes.NewReader(buf.Buf)
+		r := NewReader(br)
+		dec := &ColMap[string, string]{
+			Keys: &ColStr{}, Values: &ColStr{},
+		}
+		require.NoError(t, dec.DecodeColumn(r, rows))
+		for i := 0; i < rows; i++ {
+			require.Equal(t, v.Row(i), v.Row(i))
+		}
+		require.Equal(t, []KV[string, string]{
+			{"foo", "bar"},
+			{"baz", "hello"},
+		}, dec.RowKV(0))
+		require.Equal(t, []KV[string, string]{
+			{"like", "100"},
+			{"dislike", "200"},
+		}, dec.RowKV(1))
+		dec.Reset()
+		require.Equal(t, 0, dec.Rows())
+	})
+	t.Run("EOF", func(t *testing.T) {
+		r := NewReader(bytes.NewReader(nil))
+		dec := &ColMap[string, string]{
+			Keys: &ColStr{}, Values: &ColStr{},
+		}
+		require.ErrorIs(t, dec.DecodeColumn(r, rows), io.EOF)
+	})
+	t.Run("NoShortRead", func(t *testing.T) {
+		dec := &ColMap[string, string]{
+			Keys: &ColStr{}, Values: &ColStr{},
+		}
+		requireNoShortRead(t, buf.Buf, colAware(dec, rows))
+	})
+}

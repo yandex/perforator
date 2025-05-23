@@ -44,7 +44,7 @@ func (c *{{ .Type }}) AppendArr(vs []{{ .ElemType }})  {
 	*c = append(*c, vs...)
 }
 
-// LowCardinality returns LowCardinality for {{ .Name }} .
+// LowCardinality returns LowCardinality for {{ .Name }}.
 func (c *{{ .Type }}) LowCardinality() *ColLowCardinality[{{ .ElemType }}] {
 	return &ColLowCardinality[{{ .ElemType }}]{
 		index: c,

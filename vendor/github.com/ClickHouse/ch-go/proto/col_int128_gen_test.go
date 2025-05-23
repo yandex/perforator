@@ -62,6 +62,7 @@ func TestColInt128_DecodeColumn(t *testing.T) {
 		var v ColInt128
 		v.EncodeColumn(nil) // should be no-op
 	})
+	t.Run("WriteColumn", checkWriteColumn(data))
 }
 func TestColInt128Array(t *testing.T) {
 	const rows = 50

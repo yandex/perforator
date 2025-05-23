@@ -165,7 +165,7 @@ func TestEncoderRegression(t *testing.T) {
 				}
 				comp := buf.Bytes()
 				if enc.pad > 0 && len(comp)%enc.pad != 0 {
-					t.Error(fmt.Errorf("wanted size to be mutiple of %d, got size %d with remainder %d", enc.pad, len(comp), len(comp)%enc.pad))
+					t.Error(fmt.Errorf("wanted size to be multiple of %d, got size %d with remainder %d", enc.pad, len(comp), len(comp)%enc.pad))
 					return
 				}
 				var got []byte
@@ -203,7 +203,7 @@ func TestEncoderRegression(t *testing.T) {
 					return
 				}
 				if enc.pad > 0 && buf.Len()%enc.pad != 0 {
-					t.Error(fmt.Errorf("wanted size to be mutiple of %d, got size %d with remainder %d", enc.pad, buf.Len(), buf.Len()%enc.pad))
+					t.Error(fmt.Errorf("wanted size to be multiple of %d, got size %d with remainder %d", enc.pad, buf.Len(), buf.Len()%enc.pad))
 					return
 				}
 				if !strings.Contains(name, "-snappy") {
@@ -433,7 +433,7 @@ func TestWriterPadding(t *testing.T) {
 		}
 
 		if dst.Len()%padding != 0 {
-			t.Fatalf("wanted size to be mutiple of %d, got size %d with remainder %d", padding, dst.Len(), dst.Len()%padding)
+			t.Fatalf("wanted size to be multiple of %d, got size %d with remainder %d", padding, dst.Len(), dst.Len()%padding)
 		}
 		var got bytes.Buffer
 		d.Reset(&dst)
@@ -457,7 +457,7 @@ func TestWriterPadding(t *testing.T) {
 			t.Fatal(err)
 		}
 		if dst.Len()%padding != 0 {
-			t.Fatalf("wanted size to be mutiple of %d, got size %d with remainder %d", padding, dst.Len(), dst.Len()%padding)
+			t.Fatalf("wanted size to be multiple of %d, got size %d with remainder %d", padding, dst.Len(), dst.Len()%padding)
 		}
 
 		got.Reset()
@@ -574,6 +574,49 @@ func TestBigEncodeBufferSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(n)
+}
+
+func TestWriterBufferDone(t *testing.T) {
+	const blockSize = 1 << 20
+	var buffers [][]byte
+	for _, size := range []int{10, 100, 10000, blockSize, blockSize * 8} {
+		buffers = append(buffers, make([]byte, size))
+	}
+
+	dst := io.Discard
+	wantNextBuf := 0
+	var cbErr error
+	enc := NewWriter(dst, WriterBlockSize(blockSize), WriterConcurrency(4), WriterBufferDone(func(b []byte) {
+		if !bytes.Equal(b, buffers[wantNextBuf]) && cbErr == nil {
+			cbErr = fmt.Errorf("wrong buffer returned, want %v got %v", buffers[wantNextBuf], b)
+		}
+		// Detect races.
+		for i := range b[:] {
+			b[i] = 255
+		}
+		wantNextBuf++
+	}))
+	for n, buf := range buffers {
+		// Change the buffer to a new value.
+		for i := range buf[:] {
+			buf[i] = byte(n)
+		}
+		// Send the buffer
+		err := enc.EncodeBuffer(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := enc.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if wantNextBuf != len(buffers) {
+		t.Fatalf("want %d buffers, got %d ", len(buffers), wantNextBuf)
+	}
+	if cbErr != nil {
+		t.Fatal(cbErr)
+	}
 }
 
 func BenchmarkWriterRandom(b *testing.B) {

@@ -35,7 +35,7 @@ func Null[T any]() Nullable[T] {
 func (n Nullable[T]) IsSet() bool { return n.Set }
 
 func (n Nullable[T]) Or(v T) T {
-	if n.Set {
+	if !n.Set {
 		return v
 	}
 	return n.Value
@@ -117,6 +117,12 @@ func (c ColNullable[T]) Row(i int) Nullable[T] {
 	}
 }
 
+func (c *ColNullable[T]) Array() *ColArr[Nullable[T]] {
+	return &ColArr[Nullable[T]]{
+		Data: c,
+	}
+}
+
 func (c *ColNullable[T]) Reset() {
 	c.Nulls.Reset()
 	c.Values.Reset()
@@ -125,6 +131,11 @@ func (c *ColNullable[T]) Reset() {
 func (c ColNullable[T]) EncodeColumn(b *Buffer) {
 	c.Nulls.EncodeColumn(b)
 	c.Values.EncodeColumn(b)
+}
+
+func (c ColNullable[T]) WriteColumn(w *Writer) {
+	c.Nulls.WriteColumn(w)
+	c.Values.WriteColumn(w)
 }
 
 func (c ColNullable[T]) IsElemNull(i int) bool {

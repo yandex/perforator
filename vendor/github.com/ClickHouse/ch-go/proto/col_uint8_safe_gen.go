@@ -31,3 +31,7 @@ func (c ColUInt8) EncodeColumn(b *Buffer) {
 	}
 	b.Buf = append(b.Buf, v...)
 }
+
+func (c ColUInt8) WriteColumn(w *Writer) {
+	w.ChainWrite([]byte(c))
+}

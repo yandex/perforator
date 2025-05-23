@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.58.2)
+VERSION(v0.65.1)
 
 SRCS(
     block.go
@@ -16,94 +16,62 @@ SRCS(
     client_info_interface_enum.go
     client_info_query_enum.go
     col_arr.go
+    col_arr_go123.go
     col_auto.go
     col_auto_gen.go
     col_bool.go
-    col_bool_unsafe.go
     col_date.go
     col_date32.go
     col_date32_gen.go
-    col_date32_unsafe_gen.go
     col_date_gen.go
-    col_date_unsafe_gen.go
     col_datetime.go
     col_datetime64.go
-    col_datetime64_unsafe_gen.go
-    col_datetime_unsafe_gen.go
     col_decimal128_gen.go
-    col_decimal128_unsafe_gen.go
     col_decimal256_gen.go
-    col_decimal256_unsafe_gen.go
     col_decimal32_gen.go
-    col_decimal32_unsafe_gen.go
     col_decimal64_gen.go
-    col_decimal64_unsafe_gen.go
     col_enum.go
     col_enum16_gen.go
-    col_enum16_unsafe_gen.go
     col_enum8_gen.go
-    col_enum8_unsafe_gen.go
     col_fixed_str.go
     col_fixedstr128_gen.go
-    col_fixedstr128_unsafe_gen.go
     col_fixedstr16_gen.go
-    col_fixedstr16_unsafe_gen.go
     col_fixedstr256_gen.go
-    col_fixedstr256_unsafe_gen.go
     col_fixedstr32_gen.go
-    col_fixedstr32_unsafe_gen.go
     col_fixedstr512_gen.go
-    col_fixedstr512_unsafe_gen.go
     col_fixedstr64_gen.go
-    col_fixedstr64_unsafe_gen.go
     col_fixedstr8_gen.go
-    col_fixedstr8_unsafe_gen.go
     col_float32_gen.go
-    col_float32_unsafe_gen.go
     col_float64_gen.go
-    col_float64_unsafe_gen.go
     col_int128_gen.go
-    col_int128_unsafe_gen.go
     col_int16_gen.go
-    col_int16_unsafe_gen.go
     col_int256_gen.go
-    col_int256_unsafe_gen.go
     col_int32_gen.go
-    col_int32_unsafe_gen.go
     col_int64_gen.go
-    col_int64_unsafe_gen.go
     col_int8_gen.go
-    col_int8_unsafe_gen.go
     col_interval.go
     col_ipv4_gen.go
-    col_ipv4_unsafe_gen.go
     col_ipv6_gen.go
-    col_ipv6_unsafe_gen.go
+    col_json_str.go
     col_low_cardinality.go
     col_low_cardinality_enum.go
     col_low_cardinality_raw.go
     col_map.go
+    col_map_go123.go
     col_nothing.go
     col_nullable.go
     col_point.go
     col_raw.go
-    col_raw_of.go
     col_str.go
     col_tuple.go
     col_uint128_gen.go
-    col_uint128_unsafe_gen.go
     col_uint16_gen.go
-    col_uint16_unsafe_gen.go
     col_uint256_gen.go
-    col_uint256_unsafe_gen.go
     col_uint32_gen.go
-    col_uint32_unsafe_gen.go
     col_uint64_gen.go
-    col_uint64_unsafe_gen.go
     col_uint8_gen.go
     col_uint8_safe_gen.go
     col_uuid.go
-    col_uuid_unsafe.go
     column.go
     compression.go
     compression_enum.go
@@ -139,10 +107,10 @@ SRCS(
     server_code_enum.go
     server_hello.go
     server_log.go
-    slice_unsafe.go
     stage.go
     stage_enum.go
     table_columns.go
+    writer.go
 )
 
 GO_TEST_SRCS(
@@ -151,6 +119,7 @@ GO_TEST_SRCS(
     client_data_test.go
     client_hello_test.go
     client_info_test.go
+    col_arr_go123_test.go
     col_arr_test.go
     col_auto_test.go
     col_bool_test.go
@@ -183,13 +152,14 @@ GO_TEST_SRCS(
     col_interval_test.go
     col_ipv4_gen_test.go
     col_ipv6_gen_test.go
+    col_json_str_test.go
     col_low_cardinality_raw_test.go
     col_low_cardinality_test.go
+    col_map_go123_test.go
     col_map_test.go
     col_nothing_test.go
     col_nullable_test.go
     col_point_test.go
-    col_raw_of_test.go
     col_raw_test.go
     col_str_test.go
     col_tuple_test.go
@@ -227,6 +197,131 @@ GO_XTEST_SRCS(
     dump_external_test.go
     dump_test.go
 )
+
+IF (ARCH_X86_64)
+    SRCS(
+        col_bool_unsafe.go
+        col_date32_unsafe_gen.go
+        col_date_unsafe_gen.go
+        col_datetime64_unsafe_gen.go
+        col_datetime_unsafe_gen.go
+        col_decimal128_unsafe_gen.go
+        col_decimal256_unsafe_gen.go
+        col_decimal32_unsafe_gen.go
+        col_decimal64_unsafe_gen.go
+        col_enum16_unsafe_gen.go
+        col_enum8_unsafe_gen.go
+        col_fixedstr128_unsafe_gen.go
+        col_fixedstr16_unsafe_gen.go
+        col_fixedstr256_unsafe_gen.go
+        col_fixedstr32_unsafe_gen.go
+        col_fixedstr512_unsafe_gen.go
+        col_fixedstr64_unsafe_gen.go
+        col_fixedstr8_unsafe_gen.go
+        col_float32_unsafe_gen.go
+        col_float64_unsafe_gen.go
+        col_int128_unsafe_gen.go
+        col_int16_unsafe_gen.go
+        col_int256_unsafe_gen.go
+        col_int32_unsafe_gen.go
+        col_int64_unsafe_gen.go
+        col_int8_unsafe_gen.go
+        col_ipv4_unsafe_gen.go
+        col_ipv6_unsafe_gen.go
+        col_raw_of.go
+        col_uint128_unsafe_gen.go
+        col_uint16_unsafe_gen.go
+        col_uint256_unsafe_gen.go
+        col_uint32_unsafe_gen.go
+        col_uint64_unsafe_gen.go
+        col_uuid_unsafe.go
+        slice_unsafe.go
+    )
+
+    GO_TEST_SRCS(col_raw_of_test.go)
+ENDIF()
+
+IF (ARCH_ARM64)
+    SRCS(
+        col_bool_unsafe.go
+        col_date32_unsafe_gen.go
+        col_date_unsafe_gen.go
+        col_datetime64_unsafe_gen.go
+        col_datetime_unsafe_gen.go
+        col_decimal128_unsafe_gen.go
+        col_decimal256_unsafe_gen.go
+        col_decimal32_unsafe_gen.go
+        col_decimal64_unsafe_gen.go
+        col_enum16_unsafe_gen.go
+        col_enum8_unsafe_gen.go
+        col_fixedstr128_unsafe_gen.go
+        col_fixedstr16_unsafe_gen.go
+        col_fixedstr256_unsafe_gen.go
+        col_fixedstr32_unsafe_gen.go
+        col_fixedstr512_unsafe_gen.go
+        col_fixedstr64_unsafe_gen.go
+        col_fixedstr8_unsafe_gen.go
+        col_float32_unsafe_gen.go
+        col_float64_unsafe_gen.go
+        col_int128_unsafe_gen.go
+        col_int16_unsafe_gen.go
+        col_int256_unsafe_gen.go
+        col_int32_unsafe_gen.go
+        col_int64_unsafe_gen.go
+        col_int8_unsafe_gen.go
+        col_ipv4_unsafe_gen.go
+        col_ipv6_unsafe_gen.go
+        col_raw_of.go
+        col_uint128_unsafe_gen.go
+        col_uint16_unsafe_gen.go
+        col_uint256_unsafe_gen.go
+        col_uint32_unsafe_gen.go
+        col_uint64_unsafe_gen.go
+        col_uuid_unsafe.go
+        slice_unsafe.go
+    )
+
+    GO_TEST_SRCS(col_raw_of_test.go)
+ENDIF()
+
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        col_bool_safe.go
+        col_date32_safe_gen.go
+        col_date_safe_gen.go
+        col_datetime64_safe_gen.go
+        col_datetime_safe_gen.go
+        col_decimal128_safe_gen.go
+        col_decimal256_safe_gen.go
+        col_decimal32_safe_gen.go
+        col_decimal64_safe_gen.go
+        col_enum16_safe_gen.go
+        col_enum8_safe_gen.go
+        col_fixedstr128_safe_gen.go
+        col_fixedstr16_safe_gen.go
+        col_fixedstr256_safe_gen.go
+        col_fixedstr32_safe_gen.go
+        col_fixedstr512_safe_gen.go
+        col_fixedstr64_safe_gen.go
+        col_fixedstr8_safe_gen.go
+        col_float32_safe_gen.go
+        col_float64_safe_gen.go
+        col_int128_safe_gen.go
+        col_int16_safe_gen.go
+        col_int256_safe_gen.go
+        col_int32_safe_gen.go
+        col_int64_safe_gen.go
+        col_int8_safe_gen.go
+        col_ipv4_safe_gen.go
+        col_ipv6_safe_gen.go
+        col_uint128_safe_gen.go
+        col_uint16_safe_gen.go
+        col_uint256_safe_gen.go
+        col_uint32_safe_gen.go
+        col_uint64_safe_gen.go
+        col_uuid_safe.go
+    )
+ENDIF()
 
 END()
 

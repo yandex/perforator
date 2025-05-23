@@ -2,15 +2,15 @@ GO_LIBRARY()
 
 LICENSE(MPL-2.0)
 
-VERSION(v1.7.1)
+VERSION(v1.9.1)
 
 GO_SKIP_TESTS(TestConnectorReturnsTimeout)
 
 SRCS(
-    atomic_bool.go
     auth.go
     buffer.go
     collations.go
+    compress.go
     connection.go
     connector.go
     const.go
@@ -31,9 +31,11 @@ SRCS(
 GO_TEST_SRCS(
     auth_test.go
     benchmark_test.go
+    compress_test.go
     connection_test.go
     connector_test.go
     driver_test.go
+    dsn_fuzz_test.go
     dsn_test.go
     errors_test.go
     nulltime_test.go

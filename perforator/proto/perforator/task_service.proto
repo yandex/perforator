@@ -66,6 +66,7 @@ message ListTasksRequest {
 
 message ListTasksResponse {
     repeated Task Tasks = 1;
+    int64 TotalCount = 2;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

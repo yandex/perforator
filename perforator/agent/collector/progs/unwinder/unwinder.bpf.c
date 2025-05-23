@@ -730,6 +730,36 @@ int perforator_signal_deliver(struct trace_event_signal_deliver* ctx) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+SEC("uprobe")
+int perforator_uprobe(struct pt_regs* ctx) {
+    metric_increment(METRIC_UPROBE_TRIGGERED_COUNT);
+
+    struct profiler_sample_args args = {};
+    args.starttime = bpf_ktime_get_ns();
+    args.sample_type = SAMPLE_TYPE_UPROBE;
+    args.sample_config = 0;
+    args.event_count = 1;
+    args.needs_lbr_stack = false;
+    args.record_walltime = false;
+
+    struct user_regs* regs = map_lookup_zero(&percpu_user_regs);
+    if (regs == NULL) {
+        return 0;
+    }
+
+    if (!find_task_userspace_registers(ctx, regs)) {
+        BPF_TRACE("Failed to load user_regs\n");
+        return 1;
+    }
+    args.sample_config = regs->rip;
+
+    profiler_do_sample_other(ctx, regs, &args);
+
+    return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 LICENSE("GPL");
 
 ////////////////////////////////////////////////////////////////////////////////

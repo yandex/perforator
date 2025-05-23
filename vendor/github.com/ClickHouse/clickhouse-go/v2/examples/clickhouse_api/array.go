@@ -68,12 +68,13 @@ func ArrayInsertRead() error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		if err := rows.Scan(&col1, &col2); err != nil {
 			return err
 		}
 		fmt.Printf("row: col1=%v, col2=%v\n", col1, col2)
 	}
-	rows.Close()
 	return rows.Err()
 }

@@ -47,6 +47,7 @@
   "docs/en/guides/cli/list_profiles.md":"perforator/docs/opensource/en/guides/cli/list_profiles.md",
   "docs/en/guides/cli/list_services.md":"perforator/docs/opensource/en/guides/cli/list_services.md",
   "docs/en/guides/cli/microscope.md":"perforator/docs/opensource/en/guides/cli/microscope.md",
+  "docs/en/guides/cli/profile.md":"perforator/docs/opensource/en/guides/cli/profile.md",
   "docs/en/guides/cli/record.md":"perforator/docs/opensource/en/guides/cli/record.md",
   "docs/en/guides/diff.md":"perforator/docs/opensource/en/guides/diff.md",
   "docs/en/guides/jvm.md":"perforator/docs/opensource/en/guides/jvm.md",

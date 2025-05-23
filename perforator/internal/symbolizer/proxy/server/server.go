@@ -652,7 +652,7 @@ func (s *PerforatorServer) ListProfiles(
 		return nil, fmt.Errorf("failed to parse profile query: %w", err)
 	}
 
-	query.Pagination.Limit = uint64(req.GetPaginated().GetLimit())
+	query.Pagination.Limit = uint64(req.GetPaginated().GetLimit() + 1)
 	query.Pagination.Offset = uint64(req.GetPaginated().GetOffset())
 	query.SortOrder = util.SortOrderFromProto(req.GetOrderBy())
 
@@ -660,6 +660,11 @@ func (s *PerforatorServer) ListProfiles(
 	profiles, err = s.profileStorage.SelectProfiles(ctx, query, true)
 	if err != nil {
 		return nil, err
+	}
+
+	hasMore := len(profiles) == int(query.Pagination.Limit)
+	if hasMore {
+		profiles = profiles[:len(profiles)-1]
 	}
 
 	metas := make([]*perforator.ProfileMeta, 0, len(profiles))
@@ -672,6 +677,7 @@ func (s *PerforatorServer) ListProfiles(
 
 	return &perforator.ListProfilesResponse{
 		Profiles: metas,
+		HasMore:  hasMore,
 	}, nil
 }
 

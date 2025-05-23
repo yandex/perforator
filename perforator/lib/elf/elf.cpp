@@ -56,6 +56,11 @@ TMaybe<THashMap<TStringBuf, TLocation>> RetrieveSymbols(const llvm::object::Obje
     });
 }
 
+template <typename ELFT>
+bool IsElfFileImpl(const llvm::object::ObjectFile& file) {
+    return llvm::dyn_cast<llvm::object::ELFObjectFile<ELFT>>(&file);
+}
+
 } // namespace NPerforator::NELF::NPrivate
 
 namespace NPerforator::NELF {
@@ -112,6 +117,18 @@ TMaybe<TConstArrayRef<ui8>> RetrieveContentFromRodataSection(
     const TLocation& location
 ) {
     return RetrieveContentFromSection(file, location, NSections::kRoDataSectionName);
+}
+
+bool IsElfFile(const llvm::object::ObjectFile &file) {
+#define TRY_ELF_TYPE(ELFT)                 \
+if (NPrivate::IsElfFileImpl<ELFT>(file)) { \
+    return true;                           \
+}
+
+    Y_LLVM_FOR_EACH_ELF_TYPE(TRY_ELF_TYPE)
+
+#undef TRY_ELF_TYPE
+    return false;
 }
 
 } // namespace NPerforator::NELF

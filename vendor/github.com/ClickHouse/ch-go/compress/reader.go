@@ -70,8 +70,8 @@ func (r *Reader) readBlock() error {
 			DataSize:  dataSize,
 		}, "mismatch")
 	}
-	switch m := Method(r.header[hMethod]); m {
-	case LZ4:
+	switch m := methodEncoding(r.header[hMethod]); m {
+	case encodedLZ4: // == encodedLZ4HC, as decompression is similar for both
 		n, err := lz4.UncompressBlock(r.raw[headerSize:], r.data)
 		if err != nil {
 			return errors.Wrap(err, "uncompress")
@@ -81,7 +81,7 @@ func (r *Reader) readBlock() error {
 				n, dataSize,
 			)
 		}
-	case ZSTD:
+	case encodedZSTD:
 		if r.zstd == nil {
 			// Lazily initializing to prevent spawning goroutines in NewReader.
 			// See https://github.com/golang/go/issues/47056#issuecomment-997436820
@@ -104,7 +104,7 @@ func (r *Reader) readBlock() error {
 			)
 		}
 		r.data = data
-	case None:
+	case encodedNone:
 		copy(r.data, r.raw[headerSize:])
 	default:
 		return errors.Errorf("compression 0x%02x not implemented", m)

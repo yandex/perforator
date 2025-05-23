@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.58.2)
+VERSION(v0.65.1)
 
 SRCS(
     compress.go

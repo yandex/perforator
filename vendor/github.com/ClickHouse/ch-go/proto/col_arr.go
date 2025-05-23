@@ -130,6 +130,12 @@ func (c ColArr[T]) EncodeColumn(b *Buffer) {
 	c.Data.EncodeColumn(b)
 }
 
+// WriteColumn implements ColInput.
+func (c ColArr[T]) WriteColumn(w *Writer) {
+	c.Offsets.WriteColumn(w)
+	c.Data.WriteColumn(w)
+}
+
 // Append appends new row to column.
 func (c *ColArr[T]) Append(v []T) {
 	c.Data.AppendArr(v)

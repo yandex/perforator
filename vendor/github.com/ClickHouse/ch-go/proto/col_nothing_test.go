@@ -61,4 +61,5 @@ func TestColNothing(t *testing.T) {
 		var v ColNothing
 		v.EncodeColumn(nil) // should be no-op
 	})
+	t.Run("WriteColumn", checkWriteColumn(ColNothing(0)))
 }

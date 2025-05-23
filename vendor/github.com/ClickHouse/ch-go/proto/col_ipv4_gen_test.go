@@ -62,6 +62,7 @@ func TestColIPv4_DecodeColumn(t *testing.T) {
 		var v ColIPv4
 		v.EncodeColumn(nil) // should be no-op
 	})
+	t.Run("WriteColumn", checkWriteColumn(data))
 }
 func TestColIPv4Array(t *testing.T) {
 	const rows = 50

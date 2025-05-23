@@ -3,7 +3,6 @@ package sqlbuilder
 import (
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 )
 
@@ -11,14 +10,6 @@ type OrderBy struct {
 	Columns    []string
 	Descending bool
 }
-
-type Dialect string
-
-const (
-	// for yt.TabletClient
-	YTDynTableDialect Dialect = "YT_DYN_TABLE"
-	DefaultDialect    Dialect = "DEFAULT"
-)
 
 type SelectQueryBuilder struct {
 	fromTable       string
@@ -30,7 +21,6 @@ type SelectQueryBuilder struct {
 	groupByClause   string
 	havingByClauses []string
 	settings        []string
-	dialect         Dialect
 }
 
 func Select() *SelectQueryBuilder {
@@ -62,13 +52,7 @@ func (b *SelectQueryBuilder) Query() (string, error) {
 
 	var query string
 
-	// dyn table interface yt.TabletClient use methods as verbs
-	// so the query would be used like tx.SelectRows(ctx, query, options)
-	if b.dialect == YTDynTableDialect {
-		query = fmt.Sprintf("%s FROM [%s]", b.selectValues, b.fromTable)
-	} else {
-		query = fmt.Sprintf("SELECT %s FROM %s", b.selectValues, b.fromTable)
-	}
+	query = fmt.Sprintf("SELECT %s FROM %s", b.selectValues, b.fromTable)
 
 	if len(b.whereClauses) != 0 {
 		query += fmt.Sprintf(" WHERE %s", strings.Join(b.whereClauses, " AND "))
@@ -107,10 +91,6 @@ func (b *SelectQueryBuilder) Query() (string, error) {
 		offsetLimitSection = append(offsetLimitSection, fmt.Sprintf(" OFFSET %d", *b.offset))
 	}
 
-	if b.dialect == YTDynTableDialect {
-		slices.Reverse(offsetLimitSection)
-	}
-
 	if len(offsetLimitSection) != 0 {
 		query += strings.Join(offsetLimitSection, "")
 	}
@@ -124,11 +104,6 @@ func (b *SelectQueryBuilder) Query() (string, error) {
 
 func (b *SelectQueryBuilder) Where(clause string) *SelectQueryBuilder {
 	b.whereClauses = append(b.whereClauses, clause)
-	return b
-}
-
-func (b *SelectQueryBuilder) WithDialect(dialect Dialect) *SelectQueryBuilder {
-	b.dialect = dialect
 	return b
 }
 

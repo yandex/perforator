@@ -46,6 +46,8 @@ items:
           href: guides/cli/record.md
         - name: Set up Microscope
           href: guides/cli/microscope.md
+        - name: Operations with local profile
+          href: guides/cli/profile.md
     - name: UI
       items:
         - name: Diffs

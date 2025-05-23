@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.8.0)
+VERSION(v0.9.0)
 
 SRCS(
     rate.go

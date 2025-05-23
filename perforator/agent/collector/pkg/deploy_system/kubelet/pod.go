@@ -36,7 +36,7 @@ type Pod struct {
 	topology    string                        // pod topology
 	containers  []deploysystemmodel.Container // containers that are in this pod
 	cgroupName  string                        // cgroup name like kubepods/burstable/podf8448eeb-fdf5-4fb4-9791-33ed68005ee9
-	labels      map[string]string
+	labels      map[string]string             // contains namespace label and labels defined in pod's Kubernetes manifests
 	serviceName string
 }
 
@@ -144,12 +144,18 @@ func (p *PodsLister) List(ctx context.Context) ([]deploysystemmodel.Pod, error) 
 			return nil, err
 		}
 
+		labels := make(map[string]string)
+		for k, v := range pod.ObjectMeta.Labels {
+			labels[SanitizeLabelName(k)] = v
+		}
+		labels["namespace"] = pod.ObjectMeta.Namespace
+
 		res = append(res, &Pod{
 			name:        pod.Name,
 			topology:    p.topology,
 			containers:  containers,
 			cgroupName:  cgroup,
-			labels:      pod.Labels,
+			labels:      labels,
 			serviceName: service,
 		})
 	}

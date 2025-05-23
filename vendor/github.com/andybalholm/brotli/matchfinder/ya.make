@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v1.1.0)
+VERSION(v1.1.1)
 
 SRCS(
     emitter.go

@@ -63,6 +63,8 @@ func ExternalData() error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var (
 			col1 uint8
@@ -72,7 +74,6 @@ func ExternalData() error {
 		rows.Scan(&col1, &col2, &col3)
 		fmt.Printf("col1=%d, col2=%s, col3=%v\n", col1, col2, col3)
 	}
-	rows.Close()
 
 	var count uint64
 	if err := conn.QueryRowContext(ctx, "SELECT COUNT(*) FROM external_table_1").Scan(&count); err != nil {

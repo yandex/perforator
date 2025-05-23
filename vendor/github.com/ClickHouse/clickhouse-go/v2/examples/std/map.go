@@ -19,6 +19,7 @@ package std
 
 import (
 	"fmt"
+
 	"github.com/ClickHouse/clickhouse-go/v2"
 )
 
@@ -33,7 +34,7 @@ func MapInsertRead() error {
 			, Col2 Map(String, UInt64)
 			, Col3 Map(String, UInt64)
 			, Col4 Array(Map(String, String))
-			, Col5 Map(LowCardinality(String), LowCardinality(UInt64))
+			, Col5 Map(LowCardinality(String), LowCardinality(String))
 		) Engine Memory
 		`
 	conn.Exec("DROP TABLE example")
@@ -65,9 +66,9 @@ func MapInsertRead() error {
 			{"A": "B"},
 			{"C": "D"},
 		}
-		col5Data = map[string]uint64{
-			"key_col_5_1": 100,
-			"key_col_5_2": 200,
+		col5Data = map[string]string{
+			"key_col_5_1": "100",
+			"key_col_5_2": "200",
 		}
 	)
 	if _, err := batch.Exec(col1Data, col2Data, col3Data, col4Data, col5Data); err != nil {
@@ -81,7 +82,7 @@ func MapInsertRead() error {
 		col2 map[string]uint64
 		col3 map[string]uint64
 		col4 []map[string]string
-		col5 map[string]uint64
+		col5 map[string]string
 	)
 	if err := conn.QueryRow("SELECT * FROM example").Scan(&col1, &col2, &col3, &col4, &col5); err != nil {
 		return err

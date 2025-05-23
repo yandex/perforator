@@ -94,6 +94,7 @@ func TestPopulateParameters(t *testing.T) {
 	durationStr := durationT.String()
 	durationPb := durationpb.New(durationT)
 
+	optionalStr := "str"
 	fieldmaskStr := "float_value,double_value"
 	fieldmaskPb := &field_mask.FieldMask{Paths: []string{"float_value", "double_value"}}
 
@@ -134,6 +135,7 @@ func TestPopulateParameters(t *testing.T) {
 				"string_value":           {"str"},
 				"bytes_value":            {"YWJjMTIzIT8kKiYoKSctPUB-"},
 				"repeated_value":         {"a", "b", "c"},
+				"optional_value":         {optionalStr},
 				"repeated_message":       {"1", "2", "3"},
 				"enum_value":             {"1"},
 				"repeated_enum":          {"1", "2", "0"},
@@ -184,6 +186,7 @@ func TestPopulateParameters(t *testing.T) {
 				StringValue:        "str",
 				BytesValue:         []byte("abc123!?$*&()'-=@~"),
 				RepeatedValue:      []string{"a", "b", "c"},
+				OptionalValue:      &optionalStr,
 				RepeatedMessage:    []*wrapperspb.UInt64Value{{Value: 1}, {Value: 2}, {Value: 3}},
 				EnumValue:          examplepb.EnumValue_Y,
 				RepeatedEnum:       []examplepb.EnumValue{examplepb.EnumValue_Y, examplepb.EnumValue_Z, examplepb.EnumValue_X},
@@ -478,6 +481,26 @@ func TestPopulateParameters(t *testing.T) {
 			wanterr: errors.New("field already set for oneof \"oneof_value\""),
 		},
 		{
+			// Don't allow setting a oneof more than once
+			values: url.Values{
+				"nested_oneof_int32_value":          {"10"},
+				"nested_oneof_value_one.int32Value": {"-1"},
+			},
+			filter:  utilities.NewDoubleArray(nil),
+			want:    &examplepb.Proto3Message{},
+			wanterr: errors.New("field already set for oneof \"nested_oneof_value\""),
+		},
+		{
+			// Don't allow setting a oneof more than once
+			values: url.Values{
+				"nested_oneof_value_one.int32Value": {"-1"},
+				"nested_oneof_int32_value":          {"10"},
+			},
+			filter:  utilities.NewDoubleArray(nil),
+			want:    &examplepb.Proto3Message{},
+			wanterr: errors.New("field already set for oneof \"nested_oneof_value\""),
+		},
+		{
 			// Error when there are too many values
 			values: url.Values{
 				"uint64_value": {"1", "2"},
@@ -494,6 +517,14 @@ func TestPopulateParameters(t *testing.T) {
 			filter:  utilities.NewDoubleArray(nil),
 			want:    &examplepb.Proto3Message{},
 			wanterr: errors.New("invalid path: \"repeated_message\" is not a message"),
+		},
+		{
+			values: url.Values{
+				"timestampValue": {"0000-01-01T00:00:00.00Z"},
+			},
+			filter:  utilities.NewDoubleArray(nil),
+			want:    &examplepb.Proto3Message{},
+			wanterr: errors.New(`parsing field "timestamp_value": 0000-01-01T00:00:00.00Z before 0001-01-01`),
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

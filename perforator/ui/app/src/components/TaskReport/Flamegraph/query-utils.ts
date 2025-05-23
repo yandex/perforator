@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
-import type { Coordinate } from './renderer';
+import type { Coordinate } from '@perforator/flamegraph';
 
 /** adds or modifies when value is truthy, deletes query if falsy.
  * Record key is query key, record value is new query value */

@@ -25,6 +25,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"github.com/ClickHouse/ch-go/proto"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/chcol"
 	"github.com/google/uuid"
 	"github.com/paulmach/orb"
 	"github.com/shopspring/decimal"
@@ -136,7 +137,9 @@ func (t Type) Column(name string, tz *time.Location) (Interface, error) {
 	case "Point":
 		return &Point{name: name}, nil
 	case "String":
-		return &String{name: name, col: colStrProvider()}, nil
+		return &String{name: name, col: colStrProvider(name)}, nil
+	case "SharedVariant":
+		return &SharedVariant{name: name}, nil
 	case "Object('json')":
 		return &JSONObject{name: name, root: true, tz: tz}, nil
 	}
@@ -146,6 +149,12 @@ func (t Type) Column(name string, tz *time.Location) (Interface, error) {
 		return (&Map{name: name}).parse(t, tz)
 	case strings.HasPrefix(string(t), "Tuple("):
 		return (&Tuple{name: name}).parse(t, tz)
+	case strings.HasPrefix(string(t), "Variant("):
+		return (&Variant{name: name}).parse(t, tz)
+	case strings.HasPrefix(string(t), "Dynamic"):
+		return (&Dynamic{name: name}).parse(t, tz)
+	case strings.HasPrefix(string(t), "JSON"):
+		return (&JSON{name: name}).parse(t, tz)
 	case strings.HasPrefix(string(t), "Decimal("):
 		return (&Decimal{name: name}).parse(t)
 	case strings.HasPrefix(strType, "Nested("):
@@ -255,6 +264,9 @@ var (
 	scanTypePolygon      = reflect.TypeOf(orb.Polygon{})
 	scanTypeDecimal      = reflect.TypeOf(decimal.Decimal{})
 	scanTypeMultiPolygon = reflect.TypeOf(orb.MultiPolygon{})
+	scanTypeVariant      = reflect.TypeOf(chcol.Variant{})
+	scanTypeDynamic      = reflect.TypeOf(chcol.Dynamic{})
+	scanTypeJSON         = reflect.TypeOf(chcol.JSON{})
 )
 
 func (col *Float32) Name() string {
@@ -656,7 +668,9 @@ func (col *Int8) Append(v any) (nulls []uint8, err error) {
 		nulls = make([]uint8, len(v))
 		for i := range v {
 			val := int8(0)
-			if *v[i] {
+			if v[i] == nil {
+				nulls[i] = 1
+			} else if *v[i] {
 				val = 1
 			}
 			col.col.Append(val)

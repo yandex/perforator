@@ -60,7 +60,9 @@ struct TMergeOptions {
     std::function<bool(TLabel)> LabelFilter;
 };
 
-// NB: @TProfileMerger is not thread-safe.
+////////////////////////////////////////////////////////////////////////////////
+
+// NB: @TProfileMerger is single-threaded and not thread-safe.
 class TProfileMerger {
 public:
     TProfileMerger(NProto::NProfile::Profile* merged, TMergeOptions options);
@@ -73,7 +75,7 @@ public:
 
     // Do some bookkeeping work to finish merging.
     // You must call TProfileMerger::Finish() after TProfileMerger::Add().
-    void Finish();
+    void Finish() &&;
 
 private:
     class TImpl;

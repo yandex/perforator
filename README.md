@@ -27,7 +27,7 @@ Perforator runs on x86 64-bit Linux platforms consuming 512Mb of RAM (more on ve
 
 You can profile your laptop using local [perforator record CLI command](https://perforator.tech/docs/en/tutorials/native-profiling).
 
-You can also deploy Perforator on playground/production Kubernetes cluster using our [Helm chart](https://perforator.tech/docs/en/guides/helm-chart).
+You can also deploy Perforator on playground/production Kubernetes cluster using our [Helm chart](https://perforator.tech/docs/en/tutorials/kubernetes/helm-chart).
 
 ## How to build
 

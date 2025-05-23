@@ -20,7 +20,7 @@ func (c ColDate32) Row(i int) time.Time {
 	return c[i].Time()
 }
 
-// LowCardinality returns LowCardinality for Enum8 .
+// LowCardinality returns LowCardinality for Enum8.
 func (c *ColDate32) LowCardinality() *ColLowCardinality[time.Time] {
 	return &ColLowCardinality[time.Time]{
 		index: c,

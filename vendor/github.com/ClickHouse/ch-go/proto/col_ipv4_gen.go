@@ -42,7 +42,7 @@ func (c *ColIPv4) AppendArr(vs []IPv4) {
 	*c = append(*c, vs...)
 }
 
-// LowCardinality returns LowCardinality for IPv4 .
+// LowCardinality returns LowCardinality for IPv4.
 func (c *ColIPv4) LowCardinality() *ColLowCardinality[IPv4] {
 	return &ColLowCardinality[IPv4]{
 		index: c,

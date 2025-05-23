@@ -37,3 +37,12 @@ func (c ColInt8) EncodeColumn(b *Buffer) {
 	dst := b.Buf[offset:]
 	copy(dst, src)
 }
+
+func (c ColInt8) WriteColumn(w *Writer) {
+	v := c
+	if len(v) == 0 {
+		return
+	}
+	src := *(*[]byte)(unsafe.Pointer(&v))
+	w.ChainWrite(src)
+}

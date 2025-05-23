@@ -58,6 +58,7 @@ func TestColDate_DecodeColumn(t *testing.T) {
 		var v ColDate
 		v.EncodeColumn(nil) // should be no-op
 	})
+	t.Run("WriteColumn", checkWriteColumn(data))
 }
 
 func BenchmarkColDate_DecodeColumn(b *testing.B) {

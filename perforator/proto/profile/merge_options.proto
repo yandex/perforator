@@ -1,0 +1,115 @@
+syntax = "proto2";
+
+package NPerforator.NProto.NProfile;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/profile";
+
+// MergeOptions defines how different profiles are merged together.
+message MergeOptions {
+    // If true (default), aggregate samples with identical call stacks across
+    // different threads. The merged profile will not contain thread IDs for
+    // these aggregated samples. If false, samples from different threads remain
+    // distinct.
+    optional bool ignore_thread_ids = 1 [default = true];
+
+    // If true (default), aggregate samples with identical call stacks across
+    // different processes. The merged profile will not contain process IDs for
+    // these aggregated samples. If false, samples from different processes
+    // remain distinct.
+    optional bool ignore_process_ids = 2 [default = true];
+
+    // If true, aggregate samples with identical call stacks across threads with
+    // different names. The merged profile will not contain thread names for
+    // these aggregated samples. If false (default), samples from threads with
+    // different names remain distinct.
+    optional bool ignore_thread_names = 3 [default = false];
+
+    // If true, aggregate samples with identical call stacks across processes
+    // with different names. The merged profile will not contain process names
+    // for these aggregated samples. If false (default), samples from processes
+    // with different names remain distinct.
+    optional bool ignore_process_names = 4 [default = false];
+
+    // If true, merge samples based on matching symbolized call stacks,
+    // disregarding differences in underlying binaries (e.g., build IDs, paths)
+    // as long as symbols match. The merged profile effectively represents logic
+    // flow independent of specific binary versions. If false (default), stacks
+    // from distinct binaries are treated as different, even if symbols match.
+    // Requires symbolized profiles. Greatly reduces profile size that spans
+    // multiple versions of similar binaries.
+    optional bool merge_by_symbolized_names = 5 [default = false];
+
+    // If true, aggregate samples from binaries with the same build ID,
+    // regardless of their file paths. The merged profile will not differentiate
+    // based on binary path if build IDs are identical. If false (default),
+    // binaries with different paths are treated as distinct, even with the same
+    // build ID.
+    optional bool ignore_binary_paths = 6 [default = false];
+
+    // If true (default), timestamps are disregarded during sample aggregation.
+    // The resulting merged profile samples will not contain timestamps,
+    // allowing more aggressive merging. If false, samples with different
+    // timestamps (if relevant to the aggregation key) might remain distinct.
+    optional bool ignore_timestamps = 7 [default = true];
+
+    // If true, aggregate samples originating from different source code
+    // locations (file, line) within the same function. Granularity at the
+    // source line level within a function is lost. If false (default), samples
+    // from different source locations are distinct.
+    optional bool ignore_source_locations = 8 [default = false];
+
+    // If true, aggregate samples originating from different binary instruction
+    // addresses within the same function. Granularity at the instruction
+    // address level within a function is lost. If false (default), samples from
+    // different binary addresses are distinct.
+    optional bool ignore_binary_addresses = 9 [default = false];
+
+    // If true (default), normalize some well-known value type units.
+    // For example, profiles with value types [wall.nanoseconds] and [wall.us]
+    // can be merged to a profile of value type [wall.microseconds].
+    // This also allows the merger to select a common value type unit different
+    // from the input profiles (e.g., promoting nanoseconds to seconds if values
+    // become too large), potentially losing precision but preventing overflow.
+    // Without this, merging might fail if summed values exceed representational
+    // limits.
+    optional bool normalize_value_types = 100 [default = true];
+
+    // If true (default), sanitize thread and process names, e.g., by removing
+    // trailing digits. This helps aggregate samples from thread/process pools
+    // where names like "ThreadPoolWorker-123" would otherwise create many
+    // unique entries.
+    optional bool cleanup_thread_names = 101 [default = true];
+
+    // Allows filtering of profile labels before merging. By default, sample
+    // labels are stored as-is. Filtering can reduce merged profile size if
+    // source profiles contain many highly variable labels (e.g., trace IDs).
+    optional LabelFilter label_filter = 200;
+
+    // Allows filtering of samples before merging, based on specific criteria.
+    // This can reduce the final profile size and help focus on relevant data.
+    optional SampleFilter sample_filter = 201;
+}
+
+message LabelFilter {
+    // Remove labels whose keys start with any of these prefixes.
+    repeated string skipped_key_prefixes = 1;
+}
+
+// Defines criteria for filtering samples before they are included in the merge.
+// Currently supports a predicate:
+// "hasAny(sample, build_ids) AND hasAll(sample, labels)". For more complex
+// filtering, consider using a dedicated C++ merger implementation.
+// This structure may be generalized in the future.
+message SampleFilter {
+    // Samples will be included only if they are associated with at least one
+    // of the binaries specified by these build IDs.
+    repeated string required_one_of_build_ids = 1;
+
+    // Samples will be included only if they contain all of these numeric labels
+    // with the specified key-value pairs.
+    map<string, int64> required_all_of_numeric_labels = 2;
+
+    // Samples will be included only if they contain all of these string labels
+    // with the specified key-value pairs.
+    map<string, string> required_all_of_string_labels = 3;
+}

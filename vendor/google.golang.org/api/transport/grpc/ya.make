@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.215.0)
+VERSION(v0.217.0)
 
 GO_SKIP_TESTS(
     TestLogDirectPathMisconfigAttrempDirectPathNotSet

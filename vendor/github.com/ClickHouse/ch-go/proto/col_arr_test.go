@@ -23,6 +23,7 @@ func testColumn[T any](t *testing.T, name string, f func() ColumnOf[T], values .
 	t.Run("Golden", func(t *testing.T) {
 		gold.Bytes(t, buf.Buf, "column_of_"+name)
 	})
+	t.Run("WriteColumn", checkWriteColumn(data))
 	t.Run("Ok", func(t *testing.T) {
 		br := bytes.NewReader(buf.Buf)
 		r := NewReader(br)
@@ -84,6 +85,7 @@ func TestColArrOfStr(t *testing.T) {
 		dec := (&ColStr{}).Array()
 		requireNoShortRead(t, buf.Buf, colAware(dec, col.Rows()))
 	})
+	t.Run("WriteColumn", checkWriteColumn(col))
 }
 
 func TestArrOfLowCordStr(t *testing.T) {
@@ -118,6 +120,7 @@ func TestArrOfLowCordStr(t *testing.T) {
 		dec := NewArray[string](new(ColStr).LowCardinality())
 		requireNoShortRead(t, buf.Buf, colAware(dec, col.Rows()))
 	})
+	t.Run("WriteColumn", checkWriteColumn(col))
 }
 
 func TestColArr_DecodeColumn(t *testing.T) {

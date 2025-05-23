@@ -155,3 +155,28 @@ func (c ColLowCardinalityRaw) EncodeColumn(b *Buffer) {
 	b.PutInt64(int64(k.Rows()))
 	k.EncodeColumn(b)
 }
+
+func (c ColLowCardinalityRaw) WriteColumn(w *Writer) {
+	if c.Rows() == 0 {
+		// Skipping encoding entirely.
+		return
+	}
+
+	w.ChainBuffer(func(b *Buffer) {
+		// Meta encodes whether reader should update
+		// low cardinality metadata and keys column type.
+		meta := cardinalityUpdateAll | int64(c.Key)
+		b.PutInt64(meta)
+
+		// Writing index (dictionary).
+		b.PutInt64(int64(c.Index.Rows()))
+	})
+	c.Index.WriteColumn(w)
+
+	// Sequence of values as indexes in dictionary.
+	k := c.Keys()
+	w.ChainBuffer(func(b *Buffer) {
+		b.PutInt64(int64(k.Rows()))
+	})
+	k.WriteColumn(w)
+}

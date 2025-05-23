@@ -6,5 +6,6 @@ en:
     to: /guides/cli/
   - from: /tutorials/helm-chart.md
     to: /tutorials/kubernetes/helm-chart.md
-
+  - from: /guides/helm-chart.md
+    to: /guides/kubernetes/helm-chart.md
 

@@ -107,7 +107,9 @@ struct TStackFrameInfo {
 };
 
 struct TStackInfo {
-    TStackVec<TStackFrameId, 128> Stack;
+    NProto::NProfile::StackKind Kind = NProto::NProfile::StackKind::Unknown;
+    TStringId RuntimeName = TStringId::Zero();
+    TStackVec<TStackFrameId, 64> Stack;
 
     Y_DEFAULT_EQUALITY_COMPARABLE_TYPE(TStackInfo);
     Y_DEFAULT_HASHABLE_TYPE(TStackInfo);
@@ -115,19 +117,20 @@ struct TStackInfo {
 
 struct TSampleKeyInfo {
     TThreadId Thread = TThreadId::Zero();
-    TStackId UserStack = TStackId::Zero();
-    TStackId KernelStack = TStackId::Zero();
+    TStackVec<TStackId, 2> Stacks;
     TStackVec<TLabelId, 8> Labels;
 
     Y_DEFAULT_EQUALITY_COMPARABLE_TYPE(TSampleKeyInfo);
 
     template <typename H>
     friend H AbslHashValue(H state, const TSampleKeyInfo& self) {
-        state = H::combine(std::move(state),
-            self.Thread,
-            self.UserStack,
-            self.KernelStack
+        state = H::combine(std::move(state), self.Thread);
+
+        state = H::combine_unordered(std::move(state),
+            self.Stacks.begin(),
+            self.Stacks.end()
         );
+
         return H::combine_unordered(std::move(state),
             self.Labels.begin(),
             self.Labels.end()
@@ -213,7 +216,7 @@ public:
     TSampleBuilder AddSample();
     TSampleId AddSample(const TSampleInfo& info);
 
-    void Finish();
+    void Finish() &&;
 
 public:
     class TMetadataBuilder {
@@ -487,6 +490,16 @@ public:
             : Builder_{builder}
         {}
 
+        TStackBuilder& SetKind(NProto::NProfile::StackKind kind) {
+            Info_.Kind = kind;
+            return *this;
+        }
+
+        TStackBuilder& SetRuntimeName(TStringId name) {
+            Info_.RuntimeName = name;
+            return *this;
+        }
+
         TStackBuilder& AddStackFrame(TStackFrameId frame) {
             Info_.Stack.push_back(frame);
             return *this;
@@ -517,13 +530,8 @@ public:
             return *this;
         }
 
-        TSampleKeyBuilder& SetUserStack(TStackId stack) {
-            Info_.UserStack = stack;
-            return *this;
-        }
-
-        TSampleKeyBuilder& SetKernelStack(TStackId stack) {
-            Info_.KernelStack = stack;
+        TSampleKeyBuilder& AddStack(TStackId stack) {
+            Info_.Stacks.push_back(stack);
             return *this;
         }
 

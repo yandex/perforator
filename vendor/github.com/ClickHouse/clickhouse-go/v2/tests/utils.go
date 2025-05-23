@@ -18,11 +18,27 @@
 package tests
 
 import (
+	"bytes"
 	"context"
+	"crypto/md5"
 	"crypto/tls"
+	"database/sql"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
+	"net"
+	"net/url"
+	"os"
+	"path"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
@@ -33,20 +49,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"math/rand"
-	"net"
-	"os"
-	"path"
-	"path/filepath"
-	"runtime"
-	"strconv"
-	"strings"
-	"testing"
-	"time"
 )
 
 var testUUID = uuid.NewString()[0:12]
 var testTimestamp = time.Now().UnixMilli()
+var randSeed = time.Now().UnixNano()
 
 const defaultClickHouseVersion = "latest"
 
@@ -55,6 +62,7 @@ func GetClickHouseTestVersion() string {
 }
 
 type ClickHouseTestEnvironment struct {
+	ContainerID string
 	Port        int
 	HttpPort    int
 	SslPort     int
@@ -120,7 +128,7 @@ func CreateClickHouseTestEnvironment(testSet string) (ClickHouseTestEnvironment,
 	// create a ClickHouse Container
 	ctx := context.Background()
 	// attempt use docker for CI
-	provider, err := testcontainers.ProviderDocker.GetProvider()
+	provider, err := testcontainers.ProviderDefault.GetProvider()
 	if err != nil {
 		fmt.Printf("Docker is not running and no clickhouse connections details were provided. Skipping tests: %s\n", err)
 		os.Exit(0)
@@ -145,16 +153,22 @@ func CreateClickHouseTestEnvironment(testSet string) (ClickHouseTestEnvironment,
 			Soft: 262144,
 		},
 	}
+
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, time.Now().UnixNano()); err != nil {
+		return ClickHouseTestEnvironment{}, err
+	}
+	containerName := fmt.Sprintf("clickhouse-go-%x", md5.Sum(buf.Bytes()))
+
 	req := testcontainers.ContainerRequest{
 		Image:        fmt.Sprintf("clickhouse/clickhouse-server:%s", GetClickHouseTestVersion()),
-		Name:         fmt.Sprintf("clickhouse-go-%s-%d", strings.ToLower(testSet), time.Now().UnixNano()),
+		Name:         containerName,
 		ExposedPorts: []string{"9000/tcp", "8123/tcp", "9440/tcp", "8443/tcp"},
 		WaitingFor: wait.ForAll(
-			wait.ForLog("Ready for connections").WithStartupTimeout(time.Second*time.Duration(120)),
 			wait.ForSQL("9000/tcp", "clickhouse", func(host string, port nat.Port) string {
-				return fmt.Sprintf("clickhouse://default:ClickHouse@%s:%s", host, port.Port())
+				return fmt.Sprintf("clickhouse://tester:ClickHouse@%s:%s?secure=false", host, port.Port())
 			}),
-		).WithStartupTimeout(time.Second * time.Duration(120)),
+		).WithDeadline(time.Second * 120),
 		Mounts: []testcontainers.ContainerMount{
 			testcontainers.BindMount(path.Join(basePath, "./resources/custom.xml"), "/etc/clickhouse-server/config.d/custom.xml"),
 			testcontainers.BindMount(path.Join(basePath, "./resources/admin.xml"), "/etc/clickhouse-server/users.d/admin.xml"),
@@ -166,26 +180,38 @@ func CreateClickHouseTestEnvironment(testSet string) (ClickHouseTestEnvironment,
 			Ulimits: expected,
 		},
 	}
-	clickhouseContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	if err != nil {
+
+	var clickhouseContainer testcontainers.Container
+	for attempt := 0; attempt < 3; attempt++ {
+		clickhouseContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+			ContainerRequest: req,
+			Started:          true,
+		})
+		if err == nil {
+			break
+		}
+
+		if strings.Contains(err.Error(), "failed to start container") {
+			// retry
+			continue
+		}
+
 		return ClickHouseTestEnvironment{}, err
 	}
+
 	p, _ := clickhouseContainer.MappedPort(ctx, "9000")
 	hp, _ := clickhouseContainer.MappedPort(ctx, "8123")
 	sslPort, _ := clickhouseContainer.MappedPort(ctx, "9440")
 	hps, _ := clickhouseContainer.MappedPort(ctx, "8443")
 	ip, _ := clickhouseContainer.ContainerIP(ctx)
 	testEnv := ClickHouseTestEnvironment{
-		Port:      p.Int(),
-		HttpPort:  hp.Int(),
-		SslPort:   sslPort.Int(),
-		HttpsPort: hps.Int(),
-		Host:      "127.0.0.1",
-		// we set this explicitly - note its also set in the /etc/clickhouse-server/users.d/admin.xml
-		Username:    "default",
+		ContainerID: clickhouseContainer.GetContainerID(),
+		Port:        p.Int(),
+		HttpPort:    hp.Int(),
+		SslPort:     sslPort.Int(),
+		HttpsPort:   hps.Int(),
+		Host:        "127.0.0.1",
+		Username:    "tester",
 		Password:    "ClickHouse",
 		Container:   clickhouseContainer,
 		ContainerIP: ip,
@@ -253,7 +279,7 @@ func GetExternalTestEnvironment(testSet string) (ClickHouseTestEnvironment, erro
 	return env, nil
 }
 
-func ClientOptionsFromEnv(env ClickHouseTestEnvironment, settings clickhouse.Settings) clickhouse.Options {
+func ClientOptionsFromEnv(env ClickHouseTestEnvironment, settings clickhouse.Settings, useHTTP bool) clickhouse.Options {
 	timeout, err := strconv.Atoi(GetEnv("CLICKHOUSE_DIAL_TIMEOUT", "10"))
 	if err != nil {
 		timeout = 10
@@ -263,15 +289,28 @@ func ClientOptionsFromEnv(env ClickHouseTestEnvironment, settings clickhouse.Set
 	if err != nil {
 		panic(err)
 	}
+
 	port := env.Port
+	if useHTTP {
+		port = env.HttpPort
+	}
 	var tlsConfig *tls.Config
 	if useSSL {
 		tlsConfig = &tls.Config{}
 		port = env.SslPort
+		if useHTTP {
+			port = env.HttpsPort
+		}
+	}
+
+	protocol := clickhouse.Native
+	if useHTTP {
+		protocol = clickhouse.HTTP
 	}
 
 	return clickhouse.Options{
 		Addr:     []string{fmt.Sprintf("%s:%d", env.Host, port)},
+		Protocol: protocol,
 		Settings: settings,
 		Auth: clickhouse.Auth{
 			Database: env.Database,
@@ -286,12 +325,12 @@ func ClientOptionsFromEnv(env ClickHouseTestEnvironment, settings clickhouse.Set
 	}
 }
 
-func testClientWithDefaultOptions(env ClickHouseTestEnvironment, settings clickhouse.Settings) (driver.Conn, error) {
-	opts := ClientOptionsFromEnv(env, settings)
+func TestClientWithDefaultOptions(env ClickHouseTestEnvironment, settings clickhouse.Settings) (driver.Conn, error) {
+	opts := ClientOptionsFromEnv(env, settings, false)
 	return clickhouse.Open(&opts)
 }
 
-func TestClientWithDefaultSettings(env ClickHouseTestEnvironment) (driver.Conn, error) {
+func TestClientDefaultSettings(env ClickHouseTestEnvironment) clickhouse.Settings {
 	settings := clickhouse.Settings{}
 
 	if proto.CheckMinVersion(proto.Version{
@@ -305,7 +344,20 @@ func TestClientWithDefaultSettings(env ClickHouseTestEnvironment) (driver.Conn, 
 	settings["insert_quorum_parallel"] = 0
 	settings["select_sequential_consistency"] = 1
 
-	return testClientWithDefaultOptions(env, settings)
+	return settings
+}
+
+func TestClientWithDefaultSettings(env ClickHouseTestEnvironment) (driver.Conn, error) {
+	return TestClientWithDefaultOptions(env, TestClientDefaultSettings(env))
+}
+
+func TestDatabaseSQLClientWithDefaultOptions(env ClickHouseTestEnvironment, settings clickhouse.Settings) (*sql.DB, error) {
+	opts := ClientOptionsFromEnv(env, settings, false)
+	return sql.Open("clickhouse", OptionsToDSN(&opts))
+}
+
+func TestDatabaseSQLClientWithDefaultSettings(env ClickHouseTestEnvironment) (*sql.DB, error) {
+	return TestDatabaseSQLClientWithDefaultOptions(env, TestClientDefaultSettings(env))
 }
 
 func GetConnection(testSet string, settings clickhouse.Settings, tlsConfig *tls.Config, compression *clickhouse.Compression) (driver.Conn, error) {
@@ -626,4 +678,152 @@ func CreateTinyProxyTestEnvironment(t *testing.T) (TinyProxyTestEnvironment, err
 		HttpPort:  p.Int(),
 		Container: container,
 	}, nil
+}
+
+func OptionsToDSN(o *clickhouse.Options) string {
+	var u url.URL
+
+	if o.Protocol == clickhouse.Native {
+		u.Scheme = "clickhouse"
+	} else {
+		if o.TLS != nil {
+			u.Scheme = "https"
+		} else {
+			u.Scheme = "http"
+		}
+	}
+
+	u.Host = strings.Join(o.Addr, ",")
+	u.User = url.UserPassword(o.Auth.Username, o.Auth.Password)
+	u.Path = fmt.Sprintf("/%s", o.Auth.Database)
+
+	params := u.Query()
+
+	if o.TLS != nil {
+		params.Set("secure", "true")
+	}
+
+	if o.TLS != nil && o.TLS.InsecureSkipVerify {
+		params.Set("skip_verify", "true")
+	}
+
+	if o.Debug {
+		params.Set("debug", "true")
+	}
+
+	if o.Compression != nil {
+		params.Set("compress", o.Compression.Method.String())
+		if o.Compression.Level > 0 {
+			params.Set("compress_level", strconv.Itoa(o.Compression.Level))
+		}
+	}
+
+	if o.MaxCompressionBuffer > 0 {
+		params.Set("max_compression_buffer", strconv.Itoa(o.MaxCompressionBuffer))
+	}
+
+	if o.DialTimeout > 0 {
+		params.Set("dial_timeout", o.DialTimeout.String())
+	}
+
+	if o.BlockBufferSize > 0 {
+		params.Set("block_buffer_size", strconv.Itoa(int(o.BlockBufferSize)))
+	}
+
+	if o.ReadTimeout > 0 {
+		params.Set("read_timeout", o.ReadTimeout.String())
+	}
+
+	if o.ConnOpenStrategy != 0 {
+		var strategy string
+		switch o.ConnOpenStrategy {
+		case clickhouse.ConnOpenInOrder:
+			strategy = "in_order"
+		case clickhouse.ConnOpenRoundRobin:
+			strategy = "round_robin"
+		case clickhouse.ConnOpenRandom:
+			strategy = "random"
+		}
+
+		params.Set("connection_open_strategy", strategy)
+	}
+
+	if o.MaxOpenConns > 0 {
+		params.Set("max_open_conns", strconv.Itoa(o.MaxOpenConns))
+	}
+
+	if o.MaxIdleConns > 0 {
+		params.Set("max_idle_conns", strconv.Itoa(o.MaxIdleConns))
+	}
+
+	if o.ConnMaxLifetime > 0 {
+		params.Set("conn_max_lifetime", o.ConnMaxLifetime.String())
+	}
+
+	if o.ClientInfo.Products != nil {
+		var products []string
+		for _, product := range o.ClientInfo.Products {
+			products = append(products, fmt.Sprintf("%s/%s", product.Name, product.Version))
+		}
+		params.Set("client_info_product", strings.Join(products, ","))
+	}
+
+	for k, v := range o.Settings {
+		switch v := v.(type) {
+		case bool:
+			if v {
+				params.Set(k, "true")
+			} else {
+				params.Set(k, "false")
+			}
+		case int:
+			params.Set(k, strconv.Itoa(v))
+		case string:
+			params.Set(k, v)
+		}
+	}
+
+	u.RawQuery = params.Encode()
+
+	return u.String()
+}
+
+func ResetRandSeed() {
+	rand.Seed(randSeed)
+}
+
+func Runtime(m *testing.M, ts string) (exitCode int) {
+	ResetRandSeed()
+	fmt.Printf("using random seed %d for %s tests\n", randSeed, ts)
+
+	useDocker, err := strconv.ParseBool(GetEnv("CLICKHOUSE_USE_DOCKER", "true"))
+	if err != nil {
+		panic(err)
+	}
+
+	var env ClickHouseTestEnvironment
+	switch useDocker {
+	case true:
+		env, err = CreateClickHouseTestEnvironment(ts)
+		if err != nil {
+			panic(err)
+		}
+		defer func() {
+			if err := env.Container.Terminate(context.Background()); err != nil {
+				panic(err)
+			}
+		}() //nolint
+	case false:
+		env, err = GetExternalTestEnvironment(ts)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	SetTestEnvironment(ts, env)
+	if err := CreateDatabase(ts); err != nil {
+		panic(err)
+	}
+
+	return m.Run()
 }

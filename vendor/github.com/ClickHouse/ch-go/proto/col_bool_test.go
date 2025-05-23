@@ -44,6 +44,7 @@ func TestColBool_DecodeColumn(t *testing.T) {
 		var dec ColBool
 		requireNoShortRead(t, buf.Buf, colAware(&dec, rows))
 	})
+	t.Run("WriteColumn", checkWriteColumn(data))
 }
 
 func BenchmarkColBool_DecodeColumn(b *testing.B) {

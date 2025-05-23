@@ -68,3 +68,32 @@ func (c {{ .Type }}) EncodeColumn(b *Buffer) {
 	dst := b.Buf[offset:]
 	copy(dst, src)
 }
+
+func (c {{ .Type }}) WriteColumn(w *Writer) {
+	{{- if .DateTime }}
+	v := c.Data
+	{{- else }}
+	v := c
+	{{- end }}
+	if len(v) == 0 {
+		return
+	}
+	{{- if .SingleByte }}
+		src := *(*[]byte)(unsafe.Pointer(&v))
+	{{- else }}
+		{{- if .FixedStr }}
+			const size = {{ .Bytes }}
+		{{- else }}
+			const size = {{ .Bits }} / 8
+		{{- end }}
+
+		s := *(*slice)(unsafe.Pointer(&v))
+		{{- if not .SingleByte }}
+			s.Len *= size
+			s.Cap *= size
+		{{- end }}
+
+		src := *(*[]byte)(unsafe.Pointer(&s))
+	{{- end }}
+	w.ChainWrite(src)
+}

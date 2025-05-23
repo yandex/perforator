@@ -43,3 +43,18 @@ func (c ColUInt128) EncodeColumn(b *Buffer) {
 	dst := b.Buf[offset:]
 	copy(dst, src)
 }
+
+func (c ColUInt128) WriteColumn(w *Writer) {
+	v := c
+	if len(v) == 0 {
+		return
+	}
+	const size = 128 / 8
+
+	s := *(*slice)(unsafe.Pointer(&v))
+	s.Len *= size
+	s.Cap *= size
+
+	src := *(*[]byte)(unsafe.Pointer(&s))
+	w.ChainWrite(src)
+}

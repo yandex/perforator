@@ -2,6 +2,10 @@
     padding: var(--g-spacing-2);
 }
 
+.task-card__popover-content {
+    --g-popover-max-width: fit-content;
+}
+
 .task-card__button-copy {
     margin-left: var(--g-spacing-1);
 }
@@ -19,4 +23,3 @@
     flex-direction: column;
     gap: var(--g-spacing-1);
 }
-

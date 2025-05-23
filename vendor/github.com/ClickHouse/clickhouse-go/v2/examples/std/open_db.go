@@ -94,6 +94,8 @@ func OpenDb() error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var (
 			col1 uint8
@@ -105,6 +107,6 @@ func OpenDb() error {
 		}
 		fmt.Printf("row: col1=%d, col2=%s, col3=%s\n", col1, col2, col3)
 	}
-	rows.Close()
+
 	return rows.Err()
 }

@@ -55,6 +55,7 @@ struct TState {
 
 TState MakeInitialState(ui64 initialRIP);
 
+TMaybe<ui64> GetRegisterValueOrAddress(const TState& state, unsigned int reg);
 
 using TEvaluationStopCondition = TFunctionRef<bool(const TState&, const llvm::MCInst&)>;
 
@@ -65,6 +66,7 @@ bool IsPassControlFlow(const llvm::MCInst& inst);
 
 TEvaluationStopCondition MakeStopOnPassControlFlowCondition();
 TEvaluationStopCondition MakeStopOnCallCondition();
+TEvaluationStopCondition MakeStopOnRetCondition();
 
 
 class IInstructionEvaluator {

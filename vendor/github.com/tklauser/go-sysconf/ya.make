@@ -36,6 +36,12 @@ IF (OS_LINUX AND ARCH_ARM64)
     )
 ENDIF()
 
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        zsysconf_values_linux_arm.go
+    )
+ENDIF()
+
 IF (OS_DARWIN)
     SRCS(
         sysconf_bsd.go

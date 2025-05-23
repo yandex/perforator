@@ -127,7 +127,7 @@ func TestTransportInvalid(t *testing.T) {
 	server := httptest.NewServer(newTestHandler(bin))
 
 	c := http.Client{Transport: Transport(http.DefaultTransport)}
-	// Serves json as gzippped...
+	// Serves json as gzipped...
 	resp, err := c.Get(server.URL + "/gzipped")
 	if err != nil {
 		t.Fatal(err)
@@ -249,6 +249,71 @@ func TestTransportCustomEval(t *testing.T) {
 	if calledWith != "gzip" {
 		t.Fatalf("Expected encoding %q, got %q", "gzip", calledWith)
 	}
+}
+
+func TestTransportTransportAlwaysDecompress(t *testing.T) {
+	bin, err := os.ReadFile("testdata/benchmark.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// We will serve the data as zstd+gzip, but the client will not request it.
+	server := httptest.NewServer(newTestHandler(bin))
+	c := http.Client{Transport: Transport(http.DefaultTransport, TransportEnableZstd(false), TransportEnableGzip(false), TransportAlwaysDecompress(true))}
+	resp, err := c.Get(server.URL + "/zstd/do")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, bin) {
+		t.Errorf("data mismatch")
+	}
+	resp.Body.Close()
+
+	resp, err = c.Get(server.URL + "/gzip/do")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, bin) {
+		t.Errorf("data mismatch")
+	}
+	resp.Body.Close()
+
+	// We will serve the data as zstd+gzip, but the client will not request it.
+	// With TransportAlwaysDecompress(false) it should not be decompressed.
+	c = http.Client{Transport: Transport(http.DefaultTransport, TransportEnableZstd(false), TransportEnableGzip(false), TransportAlwaysDecompress(false))}
+	resp, err = c.Get(server.URL + "/zstd/do")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(got, bin) {
+		t.Errorf("data matches")
+	}
+	resp.Body.Close()
+
+	resp, err = c.Get(server.URL + "/gzip/do")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, bin) {
+		t.Errorf("data matches")
+	}
+	resp.Body.Close()
 }
 
 func BenchmarkTransport(b *testing.B) {

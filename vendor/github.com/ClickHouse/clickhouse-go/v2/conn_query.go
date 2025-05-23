@@ -65,7 +65,7 @@ func (c *connect) query(ctx context.Context, release func(*connect, error), quer
 		bufferSize = options.blockBufferSize
 	}
 	var (
-		errors = make(chan error)
+		errors = make(chan error, 1)
 		stream = make(chan *proto.Block, bufferSize)
 	)
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,6 +24,9 @@ var offsetsFS embed.FS
 // Map from Python version (encoded as uint32) to offsets
 var pythonVersionOffsets map[uint32]*unwinder.PythonInternalsOffsets
 
+// unfilledOffsets is a PythonInternalsOffsets with all numeric fields set to UnspecifiedOffset
+var unfilledOffsets unwinder.PythonInternalsOffsets
+
 // Structure to match the JSON format from extract_offsets.py
 type jsonOffsets struct {
 	PyThreadState      map[string]int `json:"PyThreadState"`
@@ -32,8 +36,34 @@ type jsonOffsets struct {
 	PyRuntimeState     map[string]int `json:"_PyRuntimeState"`
 	PyCFrame           map[string]int `json:"_PyCFrame,omitempty"`
 	PyInterpreterFrame map[string]int `json:"_PyInterpreterFrame,omitempty"`
-	PyASCIIObject      map[string]int `json:"PyASCIIObject"`
+	PyASCIIObject      map[string]int `json:"PyASCIIObject,omitempty"`
+	PyUnicodeObject    map[string]int `json:"PyUnicodeObject,omitempty"`
 	PyTssT             map[string]int `json:"Py_tss_t,omitempty"`
+}
+
+func fillUnspecifiedOffsets(val reflect.Value) {
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct {
+		return
+	}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+
+		if field.Kind() == reflect.Uint32 {
+			field.Set(reflect.ValueOf(UnspecifiedOffset))
+		} else if field.Kind() == reflect.Uint64 {
+			field.Set(reflect.ValueOf(UnspecifiedOffset))
+		} else if field.Kind() == reflect.Struct {
+			fillUnspecifiedOffsets(field)
+		} else if field.Kind() == reflect.Uint8 {
+			// Skip uint8 fields - they're for bit positions, not offsets
+			continue
+		}
+	}
 }
 
 // Convert a version string (major.minor.micro) to an encoded uint32
@@ -70,6 +100,9 @@ func encodeVersionFromString(version string) uint32 {
 
 // Init function to load all JSON files and build the offsets map
 func init() {
+	// Initialize unfilledOffsets
+	fillUnspecifiedOffsets(reflect.ValueOf(&unfilledOffsets))
+
 	pythonVersionOffsets = make(map[uint32]*unwinder.PythonInternalsOffsets)
 
 	// Read all files from the embedded filesystem
@@ -205,8 +238,8 @@ func extractPyCodeObjectOffsets(data map[string]int) unwinder.PythonCodeObjectOf
 }
 
 // Extract frame offsets from JSON data
-func extractPyFrameOffsets(data map[string]int) unwinder.PyFrameOffsets {
-	var offsets unwinder.PyFrameOffsets
+func extractPyFrameOffsets(data map[string]int) unwinder.PythonFrameOffsets {
+	var offsets unwinder.PythonFrameOffsets
 
 	if val, ok := data["f_code"]; ok {
 		offsets.FCode = uint32(val)
@@ -260,9 +293,28 @@ func extractPyRuntimeStateOffsets(data map[string]int) unwinder.PythonRuntimeSta
 	return offsets
 }
 
+// Extract PyUnicodeObject offsets from JSON data
+func extractPyUnicodeObjectOffsets(data map[string]int) unwinder.PythonStringObjectOffsets {
+	var offsets unwinder.PythonStringObjectOffsets
+
+	if val, ok := data["length"]; ok {
+		offsets.Length = uint32(val)
+	} else {
+		offsets.Length = UnspecifiedOffset
+	}
+
+	if val, ok := data["str"]; ok {
+		offsets.Data = uint32(val)
+	} else {
+		offsets.Data = UnspecifiedOffset
+	}
+
+	return offsets
+}
+
 // Extract PyASCIIObject offsets from JSON data
-func extractPyASCIIObjectOffsets(data map[string]int) unwinder.PythonAsciiObjectOffsets {
-	var offsets unwinder.PythonAsciiObjectOffsets
+func extractPyASCIIObjectOffsets(data map[string]int) unwinder.PythonStringObjectOffsets {
+	var offsets unwinder.PythonStringObjectOffsets
 
 	if val, ok := data["length"]; ok {
 		offsets.Length = uint32(val)
@@ -326,6 +378,7 @@ func extractPyTssTOffsets(data map[string]int) unwinder.PythonTssTOffsets {
 // Convert JSON offsets to PythonInternalsOffsets
 func convertToPythonInternalsOffsets(data jsonOffsets) *unwinder.PythonInternalsOffsets {
 	offsets := &unwinder.PythonInternalsOffsets{}
+	*offsets = unfilledOffsets
 
 	// Extract offsets for each Python structure
 	if data.PyThreadState != nil {
@@ -355,7 +408,9 @@ func convertToPythonInternalsOffsets(data jsonOffsets) *unwinder.PythonInternals
 	}
 
 	if data.PyASCIIObject != nil {
-		offsets.PyAsciiObjectOffsets = extractPyASCIIObjectOffsets(data.PyASCIIObject)
+		offsets.PyStringObjectOffsets = extractPyASCIIObjectOffsets(data.PyASCIIObject)
+	} else if data.PyUnicodeObject != nil {
+		offsets.PyStringObjectOffsets = extractPyUnicodeObjectOffsets(data.PyUnicodeObject)
 	}
 
 	if data.PyTssT != nil {

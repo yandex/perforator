@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -248,6 +249,108 @@ func TestGoLimit(t *testing.T) {
 	if err := g.Wait(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestCancelCause(t *testing.T) {
+	errDoom := errors.New("group_test: doomed")
+
+	cases := []struct {
+		errs []error
+		want error
+	}{
+		{want: nil},
+		{errs: []error{nil}, want: nil},
+		{errs: []error{errDoom}, want: errDoom},
+		{errs: []error{errDoom, nil}, want: errDoom},
+	}
+
+	for _, tc := range cases {
+		g, ctx := errgroup.WithContext(context.Background())
+
+		for _, err := range tc.errs {
+			err := err
+			g.TryGo(func() error { return err })
+		}
+
+		if err := g.Wait(); err != tc.want {
+			t.Errorf("after %T.TryGo(func() error { return err }) for err in %v\n"+
+				"g.Wait() = %v; want %v",
+				g, tc.errs, err, tc.want)
+		}
+
+		if tc.want == nil {
+			tc.want = context.Canceled
+		}
+
+		if err := context.Cause(ctx); err != tc.want {
+			t.Errorf("after %T.TryGo(func() error { return err }) for err in %v\n"+
+				"context.Cause(ctx) = %v; tc.want %v",
+				g, tc.errs, err, tc.want)
+		}
+	}
+}
+
+func TestPanic(t *testing.T) {
+	t.Run("error", func(t *testing.T) {
+		g := &errgroup.Group{}
+		p := errors.New("")
+		g.Go(func() error {
+			panic(p)
+		})
+		defer func() {
+			err := recover()
+			if err == nil {
+				t.Fatalf("should propagate panic through Wait")
+			}
+			pe, ok := err.(errgroup.PanicError)
+			if !ok {
+				t.Fatalf("type should is errgroup.PanicError, but is %T", err)
+			}
+			if pe.Recovered != p {
+				t.Fatalf("got %v, want %v", pe.Recovered, p)
+			}
+			if !strings.Contains(string(pe.Stack), "TestPanic.func") {
+				t.Log(string(pe.Stack))
+				t.Fatalf("stack trace incomplete")
+			}
+		}()
+		g.Wait()
+	})
+	t.Run("any", func(t *testing.T) {
+		g := &errgroup.Group{}
+		g.Go(func() error {
+			panic(1)
+		})
+		defer func() {
+			err := recover()
+			if err == nil {
+				t.Fatalf("should propagate panic through Wait")
+			}
+			pe, ok := err.(errgroup.PanicValue)
+			if !ok {
+				t.Fatalf("type should is errgroup.PanicValue, but is %T", err)
+			}
+			if pe.Recovered != 1 {
+				t.Fatalf("got %v, want %v", pe.Recovered, 1)
+			}
+			if !strings.Contains(string(pe.Stack), "TestPanic.func") {
+				t.Log(string(pe.Stack))
+				t.Fatalf("stack trace incomplete")
+			}
+		}()
+		g.Wait()
+	})
+}
+
+func TestGoexit(t *testing.T) {
+	g := &errgroup.Group{}
+	g.Go(func() error {
+		t.Skip()
+		t.Fatalf("Goexit fail")
+		return nil
+	})
+	g.Wait()
+	t.Fatalf("should call runtime.Goexit from Wait")
 }
 
 func BenchmarkGo(b *testing.B) {

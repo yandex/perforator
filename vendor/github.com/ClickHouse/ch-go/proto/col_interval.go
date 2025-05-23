@@ -110,3 +110,7 @@ func (c *ColInterval) Reset() {
 func (c ColInterval) EncodeColumn(b *Buffer) {
 	c.Values.EncodeColumn(b)
 }
+
+func (c ColInterval) WriteColumn(w *Writer) {
+	c.Values.WriteColumn(w)
+}

@@ -44,6 +44,7 @@ export class UIFactory {
     makeServiceUrl = (cluster: string, service: Optional<string>): Optional<string> => undefined;
     makePodUrl = (cluster: string, pod: Optional<string>): Optional<string> => undefined;
     makeNodeUrl = (cluster: string, node: Optional<string>): Optional<string> => undefined;
+    makeExecutorLink = (executorName: string): Optional<string> => undefined;
 
     shareFormats = (): [string, ShareStringBuilder][] => SHARE_FORMATS;
 

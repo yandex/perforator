@@ -38,3 +38,7 @@ func GetStdOpenDBConnection(protocol clickhouse.Protocol, settings clickhouse.Se
 func GetStdTestEnvironment() (clickhouse_tests.ClickHouseTestEnvironment, error) {
 	return clickhouse_tests.GetTestEnvironment(TestSet)
 }
+
+func CheckMinServerVersion(conn *sql.DB, major, minor, patch uint64) bool {
+	return clickhouse_tests_std.CheckMinServerVersion(conn, major, minor, patch)
+}

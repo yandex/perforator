@@ -25,7 +25,7 @@ func GetCPUModel() (string, error) {
 	scanner := bufio.NewScanner(bytes.NewBuffer(procbuf))
 	for scanner.Scan() {
 		matches := modelNameRgxp.FindStringSubmatch(scanner.Text())
-		if matches == nil || len(matches) < 2 {
+		if len(matches) < 2 {
 			continue
 		}
 		return matches[1], nil

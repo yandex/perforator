@@ -52,6 +52,9 @@ for i in range(10):
     cprint(i, "magenta", end=" ")
 
 cprint("Attention!", "red", attrs=["bold"], file=sys.stderr)
+
+# You can also specify 0-255 RGB ints via a tuple
+cprint("Both foreground and background can use tuples", (100, 150, 250), (50, 60, 70))
 ```
 
 ## Text properties
@@ -74,6 +77,9 @@ cprint("Attention!", "red", attrs=["bold"], file=sys.stderr)
 | `light_blue`    | `on_light_blue`    |             |
 | `light_magenta` | `on_light_magenta` |             |
 | `light_cyan`    | `on_light_cyan`    |             |
+
+You can also use any arbitrary RGB color specified as a tuple of 0-255 integers, for
+example, `(100, 150, 250)`.
 
 ## Terminal properties
 

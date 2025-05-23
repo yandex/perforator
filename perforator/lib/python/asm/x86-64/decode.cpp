@@ -1,25 +1,6 @@
 #include "decode.h"
 
 namespace NPerforator::NLinguist::NPython::NAsm::NX86 {
-
-static TMaybe<ui64> GetRegisterValueOrAddress(const NPerforator::NAsm::NX86::TState& state, unsigned int reg) {
-    if (!state.HasKnownValue(reg)) {
-        return Nothing();
-    }
-
-    auto immValue = state.GetImmediateValue(reg);
-    if (immValue) {
-        return static_cast<ui64>(*immValue);
-    }
-
-    auto memAddr = state.GetMemoryAddress(reg);
-    if (memAddr) {
-        return static_cast<ui64>(*memAddr);
-    }
-
-    return Nothing();
-}
-
 /*
 000000000028a0b0 <_PyThreadState_GetCurrent@@Base>:
   28a0b0:       f3 0f 1e fa             endbr64
