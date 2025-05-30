@@ -333,7 +333,7 @@ static sljit_uw patch_pc_relative_loads(sljit_uw *last_pc_patch, sljit_uw *code_
 	return counter;
 }
 
-/* In some rare ocasions we may need future patches. The probability is close to 0 in practice. */
+/* In some rare occasions we may need future patches. The probability is close to 0 in practice. */
 struct future_patch {
 	struct future_patch* next;
 	sljit_s32 index;

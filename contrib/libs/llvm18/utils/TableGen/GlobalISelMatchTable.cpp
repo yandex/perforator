@@ -463,7 +463,7 @@ bool GroupMatcher::candidateConditionMatches(
 
   const Matcher &Representative = **Matchers.begin();
   const auto &RepresentativeCondition = Representative.getFirstCondition();
-  // ... if not empty, the group can only accomodate matchers with the exact
+  // ... if not empty, the group can only accommodate matchers with the exact
   // same first condition:
   return Predicate.isIdentical(RepresentativeCondition);
 }
@@ -572,7 +572,7 @@ bool SwitchMatcher::candidateConditionMatches(
     // getValue() / isIdenticalDownToValue() yet:
     if (!Predicate.hasValue())
       return false;
-    // ... otherwise an empty Switch can accomodate the condition with no
+    // ... otherwise an empty Switch can accommodate the condition with no
     // further requirements:
     return true;
   }

@@ -97,7 +97,7 @@ LIBBPF_API int libbpf_set_strict_mode(enum libbpf_strict_mode mode);
  * @brief **libbpf_get_error()** extracts the error code from the passed
  * pointer
  * @param ptr pointer returned from libbpf API function
- * @return error code; or 0 if no error occured
+ * @return error code; or 0 if no error occurred
  *
  * Note, as of libbpf 1.0 this function is not necessary and not recommended
  * to be used. Libbpf doesn't return error code embedded into the pointer

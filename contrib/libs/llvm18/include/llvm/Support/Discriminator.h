@@ -97,7 +97,7 @@ static inline unsigned getFSPassBitEnd(sampleprof::FSDiscriminatorPass P) {
   return BaseDiscriminatorBitWidth + I * FSDiscriminatorBitWidth - 1;
 }
 
-// Return the begining bit for FSPass P.
+// Return the beginning bit for FSPass P.
 static inline unsigned getFSPassBitBegin(sampleprof::FSDiscriminatorPass P) {
   if (P == sampleprof::FSDiscriminatorPass::Base)
     return 0;

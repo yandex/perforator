@@ -255,7 +255,7 @@ public:
   /// This method checks the availability of the load/store buffers.
   ///
   /// Returns LSU_AVAILABLE if there are enough load/store queue entries to
-  /// accomodate instruction IR. By default, LSU_AVAILABLE is returned if IR is
+  /// accommodate instruction IR. By default, LSU_AVAILABLE is returned if IR is
   /// not a memory operation.
   virtual Status isAvailable(const InstRef &IR) const = 0;
 
@@ -457,7 +457,7 @@ public:
         CurrentStoreBarrierGroupID(0) {}
 
   /// Returns LSU_AVAILABLE if there are enough load/store queue entries to
-  /// accomodate instruction IR.
+  /// accommodate instruction IR.
   Status isAvailable(const InstRef &IR) const override;
 
   /// Allocates LS resources for instruction IR.

@@ -28,7 +28,7 @@ From the old ChangeLog.libffi-3.1 file...
 	* Makefile.am: Compile in src/x86/win32.S on non-Windows x86-32.
 	* src/x86/ffitarget.h: Add FFI_STDCALL, FFI_THISCALL, and
 	FFI_FASTCALL on non-Windows x86-32.  Increase trampoline size to
-	accomodate these calling conventions, and unify some ifdeffery.
+	accommodate these calling conventions, and unify some ifdeffery.
 	* src/x86/ffi.c: Add support for FFI_STDCALL, FFI_THISCALL, and
 	FFI_FASTCALL on non-Windows x86-32 platforms; update ifdeffery.
 	* src/x86/win32.S: Support compiling on non-Windows x86-32

@@ -108,7 +108,7 @@ inline TString RubyPackage(const grpc::protobuf::FileDescriptor* file) {
 
     // If :: is in the package convert the Ruby formatted name
     //    -> A::B::C
-    // to use the dot seperator notation
+    // to use the dot separator notation
     //    -> A.B.C
     package_name = ReplaceAll(package_name, "::", ".");
   }

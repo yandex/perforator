@@ -875,7 +875,7 @@ RISCVISAInfo::parseArchString(StringRef Arch, bool EnableExperimentalExtension,
   // not enforce a canonical order for them.
   // Set the hardware features for the extensions that are supported.
 
-  // Multi-letter extensions are seperated by a single underscore
+  // Multi-letter extensions are separated by a single underscore
   // as described in RISC-V User-Level ISA V2.2.
   SmallVector<StringRef, 8> Split;
   OtherExts.split(Split, '_');

@@ -2665,7 +2665,7 @@ static bool hoistAddSub(Instruction &I, Loop &L, ICFLoopSafetyInfo &SafetyInfo,
 /// A1, A2, ... and C are loop invariants into expressions like
 /// ((A1 * C * B1) + (A2 * C * B2) + ...) and hoist the (A1 * C), (A2 * C), ...
 /// invariant expressions. This functions returns true only if any hoisting has
-/// actually occured.
+/// actually occurred.
 static bool hoistFPAssociation(Instruction &I, Loop &L,
                                ICFLoopSafetyInfo &SafetyInfo,
                                MemorySSAUpdater &MSSAU, AssumptionCache *AC,

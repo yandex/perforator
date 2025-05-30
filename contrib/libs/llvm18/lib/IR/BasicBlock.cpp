@@ -946,7 +946,7 @@ void BasicBlock::spliceDebugInfoImpl(BasicBlock::iterator Dest, BasicBlock *Src,
     The splice method is going to take all the instructions from First up to
     (but not including) Last and insert them in _front_ of Dest, forming one
     long list. All the DPValues attached to instructions _between_ First and
-    Last need no maintenence. However, we have to do special things with the
+    Last need no maintenance. However, we have to do special things with the
     DPValues marked with the +:= characters. We only have three positions:
     should the "+" DPValues be transferred, and if so to where? Do we move the
     ":" DPValues? Would they go in front of the "=" DPValues, or should the "="

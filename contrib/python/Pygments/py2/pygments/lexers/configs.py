@@ -621,7 +621,7 @@ class TerraformLexer(RegexLexer):
         'punctuation': [
             (r'[\[\](),.]', Punctuation),
         ],
-        # Keep this seperate from punctuation - we sometimes want to use different
+        # Keep this separate from punctuation - we sometimes want to use different
         # Tokens for { }
         'curly': [
             (r'\{', Text.Punctuation),

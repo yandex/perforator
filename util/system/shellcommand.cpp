@@ -325,7 +325,7 @@ public:
 
     inline const TString& GetInternalError() const {
         if (ExecutionStatus.load(std::memory_order_acquire) != SHELL_INTERNAL_ERROR) {
-            ythrow yexception() << "Internal error hasn't occured so can't be retrieved.";
+            ythrow yexception() << "Internal error hasn't occurred so can't be retrieved.";
         }
         return InternalError;
     }
@@ -1085,7 +1085,7 @@ void TShellCommand::TImpl::Communicate(TProcessInfo* pi) {
         }
 #endif
     } catch (const yexception& e) {
-        // Some error in watch occured, set result to error
+        // Some error in watch occurred, set result to error
         pi->Parent->ExecutionStatus.store(SHELL_INTERNAL_ERROR, std::memory_order_release);
         pi->Parent->InternalError = e.what();
         if (input) {

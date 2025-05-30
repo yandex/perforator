@@ -1236,7 +1236,7 @@ private:
   }
 
   // Search for live-in variables. They are factored into the register pressure
-  // from the begining. Live-in variables used by every iteration should be
+  // from the beginning. Live-in variables used by every iteration should be
   // considered as alive throughout the loop. For example, the variable `c` in
   // following code. \code
   //   int c = ...;

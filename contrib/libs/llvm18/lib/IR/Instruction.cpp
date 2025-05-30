@@ -77,7 +77,7 @@ const Function *Instruction::getFunction() const {
 }
 
 void Instruction::removeFromParent() {
-  // Perform any debug-info maintenence required.
+  // Perform any debug-info maintenance required.
   handleMarkerRemoval();
 
   getParent()->getInstList().remove(getIterator());

@@ -599,7 +599,7 @@ std::enable_if_t<std::is_signed_v<T>, T> AddOverflow(T X, T Y, T &Result) {
 }
 
 /// Subtract two signed integers, computing the two's complement truncated
-/// result, returning true if an overflow ocurred.
+/// result, returning true if an overflow occurred.
 template <typename T>
 std::enable_if_t<std::is_signed_v<T>, T> SubOverflow(T X, T Y, T &Result) {
 #if __has_builtin(__builtin_sub_overflow)
@@ -625,7 +625,7 @@ std::enable_if_t<std::is_signed_v<T>, T> SubOverflow(T X, T Y, T &Result) {
 }
 
 /// Multiply two signed integers, computing the two's complement truncated
-/// result, returning true if an overflow ocurred.
+/// result, returning true if an overflow occurred.
 template <typename T>
 std::enable_if_t<std::is_signed_v<T>, T> MulOverflow(T X, T Y, T &Result) {
   // Perform the unsigned multiplication on absolute values.

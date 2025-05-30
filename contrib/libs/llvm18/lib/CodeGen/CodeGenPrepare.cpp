@@ -7022,7 +7022,7 @@ bool CodeGenPrepare::optimizeSelectInst(SelectInst *SI) {
   CurInstIterator = std::next(LastSI->getIterator());
   // Examine debug-info attached to the consecutive select instructions. They
   // won't be individually optimised by optimizeInst, so we need to perform
-  // DPValue maintenence here instead.
+  // DPValue maintenance here instead.
   for (SelectInst *SI : ArrayRef(ASI).drop_front())
     fixupDPValuesOnInst(*SI);
 

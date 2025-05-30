@@ -410,7 +410,7 @@ output_exit (void)
 
 /*----------------------------------------------------------------.
 | Reorganize in-memory diversion buffers so the current diversion |
-| can accomodate LENGTH more characters without further           |
+| can accommodate LENGTH more characters without further           |
 | reorganization.  The current diversion buffer is made bigger if |
 | possible.  But to make room for a bigger buffer, one of the     |
 | in-memory diversion buffers might have to be flushed to a newly |

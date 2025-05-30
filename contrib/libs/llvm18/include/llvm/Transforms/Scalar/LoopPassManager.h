@@ -353,7 +353,7 @@ public:
   /// Restart the current loop.
   ///
   /// Loop passes should call this method to indicate the current loop has been
-  /// sufficiently changed that it should be re-visited from the begining of
+  /// sufficiently changed that it should be re-visited from the beginning of
   /// the loop pass pipeline rather than continuing.
   void revisitCurrentLoop() {
     // Tell the currently in-flight pipeline to stop running.

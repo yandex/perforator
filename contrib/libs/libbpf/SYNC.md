@@ -81,7 +81,7 @@ LIBBPF REPO:      /home/andriin/libbpf
 
 Most of the time this will go very uneventful. One expected case when sync
 script might require user intervention is if `bpf` tree has some libbpf fixes,
-which is nowadays not a very frequent occurence. But if that happens, script
+which is nowadays not a very frequent occurrence. But if that happens, script
 will show you a diff between expected state as of latest bpf-next and synced
 Github repo state. And will ask if these changes look good. Please use your
 best judgement to verify that differences are indeed from expected `bpf` tree

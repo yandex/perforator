@@ -129,21 +129,21 @@ class PygmentsDoc(Directive):
 
             return ' '.join(out)
 
-        def write_seperator():
+        def write_separator():
             """Write a table separator row"""
             sep = ['='*c for c in column_lengths]
             return write_row(*sep)
 
-        out.append(write_seperator())
+        out.append(write_separator())
         out.append(write_row('Name', 'Extension(s)', 'Short name(s)', 'Lexer class'))
-        out.append(write_seperator())
+        out.append(write_separator())
         for row in table:
             out.append(write_row(
                 row['name'],
                 row['extensions'],
                 row['aliases'],
                 f':class:`~{row["class"]}`'))
-        out.append(write_seperator())
+        out.append(write_separator())
 
         return '\n'.join(out)
 

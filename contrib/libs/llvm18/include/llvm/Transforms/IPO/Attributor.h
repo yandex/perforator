@@ -4812,7 +4812,7 @@ struct AAMemoryLocation
         inverseLocation(NO_INACCESSIBLE_MEM | NO_ARGUMENT_MEM, true, true));
   }
 
-  /// Return true if the underlying value may access memory through arguement
+  /// Return true if the underlying value may access memory through argument
   /// pointers of the associated function, if any.
   bool mayAccessArgMem() const { return !isAssumed(NO_ARGUMENT_MEM); }
 

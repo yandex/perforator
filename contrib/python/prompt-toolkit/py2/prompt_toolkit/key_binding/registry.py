@@ -185,7 +185,7 @@ class Registry(BaseRegistry):
                     if match:
                         result.append((any_count, b))
 
-            # Place bindings that have more 'Any' occurences in them at the end.
+            # Place bindings that have more 'Any' occurrences in them at the end.
             result = sorted(result, key=lambda item: -item[0])
 
             return [item[1] for item in result]

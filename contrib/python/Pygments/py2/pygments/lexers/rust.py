@@ -97,7 +97,7 @@ class RustLexer(RegexLexer):
             (r'self\b', Name.Builtin.Pseudo),
             # Prelude (taken from Rust's src/libstd/prelude.rs)
             builtin_types,
-            # Path seperators, so types don't catch them.
+            # Path separators, so types don't catch them.
             (r'::\b', Text),
             # Types in positions.
             (r'(?::|->)', Text, 'typename'),

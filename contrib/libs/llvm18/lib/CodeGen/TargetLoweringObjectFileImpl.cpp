@@ -730,7 +730,7 @@ calcUniqueIDUpdateFlagsAndSize(const GlobalObject *GO, StringRef SectionName,
   const bool SymbolMergeable = Flags & ELF::SHF_MERGE;
   const bool SeenSectionNameBefore =
       Ctx.isELFGenericMergeableSection(SectionName);
-  // If this is the first ocurrence of this section name, treat it as the
+  // If this is the first occurrence of this section name, treat it as the
   // generic section
   if (!SymbolMergeable && !SeenSectionNameBefore)
     return MCContext::GenericSectionID;

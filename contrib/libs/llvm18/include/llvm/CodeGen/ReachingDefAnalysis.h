@@ -145,7 +145,7 @@ public:
   void traverse();
 
   /// Provides the instruction id of the closest reaching def instruction of
-  /// PhysReg that reaches MI, relative to the begining of MI's basic block.
+  /// PhysReg that reaches MI, relative to the beginning of MI's basic block.
   int getReachingDef(MachineInstr *MI, MCRegister PhysReg) const;
 
   /// Return whether A and B use the same def of PhysReg.
@@ -278,7 +278,7 @@ private:
   MachineInstr *getInstFromId(MachineBasicBlock *MBB, int InstId) const;
 
   /// Provides the instruction of the closest reaching def instruction of
-  /// PhysReg that reaches MI, relative to the begining of MI's basic block.
+  /// PhysReg that reaches MI, relative to the beginning of MI's basic block.
   MachineInstr *getReachingLocalMIDef(MachineInstr *MI,
                                       MCRegister PhysReg) const;
 };

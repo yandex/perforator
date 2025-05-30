@@ -2043,7 +2043,7 @@ template <class ELFT> void ELFWriter<ELFT>::writePhdrs() {
 }
 
 template <class ELFT> void ELFWriter<ELFT>::writeShdrs() {
-  // This reference serves to write the dummy section header at the begining
+  // This reference serves to write the dummy section header at the beginning
   // of the file. It is not used for anything else
   Elf_Shdr &Shdr =
       *reinterpret_cast<Elf_Shdr *>(Buf->getBufferStart() + Obj.SHOff);

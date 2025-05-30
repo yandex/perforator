@@ -630,7 +630,7 @@ def filter_out_skip_tests(tests, skip_tests):
 @contextmanager
 def create_strip_symlink():
     # This function creates symlink of llvm-strip as strip for golink needs.
-    # We believe that cc-binaries path is a first element in PATH enviroment variable.
+    # We believe that cc-binaries path is a first element in PATH environment variable.
     tmpdir = None
     if os.getenv("CC") == "clang":
         tmpdir = tempfile.mkdtemp()

@@ -606,7 +606,7 @@ Changes
 0.3.1 (2017-12-20)
 ~~~~~~~~~~~~~~~~~~
 
-* Fix Travis CI recipe to accomodate MacOS
+* Fix Travis CI recipe to accommodate MacOS
 
 
 0.3.0 (2017-12-20)

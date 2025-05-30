@@ -772,7 +772,7 @@ public:
   }
 
   /// Tests whether the target is OHOS
-  /// LiteOS default enviroment is also OHOS, but omited on triple.
+  /// LiteOS default environment is also OHOS, but omited on triple.
   bool isOHOSFamily() const { return isOpenHOS() || isOSLiteOS(); }
 
   bool isOpenHOS() const { return getEnvironment() == Triple::OpenHOS; }

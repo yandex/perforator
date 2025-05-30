@@ -729,7 +729,7 @@ bool getUnderlyingObjectsForCodeGen(const Value *V,
                                     SmallVectorImpl<Value *> &Objects);
 
 /// Returns unique alloca where the value comes from, or nullptr.
-/// If OffsetZero is true check that V points to the begining of the alloca.
+/// If OffsetZero is true check that V points to the beginning of the alloca.
 AllocaInst *findAllocaForValue(Value *V, bool OffsetZero = false);
 inline const AllocaInst *findAllocaForValue(const Value *V,
                                             bool OffsetZero = false) {

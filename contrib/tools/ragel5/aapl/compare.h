@@ -74,7 +74,7 @@ template <class T> struct CmpOrd
 	/**
 	 * \brief Compare two ordinal types.
 	 *
-	 * This compare routine copies its arguements in by value.
+	 * This compare routine copies its arguments in by value.
 	 */
 	static inline long compare(const T k1, const T k2)
 	{

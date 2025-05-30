@@ -679,7 +679,7 @@ static inline SOCKET DoConnectImpl(const struct addrinfo* res, const TInstant& d
                 const ssize_t n = PollD(&p, 1, deadLine);
 
                 /*
-                 * timeout occured
+                 * timeout occurred
                  */
                 if (n < 0) {
                     ythrow TSystemError(-(int)n) << "can not connect";

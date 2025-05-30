@@ -2484,7 +2484,7 @@ bool LoopIdiomRecognize::recognizeShiftUntilBitTest() {
   if (auto *I = dyn_cast<Instruction>(NewXNext))
     I->copyIRFlags(XNext, /*IncludeWrapFlags=*/true);
 
-  // Step 3: Adjust the successor basic block to recieve the computed
+  // Step 3: Adjust the successor basic block to receive the computed
   //         recurrence's final value instead of the recurrence itself.
 
   XCurr->replaceUsesOutsideBlock(NewX, LoopHeaderBB);

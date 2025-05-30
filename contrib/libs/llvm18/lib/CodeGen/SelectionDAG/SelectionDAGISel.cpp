@@ -658,7 +658,7 @@ bool SelectionDAGISel::runOnMachineFunction(MachineFunction &mf) {
   }
 
   // For debug-info, in instruction referencing mode, we need to perform some
-  // post-isel maintenence.
+  // post-isel maintenance.
   if (MF->useDebugInstrRef())
     MF->finalizeDebugInstrRefs();
 

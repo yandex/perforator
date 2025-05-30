@@ -873,7 +873,7 @@ def load_vi_bindings(get_search_state=None):
     @handle('#', filter=navigation_mode)
     def _(event):
         """
-        Go to previous occurence of this word.
+        Go to previous occurrence of this word.
         """
         b = event.cli.current_buffer
 
@@ -887,7 +887,7 @@ def load_vi_bindings(get_search_state=None):
     @handle('*', filter=navigation_mode)
     def _(event):
         """
-        Go to next occurence of this word.
+        Go to next occurrence of this word.
         """
         b = event.cli.current_buffer
 

@@ -6516,7 +6516,7 @@ case 245: {
 #line 1422 "rlparse.kl"
 
 		/* Insert an initial null pointer val to indicate the existence of the
-		 * initial name seperator. */
+		 * initial name separator. */
 		nameRef.setAs( 0 );
 	
 

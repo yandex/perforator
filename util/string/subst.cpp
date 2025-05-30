@@ -39,7 +39,7 @@ static bool IsIntersect(const T& a, const U& b) noexcept {
 }
 
 /**
- * Replaces all occurences of substring @c from in string @c s to string @c to.
+ * Replaces all occurrences of substring @c from in string @c s to string @c to.
  * Uses two separate implementations (inplace for shrink and append for grow case)
  * See IGNIETFERRO-394
  **/
@@ -63,7 +63,7 @@ static inline size_t SubstGlobalImpl(TStringType& s, const TStringViewType from,
         TStringType result;
         for (; (off = TStringViewType(s).find(from, off)) != TStringType::npos; off += fromSize) {
             if (!replacementsCount) {
-                // first replacement occured, we can prepare result string
+                // first replacement occurred, we can prepare result string
                 result.reserve(s.size() + s.size() / 3);
             }
             result.append(s.begin() + srcPos, s.begin() + off);
@@ -97,7 +97,7 @@ static inline size_t SubstGlobalImpl(TStringType& s, const TStringViewType from,
     return replacementsCount;
 }
 
-/// Replaces all occurences of the 'from' symbol in a string to the 'to' symbol.
+/// Replaces all occurrences of the 'from' symbol in a string to the 'to' symbol.
 template <class TStringType>
 inline size_t SubstCharGlobalImpl(TStringType& s, typename TStringType::value_type from, typename TStringType::value_type to, size_t fromPos = 0) {
     if (fromPos >= s.size()) {

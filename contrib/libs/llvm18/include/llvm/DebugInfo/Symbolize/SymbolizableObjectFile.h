@@ -74,7 +74,7 @@ private:
                   uint64_t OpdAddress = 0);
   Error addCoffExportSymbols(const object::COFFObjectFile *CoffObj);
 
-  /// Search for the first occurence of specified Address in ObjectFile.
+  /// Search for the first occurrence of specified Address in ObjectFile.
   uint64_t getModuleSectionIndexForAddress(uint64_t Address) const;
 
   const object::ObjectFile *Module;

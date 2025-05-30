@@ -192,7 +192,7 @@ public:
   friend class llvm::ilist_node_with_parent<llvm::Instruction, llvm::BasicBlock,
                                             ilist_iterator_bits<true>>;
 
-  // Friendly methods that need to access us for the maintenence of
+  // Friendly methods that need to access us for the maintenance of
   // debug-info attachments.
   friend void Instruction::insertBefore(BasicBlock::iterator InsertPos);
   friend void Instruction::insertAfter(Instruction *InsertPos);
@@ -536,7 +536,7 @@ private:
                                  BasicBlock::iterator FromBeginIt,
                                  BasicBlock::iterator FromEndIt);
 
-  /// Perform any debug-info specific maintenence for the given splice
+  /// Perform any debug-info specific maintenance for the given splice
   /// activity. In the DPValue debug-info representation, debug-info is not
   /// in instructions, and so it does not automatically move from one block
   /// to another.

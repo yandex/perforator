@@ -404,7 +404,7 @@ Ragel 5.19 - Mar 14, 2007
  -Conditions now have a forced order when more than one is executed on a
   single character. Previously ordering relied on pointers, which caused
   results to vary by compiler. Ordering is now done using conditon action
-  declaration order. This fixes the failure of cond4.rl which occured with
+  declaration order. This fixes the failure of cond4.rl which occurred with
   g++ 4.1 and other compiler versions.
  -In the port from flex to ragel, the name separator :: in Ragel code was
   lost. Added it back.
@@ -451,7 +451,7 @@ Ragel 5.18 - Feb 13, 2007
   option). Also, the space character is now printed as SP.
  -Fixed the null dereference and consequential segfault which occurred when
   trying to create empty machines with [] and // and /a[]b/. 
- -Fixed the segfault which occured when a machine reference failed.
+ -Fixed the segfault which occurred when a machine reference failed.
  -Discontinuing ragel.spec. It is more appropriate for this to be written by
   package maintenance developers.
 
@@ -584,7 +584,7 @@ Ragel 5.11 - Aug 10, 2006
  -Configure script doesn't test for bison, flex and gperf when building of the
   parsers is turned off.
  -Removed check for YYLTYPE structure from configure script. Since shipped
-  code will not build parsers by default, we don't need to be as accomodating
+  code will not build parsers by default, we don't need to be as accommodating
   of other versions of bison. 
  -Added a missing include that showed up with g++ 2.95.3.
  -Failed configure test for Objective-C compiler is now silent.
@@ -822,7 +822,7 @@ Ragel 5.0 - Dec 17, 2005
  -The execute code now breaks out of the processing loop when it moves into
   the error state. Previously it would run until pe was hit. Breaking out
   makes the noend option useful when an error is encountered and allows
-  user code to determine where in the input the error occured. It also
+  user code to determine where in the input the error occurred. It also
   eliminates needlessly iterating the input buffer.
  -Introduced the noerror, nofinal and noprefix options for writing the machine
   data. The first two inhibit the writing of the error state and the
@@ -1058,7 +1058,7 @@ Ragel 3.6 - Jul 10, 2004
   instead a sequence of numbers, meaning the context array does not have any
   wasted bits.
  -Action lists and transition also have their types chosen to be the smallest
-  possible for accomodating the contained values.
+  possible for accommodating the contained values.
  -Changed curs state stored in fsm struct from _cs to curs. Keep fsm->curs ==
   -1 while in machine. Added tests curs1 and curs2.
  -Implemented the notion of context. Context can be embedded in states using

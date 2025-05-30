@@ -41,7 +41,7 @@ public:
 
 private:
 	const char *paramSpec;    /* Parameter spec supplied by the coder. */
-	int argc;           /* Arguement data from the command line. */
+	int argc;           /* Argument data from the command line. */
 	const char **argv;
 };
 

@@ -366,7 +366,7 @@ SymbolizableObjectFile::findSymbol(StringRef Symbol, uint64_t Offset) const {
   return Result;
 }
 
-/// Search for the first occurence of specified Address in ObjectFile.
+/// Search for the first occurrence of specified Address in ObjectFile.
 uint64_t SymbolizableObjectFile::getModuleSectionIndexForAddress(
     uint64_t Address) const {
 

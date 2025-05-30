@@ -245,8 +245,8 @@ TestInstance::TestInstance(absl::string_view regexp_str, Prog::MatchKind kind,
 
   // Create re string that will be used for RE and RE2.
   std::string re = std::string(regexp_str);
-  // Accomodate flags.
-  // Regexp::Latin1 will be accomodated below.
+  // Accommodate flags.
+  // Regexp::Latin1 will be accommodated below.
   if (!(flags & Regexp::OneLine))
     re = "(?m)" + re;
   if (flags & Regexp::NonGreedy)

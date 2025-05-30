@@ -454,7 +454,7 @@ void PollEventHandle::ShutdownHandle(y_absl::Status why) {
       SetReadyLocked(&write_closure_);
     }
   }
-  // For the Ref() taken at the begining of this function.
+  // For the Ref() taken at the beginning of this function.
   Unref();
 }
 
@@ -476,7 +476,7 @@ void PollEventHandle::NotifyOnRead(PosixEngineClosure* on_read) {
       poller_->KickExternal(false);
     }
   }
-  // For the Ref() taken at the begining of this function.
+  // For the Ref() taken at the beginning of this function.
   Unref();
 }
 
@@ -498,7 +498,7 @@ void PollEventHandle::NotifyOnWrite(PosixEngineClosure* on_write) {
       poller_->KickExternal(false);
     }
   }
-  // For the Ref() taken at the begining of this function.
+  // For the Ref() taken at the beginning of this function.
   Unref();
 }
 
