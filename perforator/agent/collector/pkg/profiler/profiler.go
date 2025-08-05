@@ -960,7 +960,10 @@ func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
 		)
 	}
 
-	return p.cgroups.TrackCgroups(trackedCgroups)
+	if err := p.cgroups.TrackCgroups(trackedCgroups); err != nil {
+		return fmt.Errorf("tracking cgroups: %w", err)
+	}
+	return nil
 }
 
 func (p *Profiler) SetDebugMode(debug bool) (err error) {

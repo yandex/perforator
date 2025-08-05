@@ -152,7 +152,7 @@ func (t *PodsCgroupTracker) rebuildWorkloadInfo(pods []deploysystemmodel.Pod) {
 func (t *PodsCgroupTracker) refreshCgroups(ctx context.Context) ([]*CgroupConfig, error) {
 	pods, err := t.podsLister.List(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing pods: %w", err)
 	}
 
 	t.l.Info("Found pods", log.Int("count", len(pods)))
@@ -300,10 +300,13 @@ func newPodsCgroupTracker(c *config.PodsDeploySystemConfig, l log.Logger, cgroup
 func (p *Profiler) updatePodsCgroups(ctx context.Context) error {
 	cgroups, err := p.podsCgroupTracker.refreshCgroups(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("refreshing cgroups: %w", err)
 	}
 
-	return p.TraceCgroups(cgroups)
+	if err := p.TraceCgroups(cgroups); err != nil {
+		return fmt.Errorf("tracing cgroups: %w", err)
+	}
+	return nil
 }
 
 func (p *Profiler) runPodsCgroupTracker(ctx context.Context) error {

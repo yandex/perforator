@@ -296,7 +296,7 @@ func (t *Tracker) AddCgroup(newCgroup *TrackedCgroup, reopenEventIfExists bool) 
 
 	cgroupID, err := t.nameCache.addCgroup(newCgroup.Name)
 	if err != nil {
-		return err
+		return fmt.Errorf("adding cgroup %s to name cache: %w", newCgroup.Name, err)
 	}
 
 	mapsLocked := true
@@ -327,7 +327,7 @@ func (t *Tracker) AddCgroup(newCgroup *TrackedCgroup, reopenEventIfExists bool) 
 
 		err = newCgroup.Event.Open(cgrp.name, cgrp.id)
 		if err != nil {
-			return err
+			return fmt.Errorf("opening cgroup event for %s: %w", newCgroup.Name, err)
 		}
 		cgrp.event.Close()
 		cgrp.event = newCgroup.Event
@@ -403,14 +403,14 @@ func (t *Tracker) TrackCgroups(cgrps []*TrackedCgroup) error {
 	for _, name := range deletedCgroups {
 		err := t.Delete(name)
 		if err != nil {
-			return err
+			return fmt.Errorf("deleting cgroup %s: %w", name, err)
 		}
 	}
 
 	for _, cgrp := range cgrps {
 		err := t.AddCgroup(cgrp, false)
 		if err != nil {
-			return err
+			return fmt.Errorf("adding cgroup %s: %w", cgrp.Name, err)
 		}
 	}
 
