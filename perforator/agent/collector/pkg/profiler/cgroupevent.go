@@ -2,10 +2,10 @@ package profiler
 
 import (
 	"fmt"
-	"github.com/yandex/perforator/library/go/co
+
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
-	"fmt"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 )
 
 type CgroupConfig struct {
