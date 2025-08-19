@@ -6,7 +6,7 @@ on:
 jobs:
   ya:
    name: Postcommit checks
-   runs-on: self-hosted
+   runs-on: [self-hosted, auto-provisioned]
    steps:
     - uses: actions/checkout@v4
     - uses: tespkg/actions-cache@91b54a6e03abb8fcec12d3743633d23a1cfcd269
