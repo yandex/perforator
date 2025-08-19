@@ -2,10 +2,11 @@ on:
   push:
     branches: 
       - main
+      - users/MikailBag/ci-self-hosted
 jobs:
   ya:
    name: Postcommit checks
-   runs-on: ubuntu-24.04
+   runs-on: self-hosted
    steps:
     - uses: actions/checkout@v4
     - uses: tespkg/actions-cache@91b54a6e03abb8fcec12d3743633d23a1cfcd269
