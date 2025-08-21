@@ -2,7 +2,6 @@ on:
   push:
     branches: 
       - main
-      - users/MikailBag/ci-self-hosted
 jobs:
   ya:
    name: Postcommit checks
