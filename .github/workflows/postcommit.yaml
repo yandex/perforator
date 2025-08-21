@@ -21,5 +21,5 @@ jobs:
           v1-
         path: ~/.ya/build
     - name: Run ya make
-      run: ./ya make ./perforator -DCI=github --gc -r --musl
+      run: ./ya test ./perforator -DCI=github --gc -r --musl -DCONSISTENT_BUILD=yes -DCONSISTENT_DEBUG=yes -T
 
