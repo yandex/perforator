@@ -1,7 +1,8 @@
 on:
   push:
-    branches: 
+    branches:
       - main
+      - users/MikailBag/ci-test
 jobs:
   ya:
    name: Postcommit checks
