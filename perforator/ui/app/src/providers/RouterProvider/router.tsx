@@ -14,7 +14,7 @@ import {
 } from '../../pages';
 
 
-export const getRouter = (pageProps: PageProps) => {
+export const getRouter = (pageProps: PageProps): ReturnType<typeof createBrowserRouter> => {
     const makePage = (page: PageComponent, title: Optional<string>) => (
         <PageContainer
             page={page}
