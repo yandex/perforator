@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -689,21 +690,68 @@ func (s *binaryStorage) Acquire(ctx context.Context, buildID string) (binaryprov
 	return &dsoFileHandle{file, buildID}, nil
 }
 
+func (s *binaryStorage) fetchDebugInfoByGnuDebugLink(ctx context.Context, buildID string) (h binaryprovider.FileHandle, err error) {
+
+	handle, ok := s.binaries[buildID]
+	if !ok {
+		return nil, fmt.Errorf("unable to locate binary by buildID %s", buildID)
+	}
+
+	file, err := handle.Unseal()
+	if err != nil {
+		return nil, fmt.Errorf("unable to unseal handle, buildID %s: %w", buildID, err)
+	}
+	debugLink, err := xelf.ReadGnuDebugLink(file.GetFile())
+	if err != nil {
+		return nil, fmt.Errorf("couldn't read GNU debug link, buildID %s: %w", buildID, err)
+	}
+
+	originalPath := fmt.Sprintf("/proc/self/fd/%d", file.GetFile().Fd())
+
+	realPath, err := os.Readlink(originalPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to obtain real file path %s: %w", originalPath, err)
+	}
+
+	dir := filepath.Dir(realPath)
+	debugPath := filepath.Join(dir, debugLink)
+
+	f, err := os.Open(debugPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open debug file %s: %w", debugPath, err)
+	}
+	s.logger.Debug(ctx, "successfully opened debug file", log.String("buildID", buildID),
+		log.String("debugPath", debugPath))
+
+	return &osFileHandle{f}, nil
+}
+
 func (s *binaryStorage) fetchSeparateDebugInfo(ctx context.Context, buildID string) (h binaryprovider.FileHandle, err error) {
 	s.logger.Debug(ctx, "Trying to fetch separate debug info", log.String("buildID", buildID))
 	defer func() {
 		if err == nil {
 			s.logger.Info(ctx, "Fetched separate debug info",
-				log.String("build_id", buildID),
+				log.String("buildID", buildID),
 				log.String("path", h.Path()),
 			)
 		} else {
 			s.logger.Warn(ctx, "Failed to find separate debug info",
-				log.String("build_id", buildID),
+				log.String("buildID", buildID),
 				log.Error(err),
 			)
 		}
 	}()
+
+	h, err = s.fetchDebugInfoByGnuDebugLink(ctx, buildID)
+	if err != nil {
+		s.logger.Warn(ctx, "Failed to locate separate debug info by GNU debug link",
+			log.String("buildID", buildID),
+			log.Error(err),
+		)
+	}
+	if h != nil {
+		return h, nil
+	}
 
 	if s.debuginfodClient == nil {
 		return nil, fmt.Errorf("no handle found")

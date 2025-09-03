@@ -19,6 +19,32 @@ type BuildInfo struct {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+func ReadGnuDebugLink(r io.ReaderAt) (string, error) {
+	f, err := elf.NewFile(r)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = f.Close() }()
+
+	sec := f.Section(".gnu_debuglink")
+	if sec == nil {
+		return "", errors.New("no .gnu_debuglink section")
+	}
+	data, err := sec.Data()
+	if err != nil {
+		return "", err
+	}
+	if len(data) == 0 {
+		return "", errors.New("empty .gnu_debuglink section")
+	}
+	n := strings.IndexByte(string(data), 0)
+	if n == -1 {
+		return "", errors.New("invalid .gnu_debuglink: missing NUL terminator")
+	}
+
+	return string(data[:n]), nil
+}
+
 func ReadBuildInfo(r io.ReaderAt) (*BuildInfo, error) {
 	f, err := elf.NewFile(r)
 	if err != nil {
