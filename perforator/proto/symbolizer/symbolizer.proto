@@ -1,0 +1,43 @@
+syntax="proto3";
+
+package NPerforator.NProto.NSymbolizer;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/symbolizer";
+
+service Symbolizer {
+    rpc Symbolize(SymbolizeRequest) returns (SymbolizeResponse) {}
+};
+
+message Line {
+    string FunctionName = 1;
+    string Filename = 2;
+    uint64 Line = 3;
+    uint64 Column = 4;
+};
+
+message Location {
+    oneof AddressType {
+        uint64 ELFOffset = 1;
+        uint64 ELFVaddr = 2;
+    }
+    repeated Line Lines = 3;
+};
+
+message PerBinaryResponse {
+    string BuildID = 1;
+    repeated Location Locations = 2;
+};
+
+message PerBinaryRequest {
+    string BuildID = 1;
+    repeated uint64 Addresses = 2;
+    repeated uint64 Offsets = 3;
+};
+
+message SymbolizeRequest {
+    repeated PerBinaryRequest Batch = 1;
+};
+
+message SymbolizeResponse {
+    repeated PerBinaryResponse Batch = 1;
+};

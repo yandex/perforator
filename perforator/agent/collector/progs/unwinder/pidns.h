@@ -41,7 +41,7 @@ static NOINLINE u64 get_current_pidns_pid_tgid(u32 pidns_ino) {
     return (((u64)tgid) << 32) | pid;
 }
 
-static NOINLINE u32 get_current_task_innermost_pid() {
+static NOINLINE u32 get_current_task_innermost_tid() {
     struct task_struct* task = get_current_task();
 
     struct pid* pid = BPF_CORE_READ(task, thread_pid);

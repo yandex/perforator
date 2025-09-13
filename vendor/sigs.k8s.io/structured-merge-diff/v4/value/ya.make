@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v4.4.1)
+VERSION(v4.4.2)
 
 SRCS(
     allocator.go

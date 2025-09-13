@@ -29,16 +29,26 @@ export function useProfileStateQuery({
     );
     const selector = initialSearchParams.get('selector');
     const maxProfiles = initialSearchParams.get('maxProfiles');
+    const from = initialSearchParams.get('from');
+    const to = initialSearchParams.get('to');
 
     if (maxProfiles && isNumber(maxProfiles)) {
         defaultQuery.maxProfiles = Number(maxProfiles);
     }
 
-    if (selector && !inMemory) {
-        const { from, to } = parseTimestampFromSelector(selector);
-        if (from && to) {
-            defaultQuery.from = from;
-            defaultQuery.to = to;
+    if (from) {
+        defaultQuery.from = from;
+    }
+
+    if (to) {
+        defaultQuery.to = to;
+    }
+
+    if (selector && !from && !to && !inMemory) {
+        const { from: parsedFrom, to: parsedTo } = parseTimestampFromSelector(selector);
+        if (parsedFrom && parsedTo) {
+            defaultQuery.from = parsedFrom;
+            defaultQuery.to = parsedTo;
             defaultQuery.selector = cutTimeFromSelector(selector);
         }
     }

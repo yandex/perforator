@@ -1,6 +1,6 @@
 /*
 Copyright 2019 The Kubernetes Authors.
-Copyright 2020 Intel Coporation.
+Copyright 2020 Intel Corporation.
 
 SPDX-License-Identifier: Apache-2.0
 */

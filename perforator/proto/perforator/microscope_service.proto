@@ -1,6 +1,8 @@
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
+
+import "perforator/proto/lib/time_interval/time_interval.proto";
 import "perforator/proto/perforator/perforator.proto";
 
 package NPerforator.NProto;
@@ -12,7 +14,7 @@ option go_package = "github.com/yandex/perforator/perforator/proto/perforator";
 service MicroscopeService {
    // Save all profiles for given selector
    rpc SetMicroscope(SetMicroscopeRequest) returns (SetMicroscopeResponse) {}
-   
+
    // List user microscopes
    rpc ListMicroscopes(ListMicroscopesRequest) returns (ListMicroscopesResponse) {}
 }
@@ -39,7 +41,7 @@ message Microscope {
     string Selector = 1;
     string ID = 2;
     string User = 3;
-    TimeInterval Interval = 4;
+    NTimeInterval.TimeInterval Interval = 4;
 }
 
 message ListMicroscopesResponse {

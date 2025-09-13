@@ -11,7 +11,7 @@ import (
 
 func TestEnvWhitelist(t *testing.T) {
 	var sample unwinder.RecordSample
-	sampleConsumer := NewSampleConsumer(nil, map[string]struct{}{
+	sampleConsumer := NewSampleConsumer(&Profiler{}, map[string]struct{}{
 		"key1": {},
 		"key2": {},
 	}, &sample)
@@ -42,7 +42,7 @@ func TestEnvWhitelist(t *testing.T) {
 
 func TestNoEmptySamples(t *testing.T) {
 	var sample unwinder.RecordSample
-	sampleConsumer := NewSampleConsumer(nil, map[string]struct{}{
+	sampleConsumer := NewSampleConsumer(&Profiler{}, map[string]struct{}{
 		"key1": {},
 		"key2": {},
 	}, &sample)

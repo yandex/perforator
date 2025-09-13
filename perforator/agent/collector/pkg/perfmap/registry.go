@@ -21,11 +21,20 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
+type processState int
+
+const (
+	processStateInitializing processState = iota
+	processStateInitialized
+	processStateTerminalSkip
+	processStateTransientSkip
+)
+
 type trackedProcess struct {
-	initialized atomic.Bool
-	pid         linux.ProcessID
-	perfmap     *perfMap
-	javaConn    *jvmattach.VirtualMachineConn
+	state    atomic.Int32
+	pid      linux.ProcessID
+	perfmap  *perfMap
+	javaConn *jvmattach.VirtualMachineConn
 }
 
 type Registry struct {
@@ -106,10 +115,9 @@ func (r *Registry) registerImpl(ctx context.Context, tp *trackedProcess, nspid l
 	path := fmt.Sprintf("/proc/%d/root/tmp/perf-%d.map", tp.pid, nspid)
 	tp.perfmap = newPerfMap(path)
 	tp.javaConn = conn
-	tp.initialized.Store(true)
 }
 
-func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) bool {
+func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) processState {
 	// It is critical that we open pidfd before reading any process information besides its pid.
 	// This way, if discovery races with process termination
 	// (and potential pid reuse), pidfd_send_signal inside jvmattach.Dialer.Dial will fail.
@@ -117,7 +125,7 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) bool {
 	pfd, err := pidfd.Open(tp.pid)
 	if err != nil {
 		r.logger.Info("Failed to open pidfd", logfield.Pid(tp.pid), log.Error(err))
-		return false
+		return processStateTerminalSkip
 	}
 	defer func() {
 		closeErr := pfd.Close()
@@ -131,7 +139,7 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) bool {
 	if err != nil {
 		r.logger.Info("Failed to read process environment, skipping process", logfield.Pid(tp.pid), log.Error(err))
 		r.processIgnoredEnvParseError.Inc()
-		return false
+		return processStateTerminalSkip
 	}
 	var perfMapConf *processConfig
 	perfMapRawConf, ok := env["__PERFORATOR_ENABLE_PERFMAP"]
@@ -149,12 +157,12 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) bool {
 		// We can't log environment, it is sensitive
 		r.logger.Info("Process does not allow perfmap collection, skipping process (late check)", logfield.Pid(tp.pid))
 		r.processIgnoredNotEnabled.Inc()
-		return false
+		return processStateTransientSkip
 	}
 	if perfMapConf.percentage < 100 {
 		if rand.Uint32N(100) >= perfMapConf.percentage {
 			r.logger.Debug("Process enables perfmap randomly and was not sampled")
-			return false
+			return processStateTerminalSkip
 		}
 	}
 
@@ -167,7 +175,7 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) bool {
 	}
 
 	r.registerImpl(ctx, tp, nspid, perfMapConf.java, pfd)
-	return true
+	return processStateInitialized
 }
 
 const (
@@ -188,12 +196,14 @@ func (r *Registry) runRegisterWorker(ctx context.Context) {
 			)
 			defer cancel()
 			started := time.Now()
-			ok := r.registerSync(regCtx, tp)
-			if !ok {
+			state := r.registerSync(regCtx, tp)
+			if state == processStateTerminalSkip {
 				r.mu.Lock()
 				// TODO(PERFORATOR-561) here is race condition: we may delete another (newer) process which reused this pid
 				delete(r.procs, tp.pid)
 				r.mu.Unlock()
+			} else {
+				tp.state.Store(int32(state))
 			}
 			elapsed := time.Since(started)
 			if elapsed > singleProcessRegisterWarnThreshold {
@@ -210,29 +220,40 @@ func (r *Registry) runRegisterWorker(ctx context.Context) {
 	}
 }
 
-// OnProcessDiscovery implements process.Listener
-func (r *Registry) OnProcessDiscovery(info process.ProcessInfo) {
+func (r *Registry) tryEnqueueForDiscovery(tp *trackedProcess, info process.ProcessInfo) {
 	// TODO: we will still parse environment the second time, because this check happens outside of pidfd protection region
 	_, ok := info.Env()["__PERFORATOR_ENABLE_PERFMAP"]
 	if !ok {
 		r.logger.Debug("Process does not allow perfmap collection, skipping process (early check)", logfield.Pid(info.ProcessID()))
+		tp.state.Store(int32(processStateTransientSkip))
 		return
 	}
 
-	tp := r.addProcessEntry(info.ProcessID())
 	select {
 	case r.registerQueue <- tp:
+		r.logger.Debug("Process enqueued for discovery", logfield.Pid(info.ProcessID()))
 	default:
 		r.logger.Error("Register queue is full, skipping process", logfield.Pid(info.ProcessID()))
-		r.mu.Lock()
-		defer r.mu.Unlock()
-		delete(r.procs, info.ProcessID())
 	}
+}
+
+// OnProcessDiscovery implements process.Listener
+func (r *Registry) OnProcessDiscovery(info process.ProcessInfo) {
+	tp := r.addProcessEntry(info.ProcessID())
+	r.tryEnqueueForDiscovery(tp, info)
 }
 
 // OnProcessRescan implements process.Listener
 func (r *Registry) OnProcessRescan(info process.ProcessInfo) {
-	// TODO: at least we can check env again
+	tp := r.findProcess(info.ProcessID())
+	if tp == nil {
+		r.logger.Warn("Got Rescan notification for unknown process", log.UInt32("pid", uint32(info.ProcessID())))
+		return
+	}
+	if tp.state.Load() != int32(processStateTransientSkip) {
+		return
+	}
+	r.tryEnqueueForDiscovery(tp, info)
 }
 
 // OnProcessDeath implements process.Listener
@@ -251,7 +272,7 @@ func (r *Registry) findProcess(pid linux.ProcessID) *trackedProcess {
 
 func (r *Registry) Resolve(pid linux.ProcessID, ip uint64) (string, bool) {
 	tp := r.findProcess(pid)
-	if tp == nil || !tp.initialized.Load() {
+	if tp == nil || tp.state.Load() != int32(processStateInitialized) {
 		return "", false
 	}
 	return tp.perfmap.find(ip)
@@ -271,7 +292,7 @@ func (r *Registry) listRefreshTargets() []*trackedProcess {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for _, v := range r.procs {
-		if !v.initialized.Load() {
+		if v.state.Load() != int32(processStateInitialized) {
 			continue
 		}
 		targets = append(targets, v)

@@ -9,6 +9,7 @@ PY_SRCS(
     commands/build_tsc.py
     commands/build_vite.py
     commands/build_webpack.py
+    commands/build_rspack.py
     commands/create_node_modules.py
     commands/prepare_deps.py
     __init__.py

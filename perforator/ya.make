@@ -3,6 +3,7 @@ IF (NOT OPENSOURCE)
         alerts
         docs
         opensource
+        release
         sandbox
         scripts
         tasklets
@@ -16,7 +17,7 @@ ENDIF()
 
 RECURSE(
     agent
-    bundle    
+    bundle
     cmd
     ebpf
     internal

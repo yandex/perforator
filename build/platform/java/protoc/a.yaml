@@ -95,8 +95,35 @@ ci:
             config:
               arc_mount_config:
                 enabled: true
+              secret_environment_variables:
+                - key: ARCANUM_API_TOKEN
+                  secret_spec:
+                    uuid: sec-01hdkn5jk9a2qbx4r18e7nmtjf
+                    key: arcanum.api.token
+                - key: SANDBOX_TOKEN
+                  secret_spec:
+                    uuid: sec-01hdkn5jk9a2qbx4r18e7nmtjf
+                    key: sandbox.token
               cmd_line: |
                 export VERSION="${flow-vars.version}"
+                # Извлекаем первое число (до точки)
+                first_num=$(echo $VERSION | cut -d"." -f1)
+                # Проверяем условие
+                if [ "$first_num" -gt 25 ]; then
+                  full_version="4.$VERSION"
+                else
+                  full_version="3.$VERSION"
+                fi
+                echo "$full_version" > "$RESULT_RESOURCES_PATH/proto_version"
+
+                ya maven-import -s="${context.flow_triggered_by}" -t="$SANDBOX_TOKEN" "com.google.protobuf:protobuf-bom:$full_version" \
+                                "com.google.protobuf:protobuf-java-util:$full_version" \
+                                "com.google.protobuf:protobuf-javalite:$full_version" \
+                                "com.google.protobuf:protobuf-kotlin:$full_version" \
+                                "com.google.protobuf:protobuf-parent:$full_version"
+
+                sed -i "s/JAVA_PROTO_COMPILER_VERSION\s*=\s*\d+\.\d+\.\d+/JAVA_PROTO_COMPILER_VERSION = $full_version/" "$ARCADIA_PATH/build/conf/proto.conf"
+                sed -i "s/JAVA_PROTO_RUNTIME_VERSION\s*=\s*\d+\.\d+\.\d+/JAVA_PROTO_RUNTIME_VERSION = $full_version/" "$ARCADIA_PATH/build/conf/proto.conf"
 
                 cat << EOF > "$ARCADIA_PATH/build/platform/java/protoc/resources.json"
                 {
@@ -120,16 +147,33 @@ ci:
                 }
                 EOF
 
-                echo "$VERSION" > "$VERSION_DIR/version.txt"
-
-                arc add build/platform/java/protoc/resources.json
+                arc add build/platform/java/protoc/resources.json build/conf/proto.conf contrib/java/com/google/protobuf
                 arc submit -m "Upload new protoc java $VERSION" >submit.log
 
                 export SUBMIT_URL=$(cat submit.log)
                 echo "{ \"id\": \"arcanum-pr\", \"module\": \"ARCADIA\", \"url\": \"$SUBMIT_URL\", \"text\": \"Pull Request\", \"status\": \"SUCCESSFUL\" }" > "$RESULT_BADGES_PATH/pullrequest"
 
+                PR_ID=$(basename "$SUBMIT_URL")
+                echo "$PR_ID" > "$RESULT_RESOURCES_PATH/pr_id"
+
+                PR_BRANCH=$(arc st -b --json | ya tool jq -r .branch_info.remote.name)
+                echo "$PR_BRANCH" > "$RESULT_RESOURCES_PATH/pr_branch"
+
+                TRIGGERED_BY='${context.flow_triggered_by}'
+                REQUEST="{\"shared_type\":\"for_some\", \"users\":[\"$TRIGGERED_BY\"]}"
+                curl "https://arcanum.yandex.net/api/v1/review-requests/$PR_ID/shared" \
+                  -X 'PUT' \
+                  -H 'Content-Type: application/json' \
+                  -H "Authorization: OAuth $ARCANUM_API_TOKEN" \
+                  --data-binary "$REQUEST"
+
               result_badges:
                 - path: pullrequest
+
+              result_output:
+                - path: pr_id
+                - path: pr_branch
+                - path: proto_version
 
         # TODO: add reference to pull request
         # TODO: wait for pull request

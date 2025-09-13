@@ -8,6 +8,7 @@ import (
 	"github.com/yandex/perforator/observability/lib/querylang"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
+	profilepb "github.com/yandex/perforator/perforator/proto/profile"
 )
 
 type envFilter map[string]string
@@ -30,6 +31,16 @@ func (ef envFilter) Matches(sample *pprof.Sample) bool {
 		}
 	}
 	return len(matches) == len(ef)
+}
+
+func (ef envFilter) AppendToProto(filter *profilepb.SampleFilter) {
+	if filter.RequiredAllOfStringLabels == nil {
+		filter.RequiredAllOfStringLabels = make(map[string]string)
+	}
+
+	for k, v := range ef {
+		filter.RequiredAllOfStringLabels[env.BuildEnvLabelKey(k)] = v
+	}
 }
 
 func BuildEnvFilter(selector *querylang.Selector) (SampleFilter, error) {

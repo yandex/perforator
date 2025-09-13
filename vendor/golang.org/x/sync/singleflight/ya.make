@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.14.0)
+VERSION(v0.15.0)
 
 # skipped due to run_go_test bug: Test output parser error: Trying to run the test [TestPanicDoChan] which has been already started...
 

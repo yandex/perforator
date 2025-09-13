@@ -79,12 +79,16 @@ func GetSymbolFileOffsets(file *os.File, symbolNames ...string) (map[string]uint
 		return nil, err
 	}
 
+	if len(foundSymbols) == 0 {
+		return map[string]uint64{}, nil
+	}
+
+	phdrs := parsePhdrs(f, loadablePhdrFilter)
 	symbolOffsets := make(map[string]uint64)
 	for name, symbol := range foundSymbols {
-		phdr := findPhdrForVaddr(f, symbol.Value)
-		if phdr != nil {
-			offset := symbol.Value - phdr.Vaddr + phdr.Off
-			symbolOffsets[name] = offset
+		symbolOffset, err := ELFVaddrToOffset(phdrs, symbol.Value)
+		if err == nil {
+			symbolOffsets[name] = symbolOffset
 		}
 	}
 

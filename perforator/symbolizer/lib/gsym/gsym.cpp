@@ -35,63 +35,100 @@ TMaybe<ui64> GetImageBaseAddress(const llvm::object::ELFObjectFile<ELTF>& elfFil
     return Nothing();
 }
 
-// At the time of writing, ObjectFileTransformer ignores ST_Unknown symbols.
+llvm::Error DoFixupObjectFileTransformation(
+    const llvm::object::ELFObjectFileBase& obj,
+    llvm::gsym::GsymCreator& gsymCreator
+);
+
+// At the time of writing, ObjectFileTransformer ignores ST_Unknown symbols from symtab,
+// and also completely ignores symbols from dynsym.
 // This is problematic, since some handwritten assembly symbols lack ".type function"
 // directive, and are thus absent in the resulting GSYM.
 // What's even worse, handwritten assembly might lack ".size" directive, and GSYM lookups
 // might match these zero-size symbols _instead_ of absent ST_Unknown symbols in some cases.
 // (https://github.com/llvm/llvm-project/blob/release/18.x/llvm/lib/DebugInfo/GSYM/GsymReader.cpp#L283).
 //
+// Also, some binaries don't have symtab at all (glibc.so, for instance), but do have dynsym,
+// and we'd like to have those symbols.
+//
 // We fixup such symbols by basically copying what ObjectFileTransformer::convert
 // (https://github.com/llvm/llvm-project/blob/release/18.x/llvm/lib/DebugInfo/GSYM/ObjectFileTransformer.cpp#L70)
-// does, but only looking for ST_Unknown symbols.
+// does, but adding ST_Unknown symbols from symtab and processing dynsym as well.
 //
 // TODO : remove when/if https://github.com/llvm/llvm-project/pull/119307 is resolved
 llvm::Error FixupObjectFileTransformation(
     const llvm::object::ObjectFile& obj,
     llvm::gsym::GsymCreator& gsymCreator
 ) {
-    if (!llvm::isa<llvm::object::ELFObjectFileBase>(obj)) {
+    const auto elfObjPtr = llvm::dyn_cast<const llvm::object::ELFObjectFileBase>(&obj);
+    if (elfObjPtr == nullptr) {
         return llvm::createStringError(std::errc::invalid_argument,
             "Binary is not an ELF file");
     }
+    const auto& elfObj = *elfObjPtr;
 
-    for (const llvm::object::SymbolRef& sym : obj.symbols()) {
-        auto symTypeOrErr = sym.getType();
-        if (!symTypeOrErr) {
-            llvm::consumeError(symTypeOrErr.takeError());
-            continue;
+    return DoFixupObjectFileTransformation(elfObj, gsymCreator);
+}
+
+llvm::Error DoFixupObjectFileTransformation(
+    const llvm::object::ELFObjectFileBase& obj,
+    llvm::gsym::GsymCreator& gsymCreator
+) {
+    enum class ProcessingMode {
+        kFixup = 0,
+        kProcess = 1,
+    };
+
+    const auto processSymbols = [&gsymCreator] (
+        llvm::object::ELFObjectFileBase::elf_symbol_iterator_range symbols,
+        ProcessingMode mode
+    ) -> llvm::Error {
+        for (const llvm::object::SymbolRef& sym : symbols) {
+            auto symTypeOrErr = sym.getType();
+            if (!symTypeOrErr) {
+                llvm::consumeError(symTypeOrErr.takeError());
+                continue;
+            }
+            const auto symType = *symTypeOrErr;
+
+            auto addrOrErr = sym.getValue();
+            if (!addrOrErr) {
+                return addrOrErr.takeError();
+            }
+            const auto addr = *addrOrErr;
+
+            using SymType = llvm::object::SymbolRef::Type;
+            const auto isSymTypeAllowed = mode == ProcessingMode::kFixup
+                ? (symType == SymType::ST_Unknown)
+                : (symType == SymType::ST_Unknown || symType == SymType::ST_Function);
+            if (!isSymTypeAllowed || !gsymCreator.IsValidTextAddress(addr)) {
+                continue;
+            }
+
+            auto nameOrErr = sym.getName();
+            if (!nameOrErr) {
+                llvm::consumeError(nameOrErr.takeError());
+                continue;
+            }
+            const auto name = *nameOrErr;
+            if (name.empty()) {
+                continue;
+            }
+
+            const auto size = llvm::object::ELFSymbolRef{sym}.getSize();
+
+            gsymCreator.addFunctionInfo(
+                llvm::gsym::FunctionInfo{addr, size, gsymCreator.insertString(name,  /* Copy = */false)}
+            );
         }
-        const auto symType = *symTypeOrErr;
 
-        auto addrOrErr = sym.getValue();
-        if (!addrOrErr) {
-            return addrOrErr.takeError();
-        }
-        const auto addr = *addrOrErr;
+        return llvm::Error::success();
+    };
 
-        if (symType != llvm::object::SymbolRef::Type::ST_Unknown || !gsymCreator.IsValidTextAddress(addr)) {
-            continue;
-        }
-
-        auto nameOrErr = sym.getName();
-        if (!nameOrErr) {
-            llvm::consumeError(nameOrErr.takeError());
-            continue;
-        }
-        const auto name = *nameOrErr;
-        if (name.empty()) {
-            continue;
-        }
-
-        const auto size = llvm::object::ELFSymbolRef{sym}.getSize();
-
-        gsymCreator.addFunctionInfo(
-            llvm::gsym::FunctionInfo{addr, size, gsymCreator.insertString(name,  /* Copy = */false)}
-        );
+    if (auto err = processSymbols(obj.symbols(), ProcessingMode::kFixup)) {
+        return err;
     }
-
-    return llvm::Error::success();
+    return processSymbols(obj.getDynamicSymbolIterators(), ProcessingMode::kProcess);
 }
 
 // This is a close adaptation of how llvm-gsymutil-18 does the convertion
@@ -103,10 +140,10 @@ llvm::Error ConvertDWARFToGSYM(llvm::object::ObjectFile& obj, std::string_view o
     llvm::gsym::GsymCreator gsymCreator(true /* quiet */);
 
     if (auto imageBaseAddr = NPerforator::NLLVM::VisitELF(&obj,
-    [](const auto& elfFile) { return GetImageBaseAddress(elfFile); })) {
-        if (*imageBaseAddr) {
-            gsymCreator.setBaseAddress(**imageBaseAddr);
-        }
+        [](const auto& elfFile) { return GetImageBaseAddress(elfFile); })) {
+            if (*imageBaseAddr) {
+                gsymCreator.setBaseAddress(**imageBaseAddr);
+            }
     }
 
     llvm::AddressRanges textRanges;

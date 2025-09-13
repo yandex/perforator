@@ -1,0 +1,5 @@
+RECURSE(
+    client
+    greeter
+    validator
+)

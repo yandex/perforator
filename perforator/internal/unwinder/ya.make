@@ -24,6 +24,10 @@ RUN_PROGRAM(
 RESOURCE(
     perforator/agent/collector/progs/unwinder.release.elf ebpf/unwinder.release.elf
     perforator/agent/collector/progs/unwinder.debug.elf ebpf/unwinder.debug.elf
+    perforator/agent/collector/progs/unwinder.release.jvm.elf ebpf/unwinder.release.jvm.elf
+    perforator/agent/collector/progs/unwinder.debug.jvm.elf ebpf/unwinder.debug.jvm.elf
+    perforator/agent/collector/progs/unwinder.release.php.elf ebpf/unwinder.release.php.elf
+    perforator/agent/collector/progs/unwinder.debug.php.elf ebpf/unwinder.debug.php.elf
 )
 
 SRCS(

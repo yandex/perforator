@@ -17,6 +17,7 @@ void VisitProfile(
     visitor.VisitFunctions(profile.functions());
     visitor.VisitInlineChains(profile.inline_chains());
     visitor.VisitStackFrames(profile.stack_frames());
+    visitor.VisitStackSegments(profile.stack_segments());
     visitor.VisitStacks(profile.stacks());
     visitor.VisitSampleKeys(profile.sample_keys());
     visitor.VisitSamples(profile.samples());

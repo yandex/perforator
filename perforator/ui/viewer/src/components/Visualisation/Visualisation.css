@@ -1,7 +1,15 @@
-.visualisation {
+.vis {
     width: 100%;
 }
 
-.visualisation_tabs {
+.vis_sbs {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: hidden;
+}
+
+.vis_tabs {
     margin-bottom: var(--g-spacing-4);
+    flex-shrink: 0;
 }

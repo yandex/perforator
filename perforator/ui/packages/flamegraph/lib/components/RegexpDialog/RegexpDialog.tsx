@@ -20,12 +20,13 @@ interface RegexpDialogProps {
 export function RegexpDialog({ showDialog, onCloseDialog, onSearchUpdate, initialExact, initialSearch }: RegexpDialogProps) {
     const [searchQuery, setSearchQuery] = useState(initialSearch ?? '');
     const [exact, setExact] = useState(initialExact ?? false);
-
+    const controlRef = React.useRef<null | HTMLInputElement>(null)
     const regexError = useRegexError(searchQuery);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Enter' && !regexError) {
             onSearchUpdate(searchQuery, exact);
+            e.preventDefault()
         }
     }, [exact, onSearchUpdate, regexError, searchQuery]);
 
@@ -47,12 +48,13 @@ export function RegexpDialog({ showDialog, onCloseDialog, onSearchUpdate, initia
         setSearchQuery(str);
     };
     return (
-        <Dialog className="regexp-dialog__dialog" size="l" open={showDialog} onClose={onCloseDialog}>
+        <Dialog initialFocus={controlRef} className="regexp-dialog__dialog" size="l" open={showDialog} onClose={onCloseDialog}>
             <Dialog.Header insertBefore={<Icon className="regexp-dialog__header-icon" data={Magnifier}/>} caption="Search"/>
             <Dialog.Body>
                 <TextInput
                     note={'Regular expressions are supported'}
-                    autoFocus
+                    autoFocus={true}
+                    controlRef={controlRef}
                     value={searchQuery}
                     onUpdate={handleSearchUpdate}
                     error={Boolean(regexError)}

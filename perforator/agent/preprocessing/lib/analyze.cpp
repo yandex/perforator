@@ -5,6 +5,7 @@
 #include <perforator/lib/llvmex/llvm_exception.h>
 #include <perforator/lib/pthread/pthread.h>
 #include <perforator/lib/python/python.h>
+#include <perforator/lib/php/php.h>
 
 #include <library/cpp/streams/zstd/zstd.h>
 
@@ -102,6 +103,42 @@ TMaybe<NPerforator::NBinaryProcessing::NPthread::PthreadConfig> BuildPthreadConf
 
 } // namespace NPerforator::NBinaryProcessing::NPthread
 
+namespace NPerforator::NBinaryProcessing::NPhp {
+
+TMaybe<NPerforator::NBinaryProcessing::NPhp::PhpConfig> BuildPhpConfig(llvm::object::ObjectFile* objectFile) {
+    NPerforator::NLinguist::NPhp::TZendPhpAnalyzer analyzer{*objectFile};
+    NPerforator::NBinaryProcessing::NPhp::PhpConfig conf;
+    auto version = analyzer.ParseVersion();
+    if (!version) {
+        return Nothing();
+    }
+    conf.MutableVersion()->SetMajor(version->Version.MajorVersion);
+    conf.MutableVersion()->SetMinor(version->Version.MinorVersion);
+    conf.MutableVersion()->SetRelease(version->Version.ReleaseVersion);
+
+    auto ztsEnabled = analyzer.ParseZts();
+    if (!ztsEnabled) {
+        return MakeMaybe(conf);
+    }
+    conf.SetZtsEnabled(*ztsEnabled);
+
+    auto vmKind = analyzer.ParseZendVmKind();
+    if (!vmKind) {
+        return MakeMaybe(conf);
+    }
+    conf.SetZendVmKind(static_cast<ui32>(*vmKind));
+
+    auto executorGlobalsAddress = analyzer.ParseExecutorGlobals();
+    if (!executorGlobalsAddress) {
+        return MakeMaybe(conf);
+    }
+    conf.SetExecutorGlobalsELFVaddr(*executorGlobalsAddress);
+
+    return MakeMaybe(conf);
+}
+
+} // namespace NPerforator::NBinaryProcessing::NPhp
+
 namespace NPerforator::NBinaryProcessing {
 
 void SerializeBinaryAnalysis(BinaryAnalysis&& analysis, IOutputStream* out) {
@@ -134,11 +171,17 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path) {
     auto tlsConfig = NTls::BuildTlsConfig(objectFile.getBinary());
     auto pythonConfig = NPython::BuildPythonConfig(objectFile.getBinary());
     auto pthreadConfig = NPthread::BuildPthreadConfig(objectFile.getBinary());
+    auto phpConfig = NPhp::BuildPhpConfig(objectFile.getBinary());
 
     NPerforator::NBinaryProcessing::BinaryAnalysis result;
     *result.MutableUnwindTable() = std::move(unwtable);
     *result.MutableTLSConfig() = std::move(tlsConfig);
     *result.MutablePythonConfig() = std::move(pythonConfig);
+
+    if (phpConfig) {
+        *result.MutablePhpConfig() = std::move(phpConfig.GetRef());
+    }
+
     if (pthreadConfig) {
         *result.MutablePthreadConfig() = std::move(pthreadConfig.GetRef());
     }

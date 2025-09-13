@@ -2,7 +2,9 @@ LIBRARY()
 
 SRCS(
     builder.cpp
+    flat_diffable.cpp
     merge.cpp
+    merge_manager.cpp
     parallel_merge.cpp
     pprof.cpp
     profile.cpp

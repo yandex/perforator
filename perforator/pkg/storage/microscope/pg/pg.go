@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/gofrs/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	hasql "golang.yandex/hasql/sqlx"
@@ -14,7 +15,6 @@ import (
 	"github.com/yandex/perforator/observability/lib/querylang"
 	"github.com/yandex/perforator/perforator/pkg/postgres"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
-	"github.com/yandex/perforator/perforator/pkg/sqlbuilder"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -96,41 +96,35 @@ func (s *Storage) ListMicroscopes(
 	filters *microscope.Filters,
 	pagination *util.Pagination,
 ) ([]microscope.Microscope, error) {
-	builder := sqlbuilder.Select().
+	builder := sq.
+		Select(AllColumns).
 		From("microscopes").
-		Values(AllColumns).
-		Offset(pagination.Offset).
-		OrderBy(&sqlbuilder.OrderBy{Columns: []string{"from_ts", "to_ts"}})
+		OrderBy("from_ts", "to_ts").
+		Offset(uint64(pagination.Offset)).
+		PlaceholderFormat(sq.Dollar)
 
 	if pagination.Limit != 0 {
 		builder.Limit(pagination.Limit)
 	}
 
-	substitutionArgs := make([]interface{}, 0, 5)
 	if filters.StartsAfter != nil {
-		builder.Where(fmt.Sprintf("from_ts >= $%d", len(substitutionArgs)+1))
-		substitutionArgs = append(substitutionArgs, *filters.StartsAfter)
+		builder = builder.Where(sq.Expr("from_ts >= ?", *filters.StartsAfter))
 	}
 	if filters.StartsBefore != nil {
-		builder.Where(fmt.Sprintf("from_ts <= $%d", len(substitutionArgs)+1))
-		substitutionArgs = append(substitutionArgs, *filters.StartsBefore)
+		builder = builder.Where(sq.Expr("from_ts <= ?", *filters.StartsBefore))
 	}
 	if filters.EndsAfter != nil {
-		builder.Where(fmt.Sprintf("to_ts >= $%d", len(substitutionArgs)+1))
-		substitutionArgs = append(substitutionArgs, *filters.EndsAfter)
+		builder = builder.Where(sq.Expr("to_ts >= ?", *filters.EndsAfter))
 	}
 	if filters.EndsBefore != nil {
-		builder.Where(fmt.Sprintf("to_ts <= $%d", len(substitutionArgs)+1))
-		substitutionArgs = append(substitutionArgs, *filters.EndsBefore)
+		builder = builder.Where(sq.Expr("to_ts <= ?", *filters.EndsBefore))
 	}
-
 	if filters.User != "" && filters.User != microscope.AllUsers {
-		builder.Where(fmt.Sprintf("user_id = $%d", len(substitutionArgs)+1))
-		substitutionArgs = append(substitutionArgs, filters.User)
+		builder = builder.Where(sq.Expr("user_id = ?", filters.User))
 	}
 
 	rows := []microscope.Microscope{}
-	sql, err := builder.Query()
+	sql, args, err := builder.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query: %w", err)
 	}
@@ -140,13 +134,7 @@ func (s *Storage) ListMicroscopes(
 		return nil, err
 	}
 
-	err = alive.DBx().SelectContext(
-		ctx,
-		&rows,
-		sql,
-		substitutionArgs...,
-	)
-	if err != nil {
+	if err := alive.DBx().SelectContext(ctx, &rows, sql, args...); err != nil {
 		return nil, fmt.Errorf("failed select: %w", err)
 	}
 

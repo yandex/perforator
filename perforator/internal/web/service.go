@@ -81,7 +81,7 @@ func NewWebService(
 	//r.Use(otelhttp.NewMiddleware("http.server"))
 	//r.Use(authp.HTTP().Middleware
 
-	s3Handler, err := s3Handler(cfg)
+	s3Handler, err := s3Handler(ctx, l, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init s3 handler: %w", err)
 	}
@@ -172,8 +172,8 @@ func getFileFromS3AndWrite(w http.ResponseWriter, client *s3.S3, bucket, key str
 	return err
 }
 
-func s3Handler(cfg *Config) (http.HandlerFunc, error) {
-	s3Client, err := s3client.NewClient(cfg.S3Config, &nop.Registry{})
+func s3Handler(ctx context.Context, logger xlog.Logger, cfg *Config) (http.HandlerFunc, error) {
+	s3Client, err := s3client.NewClient(ctx, ctx, logger, cfg.S3Config, &nop.Registry{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to init s3: %w", err)
 	}

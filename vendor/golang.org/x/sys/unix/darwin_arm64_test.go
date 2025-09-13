@@ -102,6 +102,7 @@ var darwinTests = [...]darwinTest{
 	{"pipe", libc_pipe_trampoline_addr},
 	{"poll", libc_poll_trampoline_addr},
 	{"pread", libc_pread_trampoline_addr},
+	{"preadv", libc_preadv_trampoline_addr},
 	{"pthread_chdir_np", libc_pthread_chdir_np_trampoline_addr},
 	{"pthread_fchdir_np", libc_pthread_fchdir_np_trampoline_addr},
 	{"ptrace", libc_ptrace_trampoline_addr},
@@ -110,6 +111,7 @@ var darwinTests = [...]darwinTest{
 	{"readdir_r", libc_readdir_r_trampoline_addr},
 	{"readlink", libc_readlink_trampoline_addr},
 	{"readlinkat", libc_readlinkat_trampoline_addr},
+	{"readv", libc_readv_trampoline_addr},
 	{"recvfrom", libc_recvfrom_trampoline_addr},
 	{"recvmsg", libc_recvmsg_trampoline_addr},
 	{"removexattr", libc_removexattr_trampoline_addr},
@@ -162,4 +164,5 @@ var darwinTests = [...]darwinTest{
 	{"utimes", libc_utimes_trampoline_addr},
 	{"wait4", libc_wait4_trampoline_addr},
 	{"write", libc_write_trampoline_addr},
+	{"writev", libc_writev_trampoline_addr},
 }

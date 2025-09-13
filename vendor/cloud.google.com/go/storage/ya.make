@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.50.0)
+VERSION(v1.51.0)
 
 SRCS(
     acl.go
@@ -25,6 +25,7 @@ SRCS(
     post_policy_v4.go
     reader.go
     storage.go
+    trace.go
     writer.go
 )
 
@@ -49,6 +50,7 @@ GO_TEST_SRCS(
     reader_test.go
     retry_conformance_test.go
     storage_test.go
+    trace_test.go
     writer_test.go
 )
 

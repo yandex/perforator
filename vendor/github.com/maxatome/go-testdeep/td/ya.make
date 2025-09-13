@@ -1,0 +1,139 @@
+GO_LIBRARY()
+
+LICENSE(BSD-2-Clause)
+
+VERSION(v1.14.0)
+
+SRCS(
+    cmp_deeply.go
+    cmp_funcs.go
+    cmp_funcs_misc.go
+    config.go
+    doc.go
+    equal.go
+    flatten.go
+    t.go
+    t_anchor.go
+    t_anchor_118.go
+    t_hooks.go
+    t_struct.go
+    td_all.go
+    td_any.go
+    td_array.go
+    td_array_each.go
+    td_bag.go
+    td_between.go
+    td_catch.go
+    td_code.go
+    td_contains.go
+    td_contains_key.go
+    td_delay.go
+    td_empty.go
+    td_error_is.go
+    td_expected_type.go
+    td_grep.go
+    td_ignore.go
+    td_isa.go
+    td_json.go
+    td_json_pointer.go
+    td_keys_values.go
+    td_lax.go
+    td_len_cap.go
+    td_list.go
+    td_map.go
+    td_map_each.go
+    td_nan.go
+    td_nil.go
+    td_none.go
+    td_ptr.go
+    td_re.go
+    td_recv.go
+    td_set.go
+    td_set_base.go
+    td_set_result.go
+    td_shallow.go
+    td_smuggle.go
+    td_smuggler_base.go
+    td_string.go
+    td_struct.go
+    td_struct_lazy.go
+    td_tag.go
+    td_trunc_time.go
+    td_zero.go
+    tuple.go
+    types.go
+    uniq_type_behind.go
+    utils.go
+)
+
+GO_TEST_SRCS(
+    cmp_deeply_test.go
+    config_test.go
+    private_test.go
+    td_smuggle_private_test.go
+    td_struct_private_test.go
+    utils_test.go
+)
+
+GO_XTEST_SRCS(
+    check_test.go
+    cmp_funcs_misc_test.go
+    equal_examples_test.go
+    equal_test.go
+    equal_unsafe_test.go
+    example_cmp_test.go
+    example_t_test.go
+    example_test.go
+    flatten_test.go
+    t_anchor_118_test.go
+    t_anchor_test.go
+    t_hooks_test.go
+    t_struct_examples_test.go
+    # t_struct_test.go
+    td_all_test.go
+    td_any_test.go
+    td_array_each_test.go
+    td_array_test.go
+    td_bag_test.go
+    td_between_test.go
+    td_catch_test.go
+    td_code_test.go
+    td_contains_key_test.go
+    td_contains_test.go
+    td_delay_test.go
+    td_empty_test.go
+    td_error_is_test.go
+    td_grep_test.go
+    td_ignore_test.go
+    td_isa_test.go
+    td_json_pointer_test.go
+    td_json_test.go
+    td_keys_values_test.go
+    td_lax_test.go
+    td_len_cap_test.go
+    td_map_each_test.go
+    td_map_test.go
+    td_nan_test.go
+    td_nil_test.go
+    td_none_test.go
+    td_ptr_test.go
+    td_re_test.go
+    td_recv_test.go
+    td_set_test.go
+    td_shallow_test.go
+    td_smuggle_test.go
+    td_string_test.go
+    td_struct_lazy_test.go
+    td_struct_test.go
+    td_tag_test.go
+    td_trunc_time_test.go
+    td_zero_test.go
+    tuple_test.go
+    types_test.go
+)
+
+END()
+
+RECURSE(
+    gotest
+)

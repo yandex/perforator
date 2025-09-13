@@ -12,10 +12,11 @@ import (
 type testCase struct {
 	Query         string
 	ExpectedRepr  string
+	ExpectedStr   string
 	ExpectedError string
 }
 
-func TestParser(t *testing.T) {
+func TestParseSelector(t *testing.T) {
 	for _, tc := range []testCase{
 		{
 			Query:        `{"project"="a", service="b", "cluster"=c, other==d}`,
@@ -135,6 +136,15 @@ func TestParser(t *testing.T) {
 			ExpectedRepr: `"x" <= "1s"`,
 		},
 		{
+			Query:        `{a =~ "1|2"}`,
+			ExpectedRepr: `"a" regex "1|2"`,
+		},
+		{
+			Query:        `{x !~ "a|b"}`,
+			ExpectedRepr: `"x" !regex "a|b"`,
+		},
+
+		{
 			Query:         `{x > 1p}`,
 			ExpectedError: `syntax error`,
 		},
@@ -183,13 +193,14 @@ func TestParser(t *testing.T) {
 			Query:         `{x = 1EE}`,
 			ExpectedError: `syntax error`,
 		},
+
 		{
-			Query:        `{a =~ "1|2"}`,
-			ExpectedRepr: `"a" regex "1|2"`,
+			Query:         `({x = 123})`,
+			ExpectedError: "syntax error",
 		},
 		{
-			Query:        `{x !~ "a|b"}`,
-			ExpectedRepr: `"x" !regex "a|b"`,
+			Query:         `function({x = 123})`,
+			ExpectedError: "syntax error",
 		},
 	} {
 		t.Run(tc.Query, func(t *testing.T) {
@@ -201,6 +212,103 @@ func TestParser(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.ExpectedRepr, s.Repr())
+			}
+		})
+	}
+}
+
+func TestParseExpression(t *testing.T) {
+	for _, tc := range []testCase{
+		{
+			Query:        `{}`,
+			ExpectedStr:  `{}`,
+			ExpectedRepr: `{}`,
+		},
+		{
+			Query:        `{a = b, c > 10, d = 'a|b'}`,
+			ExpectedStr:  `{"a" = "b", "c" > 10, "d" = "a|b"}`,
+			ExpectedRepr: `{"a" = "b" AND "c" > 10 AND ("d" = "a" OR "d" = "b")}`,
+		},
+		{
+			Query:        `some_func()`,
+			ExpectedStr:  `some_func()`,
+			ExpectedRepr: `some_func()`,
+		},
+		{
+			Query:        `some_func('a', 1, 2.5)`,
+			ExpectedStr:  `some_func("a", 1, 2.5)`,
+			ExpectedRepr: `some_func("a", 1, 2.5)`,
+		},
+		{
+			Query:        `some_func(a, 1, 2.5)`,
+			ExpectedStr:  `some_func(a, 1, 2.5)`,
+			ExpectedRepr: `some_func(a, 1, 2.5)`,
+		},
+		{
+			Query:        `filter({a = b}, all(eq('a', 'b')))`,
+			ExpectedStr:  `filter({"a" = "b"}, all(eq("a", "b")))`,
+			ExpectedRepr: `filter({"a" = "b"}, all(eq("a", "b")))`,
+		},
+		{
+			Query:        `filter({a = 1}, any( all(eq('a', 'b'), eq('c', 'd')), eq('x', 'y') ))`,
+			ExpectedStr:  `filter({"a" = 1}, any(all(eq("a", "b"), eq("c", "d")), eq("x", "y")))`,
+			ExpectedRepr: `filter({"a" = 1}, any(all(eq("a", "b"), eq("c", "d")), eq("x", "y")))`,
+		},
+		{
+			Query:        `filter({a = b}, x -> x)`,
+			ExpectedStr:  `filter({"a" = "b"}, x -> x)`,
+			ExpectedRepr: `filter({"a" = "b"}, (x) -> x)`,
+		},
+		{
+			Query:        `filter((x, y) -> x)`,
+			ExpectedStr:  `filter((x, y) -> x)`,
+			ExpectedRepr: `filter((x, y) -> x)`,
+		},
+		{
+			Query:        `filter(x -> eq(get(x, 'a'), 'x'))`,
+			ExpectedStr:  `filter(x -> eq(get(x, "a"), "x"))`,
+			ExpectedRepr: `filter((x) -> eq(get(x, "a"), "x"))`,
+		},
+		{
+			Query:        `filter({project="smth", service='wow'}, x -> all(eq(get(x, 'a'), 'x')))`,
+			ExpectedStr:  `filter({"project" = "smth", "service" = "wow"}, x -> all(eq(get(x, "a"), "x")))`,
+			ExpectedRepr: `filter({"project" = "smth" AND "service" = "wow"}, (x) -> all(eq(get(x, "a"), "x")))`,
+		},
+
+		{
+			Query:         `filter({a = b}) by 'a'`,
+			ExpectedError: `semantic error`,
+		},
+		{
+			Query:         `{a = b} + {c = d}`,
+			ExpectedError: `semantic error`,
+		},
+		{
+			Query:         `!filter({a = b})`,
+			ExpectedError: `semantic error`,
+		},
+		{
+			Query:         `filter({a = b}) && true`,
+			ExpectedError: `semantic error`,
+		},
+		{
+			Query:         `filter({a = b}) || true`,
+			ExpectedError: `semantic error`,
+		},
+	} {
+		t.Run(tc.Query, func(t *testing.T) {
+			p := parserv2.NewParser()
+			e, err := p.ParseExpression(tc.Query)
+			if tc.ExpectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.ExpectedError)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.ExpectedRepr, e.Repr())
+
+				str, err := e.ToString()
+				require.NoError(t, err)
+				assert.Equal(t, tc.ExpectedStr, str)
 			}
 		})
 	}

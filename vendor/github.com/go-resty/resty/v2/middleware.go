@@ -154,6 +154,15 @@ func parseRequestURL(c *Client, r *Request) error {
 		}
 	}
 
+	// GH#797 Unescape query parameters
+	if r.unescapeQueryParams && len(reqURL.RawQuery) > 0 {
+		// at this point, all errors caught up in the above operations
+		// so ignore the return error on query unescape; I realized
+		// while writing the unit test
+		unescapedQuery, _ := url.QueryUnescape(reqURL.RawQuery)
+		reqURL.RawQuery = strings.ReplaceAll(unescapedQuery, " ", "+") // otherwise request becomes bad request
+	}
+
 	r.URL = reqURL.String()
 
 	return nil
@@ -254,17 +263,23 @@ func createHTTPRequest(c *Client, r *Request) (err error) {
 		r.RawRequest = r.RawRequest.WithContext(r.ctx)
 	}
 
-	bodyCopy, err := getBodyCopy(r)
-	if err != nil {
-		return err
-	}
-
 	// assign get body func for the underlying raw request instance
-	r.RawRequest.GetBody = func() (io.ReadCloser, error) {
-		if bodyCopy != nil {
-			return io.NopCloser(bytes.NewReader(bodyCopy.Bytes())), nil
+	if r.RawRequest.GetBody == nil {
+		bodyCopy, err := getBodyCopy(r)
+		if err != nil {
+			return err
 		}
-		return nil, nil
+		if bodyCopy != nil {
+			buf := bodyCopy.Bytes()
+			r.RawRequest.GetBody = func() (io.ReadCloser, error) {
+				b := bytes.NewReader(buf)
+				return io.NopCloser(b), nil
+			}
+		} else {
+			r.RawRequest.GetBody = func() (io.ReadCloser, error) {
+				return nil, nil
+			}
+		}
 	}
 
 	return

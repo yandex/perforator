@@ -5,7 +5,9 @@ RECURSE(
     permutation
     php
     profile
+    profile/c
     pthread
     python
+    rustc_demangle
     tls
 )

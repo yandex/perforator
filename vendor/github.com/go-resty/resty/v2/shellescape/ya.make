@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v2.15.3)
+VERSION(v2.16.3)
 
 SRCS(
     shellescape.go

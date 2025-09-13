@@ -1,0 +1,4 @@
+RECURSE(
+    internalpackage
+    p2
+)

@@ -1,4 +1,4 @@
-import type { TextShortener } from './TextShortener.js';
+import type { TextShortener } from './TextShortener';
 
 
 const makeRegex = (): RegExp => {

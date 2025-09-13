@@ -9,14 +9,16 @@
 #include <util/stream/file.h>
 #include <util/stream/zlib.h>
 
-#include <perforator/proto/pprofprofile/profile.pb.h>
+#include <perforator/proto/pprofprofile/lightweightprofile.pb.h>
 #include <perforator/symbolizer/lib/autofdo/autofdo_input_builder.h>
 
 namespace {
 
-void ProcessProfile(const NPerforator::NProto::NPProf::Profile& profile, const std::string& buildId) {
+constexpr std::string_view kPlaceholderServiceName{"serviceName"};
+
+void ProcessProfile(const NPerforator::NProto::NPProf::ProfileLight& profile, const std::string& buildId) {
     NPerforator::NAutofdo::TInputBuilder builder{buildId};
-    builder.AddProfile(profile);
+    builder.AddProfile(kPlaceholderServiceName, profile);
 
     const auto autofdoInputData = std::move(builder).Finalize();
     const auto autofdoInput = NPerforator::NAutofdo::SerializeAutofdoInput(autofdoInputData);
@@ -41,7 +43,7 @@ int main(int argc, const char *argv[]) {
     NLastGetopt::TOptsParseResult res(&opts, argc, argv);
 
     TFileInput profileProto(profilePath);
-    NPerforator::NProto::NPProf::Profile profile;
+    NPerforator::NProto::NPProf::ProfileLight profile;
     if (TString{profilePath}.EndsWith(".tar.gz")) {
         TZLibDecompress decompresedInput(&profileProto);
         profile.ParseFromArcadiaStream(&decompresedInput);

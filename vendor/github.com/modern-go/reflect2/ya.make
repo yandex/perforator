@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.0.2)
+VERSION(v1.0.3-0.20250322232337-35a7c28c31ee)
 
 SRCS(
     go_above_118.go
@@ -39,6 +39,12 @@ ENDIF()
 IF (ARCH_ARM64)
     SRCS(
         relfect2_arm64.s
+    )
+ENDIF()
+
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        relfect2_arm.s
     )
 ENDIF()
 

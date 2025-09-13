@@ -14,6 +14,30 @@ export enum ListServicesOrderByClause {
   UNRECOGNIZED = "UNRECOGNIZED",
 }
 
+/**
+ * NB: This enum should match the same enumeration in the
+ * perforator/pkg/profile/flamegraph/render package.
+ */
+export enum AddressRenderPolicy {
+  /**
+   * RenderAddressesNever - Do not display raw addreses. Unsymbolized functions will be rendered
+   * as something like <unsymbolized function>.
+   * This mode is recommended by default.
+   */
+  RenderAddressesNever = "RenderAddressesNever",
+  /**
+   * RenderAddressesUnsymbolized - Display raw addresses for unsymbolized functions only.
+   * This can be useful for debugging missing symbols.
+   */
+  RenderAddressesUnsymbolized = "RenderAddressesUnsymbolized",
+  /**
+   * RenderAddressesAlways - Always display raw addresses, even for properly symbolized code.
+   * This can be useful for debugging symbolization.
+   */
+  RenderAddressesAlways = "RenderAddressesAlways",
+  UNRECOGNIZED = "UNRECOGNIZED",
+}
+
 export interface Paginated {
   Offset: string;
   Limit: string;
@@ -402,31 +426,27 @@ export interface FlamegraphOptions {
     | boolean
     | undefined;
   /** How to display raw addresses in the flamegraph. */
-  RenderAddresses?: FlamegraphOptions_AddressRenderPolicy | undefined;
+  RenderAddresses?: AddressRenderPolicy | undefined;
 }
 
-/**
- * NB: This enum should match the same enumeration in the
- * perforator/pkg/profile/flamegraph/render package.
- */
-export enum FlamegraphOptions_AddressRenderPolicy {
+export interface TextProfileOptions {
+  /** Maximum number of samples to render. 0 means no limit. */
+  MaxSamples?:
+    | number
+    | undefined;
+  /** Show line numbers, if available */
+  ShowLineNumbers?:
+    | boolean
+    | undefined;
   /**
-   * RenderAddressesNever - Do not display raw addreses. Unsymolized functions will be rendered
-   * as something like <unsymbolized function>.
-   * This mode is recommended by default.
+   * Show file names after function names.
+   * Enabled by default.
    */
-  RenderAddressesNever = "RenderAddressesNever",
-  /**
-   * RenderAddressesUnsymbolized - Display raw addresses for unsymbolized functions only.
-   * This can be useful for debugging missing symbols.
-   */
-  RenderAddressesUnsymbolized = "RenderAddressesUnsymbolized",
-  /**
-   * RenderAddressesAlways - Always display raw addresses, even for properly symbolized code.
-   * This can be useful for debugging symbolization.
-   */
-  RenderAddressesAlways = "RenderAddressesAlways",
-  UNRECOGNIZED = "UNRECOGNIZED",
+  ShowFileNames?:
+    | boolean
+    | undefined;
+  /** How to display raw addresses in the output. */
+  RenderAddresses?: AddressRenderPolicy | undefined;
 }
 
 /** Empty */
@@ -470,7 +490,19 @@ export interface RenderFormat {
    * Json is parsed faster in the ui.
    * html can be shown without ui.
    */
-  JSONFlamegraph?: FlamegraphOptions | undefined;
+  JSONFlamegraph?:
+    | FlamegraphOptions
+    | undefined;
+  /**
+   * Build flamegraph.
+   * Is emitted as html.
+   * Uses the same code as ui but can be shown without ui.
+   */
+  HTMLVisualisation?:
+    | FlamegraphOptions
+    | undefined;
+  /** Render profile as human-readable text. */
+  TextProfile?: TextProfileOptions | undefined;
 }
 
 export interface Perforator {

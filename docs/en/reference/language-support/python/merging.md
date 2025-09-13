@@ -1,8 +1,10 @@
 # Merging Python Stack with Native Stack
 
-The native and Python stacks are collected separately for the same perf event. Afterwards these stacks are merged into a single stack for better visualization and analysis, because looking at two stacks simultaneously is not convenient.
+The native and Python stacks are collected separately for the same perf event. Afterwards these stacks are merged into a single stack for better visualization and analysis.
 
-## Stub Frames
+## Since CPython 3.12
+
+### Stub Frames
 
 When C code starts evaluating Python code through CPython API, it pushes a stub frame. Each `_PyInterpreterFrame` structure contains the `owner` field, which stores the `python_frame_owner` enum value.
 
@@ -19,7 +21,7 @@ If the value is equal to `FRAME_OWNED_BY_CSTACK`, then the frame is a stub frame
 
 A stub frame is a delimiter between the native and Python stacks. This frame is pushed onto the native stack in the `_PyEval_EvalFrameDefault` function.
 
-## Algorithm
+### Algorithm
 
 The Python user stack is divided into segments each one starting with a stub frame. Also, segments of the native stack with CPython are extracted using `_PyEval_EvalFrameDefault` as a delimiter. The functions starting with the `_Py` or `Py` prefix are considered to be CPython internal implementation.
 
@@ -31,3 +33,7 @@ These stack segments should map one-to-one with each other, but there are some e
 * The native stack contains entries like `PyImport_ImportModule`. Python importlib may drop its own frames from the native stack.
 
 The first case is handled easily, while the second case is more complex and is ignored for now.
+
+## Before CPython 3.11
+
+For CPython before 3.11, the process of stack merging is straightforward: map `PyEval_EvalFrameEx` frames (or `_PyEval_EvalFrameDefault` in later versions) from the native stack into collected Python frames one by one in their respective order.

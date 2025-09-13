@@ -15,3 +15,4 @@ docs-viewer:
   logo-options:
     title: Perforator
     src: https://perforator.tech/static/logo.svg
+    src-preview: https://perforator.tech/static/preview.png

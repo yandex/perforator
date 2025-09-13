@@ -62,6 +62,7 @@ func (p *BinaryParser) Parse(ctx context.Context, f *os.File) (res *parse.Binary
 		log.Int("unwtable_uncompressed", stats.UnwindTableStats.NumBytesUncompressed),
 		log.Any("python_config", res.PythonConfig),
 		log.Any("pthread_config", res.PthreadConfig),
+		log.Any("php_config", res.PhpConfig),
 	)
 
 	return

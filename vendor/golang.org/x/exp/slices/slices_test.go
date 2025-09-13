@@ -5,6 +5,7 @@
 package slices
 
 import (
+	"cmp"
 	"math"
 	"strings"
 	"testing"
@@ -304,12 +305,12 @@ func TestCompareFunc(t *testing.T) {
 	}
 
 	for _, test := range compareIntTests {
-		if got := CompareFunc(test.s1, test.s2, cmpCompare[int]); got != test.want {
+		if got := CompareFunc(test.s1, test.s2, cmp.Compare[int]); got != test.want {
 			t.Errorf("CompareFunc(%v, %v, cmp[int]) = %d, want %d", test.s1, test.s2, got, test.want)
 		}
 	}
 	for _, test := range compareFloatTests {
-		if got := CompareFunc(test.s1, test.s2, cmpCompare[float64]); got != test.want {
+		if got := CompareFunc(test.s1, test.s2, cmp.Compare[float64]); got != test.want {
 			t.Errorf("CompareFunc(%v, %v, cmp[float64]) = %d, want %d", test.s1, test.s2, got, test.want)
 		}
 	}
@@ -1126,25 +1127,6 @@ func BenchmarkReplace(b *testing.B) {
 		})
 	}
 
-}
-
-func TestRotate(t *testing.T) {
-	const N = 10
-	s := make([]int, 0, N)
-	for n := 0; n < N; n++ {
-		for r := 0; r < n; r++ {
-			s = s[:0]
-			for i := 0; i < n; i++ {
-				s = append(s, i)
-			}
-			rotateLeft(s, r)
-			for i := 0; i < n; i++ {
-				if s[i] != (i+r)%n {
-					t.Errorf("expected n=%d r=%d i:%d want:%d got:%d", n, r, i, (i+r)%n, s[i])
-				}
-			}
-		}
-	}
 }
 
 func TestInsertGrowthRate(t *testing.T) {

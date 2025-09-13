@@ -1,0 +1,198 @@
+syntax = "proto3";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+import "perforator/proto/lib/time_interval/time_interval.proto";
+
+package NPerforator.NProto.NCustomProfilingOperation;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/custom_profiling_operation";
+
+service CustomProfilingOperationService {
+    rpc PollOperations(PollOperationsRequest) returns (PollOperationsResponse) {}
+    rpc UpdateOperationStatus(UpdateOperationStatusRequest) returns (UpdateOperationStatusResponse) {}
+}
+
+message PollOperationsFilter {
+    string Host = 1;
+    repeated string Pods = 2;
+    // All operations that satisfy either of the conditions are returned.
+    // (1) operation.StartTime < now < operation.FinishTime (operations that should be in progress already)
+    // (2) 0 <= operation.StartTime - now < MaxPrefetchInterval (operations that are about to start)
+    google.protobuf.Duration MaxPrefetchInterval = 3;
+}
+
+message LongPollingData {
+    oneof Data {
+        uint64 OperationsVersion = 1;
+    }
+}
+
+message PollOperationsRequest {
+    PollOperationsFilter Filter = 1;
+    // LongPollingData field can be used for long polling using PollOperationsResponse.NextLongPollingData
+    optional LongPollingData LongPollingData = 2;
+}
+
+message NodeProcessTarget {
+    string Host = 1;
+    uint32 ProcessID = 2;
+    // if not set remote agent will lookup in its own pid namespace
+    uint64 PidNamespaceInode = 3;
+}
+
+message NodeCgroupTarget {
+    string Host = 1;
+    string CgroupRegexp = 2;
+    // TODO: support cgroup namespaces ?
+}
+
+message PodTarget {
+    string Pod = 1;
+}
+
+message Target {
+    oneof Target {
+        NodeProcessTarget NodeProcess = 1;
+        NodeCgroupTarget NodeCgroup = 2;
+        PodTarget Pod = 3;
+    }
+}
+
+message PerfEventSettings {
+    string Type = 1;
+    uint64 Frequency = 2;
+    uint64 SampleRate = 3;
+}
+
+message LibCudaDetector {}
+
+message BinaryDetector {
+    oneof Detector {
+        LibCudaDetector LibCuda = 1;
+    }
+}
+
+message BinaryLocation {
+    oneof Location {
+        // Path to the binary
+        string Path = 1;
+
+        // Detector which will be used to find the binary
+        BinaryDetector Detector = 2;
+    }
+}
+
+// This specifies location within ELF file.
+// Under the hood all of these variants will be converted to file offset
+message ELFFileLocation {
+    oneof Location {
+        string Symbol = 1;
+        uint64 VirtualAddress = 2;
+        uint64 FileOffset = 3;
+    }
+}
+
+message ELFUprobeTarget {
+    ELFFileLocation ELFFileLocation = 1;
+    uint64 Offset = 2;
+}
+
+message UprobeSettings {
+    BinaryLocation BinaryLocation = 1;
+    repeated ELFUprobeTarget ELFTarget = 2;
+}
+
+message EventSettings {
+    oneof Settings {
+        PerfEventSettings PerfEvent = 1;
+        UprobeSettings Uprobe = 2;
+    }
+}
+
+message Event {
+    EventSettings Settings = 1;
+}
+
+message CollectStackTimestampsFeature {}
+
+message Feature {
+    oneof Feature {
+        CollectStackTimestampsFeature CollectStackTimestamps = 11;
+    }
+}
+
+message OperationSpec {
+    // Target to record
+    Target Target = 1;
+
+    // Event to record
+    Event Event = 2;
+
+    // Features for recording: e.g collect stack timestamps
+    repeated Feature Features = 3;
+
+    // Time interval to record
+    NPerforator.NProto.NTimeInterval.TimeInterval TimeInterval = 4;
+
+    // Labels to put on profiles
+    map<string, string> ProfileLabels = 5;
+}
+
+enum OperationState {
+    Unknown = 0;
+    Prepared = 1;
+    Running = 2;
+    Failed = 4;
+    Finished = 5;
+    Stopped = 6;
+}
+
+message OperationStatus {
+    OperationState State = 1;
+    string Error = 2;
+    google.protobuf.Timestamp Timestamp = 3;
+    OperationStats Stats = 4;
+}
+
+message OperationStats {
+    uint64 CollectedProfilesCount = 1;
+    // TODO: add more stats if needed
+}
+
+message OperationMeta {
+    google.protobuf.Timestamp CreatedAt = 1;
+    // TODO: add user ?
+}
+
+message OperationTargetState {
+    OperationState State = 1;
+    google.protobuf.Timestamp UpdatedAt = 2;
+}
+
+message Operation {
+    string ID = 1;
+    OperationSpec Spec = 2;
+    OperationMeta Meta = 3;
+
+    // This field is updated only by agent
+    optional OperationStatus Status = 4;
+
+    // This field is updated by user side to affect operation behavior
+    optional OperationTargetState TargetState = 6;
+}
+
+message PollOperationsResponse {
+    repeated Operation Operations = 1;
+    LongPollingData NextLongPollingData = 2;
+}
+
+message UpdateOperationStatusRequest {
+    reserved 1;
+    string ID = 2;
+    // Status->Timestamp helps to prevent incorrect updates order
+    OperationStatus Status = 3;
+}
+
+message UpdateOperationStatusResponse {}

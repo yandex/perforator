@@ -1,0 +1,86 @@
+name: UI Libraries Release
+
+on:
+  push:
+      branches:
+        - main
+      paths:
+        - 'perforator/ui/packages/*/package.json'
+
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9.12.3
+    - name: Use Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.18.1
+    - name: Install dependencies
+      working-directory: perforator/ui/app
+      run: pnpm install
+    - name: "Set token"
+      run: |
+          npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
+      env:
+          NPM_TOKEN: ${{ secrets.NPMJS_TOKEN }}
+    - name: Build
+      working-directory: perforator/ui/app
+      run: |
+          pnpm --filter '../packages/*' run build
+    - name: Check if version exists
+      id: version-check
+      working-directory: perforator/ui/app
+      run: |
+        # Loop through each package
+        for pkg in ../packages/*; do
+          if [ -d "$pkg" ]; then
+            cd "$pkg"
+
+            # Get package name and version
+            PKG_NAME=$(npm pkg get name | tr -d '"')
+            PKG_VERSION=$(npm pkg get version | tr -d '"')
+
+            echo "Checking if $PKG_NAME@$PKG_VERSION exists..."
+
+            # Check if version exists in npm registry
+            if npm show "$PKG_NAME" --json | grep -q "\"$PKG_VERSION\""; then
+              echo "Version $PKG_VERSION of $PKG_NAME already exists in npm registry. Skipping."
+              echo "SKIP_PUBLISH_$(echo $PKG_NAME | tr '@/.-' '_')"=true >> $GITHUB_ENV
+            else
+              echo "Version $PKG_VERSION of $PKG_NAME does not exist in npm registry. Will publish."
+              echo "SKIP_PUBLISH_$(echo $PKG_NAME | tr '@/.-' '_')"=false >> $GITHUB_ENV
+            fi
+
+            cd - > /dev/null
+          fi
+        done
+
+    - name: Publish
+      working-directory: perforator/ui/app
+      run: |
+          pnpm --filter '../packages/*' run delete-engines
+
+          # Loop through each package and only publish if version doesn't exist
+          for pkg in ../packages/*; do
+            if [ -d "$pkg" ]; then
+              cd "$pkg"
+              PKG_NAME=$(npm pkg get name | tr -d '"')
+              PKG_SAFE_NAME=$(echo $PKG_NAME | tr '@/.-' '_')
+
+              # Check if we should skip publishing this package
+              if [ "$(eval echo \$SKIP_PUBLISH_$PKG_SAFE_NAME)" != "true" ]; then
+                echo "Publishing $PKG_NAME..."
+                npm publish --tag latest --access public
+              else
+                echo "Skipping publish for $PKG_NAME as version already exists"
+              fi
+
+              cd - > /dev/null
+            fi
+          done

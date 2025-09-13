@@ -48,7 +48,7 @@ TLineInfo* Symbolize(
     void* symb,
     char* modulePath,
     ui64 modulePathLen,
-    ui64 addr,
+    ui64 elfOffset,
     ui64* linesCount,
     char** error,
     ui32 useGsym
@@ -59,11 +59,11 @@ TLineInfo* Symbolize(
     NPerforator::NSymbolize::TSmallVector<llvm::DILineInfo> lines;
     try {
         lines = useGsym
-            ? symbolizer->SymbolizeGsym(moduleName, addr)
-            : symbolizer->Symbolize(moduleName, addr);
+            ? symbolizer->SymbolizeGsym(moduleName, elfOffset)
+            : symbolizer->Symbolize(moduleName, elfOffset);
     } catch (const TLLVMException& exc) {
         TStringStream ss;
-        ss << "Failed to symbolize address " << Hex(addr) << " in mapping " << modulePath << ": " << exc.AsStrBuf() << Endl;
+        ss << "Failed to symbolize address " << Hex(elfOffset) << " in mapping " << modulePath << ": " << exc.AsStrBuf() << Endl;
         *error = strdup(ss.Str().c_str());
         return nullptr;
     }

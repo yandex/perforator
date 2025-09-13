@@ -7,4 +7,12 @@ SRCS(
     scanner.go
 )
 
+GO_TEST_SRCS(
+    process_info_test.go
+)
+
 END()
+
+RECURSE(
+    gotest
+)

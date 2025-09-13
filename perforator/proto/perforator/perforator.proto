@@ -4,6 +4,9 @@ import "google/api/annotations.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
+import "perforator/proto/lib/time_interval/time_interval.proto";
+import "perforator/proto/profile/merge_options.proto";
+
 package NPerforator.NProto;
 
 option go_package = "github.com/yandex/perforator/perforator/proto/perforator";
@@ -61,11 +64,6 @@ service Perforator {
 message Paginated {
     uint64 Offset = 1;
     uint64 Limit = 2;
-}
-
-message TimeInterval {
-    google.protobuf.Timestamp From = 1;
-    google.protobuf.Timestamp To = 2;
 }
 
 message SortOrder {
@@ -193,7 +191,7 @@ message ProfileQuery {
     optional string Service = 1;
 
     // Time interval. Optional.
-    optional TimeInterval TimeInterval = 2;
+    optional NPerforator.NProto.NTimeInterval.TimeInterval TimeInterval = 2;
 
     reserved 3 to 8;
     reserved "NodeID", "PodID", "BuildID", "CPU", "ProfilerVersion", "ProfileID";
@@ -219,6 +217,12 @@ message MergeProfilesRequest {
     // Merging thousands of profiles is expensive.
     // Set MaxSamples to control sample rate.
     uint32 MaxSamples = 3 [deprecated=true];
+
+    // Controls how different profiles are merged together.
+    optional NProfile.MergeOptions MergeOptions = 4;
+
+    // Experimental options. Use at your own risk.
+    optional MergeExperimentalOptions Experimental = 5;
 }
 
 message MergeProfilesResponse {
@@ -237,6 +241,15 @@ message MergeProfilesResponse {
     // Can be used to estimate quality of the profile.
     // See perforator/pkg/profile/quality.
     ProfileStatistics Statistics = 4;
+}
+
+message MergeExperimentalOptions {
+    // Enable new fast profile merger.
+    bool EnableNewProfileMerger = 1;
+
+    // Sample the stacks when doing a merge.
+    // Useful for merging a LOT of profiles.
+    bool SampleProfileStacks = 2;
 }
 
 message ProfileStatistics {
@@ -303,14 +316,21 @@ message PGOMeta {
 
     // BuildID, guessed from the samples, for which the resulting profile is generated.
     string GuessedBuildID = 9;
+
+    // Count of accounted profiles per service (usable in case of merging multiple services)
+    map<string, uint64> ProfilesByServiceCount = 10;
 }
 
 message GeneratePGOProfileRequest {
     // Service name (podset-id).
+    // Deprecated, use Query instead.
     string Service = 1;
 
     // The format to render aggregated data in (autofdo/bolt).
     PGOProfileFormat Format = 2;
+
+    // Optional. If specified, takes precedence over Service.
+    ProfileQuery Query = 3;
 }
 
 message GeneratePGOProfileResponse {
@@ -347,7 +367,6 @@ message PGOProfileFormat {
 ////////////////////////////////////////////////////////////////////////////////
 
 message DiffProfilesRequest {
-
     // Diff (new, right) profile selector.
     ProfileQuery DiffQuery = 1;
 
@@ -362,6 +381,12 @@ message DiffProfilesRequest {
     FlamegraphOptions FlamegraphOptions = 4 [deprecated=true];
 
     RenderFormat RenderFormat = 5;
+
+    // Controls how different profiles are merged together.
+    optional NProfile.MergeOptions MergeOptions = 6;
+
+    // Experimental options. Use at your own risk.
+    optional MergeExperimentalOptions Experimental = 7;
 }
 
 message DiffProfilesResponse {
@@ -423,6 +448,21 @@ message SymbolizeOptions {
     optional bool EmbedDwarfDiscriminators = 4;
 }
 
+// NB: This enum should match the same enumeration in the
+// perforator/pkg/profile/flamegraph/render package.
+enum AddressRenderPolicy {
+    // Do not display raw addreses. Unsymbolized functions will be rendered
+    // as something like <unsymbolized function>.
+    // This mode is recommended by default.
+    RenderAddressesNever = 0;
+    // Display raw addresses for unsymbolized functions only.
+    // This can be useful for debugging missing symbols.
+    RenderAddressesUnsymbolized = 1;
+    // Always display raw addresses, even for properly symbolized code.
+    // This can be useful for debugging symbolization.
+    RenderAddressesAlways = 2;
+};
+
 message FlamegraphOptions {
     reserved "ResultFormat";
     reserved 6;
@@ -444,22 +484,22 @@ message FlamegraphOptions {
     // Enabled by default.
     optional bool ShowFileNames = 5;
 
-    // NB: This enum should match the same enumeration in the
-    // perforator/pkg/profile/flamegraph/render package.
-    enum AddressRenderPolicy {
-        // Do not display raw addreses. Unsymolized functions will be rendered
-        // as something like <unsymbolized function>.
-        // This mode is recommended by default.
-        RenderAddressesNever = 0;
-        // Display raw addresses for unsymbolized functions only.
-        // This can be useful for debugging missing symbols.
-        RenderAddressesUnsymbolized = 1;
-        // Always display raw addresses, even for properly symbolized code.
-        // This can be useful for debugging symbolization.
-        RenderAddressesAlways = 2;
-    };
-
     // How to display raw addresses in the flamegraph.
+    optional AddressRenderPolicy RenderAddresses = 7;
+}
+
+message TextProfileOptions {
+    // Maximum number of samples to render. 0 means no limit.
+    optional uint32 MaxSamples = 1;
+
+    // Show line numbers, if available
+    optional bool ShowLineNumbers = 4;
+
+    // Show file names after function names.
+    // Enabled by default.
+    optional bool ShowFileNames = 5;
+
+    // How to display raw addresses in the output.
     optional AddressRenderPolicy RenderAddresses = 7;
 }
 
@@ -471,6 +511,9 @@ message LLVMPGOProfileOptions {
     // Empty
 }
 
+message ProtoProfileOptions {
+    // Empty
+}
 
 message PostprocessOptions {
     optional bool MergePythonAndNativeStacks = 1;
@@ -485,7 +528,7 @@ message RenderFormat {
         // Build flamegraph.
         FlamegraphOptions Flamegraph = 2;
 
-        // Return raw profile, potentiatlly symbolized.
+        // Return raw profile, potentially symbolized.
         RawProfileOptions RawProfile = 3;
 
         // Return profile suitable for the LLVM PGO.
@@ -501,6 +544,13 @@ message RenderFormat {
         // Is emitted as html.
         // Uses the same code as ui but can be shown without ui.
         FlamegraphOptions HTMLVisualisation = 8;
+
+        // Render profile as human-readable text.
+        TextProfileOptions TextProfile = 9;
+
+        // Return proto profile, potentially symbolized.
+        // The profile schema is defined at perforator/proto/profile.
+        ProtoProfileOptions ProtoProfile = 10;
     }
 }
 

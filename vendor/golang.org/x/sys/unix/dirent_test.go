@@ -107,7 +107,7 @@ func TestDirentRepeat(t *testing.T) {
 	d := t.TempDir()
 
 	var files []string
-	for i := 0; i < N; i++ {
+	for i := range N {
 		files = append(files, fmt.Sprintf("file%d", i))
 	}
 	for _, file := range files {

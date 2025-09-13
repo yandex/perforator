@@ -265,7 +265,7 @@ func (s *Symbolizer) SymbolizeStorageProfile(
 
 	gsymCachedBinaries := NewCachedBinariesBatch(s.logger, s.gsymBinaryProvider, false)
 	if s.symbolizationMode == SymbolizationModeGSYMPreferred {
-		gsymCachedBinaries, err = s.scheduleBinaryDownloads(ctx, buildIDs, s.gsymBinaryProvider, false)
+		gsymCachedBinaries, err = ScheduleBinaryDownloads(ctx, s.logger, buildIDs, s.gsymBinaryProvider, false)
 		if err != nil {
 			return nil, err
 		}
@@ -278,7 +278,7 @@ func (s *Symbolizer) SymbolizeStorageProfile(
 			buildIDsWithoutGSYM = append(buildIDsWithoutGSYM, buildID)
 		}
 	}
-	cachedBinaries, err := s.scheduleBinaryDownloads(ctx, buildIDsWithoutGSYM, s.binaryProvider, true)
+	cachedBinaries, err := ScheduleBinaryDownloads(ctx, s.logger, buildIDsWithoutGSYM, s.binaryProvider, true)
 	if err != nil {
 		return nil, err
 	}

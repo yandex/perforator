@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.14.0)
+VERSION(v0.15.0)
 
 SRCS(
     aws_provider.go

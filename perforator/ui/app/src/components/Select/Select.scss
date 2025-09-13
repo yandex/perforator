@@ -19,3 +19,9 @@
     color: var(--g-color-text-secondary);
     margin: 10px 0;
 }
+
+.select__control .g-select-control {
+    /* disable animation https://github.com/gravity-ui/uikit/blob/80752145ce50d914c208b47f551b6a8577534f3d/src/components/Select/components/SelectControl/SelectControl.scss#L75 */
+    /* stylelint-disable-next-line declaration-no-important */
+    transition: none !important;
+}

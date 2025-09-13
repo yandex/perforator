@@ -15,5 +15,5 @@ func NewTestCluster(pingCtx context.Context, l xlog.Logger) (*hasql.Cluster, err
 		return nil, err
 	}
 
-	return postgres.NewCluster(pingCtx, l, &cfg)
+	return postgres.NewCluster(pingCtx, pingCtx, l, "test", &cfg)
 }

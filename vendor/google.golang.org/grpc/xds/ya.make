@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.71.0)
+VERSION(v1.73.0)
 
 SRCS(
     server.go
@@ -14,6 +14,9 @@ GO_TEST_SRCS(server_test.go)
 
 GO_XTEST_SRCS(
     # server_ext_test.go
+    # server_resource_ext_test.go
+    # server_security_ext_test.go
+    # server_serving_mode_ext_test.go
 )
 
 END()

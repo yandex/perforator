@@ -21,14 +21,18 @@ package pemfile
 import (
 	"encoding/json"
 	"testing"
+
+	"google.golang.org/grpc/internal/envconfig"
+	"google.golang.org/grpc/internal/testutils"
 )
 
 func TestParseConfig(t *testing.T) {
 	tests := []struct {
-		desc       string
-		input      any
-		wantOutput string
-		wantErr    bool
+		desc          string
+		input         any
+		wantOutput    string
+		wantErr       bool
+		enabledSpiffe bool
 	}{
 		{
 			desc:    "non JSON input",
@@ -94,7 +98,7 @@ func TestParseConfig(t *testing.T) {
 				"private_key_file":    "/a/b/key.pem",
 				"ca_certificate_file": "/a/b/ca.pem"
 			}`),
-			wantOutput: "file_watcher:/a/b/cert.pem:/a/b/key.pem:/a/b/ca.pem:10m0s",
+			wantOutput: "file_watcher:/a/b/cert.pem:/a/b/key.pem:/a/b/ca.pem::10m0s",
 		},
 		{
 			desc: "good config",
@@ -105,12 +109,40 @@ func TestParseConfig(t *testing.T) {
 				"ca_certificate_file": "/a/b/ca.pem",
 				"refresh_interval":   "200s"
 			}`),
-			wantOutput: "file_watcher:/a/b/cert.pem:/a/b/key.pem:/a/b/ca.pem:3m20s",
+			wantOutput: "file_watcher:/a/b/cert.pem:/a/b/key.pem:/a/b/ca.pem::3m20s",
+		},
+		{
+			desc: "good config with spiffe disabled",
+			input: json.RawMessage(`
+			{
+				"certificate_file":   "/a/b/cert.pem",
+				"private_key_file":    "/a/b/key.pem",
+				"ca_certificate_file": "/a/b/ca.pem",
+				"spiffe_trust_bundle_map_file": "/a/b/spiffe_bundle.json",
+				"refresh_interval":   "200s"
+			}`),
+			wantOutput: "file_watcher:/a/b/cert.pem:/a/b/key.pem:/a/b/ca.pem::3m20s",
+		},
+		{
+			desc: "good config with spiffe enabled",
+			input: json.RawMessage(`
+			{
+				"certificate_file":   "/a/b/cert.pem",
+				"private_key_file":    "/a/b/key.pem",
+				"ca_certificate_file": "/a/b/ca.pem",
+				"spiffe_trust_bundle_map_file": "/a/b/spiffe_bundle.json",
+				"refresh_interval":   "200s"
+			}`),
+			wantOutput:    "file_watcher:/a/b/cert.pem:/a/b/key.pem:/a/b/ca.pem:/a/b/spiffe_bundle.json:3m20s",
+			enabledSpiffe: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
+			if test.enabledSpiffe {
+				testutils.SetEnvConfig(t, &envconfig.XDSSPIFFEEnabled, true)
+			}
 			builder := &pluginBuilder{}
 
 			bc, err := builder.ParseConfig(test.input)

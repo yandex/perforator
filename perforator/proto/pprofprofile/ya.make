@@ -6,6 +6,7 @@ INCLUDE_TAGS(GO_PROTO)
 
 SRCS(
     profile.proto
+    lightweightprofile.proto
 )
 
 END()

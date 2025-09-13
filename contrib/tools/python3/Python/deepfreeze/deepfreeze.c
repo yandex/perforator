@@ -8158,7 +8158,7 @@ importlib__bootstrap_toplevel_consts_28_consts_1 = {
             .statically_allocated = 1,
         },
     },
-    ._data = "the load_module() method is deprecated and slated for removal in Python 3.12; use exec_module() instead",
+    ._data = "the load_module() method is deprecated and slated for removal in Python 3.15; use exec_module() instead",
 };
 static
     struct {
@@ -8381,7 +8381,7 @@ importlib__bootstrap_toplevel_consts_28_linetable = {
         .ob_size = 97,
     },
     .ob_shash = -1,
-    .ob_sval = "\x80\x00\xf0\x0c\x01\x0c\x33\x80\x43\xe4\x04\x0d\x87\x4e\x81\x4e\x90\x33\xd4\x18\x2a\xd4\x04\x2b\xdc\x0b\x1b\x98\x48\xa0\x64\xd3\x0b\x2b\x80\x44\xd8\x07\x0f\x94\x33\x97\x3b\x91\x3b\xd1\x07\x1e\xdc\x11\x14\x97\x1b\x91\x1b\x98\x58\xd1\x11\x26\x88\x06\xdc\x08\x0d\x88\x64\x90\x46\xd4\x08\x1b\xdc\x0f\x12\x8f\x7b\x89\x7b\x98\x38\xd1\x0f\x24\xd0\x08\x24\xe4\x0f\x14\x90\x54\x8b\x7b\xd0\x08\x1a",
+    .ob_sval = "\x80\x00\xf0\x0c\x01\x0c\x34\x80\x43\xe4\x04\x0d\x87\x4e\x81\x4e\x90\x33\xd4\x18\x2a\xd4\x04\x2b\xdc\x0b\x1b\x98\x48\xa0\x64\xd3\x0b\x2b\x80\x44\xd8\x07\x0f\x94\x33\x97\x3b\x91\x3b\xd1\x07\x1e\xdc\x11\x14\x97\x1b\x91\x1b\x98\x58\xd1\x11\x26\x88\x06\xdc\x08\x0d\x88\x64\x90\x46\xd4\x08\x1b\xdc\x0f\x12\x8f\x7b\x89\x7b\x98\x38\xd1\x0f\x24\xd0\x08\x24\xe4\x0f\x14\x90\x54\x8b\x7b\xd0\x08\x1a",
 };
 static
     struct {
@@ -93926,10 +93926,32 @@ const_str_samestat = {
 };
 static
     struct {
+        PyASCIIObject _ascii;
+        uint8_t _data[14];
+    }
+const_str_ALLOW_MISSING = {
+    ._ascii = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyUnicode_Type,
+        },
+        .length = 13,
+        .hash = -1,
+        .state = {
+            .kind = 1,
+            .compact = 1,
+            .ascii = 1,
+            .statically_allocated = 1,
+        },
+    },
+    ._data = "ALLOW_MISSING",
+};
+static
+    struct {
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[12];
+            PyObject *ob_item[13];
         }_object;
     }
 genericpath_toplevel_consts_3 = {
@@ -93939,7 +93961,7 @@ genericpath_toplevel_consts_3 = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 12,
+            .ob_size = 13,
         },
         .ob_item = {
             & const_str_commonprefix._ascii.ob_base,
@@ -93954,6 +93976,7 @@ genericpath_toplevel_consts_3 = {
             & const_str_samefile._ascii.ob_base,
             & const_str_sameopenfile._ascii.ob_base,
             & const_str_samestat._ascii.ob_base,
+            & const_str_ALLOW_MISSING._ascii.ob_base,
         },
     },
 };
@@ -96550,10 +96573,353 @@ genericpath_toplevel_consts_17 = {
 };
 static
     struct {
+        PyASCIIObject _ascii;
+        uint8_t _data[37];
+    }
+genericpath_toplevel_consts_18_consts_1 = {
+    ._ascii = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyUnicode_Type,
+        },
+        .length = 36,
+        .hash = -1,
+        .state = {
+            .kind = 1,
+            .compact = 1,
+            .ascii = 1,
+            .statically_allocated = 1,
+        },
+    },
+    ._data = "Special value for use in realpath().",
+};
+static
+    struct {
+        PyASCIIObject _ascii;
+        uint8_t _data[22];
+    }
+genericpath_toplevel_consts_18_consts_2_consts_1 = {
+    ._ascii = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyUnicode_Type,
+        },
+        .length = 21,
+        .hash = -1,
+        .state = {
+            .kind = 1,
+            .compact = 1,
+            .ascii = 1,
+            .statically_allocated = 1,
+        },
+    },
+    ._data = "os.path.ALLOW_MISSING",
+};
+static
+    struct {
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[18];
+            PyObject *ob_item[2];
+        }_object;
+    }
+genericpath_toplevel_consts_18_consts_2_consts = {
+    ._object = {
+        .ob_base = {
+            .ob_base = {
+                .ob_refcnt = _Py_IMMORTAL_REFCNT,
+                .ob_type = &PyTuple_Type,
+            },
+            .ob_size = 2,
+        },
+        .ob_item = {
+            Py_None,
+            & genericpath_toplevel_consts_18_consts_2_consts_1._ascii.ob_base,
+        },
+    },
+};
+static
+    struct {
+        PyASCIIObject _ascii;
+        uint8_t _data[23];
+    }
+genericpath_toplevel_consts_18_consts_2_qualname = {
+    ._ascii = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyUnicode_Type,
+        },
+        .length = 22,
+        .hash = -1,
+        .state = {
+            .kind = 1,
+            .compact = 1,
+            .ascii = 1,
+            .statically_allocated = 1,
+        },
+    },
+    ._data = "ALLOW_MISSING.__repr__",
+};
+static
+    struct {
+        PyObject_VAR_HEAD
+        Py_hash_t ob_shash;
+        char ob_sval[6];
+    }
+genericpath_toplevel_consts_18_consts_2_linetable = {
+    .ob_base = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyBytes_Type,
+        },
+        .ob_size = 5,
+    },
+    .ob_shash = -1,
+    .ob_sval = "\x80\x00\xd8\x0f\x26",
+};
+static
+    struct _PyCode_DEF(4)
+genericpath_toplevel_consts_18_consts_2 = {
+    .ob_base = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyCode_Type,
+        },
+        .ob_size = 2,
+    },
+    .co_consts = & genericpath_toplevel_consts_18_consts_2_consts._object.ob_base.ob_base,
+    .co_names = (PyObject *)& _Py_SINGLETON(tuple_empty),
+    .co_exceptiontable = (PyObject *)&_Py_SINGLETON(bytes_empty),
+    .co_flags = 3,
+    .co_argcount = 1,
+    .co_posonlyargcount = 0,
+    .co_kwonlyargcount = 0,
+    .co_framesize = 1 + FRAME_SPECIALS_SIZE,
+    .co_stacksize = 0,
+    .co_firstlineno = 173,
+    .co_nlocalsplus = 1,
+    .co_nlocals = 1,
+    .co_ncellvars = 0,
+    .co_nfreevars = 0,
+    .co_version = 547,
+    .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
+    .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
+    .co_filename = & genericpath_toplevel_consts_4_filename._ascii.ob_base,
+    .co_name = &_Py_ID(__repr__),
+    .co_qualname = & genericpath_toplevel_consts_18_consts_2_qualname._ascii.ob_base,
+    .co_linetable = & genericpath_toplevel_consts_18_consts_2_linetable.ob_base.ob_base,
+    ._co_cached = NULL,
+    .co_code_adaptive = "\x97\x00\x79\x01",
+    ._co_firsttraceable = 0,
+};
+static
+    struct {
+        PyGC_Head _gc_head;
+        struct {
+            PyObject_VAR_HEAD
+            PyObject *ob_item[2];
+        }_object;
+    }
+genericpath_toplevel_consts_18_consts_3_names = {
+    ._object = {
+        .ob_base = {
+            .ob_base = {
+                .ob_refcnt = _Py_IMMORTAL_REFCNT,
+                .ob_type = &PyTuple_Type,
+            },
+            .ob_size = 2,
+        },
+        .ob_item = {
+            &_Py_ID(__class__),
+            &_Py_ID(__name__),
+        },
+    },
+};
+static
+    struct {
+        PyASCIIObject _ascii;
+        uint8_t _data[25];
+    }
+genericpath_toplevel_consts_18_consts_3_qualname = {
+    ._ascii = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyUnicode_Type,
+        },
+        .length = 24,
+        .hash = -1,
+        .state = {
+            .kind = 1,
+            .compact = 1,
+            .ascii = 1,
+            .statically_allocated = 1,
+        },
+    },
+    ._data = "ALLOW_MISSING.__reduce__",
+};
+static
+    struct {
+        PyObject_VAR_HEAD
+        Py_hash_t ob_shash;
+        char ob_sval[19];
+    }
+genericpath_toplevel_consts_18_consts_3_linetable = {
+    .ob_base = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyBytes_Type,
+        },
+        .ob_size = 18,
+    },
+    .ob_shash = -1,
+    .ob_sval = "\x80\x00\xd8\x0f\x13\x8f\x7e\x89\x7e\xd7\x0f\x26\xd1\x0f\x26\xd0\x08\x26",
+};
+static
+    struct _PyCode_DEF(46)
+genericpath_toplevel_consts_18_consts_3 = {
+    .ob_base = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyCode_Type,
+        },
+        .ob_size = 23,
+    },
+    .co_consts = & importlib__bootstrap_toplevel_consts_1_consts._object.ob_base.ob_base,
+    .co_names = & genericpath_toplevel_consts_18_consts_3_names._object.ob_base.ob_base,
+    .co_exceptiontable = (PyObject *)&_Py_SINGLETON(bytes_empty),
+    .co_flags = 3,
+    .co_argcount = 1,
+    .co_posonlyargcount = 0,
+    .co_kwonlyargcount = 0,
+    .co_framesize = 2 + FRAME_SPECIALS_SIZE,
+    .co_stacksize = 1,
+    .co_firstlineno = 175,
+    .co_nlocalsplus = 1,
+    .co_nlocals = 1,
+    .co_ncellvars = 0,
+    .co_nfreevars = 0,
+    .co_version = 548,
+    .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
+    .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
+    .co_filename = & genericpath_toplevel_consts_4_filename._ascii.ob_base,
+    .co_name = &_Py_ID(__reduce__),
+    .co_qualname = & genericpath_toplevel_consts_18_consts_3_qualname._ascii.ob_base,
+    .co_linetable = & genericpath_toplevel_consts_18_consts_3_linetable.ob_base.ob_base,
+    ._co_cached = NULL,
+    .co_code_adaptive = "\x97\x00\x7c\x00\x6a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x53\x00",
+    ._co_firsttraceable = 0,
+};
+static
+    struct {
+        PyGC_Head _gc_head;
+        struct {
+            PyObject_VAR_HEAD
+            PyObject *ob_item[5];
+        }_object;
+    }
+genericpath_toplevel_consts_18_consts = {
+    ._object = {
+        .ob_base = {
+            .ob_base = {
+                .ob_refcnt = _Py_IMMORTAL_REFCNT,
+                .ob_type = &PyTuple_Type,
+            },
+            .ob_size = 5,
+        },
+        .ob_item = {
+            & const_str_ALLOW_MISSING._ascii.ob_base,
+            & genericpath_toplevel_consts_18_consts_1._ascii.ob_base,
+            & genericpath_toplevel_consts_18_consts_2.ob_base.ob_base,
+            & genericpath_toplevel_consts_18_consts_3.ob_base.ob_base,
+            Py_None,
+        },
+    },
+};
+static
+    struct {
+        PyGC_Head _gc_head;
+        struct {
+            PyObject_VAR_HEAD
+            PyObject *ob_item[6];
+        }_object;
+    }
+genericpath_toplevel_consts_18_names = {
+    ._object = {
+        .ob_base = {
+            .ob_base = {
+                .ob_refcnt = _Py_IMMORTAL_REFCNT,
+                .ob_type = &PyTuple_Type,
+            },
+            .ob_size = 6,
+        },
+        .ob_item = {
+            &_Py_ID(__name__),
+            &_Py_ID(__module__),
+            &_Py_ID(__qualname__),
+            &_Py_ID(__doc__),
+            &_Py_ID(__repr__),
+            &_Py_ID(__reduce__),
+        },
+    },
+};
+static
+    struct {
+        PyObject_VAR_HEAD
+        Py_hash_t ob_shash;
+        char ob_sval[16];
+    }
+genericpath_toplevel_consts_18_linetable = {
+    .ob_base = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyBytes_Type,
+        },
+        .ob_size = 15,
+    },
+    .ob_shash = -1,
+    .ob_sval = "\x84\x00\xe1\x04\x2e\xf2\x02\x01\x05\x27\xf3\x04\x01\x05\x27",
+};
+static
+    struct _PyCode_DEF(28)
+genericpath_toplevel_consts_18 = {
+    .ob_base = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyCode_Type,
+        },
+        .ob_size = 14,
+    },
+    .co_consts = & genericpath_toplevel_consts_18_consts._object.ob_base.ob_base,
+    .co_names = & genericpath_toplevel_consts_18_names._object.ob_base.ob_base,
+    .co_exceptiontable = (PyObject *)&_Py_SINGLETON(bytes_empty),
+    .co_flags = 0,
+    .co_argcount = 0,
+    .co_posonlyargcount = 0,
+    .co_kwonlyargcount = 0,
+    .co_framesize = 1 + FRAME_SPECIALS_SIZE,
+    .co_stacksize = 1,
+    .co_firstlineno = 170,
+    .co_nlocalsplus = 0,
+    .co_nlocals = 0,
+    .co_ncellvars = 0,
+    .co_nfreevars = 0,
+    .co_version = 549,
+    .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
+    .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
+    .co_filename = & genericpath_toplevel_consts_4_filename._ascii.ob_base,
+    .co_name = & const_str_ALLOW_MISSING._ascii.ob_base,
+    .co_qualname = & const_str_ALLOW_MISSING._ascii.ob_base,
+    .co_linetable = & genericpath_toplevel_consts_18_linetable.ob_base.ob_base,
+    ._co_cached = NULL,
+    .co_code_adaptive = "\x97\x00\x65\x00\x5a\x01\x64\x00\x5a\x02\x64\x01\x5a\x03\x64\x02\x84\x00\x5a\x04\x64\x03\x84\x00\x5a\x05\x79\x04",
+    ._co_firsttraceable = 0,
+};
+static
+    struct {
+        PyGC_Head _gc_head;
+        struct {
+            PyObject_VAR_HEAD
+            PyObject *ob_item[20];
         }_object;
     }
 genericpath_toplevel_consts = {
@@ -96563,7 +96929,7 @@ genericpath_toplevel_consts = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 18,
+            .ob_size = 20,
         },
         .ob_item = {
             & genericpath_toplevel_consts_0._ascii.ob_base,
@@ -96584,6 +96950,8 @@ genericpath_toplevel_consts = {
             & genericpath_toplevel_consts_15.ob_base.ob_base,
             & genericpath_toplevel_consts_16.ob_base.ob_base,
             & genericpath_toplevel_consts_17.ob_base.ob_base,
+            & genericpath_toplevel_consts_18.ob_base.ob_base,
+            & const_str_ALLOW_MISSING._ascii.ob_base,
         },
     },
 };
@@ -96592,7 +96960,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[18];
+            PyObject *ob_item[21];
         }_object;
     }
 genericpath_toplevel_names = {
@@ -96602,7 +96970,7 @@ genericpath_toplevel_names = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 18,
+            .ob_size = 21,
         },
         .ob_item = {
             &_Py_ID(__doc__),
@@ -96623,6 +96991,9 @@ genericpath_toplevel_names = {
             & const_str_sameopenfile._ascii.ob_base,
             & const_str__splitext._ascii.ob_base,
             & const_str__check_arg_types._ascii.ob_base,
+            &_Py_ID(object),
+            &_Py_ID(__new__),
+            & const_str_ALLOW_MISSING._ascii.ob_base,
         },
     },
 };
@@ -96630,7 +97001,7 @@ static
     struct {
         PyObject_VAR_HEAD
         Py_hash_t ob_shash;
-        char ob_sval[97];
+        char ob_sval[126];
     }
 genericpath_toplevel_linetable = {
     .ob_base = {
@@ -96638,20 +97009,20 @@ genericpath_toplevel_linetable = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyBytes_Type,
         },
-        .ob_size = 96,
+        .ob_size = 125,
     },
     .ob_shash = -1,
-    .ob_sval = "\xf0\x03\x01\x01\x01\xf1\x02\x04\x01\x04\xf3\x0a\x00\x01\x0a\xdb\x00\x0b\xf2\x04\x02\x0b\x17\x80\x07\xf2\x0e\x06\x01\x10\xf2\x16\x06\x01\x24\xf2\x18\x06\x01\x24\xf2\x18\x06\x01\x24\xf2\x12\x02\x01\x25\xf2\x0a\x02\x01\x26\xf2\x0a\x02\x01\x26\xf2\x0a\x02\x01\x26\xf2\x0c\x0e\x01\x0e\xf2\x24\x03\x01\x24\xf2\x0e\x08\x01\x1c\xf2\x1a\x04\x01\x1c\xf2\x1c\x15\x01\x14\xf3\x2e\x0b\x01\x54\x01",
+    .ob_sval = "\xf0\x03\x01\x01\x01\xf1\x02\x04\x01\x04\xf3\x0a\x00\x01\x0a\xdb\x00\x0b\xf2\x04\x02\x0b\x28\x80\x07\xf2\x0e\x06\x01\x10\xf2\x16\x06\x01\x24\xf2\x18\x06\x01\x24\xf2\x18\x06\x01\x24\xf2\x12\x02\x01\x25\xf2\x0a\x02\x01\x26\xf2\x0a\x02\x01\x26\xf2\x0a\x02\x01\x26\xf2\x0c\x0e\x01\x0e\xf2\x24\x03\x01\x24\xf2\x0e\x08\x01\x1c\xf2\x1a\x04\x01\x1c\xf2\x1c\x15\x01\x14\xf2\x2e\x0b\x01\x54\x01\xf0\x1c\x00\x02\x08\x87\x1e\x81\x1e\xf7\x02\x05\x01\x27\xf0\x00\x05\x01\x27\xf3\x03\x00\x02\x10\xf1\x02\x05\x01\x27",
 };
 static
-    struct _PyCode_DEF(116)
+    struct _PyCode_DEF(166)
 genericpath_toplevel = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyCode_Type,
         },
-        .ob_size = 58,
+        .ob_size = 83,
     },
     .co_consts = & genericpath_toplevel_consts._object.ob_base.ob_base,
     .co_names = & genericpath_toplevel_names._object.ob_base.ob_base,
@@ -96660,14 +97031,14 @@ genericpath_toplevel = {
     .co_argcount = 0,
     .co_posonlyargcount = 0,
     .co_kwonlyargcount = 0,
-    .co_framesize = 2 + FRAME_SPECIALS_SIZE,
-    .co_stacksize = 2,
+    .co_framesize = 5 + FRAME_SPECIALS_SIZE,
+    .co_stacksize = 5,
     .co_firstlineno = 1,
     .co_nlocalsplus = 0,
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 547,
+    .co_version = 550,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & genericpath_toplevel_consts_4_filename._ascii.ob_base,
@@ -96675,7 +97046,7 @@ genericpath_toplevel = {
     .co_qualname = &_Py_STR(anon_module),
     .co_linetable = & genericpath_toplevel_linetable.ob_base.ob_base,
     ._co_cached = NULL,
-    .co_code_adaptive = "\x97\x00\x64\x00\x5a\x00\x64\x01\x64\x02\x6c\x01\x5a\x01\x64\x01\x64\x02\x6c\x02\x5a\x02\x67\x00\x64\x03\xa2\x01\x5a\x03\x64\x04\x84\x00\x5a\x04\x64\x05\x84\x00\x5a\x05\x64\x06\x84\x00\x5a\x06\x64\x07\x84\x00\x5a\x07\x64\x08\x84\x00\x5a\x08\x64\x09\x84\x00\x5a\x09\x64\x0a\x84\x00\x5a\x0a\x64\x0b\x84\x00\x5a\x0b\x64\x0c\x84\x00\x5a\x0c\x64\x0d\x84\x00\x5a\x0d\x64\x0e\x84\x00\x5a\x0e\x64\x0f\x84\x00\x5a\x0f\x64\x10\x84\x00\x5a\x10\x64\x11\x84\x00\x5a\x11\x79\x02",
+    .co_code_adaptive = "\x97\x00\x64\x00\x5a\x00\x64\x01\x64\x02\x6c\x01\x5a\x01\x64\x01\x64\x02\x6c\x02\x5a\x02\x67\x00\x64\x03\xa2\x01\x5a\x03\x64\x04\x84\x00\x5a\x04\x64\x05\x84\x00\x5a\x05\x64\x06\x84\x00\x5a\x06\x64\x07\x84\x00\x5a\x07\x64\x08\x84\x00\x5a\x08\x64\x09\x84\x00\x5a\x09\x64\x0a\x84\x00\x5a\x0a\x64\x0b\x84\x00\x5a\x0b\x64\x0c\x84\x00\x5a\x0c\x64\x0d\x84\x00\x5a\x0d\x64\x0e\x84\x00\x5a\x0e\x64\x0f\x84\x00\x5a\x0f\x64\x10\x84\x00\x5a\x10\x64\x11\x84\x00\x5a\x11\x65\x12\x6a\x26\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x47\x00\x64\x12\x84\x00\x64\x13\xab\x02\x00\x00\x00\x00\x00\x00\xab\x00\x00\x00\x00\x00\x00\x00\x5a\x14\x79\x02",
     ._co_firsttraceable = 0,
 };
 
@@ -97240,7 +97611,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[40];
+            PyObject *ob_item[41];
         }_object;
     }
 ntpath_toplevel_consts_11 = {
@@ -97250,7 +97621,7 @@ ntpath_toplevel_consts_11 = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 40,
+            .ob_size = 41,
         },
         .ob_item = {
             & const_str_normcase._ascii.ob_base,
@@ -97293,6 +97664,7 @@ ntpath_toplevel_consts_11 = {
             & const_str_samestat._ascii.ob_base,
             & const_str_commonpath._ascii.ob_base,
             & const_str_isjunction._ascii.ob_base,
+            & const_str_ALLOW_MISSING._ascii.ob_base,
         },
     },
 };
@@ -97462,12 +97834,12 @@ ntpath_toplevel_consts_12 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 5 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 4,
-    .co_firstlineno = 35,
+    .co_firstlineno = 36,
     .co_nlocalsplus = 1,
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 548,
+    .co_version = 551,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -97817,12 +98189,12 @@ ntpath_toplevel_consts_14 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 10 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 8,
-    .co_firstlineno = 51,
+    .co_firstlineno = 52,
     .co_nlocalsplus = 2,
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 549,
+    .co_version = 552,
     .co_localsplusnames = & ntpath_toplevel_consts_14_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -97966,12 +98338,12 @@ ntpath_toplevel_consts_15 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 7 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 6,
-    .co_firstlineno = 70,
+    .co_firstlineno = 71,
     .co_nlocalsplus = 1,
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 550,
+    .co_version = 553,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -98186,12 +98558,12 @@ ntpath_toplevel_consts_16 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 8 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 4,
-    .co_firstlineno = 87,
+    .co_firstlineno = 88,
     .co_nlocalsplus = 4,
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 551,
+    .co_version = 554,
     .co_localsplusnames = & ntpath_toplevel_consts_16_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -98594,12 +98966,12 @@ ntpath_toplevel_consts_17 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 17 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 5,
-    .co_firstlineno = 107,
+    .co_firstlineno = 108,
     .co_nlocalsplus = 12,
     .co_nlocals = 12,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 552,
+    .co_version = 555,
     .co_localsplusnames = & ntpath_toplevel_consts_17_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_external_toplevel_consts_36_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -98759,12 +99131,12 @@ ntpath_toplevel_consts_18 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 7 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 3,
-    .co_firstlineno = 156,
+    .co_firstlineno = 157,
     .co_nlocalsplus = 4,
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 553,
+    .co_version = 556,
     .co_localsplusnames = & ntpath_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -99101,12 +99473,12 @@ ntpath_toplevel_consts_19 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 15 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 5,
-    .co_firstlineno = 179,
+    .co_firstlineno = 180,
     .co_nlocalsplus = 10,
     .co_nlocals = 10,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 554,
+    .co_version = 557,
     .co_localsplusnames = & ntpath_toplevel_consts_19_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -99254,12 +99626,12 @@ ntpath_toplevel_consts_20 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 11 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 4,
-    .co_firstlineno = 236,
+    .co_firstlineno = 237,
     .co_nlocalsplus = 7,
     .co_nlocals = 7,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 555,
+    .co_version = 558,
     .co_localsplusnames = & ntpath_toplevel_consts_20_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_9_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -99383,12 +99755,12 @@ ntpath_toplevel_consts_21 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 7 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 6,
-    .co_firstlineno = 257,
+    .co_firstlineno = 258,
     .co_nlocalsplus = 1,
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 556,
+    .co_version = 559,
     .co_localsplusnames = & ntpath_toplevel_consts_21_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -99502,12 +99874,12 @@ ntpath_toplevel_consts_22 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 4 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 3,
-    .co_firstlineno = 268,
+    .co_firstlineno = 269,
     .co_nlocalsplus = 1,
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 557,
+    .co_version = 560,
     .co_localsplusnames = & ntpath_toplevel_consts_21_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -99582,12 +99954,12 @@ ntpath_toplevel_consts_23 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 4 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 3,
-    .co_firstlineno = 275,
+    .co_firstlineno = 276,
     .co_nlocalsplus = 1,
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 558,
+    .co_version = 561,
     .co_localsplusnames = & ntpath_toplevel_consts_21_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -99770,12 +100142,12 @@ ntpath_toplevel_consts_25 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 7 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 5,
-    .co_firstlineno = 283,
+    .co_firstlineno = 284,
     .co_nlocalsplus = 2,
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 559,
+    .co_version = 562,
     .co_localsplusnames = & genericpath_toplevel_consts_5_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -99845,12 +100217,12 @@ ntpath_toplevel_consts_26 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 4 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 3,
-    .co_firstlineno = 291,
+    .co_firstlineno = 292,
     .co_nlocalsplus = 1,
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 560,
+    .co_version = 563,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -99968,12 +100340,12 @@ ntpath_toplevel_consts_27 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 6 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 4,
-    .co_firstlineno = 299,
+    .co_firstlineno = 300,
     .co_nlocalsplus = 2,
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 561,
+    .co_version = 564,
     .co_localsplusnames = & genericpath_toplevel_consts_5_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -100168,12 +100540,12 @@ ntpath_toplevel_consts_29 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 10 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 3,
-    .co_firstlineno = 321,
+    .co_firstlineno = 322,
     .co_nlocalsplus = 7,
     .co_nlocals = 7,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 562,
+    .co_version = 565,
     .co_localsplusnames = & ntpath_toplevel_consts_29_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_9_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -100531,12 +100903,12 @@ ntpath_toplevel_consts_30 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 13 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 5,
-    .co_firstlineno = 350,
+    .co_firstlineno = 351,
     .co_nlocalsplus = 8,
     .co_nlocals = 8,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 563,
+    .co_version = 566,
     .co_localsplusnames = & ntpath_toplevel_consts_30_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_13_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -101019,12 +101391,12 @@ ntpath_toplevel_consts_31 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 21 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 6,
-    .co_firstlineno = 411,
+    .co_firstlineno = 412,
     .co_nlocalsplus = 15,
     .co_nlocals = 15,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 564,
+    .co_version = 567,
     .co_localsplusnames = & ntpath_toplevel_consts_31_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_external_toplevel_consts_56_consts_9_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -101270,12 +101642,12 @@ ntpath_toplevel_consts_33 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 14 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 4,
-    .co_firstlineno = 527,
+    .co_firstlineno = 528,
     .co_nlocalsplus = 10,
     .co_nlocals = 10,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 565,
+    .co_version = 568,
     .co_localsplusnames = & ntpath_toplevel_consts_33_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -101511,12 +101883,12 @@ ntpath_toplevel_consts_35 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 11 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 6,
-    .co_firstlineno = 581,
+    .co_firstlineno = 582,
     .co_nlocalsplus = 5,
     .co_nlocals = 5,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 566,
+    .co_version = 569,
     .co_localsplusnames = & ntpath_toplevel_consts_35_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_5_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -101638,12 +102010,12 @@ ntpath_toplevel_consts_36 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 6 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 4,
-    .co_firstlineno = 569,
+    .co_firstlineno = 570,
     .co_nlocalsplus = 2,
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 567,
+    .co_version = 570,
     .co_localsplusnames = & ntpath_toplevel_consts_36_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -101868,7 +102240,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[12];
+            PyObject *ob_item[11];
         }_object;
     }
 ntpath_toplevel_consts_38_names = {
@@ -101878,7 +102250,7 @@ ntpath_toplevel_consts_38_names = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 12,
+            .ob_size = 11,
         },
         .ob_item = {
             & const_str_set._ascii.ob_base,
@@ -101890,7 +102262,6 @@ ntpath_toplevel_consts_38_names = {
             & const_str_normpath._ascii.ob_base,
             &_Py_ID(join),
             & const_str_dirname._ascii.ob_base,
-            & const_str_OSError._ascii.ob_base,
             & const_str_winerror._ascii.ob_base,
             & const_str_ValueError._ascii.ob_base,
         },
@@ -101933,7 +102304,7 @@ ntpath_toplevel_consts_38_linetable = {
         .ob_size = 207,
     },
     .ob_shash = -1,
-    .ob_sval = "\x80\x00\xf0\x1e\x00\x1c\x4c\x01\xd0\x08\x18\xe4\x0f\x12\x8b\x75\x88\x04\xdc\x0e\x16\x90\x74\x8b\x6e\xa0\x44\xd1\x0e\x28\xd8\x0c\x10\x8f\x48\x89\x48\x94\x58\x98\x64\x93\x5e\xd4\x0c\x24\xf0\x02\x13\x0d\x16\xd8\x1b\x1f\x90\x08\xdc\x17\x23\xa0\x44\xd3\x17\x29\x90\x04\xf4\x06\x00\x18\x1d\x98\x54\x94\x7b\xf4\x08\x00\x1c\x22\xa0\x28\xd4\x1b\x2b\xd8\x1f\x27\x98\x04\xd8\x18\x1d\xf0\x12\x00\x10\x14\x88\x0b\xf4\x11\x00\x1c\x24\xa4\x44\xac\x17\xb0\x18\xd3\x29\x3a\xb8\x44\xd3\x24\x41\xd3\x1b\x42\x90\x44\xf4\x1d\x00\x0f\x17\x90\x74\x8b\x6e\xa0\x44\xd2\x0e\x28\xf0\x2c\x00\x10\x14\x88\x0b\xf8\xf4\x0f\x00\x14\x1b\xf2\x00\x03\x0d\x16\xd8\x13\x15\x97\x3b\x91\x3b\xd0\x22\x32\xd1\x13\x32\xdb\x14\x19\xf0\x0a\x00\x10\x14\x88\x0b\xf0\x09\x00\x11\x16\xfb\xdc\x13\x1d\xf2\x00\x02\x0d\x16\xe0\x10\x15\xd8\x0f\x13\x88\x0b\xf0\x07\x02\x0d\x16\xfa",
+    .ob_sval = "\x80\x00\xf0\x1e\x00\x1c\x4c\x01\xd0\x08\x18\xe4\x0f\x12\x8b\x75\x88\x04\xdc\x0e\x16\x90\x74\x8b\x6e\xa0\x44\xd1\x0e\x28\xd8\x0c\x10\x8f\x48\x89\x48\x94\x58\x98\x64\x93\x5e\xd4\x0c\x24\xf0\x02\x13\x0d\x16\xd8\x1b\x1f\x90\x08\xdc\x17\x23\xa0\x44\xd3\x17\x29\x90\x04\xf4\x06\x00\x18\x1d\x98\x54\x94\x7b\xf4\x08\x00\x1c\x22\xa0\x28\xd4\x1b\x2b\xd8\x1f\x27\x98\x04\xd8\x18\x1d\xf0\x12\x00\x10\x14\x88\x0b\xf4\x11\x00\x1c\x24\xa4\x44\xac\x17\xb0\x18\xd3\x29\x3a\xb8\x44\xd3\x24\x41\xd3\x1b\x42\x90\x44\xf4\x1d\x00\x0f\x17\x90\x74\x8b\x6e\xa0\x44\xd2\x0e\x28\xf0\x2c\x00\x10\x14\x88\x0b\xf8\xf0\x0f\x00\x14\x21\xf2\x00\x03\x0d\x16\xd8\x13\x15\x97\x3b\x91\x3b\xd0\x22\x32\xd1\x13\x32\xdb\x14\x19\xf0\x0a\x00\x10\x14\x88\x0b\xf0\x09\x00\x11\x16\xfb\xdc\x13\x1d\xf2\x00\x02\x0d\x16\xe0\x10\x15\xd8\x0f\x13\x88\x0b\xf0\x07\x02\x0d\x16\xfa",
 };
 static
     struct {
@@ -101950,7 +102321,29 @@ ntpath_toplevel_consts_38_exceptiontable = {
         .ob_size = 41,
     },
     .ob_shash = -1,
-    .ob_sval = "\xb5\x25\x42\x0b\x00\xc1\x1d\x1e\x42\x0b\x00\xc2\x0b\x09\x42\x39\x03\xc2\x14\x0e\x42\x29\x03\xc2\x28\x01\x42\x29\x03\xc2\x29\x0c\x42\x39\x03\xc2\x38\x01\x42\x39\x03",
+    .ob_sval = "\xb5\x25\x42\x0b\x00\xc1\x1d\x1e\x42\x0b\x00\xc2\x0b\x05\x42\x35\x03\xc2\x10\x0e\x42\x25\x03\xc2\x24\x01\x42\x25\x03\xc2\x25\x0c\x42\x35\x03\xc2\x34\x01\x42\x35\x03",
+};
+static
+    struct {
+        PyASCIIObject _ascii;
+        uint8_t _data[14];
+    }
+const_str_ignored_error = {
+    ._ascii = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyUnicode_Type,
+        },
+        .length = 13,
+        .hash = -1,
+        .state = {
+            .kind = 1,
+            .compact = 1,
+            .ascii = 1,
+            .statically_allocated = 1,
+        },
+    },
+    ._data = "ignored_error",
 };
 static
     struct {
@@ -102045,7 +102438,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[5];
+            PyObject *ob_item[6];
         }_object;
     }
 ntpath_toplevel_consts_38_localsplusnames = {
@@ -102055,10 +102448,11 @@ ntpath_toplevel_consts_38_localsplusnames = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 5,
+            .ob_size = 6,
         },
         .ob_item = {
             &_Py_ID(path),
+            & const_str_ignored_error._ascii.ob_base,
             & const_str_allowed_winerror._ascii.ob_base,
             & const_str_seen._ascii.ob_base,
             & const_str_old_path._ascii.ob_base,
@@ -102067,38 +102461,38 @@ ntpath_toplevel_consts_38_localsplusnames = {
     },
 };
 static
-    struct _PyCode_DEF(376)
+    struct _PyCode_DEF(368)
 ntpath_toplevel_consts_38 = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyCode_Type,
         },
-        .ob_size = 188,
+        .ob_size = 184,
     },
     .co_consts = & ntpath_toplevel_consts_38_consts._object.ob_base.ob_base,
     .co_names = & ntpath_toplevel_consts_38_names._object.ob_base.ob_base,
     .co_exceptiontable = & ntpath_toplevel_consts_38_exceptiontable.ob_base.ob_base,
     .co_flags = 3,
-    .co_argcount = 1,
+    .co_argcount = 2,
     .co_posonlyargcount = 0,
     .co_kwonlyargcount = 0,
-    .co_framesize = 12 + FRAME_SPECIALS_SIZE,
+    .co_framesize = 13 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 7,
-    .co_firstlineno = 614,
-    .co_nlocalsplus = 5,
-    .co_nlocals = 5,
+    .co_firstlineno = 616,
+    .co_nlocalsplus = 6,
+    .co_nlocals = 6,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 568,
+    .co_version = 571,
     .co_localsplusnames = & ntpath_toplevel_consts_38_localsplusnames._object.ob_base.ob_base,
-    .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_5_localspluskinds.ob_base.ob_base,
+    .co_localspluskinds = & importlib__bootstrap_toplevel_consts_30_consts_4_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
     .co_name = & const_str__readlink_deep._ascii.ob_base,
     .co_qualname = & const_str__readlink_deep._ascii.ob_base,
     .co_linetable = & ntpath_toplevel_consts_38_linetable.ob_base.ob_base,
     ._co_cached = NULL,
-    .co_code_adaptive = "\x97\x00\x64\x01\x7d\x01\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\xab\x00\x00\x00\x00\x00\x00\x00\x7d\x02\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x02\x76\x01\x72\x6f\x7c\x02\x6a\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x01\x00\x09\x00\x7c\x00\x7d\x03\x74\x07\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x74\x09\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x73\x2e\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x03\xab\x01\x00\x00\x00\x00\x00\x00\x73\x05\x7c\x03\x7d\x00\x09\x00\x7c\x00\x53\x00\x74\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x74\x0f\x00\x00\x00\x00\x00\x00\x00\x00\x74\x11\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x03\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x02\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x02\x76\x01\x72\x01\x8c\x6f\x7c\x00\x53\x00\x23\x00\x74\x12\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x1a\x7d\x04\x7c\x04\x6a\x14\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x01\x76\x00\x72\x06\x59\x00\x64\x00\x7d\x04\x7e\x04\x7c\x00\x53\x00\x82\x00\x64\x00\x7d\x04\x7e\x04\x77\x01\x74\x16\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x04\x01\x00\x59\x00\x7c\x00\x53\x00\x77\x00\x78\x03\x59\x00\x77\x01",
+    .co_code_adaptive = "\x97\x00\x64\x01\x7d\x02\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\xab\x00\x00\x00\x00\x00\x00\x00\x7d\x03\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x03\x76\x01\x72\x6f\x7c\x03\x6a\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x01\x00\x09\x00\x7c\x00\x7d\x04\x74\x07\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x74\x09\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x73\x2e\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x04\xab\x01\x00\x00\x00\x00\x00\x00\x73\x05\x7c\x04\x7d\x00\x09\x00\x7c\x00\x53\x00\x74\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x74\x0f\x00\x00\x00\x00\x00\x00\x00\x00\x74\x11\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x04\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x02\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x03\x76\x01\x72\x01\x8c\x6f\x7c\x00\x53\x00\x23\x00\x7c\x01\x24\x00\x72\x1a\x7d\x05\x7c\x05\x6a\x12\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\x76\x00\x72\x06\x59\x00\x64\x00\x7d\x05\x7e\x05\x7c\x00\x53\x00\x82\x00\x64\x00\x7d\x05\x7e\x05\x77\x01\x74\x14\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x04\x01\x00\x59\x00\x7c\x00\x53\x00\x77\x00\x78\x03\x59\x00\x77\x01",
     ._co_firsttraceable = 0,
 };
 static
@@ -102170,7 +102564,29 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[3];
+            PyObject *ob_item[1];
+        }_object;
+    }
+ntpath_toplevel_consts_39_consts_3 = {
+    ._object = {
+        .ob_base = {
+            .ob_base = {
+                .ob_refcnt = _Py_IMMORTAL_REFCNT,
+                .ob_type = &PyTuple_Type,
+            },
+            .ob_size = 1,
+        },
+        .ob_item = {
+            & const_str_ignored_error._ascii.ob_base,
+        },
+    },
+};
+static
+    struct {
+        PyGC_Head _gc_head;
+        struct {
+            PyObject_VAR_HEAD
+            PyObject *ob_item[4];
         }_object;
     }
 ntpath_toplevel_consts_39_consts = {
@@ -102180,12 +102596,13 @@ ntpath_toplevel_consts_39_consts = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 3,
+            .ob_size = 4,
         },
         .ob_item = {
             Py_None,
             & ntpath_toplevel_consts_39_consts_1._object.ob_base.ob_base,
             (PyObject *)&_PyLong_SMALL_INTS[_PY_NSMALLNEGINTS + 0],
+            & ntpath_toplevel_consts_39_consts_3._object.ob_base.ob_base,
         },
     },
 };
@@ -102194,7 +102611,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[6];
+            PyObject *ob_item[5];
         }_object;
     }
 ntpath_toplevel_consts_39_names = {
@@ -102204,12 +102621,11 @@ ntpath_toplevel_consts_39_names = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 6,
+            .ob_size = 5,
         },
         .ob_item = {
             & const_str__getfinalpathname._ascii.ob_base,
             &_Py_ID(join),
-            & const_str_OSError._ascii.ob_base,
             & const_str_winerror._ascii.ob_base,
             & const_str__readlink_deep._ascii.ob_base,
             & const_str_split._ascii.ob_base,
@@ -102242,7 +102658,7 @@ static
     struct {
         PyObject_VAR_HEAD
         Py_hash_t ob_shash;
-        char ob_sval[223];
+        char ob_sval[229];
     }
 ntpath_toplevel_consts_39_linetable = {
     .ob_base = {
@@ -102250,16 +102666,16 @@ ntpath_toplevel_consts_39_linetable = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyBytes_Type,
         },
-        .ob_size = 222,
+        .ob_size = 228,
     },
     .ob_shash = -1,
-    .ob_sval = "\x80\x00\xf0\x24\x00\x1c\x58\x01\xd0\x08\x18\xf0\x08\x00\x10\x14\x90\x42\x90\x51\x88\x78\x88\x04\xd9\x0e\x12\xf0\x02\x16\x0d\x3a\xdc\x17\x28\xa8\x14\xd3\x17\x2e\x90\x04\xd9\x2b\x2f\x94\x74\x98\x44\xa0\x24\xd3\x17\x27\xd0\x10\x39\xb0\x54\xd0\x10\x39\xf0\x2a\x00\x10\x14\x88\x0b\xf8\xf4\x29\x00\x14\x1b\xf2\x00\x13\x0d\x3a\xd8\x13\x15\x97\x3b\x91\x3b\xd0\x26\x36\xd1\x13\x36\xd8\x14\x19\xf0\x02\x09\x11\x19\xf4\x08\x00\x20\x2e\xa8\x64\xd3\x1f\x33\x90\x48\xd8\x17\x1f\xa0\x34\xd2\x17\x27\xd9\x37\x3b\x9c\x74\xa0\x48\xa8\x64\xd4\x1f\x33\xc0\x18\xd5\x18\x49\xf0\x03\x00\x18\x28\xf8\xe4\x17\x1e\xf2\x00\x02\x11\x19\xe1\x14\x18\xf0\x05\x02\x11\x19\xfa\xf4\x06\x00\x1e\x23\xa0\x34\x9b\x5b\x91\x0a\x90\x04\x90\x64\xf1\x08\x00\x14\x18\xa1\x04\xd8\x1b\x1f\xa0\x24\x99\x3b\xd5\x14\x26\xd9\x2b\x2f\x94\x74\x98\x44\xa0\x24\xd4\x17\x27\xb0\x54\x95\x04\xfb\xf0\x27\x13\x0d\x3a\xfa\xf2\x09\x00\x0f\x13\xf8",
+    .ob_sval = "\x80\x00\xf0\x24\x00\x1c\x58\x01\xd0\x08\x18\xf0\x08\x00\x10\x14\x90\x42\x90\x51\x88\x78\x88\x04\xd9\x0e\x12\xf0\x02\x17\x0d\x3a\xdc\x17\x28\xa8\x14\xd3\x17\x2e\x90\x04\xd9\x2b\x2f\x94\x74\x98\x44\xa0\x24\xd3\x17\x27\xd0\x10\x39\xb0\x54\xd0\x10\x39\xf0\x2c\x00\x10\x14\x88\x0b\xf8\xf0\x2b\x00\x14\x21\xf2\x00\x14\x0d\x3a\xd8\x13\x15\x97\x3b\x91\x3b\xd0\x26\x36\xd1\x13\x36\xd8\x14\x19\xf0\x02\x0a\x11\x19\xf4\x08\x00\x20\x2e\xa8\x64\xd8\x3c\x49\xf4\x03\x01\x20\x4b\x01\x90\x48\xe0\x17\x1f\xa0\x34\xd2\x17\x27\xd9\x37\x3b\x9c\x74\xa0\x48\xa8\x64\xd4\x1f\x33\xc0\x18\xd5\x18\x49\xf0\x03\x00\x18\x28\xf8\xe0\x17\x24\xf2\x00\x02\x11\x19\xe1\x14\x18\xf0\x05\x02\x11\x19\xfa\xf4\x06\x00\x1e\x23\xa0\x34\x9b\x5b\x91\x0a\x90\x04\x90\x64\xf1\x08\x00\x14\x18\xa1\x04\xd8\x1b\x1f\xa0\x24\x99\x3b\xd5\x14\x26\xd9\x2b\x2f\x94\x74\x98\x44\xa0\x24\xd4\x17\x27\xb0\x54\x95\x04\xfb\xf0\x29\x14\x0d\x3a\xfa\xf2\x09\x00\x0f\x13\xf8",
 };
 static
     struct {
         PyObject_VAR_HEAD
         Py_hash_t ob_shash;
-        char ob_sval[79];
+        char ob_sval[78];
     }
 ntpath_toplevel_consts_39_exceptiontable = {
     .ob_base = {
@@ -102267,10 +102683,10 @@ ntpath_toplevel_consts_39_exceptiontable = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyBytes_Type,
         },
-        .ob_size = 78,
+        .ob_size = 77,
     },
     .ob_shash = -1,
-    .ob_sval = "\x8b\x18\x28\x00\xa4\x01\x28\x00\xa8\x09\x42\x2c\x03\xb1\x0f\x42\x27\x03\xc1\x01\x1f\x41\x27\x02\xc1\x20\x01\x42\x2c\x03\xc1\x26\x01\x42\x27\x03\xc1\x27\x09\x41\x33\x05\xc1\x30\x02\x42\x27\x03\xc1\x32\x01\x41\x33\x05\xc1\x33\x19\x42\x27\x03\xc2\x0c\x01\x42\x2c\x03\xc2\x12\x10\x42\x27\x03\xc2\x27\x05\x42\x2c\x03",
+    .ob_sval = "\x8b\x18\x28\x00\xa4\x01\x28\x00\xa8\x05\x42\x26\x03\xad\x0f\x42\x21\x03\xbd\x21\x41\x25\x02\xc1\x1e\x01\x42\x26\x03\xc1\x24\x01\x42\x21\x03\xc1\x25\x05\x41\x2d\x05\xc1\x2a\x02\x42\x21\x03\xc1\x2c\x01\x41\x2d\x05\xc1\x2d\x19\x42\x21\x03\xc2\x06\x01\x42\x26\x03\xc2\x0c\x10\x42\x21\x03\xc2\x21\x05\x42\x26\x03",
 };
 static
     struct {
@@ -102299,7 +102715,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[6];
+            PyObject *ob_item[7];
         }_object;
     }
 ntpath_toplevel_consts_39_localsplusnames = {
@@ -102309,10 +102725,11 @@ ntpath_toplevel_consts_39_localsplusnames = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 6,
+            .ob_size = 7,
         },
         .ob_item = {
             &_Py_ID(path),
+            & const_str_ignored_error._ascii.ob_base,
             & const_str_allowed_winerror._ascii.ob_base,
             & const_str_tail._ascii.ob_base,
             & const_str_ex._ascii.ob_base,
@@ -102322,38 +102739,38 @@ ntpath_toplevel_consts_39_localsplusnames = {
     },
 };
 static
-    struct _PyCode_DEF(358)
+    struct _PyCode_DEF(346)
 ntpath_toplevel_consts_39 = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyCode_Type,
         },
-        .ob_size = 179,
+        .ob_size = 173,
     },
     .co_consts = & ntpath_toplevel_consts_39_consts._object.ob_base.ob_base,
     .co_names = & ntpath_toplevel_consts_39_names._object.ob_base.ob_base,
     .co_exceptiontable = & ntpath_toplevel_consts_39_exceptiontable.ob_base.ob_base,
     .co_flags = 3,
-    .co_argcount = 1,
+    .co_argcount = 2,
     .co_posonlyargcount = 0,
     .co_kwonlyargcount = 0,
-    .co_framesize = 11 + FRAME_SPECIALS_SIZE,
+    .co_framesize = 12 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 5,
-    .co_firstlineno = 656,
-    .co_nlocalsplus = 6,
-    .co_nlocals = 6,
+    .co_firstlineno = 658,
+    .co_nlocalsplus = 7,
+    .co_nlocals = 7,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 569,
+    .co_version = 572,
     .co_localsplusnames = & ntpath_toplevel_consts_39_localsplusnames._object.ob_base.ob_base,
-    .co_localspluskinds = & importlib__bootstrap_toplevel_consts_30_consts_4_localspluskinds.ob_base.ob_base,
+    .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_9_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
     .co_name = & const_str__getfinalpathname_nonstrict._ascii.ob_base,
     .co_qualname = & const_str__getfinalpathname_nonstrict._ascii.ob_base,
     .co_linetable = & ntpath_toplevel_consts_39_linetable.ob_base.ob_base,
     ._co_cached = NULL,
-    .co_code_adaptive = "\x97\x00\x64\x01\x7d\x01\x7c\x00\x64\x00\x64\x02\x1a\x00\x7d\x02\x7c\x00\x72\x1c\x09\x00\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x7c\x02\x72\x0c\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x02\xab\x02\x00\x00\x00\x00\x00\x00\x53\x00\x7c\x00\x53\x00\x7c\x02\x53\x00\x23\x00\x74\x04\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x7b\x7d\x03\x7c\x03\x6a\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x01\x76\x01\x72\x01\x82\x00\x09\x00\x74\x09\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x04\x7c\x04\x7c\x00\x6b\x37\x00\x00\x72\x15\x7c\x02\x72\x0c\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x04\x7c\x02\xab\x02\x00\x00\x00\x00\x00\x00\x6e\x01\x7c\x04\x63\x02\x59\x00\x64\x00\x7d\x03\x7e\x03\x53\x00\x6e\x0f\x23\x00\x74\x04\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x03\x01\x00\x59\x00\x6e\x04\x77\x00\x78\x03\x59\x00\x77\x01\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x5c\x02\x00\x00\x7d\x00\x7d\x05\x7c\x00\x72\x0c\x7c\x05\x73\x0a\x7c\x00\x7c\x02\x7a\x00\x00\x00\x63\x02\x59\x00\x64\x00\x7d\x03\x7e\x03\x53\x00\x7c\x02\x72\x0c\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x05\x7c\x02\xab\x02\x00\x00\x00\x00\x00\x00\x6e\x01\x7c\x05\x7d\x02\x59\x00\x64\x00\x7d\x03\x7e\x03\x6e\x08\x64\x00\x7d\x03\x7e\x03\x77\x01\x77\x00\x78\x03\x59\x00\x77\x01\x7c\x00\x72\x01\x8c\xa8\x8c\x8d",
+    .co_code_adaptive = "\x97\x00\x64\x01\x7d\x02\x7c\x00\x64\x00\x64\x02\x1a\x00\x7d\x03\x7c\x00\x72\x1c\x09\x00\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x7c\x03\x72\x0c\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x03\xab\x02\x00\x00\x00\x00\x00\x00\x53\x00\x7c\x00\x53\x00\x7c\x03\x53\x00\x23\x00\x7c\x01\x24\x00\x72\x79\x7d\x04\x7c\x04\x6a\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\x76\x01\x72\x01\x82\x00\x09\x00\x74\x07\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x01\xac\x03\xab\x02\x00\x00\x00\x00\x00\x00\x7d\x05\x7c\x05\x7c\x00\x6b\x37\x00\x00\x72\x15\x7c\x03\x72\x0c\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x05\x7c\x03\xab\x02\x00\x00\x00\x00\x00\x00\x6e\x01\x7c\x05\x63\x02\x59\x00\x64\x00\x7d\x04\x7e\x04\x53\x00\x6e\x0b\x23\x00\x7c\x01\x24\x00\x72\x03\x01\x00\x59\x00\x6e\x04\x77\x00\x78\x03\x59\x00\x77\x01\x74\x09\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x5c\x02\x00\x00\x7d\x00\x7d\x06\x7c\x00\x72\x0c\x7c\x06\x73\x0a\x7c\x00\x7c\x03\x7a\x00\x00\x00\x63\x02\x59\x00\x64\x00\x7d\x04\x7e\x04\x53\x00\x7c\x03\x72\x0c\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x06\x7c\x03\xab\x02\x00\x00\x00\x00\x00\x00\x6e\x01\x7c\x06\x7d\x03\x59\x00\x64\x00\x7d\x04\x7e\x04\x6e\x08\x64\x00\x7d\x04\x7e\x04\x77\x01\x77\x00\x78\x03\x59\x00\x77\x01\x7c\x00\x72\x01\x8c\xa2\x8c\x87",
     ._co_firsttraceable = 0,
 };
 static
@@ -102456,7 +102873,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[10];
+            PyObject *ob_item[13];
         }_object;
     }
 ntpath_toplevel_consts_42_consts = {
@@ -102466,7 +102883,7 @@ ntpath_toplevel_consts_42_consts = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 10,
+            .ob_size = 13,
         },
         .ob_item = {
             Py_None,
@@ -102478,7 +102895,10 @@ ntpath_toplevel_consts_42_consts = {
             & ntpath_toplevel_consts_19_consts_9._ascii.ob_base,
             & importlib__bootstrap_external_toplevel_consts_22_consts_6._ascii.ob_base,
             & ntpath_toplevel_consts_42_consts_8._ascii.ob_base,
+            Py_True,
+            (PyObject *)& _Py_SINGLETON(tuple_empty),
             (PyObject *)&_PyLong_SMALL_INTS[_PY_NSMALLNEGINTS + 0],
+            & ntpath_toplevel_consts_39_consts_3._object.ob_base.ob_base,
         },
     },
 };
@@ -102487,7 +102907,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[19];
+            PyObject *ob_item[21];
         }_object;
     }
 ntpath_toplevel_consts_42_names = {
@@ -102497,7 +102917,7 @@ ntpath_toplevel_consts_42_names = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 19,
+            .ob_size = 21,
         },
         .ob_item = {
             & const_str_normpath._ascii.ob_base,
@@ -102510,11 +102930,13 @@ ntpath_toplevel_consts_42_names = {
             & const_str_devnull._ascii.ob_base,
             & const_str_getcwd._ascii.ob_base,
             & const_str_startswith._ascii.ob_base,
+            & const_str_ALLOW_MISSING._ascii.ob_base,
+            & const_str_FileNotFoundError._ascii.ob_base,
+            & const_str_OSError._ascii.ob_base,
             & const_str_isabs._ascii.ob_base,
             &_Py_ID(join),
             & const_str__getfinalpathname._ascii.ob_base,
             & const_str_ValueError._ascii.ob_base,
-            & const_str_OSError._ascii.ob_base,
             & const_str_str._ascii.ob_base,
             & const_str_winerror._ascii.ob_base,
             & const_str__getfinalpathname_nonstrict._ascii.ob_base,
@@ -102526,7 +102948,7 @@ static
     struct {
         PyObject_VAR_HEAD
         Py_hash_t ob_shash;
-        char ob_sval[431];
+        char ob_sval[465];
     }
 ntpath_toplevel_consts_42_linetable = {
     .ob_base = {
@@ -102534,10 +102956,10 @@ ntpath_toplevel_consts_42_linetable = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyBytes_Type,
         },
-        .ob_size = 430,
+        .ob_size = 464,
     },
     .ob_shash = -1,
-    .ob_sval = "\x80\x00\xdc\x0f\x17\x98\x04\x8b\x7e\x88\x04\xdc\x0b\x15\x90\x64\x9c\x45\xd4\x0b\x22\xd8\x15\x1f\x88\x46\xd8\x19\x28\x88\x4a\xd8\x1d\x24\x88\x4e\xdc\x12\x14\x97\x2a\x91\x2a\x93\x2c\x88\x43\xe4\x0f\x17\x98\x04\x8b\x7e\xa4\x18\xac\x22\xaf\x2b\xa9\x2b\xb4\x67\xd3\x2a\x3e\xd3\x21\x3f\xd2\x0f\x3f\xd8\x17\x24\xe0\x15\x1e\x88\x46\xd8\x19\x27\x88\x4a\xd8\x1d\x23\x88\x4e\xdc\x12\x14\x97\x29\x91\x29\x93\x2b\x88\x43\xe4\x0f\x17\x98\x04\x8b\x7e\xa4\x18\xac\x27\xd3\x21\x32\xd2\x0f\x32\xd8\x17\x23\xd8\x15\x19\x97\x5f\x91\x5f\xa0\x56\xd3\x15\x2c\x88\x0a\xd9\x0f\x19\xa4\x25\xa8\x04\xa4\x2b\xdc\x13\x17\x98\x03\x98\x54\x93\x3f\x88\x44\xf0\x02\x0f\x09\x35\xdc\x13\x24\xa0\x54\xd3\x13\x2a\x88\x44\xd8\x1f\x20\xd0\x0c\x1c\xf1\x22\x00\x10\x1a\x98\x64\x9f\x6f\x99\x6f\xa8\x66\xd4\x1e\x35\xf0\x06\x00\x10\x14\x8f\x7f\x89\x7f\x98\x7a\xd4\x0f\x2a\xd8\x18\x26\xa8\x14\xac\x63\xb0\x2a\xab\x6f\xd0\x2e\x3e\xd0\x29\x3f\xd1\x18\x3f\x91\x05\xe0\x18\x1c\x9c\x53\xa0\x16\x9b\x5b\x98\x5c\xd0\x18\x2a\x90\x05\xf0\x04\x0b\x0d\x21\xdc\x13\x24\xa0\x55\xd3\x13\x2b\xa8\x74\xd2\x13\x33\xd8\x1b\x20\x90\x44\xf0\x14\x00\x10\x14\x88\x0b\x88\x74\x88\x0b\xf8\xf4\x49\x01\x00\x10\x1a\xf2\x00\x07\x09\x22\xf1\x0a\x00\x10\x16\xdc\x16\x1d\x9c\x63\xa0\x22\x9b\x67\xd3\x16\x26\xa8\x44\xd0\x10\x30\xdc\x13\x1b\x98\x44\x93\x3e\x8d\x44\xfb\xdc\x0f\x16\xf2\x00\x04\x09\x35\xd9\x0f\x15\xd8\x10\x15\xd8\x1f\x21\x9f\x7b\x99\x7b\xd0\x0c\x1c\xdc\x13\x2e\xa8\x74\xd3\x13\x34\x8d\x44\xfb\xf0\x09\x04\x09\x35\xfb\xf4\x26\x00\x14\x1e\xf2\x00\x03\x0d\x15\xf3\x06\x00\x11\x15\xf0\x0c\x00\x10\x14\x88\x0b\xfb\xf4\x0b\x00\x14\x1b\xf2\x00\x04\x0d\x21\xf0\x06\x00\x14\x16\x97\x3b\x91\x3b\xd0\x22\x32\xd2\x13\x32\xd8\x1b\x20\x90\x44\xfb\xd8\x0f\x13\x88\x0b\xfb\xf0\x0b\x04\x0d\x21\xfa",
+    .ob_sval = "\x80\x00\xdc\x0f\x17\x98\x04\x8b\x7e\x88\x04\xdc\x0b\x15\x90\x64\x9c\x45\xd4\x0b\x22\xd8\x15\x1f\x88\x46\xd8\x19\x28\x88\x4a\xd8\x1d\x24\x88\x4e\xdc\x12\x14\x97\x2a\x91\x2a\x93\x2c\x88\x43\xe4\x0f\x17\x98\x04\x8b\x7e\xa4\x18\xac\x22\xaf\x2b\xa9\x2b\xb4\x67\xd3\x2a\x3e\xd3\x21\x3f\xd2\x0f\x3f\xd8\x17\x24\xe0\x15\x1e\x88\x46\xd8\x19\x27\x88\x4a\xd8\x1d\x23\x88\x4e\xdc\x12\x14\x97\x29\x91\x29\x93\x2b\x88\x43\xe4\x0f\x17\x98\x04\x8b\x7e\xa4\x18\xac\x27\xd3\x21\x32\xd2\x0f\x32\xd8\x17\x23\xd8\x15\x19\x97\x5f\x91\x5f\xa0\x56\xd3\x15\x2c\x88\x0a\xe0\x0b\x11\x94\x5d\xd1\x0b\x22\xdc\x1c\x2d\x88\x4d\xd8\x15\x19\x89\x46\xd9\x0d\x13\xd8\x1c\x1e\x89\x4d\xe4\x1c\x23\x88\x4d\xe1\x0f\x19\xa4\x25\xa8\x04\xa4\x2b\xdc\x13\x17\x98\x03\x98\x54\x93\x3f\x88\x44\xf0\x02\x0e\x09\x4c\x01\xdc\x13\x24\xa0\x54\xd3\x13\x2a\x88\x44\xd8\x1f\x20\xd0\x0c\x1c\xf1\x20\x00\x10\x1a\x98\x64\x9f\x6f\x99\x6f\xa8\x66\xd4\x1e\x35\xf0\x06\x00\x10\x14\x8f\x7f\x89\x7f\x98\x7a\xd4\x0f\x2a\xd8\x18\x26\xa8\x14\xac\x63\xb0\x2a\xab\x6f\xd0\x2e\x3e\xd0\x29\x3f\xd1\x18\x3f\x91\x05\xe0\x18\x1c\x9c\x53\xa0\x16\x9b\x5b\x98\x5c\xd0\x18\x2a\x90\x05\xf0\x04\x0b\x0d\x21\xdc\x13\x24\xa0\x55\xd3\x13\x2b\xa8\x74\xd2\x13\x33\xd8\x1b\x20\x90\x44\xf0\x14\x00\x10\x14\x88\x0b\x88\x74\x88\x0b\xf8\xf4\x47\x01\x00\x10\x1a\xf2\x00\x07\x09\x22\xf1\x0a\x00\x10\x16\xdc\x16\x1d\x9c\x63\xa0\x22\x9b\x67\xd3\x16\x26\xa8\x44\xd0\x10\x30\xdc\x13\x1b\x98\x44\x93\x3e\x8d\x44\xfb\xd8\x0f\x1c\xf2\x00\x03\x09\x4c\x01\xd8\x1f\x21\x9f\x7b\x99\x7b\xd0\x0c\x1c\xdc\x13\x2e\xa8\x74\xd8\x3d\x4a\xf4\x03\x01\x14\x4c\x01\x8d\x44\xfb\xf0\x05\x03\x09\x4c\x01\xfb\xf4\x24\x00\x14\x1e\xf2\x00\x03\x0d\x15\xf3\x06\x00\x11\x15\xf0\x0c\x00\x10\x14\x88\x0b\xfb\xf4\x0b\x00\x14\x1b\xf2\x00\x04\x0d\x21\xf0\x06\x00\x14\x16\x97\x3b\x91\x3b\xd0\x22\x32\xd2\x13\x32\xd8\x1b\x20\x90\x44\xfb\xd8\x0f\x13\x88\x0b\xfb\xf0\x0b\x04\x0d\x21\xfa",
 };
 static
     struct {
@@ -102554,7 +102976,7 @@ ntpath_toplevel_consts_42_exceptiontable = {
         .ob_size = 66,
     },
     .ob_shash = -1,
-    .ob_sval = "\xc3\x06\x0d\x44\x2c\x00\xc4\x18\x10\x46\x0f\x00\xc4\x2c\x09\x46\x0c\x03\xc4\x35\x22\x45\x1c\x03\xc5\x1c\x0c\x46\x0c\x03\xc5\x28\x1a\x46\x07\x03\xc6\x07\x05\x46\x0c\x03\xc6\x0f\x09\x47\x06\x03\xc6\x1e\x0c\x47\x06\x03\xc6\x2a\x11\x47\x01\x03\xc7\x01\x05\x47\x06\x03",
+    .ob_sval = "\xc3\x22\x0d\x45\x08\x00\xc4\x34\x10\x46\x26\x00\xc5\x08\x09\x46\x23\x03\xc5\x11\x22\x45\x38\x03\xc5\x38\x08\x46\x23\x03\xc6\x00\x19\x46\x1e\x03\xc6\x1e\x05\x46\x23\x03\xc6\x26\x09\x47\x1d\x03\xc6\x35\x0c\x47\x1d\x03\xc7\x01\x11\x47\x18\x03\xc7\x18\x05\x47\x1d\x03",
 };
 static
     struct {
@@ -102649,7 +103071,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[10];
+            PyObject *ob_item[11];
         }_object;
     }
 ntpath_toplevel_consts_42_localsplusnames = {
@@ -102659,7 +103081,7 @@ ntpath_toplevel_consts_42_localsplusnames = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 10,
+            .ob_size = 11,
         },
         .ob_item = {
             &_Py_ID(path),
@@ -102669,6 +103091,7 @@ ntpath_toplevel_consts_42_localsplusnames = {
             & const_str_new_unc_prefix._ascii.ob_base,
             &_Py_ID(cwd),
             & const_str_had_prefix._ascii.ob_base,
+            & const_str_ignored_error._ascii.ob_base,
             & const_str_initial_winerror._ascii.ob_base,
             & const_str_ex._ascii.ob_base,
             & const_str_spath._ascii.ob_base,
@@ -102676,14 +103099,14 @@ ntpath_toplevel_consts_42_localsplusnames = {
     },
 };
 static
-    struct _PyCode_DEF(914)
+    struct _PyCode_DEF(960)
 ntpath_toplevel_consts_42 = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyCode_Type,
         },
-        .ob_size = 457,
+        .ob_size = 480,
     },
     .co_consts = & ntpath_toplevel_consts_42_consts._object.ob_base.ob_base,
     .co_names = & ntpath_toplevel_consts_42_names._object.ob_base.ob_base,
@@ -102692,22 +103115,119 @@ ntpath_toplevel_consts_42 = {
     .co_argcount = 1,
     .co_posonlyargcount = 0,
     .co_kwonlyargcount = 1,
-    .co_framesize = 16 + FRAME_SPECIALS_SIZE,
+    .co_framesize = 17 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 6,
-    .co_firstlineno = 705,
-    .co_nlocalsplus = 10,
-    .co_nlocals = 10,
+    .co_firstlineno = 708,
+    .co_nlocalsplus = 11,
+    .co_nlocals = 11,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 570,
+    .co_version = 573,
     .co_localsplusnames = & ntpath_toplevel_consts_42_localsplusnames._object.ob_base.ob_base,
-    .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_3_localspluskinds.ob_base.ob_base,
+    .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_6_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
     .co_name = & const_str_realpath._ascii.ob_base,
     .co_qualname = & const_str_realpath._ascii.ob_base,
     .co_linetable = & ntpath_toplevel_consts_42_linetable.ob_base.ob_base,
     ._co_cached = NULL,
-    .co_code_adaptive = "\x97\x00\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x74\x04\x00\x00\x00\x00\x00\x00\x00\x00\xab\x02\x00\x00\x00\x00\x00\x00\x72\x49\x64\x01\x7d\x02\x64\x02\x7d\x03\x64\x03\x7d\x04\x74\x07\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xab\x00\x00\x00\x00\x00\x00\x00\x7d\x05\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x74\x07\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x0c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x74\x0e\x00\x00\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x6b\x28\x00\x00\x72\x37\x79\x04\x64\x05\x7d\x02\x64\x06\x7d\x03\x64\x07\x7d\x04\x74\x07\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xab\x00\x00\x00\x00\x00\x00\x00\x7d\x05\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x74\x0e\x00\x00\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x6b\x28\x00\x00\x72\x01\x79\x08\x7c\x00\x6a\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x06\x7c\x06\x73\x17\x74\x15\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x73\x0c\x74\x17\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x05\x7c\x00\xab\x02\x00\x00\x00\x00\x00\x00\x7d\x00\x09\x00\x74\x19\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x64\x09\x7d\x07\x7c\x06\x73\x55\x7c\x00\x6a\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\xab\x01\x00\x00\x00\x00\x00\x00\x72\x44\x7c\x00\x6a\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x03\xab\x01\x00\x00\x00\x00\x00\x00\x72\x12\x7c\x04\x7c\x00\x74\x25\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x03\xab\x01\x00\x00\x00\x00\x00\x00\x64\x00\x1a\x00\x7a\x00\x00\x00\x7d\x09\x6e\x0e\x7c\x00\x74\x25\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\xab\x01\x00\x00\x00\x00\x00\x00\x64\x00\x1a\x00\x7d\x09\x09\x00\x74\x19\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x09\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x00\x6b\x28\x00\x00\x72\x02\x7c\x09\x7d\x00\x7c\x00\x53\x00\x7c\x00\x53\x00\x23\x00\x74\x1a\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x2c\x7d\x08\x7c\x01\x72\x15\x74\x1d\x00\x00\x00\x00\x00\x00\x00\x00\x74\x1f\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x08\xab\x01\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x64\x00\x82\x02\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x59\x00\x64\x00\x7d\x08\x7e\x08\x8c\x89\x64\x00\x7d\x08\x7e\x08\x77\x01\x74\x1c\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x24\x7d\x08\x7c\x01\x72\x01\x82\x00\x7c\x08\x6a\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7d\x07\x74\x23\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x59\x00\x64\x00\x7d\x08\x7e\x08\x8c\xb4\x64\x00\x7d\x08\x7e\x08\x77\x01\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x74\x1a\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x0b\x7d\x08\x59\x00\x64\x00\x7d\x08\x7e\x08\x7c\x00\x53\x00\x64\x00\x7d\x08\x7e\x08\x77\x01\x74\x1c\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x1c\x7d\x08\x7c\x08\x6a\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7f\x07\x6b\x28\x00\x00\x72\x02\x7c\x09\x7d\x00\x59\x00\x64\x00\x7d\x08\x7e\x08\x7c\x00\x53\x00\x64\x00\x7d\x08\x7e\x08\x77\x01\x77\x00\x78\x03\x59\x00\x77\x01",
+    .co_code_adaptive = "\x97\x00\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x74\x04\x00\x00\x00\x00\x00\x00\x00\x00\xab\x02\x00\x00\x00\x00\x00\x00\x72\x49\x64\x01\x7d\x02\x64\x02\x7d\x03\x64\x03\x7d\x04\x74\x07\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xab\x00\x00\x00\x00\x00\x00\x00\x7d\x05\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x74\x07\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x0c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x74\x0e\x00\x00\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x6b\x28\x00\x00\x72\x37\x79\x04\x64\x05\x7d\x02\x64\x06\x7d\x03\x64\x07\x7d\x04\x74\x07\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xab\x00\x00\x00\x00\x00\x00\x00\x7d\x05\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x74\x0e\x00\x00\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x6b\x28\x00\x00\x72\x01\x79\x08\x7c\x00\x6a\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x06\x7c\x01\x74\x14\x00\x00\x00\x00\x00\x00\x00\x00\x75\x00\x72\x09\x74\x16\x00\x00\x00\x00\x00\x00\x00\x00\x7d\x07\x64\x09\x7d\x01\x6e\x0b\x7c\x01\x72\x03\x64\x0a\x7d\x07\x6e\x06\x74\x18\x00\x00\x00\x00\x00\x00\x00\x00\x7d\x07\x7c\x06\x73\x17\x74\x1b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x73\x0c\x74\x1d\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x05\x7c\x00\xab\x02\x00\x00\x00\x00\x00\x00\x7d\x00\x09\x00\x74\x1f\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x64\x0b\x7d\x08\x7c\x06\x73\x55\x7c\x00\x6a\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\xab\x01\x00\x00\x00\x00\x00\x00\x72\x44\x7c\x00\x6a\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x03\xab\x01\x00\x00\x00\x00\x00\x00\x72\x12\x7c\x04\x7c\x00\x74\x29\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x03\xab\x01\x00\x00\x00\x00\x00\x00\x64\x00\x1a\x00\x7a\x00\x00\x00\x7d\x0a\x6e\x0e\x7c\x00\x74\x29\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\xab\x01\x00\x00\x00\x00\x00\x00\x64\x00\x1a\x00\x7d\x0a\x09\x00\x74\x1f\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0a\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x00\x6b\x28\x00\x00\x72\x02\x7c\x0a\x7d\x00\x7c\x00\x53\x00\x7c\x00\x53\x00\x23\x00\x74\x20\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x2c\x7d\x09\x7c\x01\x72\x15\x74\x19\x00\x00\x00\x00\x00\x00\x00\x00\x74\x23\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x09\xab\x01\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x64\x00\x82\x02\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x59\x00\x64\x00\x7d\x09\x7e\x09\x8c\x89\x64\x00\x7d\x09\x7e\x09\x77\x01\x7c\x07\x24\x00\x72\x23\x7d\x09\x7c\x09\x6a\x24\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7d\x08\x74\x27\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x07\xac\x0c\xab\x02\x00\x00\x00\x00\x00\x00\x7d\x00\x59\x00\x64\x00\x7d\x09\x7e\x09\x8c\xaf\x64\x00\x7d\x09\x7e\x09\x77\x01\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x74\x20\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x0b\x7d\x09\x59\x00\x64\x00\x7d\x09\x7e\x09\x7c\x00\x53\x00\x64\x00\x7d\x09\x7e\x09\x77\x01\x74\x18\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x1c\x7d\x09\x7c\x09\x6a\x24\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7f\x08\x6b\x28\x00\x00\x72\x02\x7c\x0a\x7d\x00\x59\x00\x64\x00\x7d\x09\x7e\x09\x7c\x00\x53\x00\x64\x00\x7d\x09\x7e\x09\x77\x01\x77\x00\x78\x03\x59\x00\x77\x01",
+    ._co_firsttraceable = 0,
+};
+static
+    struct {
+        PyGC_Head _gc_head;
+        struct {
+            PyObject_VAR_HEAD
+            PyObject *ob_item[1];
+        }_object;
+    }
+ntpath_toplevel_consts_43_names = {
+    ._object = {
+        .ob_base = {
+            .ob_base = {
+                .ob_refcnt = _Py_IMMORTAL_REFCNT,
+                .ob_type = &PyTuple_Type,
+            },
+            .ob_size = 1,
+        },
+        .ob_item = {
+            & const_str_abspath._ascii.ob_base,
+        },
+    },
+};
+static
+    struct {
+        PyObject_VAR_HEAD
+        Py_hash_t ob_shash;
+        char ob_sval[13];
+    }
+ntpath_toplevel_consts_43_linetable = {
+    .ob_base = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyBytes_Type,
+        },
+        .ob_size = 12,
+    },
+    .ob_shash = -1,
+    .ob_sval = "\x80\x00\xdc\x0f\x16\x90\x74\x8b\x7d\xd0\x08\x1c",
+};
+static
+    struct {
+        PyGC_Head _gc_head;
+        struct {
+            PyObject_VAR_HEAD
+            PyObject *ob_item[2];
+        }_object;
+    }
+ntpath_toplevel_consts_43_localsplusnames = {
+    ._object = {
+        .ob_base = {
+            .ob_base = {
+                .ob_refcnt = _Py_IMMORTAL_REFCNT,
+                .ob_type = &PyTuple_Type,
+            },
+            .ob_size = 2,
+        },
+        .ob_item = {
+            &_Py_ID(path),
+            &_Py_ID(strict),
+        },
+    },
+};
+static
+    struct _PyCode_DEF(24)
+ntpath_toplevel_consts_43 = {
+    .ob_base = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyCode_Type,
+        },
+        .ob_size = 12,
+    },
+    .co_consts = & importlib__bootstrap_toplevel_consts_1_consts._object.ob_base.ob_base,
+    .co_names = & ntpath_toplevel_consts_43_names._object.ob_base.ob_base,
+    .co_exceptiontable = (PyObject *)&_Py_SINGLETON(bytes_empty),
+    .co_flags = 3,
+    .co_argcount = 1,
+    .co_posonlyargcount = 0,
+    .co_kwonlyargcount = 1,
+    .co_framesize = 5 + FRAME_SPECIALS_SIZE,
+    .co_stacksize = 3,
+    .co_firstlineno = 613,
+    .co_nlocalsplus = 2,
+    .co_nlocals = 2,
+    .co_ncellvars = 0,
+    .co_nfreevars = 0,
+    .co_version = 574,
+    .co_localsplusnames = & ntpath_toplevel_consts_43_localsplusnames._object.ob_base.ob_base,
+    .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
+    .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
+    .co_name = & const_str_realpath._ascii.ob_base,
+    .co_qualname = & const_str_realpath._ascii.ob_base,
+    .co_linetable = & ntpath_toplevel_consts_43_linetable.ob_base.ob_base,
+    ._co_cached = NULL,
+    .co_code_adaptive = "\x97\x00\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x53\x00",
     ._co_firsttraceable = 0,
 };
 static
@@ -102715,7 +103235,7 @@ static
         PyASCIIObject _ascii;
         uint8_t _data[36];
     }
-ntpath_toplevel_consts_44_consts_0 = {
+ntpath_toplevel_consts_45_consts_0 = {
     ._ascii = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -102737,7 +103257,7 @@ static
         PyASCIIObject _ascii;
         uint8_t _data[18];
     }
-ntpath_toplevel_consts_44_consts_8 = {
+ntpath_toplevel_consts_45_consts_8 = {
     ._ascii = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -102759,7 +103279,7 @@ static
         PyASCIIObject _ascii;
         uint8_t _data[18];
     }
-ntpath_toplevel_consts_44_consts_9 = {
+ntpath_toplevel_consts_45_consts_9 = {
     ._ascii = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -102781,7 +103301,7 @@ static
         PyASCIIObject _ascii;
         uint8_t _data[18];
     }
-ntpath_toplevel_consts_44_consts_10 = {
+ntpath_toplevel_consts_45_consts_10 = {
     ._ascii = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -102806,7 +103326,7 @@ static
             PyObject *ob_item[14];
         }_object;
     }
-ntpath_toplevel_consts_44_consts = {
+ntpath_toplevel_consts_45_consts = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -102816,7 +103336,7 @@ ntpath_toplevel_consts_44_consts = {
             .ob_size = 14,
         },
         .ob_item = {
-            & ntpath_toplevel_consts_44_consts_0._ascii.ob_base,
+            & ntpath_toplevel_consts_45_consts_0._ascii.ob_base,
             (PyObject *)&_Py_SINGLETON(bytes_characters[92]),
             (PyObject *)&_Py_SINGLETON(bytes_characters[46]),
             & ntpath_toplevel_consts_33_consts_4.ob_base.ob_base,
@@ -102824,9 +103344,9 @@ ntpath_toplevel_consts_44_consts = {
             (PyObject *)&_Py_SINGLETON(strings).ascii[46],
             & ntpath_toplevel_consts_2._ascii.ob_base,
             Py_None,
-            & ntpath_toplevel_consts_44_consts_8._ascii.ob_base,
-            & ntpath_toplevel_consts_44_consts_9._ascii.ob_base,
-            & ntpath_toplevel_consts_44_consts_10._ascii.ob_base,
+            & ntpath_toplevel_consts_45_consts_8._ascii.ob_base,
+            & ntpath_toplevel_consts_45_consts_9._ascii.ob_base,
+            & ntpath_toplevel_consts_45_consts_10._ascii.ob_base,
             (PyObject *)&_PyLong_SMALL_INTS[_PY_NSMALLNEGINTS + 0],
             (PyObject *)&_PyLong_SMALL_INTS[_PY_NSMALLNEGINTS + 1],
             & const_str_relpath._ascii.ob_base,
@@ -102841,7 +103361,7 @@ static
             PyObject *ob_item[19];
         }_object;
     }
-ntpath_toplevel_consts_44_names = {
+ntpath_toplevel_consts_45_names = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -102879,7 +103399,7 @@ static
         Py_hash_t ob_shash;
         char ob_sval[437];
     }
-ntpath_toplevel_consts_44_linetable = {
+ntpath_toplevel_consts_45_linetable = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -102896,7 +103416,7 @@ static
         Py_hash_t ob_shash;
         char ob_sval[63];
     }
-ntpath_toplevel_consts_44_exceptiontable = {
+ntpath_toplevel_consts_45_exceptiontable = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103157,7 +103677,7 @@ static
             PyObject *ob_item[19];
         }_object;
     }
-ntpath_toplevel_consts_44_localsplusnames = {
+ntpath_toplevel_consts_45_localsplusnames = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103195,7 +103715,7 @@ static
         Py_hash_t ob_shash;
         char ob_sval[20];
     }
-ntpath_toplevel_consts_44_localspluskinds = {
+ntpath_toplevel_consts_45_localspluskinds = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103208,7 +103728,7 @@ ntpath_toplevel_consts_44_localspluskinds = {
 };
 static
     struct _PyCode_DEF(844)
-ntpath_toplevel_consts_44 = {
+ntpath_toplevel_consts_45 = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103216,27 +103736,27 @@ ntpath_toplevel_consts_44 = {
         },
         .ob_size = 422,
     },
-    .co_consts = & ntpath_toplevel_consts_44_consts._object.ob_base.ob_base,
-    .co_names = & ntpath_toplevel_consts_44_names._object.ob_base.ob_base,
-    .co_exceptiontable = & ntpath_toplevel_consts_44_exceptiontable.ob_base.ob_base,
+    .co_consts = & ntpath_toplevel_consts_45_consts._object.ob_base.ob_base,
+    .co_names = & ntpath_toplevel_consts_45_names._object.ob_base.ob_base,
+    .co_exceptiontable = & ntpath_toplevel_consts_45_exceptiontable.ob_base.ob_base,
     .co_flags = 3,
     .co_argcount = 2,
     .co_posonlyargcount = 0,
     .co_kwonlyargcount = 0,
     .co_framesize = 26 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 7,
-    .co_firstlineno = 771,
+    .co_firstlineno = 782,
     .co_nlocalsplus = 19,
     .co_nlocals = 19,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 571,
-    .co_localsplusnames = & ntpath_toplevel_consts_44_localsplusnames._object.ob_base.ob_base,
-    .co_localspluskinds = & ntpath_toplevel_consts_44_localspluskinds.ob_base.ob_base,
+    .co_version = 575,
+    .co_localsplusnames = & ntpath_toplevel_consts_45_localsplusnames._object.ob_base.ob_base,
+    .co_localspluskinds = & ntpath_toplevel_consts_45_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
     .co_name = & const_str_relpath._ascii.ob_base,
     .co_qualname = & const_str_relpath._ascii.ob_base,
-    .co_linetable = & ntpath_toplevel_consts_44_linetable.ob_base.ob_base,
+    .co_linetable = & ntpath_toplevel_consts_45_linetable.ob_base.ob_base,
     ._co_cached = NULL,
     .co_code_adaptive = "\x97\x00\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x74\x05\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x74\x06\x00\x00\x00\x00\x00\x00\x00\x00\xab\x02\x00\x00\x00\x00\x00\x00\x72\x07\x64\x01\x7d\x02\x64\x02\x7d\x03\x64\x03\x7d\x04\x6e\x06\x64\x04\x7d\x02\x64\x05\x7d\x03\x64\x06\x7d\x04\x7c\x01\x80\x02\x7c\x03\x7d\x01\x7c\x00\x73\x0b\x74\x09\x00\x00\x00\x00\x00\x00\x00\x00\x64\x08\xab\x01\x00\x00\x00\x00\x00\x00\x82\x01\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x01\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x01\x09\x00\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x74\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x01\xab\x01\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x05\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x74\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x06\x74\x0f\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x05\xab\x01\x00\x00\x00\x00\x00\x00\x5c\x03\x00\x00\x7d\x07\x7d\x08\x7d\x09\x74\x0f\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x06\xab\x01\x00\x00\x00\x00\x00\x00\x5c\x03\x00\x00\x7d\x0a\x7d\x08\x7d\x0b\x74\x11\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x07\xab\x01\x00\x00\x00\x00\x00\x00\x74\x11\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0a\xab\x01\x00\x00\x00\x00\x00\x00\x6b\x37\x00\x00\x72\x11\x74\x09\x00\x00\x00\x00\x00\x00\x00\x00\x64\x09\x7c\x0a\x9b\x02\x64\x0a\x7c\x07\x9b\x02\x9d\x04\xab\x01\x00\x00\x00\x00\x00\x00\x82\x01\x7c\x09\x6a\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\xab\x01\x00\x00\x00\x00\x00\x00\x44\x00\x8f\x0c\x63\x02\x67\x00\x63\x02\x5d\x07\x00\x00\x7d\x0c\x7c\x0c\x73\x01\x8c\x06\x7c\x0c\x91\x02\x8c\x09\x04\x00\x7d\x0d\x7d\x0c\x7c\x0b\x6a\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\xab\x01\x00\x00\x00\x00\x00\x00\x44\x00\x8f\x0c\x63\x02\x67\x00\x63\x02\x5d\x07\x00\x00\x7d\x0c\x7c\x0c\x73\x01\x8c\x06\x7c\x0c\x91\x02\x8c\x09\x04\x00\x7d\x0e\x7d\x0c\x64\x0b\x7d\x0f\x74\x15\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0d\x7c\x0e\xab\x02\x00\x00\x00\x00\x00\x00\x44\x00\x5d\x23\x00\x00\x5c\x02\x00\x00\x7d\x10\x7d\x11\x74\x11\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x10\xab\x01\x00\x00\x00\x00\x00\x00\x74\x11\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x11\xab\x01\x00\x00\x00\x00\x00\x00\x6b\x37\x00\x00\x72\x02\x01\x00\x6e\x07\x7c\x0f\x64\x0c\x7a\x0d\x00\x00\x7d\x0f\x8c\x25\x04\x00\x7c\x04\x67\x01\x74\x17\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0d\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x0f\x7a\x0a\x00\x00\x7a\x05\x00\x00\x7c\x0e\x7c\x0f\x64\x07\x1a\x00\x7a\x00\x00\x00\x7d\x12\x7c\x12\x73\x02\x7c\x03\x53\x00\x74\x19\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x12\x8e\x00\x53\x00\x63\x02\x01\x00\x63\x02\x7d\x0c\x77\x00\x63\x02\x01\x00\x63\x02\x7d\x0c\x77\x00\x23\x00\x74\x1a\x00\x00\x00\x00\x00\x00\x00\x00\x74\x08\x00\x00\x00\x00\x00\x00\x00\x00\x74\x1c\x00\x00\x00\x00\x00\x00\x00\x00\x74\x1e\x00\x00\x00\x00\x00\x00\x00\x00\x74\x20\x00\x00\x00\x00\x00\x00\x00\x00\x66\x05\x24\x00\x72\x19\x01\x00\x74\x23\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x24\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x0d\x7c\x00\x7c\x01\xab\x03\x00\x00\x00\x00\x00\x00\x01\x00\x82\x00\x77\x00\x78\x03\x59\x00\x77\x01",
     ._co_firsttraceable = 0,
@@ -103246,7 +103766,7 @@ static
         PyASCIIObject _ascii;
         uint8_t _data[69];
     }
-ntpath_toplevel_consts_45_consts_0 = {
+ntpath_toplevel_consts_46_consts_0 = {
     ._ascii = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103268,7 +103788,7 @@ static
         PyASCIIObject _ascii;
         uint8_t _data[38];
     }
-ntpath_toplevel_consts_45_consts_1 = {
+ntpath_toplevel_consts_46_consts_1 = {
     ._ascii = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103290,7 +103810,7 @@ static
         PyASCIIObject _ascii;
         uint8_t _data[38];
     }
-ntpath_toplevel_consts_45_consts_10 = {
+ntpath_toplevel_consts_46_consts_10 = {
     ._ascii = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103312,7 +103832,7 @@ static
         PyASCIIObject _ascii;
         uint8_t _data[32];
     }
-ntpath_toplevel_consts_45_consts_11 = {
+ntpath_toplevel_consts_46_consts_11 = {
     ._ascii = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103337,7 +103857,7 @@ static
             PyObject *ob_item[14];
         }_object;
     }
-ntpath_toplevel_consts_45_consts = {
+ntpath_toplevel_consts_46_consts = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103347,8 +103867,8 @@ ntpath_toplevel_consts_45_consts = {
             .ob_size = 14,
         },
         .ob_item = {
-            & ntpath_toplevel_consts_45_consts_0._ascii.ob_base,
-            & ntpath_toplevel_consts_45_consts_1._ascii.ob_base,
+            & ntpath_toplevel_consts_46_consts_0._ascii.ob_base,
+            & ntpath_toplevel_consts_46_consts_1._ascii.ob_base,
             (PyObject *)&_PyLong_SMALL_INTS[_PY_NSMALLNEGINTS + 0],
             (PyObject *)&_Py_SINGLETON(bytes_characters[92]),
             (PyObject *)&_Py_SINGLETON(bytes_characters[47]),
@@ -103357,8 +103877,8 @@ ntpath_toplevel_consts_45_consts = {
             (PyObject *)&_Py_SINGLETON(strings).ascii[47],
             (PyObject *)&_Py_SINGLETON(strings).ascii[46],
             (PyObject *)&_PyLong_SMALL_INTS[_PY_NSMALLNEGINTS + 1],
-            & ntpath_toplevel_consts_45_consts_10._ascii.ob_base,
-            & ntpath_toplevel_consts_45_consts_11._ascii.ob_base,
+            & ntpath_toplevel_consts_46_consts_10._ascii.ob_base,
+            & ntpath_toplevel_consts_46_consts_11._ascii.ob_base,
             Py_None,
             & const_str_commonpath._ascii.ob_base,
         },
@@ -103372,7 +103892,7 @@ static
             PyObject *ob_item[20];
         }_object;
     }
-ntpath_toplevel_consts_45_names = {
+ntpath_toplevel_consts_46_names = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103411,7 +103931,7 @@ static
         Py_hash_t ob_shash;
         char ob_sval[558];
     }
-ntpath_toplevel_consts_45_linetable = {
+ntpath_toplevel_consts_46_linetable = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103428,7 +103948,7 @@ static
         Py_hash_t ob_shash;
         char ob_sval[146];
     }
-ntpath_toplevel_consts_45_exceptiontable = {
+ntpath_toplevel_consts_46_exceptiontable = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103513,7 +104033,7 @@ static
             PyObject *ob_item[18];
         }_object;
     }
-ntpath_toplevel_consts_45_localsplusnames = {
+ntpath_toplevel_consts_46_localsplusnames = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103550,7 +104070,7 @@ static
         Py_hash_t ob_shash;
         char ob_sval[19];
     }
-ntpath_toplevel_consts_45_localspluskinds = {
+ntpath_toplevel_consts_46_localspluskinds = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103563,7 +104083,7 @@ ntpath_toplevel_consts_45_localspluskinds = {
 };
 static
     struct _PyCode_DEF(1120)
-ntpath_toplevel_consts_45 = {
+ntpath_toplevel_consts_46 = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103571,27 +104091,27 @@ ntpath_toplevel_consts_45 = {
         },
         .ob_size = 560,
     },
-    .co_consts = & ntpath_toplevel_consts_45_consts._object.ob_base.ob_base,
-    .co_names = & ntpath_toplevel_consts_45_names._object.ob_base.ob_base,
-    .co_exceptiontable = & ntpath_toplevel_consts_45_exceptiontable.ob_base.ob_base,
+    .co_consts = & ntpath_toplevel_consts_46_consts._object.ob_base.ob_base,
+    .co_names = & ntpath_toplevel_consts_46_names._object.ob_base.ob_base,
+    .co_exceptiontable = & ntpath_toplevel_consts_46_exceptiontable.ob_base.ob_base,
     .co_flags = 3,
     .co_argcount = 1,
     .co_posonlyargcount = 0,
     .co_kwonlyargcount = 0,
     .co_framesize = 28 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 10,
-    .co_firstlineno = 827,
+    .co_firstlineno = 838,
     .co_nlocalsplus = 18,
     .co_nlocals = 18,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 572,
-    .co_localsplusnames = & ntpath_toplevel_consts_45_localsplusnames._object.ob_base.ob_base,
-    .co_localspluskinds = & ntpath_toplevel_consts_45_localspluskinds.ob_base.ob_base,
+    .co_version = 576,
+    .co_localsplusnames = & ntpath_toplevel_consts_46_localsplusnames._object.ob_base.ob_base,
+    .co_localspluskinds = & ntpath_toplevel_consts_46_localspluskinds.ob_base.ob_base,
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
     .co_name = & const_str_commonpath._ascii.ob_base,
     .co_qualname = & const_str_commonpath._ascii.ob_base,
-    .co_linetable = & ntpath_toplevel_consts_45_linetable.ob_base.ob_base,
+    .co_linetable = & ntpath_toplevel_consts_46_linetable.ob_base.ob_base,
     ._co_cached = NULL,
     .co_code_adaptive = "\x97\x00\x7c\x00\x73\x0b\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x64\x01\xab\x01\x00\x00\x00\x00\x00\x00\x82\x01\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x74\x05\x00\x00\x00\x00\x00\x00\x00\x00\x74\x06\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x02\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x00\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x64\x02\x19\x00\x00\x00\x74\x0c\x00\x00\x00\x00\x00\x00\x00\x00\xab\x02\x00\x00\x00\x00\x00\x00\x72\x07\x64\x03\x7d\x01\x64\x04\x7d\x02\x64\x05\x7d\x03\x6e\x06\x64\x06\x7d\x01\x64\x07\x7d\x02\x64\x08\x7d\x03\x09\x00\x7c\x00\x44\x00\x8f\x04\x63\x02\x67\x00\x63\x02\x5d\x2b\x00\x00\x7d\x04\x74\x0f\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x04\x6a\x11\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\x7c\x01\xab\x02\x00\x00\x00\x00\x00\x00\x6a\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xab\x00\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x91\x02\x8c\x2d\x04\x00\x7d\x05\x7d\x04\x7c\x05\x44\x00\x8f\x06\x8f\x07\x8f\x04\x63\x04\x67\x00\x63\x02\x5d\x17\x00\x00\x5c\x03\x00\x00\x7d\x06\x7d\x07\x7d\x04\x7c\x04\x6a\x15\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x01\xab\x01\x00\x00\x00\x00\x00\x00\x91\x02\x8c\x19\x04\x00\x7d\x08\x7d\x07\x7d\x06\x7d\x04\x74\x17\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x05\x44\x00\x8f\x06\x8f\x07\x8f\x04\x63\x04\x68\x00\x63\x02\x5d\x08\x00\x00\x5c\x03\x00\x00\x7d\x06\x7d\x07\x7d\x04\x7c\x07\x92\x02\x8c\x0a\x04\x00\x63\x04\x7d\x04\x7d\x07\x7d\x06\xab\x01\x00\x00\x00\x00\x00\x00\x64\x09\x6b\x37\x00\x00\x72\x0b\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x64\x0a\xab\x01\x00\x00\x00\x00\x00\x00\x82\x01\x74\x17\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x05\x44\x00\x8f\x06\x8f\x07\x8f\x04\x63\x04\x68\x00\x63\x02\x5d\x08\x00\x00\x5c\x03\x00\x00\x7d\x06\x7d\x07\x7d\x04\x7c\x06\x92\x02\x8c\x0a\x04\x00\x63\x04\x7d\x04\x7d\x07\x7d\x06\xab\x01\x00\x00\x00\x00\x00\x00\x64\x09\x6b\x37\x00\x00\x72\x0b\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x64\x0b\xab\x01\x00\x00\x00\x00\x00\x00\x82\x01\x74\x0f\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x64\x02\x19\x00\x00\x00\x6a\x11\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x02\x7c\x01\xab\x02\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x5c\x03\x00\x00\x7d\x09\x7d\x0a\x7d\x0b\x7c\x0b\x6a\x15\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x01\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x0c\x7c\x0c\x44\x00\x8f\x0d\x63\x02\x67\x00\x63\x02\x5d\x0d\x00\x00\x7d\x0d\x7c\x0d\x73\x01\x8c\x06\x7c\x0d\x7c\x03\x6b\x37\x00\x00\x73\x01\x8c\x0c\x7c\x0d\x91\x02\x8c\x0f\x04\x00\x7d\x0c\x7d\x0d\x7c\x08\x44\x00\x8f\x0e\x8f\x0d\x63\x03\x67\x00\x63\x02\x5d\x1b\x00\x00\x7d\x0e\x7c\x0e\x44\x00\x8f\x0d\x63\x02\x67\x00\x63\x02\x5d\x0d\x00\x00\x7d\x0d\x7c\x0d\x73\x01\x8c\x06\x7c\x0d\x7c\x03\x6b\x37\x00\x00\x73\x01\x8c\x0c\x7c\x0d\x91\x02\x8c\x0f\x04\x00\x63\x02\x7d\x0d\x91\x02\x8c\x1d\x04\x00\x7d\x08\x7d\x0e\x7d\x0d\x74\x19\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x08\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x0f\x74\x1b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x08\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x10\x74\x1d\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0f\xab\x01\x00\x00\x00\x00\x00\x00\x44\x00\x5d\x14\x00\x00\x5c\x02\x00\x00\x7d\x11\x7d\x0d\x7c\x0d\x7c\x10\x7c\x11\x19\x00\x00\x00\x6b\x37\x00\x00\x73\x01\x8c\x0f\x7c\x0c\x64\x0c\x7c\x11\x1a\x00\x7d\x0c\x01\x00\x6e\x0f\x04\x00\x7c\x0c\x64\x0c\x74\x17\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0f\xab\x01\x00\x00\x00\x00\x00\x00\x1a\x00\x7d\x0c\x7c\x09\x7c\x0a\x7a\x00\x00\x00\x7c\x01\x6a\x1f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0c\xab\x01\x00\x00\x00\x00\x00\x00\x7a\x00\x00\x00\x53\x00\x63\x02\x01\x00\x63\x02\x7d\x04\x77\x00\x63\x02\x01\x00\x63\x04\x7d\x04\x7d\x07\x7d\x06\x77\x00\x63\x02\x01\x00\x63\x04\x7d\x04\x7d\x07\x7d\x06\x77\x00\x63\x02\x01\x00\x63\x04\x7d\x04\x7d\x07\x7d\x06\x77\x00\x63\x02\x01\x00\x63\x02\x7d\x0d\x77\x00\x63\x02\x01\x00\x63\x02\x7d\x0d\x77\x00\x63\x02\x01\x00\x63\x03\x7d\x0d\x7d\x0e\x77\x00\x23\x00\x74\x20\x00\x00\x00\x00\x00\x00\x00\x00\x74\x22\x00\x00\x00\x00\x00\x00\x00\x00\x66\x02\x24\x00\x72\x18\x01\x00\x74\x25\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x26\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x0d\x67\x01\x7c\x00\xa2\x01\xad\x06\x8e\x00\x01\x00\x82\x00\x77\x00\x78\x03\x59\x00\x77\x01",
     ._co_firsttraceable = 0,
@@ -103604,7 +104124,7 @@ static
             PyObject *ob_item[1];
         }_object;
     }
-ntpath_toplevel_consts_46 = {
+ntpath_toplevel_consts_47 = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103626,7 +104146,7 @@ static
             PyObject *ob_item[1];
         }_object;
     }
-ntpath_toplevel_consts_47 = {
+ntpath_toplevel_consts_48 = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103670,7 +104190,7 @@ static
             PyObject *ob_item[1];
         }_object;
     }
-ntpath_toplevel_consts_48 = {
+ntpath_toplevel_consts_49 = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103714,7 +104234,7 @@ static
             PyObject *ob_item[1];
         }_object;
     }
-ntpath_toplevel_consts_49 = {
+ntpath_toplevel_consts_50 = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103758,7 +104278,7 @@ static
             PyObject *ob_item[1];
         }_object;
     }
-ntpath_toplevel_consts_50 = {
+ntpath_toplevel_consts_51 = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103777,7 +104297,7 @@ static
         PyASCIIObject _ascii;
         uint8_t _data[65];
     }
-ntpath_toplevel_consts_51_consts_0 = {
+ntpath_toplevel_consts_52_consts_0 = {
     ._ascii = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103802,7 +104322,7 @@ static
             PyObject *ob_item[2];
         }_object;
     }
-ntpath_toplevel_consts_51_consts = {
+ntpath_toplevel_consts_52_consts = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103812,7 +104332,7 @@ ntpath_toplevel_consts_51_consts = {
             .ob_size = 2,
         },
         .ob_item = {
-            & ntpath_toplevel_consts_51_consts_0._ascii.ob_base,
+            & ntpath_toplevel_consts_52_consts_0._ascii.ob_base,
             Py_False,
         },
     },
@@ -103825,7 +104345,7 @@ static
             PyObject *ob_item[3];
         }_object;
     }
-ntpath_toplevel_consts_51_names = {
+ntpath_toplevel_consts_52_names = {
     ._object = {
         .ob_base = {
             .ob_base = {
@@ -103869,7 +104389,7 @@ static
         Py_hash_t ob_shash;
         char ob_sval[41];
     }
-ntpath_toplevel_consts_51_linetable = {
+ntpath_toplevel_consts_52_linetable = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103886,7 +104406,7 @@ static
         Py_hash_t ob_shash;
         char ob_sval[13];
     }
-ntpath_toplevel_consts_51_exceptiontable = {
+ntpath_toplevel_consts_52_exceptiontable = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103899,7 +104419,7 @@ ntpath_toplevel_consts_51_exceptiontable = {
 };
 static
     struct _PyCode_DEF(74)
-ntpath_toplevel_consts_51 = {
+ntpath_toplevel_consts_52 = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103907,27 +104427,27 @@ ntpath_toplevel_consts_51 = {
         },
         .ob_size = 37,
     },
-    .co_consts = & ntpath_toplevel_consts_51_consts._object.ob_base.ob_base,
-    .co_names = & ntpath_toplevel_consts_51_names._object.ob_base.ob_base,
-    .co_exceptiontable = & ntpath_toplevel_consts_51_exceptiontable.ob_base.ob_base,
+    .co_consts = & ntpath_toplevel_consts_52_consts._object.ob_base.ob_base,
+    .co_names = & ntpath_toplevel_consts_52_names._object.ob_base.ob_base,
+    .co_exceptiontable = & ntpath_toplevel_consts_52_exceptiontable.ob_base.ob_base,
     .co_flags = 3,
     .co_argcount = 1,
     .co_posonlyargcount = 0,
     .co_kwonlyargcount = 0,
     .co_framesize = 6 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 5,
-    .co_firstlineno = 897,
+    .co_firstlineno = 908,
     .co_nlocalsplus = 1,
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 573,
+    .co_version = 577,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
     .co_name = & const_str_isdevdrive._ascii.ob_base,
     .co_qualname = & const_str_isdevdrive._ascii.ob_base,
-    .co_linetable = & ntpath_toplevel_consts_51_linetable.ob_base.ob_base,
+    .co_linetable = & ntpath_toplevel_consts_52_linetable.ob_base.ob_base,
     ._co_cached = NULL,
     .co_code_adaptive = "\x97\x00\x09\x00\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x74\x03\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x53\x00\x23\x00\x74\x04\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x03\x01\x00\x59\x00\x79\x01\x77\x00\x78\x03\x59\x00\x77\x01",
     ._co_firsttraceable = 0,
@@ -103938,7 +104458,7 @@ static
         Py_hash_t ob_shash;
         char ob_sval[8];
     }
-ntpath_toplevel_consts_52_linetable = {
+ntpath_toplevel_consts_53_linetable = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103951,7 +104471,7 @@ ntpath_toplevel_consts_52_linetable = {
 };
 static
     struct _PyCode_DEF(4)
-ntpath_toplevel_consts_52 = {
+ntpath_toplevel_consts_53 = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
@@ -103959,7 +104479,7 @@ ntpath_toplevel_consts_52 = {
         },
         .ob_size = 2,
     },
-    .co_consts = & ntpath_toplevel_consts_51_consts._object.ob_base.ob_base,
+    .co_consts = & ntpath_toplevel_consts_52_consts._object.ob_base.ob_base,
     .co_names = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_exceptiontable = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_flags = 3,
@@ -103968,18 +104488,18 @@ ntpath_toplevel_consts_52 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 1 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 0,
-    .co_firstlineno = 892,
+    .co_firstlineno = 903,
     .co_nlocalsplus = 1,
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 574,
+    .co_version = 578,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
     .co_name = & const_str_isdevdrive._ascii.ob_base,
     .co_qualname = & const_str_isdevdrive._ascii.ob_base,
-    .co_linetable = & ntpath_toplevel_consts_52_linetable.ob_base.ob_base,
+    .co_linetable = & ntpath_toplevel_consts_53_linetable.ob_base.ob_base,
     ._co_cached = NULL,
     .co_code_adaptive = "\x97\x00\x79\x01",
     ._co_firsttraceable = 0,
@@ -103989,7 +104509,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[54];
+            PyObject *ob_item[55];
         }_object;
     }
 ntpath_toplevel_consts = {
@@ -103999,7 +104519,7 @@ ntpath_toplevel_consts = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 54,
+            .ob_size = 55,
         },
         .ob_item = {
             & ntpath_toplevel_consts_0._ascii.ob_base,
@@ -104045,16 +104565,17 @@ ntpath_toplevel_consts = {
             Py_False,
             & codecs_toplevel_consts_14_consts_5._object.ob_base.ob_base,
             & ntpath_toplevel_consts_42.ob_base.ob_base,
+            & ntpath_toplevel_consts_43.ob_base.ob_base,
             Py_True,
-            & ntpath_toplevel_consts_44.ob_base.ob_base,
             & ntpath_toplevel_consts_45.ob_base.ob_base,
-            & ntpath_toplevel_consts_46._object.ob_base.ob_base,
+            & ntpath_toplevel_consts_46.ob_base.ob_base,
             & ntpath_toplevel_consts_47._object.ob_base.ob_base,
             & ntpath_toplevel_consts_48._object.ob_base.ob_base,
             & ntpath_toplevel_consts_49._object.ob_base.ob_base,
             & ntpath_toplevel_consts_50._object.ob_base.ob_base,
-            & ntpath_toplevel_consts_51.ob_base.ob_base,
+            & ntpath_toplevel_consts_51._object.ob_base.ob_base,
             & ntpath_toplevel_consts_52.ob_base.ob_base,
+            & ntpath_toplevel_consts_53.ob_base.ob_base,
             & importlib__bootstrap_toplevel_consts_1_consts._object.ob_base.ob_base,
         },
     },
@@ -104108,7 +104629,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[65];
+            PyObject *ob_item[66];
         }_object;
     }
 ntpath_toplevel_names = {
@@ -104118,7 +104639,7 @@ ntpath_toplevel_names = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 65,
+            .ob_size = 66,
         },
         .ob_item = {
             &_Py_ID(__doc__),
@@ -104170,6 +104691,7 @@ ntpath_toplevel_names = {
             & const_str__getfinalpathname._ascii.ob_base,
             & const_str_readlink._ascii.ob_base,
             & const_str__nt_readlink._ascii.ob_base,
+            & const_str_OSError._ascii.ob_base,
             & const_str__readlink_deep._ascii.ob_base,
             & const_str__getfinalpathname_nonstrict._ascii.ob_base,
             & const_str_realpath._ascii.ob_base,
@@ -104193,7 +104715,7 @@ static
     struct {
         PyObject_VAR_HEAD
         Py_hash_t ob_shash;
-        char ob_sval[484];
+        char ob_sval[498];
     }
 ntpath_toplevel_linetable = {
     .ob_base = {
@@ -104201,10 +104723,10 @@ ntpath_toplevel_linetable = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyBytes_Type,
         },
-        .ob_size = 483,
+        .ob_size = 497,
     },
     .ob_shash = -1,
-    .ob_sval = "\xf0\x03\x01\x01\x01\xf1\x04\x04\x01\x04\xf0\x12\x00\x0a\x0d\x80\x06\xd8\x09\x0d\x80\x06\xd8\x09\x0c\x80\x06\xd8\x06\x0a\x80\x03\xd8\x0a\x0d\x80\x07\xd8\x09\x0c\x80\x06\xd8\x0a\x15\x80\x07\xd8\x0a\x0f\x80\x07\xe3\x00\x09\xdb\x00\x0a\xdb\x00\x0b\xdb\x00\x12\xdc\x00\x19\xf2\x06\x06\x0b\x4f\x01\x80\x07\xf2\x10\x04\x01\x15\xf0\x14\x21\x01\x2c\xf7\x02\x03\x05\x2d\xf1\x00\x03\x05\x2d\xf2\x0a\x11\x05\x38\xf2\x48\x01\x10\x01\x11\xf2\x28\x2b\x01\x0e\xf2\x62\x01\x14\x01\x1e\xf2\x2e\x31\x01\x1f\xf2\x72\x01\x0d\x01\x2b\xf2\x2a\x05\x01\x38\xf0\x0c\x00\x14\x1f\xd7\x13\x28\xd1\x13\x28\xd7\x13\x30\xd1\x13\x30\x80\x08\xd4\x00\x10\xf2\x0a\x02\x01\x17\xf2\x0e\x02\x01\x17\xf1\x0e\x00\x04\x0b\x88\x32\x8f\x3e\x89\x3e\xd0\x1b\x2b\xd4\x03\x2c\xf3\x02\x06\x05\x4a\x01\xf2\x10\x03\x05\x15\xf2\x10\x06\x01\x10\xf0\x24\x03\x01\x1e\xdd\x04\x25\xf2\x06\x11\x01\x15\xf2\x3a\x2d\x01\x1f\xf2\x7a\x01\x6a\x01\x01\x0f\xf0\x60\x03\x26\x01\x28\xdd\x04\x2d\xf0\x52\x01\x29\x01\x1e\xdd\x04\x23\xf2\x1e\x19\x05\x1e\xf0\x36\x5d\x02\x01\x14\xdf\x04\x3e\xf2\x0a\x28\x05\x14\xf2\x54\x01\x2f\x05\x14\xf0\x62\x01\x00\x22\x27\xf4\x00\x3c\x05\x14\xf0\x40\x02\x00\x1e\x22\xd0\x00\x1a\xf3\x04\x2b\x01\x0e\xf2\x70\x01\x2e\x01\x0e\xf0\x62\x01\x0a\x01\x09\xf5\x08\x00\x05\x28\xdd\x04\x29\xdd\x04\x29\xdd\x04\x29\xf0\x0c\x0d\x01\x19\xdd\x04\x23\xf3\x0e\x05\x05\x19\xf8\xf0\x79\x19\x00\x08\x13\xf2\x00\x09\x01\x2c\xf4\x02\x08\x05\x2c\xf0\x03\x09\x01\x2c\xfb\xf0\x74\x07\x00\x08\x13\xf2\x00\x01\x01\x1e\xd8\x19\x1d\xd2\x04\x16\xf0\x03\x01\x01\x1e\xfb\xf0\x5e\x06\x00\x08\x13\xf2\x00\x23\x01\x28\xf4\x02\x22\x05\x28\xf0\x03\x23\x01\x28\xfb\xf0\x54\x01\x00\x08\x13\xf2\x00\x0a\x01\x1e\xf4\x02\x09\x05\x1e\xf0\x03\x0a\x01\x1e\xfb\xf0\x54\x01\x00\x08\x13\xf2\x00\x02\x01\x17\xe0\x0f\x16\x82\x48\xf0\x05\x02\x01\x17\xfb\xf0\x64\x08\x00\x08\x13\xf2\x00\x02\x01\x09\xe1\x04\x08\xf0\x05\x02\x01\x09\xfb\xf0\x0e\x00\x08\x13\xf2\x00\x04\x01\x15\xf4\x02\x03\x05\x15\xf0\x03\x04\x01\x15\xfa",
+    .ob_sval = "\xf0\x03\x01\x01\x01\xf1\x04\x04\x01\x04\xf0\x12\x00\x0a\x0d\x80\x06\xd8\x09\x0d\x80\x06\xd8\x09\x0c\x80\x06\xd8\x06\x0a\x80\x03\xd8\x0a\x0d\x80\x07\xd8\x09\x0c\x80\x06\xd8\x0a\x15\x80\x07\xd8\x0a\x0f\x80\x07\xe3\x00\x09\xdb\x00\x0a\xdb\x00\x0b\xdb\x00\x12\xdc\x00\x19\xf2\x06\x07\x0b\x1c\x80\x07\xf2\x12\x04\x01\x15\xf0\x14\x21\x01\x2c\xf7\x02\x03\x05\x2d\xf1\x00\x03\x05\x2d\xf2\x0a\x11\x05\x38\xf2\x48\x01\x10\x01\x11\xf2\x28\x2b\x01\x0e\xf2\x62\x01\x14\x01\x1e\xf2\x2e\x31\x01\x1f\xf2\x72\x01\x0d\x01\x2b\xf2\x2a\x05\x01\x38\xf0\x0c\x00\x14\x1f\xd7\x13\x28\xd1\x13\x28\xd7\x13\x30\xd1\x13\x30\x80\x08\xd4\x00\x10\xf2\x0a\x02\x01\x17\xf2\x0e\x02\x01\x17\xf1\x0e\x00\x04\x0b\x88\x32\x8f\x3e\x89\x3e\xd0\x1b\x2b\xd4\x03\x2c\xf3\x02\x06\x05\x4a\x01\xf2\x10\x03\x05\x15\xf2\x10\x06\x01\x10\xf0\x24\x03\x01\x1e\xdd\x04\x25\xf2\x06\x11\x01\x15\xf2\x3a\x2d\x01\x1f\xf2\x7a\x01\x6a\x01\x01\x0f\xf0\x60\x03\x26\x01\x28\xdd\x04\x2d\xf0\x52\x01\x29\x01\x1e\xdd\x04\x23\xf2\x1e\x19\x05\x1e\xf0\x36\x67\x02\x01\x14\xdf\x04\x3e\xf0\x0c\x00\x2c\x33\xf3\x00\x28\x05\x14\xf0\x54\x01\x00\x39\x40\x01\xf3\x00\x30\x05\x14\xf0\x64\x01\x00\x22\x27\xf4\x00\x44\x01\x05\x14\xf0\x50\x02\x00\x1e\x22\xd0\x00\x1a\xf3\x04\x2b\x01\x0e\xf2\x70\x01\x2e\x01\x0e\xf0\x62\x01\x0a\x01\x09\xf5\x08\x00\x05\x28\xdd\x04\x29\xdd\x04\x29\xdd\x04\x29\xf0\x0c\x0d\x01\x19\xdd\x04\x23\xf3\x0e\x05\x05\x19\xf8\xf0\x4d\x1a\x00\x08\x13\xf2\x00\x09\x01\x2c\xf4\x02\x08\x05\x2c\xf0\x03\x09\x01\x2c\xfb\xf0\x74\x07\x00\x08\x13\xf2\x00\x01\x01\x1e\xd8\x19\x1d\xd2\x04\x16\xf0\x03\x01\x01\x1e\xfb\xf0\x5e\x06\x00\x08\x13\xf2\x00\x23\x01\x28\xf4\x02\x22\x05\x28\xf0\x03\x23\x01\x28\xfb\xf0\x54\x01\x00\x08\x13\xf2\x00\x0a\x01\x1e\xf4\x02\x09\x05\x1e\xf0\x03\x0a\x01\x1e\xfb\xf0\x54\x01\x00\x08\x13\xf2\x00\x03\x01\x1d\xe0\x21\x26\xf6\x00\x01\x05\x1d\xf0\x05\x03\x01\x1d\xfb\xf0\x78\x08\x00\x08\x13\xf2\x00\x02\x01\x09\xe1\x04\x08\xf0\x05\x02\x01\x09\xfb\xf0\x0e\x00\x08\x13\xf2\x00\x04\x01\x15\xf4\x02\x03\x05\x15\xf0\x03\x04\x01\x15\xfa",
 };
 static
     struct {
@@ -104221,17 +104743,17 @@ ntpath_toplevel_exceptiontable = {
         .ob_size = 125,
     },
     .ob_shash = -1,
-    .ob_sval = "\xb0\x0d\x43\x30\x00\xc2\x0e\x06\x43\x3e\x00\xc2\x1e\x06\x44\x0b\x00\xc2\x25\x06\x44\x19\x00\xc2\x2f\x08\x44\x27\x00\xc3\x0d\x18\x44\x34\x00\xc3\x26\x06\x44\x3f\x00\xc3\x30\x08\x43\x3b\x03\xc3\x3a\x01\x43\x3b\x03\xc3\x3e\x07\x44\x08\x03\xc4\x07\x01\x44\x08\x03\xc4\x0b\x08\x44\x16\x03\xc4\x15\x01\x44\x16\x03\xc4\x19\x08\x44\x24\x03\xc4\x23\x01\x44\x24\x03\xc4\x27\x07\x44\x31\x03\xc4\x30\x01\x44\x31\x03\xc4\x34\x05\x44\x3c\x03\xc4\x3b\x01\x44\x3c\x03\xc4\x3f\x08\x45\x0a\x03\xc5\x09\x01\x45\x0a\x03",
+    .ob_sval = "\xb0\x0d\x43\x34\x00\xc2\x0e\x06\x44\x02\x00\xc2\x1e\x06\x44\x0f\x00\xc2\x25\x06\x44\x1d\x00\xc2\x2f\x08\x44\x2b\x00\xc3\x11\x18\x44\x3c\x00\xc3\x2a\x06\x45\x07\x00\xc3\x34\x08\x43\x3f\x03\xc3\x3e\x01\x43\x3f\x03\xc4\x02\x07\x44\x0c\x03\xc4\x0b\x01\x44\x0c\x03\xc4\x0f\x08\x44\x1a\x03\xc4\x19\x01\x44\x1a\x03\xc4\x1d\x08\x44\x28\x03\xc4\x27\x01\x44\x28\x03\xc4\x2b\x0b\x44\x39\x03\xc4\x38\x01\x44\x39\x03\xc4\x3c\x05\x45\x04\x03\xc5\x03\x01\x45\x04\x03\xc5\x07\x08\x45\x12\x03\xc5\x11\x01\x45\x12\x03",
 };
 static
-    struct _PyCode_DEF(666)
+    struct _PyCode_DEF(682)
 ntpath_toplevel = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyCode_Type,
         },
-        .ob_size = 333,
+        .ob_size = 341,
     },
     .co_consts = & ntpath_toplevel_consts._object.ob_base.ob_base,
     .co_names = & ntpath_toplevel_names._object.ob_base.ob_base,
@@ -104247,7 +104769,7 @@ ntpath_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 575,
+    .co_version = 579,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & ntpath_toplevel_consts_12_filename._ascii.ob_base,
@@ -104255,7 +104777,7 @@ ntpath_toplevel = {
     .co_qualname = &_Py_STR(anon_module),
     .co_linetable = & ntpath_toplevel_linetable.ob_base.ob_base,
     ._co_cached = NULL,
-    .co_code_adaptive = "\x97\x00\x64\x00\x5a\x00\x64\x01\x5a\x01\x64\x02\x5a\x02\x64\x01\x5a\x03\x64\x03\x5a\x04\x64\x04\x5a\x05\x64\x05\x5a\x06\x64\x06\x5a\x07\x64\x07\x5a\x08\x64\x08\x64\x09\x6c\x09\x5a\x09\x64\x08\x64\x09\x6c\x0a\x5a\x0a\x64\x08\x64\x09\x6c\x0b\x5a\x0b\x64\x08\x64\x09\x6c\x0c\x5a\x0c\x64\x08\x64\x0a\x6c\x0c\xad\x02\x01\x00\x67\x00\x64\x0b\xa2\x01\x5a\x0d\x64\x0c\x84\x00\x5a\x0e\x09\x00\x64\x08\x64\x0d\x6c\x0f\x6d\x10\x5a\x11\x6d\x12\x5a\x13\x6d\x14\x5a\x15\x01\x00\x64\x0e\x84\x00\x5a\x16\x64\x10\x84\x00\x5a\x18\x64\x11\x84\x00\x5a\x19\x64\x12\x84\x00\x5a\x1a\x64\x13\x84\x00\x5a\x1b\x64\x14\x84\x00\x5a\x1c\x64\x15\x84\x00\x5a\x1d\x65\x0c\x6a\x3c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x65\x1d\x5f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x16\x84\x00\x5a\x1f\x64\x17\x84\x00\x5a\x20\x02\x00\x65\x21\x65\x09\x6a\x44\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x18\xab\x02\x00\x00\x00\x00\x00\x00\x72\x04\x64\x19\x84\x00\x5a\x23\x6e\x03\x64\x1a\x84\x00\x5a\x23\x64\x1b\x84\x00\x5a\x24\x09\x00\x64\x08\x64\x1c\x6c\x25\x6d\x26\x5a\x26\x01\x00\x64\x1d\x84\x00\x5a\x27\x64\x1e\x84\x00\x5a\x28\x64\x1f\x84\x00\x5a\x29\x09\x00\x64\x08\x64\x20\x6c\x25\x6d\x2a\x5a\x2b\x01\x00\x09\x00\x64\x08\x64\x22\x6c\x25\x6d\x2c\x5a\x2c\x01\x00\x64\x23\x84\x00\x5a\x2d\x09\x00\x64\x08\x64\x25\x6c\x25\x6d\x2e\x5a\x2e\x6d\x2f\x5a\x30\x01\x00\x64\x26\x84\x00\x5a\x31\x64\x27\x84\x00\x5a\x32\x64\x28\x64\x29\x9c\x01\x64\x2a\x84\x02\x5a\x33\x64\x2b\x5a\x34\x64\x35\x64\x2c\x84\x01\x5a\x35\x64\x2d\x84\x00\x5a\x36\x09\x00\x64\x08\x64\x2e\x6c\x25\x6d\x37\x5a\x38\x01\x00\x64\x08\x64\x2f\x6c\x25\x6d\x39\x5a\x3a\x01\x00\x64\x08\x64\x30\x6c\x25\x6d\x3b\x5a\x3c\x01\x00\x64\x08\x64\x31\x6c\x25\x6d\x3d\x5a\x3e\x01\x00\x09\x00\x64\x08\x64\x32\x6c\x25\x6d\x3f\x5a\x3f\x01\x00\x64\x33\x84\x00\x5a\x40\x79\x09\x23\x00\x65\x17\x24\x00\x72\x06\x01\x00\x64\x0f\x84\x00\x5a\x16\x59\x00\x8c\xbd\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x05\x01\x00\x64\x09\x5a\x26\x59\x00\x8c\x73\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x06\x01\x00\x64\x21\x84\x00\x5a\x2b\x59\x00\x8c\x71\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x06\x01\x00\x64\x24\x84\x00\x5a\x2d\x59\x00\x8c\x75\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x05\x01\x00\x65\x2d\x5a\x33\x59\x00\x8c\x6d\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x03\x01\x00\x59\x00\x8c\x56\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x06\x01\x00\x64\x34\x84\x00\x5a\x40\x59\x00\x79\x09\x77\x00\x78\x03\x59\x00\x77\x01",
+    .co_code_adaptive = "\x97\x00\x64\x00\x5a\x00\x64\x01\x5a\x01\x64\x02\x5a\x02\x64\x01\x5a\x03\x64\x03\x5a\x04\x64\x04\x5a\x05\x64\x05\x5a\x06\x64\x06\x5a\x07\x64\x07\x5a\x08\x64\x08\x64\x09\x6c\x09\x5a\x09\x64\x08\x64\x09\x6c\x0a\x5a\x0a\x64\x08\x64\x09\x6c\x0b\x5a\x0b\x64\x08\x64\x09\x6c\x0c\x5a\x0c\x64\x08\x64\x0a\x6c\x0c\xad\x02\x01\x00\x67\x00\x64\x0b\xa2\x01\x5a\x0d\x64\x0c\x84\x00\x5a\x0e\x09\x00\x64\x08\x64\x0d\x6c\x0f\x6d\x10\x5a\x11\x6d\x12\x5a\x13\x6d\x14\x5a\x15\x01\x00\x64\x0e\x84\x00\x5a\x16\x64\x10\x84\x00\x5a\x18\x64\x11\x84\x00\x5a\x19\x64\x12\x84\x00\x5a\x1a\x64\x13\x84\x00\x5a\x1b\x64\x14\x84\x00\x5a\x1c\x64\x15\x84\x00\x5a\x1d\x65\x0c\x6a\x3c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x65\x1d\x5f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x16\x84\x00\x5a\x1f\x64\x17\x84\x00\x5a\x20\x02\x00\x65\x21\x65\x09\x6a\x44\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x18\xab\x02\x00\x00\x00\x00\x00\x00\x72\x04\x64\x19\x84\x00\x5a\x23\x6e\x03\x64\x1a\x84\x00\x5a\x23\x64\x1b\x84\x00\x5a\x24\x09\x00\x64\x08\x64\x1c\x6c\x25\x6d\x26\x5a\x26\x01\x00\x64\x1d\x84\x00\x5a\x27\x64\x1e\x84\x00\x5a\x28\x64\x1f\x84\x00\x5a\x29\x09\x00\x64\x08\x64\x20\x6c\x25\x6d\x2a\x5a\x2b\x01\x00\x09\x00\x64\x08\x64\x22\x6c\x25\x6d\x2c\x5a\x2c\x01\x00\x64\x23\x84\x00\x5a\x2d\x09\x00\x64\x08\x64\x25\x6c\x25\x6d\x2e\x5a\x2e\x6d\x2f\x5a\x30\x01\x00\x65\x31\x66\x01\x64\x26\x84\x01\x5a\x32\x65\x31\x66\x01\x64\x27\x84\x01\x5a\x33\x64\x28\x64\x29\x9c\x01\x64\x2a\x84\x02\x5a\x34\x64\x2c\x5a\x35\x64\x36\x64\x2d\x84\x01\x5a\x36\x64\x2e\x84\x00\x5a\x37\x09\x00\x64\x08\x64\x2f\x6c\x25\x6d\x38\x5a\x39\x01\x00\x64\x08\x64\x30\x6c\x25\x6d\x3a\x5a\x3b\x01\x00\x64\x08\x64\x31\x6c\x25\x6d\x3c\x5a\x3d\x01\x00\x64\x08\x64\x32\x6c\x25\x6d\x3e\x5a\x3f\x01\x00\x09\x00\x64\x08\x64\x33\x6c\x25\x6d\x40\x5a\x40\x01\x00\x64\x34\x84\x00\x5a\x41\x79\x09\x23\x00\x65\x17\x24\x00\x72\x06\x01\x00\x64\x0f\x84\x00\x5a\x16\x59\x00\x8c\xc1\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x05\x01\x00\x64\x09\x5a\x26\x59\x00\x8c\x77\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x06\x01\x00\x64\x21\x84\x00\x5a\x2b\x59\x00\x8c\x75\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x06\x01\x00\x64\x24\x84\x00\x5a\x2d\x59\x00\x8c\x79\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x09\x01\x00\x64\x28\x64\x29\x9c\x01\x64\x2b\x84\x02\x5a\x34\x59\x00\x8c\x71\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x03\x01\x00\x59\x00\x8c\x5a\x77\x00\x78\x03\x59\x00\x77\x01\x23\x00\x65\x17\x24\x00\x72\x06\x01\x00\x64\x35\x84\x00\x5a\x41\x59\x00\x79\x09\x77\x00\x78\x03\x59\x00\x77\x01",
     ._co_firsttraceable = 0,
 };
 
@@ -104336,7 +104858,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[40];
+            PyObject *ob_item[41];
         }_object;
     }
 posixpath_toplevel_consts_10 = {
@@ -104346,7 +104868,7 @@ posixpath_toplevel_consts_10 = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 40,
+            .ob_size = 41,
         },
         .ob_item = {
             & const_str_normcase._ascii.ob_base,
@@ -104389,6 +104911,7 @@ posixpath_toplevel_consts_10 = {
             & const_str_relpath._ascii.ob_base,
             & const_str_commonpath._ascii.ob_base,
             & const_str_isjunction._ascii.ob_base,
+            & const_str_ALLOW_MISSING._ascii.ob_base,
         },
     },
 };
@@ -104501,7 +105024,7 @@ posixpath_toplevel_consts_11 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 576,
+    .co_version = 580,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -104597,7 +105120,7 @@ posixpath_toplevel_consts_12 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 577,
+    .co_version = 581,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -104719,7 +105242,7 @@ posixpath_toplevel_consts_13 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 578,
+    .co_version = 582,
     .co_localsplusnames = & posixpath_toplevel_consts_13_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -104893,7 +105416,7 @@ posixpath_toplevel_consts_14 = {
     .co_nlocals = 5,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 579,
+    .co_version = 583,
     .co_localsplusnames = & posixpath_toplevel_consts_14_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_5_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -105044,7 +105567,7 @@ posixpath_toplevel_consts_15 = {
     .co_nlocals = 5,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 580,
+    .co_version = 584,
     .co_localsplusnames = & posixpath_toplevel_consts_15_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_5_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -105146,7 +105669,7 @@ posixpath_toplevel_consts_16 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 581,
+    .co_version = 585,
     .co_localsplusnames = & posixpath_toplevel_consts_16_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -105244,7 +105767,7 @@ posixpath_toplevel_consts_17 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 582,
+    .co_version = 586,
     .co_localsplusnames = & ntpath_toplevel_consts_21_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -105397,7 +105920,7 @@ posixpath_toplevel_consts_18 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 583,
+    .co_version = 587,
     .co_localsplusnames = & posixpath_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -105522,7 +106045,7 @@ posixpath_toplevel_consts_19 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 584,
+    .co_version = 588,
     .co_localsplusnames = & posixpath_toplevel_consts_19_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -105623,7 +106146,7 @@ posixpath_toplevel_consts_20 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 585,
+    .co_version = 589,
     .co_localsplusnames = & posixpath_toplevel_consts_20_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -105720,7 +106243,7 @@ posixpath_toplevel_consts_21 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 586,
+    .co_version = 590,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -105772,7 +106295,7 @@ posixpath_toplevel_consts_22 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 587,
+    .co_version = 591,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -106041,7 +106564,7 @@ posixpath_toplevel_consts_23 = {
     .co_nlocals = 8,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 588,
+    .co_version = 592,
     .co_localsplusnames = & posixpath_toplevel_consts_23_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_13_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -106411,7 +106934,7 @@ posixpath_toplevel_consts_24 = {
     .co_nlocals = 9,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 589,
+    .co_version = 593,
     .co_localsplusnames = & posixpath_toplevel_consts_24_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_61_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -106782,7 +107305,7 @@ posixpath_toplevel_consts_25 = {
     .co_nlocals = 12,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 590,
+    .co_version = 594,
     .co_localsplusnames = & posixpath_toplevel_consts_25_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_external_toplevel_consts_36_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -107014,7 +107537,7 @@ posixpath_toplevel_consts_27 = {
     .co_nlocals = 10,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 591,
+    .co_version = 595,
     .co_localsplusnames = & posixpath_toplevel_consts_27_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -107110,7 +107633,7 @@ posixpath_toplevel_consts_28 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 592,
+    .co_version = 596,
     .co_localsplusnames = & ntpath_toplevel_consts_36_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -107302,7 +107825,7 @@ posixpath_toplevel_consts_31 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 593,
+    .co_version = 597,
     .co_localsplusnames = & posixpath_toplevel_consts_31_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -107318,7 +107841,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[10];
+            PyObject *ob_item[11];
         }_object;
     }
 posixpath_toplevel_consts_32_consts = {
@@ -107328,7 +107851,7 @@ posixpath_toplevel_consts_32_consts = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 10,
+            .ob_size = 11,
         },
         .ob_item = {
             Py_None,
@@ -107338,6 +107861,7 @@ posixpath_toplevel_consts_32_consts = {
             (PyObject *)&_Py_SINGLETON(strings).ascii[47],
             (PyObject *)&_Py_SINGLETON(strings).ascii[46],
             & ntpath_toplevel_consts_2._ascii.ob_base,
+            (PyObject *)& _Py_SINGLETON(tuple_empty),
             (PyObject *)&_PyLong_SMALL_INTS[_PY_NSMALLNEGINTS + 1],
             Py_False,
             Py_True,
@@ -107349,7 +107873,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[14];
+            PyObject *ob_item[17];
         }_object;
     }
 posixpath_toplevel_consts_32_names = {
@@ -107359,21 +107883,24 @@ posixpath_toplevel_consts_32_names = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 14,
+            .ob_size = 17,
         },
         .ob_item = {
             &_Py_ID(isinstance),
             &_Py_ID(bytes),
+            & const_str_os._ascii.ob_base,
+            & const_str_getcwd._ascii.ob_base,
+            & const_str_ALLOW_MISSING._ascii.ob_base,
+            & const_str_FileNotFoundError._ascii.ob_base,
+            & const_str_OSError._ascii.ob_base,
             & const_str_isabs._ascii.ob_base,
             & const_str_partition._ascii.ob_base,
             & const_str_split._ascii.ob_base,
             &_Py_ID(join),
-            & const_str_os._ascii.ob_base,
             & const_str_lstat._ascii.ob_base,
             & const_str_stat._ascii.ob_base,
             & const_str_S_ISLNK._ascii.ob_base,
             & const_str_st_mode._ascii.ob_base,
-            & const_str_OSError._ascii.ob_base,
             & const_str__joinrealpath._ascii.ob_base,
             & const_str_readlink._ascii.ob_base,
         },
@@ -107383,7 +107910,7 @@ static
     struct {
         PyObject_VAR_HEAD
         Py_hash_t ob_shash;
-        char ob_sval[390];
+        char ob_sval[424];
     }
 posixpath_toplevel_consts_32_linetable = {
     .ob_base = {
@@ -107391,10 +107918,10 @@ posixpath_toplevel_consts_32_linetable = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyBytes_Type,
         },
-        .ob_size = 389,
+        .ob_size = 423,
     },
     .ob_shash = -1,
-    .ob_sval = "\x80\x00\xdc\x07\x11\x90\x24\x9c\x05\xd4\x07\x1e\xd8\x0e\x12\x88\x03\xd8\x11\x15\x88\x06\xd8\x11\x16\x89\x06\xe0\x0e\x11\x88\x03\xd8\x11\x14\x88\x06\xd8\x11\x15\x88\x06\xe4\x07\x0c\x88\x54\x84\x7b\xd8\x0f\x13\x90\x41\x90\x42\x88\x78\x88\x04\xd8\x0f\x12\x88\x04\xe2\x0a\x0e\xd8\x18\x1c\x9f\x0e\x99\x0e\xa0\x73\xd3\x18\x2b\x89\x0d\x88\x04\x88\x61\x90\x14\xd9\x0f\x13\x90\x74\x98\x76\x92\x7e\xe0\x0c\x14\xd8\x0b\x0f\x90\x36\x8a\x3e\xe1\x0f\x13\xdc\x1d\x22\xa0\x34\x9b\x5b\x91\x0a\x90\x04\x90\x64\xd8\x13\x17\x98\x36\x92\x3e\xdc\x1b\x1f\xa0\x04\xa0\x66\xa8\x66\xd3\x1b\x35\x91\x44\xe0\x17\x1d\x90\x04\xd8\x0c\x14\xdc\x12\x16\x90\x74\x98\x54\xd3\x12\x22\x88\x07\xf0\x02\x07\x09\x2f\xdc\x11\x13\x97\x18\x91\x18\x98\x27\xd3\x11\x22\x88\x42\xf4\x0c\x00\x17\x1b\x97\x6c\x91\x6c\xa0\x32\xa7\x3a\xa1\x3a\xd3\x16\x2e\x88\x47\xd9\x0f\x16\xd8\x13\x1a\x88\x44\xd8\x0c\x14\xe0\x0b\x12\x90\x64\x89\x3f\xe0\x13\x17\x98\x07\x91\x3d\x88\x44\xd8\x0f\x13\xd0\x0f\x1f\xe0\x10\x18\xe1\x0f\x15\xe4\x10\x12\x97\x07\x91\x07\x98\x07\xd5\x10\x20\xf4\x06\x00\x18\x1c\x98\x47\xa0\x54\xd3\x17\x2a\xa8\x45\xd0\x17\x31\xd0\x10\x31\xd8\x18\x1c\x88\x04\x88\x57\x89\x0d\xdc\x13\x20\xa0\x14\xa4\x72\xa7\x7b\xa1\x7b\xb0\x37\xd3\x27\x3b\xb8\x56\xc0\x54\xd3\x13\x4a\x89\x08\x88\x04\x88\x62\xd9\x0f\x11\xdc\x13\x17\x98\x04\x98\x64\xd3\x13\x23\xa0\x55\xd0\x13\x2a\xd0\x0c\x2a\xd8\x18\x1c\x88\x04\x88\x57\x89\x0d\xf3\x59\x01\x00\x0b\x0f\xf0\x5c\x01\x00\x0c\x10\x90\x14\x88\x3a\xd0\x04\x15\xf8\xf4\x3b\x00\x10\x17\xf2\x00\x03\x09\x1c\xd9\x0f\x15\xd8\x10\x15\xd8\x16\x1b\x8a\x47\xf0\x07\x03\x09\x1c\xfa",
+    .ob_sval = "\x80\x00\xdc\x07\x11\x90\x24\x9c\x05\xd4\x07\x1e\xd8\x0e\x12\x88\x03\xd8\x11\x15\x88\x06\xd8\x11\x16\x89\x06\xe0\x0e\x11\x88\x03\xd8\x11\x14\x88\x06\xd8\x11\x15\x88\x06\xdc\x11\x13\x97\x19\x91\x19\x88\x06\xd8\x07\x0d\x94\x1d\xd1\x07\x1e\xdc\x18\x29\x89\x0d\xd9\x09\x0f\xd8\x18\x1a\x89\x0d\xe4\x18\x1f\x88\x0d\xe0\x0f\x13\x80\x48\xe4\x07\x0c\x88\x54\x84\x7b\xd8\x0f\x13\x90\x41\x90\x42\x88\x78\x88\x04\xd8\x0f\x12\x88\x04\xe2\x0a\x0e\xd8\x18\x1c\x9f\x0e\x99\x0e\xa0\x73\xd3\x18\x2b\x89\x0d\x88\x04\x88\x61\x90\x14\xd9\x0f\x13\x90\x74\x98\x76\x92\x7e\xe0\x0c\x14\xd8\x0b\x0f\x90\x36\x8a\x3e\xe1\x0f\x13\xdc\x1d\x22\xa0\x34\x9b\x5b\x91\x0a\x90\x04\x90\x64\xd8\x13\x17\x98\x36\x92\x3e\xdc\x1b\x1f\xa0\x04\xa0\x66\xa8\x66\xd3\x1b\x35\x91\x44\xe0\x17\x1d\x90\x04\xd8\x0c\x14\xdc\x12\x16\x90\x74\x98\x54\xd3\x12\x22\x88\x07\xf0\x02\x05\x09\x2f\xdc\x11\x13\x97\x18\x91\x18\x98\x27\xd3\x11\x22\x88\x42\xf4\x08\x00\x17\x1b\x97\x6c\x91\x6c\xa0\x32\xa7\x3a\xa1\x3a\xd3\x16\x2e\x88\x47\xd9\x0f\x16\xd8\x13\x1a\x88\x44\xd8\x0c\x14\xe0\x0b\x12\x90\x64\x89\x3f\xe0\x13\x17\x98\x07\x91\x3d\x88\x44\xd8\x0f\x13\xd0\x0f\x1f\xe0\x10\x18\xe1\x0f\x15\xe4\x10\x12\x97\x07\x91\x07\x98\x07\xd5\x10\x20\xf4\x06\x00\x18\x1c\x98\x47\xa0\x54\xd3\x17\x2a\xa8\x45\xd0\x17\x31\xd0\x10\x31\xd8\x18\x1c\x88\x04\x88\x57\x89\x0d\xdc\x13\x20\xa0\x14\xa4\x72\xa7\x7b\xa1\x7b\xb0\x37\xd3\x27\x3b\xb8\x56\xc0\x54\xd3\x13\x4a\x89\x08\x88\x04\x88\x62\xd9\x0f\x11\xdc\x13\x17\x98\x04\x98\x64\xd3\x13\x23\xa0\x55\xd0\x13\x2a\xd0\x0c\x2a\xd8\x18\x1c\x88\x04\x88\x57\x89\x0d\xf3\x55\x01\x00\x0b\x0f\xf0\x58\x01\x00\x0c\x10\x90\x14\x88\x3a\xd0\x04\x15\xf8\xf0\x37\x00\x10\x1d\xf2\x00\x01\x09\x1c\xd8\x16\x1b\x8a\x47\xf0\x03\x01\x09\x1c\xfa",
 };
 static
     struct {
@@ -107411,7 +107938,29 @@ posixpath_toplevel_consts_32_exceptiontable = {
         .ob_size = 18,
     },
     .ob_shash = -1,
-    .ob_sval = "\xc2\x08\x15\x44\x39\x00\xc4\x39\x0e\x45\x0a\x03\xc5\x09\x01\x45\x0a\x03",
+    .ob_sval = "\xc2\x34\x15\x45\x25\x00\xc5\x25\x07\x45\x2f\x03\xc5\x2e\x01\x45\x2f\x03",
+};
+static
+    struct {
+        PyASCIIObject _ascii;
+        uint8_t _data[9];
+    }
+const_str_maxlinks = {
+    ._ascii = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyUnicode_Type,
+        },
+        .length = 8,
+        .hash = -1,
+        .state = {
+            .kind = 1,
+            .compact = 1,
+            .ascii = 1,
+            .statically_allocated = 1,
+        },
+    },
+    ._data = "maxlinks",
 };
 static
     struct {
@@ -107462,7 +108011,7 @@ static
         PyGC_Head _gc_head;
         struct {
             PyObject_VAR_HEAD
-            PyObject *ob_item[13];
+            PyObject *ob_item[16];
         }_object;
     }
 posixpath_toplevel_consts_32_localsplusnames = {
@@ -107472,7 +108021,7 @@ posixpath_toplevel_consts_32_localsplusnames = {
                 .ob_refcnt = _Py_IMMORTAL_REFCNT,
                 .ob_type = &PyTuple_Type,
             },
-            .ob_size = 13,
+            .ob_size = 16,
         },
         .ob_item = {
             &_Py_ID(path),
@@ -107482,6 +108031,9 @@ posixpath_toplevel_consts_32_localsplusnames = {
             &_Py_ID(sep),
             & const_str_curdir._ascii.ob_base,
             & const_str_pardir._ascii.ob_base,
+            & const_str_getcwd._ascii.ob_base,
+            & const_str_ignored_error._ascii.ob_base,
+            & const_str_maxlinks._ascii.ob_base,
             &_Py_ID(name),
             (PyObject *)&_Py_SINGLETON(strings).ascii[95],
             & const_str_newpath._ascii.ob_base,
@@ -107495,7 +108047,7 @@ static
     struct {
         PyObject_VAR_HEAD
         Py_hash_t ob_shash;
-        char ob_sval[14];
+        char ob_sval[17];
     }
 posixpath_toplevel_consts_32_localspluskinds = {
     .ob_base = {
@@ -107503,20 +108055,20 @@ posixpath_toplevel_consts_32_localspluskinds = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyBytes_Type,
         },
-        .ob_size = 13,
+        .ob_size = 16,
     },
     .ob_shash = -1,
-    .ob_sval = "             ",
+    .ob_sval = "                ",
 };
 static
-    struct _PyCode_DEF(666)
+    struct _PyCode_DEF(740)
 posixpath_toplevel_consts_32 = {
     .ob_base = {
         .ob_base = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyCode_Type,
         },
-        .ob_size = 333,
+        .ob_size = 370,
     },
     .co_consts = & posixpath_toplevel_consts_32_consts._object.ob_base.ob_base,
     .co_names = & posixpath_toplevel_consts_32_names._object.ob_base.ob_base,
@@ -107525,14 +108077,14 @@ posixpath_toplevel_consts_32 = {
     .co_argcount = 4,
     .co_posonlyargcount = 0,
     .co_kwonlyargcount = 0,
-    .co_framesize = 19 + FRAME_SPECIALS_SIZE,
+    .co_framesize = 22 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 6,
     .co_firstlineno = 432,
-    .co_nlocalsplus = 13,
-    .co_nlocals = 13,
+    .co_nlocalsplus = 16,
+    .co_nlocals = 16,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 594,
+    .co_version = 598,
     .co_localsplusnames = & posixpath_toplevel_consts_32_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & posixpath_toplevel_consts_32_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -107540,7 +108092,7 @@ posixpath_toplevel_consts_32 = {
     .co_qualname = & const_str__joinrealpath._ascii.ob_base,
     .co_linetable = & posixpath_toplevel_consts_32_linetable.ob_base.ob_base,
     ._co_cached = NULL,
-    .co_code_adaptive = "\x97\x00\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x74\x02\x00\x00\x00\x00\x00\x00\x00\x00\xab\x02\x00\x00\x00\x00\x00\x00\x72\x07\x64\x01\x7d\x04\x64\x02\x7d\x05\x64\x03\x7d\x06\x6e\x06\x64\x04\x7d\x04\x64\x05\x7d\x05\x64\x06\x7d\x06\x74\x05\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x01\xab\x01\x00\x00\x00\x00\x00\x00\x72\x07\x7c\x01\x64\x07\x64\x00\x1a\x00\x7d\x01\x7c\x04\x7d\x00\x7c\x01\x90\x01\x72\x02\x7c\x01\x6a\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x04\xab\x01\x00\x00\x00\x00\x00\x00\x5c\x03\x00\x00\x7d\x07\x7d\x08\x7d\x01\x7c\x07\x72\x05\x7c\x07\x7c\x05\x6b\x28\x00\x00\x72\x01\x8c\x20\x7c\x07\x7c\x06\x6b\x28\x00\x00\x72\x26\x7c\x00\x72\x21\x74\x09\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x5c\x02\x00\x00\x7d\x00\x7d\x07\x7c\x07\x7c\x06\x6b\x28\x00\x00\x72\x10\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x06\x7c\x06\xab\x03\x00\x00\x00\x00\x00\x00\x7d\x00\x6e\x02\x7c\x06\x7d\x00\x8c\x4b\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x07\xab\x02\x00\x00\x00\x00\x00\x00\x7d\x09\x09\x00\x74\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x0e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x09\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x0a\x74\x11\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x12\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0a\x6a\x14\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x0b\x7c\x0b\x73\x03\x7c\x09\x7d\x00\x8c\x91\x7c\x09\x7c\x03\x76\x00\x72\x2e\x7c\x03\x7c\x09\x19\x00\x00\x00\x7d\x00\x7c\x00\x81\x01\x8c\x9d\x7c\x02\x72\x16\x74\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x09\xab\x01\x00\x00\x00\x00\x00\x00\x01\x00\x6e\x0e\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x09\x7c\x01\xab\x02\x00\x00\x00\x00\x00\x00\x64\x08\x66\x02\x53\x00\x64\x00\x7c\x03\x7c\x09\x3c\x00\x00\x00\x74\x19\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x74\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x1a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x09\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x02\x7c\x03\xab\x04\x00\x00\x00\x00\x00\x00\x5c\x02\x00\x00\x7d\x00\x7d\x0c\x7c\x0c\x73\x0e\x74\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x01\xab\x02\x00\x00\x00\x00\x00\x00\x64\x08\x66\x02\x53\x00\x7c\x00\x7c\x03\x7c\x09\x3c\x00\x00\x00\x7c\x01\x72\x02\x90\x01\x8c\x02\x7c\x00\x64\x09\x66\x02\x53\x00\x23\x00\x74\x16\x00\x00\x00\x00\x00\x00\x00\x00\x24\x00\x72\x08\x01\x00\x7c\x02\x72\x01\x82\x00\x64\x08\x7d\x0b\x59\x00\x8c\x8d\x77\x00\x78\x03\x59\x00\x77\x01",
+    .co_code_adaptive = "\x97\x00\x74\x01\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x74\x02\x00\x00\x00\x00\x00\x00\x00\x00\xab\x02\x00\x00\x00\x00\x00\x00\x72\x07\x64\x01\x7d\x04\x64\x02\x7d\x05\x64\x03\x7d\x06\x6e\x16\x64\x04\x7d\x04\x64\x05\x7d\x05\x64\x06\x7d\x06\x74\x04\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7d\x07\x7c\x02\x74\x08\x00\x00\x00\x00\x00\x00\x00\x00\x75\x00\x72\x07\x74\x0a\x00\x00\x00\x00\x00\x00\x00\x00\x7d\x08\x6e\x0b\x7c\x02\x72\x03\x64\x07\x7d\x08\x6e\x06\x74\x0c\x00\x00\x00\x00\x00\x00\x00\x00\x7d\x08\x64\x00\x7d\x09\x74\x0f\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x01\xab\x01\x00\x00\x00\x00\x00\x00\x72\x07\x7c\x01\x64\x08\x64\x00\x1a\x00\x7d\x01\x7c\x04\x7d\x00\x7c\x01\x90\x01\x72\x02\x7c\x01\x6a\x11\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x04\xab\x01\x00\x00\x00\x00\x00\x00\x5c\x03\x00\x00\x7d\x0a\x7d\x0b\x7d\x01\x7c\x0a\x72\x05\x7c\x0a\x7c\x05\x6b\x28\x00\x00\x72\x01\x8c\x20\x7c\x0a\x7c\x06\x6b\x28\x00\x00\x72\x26\x7c\x00\x72\x21\x74\x13\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\xab\x01\x00\x00\x00\x00\x00\x00\x5c\x02\x00\x00\x7d\x00\x7d\x0a\x7c\x0a\x7c\x06\x6b\x28\x00\x00\x72\x10\x74\x15\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x06\x7c\x06\xab\x03\x00\x00\x00\x00\x00\x00\x7d\x00\x6e\x02\x7c\x06\x7d\x00\x8c\x4b\x74\x15\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x0a\xab\x02\x00\x00\x00\x00\x00\x00\x7d\x0c\x09\x00\x74\x05\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x16\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0c\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x0d\x74\x19\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x1a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0d\x6a\x1c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xab\x01\x00\x00\x00\x00\x00\x00\x7d\x0e\x7c\x0e\x73\x03\x7c\x0c\x7d\x00\x8c\x91\x7c\x0c\x7c\x03\x76\x00\x72\x2e\x7c\x03\x7c\x0c\x19\x00\x00\x00\x7d\x00\x7c\x00\x81\x01\x8c\x9d\x7c\x02\x72\x16\x74\x05\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x18\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0c\xab\x01\x00\x00\x00\x00\x00\x00\x01\x00\x6e\x0e\x74\x15\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0c\x7c\x01\xab\x02\x00\x00\x00\x00\x00\x00\x64\x09\x66\x02\x53\x00\x64\x00\x7c\x03\x7c\x0c\x3c\x00\x00\x00\x74\x1f\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x74\x05\x00\x00\x00\x00\x00\x00\x00\x00\x6a\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x0c\xab\x01\x00\x00\x00\x00\x00\x00\x7c\x02\x7c\x03\xab\x04\x00\x00\x00\x00\x00\x00\x5c\x02\x00\x00\x7d\x00\x7d\x0f\x7c\x0f\x73\x0e\x74\x15\x00\x00\x00\x00\x00\x00\x00\x00\x7c\x00\x7c\x01\xab\x02\x00\x00\x00\x00\x00\x00\x64\x09\x66\x02\x53\x00\x7c\x00\x7c\x03\x7c\x0c\x3c\x00\x00\x00\x7c\x01\x72\x02\x90\x01\x8c\x02\x7c\x00\x64\x0a\x66\x02\x53\x00\x23\x00\x7c\x08\x24\x00\x72\x05\x01\x00\x64\x09\x7d\x0e\x59\x00\x8c\x86\x77\x00\x78\x03\x59\x00\x77\x01",
     ._co_firsttraceable = 0,
 };
 static
@@ -107561,8 +108113,8 @@ posixpath_toplevel_consts_34_consts = {
             .ob_size = 10,
         },
         .ob_item = {
-            & ntpath_toplevel_consts_44_consts_0._ascii.ob_base,
-            & ntpath_toplevel_consts_44_consts_8._ascii.ob_base,
+            & ntpath_toplevel_consts_45_consts_0._ascii.ob_base,
+            & ntpath_toplevel_consts_45_consts_8._ascii.ob_base,
             (PyObject *)&_Py_SINGLETON(bytes_characters[46]),
             (PyObject *)&_Py_SINGLETON(bytes_characters[47]),
             & ntpath_toplevel_consts_33_consts_4.ob_base.ob_base,
@@ -107695,12 +108247,12 @@ posixpath_toplevel_consts_34 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 16 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 6,
-    .co_firstlineno = 497,
+    .co_firstlineno = 504,
     .co_nlocalsplus = 10,
     .co_nlocals = 10,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 595,
+    .co_version = 599,
     .co_localsplusnames = & posixpath_toplevel_consts_34_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -107793,12 +108345,12 @@ posixpath_toplevel_consts_35_consts_7 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 7 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 4,
-    .co_firstlineno = 556,
+    .co_firstlineno = 563,
     .co_nlocalsplus = 3,
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 1,
-    .co_version = 596,
+    .co_version = 600,
     .co_localsplusnames = & posixpath_toplevel_consts_35_consts_7_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_1_consts_1_consts_4_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -107827,15 +108379,15 @@ posixpath_toplevel_consts_35_consts = {
             .ob_size = 11,
         },
         .ob_item = {
-            & ntpath_toplevel_consts_45_consts_0._ascii.ob_base,
-            & ntpath_toplevel_consts_45_consts_1._ascii.ob_base,
+            & ntpath_toplevel_consts_46_consts_0._ascii.ob_base,
+            & ntpath_toplevel_consts_46_consts_1._ascii.ob_base,
             (PyObject *)&_PyLong_SMALL_INTS[_PY_NSMALLNEGINTS + 0],
             (PyObject *)&_Py_SINGLETON(bytes_characters[47]),
             (PyObject *)&_Py_SINGLETON(bytes_characters[46]),
             (PyObject *)&_Py_SINGLETON(strings).ascii[47],
             (PyObject *)&_Py_SINGLETON(strings).ascii[46],
             & posixpath_toplevel_consts_35_consts_7.ob_base.ob_base,
-            & ntpath_toplevel_consts_45_consts_10._ascii.ob_base,
+            & ntpath_toplevel_consts_46_consts_10._ascii.ob_base,
             Py_None,
             & const_str_commonpath._ascii.ob_base,
         },
@@ -107983,12 +108535,12 @@ posixpath_toplevel_consts_35 = {
     .co_kwonlyargcount = 0,
     .co_framesize = 22 + FRAME_SPECIALS_SIZE,
     .co_stacksize = 9,
-    .co_firstlineno = 538,
+    .co_firstlineno = 545,
     .co_nlocalsplus = 13,
     .co_nlocals = 12,
     .co_ncellvars = 1,
     .co_nfreevars = 0,
-    .co_version = 597,
+    .co_version = 601,
     .co_localsplusnames = & posixpath_toplevel_consts_35_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & posixpath_toplevel_consts_35_localspluskinds.ob_base.ob_base,
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -108125,7 +108677,7 @@ static
     struct {
         PyObject_VAR_HEAD
         Py_hash_t ob_shash;
-        char ob_sval[268];
+        char ob_sval[269];
     }
 posixpath_toplevel_linetable = {
     .ob_base = {
@@ -108133,10 +108685,10 @@ posixpath_toplevel_linetable = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyBytes_Type,
         },
-        .ob_size = 267,
+        .ob_size = 268,
     },
     .ob_shash = -1,
-    .ob_sval = "\xf0\x03\x01\x01\x01\xf1\x02\x0a\x01\x04\xf0\x1e\x00\x0a\x0d\x80\x06\xd8\x09\x0d\x80\x06\xd8\x09\x0c\x80\x06\xd8\x06\x09\x80\x03\xd8\x0a\x0d\x80\x07\xd8\x0a\x19\x80\x07\xd8\x09\x0d\x80\x06\xd8\x0a\x15\x80\x07\xe3\x00\x09\xdb\x00\x0a\xdb\x00\x0b\xdb\x00\x12\xdc\x00\x19\xf2\x04\x07\x0b\x27\x80\x07\xf2\x14\x04\x01\x13\xf2\x16\x02\x01\x18\xf2\x10\x04\x01\x1d\xf2\x16\x15\x01\x10\xf2\x3a\x09\x01\x16\xf2\x22\x08\x01\x37\xf0\x12\x00\x14\x1f\xd7\x13\x28\xd1\x13\x28\xd7\x13\x30\xd1\x13\x30\x80\x08\xd4\x00\x10\xf2\x0a\x04\x01\x14\xf2\x0e\x1a\x01\x23\xf2\x3e\x05\x01\x11\xf2\x14\x08\x01\x10\xf2\x1a\x04\x01\x11\xf2\x12\x06\x01\x10\xf2\x18\x1f\x01\x11\xf2\x56\x01\x36\x01\x29\xf0\x7a\x01\x00\x0c\x10\x80\x08\xd8\x0c\x10\x80\x09\xf2\x04\x2e\x01\x10\xf0\x6a\x01\x20\x01\x1b\xdd\x04\x30\xf2\x44\x01\x09\x01\x1a\xf0\x1e\x00\x22\x27\xf4\x00\x05\x01\x19\xf2\x12\x3c\x01\x16\xf0\x7e\x01\x00\x1f\x22\x9f\x6c\x99\x6c\xa8\x68\xd1\x1e\x36\xd0\x00\x1a\xf3\x04\x21\x01\x0e\xf3\x52\x01\x23\x01\x0e\xf8\xf0\x45\x05\x00\x08\x13\xf2\x00\x1d\x01\x1b\xf4\x02\x1c\x05\x1b\xf0\x03\x1d\x01\x1b\xfa",
+    .ob_sval = "\xf0\x03\x01\x01\x01\xf1\x02\x0a\x01\x04\xf0\x1e\x00\x0a\x0d\x80\x06\xd8\x09\x0d\x80\x06\xd8\x09\x0c\x80\x06\xd8\x06\x09\x80\x03\xd8\x0a\x0d\x80\x07\xd8\x0a\x19\x80\x07\xd8\x09\x0d\x80\x06\xd8\x0a\x15\x80\x07\xe3\x00\x09\xdb\x00\x0a\xdb\x00\x0b\xdb\x00\x12\xdc\x00\x19\xf2\x04\x07\x0b\x38\x80\x07\xf2\x14\x04\x01\x13\xf2\x16\x02\x01\x18\xf2\x10\x04\x01\x1d\xf2\x16\x15\x01\x10\xf2\x3a\x09\x01\x16\xf2\x22\x08\x01\x37\xf0\x12\x00\x14\x1f\xd7\x13\x28\xd1\x13\x28\xd7\x13\x30\xd1\x13\x30\x80\x08\xd4\x00\x10\xf2\x0a\x04\x01\x14\xf2\x0e\x1a\x01\x23\xf2\x3e\x05\x01\x11\xf2\x14\x08\x01\x10\xf2\x1a\x04\x01\x11\xf2\x12\x06\x01\x10\xf2\x18\x1f\x01\x11\xf2\x56\x01\x36\x01\x29\xf0\x7a\x01\x00\x0c\x10\x80\x08\xd8\x0c\x10\x80\x09\xf2\x04\x2e\x01\x10\xf0\x6a\x01\x20\x01\x1b\xdd\x04\x30\xf2\x44\x01\x09\x01\x1a\xf0\x1e\x00\x22\x27\xf4\x00\x05\x01\x19\xf2\x12\x43\x01\x01\x16\xf0\x4c\x02\x00\x1f\x22\x9f\x6c\x99\x6c\xa8\x68\xd1\x1e\x36\xd0\x00\x1a\xf3\x04\x21\x01\x0e\xf3\x52\x01\x23\x01\x0e\xf8\xf0\x53\x05\x00\x08\x13\xf2\x00\x1d\x01\x1b\xf4\x02\x1c\x05\x1b\xf0\x03\x1d\x01\x1b\xfa",
 };
 static
     struct {
@@ -108179,7 +108731,7 @@ posixpath_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 598,
+    .co_version = 602,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & posixpath_toplevel_consts_11_filename._ascii.ob_base,
@@ -108453,7 +109005,7 @@ os_toplevel_consts_5 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 599,
+    .co_version = 603,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_4_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -108616,7 +109168,7 @@ os_toplevel_consts_6 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 600,
+    .co_version = 604,
     .co_localsplusnames = & os_toplevel_consts_6_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -108965,7 +109517,7 @@ os_toplevel_consts_19 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 601,
+    .co_version = 605,
     .co_localsplusnames = & os_toplevel_consts_19_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -110284,7 +110836,7 @@ os_toplevel_consts_79 = {
     .co_nlocals = 6,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 602,
+    .co_version = 606,
     .co_localsplusnames = & os_toplevel_consts_79_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_30_consts_4_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -110469,7 +111021,7 @@ os_toplevel_consts_80 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 603,
+    .co_version = 607,
     .co_localsplusnames = & os_toplevel_consts_80_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -110658,7 +111210,7 @@ os_toplevel_consts_81 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 604,
+    .co_version = 608,
     .co_localsplusnames = & os_toplevel_consts_81_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -110696,7 +111248,7 @@ os_toplevel_consts_82 = {
 static
     struct {
         PyASCIIObject _ascii;
-        uint8_t _data[2855];
+        uint8_t _data[2877];
     }
 os_toplevel_consts_83_consts_0 = {
     ._ascii = {
@@ -110704,7 +111256,7 @@ os_toplevel_consts_83_consts_0 = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyUnicode_Type,
         },
-        .length = 2854,
+        .length = 2876,
         .hash = -1,
         .state = {
             .kind = 1,
@@ -110713,7 +111265,7 @@ os_toplevel_consts_83_consts_0 = {
             .statically_allocated = 1,
         },
     },
-    ._data = "\x44\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x74\x72\x65\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x6f\x72\x2e\x0a\x0a\x20\x20\x20\x20\x46\x6f\x72\x20\x65\x61\x63\x68\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x69\x6e\x20\x74\x68\x65\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x74\x72\x65\x65\x20\x72\x6f\x6f\x74\x65\x64\x20\x61\x74\x20\x74\x6f\x70\x20\x28\x69\x6e\x63\x6c\x75\x64\x69\x6e\x67\x20\x74\x6f\x70\x0a\x20\x20\x20\x20\x69\x74\x73\x65\x6c\x66\x2c\x20\x62\x75\x74\x20\x65\x78\x63\x6c\x75\x64\x69\x6e\x67\x20\x27\x2e\x27\x20\x61\x6e\x64\x20\x27\x2e\x2e\x27\x29\x2c\x20\x79\x69\x65\x6c\x64\x73\x20\x61\x20\x33\x2d\x74\x75\x70\x6c\x65\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x64\x69\x72\x70\x61\x74\x68\x2c\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x2c\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x73\x0a\x0a\x20\x20\x20\x20\x64\x69\x72\x70\x61\x74\x68\x20\x69\x73\x20\x61\x20\x73\x74\x72\x69\x6e\x67\x2c\x20\x74\x68\x65\x20\x70\x61\x74\x68\x20\x74\x6f\x20\x74\x68\x65\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x2e\x20\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x20\x69\x73\x20\x61\x20\x6c\x69\x73\x74\x20\x6f\x66\x0a\x20\x20\x20\x20\x74\x68\x65\x20\x6e\x61\x6d\x65\x73\x20\x6f\x66\x20\x74\x68\x65\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x69\x6e\x20\x64\x69\x72\x70\x61\x74\x68\x20\x28\x69\x6e\x63\x6c\x75\x64\x69\x6e\x67\x20\x73\x79\x6d\x6c\x69\x6e\x6b\x73\x20\x74\x6f\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x2c\x0a\x20\x20\x20\x20\x61\x6e\x64\x20\x65\x78\x63\x6c\x75\x64\x69\x6e\x67\x20\x27\x2e\x27\x20\x61\x6e\x64\x20\x27\x2e\x2e\x27\x29\x2e\x0a\x20\x20\x20\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x73\x20\x69\x73\x20\x61\x20\x6c\x69\x73\x74\x20\x6f\x66\x20\x74\x68\x65\x20\x6e\x61\x6d\x65\x73\x20\x6f\x66\x20\x74\x68\x65\x20\x6e\x6f\x6e\x2d\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x66\x69\x6c\x65\x73\x20\x69\x6e\x20\x64\x69\x72\x70\x61\x74\x68\x2e\x0a\x20\x20\x20\x20\x4e\x6f\x74\x65\x20\x74\x68\x61\x74\x20\x74\x68\x65\x20\x6e\x61\x6d\x65\x73\x20\x69\x6e\x20\x74\x68\x65\x20\x6c\x69\x73\x74\x73\x20\x61\x72\x65\x20\x6a\x75\x73\x74\x20\x6e\x61\x6d\x65\x73\x2c\x20\x77\x69\x74\x68\x20\x6e\x6f\x20\x70\x61\x74\x68\x20\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x73\x2e\x0a\x20\x20\x20\x20\x54\x6f\x20\x67\x65\x74\x20\x61\x20\x66\x75\x6c\x6c\x20\x70\x61\x74\x68\x20\x28\x77\x68\x69\x63\x68\x20\x62\x65\x67\x69\x6e\x73\x20\x77\x69\x74\x68\x20\x74\x6f\x70\x29\x20\x74\x6f\x20\x61\x20\x66\x69\x6c\x65\x20\x6f\x72\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x69\x6e\x0a\x20\x20\x20\x20\x64\x69\x72\x70\x61\x74\x68\x2c\x20\x64\x6f\x20\x6f\x73\x2e\x70\x61\x74\x68\x2e\x6a\x6f\x69\x6e\x28\x64\x69\x72\x70\x61\x74\x68\x2c\x20\x6e\x61\x6d\x65\x29\x2e\x0a\x0a\x20\x20\x20\x20\x49\x66\x20\x6f\x70\x74\x69\x6f\x6e\x61\x6c\x20\x61\x72\x67\x20\x27\x74\x6f\x70\x64\x6f\x77\x6e\x27\x20\x69\x73\x20\x74\x72\x75\x65\x20\x6f\x72\x20\x6e\x6f\x74\x20\x73\x70\x65\x63\x69\x66\x69\x65\x64\x2c\x20\x74\x68\x65\x20\x74\x72\x69\x70\x6c\x65\x20\x66\x6f\x72\x20\x61\x0a\x20\x20\x20\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x69\x73\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x62\x65\x66\x6f\x72\x65\x20\x74\x68\x65\x20\x74\x72\x69\x70\x6c\x65\x73\x20\x66\x6f\x72\x20\x61\x6e\x79\x20\x6f\x66\x20\x69\x74\x73\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x0a\x20\x20\x20\x20\x28\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x61\x72\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x74\x6f\x70\x20\x64\x6f\x77\x6e\x29\x2e\x20\x20\x49\x66\x20\x74\x6f\x70\x64\x6f\x77\x6e\x20\x69\x73\x20\x66\x61\x6c\x73\x65\x2c\x20\x74\x68\x65\x20\x74\x72\x69\x70\x6c\x65\x0a\x20\x20\x20\x20\x66\x6f\x72\x20\x61\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x69\x73\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x61\x66\x74\x65\x72\x20\x74\x68\x65\x20\x74\x72\x69\x70\x6c\x65\x73\x20\x66\x6f\x72\x20\x61\x6c\x6c\x20\x6f\x66\x20\x69\x74\x73\x0a\x20\x20\x20\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x28\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x61\x72\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x62\x6f\x74\x74\x6f\x6d\x20\x75\x70\x29\x2e\x0a\x0a\x20\x20\x20\x20\x57\x68\x65\x6e\x20\x74\x6f\x70\x64\x6f\x77\x6e\x20\x69\x73\x20\x74\x72\x75\x65\x2c\x20\x74\x68\x65\x20\x63\x61\x6c\x6c\x65\x72\x20\x63\x61\x6e\x20\x6d\x6f\x64\x69\x66\x79\x20\x74\x68\x65\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x20\x6c\x69\x73\x74\x20\x69\x6e\x2d\x70\x6c\x61\x63\x65\x0a\x20\x20\x20\x20\x28\x65\x2e\x67\x2e\x2c\x20\x76\x69\x61\x20\x64\x65\x6c\x20\x6f\x72\x20\x73\x6c\x69\x63\x65\x20\x61\x73\x73\x69\x67\x6e\x6d\x65\x6e\x74\x29\x2c\x20\x61\x6e\x64\x20\x77\x61\x6c\x6b\x20\x77\x69\x6c\x6c\x20\x6f\x6e\x6c\x79\x20\x72\x65\x63\x75\x72\x73\x65\x20\x69\x6e\x74\x6f\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x77\x68\x6f\x73\x65\x20\x6e\x61\x6d\x65\x73\x20\x72\x65\x6d\x61\x69\x6e\x20\x69\x6e\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x3b\x20\x74\x68\x69\x73\x20\x63\x61\x6e\x20\x62\x65\x20\x75\x73\x65\x64\x20\x74\x6f\x20\x70\x72\x75\x6e\x65\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x73\x65\x61\x72\x63\x68\x2c\x20\x6f\x72\x20\x74\x6f\x20\x69\x6d\x70\x6f\x73\x65\x20\x61\x20\x73\x70\x65\x63\x69\x66\x69\x63\x20\x6f\x72\x64\x65\x72\x20\x6f\x66\x20\x76\x69\x73\x69\x74\x69\x6e\x67\x2e\x20\x20\x4d\x6f\x64\x69\x66\x79\x69\x6e\x67\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x20\x77\x68\x65\x6e\x0a\x20\x20\x20\x20\x74\x6f\x70\x64\x6f\x77\x6e\x20\x69\x73\x20\x66\x61\x6c\x73\x65\x20\x68\x61\x73\x20\x6e\x6f\x20\x65\x66\x66\x65\x63\x74\x20\x6f\x6e\x20\x74\x68\x65\x20\x62\x65\x68\x61\x76\x69\x6f\x72\x20\x6f\x66\x20\x6f\x73\x2e\x77\x61\x6c\x6b\x28\x29\x2c\x20\x73\x69\x6e\x63\x65\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x69\x6e\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x20\x68\x61\x76\x65\x20\x61\x6c\x72\x65\x61\x64\x79\x20\x62\x65\x65\x6e\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x62\x79\x20\x74\x68\x65\x20\x74\x69\x6d\x65\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x0a\x20\x20\x20\x20\x69\x74\x73\x65\x6c\x66\x20\x69\x73\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x2e\x20\x4e\x6f\x20\x6d\x61\x74\x74\x65\x72\x20\x74\x68\x65\x20\x76\x61\x6c\x75\x65\x20\x6f\x66\x20\x74\x6f\x70\x64\x6f\x77\x6e\x2c\x20\x74\x68\x65\x20\x6c\x69\x73\x74\x20\x6f\x66\x0a\x20\x20\x20\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x69\x73\x20\x72\x65\x74\x72\x69\x65\x76\x65\x64\x20\x62\x65\x66\x6f\x72\x65\x20\x74\x68\x65\x20\x74\x75\x70\x6c\x65\x73\x20\x66\x6f\x72\x20\x74\x68\x65\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x61\x6e\x64\x20\x69\x74\x73\x0a\x20\x20\x20\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x61\x72\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x2e\x0a\x0a\x20\x20\x20\x20\x42\x79\x20\x64\x65\x66\x61\x75\x6c\x74\x20\x65\x72\x72\x6f\x72\x73\x20\x66\x72\x6f\x6d\x20\x74\x68\x65\x20\x6f\x73\x2e\x73\x63\x61\x6e\x64\x69\x72\x28\x29\x20\x63\x61\x6c\x6c\x20\x61\x72\x65\x20\x69\x67\x6e\x6f\x72\x65\x64\x2e\x20\x20\x49\x66\x0a\x20\x20\x20\x20\x6f\x70\x74\x69\x6f\x6e\x61\x6c\x20\x61\x72\x67\x20\x27\x6f\x6e\x65\x72\x72\x6f\x72\x27\x20\x69\x73\x20\x73\x70\x65\x63\x69\x66\x69\x65\x64\x2c\x20\x69\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x66\x75\x6e\x63\x74\x69\x6f\x6e\x3b\x20\x69\x74\x0a\x20\x20\x20\x20\x77\x69\x6c\x6c\x20\x62\x65\x20\x63\x61\x6c\x6c\x65\x64\x20\x77\x69\x74\x68\x20\x6f\x6e\x65\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x2c\x20\x61\x6e\x20\x4f\x53\x45\x72\x72\x6f\x72\x20\x69\x6e\x73\x74\x61\x6e\x63\x65\x2e\x20\x20\x49\x74\x20\x63\x61\x6e\x0a\x20\x20\x20\x20\x72\x65\x70\x6f\x72\x74\x20\x74\x68\x65\x20\x65\x72\x72\x6f\x72\x20\x74\x6f\x20\x63\x6f\x6e\x74\x69\x6e\x75\x65\x20\x77\x69\x74\x68\x20\x74\x68\x65\x20\x77\x61\x6c\x6b\x2c\x20\x6f\x72\x20\x72\x61\x69\x73\x65\x20\x74\x68\x65\x20\x65\x78\x63\x65\x70\x74\x69\x6f\x6e\x0a\x20\x20\x20\x20\x74\x6f\x20\x61\x62\x6f\x72\x74\x20\x74\x68\x65\x20\x77\x61\x6c\x6b\x2e\x20\x20\x4e\x6f\x74\x65\x20\x74\x68\x61\x74\x20\x74\x68\x65\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x20\x69\x73\x20\x61\x76\x61\x69\x6c\x61\x62\x6c\x65\x20\x61\x73\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x20\x61\x74\x74\x72\x69\x62\x75\x74\x65\x20\x6f\x66\x20\x74\x68\x65\x20\x65\x78\x63\x65\x70\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74\x2e\x0a\x0a\x20\x20\x20\x20\x42\x79\x20\x64\x65\x66\x61\x75\x6c\x74\x2c\x20\x6f\x73\x2e\x77\x61\x6c\x6b\x20\x64\x6f\x65\x73\x20\x6e\x6f\x74\x20\x66\x6f\x6c\x6c\x6f\x77\x20\x73\x79\x6d\x62\x6f\x6c\x69\x63\x20\x6c\x69\x6e\x6b\x73\x20\x74\x6f\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x6f\x6e\x0a\x20\x20\x20\x20\x73\x79\x73\x74\x65\x6d\x73\x20\x74\x68\x61\x74\x20\x73\x75\x70\x70\x6f\x72\x74\x20\x74\x68\x65\x6d\x2e\x20\x20\x49\x6e\x20\x6f\x72\x64\x65\x72\x20\x74\x6f\x20\x67\x65\x74\x20\x74\x68\x69\x73\x20\x66\x75\x6e\x63\x74\x69\x6f\x6e\x61\x6c\x69\x74\x79\x2c\x20\x73\x65\x74\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x6f\x70\x74\x69\x6f\x6e\x61\x6c\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x27\x66\x6f\x6c\x6c\x6f\x77\x6c\x69\x6e\x6b\x73\x27\x20\x74\x6f\x20\x74\x72\x75\x65\x2e\x0a\x0a\x20\x20\x20\x20\x43\x61\x75\x74\x69\x6f\x6e\x3a\x20\x20\x69\x66\x20\x79\x6f\x75\x20\x70\x61\x73\x73\x20\x61\x20\x72\x65\x6c\x61\x74\x69\x76\x65\x20\x70\x61\x74\x68\x6e\x61\x6d\x65\x20\x66\x6f\x72\x20\x74\x6f\x70\x2c\x20\x64\x6f\x6e\x27\x74\x20\x63\x68\x61\x6e\x67\x65\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x63\x75\x72\x72\x65\x6e\x74\x20\x77\x6f\x72\x6b\x69\x6e\x67\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x62\x65\x74\x77\x65\x65\x6e\x20\x72\x65\x73\x75\x6d\x70\x74\x69\x6f\x6e\x73\x20\x6f\x66\x20\x77\x61\x6c\x6b\x2e\x20\x20\x77\x61\x6c\x6b\x20\x6e\x65\x76\x65\x72\x0a\x20\x20\x20\x20\x63\x68\x61\x6e\x67\x65\x73\x20\x74\x68\x65\x20\x63\x75\x72\x72\x65\x6e\x74\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x2c\x20\x61\x6e\x64\x20\x61\x73\x73\x75\x6d\x65\x73\x20\x74\x68\x61\x74\x20\x74\x68\x65\x20\x63\x6c\x69\x65\x6e\x74\x20\x64\x6f\x65\x73\x6e\x27\x74\x0a\x20\x20\x20\x20\x65\x69\x74\x68\x65\x72\x2e\x0a\x0a\x20\x20\x20\x20\x45\x78\x61\x6d\x70\x6c\x65\x3a\x0a\x0a\x20\x20\x20\x20\x69\x6d\x70\x6f\x72\x74\x20\x6f\x73\x0a\x20\x20\x20\x20\x66\x72\x6f\x6d\x20\x6f\x73\x2e\x70\x61\x74\x68\x20\x69\x6d\x70\x6f\x72\x74\x20\x6a\x6f\x69\x6e\x2c\x20\x67\x65\x74\x73\x69\x7a\x65\x0a\x20\x20\x20\x20\x66\x6f\x72\x20\x72\x6f\x6f\x74\x2c\x20\x64\x69\x72\x73\x2c\x20\x66\x69\x6c\x65\x73\x20\x69\x6e\x20\x6f\x73\x2e\x77\x61\x6c\x6b\x28\x27\x70\x79\x74\x68\x6f\x6e\x2f\x4c\x69\x62\x2f\x65\x6d\x61\x69\x6c\x27\x29\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x72\x6f\x6f\x74\x2c\x20\x22\x63\x6f\x6e\x73\x75\x6d\x65\x73\x20\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x73\x75\x6d\x28\x67\x65\x74\x73\x69\x7a\x65\x28\x6a\x6f\x69\x6e\x28\x72\x6f\x6f\x74\x2c\x20\x6e\x61\x6d\x65\x29\x29\x20\x66\x6f\x72\x20\x6e\x61\x6d\x65\x20\x69\x6e\x20\x66\x69\x6c\x65\x73\x29\x2c\x20\x65\x6e\x64\x3d\x22\x20\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x22\x62\x79\x74\x65\x73\x20\x69\x6e\x22\x2c\x20\x6c\x65\x6e\x28\x66\x69\x6c\x65\x73\x29\x2c\x20\x22\x6e\x6f\x6e\x2d\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x66\x69\x6c\x65\x73\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x69\x66\x20\x27\x43\x56\x53\x27\x20\x69\x6e\x20\x64\x69\x72\x73\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x64\x69\x72\x73\x2e\x72\x65\x6d\x6f\x76\x65\x28\x27\x43\x56\x53\x27\x29\x20\x20\x23\x20\x64\x6f\x6e\x27\x74\x20\x76\x69\x73\x69\x74\x20\x43\x56\x53\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x0a\x0a\x20\x20\x20\x20",
+    ._data = "\x44\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x74\x72\x65\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x6f\x72\x2e\x0a\x0a\x20\x20\x20\x20\x46\x6f\x72\x20\x65\x61\x63\x68\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x69\x6e\x20\x74\x68\x65\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x74\x72\x65\x65\x20\x72\x6f\x6f\x74\x65\x64\x20\x61\x74\x20\x74\x6f\x70\x20\x28\x69\x6e\x63\x6c\x75\x64\x69\x6e\x67\x20\x74\x6f\x70\x0a\x20\x20\x20\x20\x69\x74\x73\x65\x6c\x66\x2c\x20\x62\x75\x74\x20\x65\x78\x63\x6c\x75\x64\x69\x6e\x67\x20\x27\x2e\x27\x20\x61\x6e\x64\x20\x27\x2e\x2e\x27\x29\x2c\x20\x79\x69\x65\x6c\x64\x73\x20\x61\x20\x33\x2d\x74\x75\x70\x6c\x65\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x64\x69\x72\x70\x61\x74\x68\x2c\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x2c\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x73\x0a\x0a\x20\x20\x20\x20\x64\x69\x72\x70\x61\x74\x68\x20\x69\x73\x20\x61\x20\x73\x74\x72\x69\x6e\x67\x2c\x20\x74\x68\x65\x20\x70\x61\x74\x68\x20\x74\x6f\x20\x74\x68\x65\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x2e\x20\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x20\x69\x73\x20\x61\x20\x6c\x69\x73\x74\x20\x6f\x66\x0a\x20\x20\x20\x20\x74\x68\x65\x20\x6e\x61\x6d\x65\x73\x20\x6f\x66\x20\x74\x68\x65\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x69\x6e\x20\x64\x69\x72\x70\x61\x74\x68\x20\x28\x69\x6e\x63\x6c\x75\x64\x69\x6e\x67\x20\x73\x79\x6d\x6c\x69\x6e\x6b\x73\x20\x74\x6f\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x2c\x0a\x20\x20\x20\x20\x61\x6e\x64\x20\x65\x78\x63\x6c\x75\x64\x69\x6e\x67\x20\x27\x2e\x27\x20\x61\x6e\x64\x20\x27\x2e\x2e\x27\x29\x2e\x0a\x20\x20\x20\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x73\x20\x69\x73\x20\x61\x20\x6c\x69\x73\x74\x20\x6f\x66\x20\x74\x68\x65\x20\x6e\x61\x6d\x65\x73\x20\x6f\x66\x20\x74\x68\x65\x20\x6e\x6f\x6e\x2d\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x66\x69\x6c\x65\x73\x20\x69\x6e\x20\x64\x69\x72\x70\x61\x74\x68\x2e\x0a\x20\x20\x20\x20\x4e\x6f\x74\x65\x20\x74\x68\x61\x74\x20\x74\x68\x65\x20\x6e\x61\x6d\x65\x73\x20\x69\x6e\x20\x74\x68\x65\x20\x6c\x69\x73\x74\x73\x20\x61\x72\x65\x20\x6a\x75\x73\x74\x20\x6e\x61\x6d\x65\x73\x2c\x20\x77\x69\x74\x68\x20\x6e\x6f\x20\x70\x61\x74\x68\x20\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x73\x2e\x0a\x20\x20\x20\x20\x54\x6f\x20\x67\x65\x74\x20\x61\x20\x66\x75\x6c\x6c\x20\x70\x61\x74\x68\x20\x28\x77\x68\x69\x63\x68\x20\x62\x65\x67\x69\x6e\x73\x20\x77\x69\x74\x68\x20\x74\x6f\x70\x29\x20\x74\x6f\x20\x61\x20\x66\x69\x6c\x65\x20\x6f\x72\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x69\x6e\x0a\x20\x20\x20\x20\x64\x69\x72\x70\x61\x74\x68\x2c\x20\x64\x6f\x20\x6f\x73\x2e\x70\x61\x74\x68\x2e\x6a\x6f\x69\x6e\x28\x64\x69\x72\x70\x61\x74\x68\x2c\x20\x6e\x61\x6d\x65\x29\x2e\x0a\x0a\x20\x20\x20\x20\x49\x66\x20\x6f\x70\x74\x69\x6f\x6e\x61\x6c\x20\x61\x72\x67\x20\x27\x74\x6f\x70\x64\x6f\x77\x6e\x27\x20\x69\x73\x20\x74\x72\x75\x65\x20\x6f\x72\x20\x6e\x6f\x74\x20\x73\x70\x65\x63\x69\x66\x69\x65\x64\x2c\x20\x74\x68\x65\x20\x74\x72\x69\x70\x6c\x65\x20\x66\x6f\x72\x20\x61\x0a\x20\x20\x20\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x69\x73\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x62\x65\x66\x6f\x72\x65\x20\x74\x68\x65\x20\x74\x72\x69\x70\x6c\x65\x73\x20\x66\x6f\x72\x20\x61\x6e\x79\x20\x6f\x66\x20\x69\x74\x73\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x0a\x20\x20\x20\x20\x28\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x61\x72\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x74\x6f\x70\x20\x64\x6f\x77\x6e\x29\x2e\x20\x20\x49\x66\x20\x74\x6f\x70\x64\x6f\x77\x6e\x20\x69\x73\x20\x66\x61\x6c\x73\x65\x2c\x20\x74\x68\x65\x20\x74\x72\x69\x70\x6c\x65\x0a\x20\x20\x20\x20\x66\x6f\x72\x20\x61\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x69\x73\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x61\x66\x74\x65\x72\x20\x74\x68\x65\x20\x74\x72\x69\x70\x6c\x65\x73\x20\x66\x6f\x72\x20\x61\x6c\x6c\x20\x6f\x66\x20\x69\x74\x73\x0a\x20\x20\x20\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x28\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x61\x72\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x62\x6f\x74\x74\x6f\x6d\x20\x75\x70\x29\x2e\x0a\x0a\x20\x20\x20\x20\x57\x68\x65\x6e\x20\x74\x6f\x70\x64\x6f\x77\x6e\x20\x69\x73\x20\x74\x72\x75\x65\x2c\x20\x74\x68\x65\x20\x63\x61\x6c\x6c\x65\x72\x20\x63\x61\x6e\x20\x6d\x6f\x64\x69\x66\x79\x20\x74\x68\x65\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x20\x6c\x69\x73\x74\x20\x69\x6e\x2d\x70\x6c\x61\x63\x65\x0a\x20\x20\x20\x20\x28\x65\x2e\x67\x2e\x2c\x20\x76\x69\x61\x20\x64\x65\x6c\x20\x6f\x72\x20\x73\x6c\x69\x63\x65\x20\x61\x73\x73\x69\x67\x6e\x6d\x65\x6e\x74\x29\x2c\x20\x61\x6e\x64\x20\x77\x61\x6c\x6b\x20\x77\x69\x6c\x6c\x20\x6f\x6e\x6c\x79\x20\x72\x65\x63\x75\x72\x73\x65\x20\x69\x6e\x74\x6f\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x77\x68\x6f\x73\x65\x20\x6e\x61\x6d\x65\x73\x20\x72\x65\x6d\x61\x69\x6e\x20\x69\x6e\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x3b\x20\x74\x68\x69\x73\x20\x63\x61\x6e\x20\x62\x65\x20\x75\x73\x65\x64\x20\x74\x6f\x20\x70\x72\x75\x6e\x65\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x73\x65\x61\x72\x63\x68\x2c\x20\x6f\x72\x20\x74\x6f\x20\x69\x6d\x70\x6f\x73\x65\x20\x61\x20\x73\x70\x65\x63\x69\x66\x69\x63\x20\x6f\x72\x64\x65\x72\x20\x6f\x66\x20\x76\x69\x73\x69\x74\x69\x6e\x67\x2e\x20\x20\x4d\x6f\x64\x69\x66\x79\x69\x6e\x67\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x20\x77\x68\x65\x6e\x0a\x20\x20\x20\x20\x74\x6f\x70\x64\x6f\x77\x6e\x20\x69\x73\x20\x66\x61\x6c\x73\x65\x20\x68\x61\x73\x20\x6e\x6f\x20\x65\x66\x66\x65\x63\x74\x20\x6f\x6e\x20\x74\x68\x65\x20\x62\x65\x68\x61\x76\x69\x6f\x72\x20\x6f\x66\x20\x6f\x73\x2e\x77\x61\x6c\x6b\x28\x29\x2c\x20\x73\x69\x6e\x63\x65\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x69\x6e\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x20\x68\x61\x76\x65\x20\x61\x6c\x72\x65\x61\x64\x79\x20\x62\x65\x65\x6e\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x20\x62\x79\x20\x74\x68\x65\x20\x74\x69\x6d\x65\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x0a\x20\x20\x20\x20\x69\x74\x73\x65\x6c\x66\x20\x69\x73\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x2e\x20\x4e\x6f\x20\x6d\x61\x74\x74\x65\x72\x20\x74\x68\x65\x20\x76\x61\x6c\x75\x65\x20\x6f\x66\x20\x74\x6f\x70\x64\x6f\x77\x6e\x2c\x20\x74\x68\x65\x20\x6c\x69\x73\x74\x20\x6f\x66\x0a\x20\x20\x20\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x69\x73\x20\x72\x65\x74\x72\x69\x65\x76\x65\x64\x20\x62\x65\x66\x6f\x72\x65\x20\x74\x68\x65\x20\x74\x75\x70\x6c\x65\x73\x20\x66\x6f\x72\x20\x74\x68\x65\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x61\x6e\x64\x20\x69\x74\x73\x0a\x20\x20\x20\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x61\x72\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x65\x64\x2e\x0a\x0a\x20\x20\x20\x20\x42\x79\x20\x64\x65\x66\x61\x75\x6c\x74\x20\x65\x72\x72\x6f\x72\x73\x20\x66\x72\x6f\x6d\x20\x74\x68\x65\x20\x6f\x73\x2e\x73\x63\x61\x6e\x64\x69\x72\x28\x29\x20\x63\x61\x6c\x6c\x20\x61\x72\x65\x20\x69\x67\x6e\x6f\x72\x65\x64\x2e\x20\x20\x49\x66\x0a\x20\x20\x20\x20\x6f\x70\x74\x69\x6f\x6e\x61\x6c\x20\x61\x72\x67\x20\x27\x6f\x6e\x65\x72\x72\x6f\x72\x27\x20\x69\x73\x20\x73\x70\x65\x63\x69\x66\x69\x65\x64\x2c\x20\x69\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x66\x75\x6e\x63\x74\x69\x6f\x6e\x3b\x20\x69\x74\x0a\x20\x20\x20\x20\x77\x69\x6c\x6c\x20\x62\x65\x20\x63\x61\x6c\x6c\x65\x64\x20\x77\x69\x74\x68\x20\x6f\x6e\x65\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x2c\x20\x61\x6e\x20\x4f\x53\x45\x72\x72\x6f\x72\x20\x69\x6e\x73\x74\x61\x6e\x63\x65\x2e\x20\x20\x49\x74\x20\x63\x61\x6e\x0a\x20\x20\x20\x20\x72\x65\x70\x6f\x72\x74\x20\x74\x68\x65\x20\x65\x72\x72\x6f\x72\x20\x74\x6f\x20\x63\x6f\x6e\x74\x69\x6e\x75\x65\x20\x77\x69\x74\x68\x20\x74\x68\x65\x20\x77\x61\x6c\x6b\x2c\x20\x6f\x72\x20\x72\x61\x69\x73\x65\x20\x74\x68\x65\x20\x65\x78\x63\x65\x70\x74\x69\x6f\x6e\x0a\x20\x20\x20\x20\x74\x6f\x20\x61\x62\x6f\x72\x74\x20\x74\x68\x65\x20\x77\x61\x6c\x6b\x2e\x20\x20\x4e\x6f\x74\x65\x20\x74\x68\x61\x74\x20\x74\x68\x65\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x20\x69\x73\x20\x61\x76\x61\x69\x6c\x61\x62\x6c\x65\x20\x61\x73\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x20\x61\x74\x74\x72\x69\x62\x75\x74\x65\x20\x6f\x66\x20\x74\x68\x65\x20\x65\x78\x63\x65\x70\x74\x69\x6f\x6e\x20\x6f\x62\x6a\x65\x63\x74\x2e\x0a\x0a\x20\x20\x20\x20\x42\x79\x20\x64\x65\x66\x61\x75\x6c\x74\x2c\x20\x6f\x73\x2e\x77\x61\x6c\x6b\x20\x64\x6f\x65\x73\x20\x6e\x6f\x74\x20\x66\x6f\x6c\x6c\x6f\x77\x20\x73\x79\x6d\x62\x6f\x6c\x69\x63\x20\x6c\x69\x6e\x6b\x73\x20\x74\x6f\x20\x73\x75\x62\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x20\x6f\x6e\x0a\x20\x20\x20\x20\x73\x79\x73\x74\x65\x6d\x73\x20\x74\x68\x61\x74\x20\x73\x75\x70\x70\x6f\x72\x74\x20\x74\x68\x65\x6d\x2e\x20\x20\x49\x6e\x20\x6f\x72\x64\x65\x72\x20\x74\x6f\x20\x67\x65\x74\x20\x74\x68\x69\x73\x20\x66\x75\x6e\x63\x74\x69\x6f\x6e\x61\x6c\x69\x74\x79\x2c\x20\x73\x65\x74\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x6f\x70\x74\x69\x6f\x6e\x61\x6c\x20\x61\x72\x67\x75\x6d\x65\x6e\x74\x20\x27\x66\x6f\x6c\x6c\x6f\x77\x6c\x69\x6e\x6b\x73\x27\x20\x74\x6f\x20\x74\x72\x75\x65\x2e\x0a\x0a\x20\x20\x20\x20\x43\x61\x75\x74\x69\x6f\x6e\x3a\x20\x20\x69\x66\x20\x79\x6f\x75\x20\x70\x61\x73\x73\x20\x61\x20\x72\x65\x6c\x61\x74\x69\x76\x65\x20\x70\x61\x74\x68\x6e\x61\x6d\x65\x20\x66\x6f\x72\x20\x74\x6f\x70\x2c\x20\x64\x6f\x6e\x27\x74\x20\x63\x68\x61\x6e\x67\x65\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x63\x75\x72\x72\x65\x6e\x74\x20\x77\x6f\x72\x6b\x69\x6e\x67\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x62\x65\x74\x77\x65\x65\x6e\x20\x72\x65\x73\x75\x6d\x70\x74\x69\x6f\x6e\x73\x20\x6f\x66\x20\x77\x61\x6c\x6b\x2e\x20\x20\x77\x61\x6c\x6b\x20\x6e\x65\x76\x65\x72\x0a\x20\x20\x20\x20\x63\x68\x61\x6e\x67\x65\x73\x20\x74\x68\x65\x20\x63\x75\x72\x72\x65\x6e\x74\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x2c\x20\x61\x6e\x64\x20\x61\x73\x73\x75\x6d\x65\x73\x20\x74\x68\x61\x74\x20\x74\x68\x65\x20\x63\x6c\x69\x65\x6e\x74\x20\x64\x6f\x65\x73\x6e\x27\x74\x0a\x20\x20\x20\x20\x65\x69\x74\x68\x65\x72\x2e\x0a\x0a\x20\x20\x20\x20\x45\x78\x61\x6d\x70\x6c\x65\x3a\x0a\x0a\x20\x20\x20\x20\x69\x6d\x70\x6f\x72\x74\x20\x6f\x73\x0a\x20\x20\x20\x20\x66\x72\x6f\x6d\x20\x6f\x73\x2e\x70\x61\x74\x68\x20\x69\x6d\x70\x6f\x72\x74\x20\x6a\x6f\x69\x6e\x2c\x20\x67\x65\x74\x73\x69\x7a\x65\x0a\x20\x20\x20\x20\x66\x6f\x72\x20\x72\x6f\x6f\x74\x2c\x20\x64\x69\x72\x73\x2c\x20\x66\x69\x6c\x65\x73\x20\x69\x6e\x20\x6f\x73\x2e\x77\x61\x6c\x6b\x28\x27\x70\x79\x74\x68\x6f\x6e\x2f\x4c\x69\x62\x2f\x78\x6d\x6c\x27\x29\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x72\x6f\x6f\x74\x2c\x20\x22\x63\x6f\x6e\x73\x75\x6d\x65\x73\x20\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x73\x75\x6d\x28\x67\x65\x74\x73\x69\x7a\x65\x28\x6a\x6f\x69\x6e\x28\x72\x6f\x6f\x74\x2c\x20\x6e\x61\x6d\x65\x29\x29\x20\x66\x6f\x72\x20\x6e\x61\x6d\x65\x20\x69\x6e\x20\x66\x69\x6c\x65\x73\x29\x2c\x20\x65\x6e\x64\x3d\x22\x20\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x22\x62\x79\x74\x65\x73\x20\x69\x6e\x22\x2c\x20\x6c\x65\x6e\x28\x66\x69\x6c\x65\x73\x29\x2c\x20\x22\x6e\x6f\x6e\x2d\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x66\x69\x6c\x65\x73\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x69\x66\x20\x27\x5f\x5f\x70\x79\x63\x61\x63\x68\x65\x5f\x5f\x27\x20\x69\x6e\x20\x64\x69\x72\x73\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x64\x69\x72\x73\x2e\x72\x65\x6d\x6f\x76\x65\x28\x27\x5f\x5f\x70\x79\x63\x61\x63\x68\x65\x5f\x5f\x27\x29\x20\x20\x23\x20\x64\x6f\x6e\x27\x74\x20\x76\x69\x73\x69\x74\x20\x5f\x5f\x70\x79\x63\x61\x63\x68\x65\x5f\x5f\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x0a\x0a\x20\x20\x20\x20",
 };
 static
     struct {
@@ -111277,9 +111829,9 @@ os_toplevel_consts_83 = {
     .co_nlocals = 19,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 605,
+    .co_version = 609,
     .co_localsplusnames = & os_toplevel_consts_83_localsplusnames._object.ob_base.ob_base,
-    .co_localspluskinds = & ntpath_toplevel_consts_44_localspluskinds.ob_base.ob_base,
+    .co_localspluskinds = & ntpath_toplevel_consts_45_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
     .co_name = & const_str_walk._ascii.ob_base,
     .co_qualname = & const_str_walk._ascii.ob_base,
@@ -111314,7 +111866,7 @@ os_toplevel_consts_85 = {
 static
     struct {
         PyASCIIObject _ascii;
-        uint8_t _data[1283];
+        uint8_t _data[1305];
     }
 os_toplevel_consts_86_consts_0 = {
     ._ascii = {
@@ -111322,7 +111874,7 @@ os_toplevel_consts_86_consts_0 = {
             .ob_refcnt = _Py_IMMORTAL_REFCNT,
             .ob_type = &PyUnicode_Type,
         },
-        .length = 1282,
+        .length = 1304,
         .hash = -1,
         .state = {
             .kind = 1,
@@ -111331,7 +111883,7 @@ os_toplevel_consts_86_consts_0 = {
             .statically_allocated = 1,
         },
     },
-    ._data = "\x44\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x74\x72\x65\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x6f\x72\x2e\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x54\x68\x69\x73\x20\x62\x65\x68\x61\x76\x65\x73\x20\x65\x78\x61\x63\x74\x6c\x79\x20\x6c\x69\x6b\x65\x20\x77\x61\x6c\x6b\x28\x29\x2c\x20\x65\x78\x63\x65\x70\x74\x20\x74\x68\x61\x74\x20\x69\x74\x20\x79\x69\x65\x6c\x64\x73\x20\x61\x20\x34\x2d\x74\x75\x70\x6c\x65\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x64\x69\x72\x70\x61\x74\x68\x2c\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x2c\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x73\x2c\x20\x64\x69\x72\x66\x64\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x60\x64\x69\x72\x70\x61\x74\x68\x60\x2c\x20\x60\x64\x69\x72\x6e\x61\x6d\x65\x73\x60\x20\x61\x6e\x64\x20\x60\x66\x69\x6c\x65\x6e\x61\x6d\x65\x73\x60\x20\x61\x72\x65\x20\x69\x64\x65\x6e\x74\x69\x63\x61\x6c\x20\x74\x6f\x20\x77\x61\x6c\x6b\x28\x29\x20\x6f\x75\x74\x70\x75\x74\x2c\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x61\x6e\x64\x20\x60\x64\x69\x72\x66\x64\x60\x20\x69\x73\x20\x61\x20\x66\x69\x6c\x65\x20\x64\x65\x73\x63\x72\x69\x70\x74\x6f\x72\x20\x72\x65\x66\x65\x72\x72\x69\x6e\x67\x20\x74\x6f\x20\x74\x68\x65\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x60\x64\x69\x72\x70\x61\x74\x68\x60\x2e\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x54\x68\x65\x20\x61\x64\x76\x61\x6e\x74\x61\x67\x65\x20\x6f\x66\x20\x66\x77\x61\x6c\x6b\x28\x29\x20\x6f\x76\x65\x72\x20\x77\x61\x6c\x6b\x28\x29\x20\x69\x73\x20\x74\x68\x61\x74\x20\x69\x74\x27\x73\x20\x73\x61\x66\x65\x20\x61\x67\x61\x69\x6e\x73\x74\x20\x73\x79\x6d\x6c\x69\x6e\x6b\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x72\x61\x63\x65\x73\x20\x28\x77\x68\x65\x6e\x20\x66\x6f\x6c\x6c\x6f\x77\x5f\x73\x79\x6d\x6c\x69\x6e\x6b\x73\x20\x69\x73\x20\x46\x61\x6c\x73\x65\x29\x2e\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x49\x66\x20\x64\x69\x72\x5f\x66\x64\x20\x69\x73\x20\x6e\x6f\x74\x20\x4e\x6f\x6e\x65\x2c\x20\x69\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x66\x69\x6c\x65\x20\x64\x65\x73\x63\x72\x69\x70\x74\x6f\x72\x20\x6f\x70\x65\x6e\x20\x74\x6f\x20\x61\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x2c\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x61\x6e\x64\x20\x74\x6f\x70\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x72\x65\x6c\x61\x74\x69\x76\x65\x3b\x20\x74\x6f\x70\x20\x77\x69\x6c\x6c\x20\x74\x68\x65\x6e\x20\x62\x65\x20\x72\x65\x6c\x61\x74\x69\x76\x65\x20\x74\x6f\x20\x74\x68\x61\x74\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x2e\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x28\x64\x69\x72\x5f\x66\x64\x20\x69\x73\x20\x61\x6c\x77\x61\x79\x73\x20\x73\x75\x70\x70\x6f\x72\x74\x65\x64\x20\x66\x6f\x72\x20\x66\x77\x61\x6c\x6b\x2e\x29\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x43\x61\x75\x74\x69\x6f\x6e\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x53\x69\x6e\x63\x65\x20\x66\x77\x61\x6c\x6b\x28\x29\x20\x79\x69\x65\x6c\x64\x73\x20\x66\x69\x6c\x65\x20\x64\x65\x73\x63\x72\x69\x70\x74\x6f\x72\x73\x2c\x20\x74\x68\x6f\x73\x65\x20\x61\x72\x65\x20\x6f\x6e\x6c\x79\x20\x76\x61\x6c\x69\x64\x20\x75\x6e\x74\x69\x6c\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x6e\x65\x78\x74\x20\x69\x74\x65\x72\x61\x74\x69\x6f\x6e\x20\x73\x74\x65\x70\x2c\x20\x73\x6f\x20\x79\x6f\x75\x20\x73\x68\x6f\x75\x6c\x64\x20\x64\x75\x70\x28\x29\x20\x74\x68\x65\x6d\x20\x69\x66\x20\x79\x6f\x75\x20\x77\x61\x6e\x74\x20\x74\x6f\x20\x6b\x65\x65\x70\x20\x74\x68\x65\x6d\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x66\x6f\x72\x20\x61\x20\x6c\x6f\x6e\x67\x65\x72\x20\x70\x65\x72\x69\x6f\x64\x2e\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x45\x78\x61\x6d\x70\x6c\x65\x3a\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x69\x6d\x70\x6f\x72\x74\x20\x6f\x73\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x66\x6f\x72\x20\x72\x6f\x6f\x74\x2c\x20\x64\x69\x72\x73\x2c\x20\x66\x69\x6c\x65\x73\x2c\x20\x72\x6f\x6f\x74\x66\x64\x20\x69\x6e\x20\x6f\x73\x2e\x66\x77\x61\x6c\x6b\x28\x27\x70\x79\x74\x68\x6f\x6e\x2f\x4c\x69\x62\x2f\x65\x6d\x61\x69\x6c\x27\x29\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x72\x6f\x6f\x74\x2c\x20\x22\x63\x6f\x6e\x73\x75\x6d\x65\x73\x22\x2c\x20\x65\x6e\x64\x3d\x22\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x73\x75\x6d\x28\x6f\x73\x2e\x73\x74\x61\x74\x28\x6e\x61\x6d\x65\x2c\x20\x64\x69\x72\x5f\x66\x64\x3d\x72\x6f\x6f\x74\x66\x64\x29\x2e\x73\x74\x5f\x73\x69\x7a\x65\x20\x66\x6f\x72\x20\x6e\x61\x6d\x65\x20\x69\x6e\x20\x66\x69\x6c\x65\x73\x29\x2c\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x65\x6e\x64\x3d\x22\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x22\x62\x79\x74\x65\x73\x20\x69\x6e\x22\x2c\x20\x6c\x65\x6e\x28\x66\x69\x6c\x65\x73\x29\x2c\x20\x22\x6e\x6f\x6e\x2d\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x66\x69\x6c\x65\x73\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x69\x66\x20\x27\x43\x56\x53\x27\x20\x69\x6e\x20\x64\x69\x72\x73\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x64\x69\x72\x73\x2e\x72\x65\x6d\x6f\x76\x65\x28\x27\x43\x56\x53\x27\x29\x20\x20\x23\x20\x64\x6f\x6e\x27\x74\x20\x76\x69\x73\x69\x74\x20\x43\x56\x53\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x0a\x20\x20\x20\x20\x20\x20\x20\x20",
+    ._data = "\x44\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x74\x72\x65\x65\x20\x67\x65\x6e\x65\x72\x61\x74\x6f\x72\x2e\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x54\x68\x69\x73\x20\x62\x65\x68\x61\x76\x65\x73\x20\x65\x78\x61\x63\x74\x6c\x79\x20\x6c\x69\x6b\x65\x20\x77\x61\x6c\x6b\x28\x29\x2c\x20\x65\x78\x63\x65\x70\x74\x20\x74\x68\x61\x74\x20\x69\x74\x20\x79\x69\x65\x6c\x64\x73\x20\x61\x20\x34\x2d\x74\x75\x70\x6c\x65\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x64\x69\x72\x70\x61\x74\x68\x2c\x20\x64\x69\x72\x6e\x61\x6d\x65\x73\x2c\x20\x66\x69\x6c\x65\x6e\x61\x6d\x65\x73\x2c\x20\x64\x69\x72\x66\x64\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x60\x64\x69\x72\x70\x61\x74\x68\x60\x2c\x20\x60\x64\x69\x72\x6e\x61\x6d\x65\x73\x60\x20\x61\x6e\x64\x20\x60\x66\x69\x6c\x65\x6e\x61\x6d\x65\x73\x60\x20\x61\x72\x65\x20\x69\x64\x65\x6e\x74\x69\x63\x61\x6c\x20\x74\x6f\x20\x77\x61\x6c\x6b\x28\x29\x20\x6f\x75\x74\x70\x75\x74\x2c\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x61\x6e\x64\x20\x60\x64\x69\x72\x66\x64\x60\x20\x69\x73\x20\x61\x20\x66\x69\x6c\x65\x20\x64\x65\x73\x63\x72\x69\x70\x74\x6f\x72\x20\x72\x65\x66\x65\x72\x72\x69\x6e\x67\x20\x74\x6f\x20\x74\x68\x65\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x60\x64\x69\x72\x70\x61\x74\x68\x60\x2e\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x54\x68\x65\x20\x61\x64\x76\x61\x6e\x74\x61\x67\x65\x20\x6f\x66\x20\x66\x77\x61\x6c\x6b\x28\x29\x20\x6f\x76\x65\x72\x20\x77\x61\x6c\x6b\x28\x29\x20\x69\x73\x20\x74\x68\x61\x74\x20\x69\x74\x27\x73\x20\x73\x61\x66\x65\x20\x61\x67\x61\x69\x6e\x73\x74\x20\x73\x79\x6d\x6c\x69\x6e\x6b\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x72\x61\x63\x65\x73\x20\x28\x77\x68\x65\x6e\x20\x66\x6f\x6c\x6c\x6f\x77\x5f\x73\x79\x6d\x6c\x69\x6e\x6b\x73\x20\x69\x73\x20\x46\x61\x6c\x73\x65\x29\x2e\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x49\x66\x20\x64\x69\x72\x5f\x66\x64\x20\x69\x73\x20\x6e\x6f\x74\x20\x4e\x6f\x6e\x65\x2c\x20\x69\x74\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x61\x20\x66\x69\x6c\x65\x20\x64\x65\x73\x63\x72\x69\x70\x74\x6f\x72\x20\x6f\x70\x65\x6e\x20\x74\x6f\x20\x61\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x2c\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x61\x6e\x64\x20\x74\x6f\x70\x20\x73\x68\x6f\x75\x6c\x64\x20\x62\x65\x20\x72\x65\x6c\x61\x74\x69\x76\x65\x3b\x20\x74\x6f\x70\x20\x77\x69\x6c\x6c\x20\x74\x68\x65\x6e\x20\x62\x65\x20\x72\x65\x6c\x61\x74\x69\x76\x65\x20\x74\x6f\x20\x74\x68\x61\x74\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x2e\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x28\x64\x69\x72\x5f\x66\x64\x20\x69\x73\x20\x61\x6c\x77\x61\x79\x73\x20\x73\x75\x70\x70\x6f\x72\x74\x65\x64\x20\x66\x6f\x72\x20\x66\x77\x61\x6c\x6b\x2e\x29\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x43\x61\x75\x74\x69\x6f\x6e\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x53\x69\x6e\x63\x65\x20\x66\x77\x61\x6c\x6b\x28\x29\x20\x79\x69\x65\x6c\x64\x73\x20\x66\x69\x6c\x65\x20\x64\x65\x73\x63\x72\x69\x70\x74\x6f\x72\x73\x2c\x20\x74\x68\x6f\x73\x65\x20\x61\x72\x65\x20\x6f\x6e\x6c\x79\x20\x76\x61\x6c\x69\x64\x20\x75\x6e\x74\x69\x6c\x20\x74\x68\x65\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x6e\x65\x78\x74\x20\x69\x74\x65\x72\x61\x74\x69\x6f\x6e\x20\x73\x74\x65\x70\x2c\x20\x73\x6f\x20\x79\x6f\x75\x20\x73\x68\x6f\x75\x6c\x64\x20\x64\x75\x70\x28\x29\x20\x74\x68\x65\x6d\x20\x69\x66\x20\x79\x6f\x75\x20\x77\x61\x6e\x74\x20\x74\x6f\x20\x6b\x65\x65\x70\x20\x74\x68\x65\x6d\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x66\x6f\x72\x20\x61\x20\x6c\x6f\x6e\x67\x65\x72\x20\x70\x65\x72\x69\x6f\x64\x2e\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x45\x78\x61\x6d\x70\x6c\x65\x3a\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x69\x6d\x70\x6f\x72\x74\x20\x6f\x73\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x66\x6f\x72\x20\x72\x6f\x6f\x74\x2c\x20\x64\x69\x72\x73\x2c\x20\x66\x69\x6c\x65\x73\x2c\x20\x72\x6f\x6f\x74\x66\x64\x20\x69\x6e\x20\x6f\x73\x2e\x66\x77\x61\x6c\x6b\x28\x27\x70\x79\x74\x68\x6f\x6e\x2f\x4c\x69\x62\x2f\x78\x6d\x6c\x27\x29\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x72\x6f\x6f\x74\x2c\x20\x22\x63\x6f\x6e\x73\x75\x6d\x65\x73\x22\x2c\x20\x65\x6e\x64\x3d\x22\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x73\x75\x6d\x28\x6f\x73\x2e\x73\x74\x61\x74\x28\x6e\x61\x6d\x65\x2c\x20\x64\x69\x72\x5f\x66\x64\x3d\x72\x6f\x6f\x74\x66\x64\x29\x2e\x73\x74\x5f\x73\x69\x7a\x65\x20\x66\x6f\x72\x20\x6e\x61\x6d\x65\x20\x69\x6e\x20\x66\x69\x6c\x65\x73\x29\x2c\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x65\x6e\x64\x3d\x22\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x70\x72\x69\x6e\x74\x28\x22\x62\x79\x74\x65\x73\x20\x69\x6e\x22\x2c\x20\x6c\x65\x6e\x28\x66\x69\x6c\x65\x73\x29\x2c\x20\x22\x6e\x6f\x6e\x2d\x64\x69\x72\x65\x63\x74\x6f\x72\x79\x20\x66\x69\x6c\x65\x73\x22\x29\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x69\x66\x20\x27\x5f\x5f\x70\x79\x63\x61\x63\x68\x65\x5f\x5f\x27\x20\x69\x6e\x20\x64\x69\x72\x73\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x64\x69\x72\x73\x2e\x72\x65\x6d\x6f\x76\x65\x28\x27\x5f\x5f\x70\x79\x63\x61\x63\x68\x65\x5f\x5f\x27\x29\x20\x20\x23\x20\x64\x6f\x6e\x27\x74\x20\x76\x69\x73\x69\x74\x20\x5f\x5f\x70\x79\x63\x61\x63\x68\x65\x5f\x5f\x20\x64\x69\x72\x65\x63\x74\x6f\x72\x69\x65\x73\x0a\x20\x20\x20\x20\x20\x20\x20\x20",
 };
 static
     struct {
@@ -111631,7 +112183,7 @@ os_toplevel_consts_86 = {
     .co_nlocals = 9,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 606,
+    .co_version = 610,
     .co_localsplusnames = & os_toplevel_consts_86_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_61_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -111875,7 +112427,7 @@ os_toplevel_consts_87_consts_6 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 2,
-    .co_version = 607,
+    .co_version = 611,
     .co_localsplusnames = & os_toplevel_consts_87_consts_6_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & os_toplevel_consts_87_consts_6_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -111987,7 +112539,7 @@ os_toplevel_consts_87_consts_8 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 2,
-    .co_version = 608,
+    .co_version = 612,
     .co_localsplusnames = & os_toplevel_consts_87_consts_8_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & os_toplevel_consts_87_consts_8_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -112387,7 +112939,7 @@ os_toplevel_consts_87 = {
     .co_nlocals = 18,
     .co_ncellvars = 2,
     .co_nfreevars = 0,
-    .co_version = 609,
+    .co_version = 613,
     .co_localsplusnames = & os_toplevel_consts_87_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & os_toplevel_consts_87_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -112573,7 +113125,7 @@ os_toplevel_consts_89 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 610,
+    .co_version = 614,
     .co_localsplusnames = & os_toplevel_consts_89_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -112739,7 +113291,7 @@ os_toplevel_consts_90 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 611,
+    .co_version = 615,
     .co_localsplusnames = & os_toplevel_consts_90_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -112902,7 +113454,7 @@ os_toplevel_consts_91 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 612,
+    .co_version = 616,
     .co_localsplusnames = & os_toplevel_consts_89_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -113066,7 +113618,7 @@ os_toplevel_consts_92 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 613,
+    .co_version = 617,
     .co_localsplusnames = & os_toplevel_consts_90_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -113207,7 +113759,7 @@ os_toplevel_consts_93 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 614,
+    .co_version = 618,
     .co_localsplusnames = & os_toplevel_consts_89_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -113304,7 +113856,7 @@ os_toplevel_consts_94 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 615,
+    .co_version = 619,
     .co_localsplusnames = & os_toplevel_consts_90_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -113555,7 +114107,7 @@ os_toplevel_consts_96 = {
     .co_nlocals = 11,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 616,
+    .co_version = 620,
     .co_localsplusnames = & os_toplevel_consts_96_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_6_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -113885,7 +114437,7 @@ os_toplevel_consts_97 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 617,
+    .co_version = 621,
     .co_localsplusnames = & os_toplevel_consts_97_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -114167,7 +114719,7 @@ os_toplevel_consts_99_consts_1 = {
     .co_nlocals = 6,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 618,
+    .co_version = 622,
     .co_localsplusnames = & os_toplevel_consts_99_consts_1_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_30_consts_4_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -114283,7 +114835,7 @@ os_toplevel_consts_99_consts_2 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 619,
+    .co_version = 623,
     .co_localsplusnames = & _collections_abc_toplevel_consts_66_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -114404,7 +114956,7 @@ os_toplevel_consts_99_consts_3 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 620,
+    .co_version = 624,
     .co_localsplusnames = & _collections_abc_toplevel_consts_66_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -114588,7 +115140,7 @@ os_toplevel_consts_99_consts_4 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 621,
+    .co_version = 625,
     .co_localsplusnames = & os_toplevel_consts_99_consts_4_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -114727,7 +115279,7 @@ os_toplevel_consts_99_consts_5 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 622,
+    .co_version = 626,
     .co_localsplusnames = & os_toplevel_consts_99_consts_5_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -114824,7 +115376,7 @@ os_toplevel_consts_99_consts_6 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 623,
+    .co_version = 627,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -114986,7 +115538,7 @@ os_toplevel_consts_99_consts_7_consts_2 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 1,
-    .co_version = 624,
+    .co_version = 628,
     .co_localsplusnames = & os_toplevel_consts_99_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_1_consts_1_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -115199,7 +115751,7 @@ os_toplevel_consts_99_consts_7 = {
     .co_nlocals = 2,
     .co_ncellvars = 1,
     .co_nfreevars = 0,
-    .co_version = 625,
+    .co_version = 629,
     .co_localsplusnames = & os_toplevel_consts_99_consts_7_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_26_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -115295,7 +115847,7 @@ os_toplevel_consts_99_consts_8 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 626,
+    .co_version = 630,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -115369,7 +115921,7 @@ os_toplevel_consts_99_consts_9 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 627,
+    .co_version = 631,
     .co_localsplusnames = & _collections_abc_toplevel_consts_66_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -115465,7 +116017,7 @@ os_toplevel_consts_99_consts_10 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 628,
+    .co_version = 632,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_58_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -115589,7 +116141,7 @@ os_toplevel_consts_99_consts_11 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 629,
+    .co_version = 633,
     .co_localsplusnames = & os_toplevel_consts_99_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -115663,7 +116215,7 @@ os_toplevel_consts_99_consts_12 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 630,
+    .co_version = 634,
     .co_localsplusnames = & os_toplevel_consts_99_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -115786,7 +116338,7 @@ os_toplevel_consts_99 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 631,
+    .co_version = 635,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -115975,7 +116527,7 @@ os_toplevel_consts_101_consts_2 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 632,
+    .co_version = 636,
     .co_localsplusnames = & os_toplevel_consts_101_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -116111,7 +116663,7 @@ os_toplevel_consts_101_consts_3 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 1,
-    .co_version = 633,
+    .co_version = 637,
     .co_localsplusnames = & os_toplevel_consts_101_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & os_toplevel_consts_101_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -116259,7 +116811,7 @@ os_toplevel_consts_101_consts_4 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 1,
-    .co_version = 634,
+    .co_version = 638,
     .co_localsplusnames = & os_toplevel_consts_101_consts_4_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & os_toplevel_consts_101_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -116378,7 +116930,7 @@ os_toplevel_consts_101_consts_5 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 1,
-    .co_version = 635,
+    .co_version = 639,
     .co_localsplusnames = & os_toplevel_consts_101_consts_4_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & os_toplevel_consts_101_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -116553,7 +117105,7 @@ os_toplevel_consts_101 = {
     .co_nlocals = 6,
     .co_ncellvars = 2,
     .co_nfreevars = 0,
-    .co_version = 636,
+    .co_version = 640,
     .co_localsplusnames = & os_toplevel_consts_101_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & os_toplevel_consts_101_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -116717,7 +117269,7 @@ os_toplevel_consts_102 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 637,
+    .co_version = 641,
     .co_localsplusnames = & os_toplevel_consts_102_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -116885,7 +117437,7 @@ os_toplevel_consts_104 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 638,
+    .co_version = 642,
     .co_localsplusnames = & os_toplevel_consts_101_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -117026,7 +117578,7 @@ os_toplevel_consts_105 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 639,
+    .co_version = 643,
     .co_localsplusnames = & os_toplevel_consts_102_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -117216,7 +117768,7 @@ os_toplevel_consts_107_consts_1 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 2,
-    .co_version = 640,
+    .co_version = 644,
     .co_localsplusnames = & os_toplevel_consts_107_consts_1_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_external_toplevel_consts_72_consts_8_consts_1_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -117359,7 +117911,7 @@ os_toplevel_consts_107_consts_2 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 2,
-    .co_version = 641,
+    .co_version = 645,
     .co_localsplusnames = & os_toplevel_consts_107_consts_1_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_external_toplevel_consts_72_consts_8_consts_1_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -117545,7 +118097,7 @@ os_toplevel_consts_107 = {
     .co_nlocals = 2,
     .co_ncellvars = 2,
     .co_nfreevars = 0,
-    .co_version = 642,
+    .co_version = 646,
     .co_localsplusnames = & os_toplevel_consts_107_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & os_toplevel_consts_107_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -118011,7 +118563,7 @@ os_toplevel_consts_112 = {
     .co_nlocals = 8,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 643,
+    .co_version = 647,
     .co_localsplusnames = & os_toplevel_consts_112_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_13_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -118155,7 +118707,7 @@ os_toplevel_consts_113 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 644,
+    .co_version = 648,
     .co_localsplusnames = & os_toplevel_consts_113_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -118321,7 +118873,7 @@ os_toplevel_consts_114 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 645,
+    .co_version = 649,
     .co_localsplusnames = & os_toplevel_consts_114_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -118463,7 +119015,7 @@ os_toplevel_consts_115 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 646,
+    .co_version = 650,
     .co_localsplusnames = & os_toplevel_consts_113_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -118604,7 +119156,7 @@ os_toplevel_consts_116 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 647,
+    .co_version = 651,
     .co_localsplusnames = & os_toplevel_consts_114_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -118769,7 +119321,7 @@ os_toplevel_consts_118 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 648,
+    .co_version = 652,
     .co_localsplusnames = & os_toplevel_consts_113_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -118911,7 +119463,7 @@ os_toplevel_consts_119 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 649,
+    .co_version = 653,
     .co_localsplusnames = & os_toplevel_consts_114_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -119051,7 +119603,7 @@ os_toplevel_consts_123 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 650,
+    .co_version = 654,
     .co_localsplusnames = & os_toplevel_consts_113_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -119193,7 +119745,7 @@ os_toplevel_consts_124 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 651,
+    .co_version = 655,
     .co_localsplusnames = & os_toplevel_consts_114_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -119649,7 +120201,7 @@ os_toplevel_consts_128 = {
     .co_nlocals = 5,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 652,
+    .co_version = 656,
     .co_localsplusnames = & os_toplevel_consts_128_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_5_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -119814,7 +120366,7 @@ os_toplevel_consts_129_consts_1 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 653,
+    .co_version = 657,
     .co_localsplusnames = & os_toplevel_consts_129_consts_1_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -120006,7 +120558,7 @@ os_toplevel_consts_129_consts_2 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 654,
+    .co_version = 658,
     .co_localsplusnames = & os_toplevel_consts_129_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -120080,7 +120632,7 @@ os_toplevel_consts_129_consts_3 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 655,
+    .co_version = 659,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -120176,7 +120728,7 @@ os_toplevel_consts_129_consts_4 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 656,
+    .co_version = 660,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_30_consts_5_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -120273,7 +120825,7 @@ os_toplevel_consts_129_consts_5 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 657,
+    .co_version = 661,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_14_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -120370,7 +120922,7 @@ os_toplevel_consts_129_consts_6 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 658,
+    .co_version = 662,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -120481,7 +121033,7 @@ os_toplevel_consts_129 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 659,
+    .co_version = 663,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -120636,7 +121188,7 @@ os_toplevel_consts_132 = {
     .co_nlocals = 7,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 660,
+    .co_version = 664,
     .co_localsplusnames = & os_toplevel_consts_132_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_9_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -120917,7 +121469,7 @@ os_toplevel_consts_133 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 661,
+    .co_version = 665,
     .co_localsplusnames = & os_toplevel_consts_133_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -121062,7 +121614,7 @@ os_toplevel_consts_135_consts_2 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 662,
+    .co_version = 666,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -121183,7 +121735,7 @@ os_toplevel_consts_135_consts_3 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 663,
+    .co_version = 667,
     .co_localsplusnames = & abc_toplevel_consts_10_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -121293,7 +121845,7 @@ os_toplevel_consts_135 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 664,
+    .co_version = 668,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -121504,7 +122056,7 @@ os_toplevel_consts_137_consts_1 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 665,
+    .co_version = 669,
     .co_localsplusnames = & os_toplevel_consts_137_consts_1_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -121602,7 +122154,7 @@ os_toplevel_consts_137_consts_2 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 666,
+    .co_version = 670,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -121659,7 +122211,7 @@ os_toplevel_consts_137_consts_3 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 667,
+    .co_version = 671,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -121716,7 +122268,7 @@ os_toplevel_consts_137_consts_4 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 668,
+    .co_version = 672,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_30_consts_5_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -121881,7 +122433,7 @@ os_toplevel_consts_137_consts_5 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 669,
+    .co_version = 673,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -121990,7 +122542,7 @@ os_toplevel_consts_137 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 670,
+    .co_version = 674,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -122181,7 +122733,7 @@ os_toplevel_consts_139 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 671,
+    .co_version = 675,
     .co_localsplusnames = & os_toplevel_consts_139_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -122856,7 +123408,7 @@ os_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 672,
+    .co_version = 676,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & os_toplevel_consts_5_filename._ascii.ob_base,
@@ -123052,7 +123604,7 @@ site_toplevel_consts_3 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 673,
+    .co_version = 677,
     .co_localsplusnames = & site_toplevel_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -123193,7 +123745,7 @@ site_toplevel_consts_4 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 674,
+    .co_version = 678,
     .co_localsplusnames = & site_toplevel_consts_4_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -123436,7 +123988,7 @@ site_toplevel_consts_5 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 675,
+    .co_version = 679,
     .co_localsplusnames = & site_toplevel_consts_5_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -123651,7 +124203,7 @@ site_toplevel_consts_6 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 676,
+    .co_version = 680,
     .co_localsplusnames = & site_toplevel_consts_6_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -123862,7 +124414,7 @@ site_toplevel_consts_7 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 677,
+    .co_version = 681,
     .co_localsplusnames = & site_toplevel_consts_7_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -124573,23 +125125,6 @@ site_toplevel_consts_8_localsplusnames = {
     },
 };
 static
-    struct {
-        PyObject_VAR_HEAD
-        Py_hash_t ob_shash;
-        char ob_sval[17];
-    }
-site_toplevel_consts_8_localspluskinds = {
-    .ob_base = {
-        .ob_base = {
-            .ob_refcnt = _Py_IMMORTAL_REFCNT,
-            .ob_type = &PyBytes_Type,
-        },
-        .ob_size = 16,
-    },
-    .ob_shash = -1,
-    .ob_sval = "                ",
-};
-static
     struct _PyCode_DEF(1472)
 site_toplevel_consts_8 = {
     .ob_base = {
@@ -124613,9 +125148,9 @@ site_toplevel_consts_8 = {
     .co_nlocals = 16,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 678,
+    .co_version = 682,
     .co_localsplusnames = & site_toplevel_consts_8_localsplusnames._object.ob_base.ob_base,
-    .co_localspluskinds = & site_toplevel_consts_8_localspluskinds.ob_base.ob_base,
+    .co_localspluskinds = & posixpath_toplevel_consts_32_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
     .co_name = & const_str_addpackage._ascii.ob_base,
     .co_qualname = & const_str_addpackage._ascii.ob_base,
@@ -124882,7 +125417,7 @@ site_toplevel_consts_9 = {
     .co_nlocals = 6,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 679,
+    .co_version = 683,
     .co_localsplusnames = & site_toplevel_consts_9_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_30_consts_4_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -125125,7 +125660,7 @@ site_toplevel_consts_10 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 680,
+    .co_version = 684,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -125359,7 +125894,7 @@ site_toplevel_consts_11_consts_3 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 681,
+    .co_version = 685,
     .co_localsplusnames = & site_toplevel_consts_11_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -125652,7 +126187,7 @@ site_toplevel_consts_11 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 682,
+    .co_version = 686,
     .co_localsplusnames = & site_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -125988,7 +126523,7 @@ site_toplevel_consts_12 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 683,
+    .co_version = 687,
     .co_localsplusnames = & site_toplevel_consts_12_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -126151,7 +126686,7 @@ site_toplevel_consts_13 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 684,
+    .co_version = 688,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -126361,7 +126896,7 @@ site_toplevel_consts_14 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 685,
+    .co_version = 689,
     .co_localsplusnames = & site_toplevel_consts_14_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -126575,7 +127110,7 @@ site_toplevel_consts_15 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 686,
+    .co_version = 690,
     .co_localsplusnames = & site_toplevel_consts_15_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -126980,7 +127515,7 @@ site_toplevel_consts_16 = {
     .co_nlocals = 7,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 687,
+    .co_version = 691,
     .co_localsplusnames = & site_toplevel_consts_16_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_9_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -127172,7 +127707,7 @@ site_toplevel_consts_17 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 688,
+    .co_version = 692,
     .co_localsplusnames = & site_toplevel_consts_17_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -127456,7 +127991,7 @@ site_toplevel_consts_18 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 689,
+    .co_version = 693,
     .co_localsplusnames = & site_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -127822,7 +128357,7 @@ site_toplevel_consts_19 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 690,
+    .co_version = 694,
     .co_localsplusnames = & site_toplevel_consts_19_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -127921,7 +128456,7 @@ site_toplevel_consts_20 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 691,
+    .co_version = 695,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -128251,7 +128786,7 @@ site_toplevel_consts_21_consts_1_consts_9 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 2,
-    .co_version = 692,
+    .co_version = 696,
     .co_localsplusnames = & site_toplevel_consts_21_consts_1_consts_9_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & site_toplevel_consts_21_consts_1_consts_9_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -128629,7 +129164,7 @@ site_toplevel_consts_21_consts_1 = {
     .co_nlocals = 4,
     .co_ncellvars = 2,
     .co_nfreevars = 0,
-    .co_version = 693,
+    .co_version = 697,
     .co_localsplusnames = & site_toplevel_consts_21_consts_1_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & site_toplevel_consts_21_consts_1_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -128794,7 +129329,7 @@ site_toplevel_consts_21 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 694,
+    .co_version = 698,
     .co_localsplusnames = & site_toplevel_consts_21_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -128981,7 +129516,7 @@ site_toplevel_consts_22_consts_4 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 695,
+    .co_version = 699,
     .co_localsplusnames = & site_toplevel_consts_22_consts_4_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -129448,7 +129983,7 @@ site_toplevel_consts_22 = {
     .co_nlocals = 14,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 696,
+    .co_version = 700,
     .co_localsplusnames = & site_toplevel_consts_22_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_external_toplevel_consts_72_consts_6_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -129713,7 +130248,7 @@ site_toplevel_consts_23 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 697,
+    .co_version = 701,
     .co_localsplusnames = & site_toplevel_consts_23_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -129922,7 +130457,7 @@ site_toplevel_consts_24 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 698,
+    .co_version = 702,
     .co_localsplusnames = & site_toplevel_consts_24_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -130146,7 +130681,7 @@ site_toplevel_consts_25 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 699,
+    .co_version = 703,
     .co_localsplusnames = & site_toplevel_consts_25_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -130356,7 +130891,7 @@ site_toplevel_consts_26_consts_7 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 700,
+    .co_version = 704,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -130713,7 +131248,7 @@ site_toplevel_consts_26 = {
     .co_nlocals = 8,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 701,
+    .co_version = 705,
     .co_localsplusnames = & site_toplevel_consts_26_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_13_localspluskinds.ob_base.ob_base,
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -130898,7 +131433,7 @@ site_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 702,
+    .co_version = 706,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & site_toplevel_consts_3_filename._ascii.ob_base,
@@ -131104,7 +131639,7 @@ stat_toplevel_consts_11 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 703,
+    .co_version = 707,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -131223,7 +131758,7 @@ stat_toplevel_consts_12 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 704,
+    .co_version = 708,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -131472,7 +132007,7 @@ stat_toplevel_consts_20 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 705,
+    .co_version = 709,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -131618,7 +132153,7 @@ stat_toplevel_consts_21 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 706,
+    .co_version = 710,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -131764,7 +132299,7 @@ stat_toplevel_consts_22 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 707,
+    .co_version = 711,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -131888,7 +132423,7 @@ stat_toplevel_consts_23 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 708,
+    .co_version = 712,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -132034,7 +132569,7 @@ stat_toplevel_consts_24 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 709,
+    .co_version = 713,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -132158,7 +132693,7 @@ stat_toplevel_consts_25 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 710,
+    .co_version = 714,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -132321,7 +132856,7 @@ stat_toplevel_consts_26 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 711,
+    .co_version = 715,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -132440,7 +132975,7 @@ stat_toplevel_consts_27 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 712,
+    .co_version = 716,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -132542,7 +133077,7 @@ stat_toplevel_consts_28 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 713,
+    .co_version = 717,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -132644,7 +133179,7 @@ stat_toplevel_consts_29 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 714,
+    .co_version = 718,
     .co_localsplusnames = & stat_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -133131,7 +133666,7 @@ stat_toplevel_consts_58 = {
     .co_nlocals = 5,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 715,
+    .co_version = 719,
     .co_localsplusnames = & stat_toplevel_consts_58_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_5_localspluskinds.ob_base.ob_base,
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -134708,7 +135243,7 @@ stat_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 716,
+    .co_version = 720,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & stat_toplevel_consts_11_filename._ascii.ob_base,
@@ -135143,7 +135678,7 @@ importlib_util_toplevel_consts_15 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 717,
+    .co_version = 721,
     .co_localsplusnames = & importlib_util_toplevel_consts_15_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -135361,7 +135896,7 @@ importlib_util_toplevel_consts_16 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 718,
+    .co_version = 722,
     .co_localsplusnames = & importlib_util_toplevel_consts_16_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -135595,7 +136130,7 @@ importlib_util_toplevel_consts_17 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 719,
+    .co_version = 723,
     .co_localsplusnames = & importlib_util_toplevel_consts_17_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -135869,7 +136404,7 @@ importlib_util_toplevel_consts_18 = {
     .co_nlocals = 9,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 720,
+    .co_version = 724,
     .co_localsplusnames = & importlib_util_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_61_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -136055,7 +136590,7 @@ importlib_util_toplevel_consts_19_consts_2 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 721,
+    .co_version = 725,
     .co_localsplusnames = & importlib_util_toplevel_consts_19_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -136176,7 +136711,7 @@ importlib_util_toplevel_consts_19_consts_3 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 722,
+    .co_version = 726,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -136298,7 +136833,7 @@ importlib_util_toplevel_consts_19_consts_4 = {
     .co_nlocals = 3,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 723,
+    .co_version = 727,
     .co_localsplusnames = & importlib_util_toplevel_consts_19_consts_4_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -136418,7 +136953,7 @@ importlib_util_toplevel_consts_19_consts_5 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 724,
+    .co_version = 728,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -136528,7 +137063,7 @@ importlib_util_toplevel_consts_19 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 725,
+    .co_version = 729,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -137006,7 +137541,7 @@ importlib_util_toplevel_consts_21_consts_2 = {
     .co_nlocals = 11,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 726,
+    .co_version = 730,
     .co_localsplusnames = & importlib_util_toplevel_consts_21_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_6_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -137193,7 +137728,7 @@ importlib_util_toplevel_consts_21_consts_3 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 727,
+    .co_version = 731,
     .co_localsplusnames = & importlib_util_toplevel_consts_21_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -137298,7 +137833,7 @@ importlib_util_toplevel_consts_21 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 728,
+    .co_version = 732,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -137507,7 +138042,7 @@ importlib_util_toplevel_consts_23_consts_2 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 729,
+    .co_version = 733,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_33_consts_4._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -137628,7 +138163,7 @@ importlib_util_toplevel_consts_23_consts_3_consts_1 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 2,
-    .co_version = 730,
+    .co_version = 734,
     .co_localsplusnames = & importlib_util_toplevel_consts_23_consts_3_consts_1_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & os_toplevel_consts_87_consts_6_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -137809,7 +138344,7 @@ importlib_util_toplevel_consts_23_consts_3 = {
     .co_nlocals = 2,
     .co_ncellvars = 2,
     .co_nfreevars = 0,
-    .co_version = 731,
+    .co_version = 735,
     .co_localsplusnames = & importlib_util_toplevel_consts_23_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib_util_toplevel_consts_23_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -137929,7 +138464,7 @@ importlib_util_toplevel_consts_23_consts_4 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 732,
+    .co_version = 736,
     .co_localsplusnames = & importlib_util_toplevel_consts_23_consts_4_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -138026,7 +138561,7 @@ importlib_util_toplevel_consts_23_consts_5 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 733,
+    .co_version = 737,
     .co_localsplusnames = & importlib__bootstrap_external_toplevel_consts_54_consts_3_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -138207,7 +138742,7 @@ importlib_util_toplevel_consts_23_consts_6 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 734,
+    .co_version = 738,
     .co_localsplusnames = & importlib_util_toplevel_consts_23_consts_6_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -138320,7 +138855,7 @@ importlib_util_toplevel_consts_23 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 735,
+    .co_version = 739,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -138466,7 +139001,7 @@ importlib_util_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 736,
+    .co_version = 740,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & importlib_util_toplevel_consts_15_filename._ascii.ob_base,
@@ -138905,7 +139440,7 @@ importlib_machinery_toplevel_consts_13 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 737,
+    .co_version = 741,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & importlib_machinery_toplevel_consts_13_filename._ascii.ob_base,
@@ -139033,7 +139568,7 @@ importlib_machinery_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 738,
+    .co_version = 742,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & importlib_machinery_toplevel_consts_13_filename._ascii.ob_base,
@@ -139338,7 +139873,7 @@ runpy_toplevel_consts_5_consts_2 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 739,
+    .co_version = 743,
     .co_localsplusnames = & runpy_toplevel_consts_5_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -139457,7 +139992,7 @@ runpy_toplevel_consts_5_consts_3 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 740,
+    .co_version = 744,
     .co_localsplusnames = & runpy_toplevel_consts_5_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -139556,7 +140091,7 @@ runpy_toplevel_consts_5_consts_4 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 741,
+    .co_version = 745,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_30_consts_5_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -139635,7 +140170,7 @@ runpy_toplevel_consts_5 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 742,
+    .co_version = 746,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -139800,7 +140335,7 @@ runpy_toplevel_consts_7_consts_1 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 743,
+    .co_version = 747,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_30_consts_11_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -139947,7 +140482,7 @@ runpy_toplevel_consts_7_consts_2 = {
     .co_nlocals = 1,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 744,
+    .co_version = 748,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_7_consts_2_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_characters[32]),
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -140047,7 +140582,7 @@ runpy_toplevel_consts_7_consts_3 = {
     .co_nlocals = 2,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 745,
+    .co_version = 749,
     .co_localsplusnames = & importlib__bootstrap_toplevel_consts_30_consts_5_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_14_consts_2_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -140125,7 +140660,7 @@ runpy_toplevel_consts_7 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 746,
+    .co_version = 750,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -140463,7 +140998,7 @@ runpy_toplevel_consts_9 = {
     .co_nlocals = 10,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 747,
+    .co_version = 751,
     .co_localsplusnames = & runpy_toplevel_consts_9_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -140701,7 +141236,7 @@ runpy_toplevel_consts_10 = {
     .co_nlocals = 9,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 748,
+    .co_version = 752,
     .co_localsplusnames = & runpy_toplevel_consts_10_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_61_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -141290,6 +141825,23 @@ runpy_toplevel_consts_11_localsplusnames = {
     },
 };
 static
+    struct {
+        PyObject_VAR_HEAD
+        Py_hash_t ob_shash;
+        char ob_sval[14];
+    }
+runpy_toplevel_consts_11_localspluskinds = {
+    .ob_base = {
+        .ob_base = {
+            .ob_refcnt = _Py_IMMORTAL_REFCNT,
+            .ob_type = &PyBytes_Type,
+        },
+        .ob_size = 13,
+    },
+    .ob_shash = -1,
+    .ob_sval = "             ",
+};
+static
     struct _PyCode_DEF(1176)
 runpy_toplevel_consts_11 = {
     .ob_base = {
@@ -141313,9 +141865,9 @@ runpy_toplevel_consts_11 = {
     .co_nlocals = 13,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 749,
+    .co_version = 753,
     .co_localsplusnames = & runpy_toplevel_consts_11_localsplusnames._object.ob_base.ob_base,
-    .co_localspluskinds = & posixpath_toplevel_consts_32_localspluskinds.ob_base.ob_base,
+    .co_localspluskinds = & runpy_toplevel_consts_11_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
     .co_name = & const_str__get_module_details._ascii.ob_base,
     .co_qualname = & const_str__get_module_details._ascii.ob_base,
@@ -141458,7 +142010,7 @@ runpy_toplevel_consts_12 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 750,
+    .co_version = 754,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -141723,7 +142275,7 @@ runpy_toplevel_consts_14 = {
     .co_nlocals = 7,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 751,
+    .co_version = 755,
     .co_localsplusnames = & runpy_toplevel_consts_14_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_9_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -141969,7 +142521,7 @@ runpy_toplevel_consts_15 = {
     .co_nlocals = 6,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 752,
+    .co_version = 756,
     .co_localsplusnames = & runpy_toplevel_consts_15_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_30_consts_4_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -142204,7 +142756,7 @@ runpy_toplevel_consts_16 = {
     .co_nlocals = 4,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 753,
+    .co_version = 757,
     .co_localsplusnames = & runpy_toplevel_consts_16_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_3_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -142464,7 +143016,7 @@ runpy_toplevel_consts_17 = {
     .co_nlocals = 5,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 754,
+    .co_version = 758,
     .co_localsplusnames = & runpy_toplevel_consts_17_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_7_consts_5_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -142829,7 +143381,7 @@ runpy_toplevel_consts_18 = {
     .co_nlocals = 11,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 755,
+    .co_version = 759,
     .co_localsplusnames = & runpy_toplevel_consts_18_localsplusnames._object.ob_base.ob_base,
     .co_localspluskinds = & importlib__bootstrap_toplevel_consts_46_consts_6_localspluskinds.ob_base.ob_base,
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -143069,7 +143621,7 @@ runpy_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 756,
+    .co_version = 760,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & runpy_toplevel_consts_5_consts_2_filename._ascii.ob_base,
@@ -143196,7 +143748,7 @@ __hello___toplevel_consts_1 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 757,
+    .co_version = 761,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __hello___toplevel_consts_1_filename._ascii.ob_base,
@@ -143305,7 +143857,7 @@ __hello___toplevel_consts_3 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 758,
+    .co_version = 762,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __hello___toplevel_consts_1_filename._ascii.ob_base,
@@ -143431,7 +143983,7 @@ __hello___toplevel_consts_5 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 759,
+    .co_version = 763,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __hello___toplevel_consts_1_filename._ascii.ob_base,
@@ -143550,7 +144102,7 @@ __hello___toplevel_consts_7 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 760,
+    .co_version = 764,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __hello___toplevel_consts_1_filename._ascii.ob_base,
@@ -143682,7 +144234,7 @@ __hello___toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 761,
+    .co_version = 765,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __hello___toplevel_consts_1_filename._ascii.ob_base,
@@ -143746,7 +144298,7 @@ __phello___toplevel_consts_1 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 762,
+    .co_version = 766,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __phello___toplevel_consts_1_filename._ascii.ob_base,
@@ -143847,7 +144399,7 @@ __phello___toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 763,
+    .co_version = 767,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __phello___toplevel_consts_1_filename._ascii.ob_base,
@@ -143928,7 +144480,7 @@ __phello___ham_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 764,
+    .co_version = 768,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __phello___ham_toplevel_filename._ascii.ob_base,
@@ -143992,7 +144544,7 @@ __phello___ham_eggs_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 765,
+    .co_version = 769,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __phello___ham_eggs_toplevel_filename._ascii.ob_base,
@@ -144056,7 +144608,7 @@ __phello___spam_toplevel_consts_1 = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 766,
+    .co_version = 770,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __phello___spam_toplevel_consts_1_filename._ascii.ob_base,
@@ -144116,7 +144668,7 @@ __phello___spam_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 767,
+    .co_version = 771,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & __phello___spam_toplevel_consts_1_filename._ascii.ob_base,
@@ -144244,7 +144796,7 @@ frozen_only_toplevel = {
     .co_nlocals = 0,
     .co_ncellvars = 0,
     .co_nfreevars = 0,
-    .co_version = 768,
+    .co_version = 772,
     .co_localsplusnames = (PyObject *)& _Py_SINGLETON(tuple_empty),
     .co_localspluskinds = (PyObject *)&_Py_SINGLETON(bytes_empty),
     .co_filename = & frozen_only_toplevel_filename._ascii.ob_base,
@@ -144810,6 +145362,9 @@ _Py_Deepfreeze_Fini(void) {
     _PyStaticCode_Fini((PyCodeObject *)&genericpath_toplevel_consts_15);
     _PyStaticCode_Fini((PyCodeObject *)&genericpath_toplevel_consts_16);
     _PyStaticCode_Fini((PyCodeObject *)&genericpath_toplevel_consts_17);
+    _PyStaticCode_Fini((PyCodeObject *)&genericpath_toplevel_consts_18_consts_2);
+    _PyStaticCode_Fini((PyCodeObject *)&genericpath_toplevel_consts_18_consts_3);
+    _PyStaticCode_Fini((PyCodeObject *)&genericpath_toplevel_consts_18);
     _PyStaticCode_Fini((PyCodeObject *)&genericpath_toplevel);
     _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_12);
     _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_14);
@@ -144834,10 +145389,11 @@ _Py_Deepfreeze_Fini(void) {
     _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_38);
     _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_39);
     _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_42);
-    _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_44);
+    _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_43);
     _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_45);
-    _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_51);
+    _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_46);
     _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_52);
+    _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel_consts_53);
     _PyStaticCode_Fini((PyCodeObject *)&ntpath_toplevel);
     _PyStaticCode_Fini((PyCodeObject *)&posixpath_toplevel_consts_11);
     _PyStaticCode_Fini((PyCodeObject *)&posixpath_toplevel_consts_12);
@@ -146673,6 +147229,15 @@ _Py_Deepfreeze_Init(void) {
     if (_PyStaticCode_Init((PyCodeObject *)&genericpath_toplevel_consts_17) < 0) {
         return -1;
     }
+    if (_PyStaticCode_Init((PyCodeObject *)&genericpath_toplevel_consts_18_consts_2) < 0) {
+        return -1;
+    }
+    if (_PyStaticCode_Init((PyCodeObject *)&genericpath_toplevel_consts_18_consts_3) < 0) {
+        return -1;
+    }
+    if (_PyStaticCode_Init((PyCodeObject *)&genericpath_toplevel_consts_18) < 0) {
+        return -1;
+    }
     if (_PyStaticCode_Init((PyCodeObject *)&genericpath_toplevel) < 0) {
         return -1;
     }
@@ -146745,16 +147310,19 @@ _Py_Deepfreeze_Init(void) {
     if (_PyStaticCode_Init((PyCodeObject *)&ntpath_toplevel_consts_42) < 0) {
         return -1;
     }
-    if (_PyStaticCode_Init((PyCodeObject *)&ntpath_toplevel_consts_44) < 0) {
+    if (_PyStaticCode_Init((PyCodeObject *)&ntpath_toplevel_consts_43) < 0) {
         return -1;
     }
     if (_PyStaticCode_Init((PyCodeObject *)&ntpath_toplevel_consts_45) < 0) {
         return -1;
     }
-    if (_PyStaticCode_Init((PyCodeObject *)&ntpath_toplevel_consts_51) < 0) {
+    if (_PyStaticCode_Init((PyCodeObject *)&ntpath_toplevel_consts_46) < 0) {
         return -1;
     }
     if (_PyStaticCode_Init((PyCodeObject *)&ntpath_toplevel_consts_52) < 0) {
+        return -1;
+    }
+    if (_PyStaticCode_Init((PyCodeObject *)&ntpath_toplevel_consts_53) < 0) {
         return -1;
     }
     if (_PyStaticCode_Init((PyCodeObject *)&ntpath_toplevel) < 0) {
@@ -147342,5 +147910,5 @@ _Py_Deepfreeze_Init(void) {
     return 0;
 }
 
-uint32_t _Py_next_func_version = 769;
+uint32_t _Py_next_func_version = 773;
 

@@ -1,5 +1,7 @@
 GO_LIBRARY()
 
-SRCS(format.go)
+SRCS(
+    format.go
+)
 
 END()

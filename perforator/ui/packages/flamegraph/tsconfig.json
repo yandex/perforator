@@ -15,6 +15,7 @@
         "declaration": true,
         "declarationDir": "dist",
         "jsx": "react",
-        "target": "es2020"
+        "target": "es2020",
+        "declarationMap": true
     }
 }

@@ -7,7 +7,7 @@
 
 #include <library/cpp/yt/compact_containers/compact_vector.h>
 
-#include <optional>
+#include <memory>
 #include <string_view>
 #include <vector>
 
@@ -44,7 +44,7 @@ private:
         kNone, kOk, kFailed
     };
     std::vector<FunctionState> FunctionsState_;
-    std::vector<std::optional<llvm::gsym::FunctionInfo>> Functions_;
+    std::vector<std::unique_ptr<llvm::gsym::FunctionInfo>> Functions_;
 };
 
 }

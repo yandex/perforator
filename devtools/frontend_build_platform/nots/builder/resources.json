@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-04-14T16:35:11.328Z",
+    "created": "2025-09-12T22:50:05Z",
     "pr": {
-      "id": 8398405,
-      "author": "vturov",
-      "summary": "Не упаковывать node_modules по умолчанию"
+      "id": 9992107,
+      "author": "baymer",
+      "summary": "FBP-2518: nots/builder: убрать двойной pnpm install на модуль в ya.make"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:8508285494"
+      "uri": "sbr:9710609229"
     },
     "darwin-arm64": {
-      "uri": "sbr:8508284114"
+      "uri": "sbr:9710608589"
     },
     "linux": {
-      "uri": "sbr:8508287772"
+      "uri": "sbr:9710610355"
     },
     "linux-aarch64": {
-      "uri": "sbr:8508286571"
+      "uri": "sbr:9710609892"
     }
   }
 }

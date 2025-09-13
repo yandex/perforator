@@ -32,6 +32,7 @@ public:
     virtual void VisitFunctions(const NProto::NProfile::Functions& functions) = 0;
     virtual void VisitInlineChains(const NProto::NProfile::InlineChains& inlineChains) = 0;
     virtual void VisitStackFrames(const NProto::NProfile::StackFrames& stackFrames) = 0;
+    virtual void VisitStackSegments(const NProto::NProfile::StackSegments& stackSegments) = 0;
     virtual void VisitStacks(const NProto::NProfile::Stacks& stacks) = 0;
     virtual void VisitSampleKeys(const NProto::NProfile::SampleKeys& sampleKeys) = 0;
     virtual void VisitSamples(const NProto::NProfile::Samples& samples) = 0;
@@ -50,6 +51,7 @@ public:
     void VisitFunctions(const NProto::NProfile::Functions&) override {}
     void VisitInlineChains(const NProto::NProfile::InlineChains&) override {}
     void VisitStackFrames(const NProto::NProfile::StackFrames&) override {}
+    void VisitStackSegments(const NProto::NProfile::StackSegments&) override {}
     void VisitStacks(const NProto::NProfile::Stacks&) override {}
     void VisitSampleKeys(const NProto::NProfile::SampleKeys&) override {}
     void VisitSamples(const NProto::NProfile::Samples&) override {}

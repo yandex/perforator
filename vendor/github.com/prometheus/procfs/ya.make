@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.15.1)
+VERSION(v0.16.0)
 
 SRCS(
     arp.go
@@ -20,6 +20,7 @@ SRCS(
     mountstats.go
     net_conntrackstat.go
     net_dev.go
+    net_dev_snmp6.go
     net_ip_socket.go
     net_protocols.go
     net_route.go
@@ -69,6 +70,7 @@ GO_TEST_SRCS(
     mountinfo_test.go
     mountstats_test.go
     net_conntrackstat_test.go
+    net_dev_snmp6_test.go
     net_dev_test.go
     net_ip_socket_test.go
     net_protocols_test.go
@@ -121,7 +123,6 @@ IF (OS_LINUX)
         cmdline_test.go
         cpuinfo_test.go
         kernel_random_test.go
-        proc_maps64_test.go
         proc_smaps_test.go
         vm_test.go
         zoneinfo_test.go
@@ -132,12 +133,24 @@ IF (OS_LINUX AND ARCH_X86_64)
     SRCS(
         cpuinfo_x86.go
     )
+
+    GO_TEST_SRCS(proc_maps64_test.go)
 ENDIF()
 
 IF (OS_LINUX AND ARCH_ARM64)
     SRCS(
         cpuinfo_armx.go
     )
+
+    GO_TEST_SRCS(proc_maps64_test.go)
+ENDIF()
+
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        cpuinfo_armx.go
+    )
+
+    GO_TEST_SRCS(proc_maps32_test.go)
 ENDIF()
 
 IF (OS_DARWIN)
@@ -171,6 +184,7 @@ RECURSE(
     bcache
     blockdevice
     btrfs
+    ext4
     # gotest
     internal
     iscsi
@@ -181,5 +195,6 @@ RECURSE(
 IF (OS_LINUX)
     RECURSE(
         sysfs
+        selinuxfs
     )
 ENDIF()

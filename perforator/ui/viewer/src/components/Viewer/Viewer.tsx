@@ -9,6 +9,7 @@ import { Visualisation } from '../Visualisation/Visualisation';
 
 import '@gravity-ui/uikit/styles/styles.css';
 
+import './Viewer.css';
 
 const data = window.__data__;
 

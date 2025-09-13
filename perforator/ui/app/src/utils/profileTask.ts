@@ -24,8 +24,11 @@ export const defaultProfileTaskQuery = (): ProfileTaskQuery => ({
 
 
 function getRenderFlamegraph(query: ProfileTaskQuery, flamegraphOptions: FlamegraphOptions): Partial<RenderFormat> {
-    if (query.rawProfile === 'true') {
+    if (query.rawProfile === 'true' || query.format === 'raw') {
         return { RawProfile: flamegraphOptions };
+    }
+    if (query.format === 'text') {
+        return { TextProfile: flamegraphOptions };
     }
     return { JSONFlamegraph: flamegraphOptions };
 

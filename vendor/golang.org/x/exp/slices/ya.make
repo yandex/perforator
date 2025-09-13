@@ -2,14 +2,11 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.0.0-20241108190413-2d47ceb2692f)
+VERSION(v0.0.0-20250305212735-054e65f0b394)
 
 SRCS(
-    cmp.go
     slices.go
     sort.go
-    zsortanyfunc.go
-    zsortordered.go
 )
 
 GO_TEST_SRCS(

@@ -87,7 +87,7 @@ bool TSymbolizer::EnsureFunctionInfoAtIdx(ui64 idx) {
         if (!functionInfoOrErr) {
             FunctionsState_[idx] = FunctionState::kFailed;
         } else {
-            Functions_[idx].emplace(std::move(*functionInfoOrErr));
+            Functions_[idx] = std::make_unique<llvm::gsym::FunctionInfo>(std::move(*functionInfoOrErr));
             FunctionsState_[idx] = FunctionState::kOk;
         }
     }

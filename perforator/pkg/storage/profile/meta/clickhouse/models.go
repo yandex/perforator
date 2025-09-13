@@ -28,7 +28,7 @@ type ProfileRow struct {
 
 func profileModelFromMeta(p *meta.ProfileMetadata) *ProfileRow {
 	return &ProfileRow{
-		ID:            p.BlobID,
+		ID:            p.ID,
 		System:        p.System,
 		MainEventType: p.MainEventType,
 		AllEventTypes: p.AllEventTypes,
@@ -46,7 +46,6 @@ func profileModelFromMeta(p *meta.ProfileMetadata) *ProfileRow {
 func profileMetaFromModel(p *ProfileRow) *meta.ProfileMetadata {
 	return &meta.ProfileMetadata{
 		ID:            p.ID,
-		BlobID:        p.ID,
 		System:        p.System,
 		MainEventType: p.MainEventType,
 		AllEventTypes: p.AllEventTypes,

@@ -13,7 +13,7 @@ export interface SelectorInputProps extends Omit<QueryLanguageEditorProps, 'heig
 export const SelectorInput: React.FC<SelectorInputProps> = props => (
     <div className="selector-input">
         <QueryLanguageEditor
-            height="28px"
+            height="18px"
             {...props}
         />
     </div>

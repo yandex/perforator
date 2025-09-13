@@ -87,6 +87,14 @@ func TestARM64minimalFeatures(t *testing.T) {
 	}
 }
 
+func TestLOONG64Initialized(t *testing.T) {
+	if runtime.GOARCH == "loong64" {
+		if !cpu.Initialized {
+			t.Fatal("Initialized expected true, got false")
+		}
+	}
+}
+
 func TestMIPS64Initialized(t *testing.T) {
 	if runtime.GOARCH == "mips64" || runtime.GOARCH == "mips64le" {
 		if !cpu.Initialized {

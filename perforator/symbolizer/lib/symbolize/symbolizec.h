@@ -23,7 +23,7 @@ TLineInfo* Symbolize(
     void* symb,
     char* modulePath,
     ui64 modulePathLen,
-    ui64 addr,
+    ui64 elfOffset,
     ui64* linesCount,
     char** error,
     ui32 useGsym

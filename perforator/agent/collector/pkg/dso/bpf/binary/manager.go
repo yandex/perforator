@@ -8,9 +8,11 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/unwindtable"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/php"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/pthread"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/python"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/tls"
+	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
 	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
@@ -84,6 +86,19 @@ func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.Binary
 		}()
 	}
 
+	if analysis.PhpConfig != nil {
+		err = m.bpf.AddPhpConfig(binId, convertToUnwindPhpConfig(analysis.PhpConfig))
+		if err != nil {
+			return nil, err
+		}
+
+		defer func() {
+			if err != nil {
+				m.releasePhp(binId)
+			}
+		}()
+	}
+
 	if analysis.PthreadConfig != nil {
 		err = m.bpf.AddPthreadConfig(binId, convertToUnwindPthreadConfig(analysis.PthreadConfig))
 		if err != nil {
@@ -106,6 +121,7 @@ func (m *BPFBinaryManager) Release(a *Allocation) {
 	binId := unwinder.BinaryId(a.id)
 	m.releasePthread(binId)
 	m.releasePython(binId)
+	m.releasePhp(binId)
 	m.releaseTLS(binId)
 }
 
@@ -120,6 +136,13 @@ func (m *BPFBinaryManager) releasePthread(id unwinder.BinaryId) {
 	err := m.bpf.DeletePthreadConfig(id)
 	if err != nil {
 		m.l.Error("Failed to delete pthread config", log.Error(err))
+	}
+}
+
+func (m *BPFBinaryManager) releasePhp(id unwinder.BinaryId) {
+	err := m.bpf.DeletePhpConfig(id)
+	if err != nil {
+		m.l.Error("Failed to delete php config", log.Error(err))
 	}
 }
 
@@ -159,6 +182,10 @@ func convertToUnwindPthreadConfig(config *pthread.PthreadConfig) *unwinder.Pthre
 		KeyFirstLevelSize:          config.KeyFirstLevelSize,
 		KeysMax:                    config.KeysMax,
 	}
+}
+
+func convertToUnwindPhpConfig(config *php.PhpConfig) *unwinder.PhpConfig {
+	return php_agent.ParsePhpUnwinderConfig(config)
 }
 
 func (m *BPFBinaryManager) MoveFromCache(a *Allocation) bool {

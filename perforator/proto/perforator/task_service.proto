@@ -3,6 +3,7 @@ syntax = "proto3";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "perforator/proto/perforator/perforator.proto";
+import "perforator/proto/perforator/record_remote.proto";
 
 package NPerforator.NProto;
 
@@ -96,6 +97,7 @@ message TaskSpec {
         MergeProfilesRequest MergeProfiles = 1;
         DiffProfilesRequest DiffProfiles = 2;
         GeneratePGOProfileRequest GeneratePGOProfile = 3;
+        NPerforator.NRecordRemote.RecordRemoteProfileRequest RecordRemoteProfile = 4;
     }
 
     TraceBaggage TraceBaggage = 100;
@@ -106,6 +108,7 @@ message TaskResult {
         MergeProfilesResponse MergeProfiles = 1;
         DiffProfilesResponse DiffProfiles = 2;
         GeneratePGOProfileResponse GeneratePGOProfile = 3;
+        NPerforator.NRecordRemote.RecordRemoteProfileResponse RecordRemoteProfile = 4;
     }
 }
 

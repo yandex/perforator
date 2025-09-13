@@ -11,8 +11,8 @@ dependencies:
 type: application
 
 # See releases.md for changelog
-version: 0.2.8
+version: 0.2.9
 
 # Perforator version installed by default.
 # It can be overriden via Helm values.
-appVersion: "v0.0.5"
+appVersion: "v0.0.6"

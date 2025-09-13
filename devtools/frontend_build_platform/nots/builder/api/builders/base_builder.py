@@ -1,6 +1,5 @@
 import json
 import os
-import shutil
 import stat
 import sys
 import textwrap
@@ -69,7 +68,6 @@ class BaseBuilder(object):
             "output.tar",  # TODO FBP-1978
             pm_constants.OUTPUT_TAR_UUID_FILENAME,
             # Other
-            ".traces",
             "a.yaml",
             self.options.after_build_outdir,
         }
@@ -86,7 +84,7 @@ class BaseBuilder(object):
 
     @timeit
     def _copy_package_json(self):
-        shutil.copyfile(
+        recursive_copy(
             pm_utils.build_pj_path(self.options.curdir),
             pm_utils.build_pj_path(self.options.bindir),
         )
@@ -166,7 +164,7 @@ class BaseTsBuilder(BaseBuilder):
     @timeit
     def load_ts_config(ts_config_file: str, sources_path: str) -> TsConfig:
         ts_config_curdir = os.path.normpath(os.path.join(sources_path, ts_config_file))
-        ts_config = TsConfig.load(ts_config_curdir)
+        ts_config = TsConfig.load(ts_config_curdir, sources_path)
 
         pj = PackageJson.load(pm_utils.build_pj_path(sources_path))
         ts_config.inline_extend(pj.get_dep_paths_by_names())
@@ -305,7 +303,7 @@ class BaseTsBuilder(BaseBuilder):
 
     @timeit
     def _make_bins_executable(self):
-        pj = PackageJson.load(pm_utils.build_pj_path(self.options.curdir))
+        pj = PackageJson.load(pm_utils.build_pj_path(self.options.bindir))
         for bin_tool in pj.bins_iter():
             bin_path = os.path.join(self.options.bindir, bin_tool)
             bin_stat = os.stat(bin_path)

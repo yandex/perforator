@@ -1,0 +1,6 @@
+.fullscreen {
+    height: calc(100vh - var(--page-heading-height) - 2 * var(--page-padding-top) - var(--page-padding-bottom));
+    overflow-y: hidden;
+    display: flex;
+    flex-direction: column;
+}

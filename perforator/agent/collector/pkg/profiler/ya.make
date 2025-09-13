@@ -8,6 +8,7 @@ SRCS(
     profile_builder.go
     profiler.go
     sample_consumer.go
+    stack_processor.go
 )
 
 GO_TEST_SRCS(sample_consumer_test.go)

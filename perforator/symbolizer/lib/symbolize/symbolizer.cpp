@@ -1,14 +1,17 @@
 #include "symbolizer.h"
 
-#include <library/cpp/logger/global/global.h>
-
 #include <perforator/lib/llvmex/llvm_elf.h>
 #include <perforator/lib/llvmex/llvm_exception.h>
+#include <perforator/lib/rustc_demangle/demangle.h>
 
+#include <library/cpp/logger/global/global.h>
+#include <library/cpp/iterator/enumerate.h>
+
+#include <util/charset/wide.h>
 #include <util/generic/algorithm.h>
+#include <util/generic/deque.h>
 #include <util/generic/hash.h>
 #include <util/generic/vector.h>
-#include <util/generic/deque.h>
 #include <util/stream/format.h>
 
 #include <llvm/Object/ELF.h>
@@ -80,10 +83,12 @@ ui64 CalcOffsetForModule(TStringBuf moduleName) {
     return getFirstPhdrVirtualAddress(binary->getBinary()).GetOrElse(0);
 }
 
-}
+} // anonymous namespace
 
 std::string DemangleFunctionName(const std::string& name) {
-    return llvm::symbolize::LLVMSymbolizer::DemangleName(name, nullptr);
+    auto demangled = llvm::symbolize::LLVMSymbolizer::DemangleName(name, nullptr);
+    demangled = NDemangle::MaybeDemangleRustcName(std::move(demangled));
+    return demangled;
 }
 
 std::string CleanupFunctionName(std::string&& name) {
@@ -120,8 +125,8 @@ TCodeSymbolizer::TCodeSymbolizer()
 {
 }
 
-TSmallVector<llvm::DILineInfo> TCodeSymbolizer::Symbolize(TStringBuf moduleName, ui64 addr) {
-    const auto offset = GetOffsetByModule(moduleName);
+TSmallVector<llvm::DILineInfo> TCodeSymbolizer::Symbolize(TStringBuf moduleName, ui64 offset) {
+    const auto moduleOffset = GetOffsetByModule(moduleName);
 
     // For some reason LLVMSymbolizer doesn't accept std::string_view as moduleName,
     // so let's cache the string as a minor optimization.
@@ -130,7 +135,7 @@ TSmallVector<llvm::DILineInfo> TCodeSymbolizer::Symbolize(TStringBuf moduleName,
     }
     auto inliningInfo = Y_LLVM_RAISE(Symbolizer_.symbolizeInlinedCode(
         LastSymbolizedModuleName_,
-        llvm::object::SectionedAddress{.Address = addr + offset}
+        llvm::object::SectionedAddress{.Address = offset + moduleOffset}
     ));
 
     TSmallVector<llvm::DILineInfo> result;
@@ -153,7 +158,16 @@ TSmallVector<llvm::DILineInfo> TCodeSymbolizer::SymbolizeGsym(TStringBuf moduleN
         return GSYMSymbolizers_.emplace(moduleName, moduleName).first->second;
     }();
 
-    return symbolizer.Symbolize(addr);
+    auto result = symbolizer.Symbolize(addr);
+    if (result.empty()) {
+        // Mimic the behavior of LLVMSymbolizer: add a default-constructed (i.e. <invalid>) DILineInfo.
+        //
+        // We don't do that in the NGsym::TSymbolizer itself because it doesn't have to/need to match
+        // LLVMSymbolizer's behavior, but here we try to have the behavior unified.
+        result.emplace_back();
+    }
+
+    return result;
 }
 
 void TCodeSymbolizer::PruneCaches() {

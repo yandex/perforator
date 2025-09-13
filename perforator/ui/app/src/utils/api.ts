@@ -1,5 +1,6 @@
 import type {
     AxiosInstance,
+    AxiosRequestConfig,
     AxiosResponse,
 } from 'axios';
 import axios from 'axios';
@@ -19,6 +20,8 @@ import type {
 type RequestData = any;
 type RequestSender = () => Promise<AxiosResponse>;
 
+type AllowedOptions = Partial<Pick<AxiosRequestConfig, 'cancelToken' | 'signal'>>
+
 class PerforatorApiClient {
     protected httpClient: AxiosInstance;
 
@@ -28,12 +31,12 @@ class PerforatorApiClient {
         });
     }
 
-    getServices(params: RequestData): Promise<AxiosResponse<ListServicesResponse>> {
-        return this.get('/api/v0/services', params);
+    getServices(params: RequestData, options: AllowedOptions): Promise<AxiosResponse<ListServicesResponse>> {
+        return this.get('/api/v0/services', params, options);
     }
 
-    getSuggestions(params: RequestData): Promise<AxiosResponse<ListSuggestionsResponse>> {
-        return this.get('/api/v0/suggestions', params);
+    getSuggestions(params: RequestData, options: AllowedOptions): Promise<AxiosResponse<ListSuggestionsResponse>> {
+        return this.get('/api/v0/suggestions', params, options);
     }
 
     getProfiles(params: RequestData): Promise<AxiosResponse<ListProfilesResponse>> {
@@ -56,9 +59,9 @@ class PerforatorApiClient {
         return sender();
     }
 
-    protected get<T extends any>(url: string, data: RequestData = {}): Promise<AxiosResponse<T>> {
+    protected get<T extends any>(url: string, data: RequestData = {}, options: AllowedOptions = {}): Promise<AxiosResponse<T>> {
         return this.makeRequest(
-            () => this.httpClient.get<T>(url, { params: data }),
+            () => this.httpClient.get<T>(url, { ...options, params: data }),
         );
     }
 

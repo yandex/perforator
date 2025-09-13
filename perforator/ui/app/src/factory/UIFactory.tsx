@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/member-ordering */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React from 'react';
+import type React from 'react';
 
 import type { SubheaderMenuItem } from '@gravity-ui/navigation';
+import type { ThemeType } from '@gravity-ui/uikit';
 
 import type { QueryInput } from 'src/components/MergeProfilesForm/QueryInput';
 import { QUERY_INPUTS } from 'src/components/MergeProfilesForm/queryInputs';
-import { Select, type SelectProps } from 'src/components/Select/Select';
 import type { ShareStringBuilder } from 'src/components/ShareButton/utils';
 import { SHARE_FORMATS } from 'src/components/ShareButton/utils';
 import type { ProfileData, StringifiedNode } from 'src/models/Profile';
@@ -24,6 +24,8 @@ export class UIFactory {
     supportChatLink = (): Optional<string> => undefined;
     bugReportLink = (): Optional<string> => undefined;
     ciLink = (): Optional<string> => undefined;
+
+    clientSpeedDebugLink = (): Optional<string> => undefined;
 
     makeTraceUrl = (traceId: string): Optional<string> => undefined;
 
@@ -53,10 +55,10 @@ export class UIFactory {
 
     queryInputs = (): QueryInput[] => QUERY_INPUTS;
 
+    initializeExternal = (_arg: { theme: ThemeType }) => null as React.ReactNode;
+
     rum = (): Rum => fakeRum;
     logError: SendError = (error, additional, level) => console.error(error, additional, level);
-
-    renderSelect = (props: SelectProps): React.ReactNode => (<Select {...props} />);
 
     parseLegacyFormat: ((data: string) => ProfileData) | undefined = undefined;
 

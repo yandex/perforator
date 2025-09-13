@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { AxiosError } from 'axios';
+
 import { apiClient } from 'src/utils/api';
 import { useDebounce } from 'src/utils/debounce';
 import {
@@ -24,7 +26,7 @@ export interface SuggestState {
     key: keyof SuggestToken;
 }
 
-const fetchSuggestions = (state: SuggestState) => (
+const fetchSuggestions = (state: SuggestState, options: {abortController: AbortController}) => (
     async (): Promise<Optional<string[]>> => {
         const { currentToken } = state;
         const selector = makeSelectorFromConditions(
@@ -40,16 +42,23 @@ const fetchSuggestions = (state: SuggestState) => (
                 'Selector': selector,
                 'Paginated.Offset': 0,
                 'Paginated.Limit': 100,
-            });
+            }, { signal: options.abortController.signal });
             return (
                 response?.data?.SuggestSupported
                     ? (response?.data?.Suggestions ?? []).map(suggestion => suggestion.Value)
                     : undefined
             );
         } catch (error: unknown) {
+            let content: string | undefined;
+            if (error instanceof AxiosError) {
+                if (error.code === 'ERR_CANCELED') {
+                    return undefined;
+                }
+                content = error.message;
+            }
             createErrorToast(
                 error,
-                { name: 'list-suggestions', title: 'Failed to load suggestions' },
+                { name: 'list-suggestions', title: 'Failed to load suggestions', content },
             );
         }
         return undefined;
@@ -57,6 +66,10 @@ const fetchSuggestions = (state: SuggestState) => (
 );
 
 export const useQuerySuggest = () => {
+    const abortControllerRef = React.useRef(new AbortController());
+    React.useEffect(() => {
+        return () => abortControllerRef.current.abort();
+    }, []);
     const querySuggestContext = useQuerySuggestContext();
     const { fields } = querySuggestContext;
 
@@ -84,7 +97,11 @@ export const useQuerySuggest = () => {
     ), [fields]);
 
     const suggestValues: SuggestHandler = React.useCallback(async state => {
-        const fetchValues = fetchSuggestions(state);
+        if (!abortControllerRef.current.signal.aborted) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+        const fetchValues = fetchSuggestions(state, { abortController: abortControllerRef.current });
         return await debounce(async () => await fetchValues());
     }, [fields]);
 

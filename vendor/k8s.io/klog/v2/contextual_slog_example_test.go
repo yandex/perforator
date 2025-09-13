@@ -31,7 +31,7 @@ func ExampleSetSlogLogger() {
 	defer state.Restore()
 
 	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+		ReplaceAttr: func(_ /* groups */ []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.TimeKey {
 				// Avoid non-deterministic output.
 				return slog.Attr{}

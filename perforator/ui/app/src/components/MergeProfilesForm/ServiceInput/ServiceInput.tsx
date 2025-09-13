@@ -1,7 +1,6 @@
 import React from 'react';
 
-import type { SelectFilter } from 'src/components/Select/Select';
-import { uiFactory } from 'src/factory';
+import { Select, type SelectFilter } from 'src/components/Select/Select';
 
 import { fetchServices } from './fetchServices';
 
@@ -18,21 +17,21 @@ export const ServiceInput: React.FC<ServiceInputProps> = props => {
         props.onUpdate(props.service);
     }, []);
 
-    const listValues = React.useCallback(async (filter: SelectFilter) => (
+    const listValues = React.useCallback(async (filter: SelectFilter, { signal }: { signal: AbortSignal}) => (
         filter.value
             ? await fetchServices(filter.value, {
                 offset: filter.offset,
                 limit: filter.limit,
-            }) || []
+            }, { signal }) || []
             : []
     ), []);
 
-    return uiFactory().renderSelect({
-        value: props.service,
-        placeholder: 'Service regexp',
-        onUpdate: props.onUpdate,
-        listValues,
-    });
+    return <Select
+        listValues={listValues}
+        onUpdate={props.onUpdate}
+        value={props.service}
+        placeholder={'Service regexp'}
+    />;
 };
 
 

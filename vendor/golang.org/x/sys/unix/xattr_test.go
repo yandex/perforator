@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -62,13 +63,7 @@ func TestXattr(t *testing.T) {
 		// name and Listxattr doesn't return the namespace prefix.
 		xattrWant = strings.TrimPrefix(xattrWant, "user.")
 	}
-	found := false
-	for _, name := range xattrs {
-		if name == xattrWant {
-			found = true
-			break
-		}
-	}
+	found := slices.Contains(xattrs, xattrWant)
 
 	if !found {
 		t.Errorf("Listxattr did not return previously set attribute %q in attributes %v", xattrName, xattrs)
@@ -170,13 +165,7 @@ func TestFdXattr(t *testing.T) {
 		// name and Listxattr doesn't return the namespace prefix.
 		xattrWant = strings.TrimPrefix(xattrWant, "user.")
 	}
-	found := false
-	for _, name := range xattrs {
-		if name == xattrWant {
-			found = true
-			break
-		}
-	}
+	found := slices.Contains(xattrs, xattrWant)
 
 	if !found {
 		t.Errorf("Flistxattr did not return previously set attribute %q in attributes %v", xattrName, xattrs)

@@ -11,6 +11,7 @@ import { uiFactory } from 'src/factory';
 import type { ProfileTaskQuery } from 'src/models/Task';
 import { cn } from 'src/utils/cn';
 import { redirectToTaskPage } from 'src/utils/profileTask';
+import { parseServiceFromSelector, validateSelectorContainsOnlyService } from 'src/utils/selector';
 import { setPageTitle } from 'src/utils/title';
 import { createErrorToast } from 'src/utils/toaster';
 
@@ -87,6 +88,12 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
                 ...query,
                 selector: tableSelector,
             });
+        } else if (queryInput.queryField === 'service' && tableSelector && validateSelectorContainsOnlyService(tableSelector || '')) {
+            const service = parseServiceFromSelector(tableSelector);
+            setQuery({
+                ...query,
+                service,
+            });
         } else {
             // do not display an outdated profiles table from the previous input mode
             setTableSelector(undefined);
@@ -105,14 +112,15 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
         />
     );
 
-    const queryWithSelector = ({ raw }: {raw?: boolean} = {}) => ({
+    const queryWithSelector = ({ raw, text }: {raw?: boolean; text?: boolean} = {}) => ({
         ...query,
         selector: fixSelector(query.selector ?? tableSelector),
         rawProfile: raw ? 'true' : undefined,
+        format: text ? 'text' : undefined,
     } as ProfileTaskQuery);
 
-    const submitTask = async ({ raw }: {raw?: boolean} = {}) => {
-        const queryToSend = queryWithSelector({ raw });
+    const submitTask = async ({ raw, text }: {raw?: boolean; text?: boolean} = {}) => {
+        const queryToSend = queryWithSelector({ raw, text });
         if (!queryToSend.selector) {
             return;
         }
@@ -133,10 +141,12 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
                 view="action"
             >
                 Merge profiles
-                <Hotkey value="cmd+enter" />
+                <Hotkey value="cmd+enter" view="dark" />
             </Button>
             <DropdownMenu popupProps={{ placement: 'bottom-end' }} items={[
                 { action: () => submitTask({ raw: true }), text: 'Merge into pprof' },
+                { action: () => submitTask({ text: true }), text: 'Merge into text format' },
+
             ]}/>
         </React.Fragment>
     );

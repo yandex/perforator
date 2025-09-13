@@ -1,7 +1,4 @@
-GO_PROGRAM()
-
-SRCS(
-    main.go
+RECURSE(
+    flamegraph
+    text
 )
-
-END()

@@ -93,3 +93,14 @@ export const nextSelectorConditionKey = (current: keyof SelectorCondition) => (
         (SELECTOR_CONDITION_KEYS.indexOf(current) + 1) % SELECTOR_CONDITION_KEYS.length
     ]
 );
+
+const serviceRg = /service\s*=\s*"(.*?)"/;
+export function parseServiceFromSelector(selector: string) {
+    const matches = selector.match(serviceRg);
+    return matches ? matches[1] : undefined;
+}
+
+export function validateSelectorContainsOnlyService(selector: string): boolean {
+    const maybeEmptySelector = selector.replace(serviceRg, '').replace(/\s+/, '');
+    return maybeEmptySelector === EMPTY_SELECTOR;
+}

@@ -122,7 +122,8 @@ class Platform(object):
 
         self.is_xtensa_hifi4 = self.arch == 'xtensa_hifi4'
         self.is_xtensa_hifi5 = self.arch == 'xtensa_hifi5'
-        self.is_xtensa = self.is_xtensa_hifi4 or self.is_xtensa_hifi5
+        self.is_xtensa_esp32s3 = self.arch == 'xtensa_esp32s3'
+        self.is_xtensa = self.is_xtensa_hifi4 or self.is_xtensa_hifi5 or self.is_xtensa_esp32s3
 
         self.armv6_float_abi = 'hard'
 
@@ -160,6 +161,9 @@ class Platform(object):
         assert self.is_32_bit or self.is_64_bit
         assert not (self.is_32_bit and self.is_64_bit)
 
+        self.is_freebsd = self.os == 'freebsd'
+        self.is_freebsd_x86_64 = self.is_freebsd and self.is_x86_64
+
         self.is_linux = self.os == 'linux' or 'yocto' in self.os
         self.is_linux_x86_64 = self.is_linux and self.is_x86_64
         self.is_linux_armv8 = self.is_linux and self.is_armv8
@@ -187,7 +191,7 @@ class Platform(object):
 
         self.is_none = self.os == 'none'
 
-        self.is_posix = self.is_linux or self.is_apple or self.is_android or self.is_yocto
+        self.is_posix = self.is_linux or self.is_apple or self.is_android or self.is_yocto or self.is_freebsd
 
     @staticmethod
     def from_json(data):
@@ -207,9 +211,14 @@ class Platform(object):
             yield 'LINUX'
             yield 'OS_LINUX'
 
+        if self.is_freebsd:
+            yield 'FREEBSD'
+            yield 'OS_FREEBSD'
+
         if self.is_macos:
             yield 'DARWIN'
             yield 'OS_DARWIN'
+
         if self.is_iossim:
             yield 'IOS'
             yield 'OS_IOS'
@@ -236,6 +245,7 @@ class Platform(object):
             (self.is_riscv32, 'ARCH_RISCV32'),
             (self.is_xtensa_hifi4, 'ARCH_XTENSA_HIFI4'),
             (self.is_xtensa_hifi5, 'ARCH_XTENSA_HIFI5'),
+            (self.is_xtensa_esp32s3, 'ARCH_XTENSA_ESP32S3'),
             (self.is_xtensa, 'ARCH_XTENSA'),
             (self.is_nds32, 'ARCH_NDS32'),
             (self.is_tc32, 'ARCH_TC32'),
@@ -357,6 +367,13 @@ def to_strings(o):
             elif isinstance(o, (str, int)):
                 yield str(o)
             else:
+                try:
+                    # Huge Python2 is still used for generating ymake.conf in case of ya.make yndexing
+                    if isinstance(o, unicode):
+                        yield o.decode('utf-8')
+                        return
+                except NameError:
+                    pass
                 raise ConfigureError('Unexpected value {} {}'.format(type(o), o))
 
 
@@ -764,7 +781,10 @@ class YMake(object):
         else:
             print('@import "${CONF_ROOT}/conf/export_gradle.no.conf"')
 
-        if presets.get('CLANG_COVERAGE', None) is None:
+        if (preset('CLANG_COVERAGE') is None and
+                (preset('PYTHON_COVERAGE') is None or
+                 preset('COVERAGE_FILTER_PROGRAMS') is None or
+                 preset('CYTHON_COVERAGE') is not None)):
             print('@import "${CONF_ROOT}/conf/coverage_full_instrumentation.conf"')
         else:
             print('@import "${CONF_ROOT}/conf/coverage_selective_instrumentation.conf"')
@@ -1190,6 +1210,8 @@ class GnuToolchain(Toolchain):
             target_triple = self.tc.triplet_opt.get(target.arch, None)
             if not target_triple:
                 target_triple = select(default=None, selectors=[
+                    (target.is_freebsd and target.is_x86_64, 'x86_64-freebsd-unknown'),
+
                     (target.is_linux and target.is_x86_64, 'x86_64-linux-gnu'),
                     (target.is_linux and target.is_armv8, 'aarch64-linux-gnu'),
                     (target.is_linux and target.is_armv6 and target.armv6_float_abi == 'hard', 'armv6-linux-gnueabihf'),
@@ -1303,6 +1325,9 @@ class GnuToolchain(Toolchain):
             if target.is_apple:
                 self.setup_apple_sdk(target)
 
+            if target.is_freebsd:
+                self.setup_freebsd_sdk_impl(project='build/internal/platform/freebsd', var='${FREEBSD_SDK_RESOURCE_GLOBAL}')
+
             if self.tc.is_from_arcadia or self.tc.is_system_cxx:
                 if target.is_linux:
                     if not tc.os_sdk_local:
@@ -1320,6 +1345,11 @@ class GnuToolchain(Toolchain):
 
                 if target.is_yocto:
                     self.setup_sdk(project='build/platform/yocto_sdk/yocto_sdk', var='${YOCTO_SDK_ROOT_RESOURCE_GLOBAL}')
+
+    def setup_freebsd_sdk_impl(self, project, var):
+        self.platform_projects.append(project)
+        self.c_flags_platform.append('--sysroot')
+        self.c_flags_platform.append(var)
 
     def setup_apple_sdk(self, target):
         if not self.tc.os_sdk_local:
@@ -1404,9 +1434,19 @@ class GnuCompiler(Compiler):
         self.target = self.build.target
         self.tc = tc
 
+        self.debug_info_flags = [
+            '-g'
+        ]
+        if self.tc.is_clang and self.tc.version_at_least(14):
+            # DTCC-1231: Clang 14 has switched to DWARFv5 by defaulg
+            self.debug_info_flags.append('-fdebug-default-version=4')
+        if self.tc.is_clang and self.target.is_linux:
+            self.debug_info_flags.append('-ggnu-pubnames')
+            if self.build.is_release:
+                # Clang's more accurate debug info for sampling-PGO purposes. PGO only makes sense in release builds
+                self.debug_info_flags.append('-fdebug-info-for-profiling')
+
         self.c_foptions = [
-            # Enable C++ exceptions (and allow them to be throw through pure C code)
-            '-fexceptions',
             # Enable standard-conforming behavior and generate duplicate symbol error in case of duplicated global constants.
             # See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85678#c0
             '-fno-common',
@@ -1415,6 +1455,18 @@ class GnuCompiler(Compiler):
             '-ffunction-sections',
             '-fdata-sections'
         ]
+
+        if is_positive('NO_CXX_EXCEPTIONS'):
+            self.c_foptions.append('-fno-exceptions')
+        else:
+            # Enable C++ exceptions (and allow them to be throw through pure C code)
+            self.c_foptions.append('-fexceptions')
+
+        if is_positive('NO_CXX_RTTI'):
+            self.c_foptions.append('-fno-rtti')
+        else:
+            # RTTI is enabled by default
+            pass
 
         if self.tc.is_clang and self.target.is_linux:
             # Use .init_array instead of .ctors (default for old clang versions)
@@ -1425,15 +1477,14 @@ class GnuCompiler(Compiler):
             self.c_foptions.append('-mlongcalls')
 
         if self.tc.is_clang:
-            self.c_foptions += [
-                # Set up output colorization
-                '-fcolor-diagnostics',
-                # Enable aligned allocation
-                '-faligned-allocation',
-            ]
+            # Set up output colorization
+            self.c_foptions.append('-fcolor-diagnostics')
+            if not is_positive('NO_CXX_ALIGNED_ALLOCATION') and self.tc.version_at_least(4):
+                # Enable aligned allocation, unless explicitly disabled
+                self.c_foptions.append('-faligned-allocation')
         elif self.tc.is_gcc:
-            if self.target.is_xtensa or self.target.is_tc32:
-                # Xtensa and tc32 toolchains does not support this flag
+            if self.target.is_tc32:
+                # tc32 toolchain does not support this flag
                 pass
             else:
                 self.c_foptions += [
@@ -1531,12 +1582,8 @@ class GnuCompiler(Compiler):
             ]
 
         elif self.tc.is_gcc:
-            if self.target.is_xtensa:
-                # Xtensa toolchain does not support this flags
-                pass
-            else:
-                self.c_foptions.append('-fno-delete-null-pointer-checks')
-                self.c_foptions.append('-fabi-version=8')
+            self.c_foptions.append('-fno-delete-null-pointer-checks')
+            self.c_foptions.append('-fabi-version=8')
 
     def configure_build_type(self):
         if self.build.is_valgrind:
@@ -1576,6 +1623,7 @@ class GnuCompiler(Compiler):
 
         emit('C_COMPILER', '"{}"'.format(self.tc.c_compiler))
         emit('OPTIMIZE', self.optimize)
+        emit('_DEBUG_INFO_FLAGS', self.debug_info_flags)
         emit('_C_FLAGS', self.c_flags)
         emit('_C_FOPTIONS', self.c_foptions)
         emit('_STD_CXX_VERSION', preset('USER_STD_CXX_VERSION') or self.tc.cxx_std)
@@ -1637,7 +1685,7 @@ class Linker(object):
             # Android toolchain is NDK, LLD works on all supported platforms
             return Linker.LLD
 
-        elif self.build.target.is_linux or self.build.target.is_macos or self.build.target.is_ios or self.build.target.is_wasm:
+        elif self.build.target.is_linux or self.build.target.is_macos or self.build.target.is_ios or self.build.target.is_wasm or self.build.target.is_freebsd:
             return Linker.LLD
 
         # There is no linker choice on Windows (link.exe)
@@ -1700,6 +1748,8 @@ class LD(Linker):
 
         if self.musl.value:
             self.ld_flags.extend(['-Wl,--no-as-needed'])
+        elif target.is_freebsd:
+            self.ld_flags.extend(['-lc', '-lm', '-lpthread', '-Wl,--no-as-needed'])
         elif target.is_linux:
             self.ld_flags.extend(['-ldl', '-lrt', '-Wl,--no-as-needed'])
             if self.tc.is_gcc:
@@ -1900,6 +1950,10 @@ class MSVCCompiler(MSVC, Compiler):
         super(MSVCCompiler, self).print_compiler()
 
         target = self.build.target
+
+        # Not supported/tested for MSVC
+        assert not is_positive('NO_CXX_EXCEPTIONS')
+        assert not is_positive('NO_CXX_RTTI')
 
         warns_enabled = [
             4018,  # 'expression' : signed/unsigned mismatch
@@ -2394,7 +2448,7 @@ class Cuda(object):
             if not self.cuda_version.from_user:
                 return False
 
-        if self.cuda_version.value in ('11.4', '11.8', '12.1', '12.2', '12.6', '12.8'):
+        if self.cuda_version.value in ('11.4', '11.8', '12.1', '12.2', '12.6', '12.8', '12.9'):
             return True
         elif self.cuda_version.value in ('10.2', '11.4.19') and target.is_linux_armv8:
             return True

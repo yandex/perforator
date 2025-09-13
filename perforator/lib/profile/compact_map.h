@@ -21,11 +21,11 @@ public:
         , LittleSize_{LittleMapping_.size()}
     {}
 
-    const V& At(K oldIndex) const {
-        if (IsLittle(oldIndex)) {
-            return LittleMapping_.at(oldIndex).GetRef();
+    const V& At(K key) const {
+        if (IsLittle(key)) {
+            return LittleMapping_.at(key).GetRef();
         }
-        return BigMapping_.at(oldIndex);
+        return BigMapping_.at(key);
     }
 
     bool TryEmplace(K key, V&& value) {
@@ -34,6 +34,10 @@ public:
         } else {
             return TryEmplaceBig(key, std::move(value));
         }
+    }
+
+    void EmplaceUnique(K key, V&& value) {
+        Y_ENSURE(TryEmplace(key, std::move(value)), "Duplicate key " << key);
     }
 
     size_t Size() const {
@@ -74,8 +78,10 @@ template <std::unsigned_integral K, size_t DefaultLittleSize = 1024 * 1024>
 class TCompactIntegerSet {
 public:
     explicit TCompactIntegerSet(size_t sizeHint = DefaultLittleSize)
-        : Little_(sizeHint)
-    {}
+        : LittleSize_{sizeHint}
+    {
+        Little_.Reserve(LittleSize_);
+    }
 
     void Insert(K key) {
         if (IsLittle(key)) {
@@ -95,10 +101,11 @@ public:
 
 private:
     bool IsLittle(K key) const {
-        return key < Little_.Size();
+        return key < LittleSize_;
     }
 
 private:
+    const size_t LittleSize_;
     TDynBitMap Little_;
     absl::flat_hash_set<K> Big_;
 };

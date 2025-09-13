@@ -33,9 +33,5 @@ def init_logging(verbose: bool):
     if not sys.stdout.isatty():
         log_format = strip_ansi(log_format)
 
-    logging.basicConfig(
-        format=log_format,
-        level=logging.DEBUG if verbose else logging.WARNING,
-        stream=sys.stderr
-    )
+    logging.basicConfig(format=log_format, level=logging.DEBUG if verbose else logging.WARNING, stream=sys.stderr)
     reduce_noisy_logs()

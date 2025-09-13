@@ -19,7 +19,7 @@ type Last<T extends any[]> = T extends [...infer _, infer L] ? L : never;
 type NodeGetter<T> = (n: FormatNode) => T;
 type RenderTitleResult = (args: Last<Parameters<typeof renderTitleFull>>) => ReturnType<typeof renderTitleFull>;
 
-export function renderTitleFull(countEventCountWidth: NodeGetter<number>, countSampleCountWidth: NodeGetter<number>, getNodeTitle: NodeGetter<string>, isDiff: boolean,
+export function renderTitleFull(countEventCountWidth: NodeGetter<number>, countSampleCountWidth: NodeGetter<number>, getNodeTitle: NodeGetter<string>, isDiff: boolean, isReversed: boolean,
     {
         getPct, getNumbers, getDelta, wrapNumbers = (numbers: string) => numbers,
     }: TitleArgs) {
@@ -47,6 +47,9 @@ export function renderTitleFull(countEventCountWidth: NodeGetter<number>, countS
                 delta =
                     f.eventCount / anyFrame.eventCount -
                     f.baseEventCount / anyFrame.baseEventCount;
+                if(isReversed) {
+                    delta *= -1;
+                }
             } else {
                 delta = f.eventCount / anyFrame.eventCount;
             }

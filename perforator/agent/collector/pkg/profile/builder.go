@@ -16,12 +16,14 @@ type SpecialMapping = string
 const (
 	KernelSpecialMapping SpecialMapping = "[kernel]"
 	PythonSpecialMapping SpecialMapping = "[python]"
+	PHPSpecialMapping    SpecialMapping = "[php]"
 )
 
 var (
 	SpecialMappings = map[string]bool{
 		string(PythonSpecialMapping): true,
 		string(KernelSpecialMapping): true,
+		string(PHPSpecialMapping):    true,
 	}
 )
 
@@ -186,9 +188,9 @@ func (b *SampleBuilder) AddNativeLocation(address uint64) *LocationBuilder {
 
 // Must be called before all AddNativeLocation calls.
 // Shitty but we want to adapt to pprof here until new profile format
-// Python frames lay right before all native frames in *profile.Sample.Location
-func (b *SampleBuilder) AddPythonLocation(key *PythonLocationKey) *LocationBuilder {
-	loc, isnew := b.cache.GetOrAddPythonLocation(key)
+// Interpreter frames lay right before all native frames in *profile.Sample.Location
+func (b *SampleBuilder) AddInterpreterLocation(key *InterpreterLocationKey) *LocationBuilder {
+	loc, isnew := b.cache.GetOrAddInterpreterLocation(key)
 	if !isnew {
 		b.sample.Location = append(b.sample.Location, loc)
 		return &LocationBuilder{b.cache, b, nil}
@@ -334,9 +336,9 @@ func (b *FrameBuilder) Finish() *LocationBuilder {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-type PythonLocationKey struct {
-	CodeObjectAddress     uint64
-	CodeObjectFirstLineNo int32
+type InterpreterLocationKey struct {
+	ObjectAddress uint64
+	Linestart     int32
 }
 
 func isSpecialMapping(mp *profile.Mapping) bool {
@@ -344,22 +346,22 @@ func isSpecialMapping(mp *profile.Mapping) bool {
 }
 
 type ProcessCache struct {
-	nativeLocations map[uint64]*profile.Location
-	pythonLocations map[PythonLocationKey]*profile.Location
-	mappings        map[uint64]*profile.Mapping
-	specialMappings map[string]*profile.Mapping
-	functions       map[string]*profile.Function
-	ids             *ids
+	nativeLocations      map[uint64]*profile.Location
+	interpreterLocations map[InterpreterLocationKey]*profile.Location
+	mappings             map[uint64]*profile.Mapping
+	specialMappings      map[string]*profile.Mapping
+	functions            map[string]*profile.Function
+	ids                  *ids
 }
 
 func NewProcessCache(pid uint32, ids *ids) *ProcessCache {
 	return &ProcessCache{
-		nativeLocations: make(map[uint64]*profile.Location),
-		pythonLocations: make(map[PythonLocationKey]*profile.Location),
-		mappings:        make(map[uint64]*profile.Mapping),
-		specialMappings: make(map[string]*profile.Mapping),
-		functions:       make(map[string]*profile.Function),
-		ids:             ids,
+		nativeLocations:      make(map[uint64]*profile.Location),
+		interpreterLocations: make(map[InterpreterLocationKey]*profile.Location),
+		mappings:             make(map[uint64]*profile.Mapping),
+		specialMappings:      make(map[string]*profile.Mapping),
+		functions:            make(map[string]*profile.Function),
+		ids:                  ids,
 	}
 }
 
@@ -378,18 +380,18 @@ func (c *ProcessCache) GetOrAddNativeLocation(address uint64) (loc *profile.Loca
 	return l, true
 }
 
-func (c *ProcessCache) GetOrAddPythonLocation(key *PythonLocationKey) (loc *profile.Location, isnew bool) {
-	l, ok := c.pythonLocations[*key]
+func (c *ProcessCache) GetOrAddInterpreterLocation(key *InterpreterLocationKey) (loc *profile.Location, isnew bool) {
+	l, ok := c.interpreterLocations[*key]
 	if ok {
 		return l, false
 	}
 
 	l = &profile.Location{
 		ID:      c.ids.nextLocation.Add(1),
-		Address: key.CodeObjectAddress,
+		Address: key.ObjectAddress,
 	}
 
-	c.pythonLocations[*key] = l
+	c.interpreterLocations[*key] = l
 	return l, true
 }
 

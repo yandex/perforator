@@ -1,0 +1,4 @@
+.text-profile {
+    white-space: pre-wrap;
+    font-family: var(--g-font-family-monospace);
+}

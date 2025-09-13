@@ -24,6 +24,8 @@ var (
 	ErrNoBpfAllocation  = errors.New("no bpf allocation")
 )
 
+type Address = procfs.Address
+
 // Simple representation of a executable mapping.
 type Mapping struct {
 	procfs.Mapping
@@ -38,7 +40,7 @@ type Mapping struct {
 	// and virtual address inside the corresponding ELF file.
 	// Zero for non-PIC executables, non-zero for dynamic libraries and PIC executables.
 	// See https://refspecs.linuxbase.org/elf/gabi4+/ch5.pheader.html for details.
-	BaseAddress uint64
+	BaseAddress Address
 }
 
 // Resolved location inside DSO.

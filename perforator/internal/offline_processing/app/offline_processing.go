@@ -38,7 +38,10 @@ func NewOfflineProcessingApp(
 	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	storageBundle, err := bundle.NewStorageBundle(initCtx, l, reg, &conf.StorageConfig)
+	// TODO: this context should be tied to e.g. Run() duration.
+	bgCtx := context.TODO()
+
+	storageBundle, err := bundle.NewStorageBundle(initCtx, bgCtx, l, "offline-processing", reg, &conf.StorageConfig)
 	if err != nil {
 		return nil, err
 	}

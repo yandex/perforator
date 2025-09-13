@@ -309,9 +309,9 @@ func TestPanic(t *testing.T) {
 			if pe.Recovered != p {
 				t.Fatalf("got %v, want %v", pe.Recovered, p)
 			}
-			if !strings.Contains(string(pe.Stack), "TestPanic.func") {
-				t.Log(string(pe.Stack))
-				t.Fatalf("stack trace incomplete")
+			if !strings.Contains(pe.Error(), "TestPanic.func") {
+				t.Log(pe.Error())
+				t.Fatalf("stack trace incomplete, does not contain TestPanic.func")
 			}
 		}()
 		g.Wait()

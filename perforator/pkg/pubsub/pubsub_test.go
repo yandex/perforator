@@ -14,7 +14,7 @@ func TestPubSub_Simple(t *testing.T) {
 
 	val := uint32(42)
 
-	sub := pubsub.Subscribe(1)
+	sub := pubsub.Subscribe(WithChanCapacity(1))
 	pubsub.Publish(val)
 
 	receivedVal := <-sub.Chan()
@@ -46,7 +46,7 @@ func TestPubSub_MultipleSubSimple(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		waitSubsribe.Add(1)
 		g.Go(func() error {
-			sub := pubsub.Subscribe(1)
+			sub := pubsub.Subscribe(WithChanCapacity(1))
 			waitSubsribe.Done()
 
 			receivedVal := <-sub.Chan()
@@ -73,7 +73,7 @@ func TestPubSub_MultiplePublishOrder(t *testing.T) {
 	g, _ := errgroup.WithContext(context.Background())
 
 	items := 20
-	sub := pubsub.Subscribe(uint32(items))
+	sub := pubsub.Subscribe(WithChanCapacity(uint32(items)))
 
 	g.Go(func() error {
 		receivedCount := 0

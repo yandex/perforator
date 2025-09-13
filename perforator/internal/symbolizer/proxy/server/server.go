@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -45,6 +46,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
+	"github.com/yandex/perforator/perforator/pkg/cprofile"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpclog"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpcmetrics"
 	"github.com/yandex/perforator/perforator/pkg/polyheapprof"
@@ -64,7 +66,9 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/tracing"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
 	"github.com/yandex/perforator/perforator/proto/perforator"
+	profileproto "github.com/yandex/perforator/perforator/proto/profile"
 )
 
 var (
@@ -125,8 +129,8 @@ type PerforatorServer struct {
 	downloader *downloader.Downloader
 	httpclient *resty.Client
 
-	mutex      sync.Mutex
-	symbolizer *symbolize.Symbolizer
+	symbolizer   *symbolize.Symbolizer
+	mergemanager *cprofile.MergeManager
 
 	llvmTools LLVMTools
 
@@ -174,7 +178,11 @@ func NewPerforatorServer(
 
 	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	storageBundle, err := bundle.NewStorageBundle(initCtx, l, reg, &conf.StorageConfig)
+
+	// TODO: this context should be tied to e.g. Run() duration.
+	bgCtx := context.TODO()
+
+	storageBundle, err := bundle.NewStorageBundle(initCtx, bgCtx, l, "proxy", reg, &conf.StorageConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -221,6 +229,11 @@ func NewPerforatorServer(
 		return nil, err
 	}
 
+	mergemanager, err := cprofile.NewMergeManager(int(conf.ProfileMerger.ThreadCount))
+	if err != nil {
+		return nil, err
+	}
+
 	authp, err := newAuthProvider(l, conf.Server.Insecure)
 	if err != nil {
 		return nil, err
@@ -247,12 +260,14 @@ func NewPerforatorServer(
 			metricsInterceptor.UnaryServer(),
 			logInterceptor.UnaryServer(),
 			oauthInterceptor.UnaryServer(),
+			newAccessUnaryInterceptor(conf.ACL),
 		),
 		grpc.ChainStreamInterceptor(
 			otelgrpc.StreamServerInterceptor(),
 			metricsInterceptor.StreamServer(),
 			logInterceptor.StreamServer(),
 			oauthInterceptor.StreamServer(),
+			newAccessStreamInterceptor(),
 		),
 	)
 
@@ -278,6 +293,7 @@ func NewPerforatorServer(
 		downloader:        downloaderInstance,
 		llvmTools:         llvmTools,
 		symbolizer:        symbolizer,
+		mergemanager:      mergemanager,
 		grpcServer:        grpcServer,
 		httpRouter:        httpr,
 		healthServer:      healthServer,
@@ -472,10 +488,18 @@ func storageMetaToProtoMeta(meta *meta.ProfileMetadata) *perforator.ProfileMeta 
 	}
 }
 
-func extractProtoMetasFromRawProfiles(profiles []*profilestorage.Profile) []*perforator.ProfileMeta {
+func extractProtoMetasFromRawProfiles(profiles []richProfile) []*perforator.ProfileMeta {
 	protometas := make([]*perforator.ProfileMeta, len(profiles))
 	for i, profile := range profiles {
-		protometas[i] = storageMetaToProtoMeta(profile.Meta)
+		protometas[i] = storageMetaToProtoMeta(profile.meta)
+	}
+	return protometas
+}
+
+func extractProtoMetasFromStorageMetas(profiles []*meta.ProfileMetadata) []*perforator.ProfileMeta {
+	protometas := make([]*perforator.ProfileMeta, len(profiles))
+	for i, meta := range profiles {
+		protometas[i] = storageMetaToProtoMeta(meta)
 	}
 	return protometas
 }
@@ -657,8 +681,8 @@ func (s *PerforatorServer) ListProfiles(
 	query.Pagination.Offset = uint64(req.GetPaginated().GetOffset())
 	query.SortOrder = util.SortOrderFromProto(req.GetOrderBy())
 
-	var profiles []*profilestorage.Profile
-	profiles, err = s.profileStorage.SelectProfiles(ctx, query, true)
+	var profiles []*meta.ProfileMetadata
+	profiles, err = s.profileStorage.SelectProfiles(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -670,10 +694,7 @@ func (s *PerforatorServer) ListProfiles(
 
 	metas := make([]*perforator.ProfileMeta, 0, len(profiles))
 	for _, profile := range profiles {
-		metas = append(
-			metas,
-			storageMetaToProtoMeta(profile.Meta),
-		)
+		metas = append(metas, storageMetaToProtoMeta(profile))
 	}
 
 	return &perforator.ListProfilesResponse{
@@ -682,7 +703,20 @@ func (s *PerforatorServer) ListProfiles(
 	}, nil
 }
 
-func (s *PerforatorServer) fetchProfile(ctx context.Context, id meta.ProfileID) (profile *pprof.Profile, meta *meta.ProfileMetadata, err error) {
+func makeExactProfileSelector(id string) *querylang.Selector {
+	return &querylang.Selector{
+		Matchers: []*querylang.Matcher{{
+			Field:    profilequerylang.ProfileIDLabel,
+			Operator: querylang.OR,
+			Conditions: []*querylang.Condition{{
+				Operator: operator.Eq,
+				Value:    querylang.String{Value: id},
+			}},
+		}},
+	}
+}
+
+func (s *PerforatorServer) fetchProfile(ctx context.Context, id meta.ProfileID) (profile *pprof.Profile, m *meta.ProfileMetadata, err error) {
 	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.fetchProfile")
 	defer span.End()
 	defer func() {
@@ -692,27 +726,33 @@ func (s *PerforatorServer) fetchProfile(ctx context.Context, id meta.ProfileID) 
 		}
 	}()
 
-	var rawProfiles []*profilestorage.Profile
-	rawProfiles, err = s.profileStorage.GetProfiles(ctx, []string{id} /*onlyMetadata=*/, false)
+	profiles, err := s.profileStorage.SelectProfiles(ctx, &meta.ProfileQuery{
+		Selector: makeExactProfileSelector(id),
+	})
 	if err != nil {
 		return
 	}
 
-	if len(rawProfiles) != 1 {
+	if len(profiles) != 1 {
 		err = ErrFailedGetProfile
 		return
 	}
+	m = profiles[0]
 
-	profile, err = pprof.ParseData(rawProfiles[0].Body)
+	data, err := s.profileStorage.FetchProfile(ctx, m)
 	if err != nil {
 		return
 	}
 
-	meta = rawProfiles[0].Meta
+	profile, err = pprof.ParseData(data)
+	if err != nil {
+		return
+	}
+
 	return
 }
 
-func (s *PerforatorServer) guessBuildIDForPGO(ctx context.Context, rawProfiles []*profilestorage.Profile) (string, error) {
+func (s *PerforatorServer) guessBuildIDForPGO(ctx context.Context, rawProfiles []richProfile) (string, error) {
 	guesser, err := autofdo.NewBuildIDGuesser(PGODegreeOfParallelism)
 	if err != nil {
 		return "", err
@@ -727,7 +767,7 @@ func (s *PerforatorServer) guessBuildIDForPGO(ctx context.Context, rawProfiles [
 		guesserIndex := uint64(i)
 		g.Go(func() error {
 			for j := guesserIndex; j < uint64(len(rawProfiles)); j += PGODegreeOfParallelism {
-				err := guesser.FeedProfile(guesserIndex, rawProfiles[j].Body)
+				err := guesser.FeedProfile(guesserIndex, rawProfiles[j].data)
 				if err != nil {
 					return err
 				}
@@ -746,7 +786,7 @@ func (s *PerforatorServer) guessBuildIDForPGO(ctx context.Context, rawProfiles [
 
 func (s *PerforatorServer) processLBRProfiles(
 	ctx context.Context,
-	rawProfiles []*profilestorage.Profile,
+	rawProfiles []richProfile,
 	buildID string,
 ) (autofdo.ProcessedLBRData, error) {
 	builder, err := autofdo.NewBatchInputBuilder(PGODegreeOfParallelism, buildID)
@@ -763,7 +803,7 @@ func (s *PerforatorServer) processLBRProfiles(
 		builderIndex := uint64(i)
 		g.Go(func() error {
 			for j := builderIndex; j < uint64(len(rawProfiles)); j += PGODegreeOfParallelism {
-				err := builder.AddProfile(builderIndex, rawProfiles[j].Body)
+				err := builder.AddProfile(builderIndex, rawProfiles[j].meta.Service, rawProfiles[j].data)
 				if err != nil {
 					return err
 				}
@@ -790,37 +830,10 @@ type autofdoInput struct {
 //go:noinline
 func (s *PerforatorServer) generateAutofdoInput(
 	ctx context.Context,
-	service string,
-	maxSamples uint32,
+	query *meta.ProfileQuery,
 	profilesToProcessTotalSizeLimit uint64,
 ) (autofdoInput, error) {
-	selector := fmt.Sprintf("{%s=\"%s\", %s=\"%s\"}",
-		profilequerylang.EventTypeLabel, sampletype.SampleTypeLbrStacks,
-		profilequerylang.ServiceLabel, service)
-
-	query, err := s.parseProfileQuery(&perforator.ProfileQuery{
-		Selector: selector,
-		TimeInterval: &perforator.TimeInterval{
-			// Given that we _guess_ the target buildID, it makes sense to look for
-			// somewhat recent profiles only.
-			From: timestamppb.New(time.Now().Add(-time.Hour * 24)),
-		},
-	})
-	if err != nil {
-		return autofdoInput{}, err
-	}
-	// Again, this increases the chance of guessing a buildID from the most recent release,
-	// instead of the previous one(s).
-	query.SortOrder = util.SortOrder{
-		Columns:    []string{profilequerylang.TimestampLabel},
-		Descending: true,
-	}
-	query.MaxSamples = 0
-	query.Pagination = util.Pagination{
-		Offset: 0,
-		Limit:  uint64(maxSamples),
-	}
-	rawProfiles, err := s.selectProfilesLimited(ctx, query, profilesToProcessTotalSizeLimit)
+	rawProfiles, err := s.selectProfiles(ctx, query, &profilesToProcessTotalSizeLimit, false)
 	if err != nil {
 		return autofdoInput{}, err
 	}
@@ -844,12 +857,15 @@ func (s *PerforatorServer) generateAutofdoInput(
 
 func (s *PerforatorServer) doGeneratePGOProfile(
 	ctx context.Context,
-	service string,
+	query *meta.ProfileQuery,
 	format *perforator.PGOProfileFormat,
-	maxSamples uint32,
 	profilesToProcessTotalSizeLimit uint64,
 ) ([]byte, *perforator.PGOMeta, error) {
-	autofdoInput, err := s.generateAutofdoInput(ctx, service, maxSamples, profilesToProcessTotalSizeLimit)
+	autofdoInput, err := s.generateAutofdoInput(
+		ctx,
+		query,
+		profilesToProcessTotalSizeLimit,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -889,6 +905,7 @@ func (s *PerforatorServer) doGeneratePGOProfile(
 		RangeCountMapSize:                   autofdoMetadata.RangeCountMapSize,
 		AddressCountMapSize:                 autofdoMetadata.AddressCountMapSize,
 		GuessedBuildID:                      autofdoInput.BuildID,
+		ProfilesByServiceCount:              autofdoMetadata.ProfilesCountByService,
 	}, nil
 }
 
@@ -897,9 +914,10 @@ func (s *PerforatorServer) fetchProfiles(
 	ctx context.Context,
 	query *meta.ProfileQuery,
 	targetEventType string,
-) (*pprof.Profile, []*profilestorage.Profile, error) {
-	var rawProfiles []*profilestorage.Profile
-	rawProfiles, err := s.selectProfiles(ctx, query)
+	performSampling bool,
+) (*pprof.Profile, []richProfile, error) {
+	var rawProfiles []richProfile
+	rawProfiles, err := s.selectProfiles(ctx, query, nil, performSampling)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -911,27 +929,11 @@ func (s *PerforatorServer) fetchProfiles(
 		return nil, nil, err
 	}
 
-	tlsFilter, err := samplefilter.BuildTLSFilter(query.Selector)
+	filters, err := samplefilter.ExtractSelectorFilters(query.Selector)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	envFilter, envErr := samplefilter.BuildEnvFilter(query.Selector)
-	if envErr != nil {
-		return nil, nil, envErr
-	}
-
-	buildIDFilter, err := samplefilter.BuildBuildIDFilter(query.Selector)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	postprocessedProfiles := samplefilter.FilterProfilesBySampleFilters(
-		profiles,
-		tlsFilter,
-		envFilter,
-		buildIDFilter,
-	)
+	postprocessedProfiles := samplefilter.FilterProfilesBySampleFilters(profiles, filters...)
 
 	for _, profile := range postprocessedProfiles {
 		fixupMultiSampleTypeProfile(profile, targetEventType)
@@ -993,10 +995,10 @@ func (s *PerforatorServer) GetProfile(
 	}, nil
 }
 
-func filterNoBlobProfiles(profiles []*profilestorage.Profile) (res []*profilestorage.Profile) {
-	res = make([]*profilestorage.Profile, 0, len(profiles))
+func filterNoBlobProfiles(profiles []richProfile) (res []richProfile) {
+	res = make([]richProfile, 0, len(profiles))
 	for _, profile := range profiles {
-		if len(profile.Body) > 0 {
+		if len(profile.data) > 0 {
 			res = append(res, profile)
 		}
 	}
@@ -1004,25 +1006,123 @@ func filterNoBlobProfiles(profiles []*profilestorage.Profile) (res []*profilesto
 	return
 }
 
-func (s *PerforatorServer) GeneratePGOProfile(
-	ctx context.Context,
-	req *perforator.GeneratePGOProfileRequest,
-) (*perforator.GeneratePGOProfileResponse, error) {
-	if len(req.GetService()) == 0 {
-		return nil, fmt.Errorf("empty \"service\"")
-	}
-
+func (s *PerforatorServer) constructPGOProfilesQuery(req *perforator.GeneratePGOProfileRequest) (
+	*meta.ProfileQuery,
+	error,
+) {
 	// We deal with large binaries and we want A LOT of lbr-profiles
 	// for better resulting sPGO-profile quality. This is basically a
 	// "number big enough".
 	const maxSamples = uint32(5000)
+
+	// Given that we _guess_ the target buildID, it makes sense to look for
+	// somewhat recent profiles only.
+	defaultTimeIntervalStart := time.Now().Add(-time.Hour * 24)
+
+	query, err := func() (*meta.ProfileQuery, error) {
+		// Old-fashioned request came in, which only contains 'service',
+		// nothing else is specified.
+		if req.GetQuery() == nil {
+			if len(req.GetService()) == 0 {
+				return nil, fmt.Errorf("empty 'service' in request")
+			}
+
+			selector := fmt.Sprintf("{%s=\"%s\", %s=\"%s\"}",
+				profilequerylang.EventTypeLabel, sampletype.SampleTypeLbrStacks,
+				profilequerylang.ServiceLabel, req.GetService())
+
+			return s.parseProfileQuery(&perforator.ProfileQuery{
+				Selector: selector,
+				TimeInterval: &time_interval.TimeInterval{
+					From: timestamppb.New(defaultTimeIntervalStart),
+				},
+			})
+		} else {
+			// A more modern way to request a PGO-profile, could request profiles from whatever
+			// the selector could describe.
+			query, err := s.parseProfileQuery(&perforator.ProfileQuery{
+				Selector: req.GetQuery().GetSelector(),
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			// Now, ensure that selector
+			// a) limits profiles to sampletype.SampleTypeLbrStacks event_type
+			// b) has a time interval
+
+			// Set the event_type matcher
+			query.Selector.Matchers = slices.DeleteFunc(query.Selector.Matchers, func(matcher *querylang.Matcher) bool {
+				return matcher.Field == profilequerylang.EventTypeLabel
+			})
+			query.Selector.Matchers = append(query.Selector.Matchers, profilequerylang.BuildMatcher(
+				profilequerylang.EventTypeLabel,
+				querylang.AND,
+				querylang.Condition{
+					Operator: operator.Eq,
+				},
+				[]string{sampletype.SampleTypeLbrStacks},
+			))
+			// Ensure TimeInterval is specified
+			timeInterval, err := profilequerylang.ParseTimeInterval(query.Selector)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse selector time interval: %w", err)
+			}
+			if timeInterval.To == nil && timeInterval.From == nil {
+				// Interval is not specified, set it to default values
+				query.Selector.Matchers = append(
+					query.Selector.Matchers,
+					profilequerylang.BuildMatcher(
+						profilequerylang.TimestampLabel,
+						querylang.AND,
+						querylang.Condition{Operator: operator.GTE},
+						[]string{defaultTimeIntervalStart.Format(time.RFC3339Nano)},
+					),
+				)
+			} else if timeInterval.To == nil || timeInterval.From == nil {
+				return nil, fmt.Errorf(
+					"failed to parse selector: either none or both time interval bounds should be specified",
+				)
+			}
+
+			return query, nil
+		}
+	}()
+	if err != nil {
+		return nil, err
+	}
+
+	// This increases the chance of guessing a buildID from the most recent release,
+	// instead of the previous one(s).
+	query.SortOrder = util.SortOrder{
+		Columns:    []string{profilequerylang.TimestampLabel},
+		Descending: true,
+	}
+	query.MaxSamples = 0
+	query.Pagination = util.Pagination{
+		Offset: 0,
+		Limit:  uint64(maxSamples),
+	}
+
+	return query, nil
+}
+
+func (s *PerforatorServer) GeneratePGOProfile(
+	ctx context.Context,
+	req *perforator.GeneratePGOProfileRequest,
+) (*perforator.GeneratePGOProfileResponse, error) {
+	query, err := s.constructPGOProfilesQuery(req)
+	if err != nil {
+		return nil, err
+	}
+
 	// Some services are loaded heavier than others, and thus generate larger profiles.
 	// We don't want to run out of memory when downloading 5k of huge profiles
 	// (10Mb per-profile is not uncommon, which would amount to whopping 50GB of data).
 	// Presumably, 8Gb of data should be more than enough, and we would either hit
 	// "maxSamples" limit for not-that-heavy-loaded services, or this one.
 	const profilesToProcessTotalSizeLimit = uint64(8 * 1024 * 1024 * 1024)
-	buf, PGOmeta, err := s.doGeneratePGOProfile(ctx, req.GetService(), req.GetFormat(), maxSamples, profilesToProcessTotalSizeLimit)
+	buf, PGOmeta, err := s.doGeneratePGOProfile(ctx, query, req.GetFormat(), profilesToProcessTotalSizeLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -1082,33 +1182,165 @@ func (s *PerforatorServer) MergeProfiles(
 	if query.MaxSamples == 0 {
 		query.MaxSamples = uint64(req.MaxSamples)
 	}
-	mergedProfile, rawProfiles, err := s.fetchProfiles(ctx, query, targetEventType)
-	if err != nil {
-		return nil, err
+
+	if req.GetExperimental().GetEnableNewProfileMerger() {
+		s.l.Debug(ctx, "Merging profiles via new profile merger")
+		return s.fetchAndRenderProfileFast(ctx, req, query, targetEventType)
+	} else {
+		s.l.Debug(ctx, "Merging profiles via legacy profile merger")
+		return s.fetchAndRenderProfileLegacy(ctx, req, query, targetEventType)
+	}
+}
+
+func (s *PerforatorServer) fetchAndRenderProfileFast(
+	ctx context.Context,
+	req *perforator.MergeProfilesRequest,
+	query *meta.ProfileQuery,
+	eventType string,
+) (*perforator.MergeProfilesResponse, error) {
+	if req.GetExperimental().GetSampleProfileStacks() {
+		return nil, fmt.Errorf("the new profile merger does not support sampling")
 	}
 
-	buf, err := s.renderProfile(ctx, mergedProfile, req.GetFormat())
+	opts, err := makeMergeOptions(req, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build merge options: %w", err)
 	}
 
-	url, err := s.maybeUploadProfile(ctx, buf, req.GetFormat())
+	session, err := s.mergemanager.Start(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize profile merge session: %w", err)
+	}
+	defer session.Close()
+
+	profiles, err := s.profileStorage.SelectProfiles(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select profiles: %w", err)
+	}
+
+	err = s.populateMergeSession(ctx, profiles, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download profiles: %w", err)
+	}
+
+	cprofile, err := session.Finish()
+	if err != nil {
+		return nil, fmt.Errorf("failed to merge profiles: %w", err)
+	}
+	defer cprofile.Free()
+
+	data, err := cprofile.MarshalPProf()
+	if err != nil {
+		return nil, fmt.Errorf("failed to merge pprof: %w", err)
+	}
+
+	mergedProfile, err := pprof.ParseData(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize pprof: %w", err)
+	}
+
+	profile, err := s.renderProfile(ctx, mergedProfile, req.GetFormat())
 	if err != nil {
 		return nil, err
 	}
 
 	statistics := quality.CalculateProfileStatistics(mergedProfile)
+	meta := extractProtoMetasFromStorageMetas(profiles)
+
+	return s.makeMergeResponse(ctx, profile, meta, statistics, req)
+}
+
+func makeMergeOptions(
+	req *perforator.MergeProfilesRequest,
+	query *meta.ProfileQuery,
+) (*profileproto.MergeOptions, error) {
+	if req.MergeOptions == nil {
+		req.MergeOptions = &profileproto.MergeOptions{}
+	}
+	options := req.MergeOptions
+
+	if options.SampleFilter == nil {
+		options.SampleFilter = &profileproto.SampleFilter{}
+	}
+
+	err := samplefilter.FillProtoSampleFilter(query.Selector, options.SampleFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	return options, nil
+}
+
+func (s *PerforatorServer) populateMergeSession(
+	ctx context.Context,
+	profiles []*meta.ProfileMetadata,
+	session *cprofile.MergeSession,
+) error {
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(int(s.c.ProfileMerger.ThreadCount))
+
+	for _, profile := range profiles {
+		g.Go(func() error {
+			data, err := s.profileStorage.FetchProfile(ctx, profile)
+			if err != nil {
+				return err
+			}
+			return session.AddPProfProfile(data)
+		})
+	}
+
+	return g.Wait()
+}
+
+func (s *PerforatorServer) fetchAndRenderProfileLegacy(
+	ctx context.Context,
+	req *perforator.MergeProfilesRequest,
+	query *meta.ProfileQuery,
+	eventType string,
+) (*perforator.MergeProfilesResponse, error) {
+	mergedProfile, rawProfiles, err := s.fetchProfiles(
+		ctx,
+		query,
+		eventType,
+		req.GetExperimental().GetSampleProfileStacks(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	profile, err := s.renderProfile(ctx, mergedProfile, req.GetFormat())
+	if err != nil {
+		return nil, err
+	}
+
+	statistics := quality.CalculateProfileStatistics(mergedProfile)
+	meta := extractProtoMetasFromRawProfiles(rawProfiles)
+
+	return s.makeMergeResponse(ctx, profile, meta, statistics, req)
+}
+
+func (s *PerforatorServer) makeMergeResponse(
+	ctx context.Context,
+	profile []byte,
+	meta []*perforator.ProfileMeta,
+	statistics *perforator.ProfileStatistics,
+	req *perforator.MergeProfilesRequest,
+) (*perforator.MergeProfilesResponse, error) {
+	url, err := s.maybeUploadProfile(ctx, profile, req.GetFormat())
+	if err != nil {
+		return nil, err
+	}
 
 	if url != "" {
 		return &perforator.MergeProfilesResponse{
 			Result:      &perforator.MergeProfilesResponse_ProfileURL{ProfileURL: url},
-			ProfileMeta: extractProtoMetasFromRawProfiles(rawProfiles),
+			ProfileMeta: meta,
 			Statistics:  statistics,
 		}, nil
 	} else {
 		return &perforator.MergeProfilesResponse{
-			Result:      &perforator.MergeProfilesResponse_Profile{Profile: buf},
-			ProfileMeta: extractProtoMetasFromRawProfiles(rawProfiles),
+			Result:      &perforator.MergeProfilesResponse_Profile{Profile: profile},
+			ProfileMeta: meta,
 			Statistics:  statistics,
 		}, nil
 	}
@@ -1293,11 +1525,17 @@ func (s *PerforatorServer) spawnDiffMergeTask(
 
 const defaultMaxSamples = 10
 
-func (s *PerforatorServer) selectProfilesLimited(
+type richProfile struct {
+	meta *meta.ProfileMetadata
+	data profilestorage.ProfileData
+}
+
+func (s *PerforatorServer) selectProfiles(
 	ctx context.Context,
 	filters *meta.ProfileQuery,
-	batchDownloadTotalSizeSoftLimit uint64,
-) (profiles []*profilestorage.Profile, err error) {
+	batchDownloadTotalSizeSoftLimit *uint64,
+	performSampling bool,
+) (profiles []richProfile, err error) {
 	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.selectProfiles")
 	defer span.End()
 	defer func() {
@@ -1311,21 +1549,146 @@ func (s *PerforatorServer) selectProfilesLimited(
 		filters.MaxSamples = defaultMaxSamples
 	}
 
-	return s.profileStorage.SelectProfilesLimited(
+	metas, err := s.profileStorage.SelectProfiles(
 		ctx,
 		filters,
-		batchDownloadTotalSizeSoftLimit,
 	)
+	if err != nil {
+		return
+	}
+
+	profiles = make([]richProfile, len(metas))
+	for i := range metas {
+		profiles[i].meta = metas[i]
+	}
+
+	if performSampling {
+		const kParallelism = 16
+		sampledProfiles := make([]richProfile, kParallelism)
+
+		const kBatchSize = 20
+		batches := make(
+			chan []richProfile,
+			(len(profiles)+kBatchSize-1)/kBatchSize,
+		)
+		for i := 0; i < len(profiles); i += kBatchSize {
+			batches <- profiles[i:min(i+kBatchSize, len(profiles))]
+		}
+		close(batches)
+
+		g, ctx := errgroup.WithContext(ctx)
+		for i := range kParallelism {
+			g.Go(func() error {
+				// Yes, this 2003 is a magic number.
+				// No, no explanation for now.
+				sampler, err := symbolize.NewStacksSampler(2003)
+				if err != nil {
+					return err
+				}
+				defer sampler.Destroy()
+
+				for batch := range batches {
+					err = s.downloadProfiles(ctx, batch, nil)
+					if err != nil {
+						return err
+					}
+
+					for j := range len(batch) {
+						sampler.AddProfile(batch[j].data)
+						// GC the thing
+						batch[j].data = nil
+
+						// This is nonsense, obviously,
+						// but idk what should actually be in meta when we sample this way
+						sampledProfiles[i].meta = batch[j].meta
+					}
+				}
+
+				sampledProfiles[i].data, err = sampler.ExtractSampledProfile()
+				if err != nil {
+					return err
+				}
+
+				return nil
+			})
+		}
+		if err := g.Wait(); err != nil {
+			return nil, err
+		}
+
+		resultingProfiles := make([]richProfile, 0, len(sampledProfiles))
+		for _, sampledProfile := range sampledProfiles {
+			if len(sampledProfile.data) == 0 {
+				continue
+			}
+
+			resultingProfiles = append(resultingProfiles, sampledProfile)
+		}
+
+		return resultingProfiles, nil
+	} else {
+		err = s.downloadProfiles(ctx, profiles, batchDownloadTotalSizeSoftLimit)
+		if err != nil {
+			return
+		}
+	}
+
+	return
 }
 
-func (s *PerforatorServer) selectProfiles(
+// If @totalSizeSoftLimit is set, stop downloading profiles when the volume of
+// downloaded profiles exceeds @totalSizeSoftLimit.
+func (s *PerforatorServer) downloadProfiles(
 	ctx context.Context,
-	filters *meta.ProfileQuery,
-) (profiles []*profilestorage.Profile, err error) {
-	return s.selectProfilesLimited(ctx, filters, profilestorage.DefaultBatchDownloadTotalSizeSoftLimit)
+	profiles []richProfile,
+	totalSizeSoftLimit *uint64,
+) error {
+	var downloadedSizeApprox atomic.Uint64
+	var droppedProfilesCount atomic.Uint64
+
+	g, ctx := errgroup.WithContext(ctx)
+	// limit downloads concurrency to a somewhat sane value
+	g.SetLimit(256)
+
+	for i := range profiles {
+		g.Go(func() error {
+			if totalSizeSoftLimit != nil && downloadedSizeApprox.Load() >= *totalSizeSoftLimit {
+				droppedProfilesCount.Add(1)
+				return nil
+			}
+
+			data, err := s.profileStorage.FetchProfile(ctx, profiles[i].meta)
+			noExistErr := &blob.ErrNoExist{}
+			if err != nil && !errors.As(err, &noExistErr) {
+				return err
+			}
+
+			downloadedSizeApprox.Add(uint64(len(data)))
+			profiles[i].data = data
+
+			return nil
+		})
+	}
+
+	err := g.Wait()
+	if err != nil {
+		return err
+	}
+
+	droppedProfiles := droppedProfilesCount.Load()
+	if droppedProfiles != 0 {
+		s.l.Warn(
+			ctx,
+			"Some profiles were not loaded due to memory limits",
+			log.UInt64("droppedProfiles", droppedProfiles),
+			log.UInt64("downloadedSize", downloadedSizeApprox.Load()),
+		)
+	}
+
+	return nil
 }
 
-func (s *PerforatorServer) parseProfile(ctx context.Context, rawProfile *profilestorage.Profile) (profile *pprof.Profile, err error) {
+func (s *PerforatorServer) parseProfile(ctx context.Context, rawProfile richProfile) (profile *pprof.Profile, err error) {
 	_, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.parseProfile")
 	defer span.End()
 	defer func() {
@@ -1335,13 +1698,13 @@ func (s *PerforatorServer) parseProfile(ctx context.Context, rawProfile *profile
 		}
 	}()
 
-	profile, err = pprof.ParseData(rawProfile.Body)
+	profile, err = pprof.ParseData(rawProfile.data)
 	return
 }
 
 func (s *PerforatorServer) parseProfiles(
 	ctx context.Context,
-	rawProfiles []*profilestorage.Profile,
+	rawProfiles []richProfile,
 ) (profiles []*pprof.Profile, err error) {
 	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.parseProfiles")
 	defer span.End()
@@ -1357,9 +1720,6 @@ func (s *PerforatorServer) parseProfiles(
 	g, ctx := errgroup.WithContext(ctx)
 
 	for i, rawProfile := range rawProfiles {
-		i := i
-		rawProfile := rawProfile
-
 		g.Go(func() error {
 			var errParse error
 			profiles[i], errParse = s.parseProfile(ctx, rawProfile)
@@ -1501,6 +1861,8 @@ func (s *PerforatorServer) makeProfileKey(format *perforator.RenderFormat) (stri
 		suffix = ".json"
 	case *perforator.RenderFormat_Flamegraph, *perforator.RenderFormat_HTMLVisualisation:
 		suffix = ".html"
+	case *perforator.RenderFormat_TextProfile:
+		suffix = ".txt"
 	default:
 		return "", fmt.Errorf("unsupported render format: %T", v)
 	}

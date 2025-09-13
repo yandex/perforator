@@ -132,6 +132,16 @@ func (c CPU) ThermalThrottle() (*CPUThermalThrottle, error) {
 	return t, nil
 }
 
+// Online returns the online status of a CPU from `/sys/devices/system/cpu/cpuN/online`.
+func (c CPU) Online() (bool, error) {
+	cpuPath := filepath.Join(string(c), "online")
+	str, err := util.SysReadFile(cpuPath)
+	if err != nil {
+		return false, err
+	}
+	return str == "1", nil
+}
+
 func parseCPUThermalThrottle(cpuPath string) (*CPUThermalThrottle, error) {
 	t := CPUThermalThrottle{}
 	var err error

@@ -1,3 +1,4 @@
+import os
 import textwrap
 
 from devtools.frontend_build_platform.nots.builder.cli.cli_args import get_args_parser, parse_args
@@ -28,7 +29,6 @@ def test_create_node_modules_args():
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
-        --trace no
         --verbose no
         create-node-modules
         --moddir devtools/dummy_arcadia/typescript/simple
@@ -46,7 +46,6 @@ def test_create_node_modules_args():
         # Flags
         local_cli=False,
         nm_bundle=False,
-        trace=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -70,7 +69,6 @@ def test_create_node_modules_bundle_args():
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
         --nm-bundle yes
-        --trace no
         --verbose no
         create-node-modules
         --moddir devtools/dummy_arcadia/typescript/simple
@@ -88,7 +86,6 @@ def test_create_node_modules_bundle_args():
         # Flags
         local_cli=False,
         nm_bundle=True,
-        trace=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -109,7 +106,6 @@ def test_build_package_args():
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
-        --trace no
         --verbose no
         build-package
         --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/dummy_arcadia_typescript_simple.output.tar
@@ -128,7 +124,6 @@ def test_build_package_args():
         # Flags
         local_cli=False,
         nm_bundle=False,
-        trace=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -154,7 +149,6 @@ def test_build_package_nm_args():
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
         --nm-bundle yes
-        --trace no
         --verbose no
         build-package
         --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/dummy_arcadia_typescript_simple.output.tar
@@ -173,7 +167,6 @@ def test_build_package_nm_args():
         # Flags
         local_cli=False,
         nm_bundle=True,
-        trace=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -199,7 +192,6 @@ def test_build_tsc_args():
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
-        --trace yes
         --verbose yes
         build-tsc
         --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/dummy_arcadia_typescript_simple.output.tar
@@ -221,7 +213,6 @@ def test_build_tsc_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
-        trace=True,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -250,7 +241,6 @@ def test_build_tsc_nm_args():
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
         --nm-bundle yes
-        --trace yes
         --verbose yes
         build-tsc
         --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/dummy_arcadia_typescript_simple.output.tar
@@ -272,7 +262,6 @@ def test_build_tsc_nm_args():
         # Flags
         local_cli=True,
         nm_bundle=True,
-        trace=True,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -300,7 +289,6 @@ def test_build_next_args():
         --nodejs-bin /Users/khoden/.ya/tools/v4/3777807975/node
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
-        --trace no
         --verbose no
         build-next
         --output-file /Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13/dummy_arcadia_nextjs13.output.tar
@@ -325,7 +313,6 @@ def test_build_next_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
-        trace=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13',
@@ -357,7 +344,6 @@ def test_build_vite_args():
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
-        --trace no
         --verbose no
         build-vite
         --output-file /Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project/dummy_arcadia_typescript_vite_project.output.tar
@@ -381,7 +367,6 @@ def test_build_vite_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
-        trace=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project',
@@ -413,7 +398,6 @@ def test_build_webpack_args():
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
-        --trace no
         --verbose yes
         build-webpack
         --bundler-config-path /Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js
@@ -437,7 +421,6 @@ def test_build_webpack_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
-        trace=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
@@ -469,7 +452,6 @@ def test_build_webpack_with_env_args():
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
-        --trace no
         --verbose yes
         build-webpack
         --bundler-config-path /Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js
@@ -495,7 +477,6 @@ def test_build_webpack_with_env_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
-        trace=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
@@ -527,7 +508,6 @@ def test_build_webpack_with_after_build():
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
         --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
         --pm-type pnpm
-        --trace no
         --verbose yes
         build-webpack
         --bundler-config-path /Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js
@@ -555,7 +535,6 @@ def test_build_webpack_with_after_build():
         # Flags
         local_cli=True,
         nm_bundle=False,
-        trace=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
@@ -573,4 +552,101 @@ def test_build_webpack_with_after_build():
         after_build_js='path/to/script.js',
         after_build_args='some-args',
         after_build_outdir='dist',
+    )
+
+
+# noinspection SpellCheckingInspection
+def test_build_rspack_args():
+    # arrange
+    command_args = """
+        --arcadia-root /Users/khoden/arcadia
+        --arcadia-build-root /Users/khoden/.ya/build/build_root/emev/00008e
+        --local-cli yes
+        --moddir devtools/dummy_arcadia/typescript/with_simple_bundling
+        --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
+        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-type pnpm
+        --verbose yes
+        build-rspack
+        --bundler-config-path /Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/rspack.config.js
+        --output-file /Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/dummy_arcadia_typescript_with_simple_bundling.output.tar
+        --output-dirs dev-bundle prod-bundle
+        --tsconfigs tsconfig.json
+        --vcs-info
+    """
+
+    # act + assert
+    assert __convert_args_to_dict(command_args) == dict(
+        # Base
+        arcadia_build_root='/Users/khoden/.ya/build/build_root/emev/00008e',
+        arcadia_root='/Users/khoden/arcadia',
+        moddir='devtools/dummy_arcadia/typescript/with_simple_bundling',
+        nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
+        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_type='pnpm',
+        yatool_prebuilder_path=None,
+        env=[],
+        # Flags
+        local_cli=True,
+        nm_bundle=False,
+        verbose=True,
+        # Calculated
+        bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
+        bundler_config_path='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/rspack.config.js',
+        curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling',
+        node_modules_bundle=False,
+        # Command-specific
+        bundler_config='rspack.config.js',
+        command='build-rspack',
+        output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/dummy_arcadia_typescript_with_simple_bundling.output.tar',
+        output_dirs=['dev-bundle', 'prod-bundle'],
+        tsconfigs=['tsconfig.json'],
+        vcs_info=None,
+        with_after_build=False,
+        after_build_js=None,
+        after_build_args=None,
+        after_build_outdir=None,
+    )
+
+
+def test_build_verbose_args():
+    # arrange
+    command_args = """
+        --arcadia-root /Users/khoden/arcadia
+        --arcadia-build-root /Users/khoden/.ya/build/build_root/5gxr/000067
+        --moddir devtools/dummy_arcadia/typescript/simple
+        --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
+        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-type pnpm
+        build-package
+        --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/dummy_arcadia_typescript_simple.output.tar
+    """
+
+    os.environ['NOTS_BUILDER_VERBOSE'] = 'yes'
+
+    # act + assert
+    assert __convert_args_to_dict(command_args) == dict(
+        # Base
+        arcadia_build_root='/Users/khoden/.ya/build/build_root/5gxr/000067',
+        arcadia_root='/Users/khoden/arcadia',
+        moddir='devtools/dummy_arcadia/typescript/simple',
+        nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
+        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_type='pnpm',
+        yatool_prebuilder_path=None,
+        # Flags
+        local_cli=False,
+        nm_bundle=False,
+        verbose=True,
+        # Calculated
+        bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
+        curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/simple',
+        node_modules_bundle=False,
+        # Command-specific
+        command='build-package',
+        output_file='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/dummy_arcadia_typescript_simple.output.tar',
+        with_after_build=False,
+        after_build_js=None,
+        after_build_args=None,
+        after_build_outdir=None,
     )

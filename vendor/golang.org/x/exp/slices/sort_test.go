@@ -5,6 +5,7 @@
 package slices
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"math/rand"
@@ -58,7 +59,7 @@ func TestSortFloat64SliceWithNaNs(t *testing.T) {
 	}
 
 	// Compare for equality using cmp.Compare, which considers NaNs equal.
-	if !EqualFunc(data, data2, func(a, b float64) bool { return cmpCompare(a, b) == 0 }) {
+	if !EqualFunc(data, data2, func(a, b float64) bool { return cmp.Compare(a, b) == 0 }) {
 		t.Errorf("mismatch between Sort and sort.Float64: got %v, want %v", data, data2)
 	}
 }
@@ -178,7 +179,7 @@ type S struct {
 }
 
 func cmpS(s1, s2 S) int {
-	return cmpCompare(s1.a, s2.a)
+	return cmp.Compare(s1.a, s2.a)
 }
 
 func TestMinMax(t *testing.T) {

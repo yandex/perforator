@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"testing"
 	"time"
@@ -166,7 +165,7 @@ func (s) TestEndpointShardingBasic(t *testing.T) {
 	}
 	cc, err := grpc.NewClient(mr.Scheme()+":///", dOpts...)
 	if err != nil {
-		log.Fatalf("Failed to create new client: %v", err)
+		t.Fatalf("Failed to create new client: %v", err)
 	}
 	defer cc.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
@@ -187,7 +186,7 @@ func (s) TestEndpointShardingBasic(t *testing.T) {
 
 	// When the resolver reports an error, the picker should get updated to
 	// return the resolver error.
-	mr.ReportError(errors.New("test error"))
+	mr.CC().ReportError(errors.New("test error"))
 	testutils.AwaitState(ctx, t, cc, connectivity.TransientFailure)
 	for ; ctx.Err() == nil; <-time.After(time.Millisecond) {
 		_, err := client.EmptyCall(ctx, &testpb.Empty{})
@@ -246,7 +245,7 @@ func (s) TestEndpointShardingReconnectDisabled(t *testing.T) {
 
 	cc, err := grpc.NewClient(mr.Scheme()+":///", grpc.WithResolvers(mr), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("Failed to create new client: %v", err)
+		t.Fatalf("Failed to create new client: %v", err)
 	}
 	defer cc.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)

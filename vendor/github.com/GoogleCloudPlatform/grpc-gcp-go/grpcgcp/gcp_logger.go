@@ -59,7 +59,7 @@ func (l *gcpLogger) Fatalf(format string, args ...interface{}) {
 
 // Fatalln implements grpclog.LoggerV2.
 func (l *gcpLogger) Fatalln(args ...interface{}) {
-	l.Fatalln(append([]interface{}{l.prefix}, args)...)
+	l.logger.Fatalln(append([]interface{}{l.prefix}, args)...)
 }
 
 // Info implements grpclog.LoggerV2.

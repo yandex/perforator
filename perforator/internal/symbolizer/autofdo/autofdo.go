@@ -22,6 +22,8 @@ type AutofdoMetadata struct {
 	BranchCountMapSize  uint64
 	RangeCountMapSize   uint64
 	AddressCountMapSize uint64
+
+	ProfilesCountByService map[string]uint64
 }
 
 type ProcessedLBRData struct {
@@ -45,14 +47,18 @@ func (b *BatchInputBuilder) Destroy() {
 	C.DestroyBatchBuilder(b.builder)
 }
 
-func (b *BatchInputBuilder) AddProfile(builderIndex uint64, profileBytes []byte) error {
+func (b *BatchInputBuilder) AddProfile(builderIndex uint64, serviceName string, profileBytes []byte) error {
 	if len(profileBytes) == 0 {
 		return nil
 	}
 
+	cServiceName := C.CString(serviceName)
+	defer C.free(unsafe.Pointer(cServiceName))
+
 	C.AddProfile(
 		b.builder,
 		C.ui64(builderIndex),
+		cServiceName,
 		(*C.char)(unsafe.Pointer(&profileBytes[0])),
 		C.ui64(len(profileBytes)),
 	)
@@ -60,10 +66,40 @@ func (b *BatchInputBuilder) AddProfile(builderIndex uint64, profileBytes []byte)
 	return nil
 }
 
+func consumeProfilesByServiceMap(
+	cProfilesByServiceMapLen C.ui64,
+	cProfilesByServiceMapServices **C.char,
+	cProfilesByServiceMapCounts *C.ui64,
+) map[string]uint64 {
+	servicesArray := (*[1 << 30]*C.char)(unsafe.Pointer(cProfilesByServiceMapServices))
+	countsArray := (*[1 << 30]uint64)(unsafe.Pointer(cProfilesByServiceMapCounts))
+
+	defer func() {
+		for i := uint64(0); i < uint64(cProfilesByServiceMapLen); i += 1 {
+			C.free(unsafe.Pointer(servicesArray[i]))
+		}
+		C.free(unsafe.Pointer(cProfilesByServiceMapServices))
+
+		C.free(unsafe.Pointer(cProfilesByServiceMapCounts))
+	}()
+
+	result := make(map[string]uint64, int(cProfilesByServiceMapLen))
+	for i := uint64(0); i < uint64(cProfilesByServiceMapLen); i += 1 {
+		result[C.GoString(servicesArray[i])] += countsArray[i]
+	}
+
+	return result
+}
+
 func (b *BatchInputBuilder) Finalize() (ProcessedLBRData, error) {
 	var totalProfiles C.ui64
 	var totalBranches, totalSamples, bogusLbrEntries C.ui64
 	var branchCountMapSize, rangeCountMapSize, addressCountMapSize C.ui64
+
+	var profilesByServiceMapLen C.ui64
+	var profilesByServiceMapServices **C.char
+	var profilesByServiceMapCounts *C.ui64
+
 	var cAutofdoInput, cBoltInput *C.char
 
 	C.Finalize(
@@ -76,23 +112,34 @@ func (b *BatchInputBuilder) Finalize() (ProcessedLBRData, error) {
 		&branchCountMapSize,
 		&rangeCountMapSize,
 		&addressCountMapSize,
+		// profiles count by service
+		&profilesByServiceMapLen,
+		&profilesByServiceMapServices,
+		&profilesByServiceMapCounts,
 		// output
 		&cAutofdoInput, &cBoltInput,
 	)
 	defer C.free(unsafe.Pointer(cAutofdoInput))
 	defer C.free(unsafe.Pointer(cBoltInput))
 
+	profilesCountByService := consumeProfilesByServiceMap(
+		profilesByServiceMapLen,
+		profilesByServiceMapServices,
+		profilesByServiceMapCounts,
+	)
+
 	return ProcessedLBRData{
 		AutofdoInput: C.GoString(cAutofdoInput),
 		BoltInput:    C.GoString(cBoltInput),
 		MetaData: AutofdoMetadata{
-			TotalProfiles:       uint64(totalProfiles),
-			TotalBranches:       uint64(totalBranches),
-			TotalSamples:        uint64(totalSamples),
-			BogusLbrEntries:     uint64(bogusLbrEntries),
-			BranchCountMapSize:  uint64(branchCountMapSize),
-			RangeCountMapSize:   uint64(rangeCountMapSize),
-			AddressCountMapSize: uint64(addressCountMapSize),
+			TotalProfiles:          uint64(totalProfiles),
+			TotalBranches:          uint64(totalBranches),
+			TotalSamples:           uint64(totalSamples),
+			BogusLbrEntries:        uint64(bogusLbrEntries),
+			BranchCountMapSize:     uint64(branchCountMapSize),
+			RangeCountMapSize:      uint64(rangeCountMapSize),
+			AddressCountMapSize:    uint64(addressCountMapSize),
+			ProfilesCountByService: profilesCountByService,
 		},
 	}, nil
 }

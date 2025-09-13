@@ -10,8 +10,9 @@ from typing import Any, Callable, TypeVar
 
 import click
 
+start_unix_time_ms = time.time()
 start_time = time.monotonic()
-start_time_ns = round(time.monotonic_ns() / 1000)
+start_time_ns = time.monotonic_ns()
 
 
 class TraceEvent:
@@ -19,21 +20,39 @@ class TraceEvent:
     ph: str  # 'B' (begin) or 'E' (end)
     ts: int
 
-    def __init__(self, name: str, start: bool):
+    def __init__(self, name: str, start: bool, args: list[any] = None, kwargs: dict[str, any] = None):
         super().__init__()
         self.name = name
         self.ph = 'B' if start else 'E'
-        self.ts = round(time.monotonic_ns() / 1000 - start_time_ns)
+        self.ts = round((time.monotonic_ns() - start_time_ns) / 1000)  # in ms
+
+        if len(args or []) > 0 or len(kwargs or {}) > 0:
+            self.args = dict(
+                args=self.__repr_arg(args),
+                kwargs=self.__repr_arg(kwargs),
+            )
+
+    def __repr_arg(self, a: any):
+        # Primitive types
+        if isinstance(a, str) or isinstance(a, int) or isinstance(a, float) or isinstance(a, bool) or a is None:
+            return a
+
+        # Collections
+        if isinstance(a, list) or isinstance(a, tuple) or isinstance(a, set):
+            return [self.__repr_arg(v) for v in a]
+
+        if isinstance(a, dict):
+            return {k: self.__repr_arg(v) for k, v in a.items()}
+
+        # Other
+        return repr(a)
 
     def to_json(self):
-        return dict(
-            cat='PERF',
-            name=self.name,
-            ph=self.ph,
-            pid=os.getpid(),
-            tid=threading.get_ident(),
-            ts=self.ts,
-        )
+        result = dict(cat='PERF', name=self.name, ph=self.ph, pid=os.getpid(), tid=threading.get_ident(), ts=self.ts)
+        if hasattr(self, 'args'):
+            result['args'] = self.args
+
+        return result
 
 
 @dataclass
@@ -59,7 +78,7 @@ class TimeitRecord:
 
 class TimeitOptions:
     indent_size = 4
-    json_indent_size = 2
+    json_indent_size = None  # file is not ready to read by eyes)
     level = 0
     enabled = False
     use_dumper = False
@@ -69,7 +88,7 @@ class TimeitOptions:
     current_record = TimeitRecord('root', 0)
     trace_events: list[TraceEvent] = []
 
-    def start_level(self, name: str):
+    def start_level(self, name: str, args, kwargs):
         self.level += 1
 
         if self.use_dumper:
@@ -78,7 +97,7 @@ class TimeitOptions:
 
             self.current_record = new_record
 
-            self.trace_events.append(TraceEvent(self.current_record.name, start=True))
+            self.trace_events.append(TraceEvent(self.current_record.name, start=True, args=args, kwargs=kwargs))
 
     def end_level(self, duration: float):
         self.level -= 1
@@ -108,17 +127,28 @@ class TimeitOptions:
 
         root_record = self.current_record
         if root_record.name != 'root':
-            raise RuntimeError('please check @timeit logic, you must not measure the function with `timeit_options.enable()` inside')
+            raise RuntimeError(
+                'please check @timeit logic, you must not measure the function with `timeit_options.enable()` inside'
+            )
 
         root_record.duration = time.monotonic() - start_time
 
         self.__safe_dump_json(json_filename, root_record.to_json())
 
-    def dump_trace(self, json_filename: str):
+    def dump_trace(self, json_filename: str, otherData: dict = {}):
         if not self.use_dumper:
             raise RuntimeError('please call `timeit_options.enabled(use_dumper=True)` for using `dump_trace` feature')
 
-        self.__safe_dump_json(json_filename, dict(traceEvents=[e.to_json() for e in self.trace_events]))
+        trace = dict(
+            otherData=dict(
+                # useful for merging traces
+                start_time=start_unix_time_ms,
+                **otherData,
+            ),
+            traceEvents=[e.to_json() for e in self.trace_events],
+        )
+
+        self.__safe_dump_json(json_filename, trace)
 
     def __safe_dump_json(self, json_filename: str, obj: Any):
         dirname = os.path.dirname(json_filename)
@@ -152,11 +182,9 @@ def timeit(method: Callable[..., RT]) -> Callable[..., RT]:
     """
 
     @wraps(method)
-    def timed(*args, **kw) -> RT:
+    def timed(*args, **kwargs) -> RT:
         if not options.enabled:
-            return method(*args, **kw)
-
-        now = time.monotonic()
+            return method(*args, **kwargs)
 
         # noinspection PyUnresolvedReferences
         name = _extract_name(method.__repr__())
@@ -164,9 +192,10 @@ def timeit(method: Callable[..., RT]) -> Callable[..., RT]:
         if not options.silent:
             click.secho(f"{options.indent()}<{name}>", fg='magenta', err=options.use_stderr)
 
-        options.start_level(name)
+        now = time.monotonic()
+        options.start_level(name, args=args, kwargs=kwargs)
 
-        result = method(*args, **kw)
+        result = method(*args, **kwargs)
 
         duration = time.monotonic() - now
 

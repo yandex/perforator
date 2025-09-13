@@ -11,6 +11,9 @@ def prepare_deps_parser(subparsers) -> ArgumentParser:
     subparser.add_argument(
         '--tarballs-store', required=True, help="Relative path to the tarballs store from the CURDIR"
     )
+    subparser.add_argument(
+        '--ts-proto-auto-deps-path', required=False, help="Arcadia relative path to ts-proto deps module"
+    )
 
     subparser.set_defaults(func=prepare_deps_func)
 

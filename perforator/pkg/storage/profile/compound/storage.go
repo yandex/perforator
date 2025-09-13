@@ -38,5 +38,5 @@ func NewStorage(
 		return nil, err
 	}
 
-	return storage.NewStorage(logger, metaStorage, blobStorage, options.blobDownloadConcurrency), nil
+	return storage.NewStorage(logger, metaStorage, blobStorage, options.blobDownloadConcurrency)
 }

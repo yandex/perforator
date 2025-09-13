@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.36.0)
+VERSION(v0.40.0)
 
 SRCS(
     buffer.go
@@ -19,6 +19,7 @@ SRCS(
     keys.go
     mac.go
     messages.go
+    mlkem.go
     mux.go
     server.go
     session.go

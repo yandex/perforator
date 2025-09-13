@@ -48,14 +48,15 @@ type AuthConfig struct {
 }
 
 type Config struct {
-	AuthConfig  AuthConfig `yaml:"auth"`
-	DB          string     `yaml:"db"`
-	Endpoints   []Endpoint `yaml:"endpoints"`
-	SSLMode     SSLMode    `yaml:"sslmode,omitempty"`
-	SSLRootCert string     `yaml:"sslrootcert,omitempty"`
+	AuthConfig              AuthConfig `yaml:"auth"`
+	DB                      string     `yaml:"db"`
+	Endpoints               []Endpoint `yaml:"endpoints"`
+	SSLMode                 SSLMode    `yaml:"sslmode,omitempty"`
+	SSLRootCert             string     `yaml:"sslrootcert,omitempty"`
+	ApplicationNameOverride string     `yaml:"override_application_name,omitempty"`
 }
 
-func ConnectionString(auth *AuthConfig, db string, endpoint *Endpoint, sslMode SSLMode, sslRootCert string) (string, error) {
+func ConnectionString(auth *AuthConfig, db string, endpoint *Endpoint, sslMode SSLMode, sslRootCert string, appName string) (string, error) {
 	var b strings.Builder
 
 	b.WriteString(fmt.Sprintf(
@@ -77,6 +78,9 @@ func ConnectionString(auth *AuthConfig, db string, endpoint *Endpoint, sslMode S
 
 	if sslRootCert != "" {
 		b.WriteString(fmt.Sprintf("&sslrootcert=%s", sslRootCert))
+	}
+	if appName != "" {
+		b.WriteString(fmt.Sprintf("&application_name=%s", appName))
 	}
 
 	return b.String(), nil

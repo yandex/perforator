@@ -137,7 +137,7 @@ type filterFn func(codeElem) bool
 // filter parses and filters Go source code from src, removing top
 // level declarations using keep as predicate.
 // For src parameter, please see docs for parser.ParseFile.
-func filter(src interface{}, keep filterFn) ([]byte, error) {
+func filter(src any, keep filterFn) ([]byte, error) {
 	// Parse the src into an ast
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "", src, parser.ParseComments)
@@ -243,7 +243,7 @@ func getCommonSet(files []srcFile) (*codeSet, error) {
 
 // getCodeSet returns the set of all top-level consts, types, and funcs from src.
 // src must be string, []byte, or io.Reader (see go/parser.ParseFile docs)
-func getCodeSet(src interface{}) (*codeSet, error) {
+func getCodeSet(src any) (*codeSet, error) {
 	set := newCodeSet()
 
 	fset := token.NewFileSet()

@@ -28,6 +28,9 @@ message PushProfileRequest {
 
     // Event types of all the samples in the profile, for example "cpu.cycles" or "wall.seconds"
     repeated string EventTypes = 13;
+
+    // Signal types that were present in the profile, for example "SIGKILL", "SIGSEGV"
+    repeated string SignalTypes = 14;
 }
 
 message PushProfileResponse {

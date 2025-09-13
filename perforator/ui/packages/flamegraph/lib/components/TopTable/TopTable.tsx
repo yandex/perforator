@@ -2,10 +2,9 @@ import * as React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { type NavigateFunction } from 'react-router-dom';
 
-import { HelpPopover } from '@gravity-ui/components';
 import { ArrowUpRightFromSquare, Magnifier } from '@gravity-ui/icons';
 import type { ProgressColorStops, TableColumnConfig, TableSettingsData, TableSortState } from '@gravity-ui/uikit';
-import { Icon, Link as UIKitLink, Progress, Table, TextInput, withTableSettings, withTableSorting } from '@gravity-ui/uikit';
+import { Icon, Link as UIKitLink, Progress, Table, TextInput, withTableSettings, withTableSorting, HelpMark } from '@gravity-ui/uikit';
 
 import { NegativePositiveProgress } from '../NegativePositiveProgress/NegativePositiveProgress';
 import type { ProfileData, StringifiedNode } from '../../models/Profile';
@@ -45,12 +44,12 @@ const totalTimeColorStops: ProgressColorStops[] = [
     { stop: 90, theme: 'danger' },
 ];
 
-function createNewQueryForSwitch(name: string) {
+function createNewQueryForSwitch(name: string, { disableAutoTabSwitch }: {disableAutoTabSwitch?: boolean} = {}) {
     const currentQuery = new URLSearchParams(window.location.search);
 
     const query = modifyQuery<QueryKeys>(currentQuery, {
         flamegraphQuery: encodeURIComponent(name),
-        tab: 'flame',
+        ...(disableAutoTabSwitch ? {} : { tab: 'flame' }),
         exactMatch: 'true',
         keepOnlyFound: 'true',
     });
@@ -72,6 +71,7 @@ interface TopColumnsOpts {
     isDiff?: boolean;
     goToDefinitionHref: GoToDefinitionHref;
     navigate: NavigateFunction;
+    disableAutoTabSwitch?: boolean;
 }
 
 function getNameType(key: TopKeys) {
@@ -102,7 +102,7 @@ function getProgressSteps(key: TopKeys) {
 function topColumns (
     readString: ReadString,
     search: string,
-    { getNodeTitle, eventType, totalEventCount, totalBaseEventCount, numTemplating, isDiff, goToDefinitionHref, navigate }: TopColumnsOpts,
+    { getNodeTitle, eventType, totalEventCount, totalBaseEventCount, numTemplating, isDiff, goToDefinitionHref, navigate, disableAutoTabSwitch }: TopColumnsOpts,
 ): TableColumnConfig<TableFunctionTop>[] {
     const regex = new RegExp(search);
 
@@ -112,7 +112,7 @@ function topColumns (
 
     const compareCalculatedDiffFields = (field: NonDiffTopKeys) => {
         if (!totalBaseEventCount || !totalEventCount) {
-            return 0;
+            return () => 0;
         }
         const diffCalc = calcDiff(field);
         return (l: TableFunctionTop, r: TableFunctionTop) => {
@@ -135,7 +135,7 @@ function topColumns (
             id: key,
             name: () => <>
                 {name}
-                <HelpPopover placement={['bottom', 'bottom']} content={getHelpContent(key)}/>
+                <HelpMark popoverProps={{placement: ['bottom', 'bottom'] }}>{getHelpContent(key)}</HelpMark>
             </>,
             template: (node) => {
                 const count = node[key];
@@ -195,7 +195,7 @@ function topColumns (
                     {name.slice(start, end)}
                 </span>
                 {name.slice(end)}
-                <span className={'top-table__column-icon-link'} onClick={() => navigate(createNewQueryForSwitch(name))}>
+                <span className={'top-table__column-icon-link'} onClick={() => navigate(createNewQueryForSwitch(name, { disableAutoTabSwitch }))}>
                     <Icon className={'top-table__column-icon'} data={Magnifier}/>
                 </span>
 
@@ -260,7 +260,9 @@ function topColumns (
 
 }
 
-interface TopTableProps {
+const DEFAULT_LINE_COUNT = 500;
+
+export interface TopTableProps {
     topData: TableFunctionTop[];
     profileData: ProfileData;
     userSettings: UserSettings;
@@ -269,6 +271,10 @@ interface TopTableProps {
     navigate: NavigateFunction;
     getState: GetStateFromQuery<QueryKeys>;
     setState: SetStateFromQuery<QueryKeys>;
+    disableAutoTabSwitch?: boolean;
+    className?: string;
+    /** @default 500 */
+    lines?: number;
 }
 
 export const TopTable: React.FC<TopTableProps> = ({
@@ -280,6 +286,9 @@ export const TopTable: React.FC<TopTableProps> = ({
     navigate,
     getState: getQuery,
     setState: setQuery,
+    className,
+    disableAutoTabSwitch,
+    lines = DEFAULT_LINE_COUNT,
 }) => {
     const totalBaseEventCount = useMemo(() => profileData.rows[0][0].baseEventCount, [profileData.rows]);
     const isDiff = Boolean(totalBaseEventCount);
@@ -290,10 +299,13 @@ export const TopTable: React.FC<TopTableProps> = ({
         return profileData.stringTable[id];
     }, [profileData]);
 
+    const frameDepth = Number(getQuery('frameDepth', '0'));
+    const framePos = Number(getQuery('framePos', '0'));
+
     const eventType = React.useMemo(() => {
         return readString(profileData?.meta.eventType);
     }, [readString, profileData?.meta.eventType]);
-    const totalEventCount = React.useMemo(() => profileData.rows[0][0].eventCount, [profileData.rows]);
+    const totalEventCount = React.useMemo(() => profileData.rows[frameDepth][framePos].eventCount, [profileData.rows, frameDepth, framePos]);
 
     const getNodeTitle = useCallback(
         (node: TableFunctionTop) => getNodeTitleFull(readString, shorten, userSettings.shortenFrameTexts === 'true', node),
@@ -309,8 +321,8 @@ export const TopTable: React.FC<TopTableProps> = ({
     const [isSeaching, startTransition] = useTransition();
     const [settings, setSettings] = useState<TableSettingsData>([]);
     const regexError = useRegexError(searchValue);
-    const boundTopColumns = useCallback(() => topColumns(readString, regexError ? '' : searchValue, { getNodeTitle, eventType, totalEventCount, numTemplating, isDiff, totalBaseEventCount, goToDefinitionHref, navigate }),
-        [readString, regexError, searchValue, getNodeTitle, eventType, totalEventCount, numTemplating, isDiff, totalBaseEventCount],
+    const boundTopColumns = useCallback(() => topColumns(readString, regexError ? '' : searchValue, { getNodeTitle, eventType, totalEventCount, numTemplating, isDiff, totalBaseEventCount, goToDefinitionHref, navigate, disableAutoTabSwitch }),
+        [readString, regexError, searchValue, getNodeTitle, eventType, totalEventCount, numTemplating, isDiff, totalBaseEventCount, disableAutoTabSwitch],
     );
 
 
@@ -341,7 +353,7 @@ export const TopTable: React.FC<TopTableProps> = ({
             data = data.sort(sortFn);
         }
 
-        return data.slice(0, 500);
+        return data.slice(0, lines);
     }, [boundTopColumns, getNodeTitle, regexError, searchValue, sortState, topData]);
     const handleSortChange = useCallback(([newSortState]: TableSortState) => {
         setSortState(newSortState);
@@ -365,7 +377,7 @@ export const TopTable: React.FC<TopTableProps> = ({
 
 
     return (
-        <div className="top-table">
+        <div className={b(null, className)}>
             <TextInput
                 value={searchQuery}
                 placeholder="Search"

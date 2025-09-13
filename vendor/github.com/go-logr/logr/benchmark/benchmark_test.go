@@ -146,42 +146,42 @@ func doMarshalerValue(b *testing.B, log logr.Logger) {
 //
 
 func BenchmarkDiscardLogInfoOneArg(b *testing.B) {
-	var log logr.Logger = logr.Discard()
+	var log logr.Logger = logr.Discard() //nolint:staticcheck
 	doInfoOneArg(b, log)
 }
 
 func BenchmarkDiscardLogInfoSeveralArgs(b *testing.B) {
-	var log logr.Logger = logr.Discard()
+	var log logr.Logger = logr.Discard() //nolint:staticcheck
 	doInfoSeveralArgs(b, log)
 }
 
 func BenchmarkDiscardLogInfoWithValues(b *testing.B) {
-	var log logr.Logger = logr.Discard()
+	var log logr.Logger = logr.Discard() //nolint:staticcheck
 	doInfoWithValues(b, log)
 }
 
 func BenchmarkDiscardLogV0Info(b *testing.B) {
-	var log logr.Logger = logr.Discard()
+	var log logr.Logger = logr.Discard() //nolint:staticcheck
 	doV0Info(b, log)
 }
 
 func BenchmarkDiscardLogV9Info(b *testing.B) {
-	var log logr.Logger = logr.Discard()
+	var log logr.Logger = logr.Discard() //nolint:staticcheck
 	doV9Info(b, log)
 }
 
 func BenchmarkDiscardLogError(b *testing.B) {
-	var log logr.Logger = logr.Discard()
+	var log logr.Logger = logr.Discard() //nolint:staticcheck
 	doError(b, log)
 }
 
 func BenchmarkDiscardWithValues(b *testing.B) {
-	var log logr.Logger = logr.Discard()
+	var log logr.Logger = logr.Discard() //nolint:staticcheck
 	doWithValues(b, log)
 }
 
 func BenchmarkDiscardWithName(b *testing.B) {
-	var log logr.Logger = logr.Discard()
+	var log logr.Logger = logr.Discard() //nolint:staticcheck
 	doWithName(b, log)
 }
 
@@ -193,91 +193,91 @@ func noopKV(_, _ string) {}
 func noopJSON(_ string)  {}
 
 func BenchmarkFuncrLogInfoOneArg(b *testing.B) {
-	var log logr.Logger = funcr.New(noopKV, funcr.Options{})
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doInfoOneArg(b, log)
 }
 
 func BenchmarkFuncrJSONLogInfoOneArg(b *testing.B) {
-	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{})
+	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{}) //nolint:staticcheck
 	doInfoOneArg(b, log)
 }
 
 func BenchmarkFuncrLogInfoSeveralArgs(b *testing.B) {
-	var log logr.Logger = funcr.New(noopKV, funcr.Options{})
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doInfoSeveralArgs(b, log)
 }
 
 func BenchmarkFuncrJSONLogInfoSeveralArgs(b *testing.B) {
-	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{})
+	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{}) //nolint:staticcheck
 	doInfoSeveralArgs(b, log)
 }
 
 func BenchmarkFuncrLogInfoWithValues(b *testing.B) {
-	var log logr.Logger = funcr.New(noopKV, funcr.Options{})
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doInfoWithValues(b, log)
 }
 
 func BenchmarkFuncrJSONLogInfoWithValues(b *testing.B) {
-	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{})
+	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{}) //nolint:staticcheck
 	doInfoWithValues(b, log)
 }
 
 func BenchmarkFuncrLogV0Info(b *testing.B) {
-	var log logr.Logger = funcr.New(noopKV, funcr.Options{})
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doV0Info(b, log)
 }
 
 func BenchmarkFuncrJSONLogV0Info(b *testing.B) {
-	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{})
+	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{}) //nolint:staticcheck
 	doV0Info(b, log)
 }
 
 func BenchmarkFuncrLogV9Info(b *testing.B) {
-	var log logr.Logger = funcr.New(noopKV, funcr.Options{})
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doV9Info(b, log)
 }
 
 func BenchmarkFuncrJSONLogV9Info(b *testing.B) {
-	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{})
+	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{}) //nolint:staticcheck
 	doV9Info(b, log)
 }
 
 func BenchmarkFuncrLogError(b *testing.B) {
-	var log logr.Logger = funcr.New(noopKV, funcr.Options{})
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doError(b, log)
 }
 
 func BenchmarkFuncrJSONLogError(b *testing.B) {
-	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{})
+	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{}) //nolint:staticcheck
 	doError(b, log)
 }
 
 func BenchmarkFuncrWithValues(b *testing.B) {
-	var log logr.Logger = funcr.New(noopKV, funcr.Options{})
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doWithValues(b, log)
 }
 
 func BenchmarkFuncrWithName(b *testing.B) {
-	var log logr.Logger = funcr.New(noopKV, funcr.Options{})
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doWithName(b, log)
 }
 
 func BenchmarkFuncrWithCallDepth(b *testing.B) {
-	var log logr.Logger = funcr.New(noopKV, funcr.Options{})
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doWithCallDepth(b, log)
 }
 
 func BenchmarkFuncrJSONLogInfoStringerValue(b *testing.B) {
-	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{})
+	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{}) //nolint:staticcheck
 	doStringerValue(b, log)
 }
 
 func BenchmarkFuncrJSONLogInfoErrorValue(b *testing.B) {
-	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{})
+	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{}) //nolint:staticcheck
 	doErrorValue(b, log)
 }
 
 func BenchmarkFuncrJSONLogInfoMarshalerValue(b *testing.B) {
-	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{})
+	var log logr.Logger = funcr.NewJSON(noopJSON, funcr.Options{}) //nolint:staticcheck
 	doMarshalerValue(b, log)
 }

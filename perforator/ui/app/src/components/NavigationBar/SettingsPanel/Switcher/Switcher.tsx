@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { RadioButton } from '@gravity-ui/uikit';
+import { SegmentedRadioGroup } from '@gravity-ui/uikit';
 
 
 export interface SwitcherOption {
@@ -16,16 +16,16 @@ export interface SwitcherProps {
 
 export const Switcher: React.FC<SwitcherProps> = (props) => {
     const items = props.options.map(({ value, title }) => (
-        <RadioButton.Option key={value} value={value}>
+        <SegmentedRadioGroup.Option key={value} value={value}>
             {title}
-        </RadioButton.Option>
+        </SegmentedRadioGroup.Option>
     ));
     return (
-        <RadioButton
+        <SegmentedRadioGroup
             value={props.value}
             onUpdate={props.onUpdate}
         >
             {items}
-        </RadioButton>
+        </SegmentedRadioGroup>
     );
 };

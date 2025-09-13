@@ -4,6 +4,7 @@ SRCS(
     buildid.go
     buildinfo.go
     elf_note.go
+    phdr.go
     symbol.go
     textbits.go
 )

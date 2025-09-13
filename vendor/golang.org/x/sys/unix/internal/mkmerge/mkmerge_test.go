@@ -498,7 +498,7 @@ func diffLines(t *testing.T, got, expected []byte) {
 func addLineNr(src []byte) []byte {
 	lines := bytes.Split(src, []byte("\n"))
 	for i, line := range lines {
-		lines[i] = []byte(fmt.Sprintf("%d: %s", i+1, line))
+		lines[i] = fmt.Appendf(nil, "%d: %s", i+1, line)
 	}
 	return bytes.Join(lines, []byte("\n"))
 }

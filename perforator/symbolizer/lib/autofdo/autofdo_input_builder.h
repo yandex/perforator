@@ -10,7 +10,7 @@
 #include <util/generic/array_ref.h>
 
 namespace NPerforator::NProto::NPProf {
-class Profile;
+class ProfileLight;
 }
 
 namespace NPerforator::NAutofdo {
@@ -62,6 +62,8 @@ struct TAutofdoInputData final {
         ui64 TotalSamples{0};
         ui64 BogusLbrEntries{0};
 
+        absl::flat_hash_map<TString, ui64> ProfilesCountByService;
+
         TMetadata& operator+=(const TMetadata& other);
     };
 
@@ -90,9 +92,9 @@ public:
     explicit TInputBuilder(const std::string& buildId);
 
     // Parses the raw profile bytes and adds the profile into builder.
-    void AddProfile(TArrayRef<const char> profileBytes);
+    void AddProfile(std::string_view serviceName, TArrayRef<const char> profileBytes);
     // Adds the profile into builder.
-    void AddProfile(const NPerforator::NProto::NPProf::Profile& profile);
+    void AddProfile(std::string_view serviceName, const NPerforator::NProto::NPProf::ProfileLight& profile);
 
     // Add the pre-aggregated data into builder.
     void AddData(TAutofdoInputData&& otherData);
@@ -136,7 +138,7 @@ public:
     void FeedProfile(TArrayRef<const char> profileBytes);
 
     // Aggregates BuildID frequencies from the profile.
-    void FeedProfile(const NPerforator::NProto::NPProf::Profile& profile);
+    void FeedProfile(const NPerforator::NProto::NPProf::ProfileLight& profile);
 
     // Returns a reference to the frequency map of Feed-ed buildIDs.
     const absl::flat_hash_map<std::string, ui64>& GetFrequencyMap() const;

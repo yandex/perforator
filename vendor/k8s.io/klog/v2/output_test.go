@@ -41,7 +41,7 @@ func BenchmarkKlogOutput(b *testing.B) {
 
 // klogKlogrConfig tests klogr output via klog, using the klog/v2 klogr.
 var klogKLogrConfig = test.OutputConfig{
-	NewLogger: func(out io.Writer, v int, vmodule string) logr.Logger {
+	NewLogger: func(_ io.Writer, _ int, _ string) logr.Logger {
 		return klog.NewKlogr()
 	},
 }

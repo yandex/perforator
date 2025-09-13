@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.36.0)
+VERSION(v0.40.0)
 
 SRCS(
     chacha_generic.go

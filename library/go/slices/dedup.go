@@ -1,10 +1,10 @@
 package slices
 
 import (
+	"slices"
 	"sort"
 
 	"golang.org/x/exp/constraints"
-	"golang.org/x/exp/slices"
 )
 
 // Dedup removes duplicate values from slice.
@@ -13,15 +13,17 @@ func Dedup[E constraints.Ordered](s []E) []E {
 	if len(s) < 2 {
 		return s
 	}
+
 	slices.Sort(s)
-	tmp := s[:1]
-	cur := s[0]
+
+	cur, tmp := s[0], s[:1]
 	for i := 1; i < len(s); i++ {
 		if s[i] != cur {
 			tmp = append(tmp, s[i])
 			cur = s[i]
 		}
 	}
+
 	return tmp
 }
 
@@ -31,15 +33,17 @@ func DedupBools(a []bool) []bool {
 	if len(a) < 2 {
 		return a
 	}
+
 	sort.Slice(a, func(i, j int) bool { return a[i] != a[j] })
-	tmp := a[:1]
-	cur := a[0]
+
+	cur, tmp := a[0], a[:1]
 	for i := 1; i < len(a); i++ {
 		if a[i] != cur {
 			tmp = append(tmp, a[i])
 			cur = a[i]
 		}
 	}
+
 	return tmp
 }
 

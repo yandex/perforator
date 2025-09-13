@@ -461,13 +461,28 @@ Explicitly returns "" if TLS is turned off.
 {{- end }}
 
 {{/*
-Validate proxy.url_prefix and fail if empty
+Construct appropriate URL prefix for task results
 */}}
 {{- define "perforator.proxy.url_prefix" -}}
-{{- if and .Values.proxy.enabled (not .Values.proxy.url_prefix) -}}
-    {{- fail "Error: proxy.url_prefix is required and must be in the format 'https://example.com/static/results/' where 'example.com' is the hostname where your Perforator UI is hosted, or 'https://example.com/bucket-with-task-results/ for direct S3 tasks bucket access when web is disabled" -}}
+{{/* Check if both values are set - which is not allowed */}}
+{{- if and .Values.proxy.url_prefix .Values.web.host -}}
+    {{- fail "Error: Only one of proxy.url_prefix or web.host should be specified, not both. Use web.host when web service is enabled, or proxy.url_prefix for direct S3 access when web is disabled." -}}
 {{- end -}}
-{{- .Values.proxy.url_prefix -}}
+
+{{/* If web.host is set, construct the URL with the standard path */}}
+{{- if .Values.web.host -}}
+    {{- $host := .Values.web.host -}}
+    {{- if hasSuffix "/" $host -}}
+        {{- $host = trimSuffix "/" $host -}}
+    {{- end -}}
+    {{- printf "%s/static/results/" $host -}}
+{{/* If proxy.url_prefix is set, use it directly */}}
+{{- else if .Values.proxy.url_prefix -}}
+    {{- .Values.proxy.url_prefix -}}
+{{/* If neither is set, fail with error message */}}
+{{- else if .Values.proxy.enabled -}}
+    {{- fail "Error: Either proxy.url_prefix or web.host must be specified. Use web.host when web service is enabled, or proxy.url_prefix for direct S3 access when web is disabled." -}}
+{{- end -}}
 {{- end -}}
 
 {{/*

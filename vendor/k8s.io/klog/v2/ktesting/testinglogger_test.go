@@ -1,6 +1,6 @@
 /*
 Copyright 2019 The Kubernetes Authors.
-Copyright 2020 Intel Coporation.
+Copyright 2020 Intel Corporation.
 
 SPDX-License-Identifier: Apache-2.0
 */
@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"sync"
 	"testing"
+	"time"
 
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/internal/test/require"
@@ -198,6 +199,7 @@ func TestStop(t *testing.T) {
 			_, _, line, _ = runtime.Caller(0)
 			logger.Info("simple info message")
 			logger.Error(nil, "error message")
+			time.Sleep(15 * time.Second)
 			logger.WithName("me").WithValues("completed", true).Info("complex info message", "anotherValue", 1)
 		}()
 	})
@@ -212,11 +214,14 @@ func TestStop(t *testing.T) {
 	// Strip time and pid prefix.
 	actual = regexp.MustCompile(`(?m)^.* testinglogger_test.go:`).ReplaceAllString(actual, `testinglogger_test.go:`)
 
+	// Strip duration.
+	actual = regexp.MustCompile(`timeSinceCompletion="\d+s"`).ReplaceAllString(actual, `timeSinceCompletion="<...>s"`)
+
 	// All lines from the callstack get stripped. We can be sure that it was non-empty because otherwise we wouldn't
 	// have the < > markers.
 	//
 	// Full output:
-	// 	testinglogger_test.go:194] "WARNING: test kept at least one goroutine running after test completion" logger="TestStop/Sub leaked goroutine" callstack=<
+	// 	testinglogger_test.go:194] "WARNING: test kept at least one goroutine running after test completion" logger="TestStop/Sub leaked goroutine.me" completed=true timeSinceCompletion="15s" callstack=<
 	//        	goroutine 23 [running]:
 	//        	k8s.io/klog/v2/internal/dbg.Stacks(0x0)
 	//        		/nvme/gopath/src/k8s.io/klog/internal/dbg/dbg.go:34 +0x8a
@@ -233,13 +238,13 @@ func TestStop(t *testing.T) {
 	//         >
 	actual = regexp.MustCompile(`(?m)^\t.*?\n`).ReplaceAllString(actual, ``)
 
-	expected := fmt.Sprintf(`testinglogger_test.go:%d] "WARNING: test kept at least one goroutine running after test completion" logger="TestStop/Sub leaked goroutine" callstack=<
- >
-testinglogger_test.go:%d] "simple info message" logger="TestStop/Sub leaked goroutine"
+	expected := fmt.Sprintf(`testinglogger_test.go:%d] "simple info message" logger="TestStop/Sub leaked goroutine"
 testinglogger_test.go:%d] "error message" logger="TestStop/Sub leaked goroutine"
+testinglogger_test.go:%d] "WARNING: test kept at least one goroutine running after test completion" logger="TestStop/Sub leaked goroutine.me" completed=true timeSinceCompletion="<...>s" callstack=<
+ >
 testinglogger_test.go:%d] "complex info message" logger="TestStop/Sub leaked goroutine.me" completed=true anotherValue=1
 `,
-		line+1, line+1, line+2, line+3)
+		line+1, line+2, line+4, line+4)
 	if actual != expected {
 		t.Errorf("Output does not match. Expected:\n%s\nActual:\n%s\n", expected, actual)
 	}

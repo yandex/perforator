@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { RadioButton } from '@gravity-ui/uikit';
+import { SegmentedRadioGroup } from '@gravity-ui/uikit';
 
 import { Beta } from 'src/components/Beta/Beta';
 
@@ -16,10 +16,12 @@ export interface QueryInputSwitcherProps {
 export const QueryInputSwitcher: React.FC<QueryInputSwitcherProps> = props => {
     const options = React.useMemo(() => (
         props.inputs.map(input => (
-            <RadioButton.Option key={input.name} value={input.name}>
-                {input.name}
-                {input.beta && <Beta />}
-            </RadioButton.Option>
+            <SegmentedRadioGroup.Option key={input.name} value={input.name}>
+                <span>
+                    {input.name}
+                    {input.beta && <Beta />}
+                </span>
+            </SegmentedRadioGroup.Option>
         ))
     ), [props.inputs]);
 
@@ -28,11 +30,11 @@ export const QueryInputSwitcher: React.FC<QueryInputSwitcherProps> = props => {
     }
 
     return (
-        <RadioButton
+        <SegmentedRadioGroup
             value={props.value}
             onUpdate={props.onUpdate}
         >
             {options}
-        </RadioButton>
+        </SegmentedRadioGroup>
     );
 };

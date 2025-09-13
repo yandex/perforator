@@ -1,2 +1,3 @@
-node_modules
+perforator/ui/**/node_modules/
+perforator/ui/**/dist/
 

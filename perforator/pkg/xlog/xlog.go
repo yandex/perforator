@@ -2,12 +2,16 @@ package xlog
 
 import (
 	"context"
+	"testing"
 
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/log/ctxlog"
 	"github.com/yandex/perforator/library/go/core/log/nop"
+	yzap "github.com/yandex/perforator/library/go/core/log/zap"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -54,6 +58,10 @@ func TryNew(log log.Logger, err error) (Logger, error) {
 		return nil, err
 	}
 	return New(log), nil
+}
+
+func ForTest(t *testing.T) Logger {
+	return New(&yzap.Logger{L: zaptest.NewLogger(t, zaptest.WrapOptions(zap.AddCaller(), zap.AddCallerSkip(1)))})
 }
 
 func (l *logger) Logger() log.Logger {

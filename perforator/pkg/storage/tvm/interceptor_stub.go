@@ -10,6 +10,7 @@ import (
 func NewTVMServerInterceptor(
 	_ uint32,
 	_ string,
+	allowedIDs []uint32,
 	logger xlog.Logger,
 ) (creds.ServerInterceptor, error) {
 	return nil, fmt.Errorf("not supported")

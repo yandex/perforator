@@ -468,6 +468,10 @@ func (f *GoFormatter) generateStructParser(w *strings.Builder, v *btf.Struct, na
 		case *btf.Struct:
 			fmt.Fprintf(w, "  result.%s = parse%s(data[offset:])\n", memberName, strings.Title(memberTypeName))
 		case *btf.Array:
+			_, isArr := typ.Type.(*btf.Array)
+			if isArr {
+				return fmt.Errorf("nested arrays are not supported")
+			}
 			elemTypeName := f.typname(typ.Type)
 			elemSize, _ := btf.Sizeof(typ.Type)
 			fmt.Fprintf(w, "  for i := 0; i < %d; i++ {\n", typ.Nelems)

@@ -19,7 +19,9 @@ export interface ProfileTaskQuery {
 
     service?: string;
     profileId?: string;
+    /** @deprecated use format */
     rawProfile?: 'true' | 'false';
+    format?: 'text' | 'raw';
     cluster?: string;
 }
 

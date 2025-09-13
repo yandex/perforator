@@ -33,20 +33,20 @@ type block struct {
 	key         string
 	name        string
 	kind        string
-	level       int
 	frameOrigin FrameOrigin
 	file        string
-	inlined     bool
 
 	nextCount counts
 	prevCount counts
 
-	truncated bool
-
 	offset float64
 	weight float64
 
-	children map[string]*block
+	children  map[string]*block
+	level     int
+	levelPos  int
+	inlined   bool
+	truncated bool
 }
 
 func (b *block) add(sum float64, count int64) {
@@ -55,6 +55,10 @@ func (b *block) add(sum float64, count int64) {
 
 func (b *block) sub(sum float64, count int64) {
 	b.prevCount.add(sum, count)
+}
+
+func (b *block) setLevelPos(i int) {
+	b.levelPos = i
 }
 
 type blocksBuilder struct {
@@ -140,12 +144,12 @@ func (b *blocksBuilder) pushDownOffsets(block *block, total, offset float64) {
 ////////////////////////////////////////////////////////////////////////////////
 
 type blocksIterator struct {
-	inverted bool
 	sum      float64
 	block    *block
 	builder  *blocksBuilder
 	depth    int
 	minus    bool
+	inverted bool
 }
 
 func (b *blocksBuilder) MakeIterator(sum float64, minus bool) *blocksIterator {

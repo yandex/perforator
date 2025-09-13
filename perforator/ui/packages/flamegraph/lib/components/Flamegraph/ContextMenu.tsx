@@ -40,11 +40,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, 
     } as const;
 
     return <Popup
-        altBoundary={true}
         open={Boolean(popupData)}
         anchorRef={anchorRef}
-        offset={popupData.offset}
-        contentClassName={'flamegraph__popup'}
+        offset={{crossAxis: popupData.offset[0], mainAxis: popupData.offset[1]}}
+        floatingClassName={'flamegraph__popup'}
         placement={['top-start']}
         onEscapeKeyDown={onClosePopup}
     >
@@ -84,6 +83,17 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, 
                     </Menu.Item>}
                 </CopyToClipboard>
             ) : null}
+            <Menu.Item 
+            {...commonButtonProps} 
+            onClick={() => {
+                setQuery({
+                    exactMatch: 'true',
+                    flamegraphQuery: popupData.node.textId,
+                });
+                onClosePopup();
+            }}>
+                Find similar nodes
+            </Menu.Item>
             <Menu.Group>
                 <Menu.Item
                     {...commonButtonProps}

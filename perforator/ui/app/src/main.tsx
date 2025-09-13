@@ -8,7 +8,7 @@ import { App } from './components/App/App';
 
 import './utils/rum';
 
-import '@gravity-ui/uikit/styles/styles.scss';
+import '@gravity-ui/uikit/styles/styles.css';
 import './styles/base.scss';
 
 

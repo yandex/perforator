@@ -13,11 +13,17 @@ type StackTracer struct {
 	Err      error
 }
 
-func (n StackTracer) Error() string {
-	if n.Err == nil {
+// Error implements error interface.
+func (s StackTracer) Error() string {
+	if s.Err == nil {
 		return ""
 	}
-	return n.Err.Error()
+	return s.Err.Error()
+}
+
+// Unwrap implements the interface needed by errors.Unwrap.
+func (s StackTracer) Unwrap() error {
+	return s.Err
 }
 
 // CheckStackTracer checks for specific error returned by

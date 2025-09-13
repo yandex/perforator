@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.15.1)
+VERSION(v0.16.0)
 
 IF (OS_LINUX)
     SRCS(
@@ -10,6 +10,7 @@ IF (OS_LINUX)
         class_dmi.go
         class_drm.go
         class_drm_amdgpu.go
+        class_drm_card.go
         class_fibrechannel.go
         class_infiniband.go
         class_nvme.go
@@ -27,6 +28,7 @@ IF (OS_LINUX)
         fs.go
         mdraid.go
         net_class.go
+        net_class_aer.go
         system_cpu.go
         vmstat_numa.go
         vulnerability.go
@@ -36,6 +38,7 @@ IF (OS_LINUX)
         class_cooling_device_test.go
         class_dmi_test.go
         class_drm_amdgpu_test.go
+        class_drm_card_test.go
         class_fibrechannel_test.go
         class_infiniband_test.go
         class_nvme_test.go
@@ -51,6 +54,7 @@ IF (OS_LINUX)
         clocksource_test.go
         fs_test.go
         mdraid_test.go
+        net_class_aer_test.go
         net_class_test.go
         system_cpu_test.go
         vmstat_numa_test.go

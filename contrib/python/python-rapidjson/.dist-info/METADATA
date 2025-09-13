@@ -1,6 +1,6 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: python-rapidjson
-Version: 1.20
+Version: 1.21
 Summary: Python wrapper around rapidjson
 Home-page: https://github.com/python-rapidjson/python-rapidjson
 Author: Ken Robbins
@@ -11,26 +11,38 @@ License: MIT License
 Keywords: json rapidjson
 Classifier: Development Status :: 5 - Production/Stable
 Classifier: Intended Audience :: Developers
-Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: C++
 Classifier: Programming Language :: Python :: 3 :: Only
 Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
 Classifier: Programming Language :: Python
 Requires-Python: >=3.6
 Description-Content-Type: text/x-rst
 License-File: LICENSE
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: license-file
+Dynamic: maintainer
+Dynamic: maintainer-email
+Dynamic: requires-python
+Dynamic: summary
 
 .. -*- coding: utf-8 -*-
 .. :Project:   python-rapidjson -- Introduction
 .. :Author:    Ken Robbins <ken@kenrobbins.com>
 .. :License:   MIT License
 .. :Copyright: © 2015 Ken Robbins
-.. :Copyright: © 2016, 2017, 2018, 2020, 2022 Lele Gaifax
+.. :Copyright: © 2016, 2017, 2018, 2020, 2022, 2024 Lele Gaifax
 ..
 
 ==================
@@ -135,7 +147,7 @@ Performance
 ``python-rapidjson`` tries to be as performant as possible while staying
 compatible with the ``json`` module.
 
-See the `this section`__ in the documentation for a comparison with other JSON libraries.
+See `this section`__ in the documentation for a comparison with other JSON libraries.
 
 __ https://python-rapidjson.readthedocs.io/en/latest/benchmarks.html
 
@@ -155,10 +167,29 @@ __ https://python-rapidjson.readthedocs.io/en/latest/quickstart.html#incompatibi
 Changes
 -------
 
+1.21 (2025-07-10)
+~~~~~~~~~~~~~~~~~
+
+* Use `current master`__ version of rapidjson, thanks to Kyle Gottfried (although I didn't
+  merge his `PR #224`__)
+
+  __ https://github.com/Tencent/rapidjson/compare/ab1842a2dae061284c0a62dca1cc6d5e7e37e346..24b5e7a8b27f42fa16b96fc70aade9106cf7102f
+  __ https://github.com/python-rapidjson/python-rapidjson/pull/224
+
+* Recompute comparison table with latest versions of other libraries, using Python 3.13
+
+* Typing stubs: specify default value for ``stream`` argument of ``Encoder.__call__()``
+  (`issue #215`__)
+
+  __ https://github.com/python-rapidjson/python-rapidjson/issues/215
+
+* Use more recent OS images on GH Actions to test and build wheels
+
+
 1.20 (2024-08-05)
 ~~~~~~~~~~~~~~~~~
 
-* Rectify type hints if ``loads()`` and ``Decoder.__call__()`` (`issue #214`__)
+* Rectify type hints of ``loads()`` and ``Decoder.__call__()`` (`issue #214`__)
 
   __ https://github.com/python-rapidjson/python-rapidjson/issues/214
 

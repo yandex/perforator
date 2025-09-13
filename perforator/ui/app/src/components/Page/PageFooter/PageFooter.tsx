@@ -25,6 +25,7 @@ export const PageFooter: React.FC = () => {
             href: uiFactory().ciLink(),
             target: '_blank',
             className: 'page-footer__menu-item',
+            qa: 'page-footer_version',
         });
     }
     return (

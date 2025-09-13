@@ -1,7 +1,7 @@
 {
   "PyThreadState": {
-    "next": 8,
     "prev": 0,
+    "next": 8,
     "native_thread_id": 160,
     "cframe": 56
   },

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+import "perforator/proto/custom_profiling_operation/custom_profiling_operation.proto";
+
+package NPerforator.NRecordRemote;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/perforator";
+
+// Record profile using remote perforator agent
+message RecordRemoteProfileRequest {
+    NPerforator.NProto.NCustomProfilingOperation.OperationSpec CustomProfilingOperationSpec = 1;
+}
+
+message RecordRemoteProfileResponse {}

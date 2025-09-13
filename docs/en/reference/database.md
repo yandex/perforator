@@ -24,9 +24,8 @@ Following tables are used:
 
 * `schema_migrations` - coordination state for the [database migration process](../howto/migrate-schema).
 
-* `microscopes` - contains data for the microscopes.
+* `microscopes` - contains data for the [microscopes](./microscope).
 
-[//]: # (TODO: link to microscopes)
 
 ## ClickHouse
 

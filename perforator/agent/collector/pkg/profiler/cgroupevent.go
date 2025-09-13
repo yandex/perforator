@@ -1,6 +1,8 @@
 package profiler
 
 import (
+	"fmt"
+
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
@@ -50,7 +52,7 @@ func (t *trackedCgroup) Open(name string, freezerCgroupID uint64) error {
 
 	err := t.bpf.AddTracedCgroup(freezerCgroupID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to add cgroup %q with id %d to eBPF maps: %w", name, freezerCgroupID, err)
 	}
 
 	t.freezerCgroupID = freezerCgroupID

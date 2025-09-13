@@ -8,9 +8,17 @@ from devtools.frontend_build_platform.nots.builder.api import create_node_module
 def build_tsc_parser(subparsers) -> ArgumentParser:
     subparser = subparsers.add_parser("build-tsc", help="build with the Typescript Compiler (tsc)")
 
+    add_tsc_parser_args(subparser)
+
     subparser.set_defaults(func=build_tsc_func)
 
     return subparser
+
+
+def add_tsc_parser_args(subparser):
+    # there are other commands (build-ts-proto for example) that use TscBuilder under the hood.
+    # this empty method here is for possible future extends to not forget to add tsc args to those commands.
+    pass
 
 
 @timeit

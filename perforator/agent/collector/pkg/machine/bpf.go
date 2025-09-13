@@ -65,6 +65,7 @@ type Config struct {
 
 type Options struct {
 	EnableJVM bool
+	EnablePHP bool
 }
 
 type BPF struct {
@@ -127,6 +128,7 @@ func (b *BPF) currentProgramRequirements() unwinder.ProgramRequirements {
 	return unwinder.ProgramRequirements{
 		Debug: b.progdebug,
 		JVM:   b.opts.EnableJVM,
+		PHP:   b.opts.EnablePHP,
 	}
 }
 
@@ -585,6 +587,26 @@ func (b *BPF) AddPythonConfig(id unwinder.BinaryId, pythonInfo *unwinder.PythonC
 	return b.maps.PythonStorage.Update(id, pythonInfo, ebpf.UpdateAny)
 }
 
+func (b *BPF) DeletePythonConfig(id unwinder.BinaryId) error {
+	return b.maps.PythonStorage.Delete(&id)
+}
+
+func (b *BPF) AddPhpConfig(id unwinder.BinaryId, phpInfo *unwinder.PhpConfig) error {
+	if b.opts.EnablePHP {
+		return b.maps.PhpStorage.Update(id, phpInfo, ebpf.UpdateAny)
+	}
+
+	return nil
+}
+
+func (b *BPF) DeletePhpConfig(id unwinder.BinaryId) error {
+	if b.opts.EnablePHP {
+		return b.maps.PhpStorage.Delete(&id)
+	}
+
+	return nil
+}
+
 func (b *BPF) AddPthreadConfig(id unwinder.BinaryId, pthreadInfo *unwinder.PthreadConfig) error {
 	return b.maps.PthreadStorage.Update(id, pthreadInfo, ebpf.UpdateAny)
 }
@@ -594,18 +616,10 @@ func (b *BPF) DeletePthreadConfig(id unwinder.BinaryId) error {
 }
 
 // TODO: we can use batch lookups into bpf maps
-func (b *BPF) SymbolizePython(key *unwinder.PythonSymbolKey) (res unwinder.PythonSymbol, exists bool) {
-	err := b.maps.PythonSymbols.Lookup(key, &res)
-	if err != nil {
-		return
-	}
-
-	exists = true
+func (b *BPF) SymbolizeInterpeter(key *unwinder.SymbolKey) (res unwinder.Symbol, exists bool) {
+	err := b.maps.InterpreterSymbols.Lookup(key, &res)
+	exists = (err == nil)
 	return
-}
-
-func (b *BPF) DeletePythonConfig(id unwinder.BinaryId) error {
-	return b.maps.PythonStorage.Delete(&id)
 }
 
 func (b *BPF) RunMetricsPoller(ctx context.Context, stop graceful.ShutdownSource) error {

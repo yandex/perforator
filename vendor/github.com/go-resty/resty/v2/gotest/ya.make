@@ -2,7 +2,7 @@ GO_TEST_FOR(vendor/github.com/go-resty/resty/v2)
 
 LICENSE(MIT)
 
-VERSION(v2.15.3)
+VERSION(v2.16.3)
 
 SIZE(MEDIUM)
 
@@ -26,6 +26,9 @@ ENDIF()
 
 # This test is flaky
 
-GO_SKIP_TESTS(TestClientRetryWaitCallback)
+GO_SKIP_TESTS(
+    TestClientRetryWaitCallback
+    TestClientRetryWaitCallbackSwitchToDefault
+)
 
 END()

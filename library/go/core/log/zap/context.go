@@ -30,3 +30,14 @@ func Context(ctx context.Context) zap.Field {
 		Interface: ctxField{ctx: ctx},
 	}
 }
+
+// RawContext creates a log field with raw context.
+// Unlike Context(), this field uses SkipType which prevents it from being marshaled into the log output,
+// making it available only to logger plugins that can access the raw field data.
+func RawContext(ctx context.Context) zap.Field {
+	return zap.Field{
+		Key:       "",
+		Type:      zapcore.SkipType,
+		Interface: ctx,
+	}
+}

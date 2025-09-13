@@ -1,16 +1,5 @@
 // Copyright The OpenTelemetry Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 package otlptracegrpc
 
@@ -212,4 +201,88 @@ func TestExportContextLinksStopSignal(t *testing.T) {
 		}
 		return false
 	}, 10*time.Second, time.Microsecond)
+}
+
+func TestWithEndpointWithEnv(t *testing.T) {
+	testCases := []struct {
+		name    string
+		options []Option
+		envs    map[string]string
+		want    string
+	}{
+		{
+			name: "WithEndpointURL last",
+			options: []Option{
+				WithEndpoint("foo"),
+				WithEndpointURL("http://bar:8080/path"),
+			},
+			want: "bar:8080",
+		},
+		{
+			name: "WithEndpoint last",
+			options: []Option{
+				WithEndpointURL("http://bar:8080/path"),
+				WithEndpoint("foo"),
+			},
+			want: "foo",
+		},
+		{
+			name: "OTEL_EXPORTER_OTLP_ENDPOINT only",
+			envs: map[string]string{
+				"OTEL_EXPORTER_OTLP_ENDPOINT": "foo2",
+			},
+			want: "foo2",
+		},
+		{
+			name: "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT only",
+			envs: map[string]string{
+				"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "bar2",
+			},
+			want: "bar2",
+		},
+		{
+			name: "both OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+			envs: map[string]string{
+				"OTEL_EXPORTER_OTLP_ENDPOINT":        "foo2",
+				"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "bar2",
+			},
+			want: "bar2",
+		},
+		{
+			name: "both options and envs",
+			envs: map[string]string{
+				"OTEL_EXPORTER_OTLP_ENDPOINT":        "foo2",
+				"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "bar2",
+			},
+			options: []Option{
+				WithEndpointURL("http://bar:8080/path"),
+				WithEndpoint("foo"),
+			},
+			want: "foo",
+		},
+		{
+			name: "both options and envs",
+			envs: map[string]string{
+				"OTEL_EXPORTER_OTLP_ENDPOINT":        "foo2",
+				"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "bar2",
+			},
+			options: []Option{
+				WithEndpoint("foo"),
+				WithEndpointURL("http://bar:8080/path"),
+			},
+			want: "bar:8080",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for key, value := range tc.envs {
+				t.Setenv(key, value)
+			}
+
+			client := newClient(tc.options...)
+
+			assert.Equal(t, tc.want, client.endpoint)
+		})
+	}
 }

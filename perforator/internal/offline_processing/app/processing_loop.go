@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/yandex/perforator/library/go/core/log"
@@ -99,9 +101,11 @@ func (l *ProcessingLoop) processError(ctx context.Context, err error) {
 
 	// TODO : account for failures in metrics
 
-	// TODO : account for "no-binary-to-process" errors and the likes of
-	l.l.Warn(ctx, "Loop iteration failed", log.Error(err))
+	shouldBackOff := errors.Is(err, sql.ErrNoRows)
+	l.l.Warn(ctx, "Loop iteration failed", log.Error(err), log.Bool("should_backoff", shouldBackOff))
 
-	// TODO : make this backoff more sophisticated
-	time.Sleep(3 * time.Second)
+	if shouldBackOff {
+		// TODO : make this backoff more sophisticated
+		time.Sleep(3 * time.Second)
+	}
 }

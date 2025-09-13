@@ -5,7 +5,7 @@ package baggage
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"slices"
 	"strings"
 	"testing"
@@ -17,12 +17,8 @@ import (
 	"go.opentelemetry.io/otel/internal/baggage"
 )
 
-var rng *rand.Rand
-
-func init() {
-	// Seed with a static value to ensure deterministic results.
-	rng = rand.New(rand.NewSource(1))
-}
+// Seed with a static value to ensure deterministic results.
+var rng = rand.New(rand.NewChaCha8([32]byte{}))
 
 func TestValidateKeyChar(t *testing.T) {
 	// ASCII only
@@ -255,7 +251,7 @@ func key(n int) string {
 
 	b := make([]rune, n)
 	for i := range b {
-		b[i] = r[rng.Intn(len(r))]
+		b[i] = r[rng.IntN(len(r))]
 	}
 	return string(b)
 }
@@ -597,7 +593,7 @@ func TestBaggageParseValue(t *testing.T) {
 
 			val := b.Members()[0].Value()
 
-			assert.EqualValues(t, tc.valueWant, val)
+			assert.Equal(t, tc.valueWant, val)
 			assert.Equal(t, len(val), tc.valueWantSize)
 			assert.True(t, utf8.ValidString(val))
 		})
@@ -971,7 +967,7 @@ func TestBaggageMember(t *testing.T) {
 
 func TestMemberKey(t *testing.T) {
 	m := Member{}
-	assert.Equal(t, "", m.Key(), "even invalid values should be returned")
+	assert.Empty(t, m.Key(), "even invalid values should be returned")
 
 	key := "k"
 	m.key = key
@@ -1173,7 +1169,9 @@ func BenchmarkParse(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		benchBaggage, _ = Parse("userId=alice,serverNode = DF28 , isProduction = false,hasProp=stuff;propKey;propWValue=value, invalidUtf8=pr%ffo%ffp%fcValue")
+		benchBaggage, _ = Parse(
+			"userId=alice,serverNode = DF28 , isProduction = false,hasProp=stuff;propKey;propWValue=value, invalidUtf8=pr%ffo%ffp%fcValue",
+		)
 	}
 }
 

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v4.13.0)
+VERSION(v4.13.1)
 
 SRCS(
     antlrdoc.go
@@ -36,6 +36,7 @@ SRCS(
     lexer_action_executor.go
     lexer_atn_simulator.go
     ll1_analyzer.go
+    mutex.go
     nostatistics.go
     parser.go
     parser_atn_simulator.go

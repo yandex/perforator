@@ -16,6 +16,9 @@ class PrepareDepsOptions(BaseOptions):
     tarballs_store: str
     """Path to tarballs store, related to $CURDIR"""
 
+    ts_proto_auto_deps_path: str | None
+    """Path to ts-proto deps module, related to $ARCADIA_ROOT"""
+
 
 def prepare_deps(args: PrepareDepsOptions):
     PackageManager = get_package_manager_type(args.pm_type)
@@ -28,8 +31,12 @@ def prepare_deps(args: PrepareDepsOptions):
         script_path=args.pm_script,
     )
 
-    pm.build_workspace(args.tarballs_store)
-    _copy_tarballs(args, pm.load_lockfile_from_dir(args.curdir))
+    if args.ts_proto_auto_deps_path:
+        pm.build_ts_proto_auto_workspace(args.ts_proto_auto_deps_path)
+    else:
+        pm.build_workspace(args.tarballs_store, args.local_cli)
+        if not args.local_cli:
+            _copy_tarballs(args, pm.load_lockfile_from_dir(args.curdir))
 
 
 def _get_resource_path(args: PrepareDepsOptions, pkg) -> str:

@@ -10,9 +10,11 @@ import (
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	binarycompound "github.com/yandex/perforator/perforator/pkg/storage/binary/compound"
+	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
+	postgres_cpo "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation/postgres"
 	"github.com/yandex/perforator/perforator/pkg/storage/databases"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope"
-	"github.com/yandex/perforator/perforator/pkg/storage/microscope/pg"
+	postgres_microscope "github.com/yandex/perforator/perforator/pkg/storage/microscope/pg"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	profilecompound "github.com/yandex/perforator/perforator/pkg/storage/profile/compound"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -22,7 +24,7 @@ var (
 	ErrPostgresClusterNotSpecified = errors.New("postgres cluster is not specified")
 	ErrMetaStorageIsNotSpecified   = errors.New("no meta storage is specified")
 	ErrS3StorageIsNotSpecified     = errors.New("s3 storage is not specified")
-	ErrTasksStorageIsNotSpecified  = errors.New("no t tasks storage is specified")
+	ErrTasksStorageIsNotSpecified  = errors.New("no tasks storage is specified")
 )
 
 type StorageBundle struct {
@@ -30,28 +32,31 @@ type StorageBundle struct {
 
 	DBs *databases.Databases
 
-	ProfileStorage    profilestorage.Storage
-	BinaryStorage     binarystorage.StorageSelector
-	MicroscopeStorage microscope.Storage
-	TaskStorage       asynctask.TaskService
+	ProfileStorage                  profilestorage.Storage
+	BinaryStorage                   binarystorage.StorageSelector
+	MicroscopeStorage               microscope.Storage
+	TaskStorage                     asynctask.TaskService
+	CustomProfilingOperationStorage custom_profiling_operation.Storage
 }
 
-func NewStorageBundleFromConfig(ctx context.Context, l xlog.Logger, reg metrics.Registry, configPath string) (*StorageBundle, error) {
+// bgCtx should be valid for as long as databases are used
+func NewStorageBundleFromConfig(ctx context.Context, bgCtx context.Context, l xlog.Logger, app string, reg metrics.Registry, configPath string) (*StorageBundle, error) {
 	conf, err := ParseConfig(configPath, false /* strict */)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	return NewStorageBundle(ctx, l, reg, conf)
+	return NewStorageBundle(ctx, bgCtx, l, app, reg, conf)
 }
 
-func NewStorageBundle(ctx context.Context, l xlog.Logger, reg metrics.Registry, c *Config) (*StorageBundle, error) {
+// bgCtx should be valid for as long as databases are used
+func NewStorageBundle(ctx context.Context, bgCtx context.Context, l xlog.Logger, app string, reg metrics.Registry, c *Config) (*StorageBundle, error) {
 	res := &StorageBundle{
 		conf: c,
 	}
 	var err error
 
-	res.DBs, err = databases.NewDatabases(ctx, l, &c.DBs, reg)
+	res.DBs, err = databases.NewDatabases(ctx, bgCtx, l, &c.DBs, app, reg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init dbs: %w", err)
 	}
@@ -95,7 +100,14 @@ func NewStorageBundle(ctx context.Context, l xlog.Logger, reg metrics.Registry, 
 			return nil, ErrPostgresClusterNotSpecified
 		}
 
-		res.MicroscopeStorage = pg.NewPostgresMicroscopeStorage(l, res.DBs.PostgresCluster)
+		res.MicroscopeStorage = postgres_microscope.NewPostgresMicroscopeStorage(l, res.DBs.PostgresCluster)
+	}
+
+	if c.CustomProfilingOperationStorage != nil {
+		if res.DBs.PostgresCluster == nil {
+			return nil, ErrPostgresClusterNotSpecified
+		}
+		res.CustomProfilingOperationStorage = postgres_cpo.NewStorage(l, res.DBs.PostgresCluster)
 	}
 
 	if c.TaskStorage != nil {

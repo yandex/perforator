@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -13,10 +14,24 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func NewCluster(pingCtx context.Context, l xlog.Logger, conf *Config) (*hasql.Cluster, error) {
+const maxApplicationNameLength = 63
+
+func NewCluster(ctx context.Context, pingCtx context.Context, l xlog.Logger, app string, conf *Config) (*hasql.Cluster, error) {
+	appName := conf.ApplicationNameOverride
+	if appName == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			l.Warn(ctx, "Failed to enrich application_name with hostname", log.Error(err))
+			hostname = fmt.Sprintf("<unresolved-%d>", os.Getpid())
+		}
+		appName = fmt.Sprintf("perforator-%s@%s", app, hostname)
+		if len(appName) > maxApplicationNameLength {
+			appName = appName[:maxApplicationNameLength]
+		}
+	}
 	nodes := make([]hasql.Node, 0, len(conf.Endpoints))
 	for _, endpoint := range conf.Endpoints {
-		connectionString, err := ConnectionString(&conf.AuthConfig, conf.DB, &endpoint, conf.SSLMode, conf.SSLRootCert)
+		connectionString, err := ConnectionString(&conf.AuthConfig, conf.DB, &endpoint, conf.SSLMode, conf.SSLRootCert, appName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create connection string for postgres %v: %w", endpoint, err)
 		}

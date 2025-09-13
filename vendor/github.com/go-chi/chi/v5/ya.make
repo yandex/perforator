@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v5.1.0)
+VERSION(v5.2.2)
 
 SRCS(
     chain.go

@@ -28,6 +28,7 @@ PEERDIR(
     perforator/agent/preprocessing/proto/unwind
     perforator/lib/pthread
     perforator/lib/python
+    perforator/lib/php
     perforator/lib/tls/parser
     perforator/lib/llvmex
     library/cpp/iterator

@@ -367,7 +367,7 @@ func TestTime(t *testing.T) {
 
 	var now time.Time
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		ut, err = unix.Time(nil)
 		if err != nil {
 			t.Fatalf("Time: %v", err)
@@ -555,7 +555,7 @@ func TestSchedSetaffinity(t *testing.T) {
 	cpu = 1
 	if !oldMask.IsSet(cpu) {
 		newMask.Zero()
-		for i := 0; i < len(oldMask); i++ {
+		for i := range len(oldMask) {
 			if oldMask.IsSet(i) {
 				newMask.Set(i)
 				break
@@ -878,7 +878,7 @@ func openMountByID(mountID int) (f *os.File, err error) {
 	}
 	defer mi.Close()
 	bs := bufio.NewScanner(mi)
-	wantPrefix := []byte(fmt.Sprintf("%v ", mountID))
+	wantPrefix := fmt.Appendf(nil, "%v ", mountID)
 	for bs.Scan() {
 		if !bytes.HasPrefix(bs.Bytes(), wantPrefix) {
 			continue

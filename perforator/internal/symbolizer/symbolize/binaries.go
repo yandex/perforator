@@ -7,15 +7,17 @@ import (
 	otelcodes "go.opentelemetry.io/otel/codes"
 
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
+	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func (s *Symbolizer) scheduleBinaryDownloads(
+func ScheduleBinaryDownloads(
 	ctx context.Context,
+	l xlog.Logger,
 	buildIDs []string,
 	binaryProvider binaryprovider.BinaryProvider,
 	logErrorOnFailedAcquire bool,
 ) (binaries *CachedBinariesBatch, err error) {
-	binaries = NewCachedBinariesBatch(s.logger, binaryProvider, logErrorOnFailedAcquire)
+	binaries = NewCachedBinariesBatch(l, binaryProvider, logErrorOnFailedAcquire)
 
 	ctx, span := otel.Tracer("Symbolizer").Start(
 		ctx, "symbolize.(*Symbolizer).prepareBinaries",

@@ -4,44 +4,26 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/maxatome/go-testdeep/td"
+
 	"github.com/jarcoal/httpmock/internal"
 )
 
 func TestSubmatches(t *testing.T) {
 	req, err := http.NewRequest("GET", "/foo/bar", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	td.Require(t).CmpNoError(err)
 
 	var req2 *http.Request
 
 	req2 = internal.SetSubmatches(req, nil)
-	if req2 != req {
-		t.Error("SetSubmatches(req, nil) should return the same request")
-	}
-
-	sm := internal.GetSubmatches(req2)
-	if sm != nil {
-		t.Errorf("GetSubmatches() should return nil")
-	}
+	td.CmpShallow(t, req2, req)
+	td.CmpNil(t, internal.GetSubmatches(req2))
 
 	req2 = internal.SetSubmatches(req, []string{})
-	if req2 != req {
-		t.Error("SetSubmatches(req, []string{}) should return the same request")
-	}
-
-	sm = internal.GetSubmatches(req2)
-	if sm != nil {
-		t.Errorf("GetSubmatches() should return nil")
-	}
+	td.Cmp(t, req2, td.Shallow(req))
+	td.CmpNil(t, internal.GetSubmatches(req2))
 
 	req2 = internal.SetSubmatches(req, []string{"foo", "123", "-123", "12.3"})
-	if req2 == req {
-		t.Error("setSubmatches(req, []string{...}) should NOT return the same request")
-	}
-
-	sm = internal.GetSubmatches(req2)
-	if len(sm) != 4 {
-		t.Errorf("GetSubmatches() should return 4 items")
-	}
+	td.CmpNot(t, req2, td.Shallow(req))
+	td.CmpLen(t, internal.GetSubmatches(req2), 4)
 }

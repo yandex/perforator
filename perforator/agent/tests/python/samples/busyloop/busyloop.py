@@ -18,5 +18,9 @@ def simple():
 
 
 def main():
-    print(f"Current process PID: {os.getpid()}")
+    print("Current process PID: {0}".format(os.getpid()))
     simple()
+
+
+if __name__ == "__main__":
+    main()

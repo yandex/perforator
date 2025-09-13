@@ -4,13 +4,13 @@ Each native thread is mapped to one `PyThreadState` structure which contains inf
 
 ![Python Thread State Mapping](../../../../_assets/py-threadstate-mapping.svg)
 
-Perforator utilizes multiple ways to obtain current `*PyThreadState` in eBPF context - reading from Thread Local Storage (TLS) and extracting from global variables - such as `_PyRuntime` or others. The combination of these approaches and caching helps to improve the accuracy of the `*PyThreadState` collection.
+Perforator utilizes multiple ways to obtain current `*PyThreadState` in eBPF context - reading from Thread Local Storage (TLS) or Thread Specific Storage (TSS) and extracting from global variables - such as `_PyRuntime` or others. The combination of these approaches and caching helps to improve the accuracy of the `*PyThreadState` collection.
 
 ## Reading `*PyThreadState` from TLS
 
 In Python 3.12+, a pointer to current thread's `PyThreadState` is stored in a Thread Local Storage variable called `_PyThreadState_Current`.
 
-In an eBPF program, the pointer to userspace thread structure can be retrieved by reading `thread.fsbase` from the `task_struct` structure. This structure can be obtained with the `bpf_get_current_task()` helper. The Thread Local Image will be to the left of the pointer stored in `thread.fsbase`.
+In an eBPF program, the pointer to Thread Control Block (TCB) can be retrieved by reading `thread.fsbase` from the `task_struct` structure. This structure can be obtained with the `bpf_get_current_task()` helper. The Thread Local Image will be to the left of the pointer stored in `thread.fsbase`.
 
 The exact offset of thread local variable `_PyThreadState_Current` in Thread Local Image is unknown yet. Therefore, the disassembler is used to find the offset of `_PyThreadState_Current`.
 
@@ -57,20 +57,60 @@ The exact offset of thread local variable `_PyThreadState_Current` in Thread Loc
 
 Looking at these functions, the offset relative to `%fs` register which is used to access `_PyThreadState_Current` variable in userspace can be extracted for later use in the eBPF program.
 
-## Restoring the mapping `native_thread_id` -> `*PyThreadState` using `_PyRuntime` global state
+## Reading `*PyThreadState` from TSS
 
-Starting from Python 3.7, there is a global state for CPython runtime - `_PyRuntime`. The address of this global variable can be found in the `.dynsym` section. This structure contains the list of Python interpreter states represented by `_PyInterpreterState` structure.
+Before CPython 3.12 libpthread thread specific storage was used to store current `*PyThreadState`. There is a global variable (`autoTLSkey` or `PyRuntime->autoTSSkey`) which stores a key to TSS for the value of current thread state. BPF code implements logic of TSS variable lookup similar to libpthread to obtain the data. 
 
-From each `_PyInterpreterState`, the pointer to the head of `*PyThreadState` linked list can be extracted.
+The address of TSS key can be retrieved by parsing `PyGILState_Ensure` function.
+
+Dissassembling `pthread_getspecific` allows to retrieve the following data from the libpthread binary:
+
+```
+struct TPthreadKeyDataInfo {
+    ui64 Size = 0;
+    ui64 ValueOffset = 0;
+    ui64 SeqOffset = 0;
+};
+
+struct TAccessTSSInfo {
+    TPthreadKeyDataInfo PthreadKeyData;
+    ui64 FirstSpecificBlockOffset = 0;
+    ui64 SpecificArrayOffset = 0;
+    ui64 StructPthreadPointerOffset = 0;
+    ui64 KeySecondLevelSize = 0;  // PTHREAD_KEY_2NDLEVEL_SIZE
+    ui64 KeyFirstLevelSize = 0;   // PTHREAD_KEY_1STLEVEL_SIZE
+    ui64 KeysMax = 0;             // PTHREAD_KEYS_MAX
+};
+```
+The pthread TSS is organized as a 2-level array of `struct pthread_key_data`. First array of `PTHREAD_KEY_1STLEVEL_SIZE` size contains pointers to the chunks of `struct pthread_key_data` of `PTHREAD_KEY_2NDLEVEL_SIZE` size. First chunk of 2nd level is preallocated in `struct pthread`. The maximum total number of thread key-value pairs `PTHREAD_KEYS_MAX`.
+
+The key is an index in 2-level array. `i / PTHREAD_KEY_2NDLEVEL_SIZE` is index for top-level array, `i % PTHREAD_KEY_2NDLEVEL_SIZE` is index for the bottom-level array.
+
+The pointer to the top-level array can be obtained through `struct pthread` by reading `current_task->thread.fsbase`.
+
+![Retrieve thread state from TSS](../../../../_assets/python-pthread.svg)
+
+
+## Thread state list retrieval from global variables (`_PyRuntime` or `interp_head`)
+
+In CPython 3.7 global variable `_PyRuntime` was introduced. This structure holds most of the runtime data including the list of `PyInterpreterState`. Given the `PyInterpreterState` object we can access `PyThreadState`'s associated with it by reading `tstate_head` field. This field stores a pointer to the head of interpreter's thread states list. The address of `_PyRuntime` can be found in  the ELF symbols sections.
+
+Before the `_PyRuntime` there was another global variable containing interpreter list - `interp_head` which is available even in CPython 2.4. The `interp_head` address can be retrieved by disassembling `PyInterpreterState_Head` function which is a simpler getter for the variable.
+
+The  picture below shows the layout of interpreter state and thread state lists which is almost the same for both `_PyRuntime` and `interp_head` cases.
 
 ![Retrieve thread state from _PyRuntime](../../../../_assets/py-runtime-thread-state.svg)
 
-Each `PyThreadState` structure stores a field `native_thread_id` which can be checked against current TID to find the correct Python thread.
+## Restoring the mapping `(pid, thread_id)` -> `*PyThreadState`
 
-Using all this knowledge, the linked list of `*PyThreadState` structures can be traversed and the BPF map with the mapping `native_thread_id` -> `*PyThreadState` can be filled. This mapping can be further used.
+We store a mapping `(pid, thread_id)` -> `*PyThreadState` which allows `*PyThreadState` retrieval on failed BPF reads or other scenarios (e.g. TLS variable with current thread state stores NULL pointer because of released GIL).
 
-## Combination of both approaches
+In CPython 3.11 `native_thread_id` field was introduced on `PyThreadState` structure. For Linux this field stores TID in some PID namespace. Thereby we can store `(pid, native_thread_id)` pair as a key to the `*PyThreadState`. Upon lookup we can use current task's PID and TID in innermost PID namespace.
 
-By combining both approaches, we can improve the accuracy of the stack collection. `_PyThreadState_Current` is `NULL` if the current OS thread is not holding a GIL. In this case, the mapping `native_thread_id` -> `*PyThreadState` can be used to find the correct `*PyThreadState`. Also, occasionally we need to trigger the `PyThreadState` linked list traversal to fill the map.
+Before CPython 3.11 `thread_id` field on `PyThreadState` structure contained the `thread_id` returned by pthread library. We only support glibc libpthread of version 2.4+ here. Actually in this setting this `thread_id` is just a pointer to `struct pthread` of the thread. Upon lookup we can use current task's PID and `current_task->thread.fsbase` because it stores a pointer to TCB which is actually a header of `struct pthread`, so this is just a pointer to the current thread structure. 
+
+## Combination of approaches
+
+By combining these approaches, we can improve the accuracy of the stack collection. `_PyThreadState_Current` is `NULL` if the current OS thread is not holding a GIL. In this case, the mapping `(pid, thread_id)` -> `*PyThreadState` can be used to find the correct `*PyThreadState`. Also, occasionally we need to trigger the `PyThreadState` linked list traversal to fill the map.
 
 Collecting the stack of threads which are not holding a GIL is crucial for a more accurate picture of what the program is doing. The OS thread may be blocked on I/O operations or executing compression/decompression off-GIL.

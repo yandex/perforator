@@ -4,6 +4,14 @@
     --gc-form-row-label-width: 100px;
 }
 
+.tasks__pagination {
+    margin-top: var(--g-spacing-2);
+}
+
+.tasks__pagination-error {
+    margin-left: var(--g-spacing-2);
+}
+
 .tasks-table > .g-table__table {
     width: 100%;
 }

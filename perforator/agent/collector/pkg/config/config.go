@@ -8,7 +8,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	storage "github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/upload"
-	"github.com/yandex/perforator/perforator/internal/linguist/python/symbolizer"
+	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/storage/client"
 )
@@ -81,6 +81,9 @@ type KubernetesConfig struct {
 	KubeletCgroupDriver          string   `yaml:"kubelet_cgroup_driver,omitempty"`
 	KubeletCgroupQOSMode         string   `yaml:"kubelet_cgroup_qos_mode,omitempty"`
 	KubeletCgroupContainerPrefix string   `yaml:"kubelet_cgroup_container_prefix,omitempty"`
+
+	// See https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/#directly-accessing-the-rest-api
+	KubernetesAPIServerHost string `yaml:"kubernetes_api_server_host,omitempty"`
 }
 
 type PodsDeploySystemConfig struct {
@@ -93,12 +96,14 @@ type PodsDeploySystemConfig struct {
 
 type SymbolizerConfig struct {
 	Python symbolizer.SymbolizerConfig `yaml:"python"`
+	Php    symbolizer.SymbolizerConfig `yaml:"php"`
 }
 
 // FeatureFlagsConfig holds agent-side [feature-flags](https://trunkbaseddevelopment.com/feature-flags/)
 // except old ones.
 type FeatureFlagsConfig struct {
 	EnableJVM *bool `yaml:"enable_jvm"`
+	EnablePHP *bool `yaml:"enable_php"`
 }
 
 func (f *FeatureFlagsConfig) JVMEnabled() bool {
@@ -106,6 +111,13 @@ func (f *FeatureFlagsConfig) JVMEnabled() bool {
 		return false
 	}
 	return *f.EnableJVM
+}
+
+func (f *FeatureFlagsConfig) PhpEnabled() bool {
+	if f.EnablePHP == nil {
+		return false
+	}
+	return *f.EnablePHP
 }
 
 type Config struct {
@@ -170,7 +182,7 @@ func defaultPointer[T any](ptr **T, value T) {
 }
 
 func defaultSlice[T any](ptr *[]T, value ...T) {
-	if *ptr == nil || len(*ptr) == 0 {
+	if len(*ptr) == 0 {
 		*ptr = value
 	}
 }

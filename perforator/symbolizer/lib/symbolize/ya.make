@@ -10,6 +10,7 @@ PEERDIR(
 
     perforator/proto/pprofprofile
     perforator/lib/llvmex
+    perforator/lib/rustc_demangle
 
     perforator/symbolizer/lib/gsym
 )

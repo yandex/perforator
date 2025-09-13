@@ -7,6 +7,7 @@ PEERDIR(
     perforator/agent/preprocessing/proto/unwind
     perforator/agent/preprocessing/proto/pthread
     perforator/agent/preprocessing/proto/python
+    perforator/agent/preprocessing/proto/php
 )
 
 SRCS(

@@ -32,10 +32,18 @@ void DestroyBatchBuilder(void* builder) {
     builderPtr.reset();
 }
 
-void AddProfile(void* builder, ui64 builderIndex, const char* profileBytes, ui64 profileBytesLen) {
+void AddProfile(
+    void* builder,
+    ui64 builderIndex,
+    const char* serviceName,
+    const char* profileBytes,
+    ui64 profileBytesLen
+) {
     auto* builderPtr = FromOpaque(builder);
 
-    builderPtr->GetBuilder(builderIndex).AddProfile({profileBytes, profileBytesLen});
+    builderPtr->GetBuilder(builderIndex).AddProfile(
+        {serviceName},
+        {profileBytes, profileBytesLen});
 }
 
 void Finalize(
@@ -43,7 +51,12 @@ void Finalize(
     ui64* totalProfiles,
     ui64* totalBranches, ui64* totalSamples, ui64* bogusLbrEntries,
     ui64* branchCountMapSize, ui64* rangeCountMapSize, ui64* addressCountMapSize,
-    char** autofdoInput, char** boltInput) {
+    //
+    ui64* profilesByServiceMapLen,
+    const char*** profilesByServiceMapServices,
+    ui64** profilesByServiceMapCounts,
+    //
+    const char** autofdoInput, const char** boltInput) {
     auto* builderPtr = FromOpaque(builder);
 
     const auto autofdoInputData = std::move(*builderPtr).Finalize();
@@ -62,13 +75,31 @@ void Finalize(
 
     const auto autofdoInputStr = SerializeAutofdoInput(autofdoInputData);
     const auto boltInputStr = SerializeAutofdoInputInBoltPreaggregatedFormat(autofdoInputData);
-    const auto assignStrTo = [] (char** destination, const std::string& source) {
+    const auto assignStrTo = [] (const char** destination, const std::string& source) {
         if (destination != nullptr) {
             *destination = strndup(source.data(), source.size());
         }
     };
     assignStrTo(autofdoInput, autofdoInputStr);
     assignStrTo(boltInput, boltInputStr);
+
+    if (profilesByServiceMapLen != nullptr &&
+        profilesByServiceMapServices != nullptr &&
+        profilesByServiceMapCounts != nullptr) {
+        const auto& profilesCountByService = autofdoInputData.Meta.ProfilesCountByService;
+
+        *profilesByServiceMapLen = profilesCountByService.size();
+        *profilesByServiceMapServices = new const char*[*profilesByServiceMapLen];
+        *profilesByServiceMapCounts = new ui64[*profilesByServiceMapLen];
+
+        ui64 idx = 0;
+        for (const auto& [service, count] : profilesCountByService) {
+            (*profilesByServiceMapServices)[idx] = strndup(service.data(), service.size());
+            (*profilesByServiceMapCounts)[idx] = count;
+
+            ++idx;
+        }
+    }
 }
 
 ui64 GetBinaryExecutableBytes(const char* binaryPath) {

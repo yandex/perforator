@@ -25,13 +25,20 @@ import (
 	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/pkg/endpointsetresolver"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
 
 type FlamegraphOptions = perforator.FlamegraphOptions
+type TextProfileOptions = perforator.TextProfileOptions
 type RenderFormat = perforator.RenderFormat
+
+type FormatOptions struct {
+	Flamegraph  *FlamegraphOptions
+	TextProfile *TextProfileOptions
+}
 
 type Config struct {
 	MaxReceiveMessageSize uint64
@@ -252,7 +259,7 @@ func (c *Client) ListProfiles(
 		&perforator.ListProfilesRequest{
 			Query: &perforator.ProfileQuery{
 				Selector: filters.Selector,
-				TimeInterval: &perforator.TimeInterval{
+				TimeInterval: &time_interval.TimeInterval{
 					From: timestamppb.New(filters.FromTS),
 					To:   timestamppb.New(filters.ToTS),
 				},
@@ -363,8 +370,9 @@ func (c *Client) GetProfile(
 
 type MergeProfilesRequest struct {
 	ProfileFilters
-	MaxSamples uint32
-	Format     *RenderFormat
+	MaxSamples   uint32
+	Format       *RenderFormat
+	Experimental *perforator.MergeExperimentalOptions
 }
 
 func (c *Client) GetProfileByURL(profileURL string) ([]byte, error) {
@@ -447,12 +455,13 @@ func (c *Client) MergeProfiles(
 		Format: request.Format,
 		Query: &perforator.ProfileQuery{
 			Selector: request.Selector,
-			TimeInterval: &perforator.TimeInterval{
+			TimeInterval: &time_interval.TimeInterval{
 				From: timestamppb.New(request.FromTS),
 				To:   timestamppb.New(request.ToTS),
 			},
 		},
-		MaxSamples: request.MaxSamples,
+		MaxSamples:   request.MaxSamples,
+		Experimental: request.Experimental,
 	}
 
 	return c.doMergeProfiles(ctx, req, asURL)
@@ -460,24 +469,20 @@ func (c *Client) MergeProfiles(
 
 func (c *Client) GetPGOProfile(
 	ctx context.Context,
-	service string,
+	selector string,
 	format *perforator.PGOProfileFormat,
 	asURL bool,
 ) ([]byte, *perforator.PGOMeta, error) {
 	_, span := c.tracer.Start(ctx, "GetPGOProfile")
 	defer span.End()
 
-	c.l.Info(
-		ctx,
-		"Get sPGO profile",
-		log.Any("service", service),
-	)
-
 	_, result, err := c.runTask(ctx, &perforator.TaskSpec{
 		Kind: &perforator.TaskSpec_GeneratePGOProfile{
 			GeneratePGOProfile: &perforator.GeneratePGOProfileRequest{
-				Service: service,
-				Format:  format,
+				Query: &perforator.ProfileQuery{
+					Selector: selector,
+				},
+				Format: format,
 			},
 		},
 	})
@@ -564,10 +569,11 @@ func (c *Client) UploadProfile(ctx context.Context, meta *perforator.ProfileMeta
 	return res.GetProfileID(), nil
 }
 
+// pass one of flamegraphOptions or textProfileOptions, the other can be nil.
 func (c *Client) UploadRenderedProfile(
 	ctx context.Context,
 	meta *perforator.ProfileMeta,
-	flamegraphOptions *perforator.FlamegraphOptions,
+	formatOptions FormatOptions,
 	profile *pprof.Profile,
 ) (profileID string, taskID string, err error) {
 	profileID, err = c.UploadProfile(ctx, meta, profile)
@@ -581,22 +587,30 @@ func (c *Client) UploadRenderedProfile(
 	time.Sleep(time.Second * 5)
 
 	// Render the profile.
-	taskID, _, err = c.MergeProfilesProto(ctx, &perforator.MergeProfilesRequest{
+	req := &perforator.MergeProfilesRequest{
 		Format: &perforator.RenderFormat{
 			Symbolize: &perforator.SymbolizeOptions{
 				Symbolize: ptr.Bool(false),
 			},
-			Format: &perforator.RenderFormat_Flamegraph{
-				Flamegraph: flamegraphOptions,
-			},
 		},
 		Query: &perforator.ProfileQuery{
 			Selector: fmt.Sprintf(`{system_name = "uploads", id="%s"}`, profileID),
-			TimeInterval: &perforator.TimeInterval{
+			TimeInterval: &time_interval.TimeInterval{
 				From: timestamppb.New(meta.GetTimestamp().AsTime().Add(-time.Minute)),
 			},
 		},
-	})
+	}
+	if formatOptions.Flamegraph != nil {
+		req.Format.Format = &perforator.RenderFormat_JSONFlamegraph{
+			JSONFlamegraph: formatOptions.Flamegraph,
+		}
+	} else {
+		req.Format.Format = &perforator.RenderFormat_TextProfile{
+			TextProfile: formatOptions.TextProfile,
+		}
+	}
+
+	taskID, _, err = c.MergeProfilesProto(ctx, req)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to render uploaded profile: %w", err)
 	}

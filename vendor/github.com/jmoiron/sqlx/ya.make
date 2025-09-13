@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v1.3.5)
+VERSION(v1.4.0)
 
 # DISABLED due to go-sqlite3 dependency being broken
 #GO_TEST_SRCS(

@@ -16,6 +16,7 @@ SRCS(
     shuffle.go
     sort.go
     subtract.go
+    union.go
     zip.go
 )
 
@@ -33,6 +34,7 @@ GO_XTEST_SRCS(
     reverse_test.go
     shuffle_test.go
     subtract_test.go
+    union_test.go
     zip_test.go
 )
 

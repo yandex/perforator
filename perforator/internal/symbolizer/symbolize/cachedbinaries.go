@@ -155,6 +155,10 @@ func (b *CachedBinariesBatch) PathByBuildID(buildID string) string {
 	return ""
 }
 
+func (b *CachedBinariesBatch) Count() int {
+	return len(b.downloaded)
+}
+
 func (b *CachedBinariesBatch) Release() {
 	for _, binary := range b.acquiredBinaries {
 		binary.Close()

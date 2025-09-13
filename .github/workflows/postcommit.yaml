@@ -1,11 +1,11 @@
 on:
   push:
-    branches: 
+    branches:
       - main
 jobs:
   ya:
    name: Postcommit checks
-   runs-on: ubuntu-24.04
+   runs-on: [self-hosted, auto-provisioned]
    steps:
     - uses: actions/checkout@v4
     - uses: tespkg/actions-cache@91b54a6e03abb8fcec12d3743633d23a1cfcd269
@@ -21,5 +21,5 @@ jobs:
           v1-
         path: ~/.ya/build
     - name: Run ya make
-      run: ./ya make ./perforator -DCI=github --gc -r --musl
+      run: ./ya test ./perforator -DCI=github --gc -r --musl -DCONSISTENT_BUILD=yes -DCONSISTENT_DEBUG=yes -T
 

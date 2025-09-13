@@ -30,7 +30,7 @@ import (
 func TestKlogrOutput(t *testing.T) {
 	test.InitKlog(t)
 	test.Output(t, test.OutputConfig{
-		NewLogger: func(out io.Writer, v int, vmodule string) logr.Logger {
+		NewLogger: func(_ io.Writer, _ int, _ string) logr.Logger {
 			return klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog))
 		},
 	})

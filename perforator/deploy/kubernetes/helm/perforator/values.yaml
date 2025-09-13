@@ -186,6 +186,9 @@ agent:
     storageHostnameOverride: ""
     # Label used to describe nodes topology.
     topologyLableKey: "topology.kubernetes.io/zone"
+    # Specifies a custom Kubernetes API server host, in most cases you do not need override this setting. By default the agent attempts to use
+    # KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT environment variables, if those are unavailable, it falls back to "kubernetes.default.svc.cluster.local".
+    KubernetesAPIServerHost: ""
     # user defined labels
     labels:
       # Labels that are added to all profiles, gathered by agent. 
@@ -473,7 +476,8 @@ proxy:
     useCustom: false
     # Custom config content. This is passed into tpl function which allows templating from values.
     custom: ''
-  # URL prefix to retrive finished task with, for example:"https://example.com/static/results/" in case of enabled web, or https://example.com/bucketname/ in case of direct use of s3.
+  # URL prefix to retrive finished task with, in most cases when web service is enabled, configuring web.host is sufficient and this field can be left empty. 
+  # For installations with web service enabled, use format "https://<your.domain>/static/results/", for installations without web service, use the direct storage URL (e.g., "https://storage.example.com/bucket-name/").
   url_prefix:
   # Number of pods to deploy.
   replicas: 1
@@ -608,6 +612,8 @@ proxy:
 web:
   # Proxy does not support ui, if web server is disabled you must support ui with other means.
   enabled: true
+  # Host where the UI is served, used to construct UI links. Example: "https://example.com"
+  host:
   config:
     #Create a new user provided config for the proxy.
     useCustom: false

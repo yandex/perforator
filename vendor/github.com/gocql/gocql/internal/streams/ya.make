@@ -1,8 +1,8 @@
 GO_LIBRARY()
 
-LICENSE(BSD-3-Clause)
+LICENSE(Apache-2.0)
 
-VERSION(v1.6.0)
+VERSION(v1.7.0)
 
 SRCS(
     streams.go

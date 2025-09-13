@@ -27,6 +27,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/linux/mountinfo"
 	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
 	"github.com/yandex/perforator/perforator/pkg/linux/vdso"
+	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -55,11 +56,12 @@ type ProcessRegistry struct {
 }
 
 type processRegistryMetrics struct {
-	mappingsDiscovered           metrics.Counter
-	mappingsWithoutBuildID       metrics.Counter
-	mappingsJitted               metrics.Counter
-	mappingsFailedScheduleUpload metrics.Counter
-	mappingsFailedNameToHandleAt metrics.Counter
+	mappingsDiscovered              metrics.Counter
+	mappingsWithoutBuildID          metrics.Counter
+	mappingsJitted                  metrics.Counter
+	mappingsFailedScheduleUpload    metrics.Counter
+	mappingsFailedNameToHandleAt    metrics.Counter
+	mappingsFailedELFVaddrRetrieval metrics.Counter
 }
 
 type processMap struct {
@@ -162,11 +164,12 @@ func NewProcessRegistry(
 		uploader:   uploader,
 		mounts:     mounts,
 		metrics: processRegistryMetrics{
-			mappingsDiscovered:           m.WithTags(map[string]string{"kind": "discovered"}).Counter("mappings.count"),
-			mappingsWithoutBuildID:       m.WithTags(map[string]string{"kind": "nobuildid"}).Counter("mappings.count"),
-			mappingsJitted:               m.WithTags(map[string]string{"kind": "jitted"}).Counter("mappings.count"),
-			mappingsFailedScheduleUpload: m.WithTags(map[string]string{"kind": "failed_schedule_upload"}).Counter("mappings.count"),
-			mappingsFailedNameToHandleAt: m.WithTags(map[string]string{"kind": "failed_name_to_handle_at"}).Counter("mappings.count"),
+			mappingsDiscovered:              m.WithTags(map[string]string{"kind": "discovered"}).Counter("mappings.count"),
+			mappingsWithoutBuildID:          m.WithTags(map[string]string{"kind": "nobuildid"}).Counter("mappings.count"),
+			mappingsJitted:                  m.WithTags(map[string]string{"kind": "jitted"}).Counter("mappings.count"),
+			mappingsFailedScheduleUpload:    m.WithTags(map[string]string{"kind": "failed_schedule_upload"}).Counter("mappings.count"),
+			mappingsFailedNameToHandleAt:    m.WithTags(map[string]string{"kind": "failed_name_to_handle_at"}).Counter("mappings.count"),
+			mappingsFailedELFVaddrRetrieval: m.WithTags(map[string]string{"kind": "failed_elf_vaddr_retrieval"}).Counter("mappings.count"),
 		},
 		processScanner: processScanner,
 		listeners:      listeners,
@@ -566,9 +569,28 @@ func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping)
 	}
 
 	mapping.BuildInfo = buildinfo
-	mapping.BaseAddress = mapping.Begin - buildinfo.LoadBias
+
 	l := a.log.With(log.String("path", mapping.Path), log.String("buildid", buildid))
-	l.Debug(ctx, "Found mapping build id", log.Any("buildinfo", mapping.BuildInfo), log.UInt64("baseaddr", mapping.BaseAddress))
+
+	mappingELFVaddr, err := xelf.ELFOffsetToVaddr(buildinfo.ExecutableLoadablePhdrs, mapping.Offset)
+	if err != nil {
+		l.Warn(
+			ctx,
+			"Failed to obtain mapping ELF vaddr",
+			log.Any("mapping", mapping),
+			log.Error(err),
+		)
+		a.reg.metrics.mappingsFailedELFVaddrRetrieval.Inc()
+		return err
+	}
+	mapping.BaseAddress = mapping.Begin - mappingELFVaddr
+
+	l.Debug(
+		ctx,
+		"Found mapping build id",
+		log.Any("buildinfo", mapping.BuildInfo),
+		log.UInt64("baseaddr", mapping.BaseAddress),
+	)
 
 	handle, err := binary.Seal()
 	if err != nil {
@@ -610,26 +632,39 @@ func (a *processAnalyzer) registerMapping(m *dso.Mapping) {
 	a.exemappings = append(a.exemappings, m)
 }
 
-func (a *processAnalyzer) fillSpecialBinaryInfo(pi *unwinder.ProcessInfo, mappings []*dso.Mapping) {
+func mappedBinaryFromMapping(mapping *dso.Mapping) unwinder.MappedBinary {
+	return unwinder.MappedBinary{
+		Id:          unwinder.BinaryId(mapping.DSO.ID),
+		BaseAddress: mapping.BaseAddress,
+	}
+}
+
+func (a *processAnalyzer) fillMappedBinaryInfo(pi *unwinder.ProcessInfo, mappings []*dso.Mapping) {
 	for _, m := range mappings {
 		if m.DSO == nil {
 			continue
 		}
 
-		switch m.DSO.SpecialBinaryType {
-		case unwinder.SpecialBinaryTypePythonInterpreter:
-			pi.InterpreterBinary = unwinder.SpecialBinary{
-				Id:           unwinder.BinaryId(m.DSO.ID),
-				Type:         m.DSO.SpecialBinaryType,
-				StartAddress: m.BaseAddress,
-			}
-		case unwinder.SpecialBinaryTypePthreadGlibc:
-			pi.PthreadBinary = unwinder.SpecialBinary{
-				Id:           unwinder.BinaryId(m.DSO.ID),
-				Type:         m.DSO.SpecialBinaryType,
-				StartAddress: m.BaseAddress,
-			}
+		switch m.DSO.BinaryClass {
+		case dso.PythonBinaryClass:
+			pi.PythonBinary = mappedBinaryFromMapping(m)
+		case dso.PhpBinaryClass:
+			pi.PhpBinary = mappedBinaryFromMapping(m)
+		case dso.PthreadGlibcBinaryClass:
+			pi.PthreadBinary = mappedBinaryFromMapping(m)
 		}
+	}
+}
+
+func newProcessInfo() *unwinder.ProcessInfo {
+	return &unwinder.ProcessInfo{
+		UnwindType:   unwinder.UnwindTypeDwarf,
+		MainBinaryId: unwinder.BinaryId(math.MaxUint64),
+		PhpBinary:    unwinder.MappedBinary{BaseAddress: math.MaxUint64},
+		PythonBinary: unwinder.MappedBinary{BaseAddress: math.MaxUint64},
+		PthreadBinary: unwinder.MappedBinary{
+			BaseAddress: math.MaxUint64,
+		},
 	}
 }
 
@@ -640,24 +675,14 @@ func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
 
 	a.syncMaps(ctx)
 
-	pi := unwinder.ProcessInfo{
-		UnwindType: unwinder.UnwindTypeDwarf,
-		PthreadBinary: unwinder.SpecialBinary{
-			Type: unwinder.SpecialBinaryTypeNone,
-		},
-		InterpreterBinary: unwinder.SpecialBinary{
-			Type: unwinder.SpecialBinaryTypeNone,
-		},
-	}
+	pi := newProcessInfo()
 	if len(a.exemappings) > 0 && a.exemappings[0].DSO != nil {
 		pi.MainBinaryId = unwinder.BinaryId(a.exemappings[0].DSO.ID)
-	} else {
-		pi.MainBinaryId = unwinder.BinaryId(math.MaxUint64)
 	}
-	a.fillSpecialBinaryInfo(&pi, a.exemappings)
+	a.fillMappedBinaryInfo(pi, a.exemappings)
 
 	a.log.Debug(ctx, "Put process info", log.Any("info", pi))
-	err := a.reg.bpf.AddProcess(a.proc.id, &pi)
+	err := a.reg.bpf.AddProcess(a.proc.id, pi)
 	if err != nil {
 		return err
 	}

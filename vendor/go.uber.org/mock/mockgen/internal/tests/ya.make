@@ -1,0 +1,37 @@
+RECURSE(
+    add_generate_directive
+    alias
+    aux_imports_embedded_interface
+    build_constraint
+    build_flags
+    const_array_length
+    copyright_file
+    custom_package_name
+    defined_import_local_name
+    dot_imports
+    empty_interface
+    exclude
+    extra_import
+    generated_identifier_conflict
+    import_aliased
+    import_collision
+    import_embedded_interface
+    import_source
+    internal_pkg
+    missing_import
+    mock_in_test_package
+    mock_name
+    overlapping_methods
+    package_comment
+    package_mode
+    panicing_test
+    parenthesized_parameter_type
+    performance
+    sanitization
+    self_package
+    test_package
+    typed_inorder
+    unexported_method
+    vendor_dep
+    vendor_pkg
+)

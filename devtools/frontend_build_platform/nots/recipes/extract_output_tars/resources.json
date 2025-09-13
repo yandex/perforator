@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-01-27T09:27:09.284Z",
+    "created": "2025-09-12T13:54:56.543Z",
     "pr": {
-      "id": 7331537,
-      "author": "khoden",
-      "summary": "FBP-1640: nots: Сделать output.tar главным артефактом сборки, чтобы можно было использовать его в BUNDLE()"
+      "id": 9975072,
+      "author": "baymer",
+      "summary": "FBP-2515: другое: Перенести ca-store в из .cache/pnpm-9-store в .nots/pnpm-store"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:7909144210"
+      "uri": "sbr:9707070377"
     },
     "darwin-arm64": {
-      "uri": "sbr:7909140682"
+      "uri": "sbr:9707067801"
     },
     "linux": {
-      "uri": "sbr:7909149204"
+      "uri": "sbr:9707075326"
     },
     "linux-aarch64": {
-      "uri": "sbr:7909147173"
+      "uri": "sbr:9707072930"
     }
   }
 }

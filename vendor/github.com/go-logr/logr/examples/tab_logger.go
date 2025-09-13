@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package main implements a simple example of a logr.LogSink that logs to
+// stderr in a tabular format.  It is not intended to be a production logger.
 package main
 
 import (
@@ -36,23 +38,23 @@ var _ logr.LogSink = &tabLogSink{}
 
 // Note that Init usually takes a pointer so it can modify the receiver to save
 // runtime info.
-func (*tabLogSink) Init(info logr.RuntimeInfo) {
+func (*tabLogSink) Init(_ logr.RuntimeInfo) {
 }
 
-func (tabLogSink) Enabled(level int) bool {
+func (tabLogSink) Enabled(_ int) bool {
 	return true
 }
 
-func (l tabLogSink) Info(level int, msg string, kvs ...any) {
-	fmt.Fprintf(l.writer, "%s\t%s\t", l.name, msg)
+func (l tabLogSink) Info(_ int, msg string, kvs ...any) {
+	_, _ = fmt.Fprintf(l.writer, "%s\t%s\t", l.name, msg)
 	for k, v := range l.keyValues {
-		fmt.Fprintf(l.writer, "%s: %+v  ", k, v)
+		_, _ = fmt.Fprintf(l.writer, "%s: %+v  ", k, v)
 	}
 	for i := 0; i < len(kvs); i += 2 {
-		fmt.Fprintf(l.writer, "%s: %+v  ", kvs[i], kvs[i+1])
+		_, _ = fmt.Fprintf(l.writer, "%s: %+v  ", kvs[i], kvs[i+1])
 	}
-	fmt.Fprintf(l.writer, "\n")
-	l.writer.Flush()
+	_, _ = fmt.Fprintf(l.writer, "\n")
+	_ = l.writer.Flush()
 }
 
 func (l tabLogSink) Error(err error, msg string, kvs ...any) {
@@ -74,7 +76,9 @@ func (l tabLogSink) WithValues(kvs ...any) logr.LogSink {
 		newMap[k] = v
 	}
 	for i := 0; i < len(kvs); i += 2 {
-		newMap[kvs[i].(string)] = kvs[i+1]
+		k := kvs[i].(string) //nolint:forcetypeassert
+		v := kvs[i+1]
+		newMap[k] = v
 	}
 	return &tabLogSink{
 		name:      l.name,

@@ -129,6 +129,25 @@ func getProfileEventTypes(profile *profile.Profile) []string {
 	return res
 }
 
+// getProfileSignalTypes returns a slice of unique signal names that were present in a profile.
+func getProfileSignalTypes(profile *profile.Profile) []string {
+	signalSet := make(map[string]struct{})
+
+	for _, sample := range profile.Sample {
+		if values, exists := sample.Label["signal:name"]; exists {
+			for _, value := range values {
+				signalSet[value] = struct{}{}
+			}
+		}
+	}
+
+	result := make([]string, len(signalSet))
+	for signal := range signalSet {
+		result = append(result, signal)
+	}
+	return result
+}
+
 func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile) error {
 	addProfileComments(profile.Profile, profile.Labels)
 
@@ -149,6 +168,8 @@ func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile
 
 	eventTypes := getProfileEventTypes(profile.Profile)
 
+	signalTypes := getProfileSignalTypes(profile.Profile)
+
 	sz, err := s.client.PushProfile(
 		ctx,
 		profileBytes.Bytes(),
@@ -156,6 +177,7 @@ func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile
 		buildIDs,
 		envs,
 		eventTypes,
+		signalTypes,
 	)
 	if err != nil {
 		return err

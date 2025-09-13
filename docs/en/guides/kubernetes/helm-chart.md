@@ -62,18 +62,9 @@ databases:
     endpoint: "<host>:<port>"
     accessKey: "<accessKey>"
     secretKey: "<secretKey>"
-proxy:
-  url_prefix: https://<address>/static/results/
+web:
+  host: "https://<host.to.serve.UI.on>"
 ```
-
-{% note warning %}
-
-Suggested `proxy.url_prefix` value is based on the following assumptions:
-- Your installation includes `web` component (i.e. you do not explicitly set `web.enabled` to false)
-- `<address>` is a DNS name or IP address pointing to `web`
-- TLS is enabled (use `http://` otherwise)
-
-{% endnote %}
 
 {% note info %}
 
@@ -103,7 +94,7 @@ helm install perforator-release -n perforator perforator/perforator -f my-values
 To access the Perforator UI, configure port forwarding to the local machine:
 
 ```console
-kubectl port-forward svc/perforator-release-perforator-web-service -n perforator 8080:80
+kubectl port-forward svc/perforator-release-web-service -n perforator 8080:80
 ```
 Then open `http://localhost:8080` in your browser
 

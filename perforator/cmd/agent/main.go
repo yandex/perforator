@@ -20,12 +20,12 @@ import (
 	logzap "github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/library/go/core/log/zap/asynczap"
 	"github.com/yandex/perforator/library/go/core/log/zap/encoders"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/agent"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
-	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/maxprocs"
 	"github.com/yandex/perforator/perforator/pkg/must"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -52,6 +52,7 @@ var (
 	tids             []int
 	logLevel         string
 	enableJVM        bool
+	enablePHP        bool
 )
 
 func init() {
@@ -64,6 +65,7 @@ func init() {
 	rootCmd.Flags().IntSliceVarP(&tids, "tid", "t", nil, "id of thread(s) to trace")
 	rootCmd.Flags().StringVarP(&logLevel, "log-level", "l", "info", "log level (default - `info`, must be one of `debug`, `info`, `warn`, `error`)")
 	rootCmd.Flags().BoolVar(&enableJVM, "enable-jvm", false, "[experimental feature] enable JVM profiling")
+	rootCmd.Flags().BoolVar(&enablePHP, "enable-php", false, "[experimental feature] enable PHP profiling")
 
 	cobrabuildinfo.Init(rootCmd)
 
@@ -109,6 +111,7 @@ func run() error {
 		reqs := unwinder.ProgramRequirements{
 			Debug: debug,
 			JVM:   enableJVM,
+			PHP:   enablePHP,
 		}
 		prog, err := unwinder.LoadProg(reqs)
 		if err != nil {
@@ -164,69 +167,47 @@ func run() error {
 		})
 	}
 
-	p, err := profiler.NewProfiler(c, l, r)
-	if err != nil {
-		return err
-	}
+	var profilerOpts []profiler.Option
 
-	err = p.TraceSelf(map[string]string{
+	profilerOpts = append(profilerOpts, profiler.WithSelfTarget(map[string]string{
 		"service": "perforator",
 		"host":    hostname,
-	})
-	if err != nil {
-		return err
-	}
+	}))
 
-	err = p.TraceCgroups(cgroupsConfig.Cgroups)
-	if err != nil {
-		return err
+	for _, cgroupConfig := range cgroupsConfig.Cgroups {
+		profilerOpts = append(profilerOpts, profiler.WithCgroupTarget(cgroupConfig))
 	}
 
 	for _, pid := range pids {
 		l.Info("Register pid", log.Int("pid", pid))
-		err := p.TracePid(linux.ProcessID(pid), map[string]string{
+		profilerOpts = append(profilerOpts, profiler.WithProcessTarget(pid, map[string]string{
 			"host": hostname,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to start pid %d tracing: %w", pid, err)
-		}
+		}))
 	}
 
 	for _, tid := range tids {
 		l.Info("Register tid", log.Int("tid", tid))
-		err := p.TracePid(linux.ProcessID(tid), map[string]string{
+		profilerOpts = append(profilerOpts, profiler.WithThreadTarget(tid, map[string]string{
 			"host": hostname,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to start pid %d tracing: %w", tid, err)
-		}
+		}))
+	}
+
+	agent, err := agent.NewPerforatorAgent(
+		l,
+		r,
+		c,
+		agent.WithProfilerOptions(profilerOpts...),
+		agent.WithDebugModeToggler(&agent.DebugModeTogglerConfig{
+			Interval:    time.Second,
+			TogglerPath: "perforator.debug",
+		}),
+	)
+	if err != nil {
+		return err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	go func() {
-		tick := time.NewTicker(time.Second)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-tick.C:
-			}
-
-			if _, err := os.Stat("perforator.debug"); err == nil {
-				err = p.SetDebugMode(true)
-				if err != nil {
-					l.Error("Failed to enable debug mode", log.Error(err))
-				}
-			} else {
-				err = p.SetDebugMode(false)
-				if err != nil {
-					l.Error("Failed to disable debug mode", log.Error(err))
-				}
-			}
-		}
-	}()
 
 	// Setup http puller server
 	http.Handle("/metrics", r.HTTPHandler(ctx, xlog.New(l)))
@@ -239,7 +220,7 @@ func run() error {
 		}
 	}()
 
-	return p.Run(ctx)
+	return agent.Run(ctx)
 }
 
 func newLogger(level zapcore.Level) (l log.Logger, stop func(), err error) {

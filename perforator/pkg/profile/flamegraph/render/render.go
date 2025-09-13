@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	pprof "github.com/google/pprof/profile"
+	"golang.org/x/exp/maps"
 
 	"github.com/yandex/perforator/library/go/core/resource"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
@@ -53,15 +54,18 @@ func init() {
 	})
 
 	template.Must(tmpl.New("html").Parse(htmlTmpl))
-	template.Must(tmpl.New("html_v2").Parse(newHtmlTmpl))
+	template.Must(tmpl.New("html-v2").Parse(newHtmlTmpl))
 }
 
 type Format string
 
 const (
-	HTMLFormat   Format = "html"
-	HTMLFormatV2 Format = "html_v2"
-	JSONFormat   Format = "json"
+	HTMLFormat       Format = "html"
+	HTMLFormatV2     Format = "html-v2"
+	JSONFormat       Format = "json"
+	JSONPrettyFormat Format = "json-pretty"
+
+	PlainTextFormat Format = "text" // Used only in TextFormat struct
 )
 
 const (
@@ -80,6 +84,14 @@ const (
 	RenderAddressesAlways       AddressRenderPolicy = "always"
 )
 
+var (
+	AddressRenderPolicies = []AddressRenderPolicy{
+		RenderAddressesNever,
+		RenderAddressesUnsymbolized,
+		RenderAddressesAlways,
+	}
+)
+
 ////////////////////////////////////////////////////////////////////////////////
 
 type locationMeta struct {
@@ -93,14 +105,20 @@ type locationData struct {
 	inlined bool
 }
 
-type FlameGraph struct {
-	diff bool
+// LocationFrameOptions contains configuration for rendering location frames
+type LocationFrameOptions struct {
+	AddressPolicy  AddressRenderPolicy
+	LineNumbers    bool
+	FileNames      bool
+	FilePathPrefix string
+}
 
-	format        Format
-	inverted      bool
-	lineNumbers   bool
-	fileNames     bool
-	addressPolicy AddressRenderPolicy
+type FlameGraph struct {
+	format   Format
+	inverted bool
+	diff     bool
+
+	locationFrameOptions LocationFrameOptions
 
 	title     string
 	maxDepth  int
@@ -125,7 +143,10 @@ type FlameGraph struct {
 
 func NewFlameGraph() *FlameGraph {
 	return &FlameGraph{
-		fileNames:           true,
+		locationFrameOptions: LocationFrameOptions{
+			FileNames:      true,
+			FilePathPrefix: "@",
+		},
 		format:              HTMLFormatV2,
 		title:               "Flame Graph",
 		frameType:           "Function",
@@ -176,11 +197,15 @@ func (f *FlameGraph) SetFontSize(size float64) {
 }
 
 func (f *FlameGraph) SetLineNumbers(value bool) {
-	f.lineNumbers = value
+	f.locationFrameOptions.LineNumbers = value
 }
 
 func (f *FlameGraph) SetFileNames(value bool) {
-	f.fileNames = value
+	f.locationFrameOptions.FileNames = value
+}
+
+func (f *FlameGraph) SetFilePathPrefix(value string) {
+	f.locationFrameOptions.FilePathPrefix = value
 }
 
 func (f *FlameGraph) SetFormat(format Format) {
@@ -188,7 +213,7 @@ func (f *FlameGraph) SetFormat(format Format) {
 }
 
 func (f *FlameGraph) SetAddressRenderPolicy(policy AddressRenderPolicy) {
-	f.addressPolicy = policy
+	f.locationFrameOptions.AddressPolicy = policy
 }
 
 func reverse(s string) string {
@@ -223,14 +248,14 @@ func (f *FlameGraph) hashcolor(name string, module FrameOrigin) color.RGBA {
 	v3 := v2
 
 	switch module {
-	case "kernel":
+	case FrameOriginKernel:
 		return color.RGBA{
 			R: uint8(96 + 55*v2),
 			G: uint8(96 + (255-96)*v1),
 			B: uint8(205 + 50*v3),
 			A: 0,
 		}
-	case "python":
+	case FrameOriginPython:
 		return color.RGBA{
 			R: uint8(103 + 50*v2),
 			G: uint8(178 + 77*v1),
@@ -391,7 +416,47 @@ func renderFramesByHand(frameLevels [][]*frame, diff bool) string {
 	return w.String()
 }
 
+func (f *FlameGraph) renderBlocksToPrettyJSON(blocks []*block, w io.Writer) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return f.encodeBlocksToJSON(blocks, enc)
+}
 func (f *FlameGraph) renderBlocksToJSON(blocks []*block, w io.Writer) error {
+	enc := json.NewEncoder(w)
+	return f.encodeBlocksToJSON(blocks, enc)
+}
+
+func populateWithIndexes(root *block, depth, queueSize int) [][]*block {
+	// every block will be in the queue once;
+	// the queue becomes smaller by cutting off its first element
+	// the underlying array elements will stay in place and we will move over that section of memory
+	// so we cannot allocate less than the amount of blocks
+	q := make([]*block, 0, queueSize)
+	q = append(q, root)
+	blocksByLevels := make([][]*block, depth)
+	lastLevel := 0
+	lastIndex := 0
+	for len(q) != 0 {
+		currentBlock := q[0]
+		q = q[1:]
+		if currentBlock.level > lastLevel {
+			lastLevel = currentBlock.level
+			lastIndex = 0
+		}
+		currentBlock.setLevelPos(lastIndex)
+		lastIndex += 1
+		blocksByLevels[lastLevel] = append(blocksByLevels[lastLevel], currentBlock)
+		children := currentBlock.children
+		keys := maps.Keys(children)
+		slices.Sort(keys)
+		for _, key := range keys {
+			q = append(q, children[key])
+		}
+	}
+	return blocksByLevels
+}
+
+func (f *FlameGraph) encodeBlocksToJSON(blocks []*block, enc *json.Encoder) error {
 	strtab := NewStringTable()
 
 	maxLevel := 0
@@ -401,36 +466,15 @@ func (f *FlameGraph) renderBlocksToJSON(blocks []*block, w io.Writer) error {
 		}
 	}
 
-	blocksByLevels := make([][]*block, maxLevel+1)
 	nodeLevels := make([][]format.RenderingNode, maxLevel+1)
 
-	for _, block := range blocks {
-		// Skip disappeared (present in baseline, but not in the diff profile) blocks
-		if block.weight == 0.0 {
-			continue
-		}
-
-		blocksByLevels[block.level] = append(blocksByLevels[block.level], block)
-	}
-
-	compareOffsets := func(a *block, b *block) int {
-		// offset is defined on [0, 1), compare fn must return int, so we round it up and add a sign
-		// diff (-1, 0) maps to -1
-		// diff {0} maps to 0
-		// diff (0, 1) maps to 1
-		diff := a.offset - b.offset
-		return int(math.Copysign(math.Ceil(math.Abs(diff)), diff))
-	}
+	blocksByLevels := populateWithIndexes(blocks[0], maxLevel+1, len(blocks))
 
 	for _, blocksOnLevel := range blocksByLevels {
-		slices.SortFunc(blocksOnLevel, compareOffsets)
-	}
-
-	for h, blocksOnLevel := range blocksByLevels {
 		for _, currentBlock := range blocksOnLevel {
 			parentIndex := -1
-			if h > 0 {
-				parentIndex, _ = slices.BinarySearchFunc(blocksByLevels[h-1], currentBlock.parent, compareOffsets)
+			if currentBlock.parent != nil {
+				parentIndex = currentBlock.parent.levelPos
 			}
 			node := format.RenderingNode{
 				ParentIndex:     parentIndex,
@@ -451,7 +495,7 @@ func (f *FlameGraph) renderBlocksToJSON(blocks []*block, w io.Writer) error {
 	profileMeta := format.ProfileMeta{
 		EventType: strtab.Add(f.eventType),
 		FrameType: strtab.Add(f.frameType),
-		Version:   1,
+		Version:   2,
 	}
 
 	profileData := format.ProfileData{
@@ -460,8 +504,7 @@ func (f *FlameGraph) renderBlocksToJSON(blocks []*block, w io.Writer) error {
 		Meta:    profileMeta,
 	}
 
-	// NOTE: if slow swap with goccy/go-json
-	err := json.NewEncoder(w).Encode(profileData)
+	err := enc.Encode(profileData)
 	if err != nil {
 		return err
 	}
@@ -494,6 +537,8 @@ func (f *FlameGraph) renderBlocks(blocks []*block, w io.Writer) error {
 	switch f.format {
 	case JSONFormat:
 		return f.renderBlocksToJSON(blocks, w)
+	case JSONPrettyFormat:
+		return f.renderBlocksToPrettyJSON(blocks, w)
 	case HTMLFormat:
 		return f.renderBlocksToHTML(blocks, w)
 	case HTMLFormatV2:
@@ -626,7 +671,7 @@ func (f *FlameGraph) addCollapsedProfile(profile *collapsed.Profile, baseline bo
 	}
 }
 
-func (f *FlameGraph) getLocationFrames(loc *pprof.Location) []locationData {
+func getLocationFrames(loc *pprof.Location, options LocationFrameOptions) []locationData {
 	frames := make([]locationData, 0, len(loc.Line))
 	for i, line := range loc.Line {
 		funcname := "??"
@@ -643,14 +688,14 @@ func (f *FlameGraph) getLocationFrames(loc *pprof.Location) []locationData {
 		}
 
 		switch {
-		case f.addressPolicy == RenderAddressesUnsymbolized && funcname == unsymbolizedFunction:
+		case options.AddressPolicy == RenderAddressesUnsymbolized && funcname == unsymbolizedFunction:
 			fallthrough
-		case f.addressPolicy == RenderAddressesAlways:
-			funcname = fmt.Sprintf("{%x} %s", loc.Address, funcname)
+		case options.AddressPolicy == RenderAddressesAlways:
+			funcname = fmt.Sprintf("{%#x} %s", loc.Address, funcname)
 		}
 
 		lineNumber := ""
-		if f.lineNumbers {
+		if options.LineNumbers && line.Line > 0 {
 			lineNumber = fmt.Sprintf(":%d", line.Line)
 		}
 
@@ -668,8 +713,8 @@ func (f *FlameGraph) getLocationFrames(loc *pprof.Location) []locationData {
 		inlined := i > 0
 
 		filepos := ""
-		if f.fileNames {
-			filepos = "@" + filename + lineNumber
+		if options.FileNames {
+			filepos = options.FilePathPrefix + filename + lineNumber
 		}
 
 		frames = append(frames, locationData{name: or(funcname), file: filepos, inlined: inlined})
@@ -680,7 +725,7 @@ func (f *FlameGraph) getLocationFrames(loc *pprof.Location) []locationData {
 
 func (f *FlameGraph) getLocationFramesCached(loc *pprof.Location) []locationData {
 	if loc.Mapping == nil {
-		return f.getLocationFrames(loc)
+		return getLocationFrames(loc, f.locationFrameOptions)
 	}
 
 	meta := locationMeta{
@@ -689,7 +734,7 @@ func (f *FlameGraph) getLocationFramesCached(loc *pprof.Location) []locationData
 	}
 	frames, found := f.locationsCache[meta]
 	if !found {
-		frames = f.getLocationFrames(loc)
+		frames = getLocationFrames(loc, f.locationFrameOptions)
 		f.locationsCache[meta] = frames
 	}
 
@@ -759,7 +804,7 @@ func (f *FlameGraph) addProfile(p *pprof.Profile, baseline bool) {
 				} else {
 					name := "??"
 					path := ""
-					if f.fileNames {
+					if f.locationFrameOptions.FileNames {
 						path = loc.Mapping.File
 					}
 					iter.Advance(name, path).SetFrameOrigin(origin)

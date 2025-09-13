@@ -1,10 +1,12 @@
 GO_LIBRARY()
 
 SRCS(
-    listener.go
+    error_listener.go
+    expression_listener.go
     operators.go
     parse_error.go
     parser.go
+    selector_listener.go
     utils.go
 )
 

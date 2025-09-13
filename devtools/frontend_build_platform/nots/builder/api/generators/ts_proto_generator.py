@@ -5,10 +5,13 @@ import sys
 
 from devtools.frontend_build_platform.libraries.logging import timeit
 
+from build.plugins.lib.nots.package_manager import PackageJson, utils as pm_utils
+
+
 from ..models import BuildError, BaseOptions
 from ..utils import copy_if_not_exists, dict_to_ts_proto_opt, parse_opt_to_dict, popen, resolve_bin
 
-from .default_ts_proto_opt import DEFAULT_TS_PROTO_OPT
+from .default_ts_proto_opt import DEFAULT_TS_PROTO_OPT, DEFAULT_TS_PROTO_AUTO_OPT
 
 
 @dataclass
@@ -24,6 +27,12 @@ class TsProtoGeneratorOptions(BaseOptions):
 
     ts_proto_opt: list[str]
     """List for --ts_proto_opt"""
+
+    auto_package_name: str | None
+    """Name for TS_PROTO_AUTO package"""
+
+    auto_deps_path: str | None
+    """Arcadia relative path to TS_PROTO_AUTO deps module"""
 
 
 class TsProtoGenerator:
@@ -43,6 +52,57 @@ class TsProtoGenerator:
         # Otherwise it throws "No such file or directory"
         self._make_out_dir()
         self._exec()
+
+    @property
+    def is_auto_package(self):
+        return self.options.auto_package_name is not None and self.options.auto_deps_path is not None
+
+    @timeit
+    def generate_auto_package(self):
+        if not self.is_auto_package:
+            return
+
+        auto_deps_build_path = os.path.join(self.options.arcadia_build_root, self.options.auto_deps_path)
+        deps_pj = PackageJson.load(pm_utils.build_pj_path(auto_deps_build_path))
+        pj = PackageJson(pm_utils.build_pj_path(self.options.bindir))
+        gen_name = self.options.moddir.replace("/", "-")
+        pj.data = {
+            "name": self.options.auto_package_name.replace("*", gen_name),
+            "version": "0.0.0",
+            "type": "module",
+            "files": ["build/"],
+            "repository": {"type": "arc", "directory": self.options.moddir},
+            "dependencies": deps_pj.data.get("dependencies", {}),
+            "devDependencies": deps_pj.data.get("devDependencies", {}),
+            "exports": {
+                "./*": {
+                    "import": os.path.join(".", "build", "esm", "generated", self.options.moddir, "*.js"),
+                    "require": os.path.join(".", "build", "cjs", "generated", self.options.moddir, "*.js"),
+                    "types": os.path.join(".", "build", "types", "generated", self.options.moddir, "*.d.ts"),
+                    "default": os.path.join(".", "build", "esm", "generated", self.options.moddir, "*.js"),
+                }
+            },
+        }
+        pj.write()
+
+        tsconfigs = ["tsconfig.json", "tsconfig.cjs.json", "tsconfig.esm.json"]
+        for tsconfig in tsconfigs:
+            copy_if_not_exists(
+                os.path.join(auto_deps_build_path, tsconfig), os.path.join(self.options.bindir, tsconfig)
+            )
+
+    def get_auto_deps_lf_path(self) -> str | None:
+        if not self.is_auto_package:
+            return None
+        return os.path.join(self.options.arcadia_build_root, self.options.auto_deps_path, "pnpm-lock.yaml")
+
+    @timeit
+    def generate_cjs_pj(self):
+        cjs_outdir = os.path.join(self.options.bindir, "build", "cjs")
+        if os.path.exists(cjs_outdir):
+            pj = PackageJson(pm_utils.build_pj_path(cjs_outdir))
+            pj.data = {"type": "commonjs"}
+            pj.write()
 
     def _copy_src_dir(self):
         curdir_src = os.path.join(self.options.curdir, "src")
@@ -64,7 +124,12 @@ class TsProtoGenerator:
     def _get_ts_proto_opt(self) -> str:
         user_opt = parse_opt_to_dict(self.options.ts_proto_opt)
         final_opt = DEFAULT_TS_PROTO_OPT.copy()
+
+        if self.is_auto_package:
+            final_opt.update(DEFAULT_TS_PROTO_AUTO_OPT)
+
         final_opt.update(user_opt)
+
         return dict_to_ts_proto_opt(final_opt)
 
     def _get_exec_args(self) -> list[str]:

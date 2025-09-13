@@ -1,9 +1,9 @@
 #include "builder.h"
-#include "library/cpp/iterator/enumerate.h"
 
 #include <absl/container/flat_hash_map.h>
 
 #include <library/cpp/int128/int128.h>
+#include <library/cpp/iterator/enumerate.h>
 
 #include <util/memory/pool.h>
 #include <util/generic/maybe.h>
@@ -228,12 +228,24 @@ public:
         return Fetch(StackFrames_, info);
     }
 
+    TStackSegmentBuilder AddStackSegment() {
+        return {Owner_};
+    }
+
+    TStackSegmentId AddStackSegment(const TStackSegmentInfo& info) {
+        return FetchHashedLossy(StackSegmentHashes_, info);
+    }
+
     TStackBuilder AddStack() {
         return {Owner_};
     }
 
+    TSimpleStackBuilder AddSimpleStack() {
+        return {Owner_};
+    }
+
     TStackId AddStack(const TStackInfo& info) {
-        return FetchHashedLossy(StackHashes_, info);
+        return Fetch(Stacks_, info);
     }
 
     TSampleKeyBuilder AddSampleKey() {
@@ -243,7 +255,7 @@ public:
     TSampleKeyId AddSampleKey(const TSampleKeyInfo& info) {
         TSampleKeyId id = FetchHashedLossy(SampleKeyHashes_, info);
         if (ui32 idx = id.GetInternalIndex(); idx >= SampleByKeys_.size()) {
-            SampleByKeys_.resize(1 + id.GetInternalIndex() * 2);
+            SampleByKeys_.resize(1 + id.GetInternalIndex() * 2, TSampleId::Invalid());
         }
         return id;
     }
@@ -258,12 +270,13 @@ public:
         return id;
     }
 
-    void Finish() {
+    NProto::NProfile::Profile* Finish() {
         for (auto [i, sum] : Enumerate(ValuesSum_)) {
             auto& protosum = *Profile_.mutable_samples()->mutable_values(i)->mutable_value_sum();
             protosum.set_lo(GetLow(sum));
             protosum.set_hi(GetHigh(sum));
         }
+        return &Profile_;
     }
 
 private:
@@ -273,7 +286,8 @@ private:
         Fetch(Binaries_, TBinaryInfo{});
         Fetch(Functions_, TFunctionInfo{});
         FetchHashedLossy(InlineChainHashes_, TInlineChainInfo{});
-        FetchHashedLossy(StackHashes_, TStackInfo{});
+        FetchHashedLossy(StackSegmentHashes_, TStackSegmentInfo{});
+        Fetch(Stacks_, TStackInfo{});
         Fetch(StackFrames_, TStackFrameInfo{});
     }
 
@@ -282,9 +296,9 @@ private:
 
         // We should not merge timestamped samples.
         if (!sample.Timestamp) {
-            TMaybe<TSampleId>& prev = SampleByKeys_.at(*sample.Key);
-            if (prev) {
-                id = *prev;
+            TSampleId& prev = SampleByKeys_.at(*sample.Key);
+            if (prev.IsValid()) {
+                id = prev;
            } else {
                 prev = id;
            }
@@ -360,8 +374,9 @@ private:
     }
 
     template <typename Map, typename Key, typename Index = typename Map::mapped_type>
-    Index FetchHashedLossy(Map& map, Key key) {
-        return FetchImpl(map, absl::HashOf(key) ^ 0xdeadbeefdeadbeefull, key);
+    Index FetchHashedLossy(Map& map, const Key& key) {
+        ui64 hash = key.StableHashValue() ^ 0xdeadbeefdeadbeefull;
+        return FetchImpl(map, hash, key);
     }
 
 private:
@@ -441,16 +456,22 @@ private:
         CheckedAddAt(frames.mutable_inline_chain_id(), id, *info.InlineChain);
     }
 
+    void FillEntityAt(const TStackSegmentInfo& info, TStackSegmentId id) {
+        auto& segments = *Profile_.mutable_stack_segments();
+
+        CheckedAddAt(segments.mutable_offset(), id, segments.frame_id_size());
+        for (const TStackFrameId& frame : info.Stack) {
+            segments.add_frame_id(*frame);
+        }
+    }
+
     void FillEntityAt(const TStackInfo& info, TStackId id) {
         auto& stacks = *Profile_.mutable_stacks();
 
         CheckedAddAt(stacks.mutable_kind(), id, info.Kind);
         CheckedAddAt(stacks.mutable_runtime_name(), id, *info.RuntimeName);
-
-        CheckedAddAt(stacks.mutable_offset(), id, stacks.frame_id_size());
-        for (const TStackFrameId& frame : info.Stack) {
-            stacks.add_frame_id(*frame);
-        }
+        CheckedAddAt(stacks.mutable_top_frame_id(), id, *info.TopFrame);
+        CheckedAddAt(stacks.mutable_stack_segment_id(), id, *info.StackSegment);
     }
 
     void FillEntityAt(const TSampleKeyInfo& info, TSampleKeyId id) {
@@ -489,9 +510,10 @@ private:
     absl::flat_hash_map<TFunctionInfo, TFunctionId> Functions_;
     absl::flat_hash_map<ui64, TInlineChainId> InlineChainHashes_;
     absl::flat_hash_map<TStackFrameInfo, TStackFrameId> StackFrames_;
-    absl::flat_hash_map<ui64, TStackId> StackHashes_;
+    absl::flat_hash_map<ui64, TStackSegmentId> StackSegmentHashes_;
+    absl::flat_hash_map<TStackInfo, TStackId> Stacks_;
     absl::flat_hash_map<ui64, TSampleKeyId> SampleKeyHashes_;
-    TVector<TMaybe<TSampleId>> SampleByKeys_;
+    TVector<TSampleId> SampleByKeys_;
     TVector<ui128> ValuesSum_;
 };
 
@@ -608,8 +630,22 @@ TStackFrameId TProfileBuilder::AddStackFrame(const TStackFrameInfo& info) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+TProfileBuilder::TStackSegmentBuilder TProfileBuilder::AddStackSegment() {
+    return Impl_->AddStackSegment();
+}
+
+TStackSegmentId TProfileBuilder::AddStackSegment(const TStackSegmentInfo& info) {
+    return Impl_->AddStackSegment(info);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 TProfileBuilder::TStackBuilder TProfileBuilder::AddStack() {
     return Impl_->AddStack();
+}
+
+TProfileBuilder::TSimpleStackBuilder TProfileBuilder::AddSimpleStack() {
+    return Impl_->AddSimpleStack();
 }
 
 TStackId TProfileBuilder::AddStack(const TStackInfo& info) {
@@ -638,7 +674,7 @@ TSampleId TProfileBuilder::AddSample(const TSampleInfo& info) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void TProfileBuilder::Finish() && {
+NProto::NProfile::Profile* TProfileBuilder::Finish() && {
     return Impl_->Finish();
 }
 

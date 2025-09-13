@@ -7,6 +7,7 @@ import (
 
 	"github.com/yandex/perforator/observability/lib/querylang"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
+	profilepb "github.com/yandex/perforator/perforator/proto/profile"
 )
 
 type buildIDFilter string
@@ -26,6 +27,12 @@ func (bf buildIDFilter) Matches(sample *pprof.Sample) bool {
 		}
 	}
 	return false
+}
+
+func (bf buildIDFilter) AppendToProto(filter *profilepb.SampleFilter) {
+	if bf != "" {
+		filter.RequiredOneOfBuildIds = append(filter.RequiredOneOfBuildIds, string(bf))
+	}
 }
 
 func BuildBuildIDFilter(selector *querylang.Selector) (SampleFilter, error) {

@@ -14,6 +14,7 @@
 #include <util/digest/city.h>
 #include <util/digest/multi.h>
 #include <util/generic/bitops.h>
+#include <util/generic/cast.h>
 #include <util/generic/function_ref.h>
 #include <util/generic/hash_set.h>
 #include <util/generic/maybe.h>
@@ -109,7 +110,7 @@ template <CStrongIndex Index>
 class TIndexedEntityRemapping {
 public:
     struct TRemappedIndex {
-        size_t OldPosition = 0;
+        ui32 OldPosition = 0;
         Index NewIndex = Index::Invalid();
 
         bool operator==(const TRemappedIndex& rhs) const = default;
@@ -119,7 +120,7 @@ public:
     explicit TIndexedEntityRemapping(size_t sizeHint)
         : Mapping_{Max<size_t>(sizeHint + 10, 1024)}
     {
-        Add(0ul, Max<size_t>(), Index::Zero());
+        Add(0ul, Max<ui32>(), Index::Zero());
     }
 
     bool IsEmpty() const {
@@ -127,7 +128,7 @@ public:
         return Mapping_.Size() == 1;
     }
 
-    void Add(TExplicitType<ui64> oldIndex, TExplicitType<size_t> oldPosition, Index newIndex) {
+    void Add(TExplicitType<ui64> oldIndex, TExplicitType<ui32> oldPosition, Index newIndex) {
         // Protobuf message size must not exceed 2GiB,
         // so indices into repeated fields must fit into signed 32-bit number.
         // We abuse this knowledge to reduce size of parsed profile in memory.
@@ -240,6 +241,7 @@ class TConverterContext {
 
     enum class ESpecialMappingKind {
         None,
+        Missing,
         Kernel,
         Python,
     };
@@ -288,7 +290,7 @@ private:
             auto builder = Builder_.AddBinary();
             builder.SetBuildId(ConvertString(mapping.build_id()));
             builder.SetPath(ConvertString(mapping.filename()));
-            BinaryMapping_.Add(mapping.id(), i, builder.Finish());
+            BinaryMapping_.Add(mapping.id(), IntegerCast<ui32>(i), builder.Finish());
 
             if (OldProfile_.string_table(mapping.filename()) == KernelSpecialMapping) {
                 Y_ENSURE(!oldKernelMappingId, "Found more than one kernel mapping");
@@ -315,7 +317,7 @@ private:
             builder.SetSystemName(ConvertString(function.system_name()));
             builder.SetFileName(ConvertString(function.filename()));
             builder.SetStartLine(function.start_line());
-            FunctionMapping_.Add(function.id(), i, builder.Finish());
+            FunctionMapping_.Add(function.id(), IntegerCast<ui32>(i), builder.Finish());
         }
     }
 
@@ -325,6 +327,24 @@ private:
         for (auto&& [i, location] : Enumerate(OldProfile_.location())) {
             Y_ENSURE(location.id() != 0, "Location id should be nonzero");
 
+            ESpecialMappingKind kind = ClassifySpecialMapping(location);
+            switch (kind) {
+            case ESpecialMappingKind::None:
+                break;
+
+            case ESpecialMappingKind::Missing:
+                OldMissingLocationIds_.Insert(location.id());
+                break;
+
+            case ESpecialMappingKind::Kernel:
+                OldKernelLocationIds_.Insert(location.id());
+                break;
+
+            case ESpecialMappingKind::Python:
+                OldPythonLocationIds_.Insert(location.id());
+                break;
+            }
+
             auto frame = Builder_.AddStackFrame();
             if (location.mapping_id()) {
                 auto [mappingId, binaryId] = BinaryMapping_.GetPosition(location.mapping_id());
@@ -332,7 +352,9 @@ private:
                 i64 binaryOffset = location.address() + (i64)mapping.file_offset() - (i64)mapping.memory_start();
 
                 frame.SetBinary(binaryId);
-                frame.SetBinaryOffset(binaryOffset);
+                if (kind != ESpecialMappingKind::Python) {
+                    frame.SetBinaryOffset(binaryOffset);
+                }
             }
 
             auto chain = Builder_.AddInlineChain();
@@ -346,20 +368,7 @@ private:
             }
             frame.SetInlineChain(chain.Finish());
 
-            LocationMapping_.Add(location.id(), i, frame.Finish());
-
-            switch (ClassifySpecialMapping(location.id())) {
-            case ESpecialMappingKind::None:
-                break;
-
-            case ESpecialMappingKind::Kernel:
-                OldKernelLocationIds_.Insert(location.id());
-                break;
-
-            case ESpecialMappingKind::Python:
-                OldPythonLocationIds_.Insert(location.id());
-                break;
-            }
+            LocationMapping_.Add(location.id(), IntegerCast<ui32>(i), frame.Finish());
         }
     }
 
@@ -394,11 +403,11 @@ private:
 
     void ConvertSampleStack(TProfileBuilder::TSampleKeyBuilder& builder, const NProto::NPProf::Sample& sample) {
         auto kernelStack = Builder_
-            .AddStack()
+            .AddSimpleStack()
             .SetKind(NProto::NProfile::StackKind::Kernelspace);
 
         auto userStack = Builder_
-            .AddStack()
+            .AddSimpleStack()
             .SetKind(NProto::NProfile::StackKind::Userspace);
 
         // Python needs special treatment here. We began to support multiple
@@ -407,45 +416,52 @@ private:
         // workaround by storing Python frames immediately after the main stack.
         // Therefore, Python was treated differently due to historical reasons
         // in order to preserve backward compatibility.
-        TMaybe<TProfileBuilder::TStackBuilder> pythonStack;
+        TMaybe<TProfileBuilder::TSimpleStackBuilder> pythonStack;
 
         bool insideKernel = true;
         for (ui64 location : sample.location_id()) {
             TStackFrameId frame = LocationMapping_.GetNewIndex(location);
 
-            if (OldPythonLocationIds_.Contains(location)) {
+            if (OldMissingLocationIds_.Contains(location)) {
+                (insideKernel ? kernelStack : userStack).AddFrame(frame);
+            } else if (OldPythonLocationIds_.Contains(location)) {
                 if (!pythonStack) {
                     pythonStack.ConstructInPlace(Builder_
-                        .AddStack()
+                        .AddSimpleStack()
                         .SetKind(NProto::NProfile::StackKind::Other)
                         .SetRuntimeName(Builder_.AddString("python"))
                     );
                 }
-                pythonStack->AddStackFrame(frame);
+                pythonStack->AddFrame(frame);
             } else if (OldKernelLocationIds_.Contains(location)) {
                 Y_ENSURE(insideKernel, "Unexpected mixed userspace & kernelspace stack");
-                kernelStack.AddStackFrame(frame);
+                kernelStack.AddFrame(frame);
             } else {
                 insideKernel = false;
-                userStack.AddStackFrame(frame);
+                userStack.AddFrame(frame);
             }
         }
 
-        builder.AddStack(kernelStack.Finish());
-        builder.AddStack(userStack.Finish());
         if (pythonStack) {
             builder.AddStack(pythonStack->Finish());
         }
+        if (!kernelStack.Empty()) {
+            builder.AddStack(kernelStack.Finish());
+        }
+        if (!userStack.Empty()) {
+            builder.AddStack(userStack.Finish());
+        }
     }
 
-    ESpecialMappingKind ClassifySpecialMapping(ui64 oldLocation) const {
-        ui64 oldPosition = LocationMapping_.GetOldPosition(oldLocation);
-        ui64 mappingId = OldProfile_.location(oldPosition).mapping_id();
+    ESpecialMappingKind ClassifySpecialMapping(const NProto::NPProf::Location& location) const {
+        ui64 mappingId = location.mapping_id();
 
         if (mappingId == OldKernelMappingId_) {
             return ESpecialMappingKind::Kernel;
         } else if (mappingId == OldPythonMappingId_) {
             return ESpecialMappingKind::Python;
+        } else if (mappingId == 0) {
+            return ESpecialMappingKind::Missing;
         } else {
             return ESpecialMappingKind::None;
         }
@@ -500,6 +516,7 @@ private:
     NDetail::TIndexedEntityRemapping<TFunctionId> FunctionMapping_;
     NDetail::TIndexedEntityRemapping<TStackFrameId> LocationMapping_;
     TVector<TValueTypeId> ValueTypes_;
+    TCompactIntegerSet<ui64> OldMissingLocationIds_;
     TCompactIntegerSet<ui64> OldKernelLocationIds_;
     TCompactIntegerSet<ui64> OldPythonLocationIds_;
     ui64 OldKernelMappingId_ = Max<ui64>();
@@ -577,7 +594,7 @@ private:
     void ConvertMappings() {
         const auto binaries = SourceProfile_.Binaries();
 
-        OldProfile_.mutable_mapping()->Reserve(binaries.GetApproxSize());
+        OldProfile_.mutable_mapping()->Reserve(binaries.Size());
         for (auto [i, binary] : Enumerate(binaries)) {
             if (i == 0) {
                 // First binary is empty ant should not be present in pprof.
@@ -601,7 +618,7 @@ private:
     void ConvertFunctions() {
         const auto functions = SourceProfile_.Functions();
 
-        OldProfile_.mutable_function()->Reserve(functions.GetApproxSize());
+        OldProfile_.mutable_function()->Reserve(functions.Size());
         for (auto [i, func] : Enumerate(functions)) {
             // Skip first function which must be empty.
             if (i == 0) {
@@ -622,7 +639,7 @@ private:
 
         // We add first null location as the "unknown" location and shift location ids by one.
         // pprof expects that Profile.sample.location_id are non-zero.
-        OldProfile_.mutable_location()->Reserve(frames.GetApproxSize());
+        OldProfile_.mutable_location()->Reserve(frames.Size());
         for (auto [i, frame] : Enumerate(frames)) {
             NProto::NPProf::Location* location = OldProfile_.add_location();
             location->set_id(i + 1);
@@ -659,7 +676,6 @@ private:
 
     void ConvertSamples() {
         const auto samples = SourceProfile_.Samples();
-        // const NProto::NProfile::SampleKeys& keys = NewProfile_.sample_keys();
 
         for (TSample newSample : samples) {
             NProto::NPProf::Sample* oldSample = OldProfile_.add_sample();
@@ -687,7 +703,7 @@ private:
 
         for (i32 i = 0; i < key.GetStackCount(); ++i) {
             auto&& stack = key.GetStack(i);
-            switch (stack.GetStackKind()) {
+            switch (stack.GetKind()) {
             case NPerforator::NProto::NProfile::StackKind::Userspace:
                 Y_ENSURE(ustackId.Empty(), "Multiple userspace stacks in one sample are not supported");
                 ustackId = i;
@@ -702,29 +718,29 @@ private:
                 break;
 
             default:
-                Y_ENSURE(false, "Unsupported stack kind " << StackKind_Name(stack.GetStackKind()));
+                Y_ENSURE(false, "Unsupported stack kind " << StackKind_Name(stack.GetKind()));
             }
         }
 
+        for (i32 i = 0; i < key.GetStackCount(); ++i) {
+            auto&& stack = key.GetStack(i);
+            if (stack.GetKind() == NPerforator::NProto::NProfile::StackKind::Other) {
+                consumer(stack);
+            }
+        }
         if (kstackId) {
             consumer(key.GetStack(*kstackId));
         }
         if (ustackId) {
             consumer(key.GetStack(*ustackId));
         }
-        for (i32 i = 0; i < key.GetStackCount(); ++i) {
-            auto&& stack = key.GetStack(i);
-            if (stack.GetStackKind() == NPerforator::NProto::NProfile::StackKind::Other) {
-                consumer(stack);
-            }
-        }
     }
 
     void ConvertSampleStack(NProto::NPProf::Sample* sample, TStack stack) {
-        for (i32 i = 0; i < stack.GetStackFrameCount(); ++i) {
+        for (i32 i = 0; i < stack.GetFrameCount(); ++i) {
             // We shift location ids by 1 because pprof does not support zero location ids.
             // See corresponding comment inside ConvertLocations.
-            sample->add_location_id(*stack.GetStackFrame(i).GetIndex() + 1);
+            sample->add_location_id(*stack.GetFrame(i).GetIndex() + 1);
         }
     }
 

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.0.0)
+VERSION(v1.0.1)
 
 SRCS(
     doc.go
@@ -27,6 +27,7 @@ GO_XTEST_SRCS(
     issue149_test.go
     issue174_test.go
     issue17_test.go
+    issue187_test.go
     issue202_test.go
     issue209_test.go
     issue220_test.go

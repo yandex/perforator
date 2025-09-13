@@ -109,7 +109,7 @@ kubectl config use-context <primary-cluster>
 To access the Perforator UI, configure port forwarding to the local machine:
 
 ```bash
-kubectl port-forward svc/perforator-release-perforator-web-service -n perforator 8080:80
+kubectl port-forward svc/perforator-release-web-service -n perforator 8080:80
 ```
 Then open `http://localhost:8080` in your browser
 Verify that the secondary cluster's samples are sent to the primary cluster.

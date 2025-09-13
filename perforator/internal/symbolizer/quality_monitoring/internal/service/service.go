@@ -23,6 +23,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/tracing"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
 	proto "github.com/yandex/perforator/perforator/proto/perforator"
 	"github.com/yandex/perforator/perforator/symbolizer/pkg/client"
 )
@@ -206,7 +207,7 @@ func (s *MonitoringService) gatherServiceProfilesMetrics(ctx context.Context, lo
 		&proto.MergeProfilesRequest{
 			Query: &proto.ProfileQuery{
 				Selector: selector,
-				TimeInterval: &proto.TimeInterval{
+				TimeInterval: &time_interval.TimeInterval{
 					From: timestamppb.New(FromTS),
 					To:   timestamppb.New(ToTS),
 				},

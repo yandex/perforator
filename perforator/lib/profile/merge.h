@@ -18,16 +18,30 @@ public:
         const NProto::NProfile::MergeOptions& options
     );
 
+    TProfileMerger(const TProfileMerger& rhs) = delete;
+    TProfileMerger(TProfileMerger&& rhs) noexcept;
+    TProfileMerger& operator=(const TProfileMerger& rhs) = delete;
+    TProfileMerger& operator=(TProfileMerger&& rhs) noexcept;
+
     ~TProfileMerger();
 
     // Merge one profile into the resulting one.
     // This function is not thread safe.
     void Add(const NProto::NProfile::Profile& profile);
 
-    // Do some bookkeeping work to finish merging.
-    // You must call TProfileMerger::Finish() after TProfileMerger::Add().
+    // Finalizes the merge process, performing any last calculations or
+    // data consolidation.
+    //
+    // This method is &&-qualified, meaning it consumes the TProfileMerger
+    // instance. This design enforces a single-use lifecycle where Finish()
+    // is the terminal operation. After calling Finish(), the merger instance
+    // is in a moved-from state and must not be used again.
+    //
+    // For convenience, it returns the pointer to the `merged` profile that was
+    // provided in the constructor.
+    //
     // This function is not thread safe.
-    void Finish() &&;
+    NProto::NProfile::Profile* Finish() &&;
 
 private:
     class TImpl;

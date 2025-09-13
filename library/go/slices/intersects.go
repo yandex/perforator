@@ -14,16 +14,20 @@ func Intersection[E comparable](a, b []E) []E {
 		p, s = b, a
 	}
 
-	m := make(map[E]struct{})
+	m := make(map[E]struct{}, len(s))
 	for _, i := range s {
 		m[i] = struct{}{}
 	}
 
-	var res []E
+	res := make([]E, 0, len(m))
 	for _, v := range p {
 		if _, exists := m[v]; exists {
 			res = append(res, v)
 		}
+	}
+
+	if len(res) == 0 {
+		return nil
 	}
 
 	return res

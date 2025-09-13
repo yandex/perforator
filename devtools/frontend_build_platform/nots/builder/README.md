@@ -10,7 +10,7 @@
 
 _Скоро выпилим_
 
-## Запускает сборщики типа `tsc`, `webpack`, `next`, `vite`
+## Запускает сборщики типа `tsc`, `webpack`, `rspack`, `next`, `vite`
 
 В соответствии с типом таргета (`TS_TSC`, `TS_WEBPACK`, `TS_NEXT`, `TS_VITE` макросами в `ya.make`) для непосредственной сборки проекта.
 
@@ -100,15 +100,8 @@ ya make --no-prebuilt-nots
 
 ## Профилирование
 
-Есть возможность сгенерировать файлы с трейсами для отладки производительности на всех этапах сборки (внутри `builder`)
+В папке `~/.nots/traces/<MODDIR>` складываются файлы с трейсами в формате `Trace Event Format`.
 
-Для этого нужно запустить `ya make` с опцией `-DTS_TRACE` (т.е. установкой переменной `TS_TRACE=yes`).
+Для каждой команды есть отдельный файл, который можно открыть в Chrome Devtools или в https://ui.perfetto.dev/.
 
-В выходной архив добавится папка `.traces` с файлом в `Trace Event Format`, который можно открыть в Chrome Devtools или в https://ui.perfetto.dev/.
-
-Подробнее, о том, как читать трейсинг тут: https://a.yandex-team.ru/arcadia/devtools/frontend_build_platform/libraries/logging/README.md
-
-После запуска из `ya tool nots build` архивы распакуются и трейсы следует искать по таким путям:
-
-- Для `create-node-modules`: `./node_modules/.traces/builder_create-node-modules.trace.json`
-- Для прочих команд: `./.traces/builder_<command>.trace.json`
+Подробнее, о том, как читать трейсинг [тут](../../libraries/logging/README.md).

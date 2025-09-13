@@ -11,3 +11,9 @@ DEFAULT_TS_PROTO_OPT = parse_opt_to_dict(
         "esModuleInterop=true",
     ]
 )
+
+DEFAULT_TS_PROTO_AUTO_OPT = parse_opt_to_dict(
+    [
+        "importSuffix=.js",
+    ]
+)

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package NPerforator.NProto.NTimeInterval;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/lib/time_interval";
+
+message TimeInterval {
+    google.protobuf.Timestamp From = 1;
+    google.protobuf.Timestamp To = 2;
+}

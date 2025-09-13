@@ -14,8 +14,8 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	bpf "github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/parser"
+	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
 	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
-	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -28,8 +28,8 @@ type dso struct {
 	// Unique ID of the DSO. It is used by eBPF.
 	ID uint64
 
-	// Type of the binary if it is special. (e.g. libpthread, python interpreter)
-	SpecialBinaryType unwinder.SpecialBinaryType
+	// Type of the binary if it is special. (e.g. libpthread, python, php interpreter)
+	BinaryClass BinaryClass
 
 	// Build info of the binary.
 	buildInfo *xelf.BuildInfo
@@ -38,6 +38,15 @@ type dso struct {
 	bpfAllocationMutex sync.Mutex
 	bpfAllocation      *bpf.Allocation
 }
+
+type BinaryClass int
+
+const (
+	DefaultBinaryClass BinaryClass = iota
+	PythonBinaryClass
+	PthreadGlibcBinaryClass
+	PhpBinaryClass
+)
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -206,9 +215,8 @@ func (d *Registry) register(ctx context.Context, buildInfo *xelf.BuildInfo, file
 
 	item := d.trackingFetch(buildID, 10*time.Minute, func() *dso {
 		return &dso{
-			ID:                d.nextid.Add(1) - 1,
-			buildInfo:         buildInfo,
-			SpecialBinaryType: unwinder.SpecialBinaryTypeNone,
+			ID:        d.nextid.Add(1) - 1,
+			buildInfo: buildInfo,
 		}
 	})
 
@@ -316,11 +324,21 @@ func (d *Registry) populateDSO(ctx context.Context, dso *dso, f *os.File) {
 	}
 
 	if analysis.PythonConfig != nil {
-		dso.SpecialBinaryType = unwinder.SpecialBinaryTypePythonInterpreter
+		dso.BinaryClass = PythonBinaryClass
+	}
+
+	if analysis.PhpConfig != nil && (!php_agent.IsVersionSupported(analysis.PhpConfig.Version) ||
+		!php_agent.IsSupportedZendVmKind(analysis.PhpConfig.ZendVmKind) ||
+		analysis.PhpConfig.ZtsEnabled) {
+		analysis.PhpConfig = nil
+	}
+
+	if analysis.PhpConfig != nil {
+		dso.BinaryClass = PhpBinaryClass
 	}
 
 	if analysis.PthreadConfig != nil {
-		dso.SpecialBinaryType = unwinder.SpecialBinaryTypePthreadGlibc
+		dso.BinaryClass = PthreadGlibcBinaryClass
 	}
 
 	dso.bpfAllocation, err = d.bpfBinaryManager.Add(buildID, dso.ID, analysis)

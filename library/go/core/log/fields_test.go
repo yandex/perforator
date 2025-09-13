@@ -1,6 +1,7 @@
 package log
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,11 @@ func TestAny(t *testing.T) {
 func TestReflect(t *testing.T) {
 	field := Reflect("test", 1)
 	assert.Equal(t, field.ftype, FieldTypeReflect)
+}
+
+func TestRawContext(t *testing.T) {
+	field := RawContext(context.TODO())
+	assert.Equal(t, field.ftype, FieldTypeRawContext)
 }
 
 // TODO: test fields

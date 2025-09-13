@@ -2,9 +2,9 @@
 
 LIBRARY()
 
-VERSION(3.7.9)
+VERSION(3.8.1)
 
-ORIGINAL_SOURCE(https://github.com/libarchive/libarchive/archive/v3.7.9.tar.gz)
+ORIGINAL_SOURCE(https://github.com/libarchive/libarchive/archive/v3.8.1.tar.gz)
 
 LICENSE(
     "(CC0-1.0 OR OpenSSL OR Apache-2.0)" AND
@@ -59,11 +59,11 @@ SRCS(
     libarchive/archive_entry_stat.c
     libarchive/archive_entry_strmode.c
     libarchive/archive_entry_xattr.c
-    libarchive/archive_getdate.c
     libarchive/archive_hmac.c
     libarchive/archive_match.c
     libarchive/archive_options.c
     libarchive/archive_pack_dev.c
+    libarchive/archive_parse_date.c
     libarchive/archive_pathmatch.c
     libarchive/archive_ppmd7.c
     libarchive/archive_ppmd8.c
@@ -118,6 +118,7 @@ SRCS(
     libarchive/archive_read_support_format_zip.c
     libarchive/archive_string.c
     libarchive/archive_string_sprintf.c
+    libarchive/archive_time.c
     libarchive/archive_util.c
     libarchive/archive_version_details.c
     libarchive/archive_virtual.c

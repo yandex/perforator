@@ -32,42 +32,42 @@ import (
 //
 
 func BenchmarkSlogSinkLogInfoOneArg(b *testing.B) {
-	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard()))
+	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard())) //nolint:staticcheck
 	doInfoOneArg(b, log)
 }
 
 func BenchmarkSlogSinkLogInfoSeveralArgs(b *testing.B) {
-	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard()))
+	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard())) //nolint:staticcheck
 	doInfoSeveralArgs(b, log)
 }
 
 func BenchmarkSlogSinkLogInfoWithValues(b *testing.B) {
-	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard()))
+	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard())) //nolint:staticcheck
 	doInfoWithValues(b, log)
 }
 
 func BenchmarkSlogSinkLogV0Info(b *testing.B) {
-	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard()))
+	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard())) //nolint:staticcheck
 	doV0Info(b, log)
 }
 
 func BenchmarkSlogSinkLogV9Info(b *testing.B) {
-	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard()))
+	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard())) //nolint:staticcheck
 	doV9Info(b, log)
 }
 
 func BenchmarkSlogSinkLogError(b *testing.B) {
-	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard()))
+	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard())) //nolint:staticcheck
 	doError(b, log)
 }
 
 func BenchmarkSlogSinkWithValues(b *testing.B) {
-	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard()))
+	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard())) //nolint:staticcheck
 	doWithValues(b, log)
 }
 
 func BenchmarkSlogSinkWithName(b *testing.B) {
-	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard()))
+	var log logr.Logger = logr.FromSlogHandler(logr.ToSlogHandler(logr.Discard())) //nolint:staticcheck
 	doWithName(b, log)
 }
 
@@ -82,61 +82,61 @@ func makeSlogJSONLogger() logr.Logger {
 }
 
 func BenchmarkSlogJSONLogInfoOneArg(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doInfoOneArg(b, log)
 }
 
 func BenchmarkSlogJSONLogInfoSeveralArgs(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doInfoSeveralArgs(b, log)
 }
 
 func BenchmarkSlogJSONLogInfoWithValues(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doInfoWithValues(b, log)
 }
 
 func BenchmarkSlogJSONLogV0Info(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doV0Info(b, log)
 }
 
 func BenchmarkSlogJSONLogV9Info(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doV9Info(b, log)
 }
 
 func BenchmarkSlogJSONLogError(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doError(b, log)
 }
 
 func BenchmarkSlogJSONLogWithValues(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doWithValues(b, log)
 }
 
 func BenchmarkSlogJSONWithName(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doWithName(b, log)
 }
 
 func BenchmarkSlogJSONWithCallDepth(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doWithCallDepth(b, log)
 }
 
 func BenchmarkSlogJSONLogInfoStringerValue(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doStringerValue(b, log)
 }
 
 func BenchmarkSlogJSONLogInfoErrorValue(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doErrorValue(b, log)
 }
 
 func BenchmarkSlogJSONLogInfoMarshalerValue(b *testing.B) {
-	var log logr.Logger = makeSlogJSONLogger()
+	var log logr.Logger = makeSlogJSONLogger() //nolint:staticcheck
 	doMarshalerValue(b, log)
 }

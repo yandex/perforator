@@ -2,11 +2,12 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.55.3)
+VERSION(v1.62.1)
 
 SRCS(
     fsync.go
     int128.go
+    libc_all.go
     nodmesg.go
     probes.go
     stdatomic.go
@@ -14,76 +15,59 @@ SRCS(
     watch.go
 )
 
+GO_TEST_SRCS(
+    # all_test.go
+)
+
 IF (OS_LINUX)
-    GO_TEST_SRCS(unix_test.go)
+    SRCS(
+        aliases.go
+        atomic.go
+        builtin.go
+        etc_musl.go
+        libc_musl.go
+        mem_musl.go
+        pthread_musl.go
+        rtl.go
+        syscall_musl.go
+    )
+
+    GO_TEST_SRCS(
+        # all_musl_test.go
+        unix_test.go
+    )
 ENDIF()
 
 IF (OS_LINUX AND ARCH_X86_64)
     SRCS(
-        aliases.go
-        atomic.go
-        builtin.go
+        atomic64.go
+        builtin64.go
         capi_linux_amd64.go
         ccgo_linux_amd64.go
-        etc_musl.go
-        libc_musl.go
         libc_musl_linux_amd64.go
-        mem_musl.go
-        pthread_musl.go
-        rtl.go
-        syscall_musl.go
     )
 
-    GO_TEST_SRCS(
-        # all_musl_test.go
-        malloc_test.go
-    )
+    GO_TEST_SRCS(malloc_test.go)
 ENDIF()
 
 IF (OS_LINUX AND ARCH_ARM64)
     SRCS(
-        aliases.go
-        atomic.go
-        builtin.go
+        atomic64.go
+        builtin64.go
         capi_linux_arm64.go
         ccgo_linux_arm64.go
-        etc_musl.go
-        libc_musl.go
         libc_musl_linux_arm64.go
-        mem_musl.go
-        pthread_musl.go
-        rtl.go
-        syscall_musl.go
-    )
-
-    GO_TEST_SRCS(
-        # all_musl_test.go
     )
 ENDIF()
 
 IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
     SRCS(
+        atomic32.go
+        builtin32.go
         capi_linux_arm.go
-        ccgo.go
-        etc.go
-        ioutil_linux.go
-        libc.go
-        libc32.go
-        libc_arm.go
-        libc_linux.go
-        libc_linux_arm.go
-        libc_unix.go
-        libc_unix1.go
-        mem.go
-        musl_linux_arm.go
-        printf.go
-        pthread.go
-        pthread_all.go
-        scanf.go
-        sync.go
+        ccgo_linux_arm.go
+        libc_musl_linux_arm.go
     )
-
-    GO_TEST_SRCS(all_test.go)
 ENDIF()
 
 IF (OS_DARWIN)
@@ -105,7 +89,7 @@ IF (OS_DARWIN)
     )
 
     GO_TEST_SRCS(
-        all_test.go
+        # all_non_musl_test.go
         unix_test.go
     )
 ENDIF()
@@ -143,7 +127,9 @@ IF (OS_WINDOWS)
         sync.go
     )
 
-    GO_TEST_SRCS(all_test.go)
+    GO_TEST_SRCS(
+        # all_non_musl_test.go
+    )
 ENDIF()
 
 IF (OS_WINDOWS AND ARCH_X86_64)

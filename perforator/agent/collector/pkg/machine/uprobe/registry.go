@@ -4,17 +4,12 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"syscall"
 
-	"golang.org/x/sys/unix"
-
-	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 )
 
 type Key struct {
-	procfs.Device
-	InodeID uint64
+	BuildID string
 	Offset  uint64
 }
 
@@ -54,23 +49,14 @@ func extractOffset(binaryFile *os.File, symbol string, localOffset uint64) (uint
 }
 
 func extractKey(file *os.File, offset uint64) (Key, error) {
-	fileInfo, err := file.Stat()
+	buildID, err := xelf.ReadBuildID(file)
 	if err != nil {
-		return Key{}, fmt.Errorf("failed to stat file: %w", err)
-	}
-
-	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
-	if !ok {
-		return Key{}, fmt.Errorf("failed to get syscall.Stat_t from FileInfo for %s", fileInfo.Name())
+		return Key{}, fmt.Errorf("failed to get build ID: %w", err)
 	}
 
 	return Key{
 		Offset:  offset,
-		InodeID: stat.Ino,
-		Device: procfs.Device{
-			Maj: uint32(unix.Major(uint64(stat.Dev))),
-			Min: uint32(unix.Minor(uint64(stat.Dev))),
-		},
+		BuildID: buildID,
 	}, nil
 }
 

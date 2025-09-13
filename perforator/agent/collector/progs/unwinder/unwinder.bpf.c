@@ -11,7 +11,8 @@
 #include "metrics.h"
 #include "output.h"
 #include "pidns.h"
-#include "python.h"
+#include "python/unwind.h"
+#include "php/unwind.h"
 #include "task.h"
 #include "thread_local.h"
 #include "tracepoints.h"
@@ -68,7 +69,9 @@ struct profiler_state {
     struct stack kernstack;
     struct stack userstack;
     struct python_state python_state;
-
+#ifdef PERFORATOR_ENABLE_PHP
+    struct php_state php_state;
+#endif
     struct record_sample sample;
     struct record_new_process newproc;
 
@@ -94,6 +97,9 @@ struct profiler_config {
 
     // Enable JVM-specific unwinding and symbolization.
     bool enable_jvm;
+
+    // Enable PHP profiling
+    bool enable_php;
 
     // Cgroup resolution engine to use
     enum cgroup_engine active_cgroup_engine;
@@ -160,13 +166,24 @@ static NOINLINE void fill_stack(struct stack* stack, u64* target) {
 }
 
 static NOINLINE void fill_python_stack(struct python_state* state, struct record_sample* target) {
-    target->python_stack_len = state->frame_count;
+    target->python_stack.len = state->frame_count;
     if (state->frame_count > 0) {
         for (int i = 0; i < PYTHON_MAX_STACK_DEPTH && i < state->frame_count; i++) {
-            target->python_stack[i] = state->frames[i];
+            target->python_stack.frames[i] = state->frames[i];
         }
     }
 }
+
+#ifdef PERFORATOR_ENABLE_PHP
+static NOINLINE void fill_php_stack(struct php_state* state, struct record_sample* target) {
+    target->php_stack.len = state->frame_count;
+    if (state->frame_count > 0) {
+        for (int i = 0; i < PHP_MAX_STACK_DEPTH && i < state->frame_count; i++) {
+            target->php_stack.frames[i] = state->frames[i];
+        }
+    }
+}
+#endif
 
 static ALWAYS_INLINE void record_sample(
     void* ctx,
@@ -183,6 +200,10 @@ static ALWAYS_INLINE void record_sample(
     sample->cpu = bpf_get_smp_processor_id();
 
     fill_python_stack(&state->python_state, sample);
+
+#ifdef PERFORATOR_ENABLE_PHP
+    fill_php_stack(&state->php_state, sample);
+#endif
 
     u64 ktime = bpf_ktime_get_ns();
     sample->runtime = ktime - state->prog_starttime;
@@ -374,6 +395,7 @@ static NOINLINE int profiler_stage_start(void* ctx, struct profiler_state* state
     u64 pid_tgid = get_current_pidns_pid_tgid(config->pidns_inode);
     state->sample.tid = (u32)pid_tgid;
     state->sample.pid = pid_tgid >> 32;
+    state->sample.innermost_pidns_tid = get_current_task_innermost_tid();
     state->sample.starttime = get_current_process_start_time();
     state->sample.kthread = kthread;
 
@@ -483,6 +505,21 @@ static NOINLINE int profiler_stage_collect_python_stack(void* ctx, struct profil
     return 0;
 }
 
+#ifdef PERFORATOR_ENABLE_PHP
+static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_state* state, struct profiler_config* config) {
+    if (state == NULL || config == NULL || !config->enable_php) {
+        return -1;
+    }
+
+    struct process_info* info = lookup_process(ctx, state);
+    if (!info) {
+        return -1;
+    }
+    php_collect_stack(info, &state->php_state);
+    return 0;
+}
+#endif
+
 static NOINLINE int profiler_stage_collect_tls(void* ctx, struct profiler_state* state, struct profiler_config* config) {
     if (state == NULL || config == NULL) {
         return -1;
@@ -581,6 +618,9 @@ static NOINLINE int profiler_do_sample_impl_perfevent(void* ctx, struct user_reg
     PROFILER_DO_SAMPLE_COMMON_PROLOGUE;
 
     PROFILER_DEFINE_COMMON_STAGES;
+#ifdef PERFORATOR_ENABLE_PHP
+    PROFILER_DEFINE_STAGE(profiler_stage_collect_php_stack(ctx, state, config), METRIC_ERROR_STAGE_COLLECT_PHP_STACK_COUNT)
+#endif
     PROFILER_DEFINE_STAGE(profiler_stage_collect_lbr_stack(ctx, state), METRIC_ERROR_STAGE_LBR_STACK_COUNT);
 
     PROFILER_DO_SAMPLE_COMMON_EPILOGUE;

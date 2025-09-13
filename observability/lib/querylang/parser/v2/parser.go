@@ -14,7 +14,7 @@ func NewParser() querylang.Parser {
 }
 
 func (p *parserImpl) ParseSelector(query string) (*querylang.Selector, error) {
-	l := newListener()
+	l := newSelectorListener()
 
 	is := antlr.NewInputStream(query)
 	lexer := parser.NewSolomonLexer(is)
@@ -22,13 +22,31 @@ func (p *parserImpl) ParseSelector(query string) (*querylang.Selector, error) {
 	lexer.AddErrorListener(l)
 
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-	ssp := parser.NewSolomonSelectorParser(stream)
+	ssp := parser.NewSolomonParser(stream)
 	ssp.RemoveErrorListeners()
 	ssp.AddErrorListener(l)
 
 	antlr.ParseTreeWalkerDefault.Walk(l, ssp.Selectors())
 
-	return l.root, l.Err()
+	return l.root, l.getError()
+}
+
+func (p *parserImpl) ParseExpression(query string) (*querylang.Expression, error) {
+	l := newExpressionListener()
+
+	is := antlr.NewInputStream(query)
+	lexer := parser.NewSolomonLexer(is)
+	lexer.RemoveErrorListeners()
+	lexer.AddErrorListener(l)
+
+	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+	ssp := parser.NewSolomonParser(stream)
+	ssp.RemoveErrorListeners()
+	ssp.AddErrorListener(l)
+
+	antlr.ParseTreeWalkerDefault.Walk(l, ssp.Expression())
+
+	return l.getRoot(), l.getError()
 }
 
 var _ querylang.Parser = (*parserImpl)(nil)

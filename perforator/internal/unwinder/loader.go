@@ -9,6 +9,7 @@ import (
 type ProgramRequirements struct {
 	Debug bool
 	JVM   bool
+	PHP   bool
 }
 
 func LoadProg(reqs ProgramRequirements) ([]byte, error) {
@@ -21,6 +22,10 @@ func LoadProg(reqs ProgramRequirements) ([]byte, error) {
 	}
 	if reqs.JVM {
 		name += ".jvm"
+	}
+
+	if reqs.PHP {
+		name += ".php"
 	}
 
 	name = fmt.Sprintf("ebpf/unwinder.%s.elf", name)

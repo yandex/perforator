@@ -106,7 +106,11 @@ var (
 
 			initCtx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 			defer cancel()
-			bundle, err := bundle.NewStorageBundle(initCtx, logger, r, conf)
+
+			// TODO: this context should be tied to e.g. Run() duration.
+			bgCtx := context.TODO()
+
+			bundle, err := bundle.NewStorageBundle(initCtx, bgCtx, logger, "gc", r, conf)
 			if err != nil {
 				logger.Fatal(ctx, "Failed to init storage bundle", log.Error(err))
 			}

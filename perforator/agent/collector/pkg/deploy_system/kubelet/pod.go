@@ -91,6 +91,9 @@ type PodsLister struct {
 	// In most cases equals to the value of topology.kubernetes.io/zone lable. See https://kubernetes.io/docs/reference/labels-annotations-taints/#topologykubernetesiozone
 	topology string
 
+	// Kubernetes api server host. See https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/#directly-accessing-the-rest-api
+	apiServerHost string
+
 	// E.g., "/sys/fs/cgroup"
 	cgroupPrefix string
 }
@@ -177,6 +180,11 @@ func NewPodsLister(logger xlog.Logger, topologyLableKey string, kubeletSettingsO
 		return nil, err
 	}
 
+	apiServerHost := kubeletSettingsOverrides.KubernetesAPIServerHost
+	if apiServerHost == "" {
+		apiServerHost = getKubernetesAPIServerHost()
+	}
+
 	// Otherwise we get an error: SSL certificate problem: self-signed certificate in certificate chain.
 	// Failed to verify the legitimacy of the server and therefore could not establish a secure connection to it.
 	// By default the kubelet serving certificate deployed by kubeadm is self-signed:
@@ -192,6 +200,7 @@ func NewPodsLister(logger xlog.Logger, topologyLableKey string, kubeletSettingsO
 		logger:                   logger,
 		nodeName:                 name,
 		nodeURL:                  url + "/pods",
+		apiServerHost:            apiServerHost,
 		client:                   client,
 		kubeletSettingsOverrides: kubeletSettingsOverrides,
 		cgroupPrefix:             cgroupPrefix,
@@ -260,5 +269,6 @@ func (p *PodsLister) Init(ctx context.Context) error {
 			return fmt.Errorf("couldn't resolve container prefix %w", err)
 		}
 	}
+
 	return nil
 }

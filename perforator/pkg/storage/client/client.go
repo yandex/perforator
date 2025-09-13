@@ -327,6 +327,7 @@ func (c *Client) PushProfile(
 	buildIDs []string,
 	envs []string,
 	eventTypes []string,
+	signalTypes []string,
 ) (uint64, error) {
 	var err error
 	if c.compressionFunc != nil {
@@ -348,10 +349,11 @@ func (c *Client) PushProfile(
 			ProfileRepresentation: &perforatorstorage.PushProfileRequest_ProfileBytes{
 				ProfileBytes: profileBytes,
 			},
-			Labels:     labels,
-			BuildIDs:   buildIDs,
-			Envs:       envs,
-			EventTypes: eventTypes,
+			Labels:      labels,
+			BuildIDs:    buildIDs,
+			Envs:        envs,
+			EventTypes:  eventTypes,
+			SignalTypes: signalTypes,
 		},
 	)
 	if err != nil {

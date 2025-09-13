@@ -3,6 +3,7 @@
     --flamegraph-block-spacing: 1px;
 
     font: 16px var(--flamegraph-font);
+    position: relative;
 }
 
 .flamegraph #profile {
@@ -57,12 +58,19 @@
     margin-right: var(--g-spacing-3);
 }
 
+.flamegraph__switch {
+    margin-left: var(--g-spacing-2);
+}
+
 .flamegraph__frames-count {
     right: 0;
 }
 
 .flamegraph__canvas {
     width: 100%;
+    /* uikit forces transition-duration into non-zero state for people with prefers-reduced-motion: reduce */
+    /* see more: https://github.com/gravity-ui/uikit/blob/4d068a9d2bf6390970c904e15bb646ddc7438e1a/styles/styles.scss#L52 */
+    transition-duration: 0s !important;
 }
 
 .flamegraph__label,
@@ -77,9 +85,6 @@
     pointer-events: none;
     position: absolute;
     white-space: nowrap;
-}
-
-.flamegraph__label span {
     padding: 0 3px;
 }
 
@@ -88,6 +93,8 @@
     display: none;
     outline: 1px solid #ffc000;
     overflow: hidden;
+    top: 0;
+    left: 0;
     pointer-events: none;
     position: absolute;
     white-space: nowrap;
@@ -117,4 +124,41 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     margin-right: auto;
+}
+
+.flamegraph__func-popup {
+    white-space: pre-wrap;
+    max-width: 600px;
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 13px;
+    word-wrap: break-word;
+    pointer-events: none !important;
+    text-wrap: stable;
+}
+
+/* every next color is about +60 degrees from base hue of red */
+
+.color-0 {
+    color: oklch(0.6280 0.257700 29.23000);
+}
+
+.color-1 {
+    color: oklch(0.628 0.1278 89);
+}
+
+.color-2 {
+    color: oklch(0.8664 0.294827 142.4953);
+}
+
+.color-3 {
+    color: oklch(0.628 0.1066 202);
+}
+
+.color-4 {
+    color: oklch(0.4520 0.313214 264.0520);
+}
+
+.color-5 {
+    color: oklch(0.628 0.1066 324);
 }

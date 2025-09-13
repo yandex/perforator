@@ -11,9 +11,9 @@
 
 #include <library/cpp/yt/compact_containers/compact_vector.h>
 
-#include <perforator/proto/pprofprofile/profile.pb.h>
+#include <perforator/proto/pprofprofile/lightweightprofile.pb.h>
 #include <perforator/lib/llvmex/llvm_elf.h>
-
+#include <perforator/symbolizer/lib/utils/profile_maps.h>
 
 namespace NPerforator::NAutofdo {
 
@@ -47,76 +47,14 @@ ui64 GetExecutableSectionsTotalSize(llvm::object::ObjectFile* file) {
     return totalSize;
 }
 
-template <typename Traits>
-class TItemByIdMap final {
-public:
-    using value_type = typename Traits::value_type;
+using TPerforatorProfile = NPerforator::NProto::NPProf::ProfileLight;
 
-    explicit TItemByIdMap(const NPerforator::NProto::NPProf::Profile& profile) {
-        SmallIdMap_.assign(Traits::Size(profile) + 1, nullptr);
-
-        for (std::size_t i = 0; i < Traits::Size(profile); ++i) {
-            const auto& item = Traits::At(profile, i);
-            const auto itemId = item.id();
-            if (itemId < SmallIdMap_.size()) {
-                SmallIdMap_[itemId] = &item;
-            } else {
-                BigIdMap_.emplace(itemId, &item);
-            }
-        }
-    }
-
-    const value_type& At(ui64 itemId) const {
-        const value_type* itemPtr = nullptr;
-
-        if (itemId < SmallIdMap_.size()) {
-            itemPtr = SmallIdMap_[itemId];
-        } else {
-            itemPtr = BigIdMap_.at(itemId);
-        }
-
-        if (itemPtr == nullptr) {
-            throw std::logic_error{fmt::format("No item with id {}", itemId)};
-        }
-
-        return *itemPtr;
-    }
-
-private:
-    std::vector<const value_type*> SmallIdMap_;
-    absl::flat_hash_map<ui64, const value_type*> BigIdMap_;
-};
-
-struct LocationByIdTraits final {
-    using value_type = NPerforator::NProto::NPProf::Location;
-
-    static std::size_t Size(const NPerforator::NProto::NPProf::Profile& profile) {
-        return profile.locationSize();
-    }
-
-    static const value_type& At(const NPerforator::NProto::NPProf::Profile& profile, std::size_t i) {
-        return profile.location(i);
-    }
-};
-
-struct MappingByIdTraits final {
-    using value_type = NPerforator::NProto::NPProf::Mapping;
-
-    static std::size_t Size(const NPerforator::NProto::NPProf::Profile& profile) {
-        return profile.mappingSize();
-    }
-
-    static const value_type& At(const NPerforator::NProto::NPProf::Profile& profile, std::size_t i) {
-        return profile.mapping(i);
-    }
-};
-
-using TLocationByIdMap = TItemByIdMap<LocationByIdTraits>;
-using TMappingByIdMap = TItemByIdMap<MappingByIdTraits>;
+using TLocationByIdMap = NUtils::TItemByIdMap<NUtils::LocationByIdTraits<TPerforatorProfile>>;
+using TMappingByIdMap = NUtils::TItemByIdMap<NUtils::MappingByIdTraits<TPerforatorProfile>>;
 
 const std::string& GetBuildId(
     const TMappingByIdMap& mappingById,
-    const NPerforator::NProto::NPProf::Profile& profile,
+    const TPerforatorProfile& profile,
     ui64 mappingId) {
     if (mappingId == 0) {
         return kEmptyString;
@@ -126,15 +64,15 @@ const std::string& GetBuildId(
     return profile.string_table(mapping.build_id());
 };
 
-TMappingByIdMap PrepareProfileMappings(const NPerforator::NProto::NPProf::Profile& profile) {
+TMappingByIdMap PrepareProfileMappings(const TPerforatorProfile& profile) {
     return TMappingByIdMap{profile};
 }
 
-TLocationByIdMap PrepareProfileLocations(const NPerforator::NProto::NPProf::Profile& profile) {
+TLocationByIdMap PrepareProfileLocations(const TPerforatorProfile& profile) {
     return TLocationByIdMap{profile};
 }
 
-std::optional<ui64> PrepareMainMappingId(const NPerforator::NProto::NPProf::Profile& profile, const std::string& buildId) {
+std::optional<ui64> PrepareMainMappingId(const TPerforatorProfile& profile, const std::string& buildId) {
     for (std::size_t i = 0; i < profile.mappingSize(); ++i) {
         const auto& mapping = profile.mapping(i);
         if (profile.string_table(mapping.build_id()) == buildId) {
@@ -145,7 +83,7 @@ std::optional<ui64> PrepareMainMappingId(const NPerforator::NProto::NPProf::Prof
     return std::nullopt;
 }
 
-ui64 PrepareMainMappingOffset(const NPerforator::NProto::NPProf::Profile& profile, const std::string& buildId) {
+ui64 PrepareMainMappingOffset(const TPerforatorProfile& profile, const std::string& buildId) {
     for (std::size_t i = 0; i < profile.mappingSize(); ++i) {
         const auto& mapping = profile.mapping(i);
         if (profile.string_table(mapping.build_id()) == buildId) {
@@ -203,6 +141,9 @@ std::string SerializeAutofdoInput(const TAutofdoInputData& data) {
 
 // The format description could be found here
 // https://github.com/llvm/llvm-project/blob/release/18.x/bolt/include/bolt/Profile/DataAggregator.h#L389
+//
+// TODO : PERFORATOR-910, the format should be improved.
+// See https://github.com/llvm/llvm-project/issues/149382#issuecomment-3085289377
 std::string SerializeAutofdoInputInBoltPreaggregatedFormat(const TAutofdoInputData& data) {
     std::string result{};
     result.reserve(16 * 1024 * 1024);
@@ -235,6 +176,10 @@ TAutofdoInputData::TMetadata& TAutofdoInputData::TMetadata::operator+=(const TMe
     TotalSamples += other.TotalSamples;
     BogusLbrEntries += other.BogusLbrEntries;
 
+    for (const auto& [service, count] : other.ProfilesCountByService) {
+        ProfilesCountByService[service] += count;
+    }
+
     return *this;
 }
 
@@ -242,20 +187,20 @@ TAutofdoInputData::TMetadata& TAutofdoInputData::TMetadata::operator+=(const TMe
 
 TInputBuilder::TInputBuilder(const std::string& buildId) : BuildId_{buildId} {}
 
-void TInputBuilder::AddProfile(TArrayRef<const char> profileBytes) {
+void TInputBuilder::AddProfile(std::string_view serviceName, TArrayRef<const char> profileBytes) {
     if (profileBytes.data() == nullptr || profileBytes.size() == 0) {
         return;
     }
 
-    NPerforator::NProto::NPProf::Profile profile{};
+    TPerforatorProfile profile{};
     if (!profile.ParseFromString(std::string_view{profileBytes.data(), profileBytes.size()})) {
         return;
     }
 
-    AddProfile(profile);
+    AddProfile(serviceName, profile);
 }
 
-void TInputBuilder::AddProfile(const NPerforator::NProto::NPProf::Profile& profile) {
+void TInputBuilder::AddProfile(std::string_view serviceName, const TPerforatorProfile& profile) {
     const auto locationById = PrepareProfileLocations(profile);
     const auto mappingById = PrepareProfileMappings(profile);
     const auto mainMappingIdOpt = PrepareMainMappingId(profile, BuildId_);
@@ -336,6 +281,7 @@ void TInputBuilder::AddProfile(const NPerforator::NProto::NPProf::Profile& profi
     }
 
     ++Data_.Meta.TotalProfiles;
+    ++Data_.Meta.ProfilesCountByService[TString{serviceName}];
 }
 
 void TInputBuilder::AddData(TAutofdoInputData&& otherData) {
@@ -377,7 +323,7 @@ namespace {
 
 class TMappingsCounter final {
 public:
-    explicit TMappingsCounter(const NPerforator::NProto::NPProf::Profile& profile) : Profile_{profile} {
+    explicit TMappingsCounter(const TPerforatorProfile& profile) : Profile_{profile} {
         SmallIdCounter_.assign(Profile_.mappingSize() + 1, 0);
     }
 
@@ -410,7 +356,7 @@ public:
     }
 
 private:
-    const NPerforator::NProto::NPProf::Profile& Profile_;
+    const TPerforatorProfile& Profile_;
 
     std::vector<ui64> SmallIdCounter_;
     absl::flat_hash_map<ui64, ui64> BigIdCounter_;
@@ -423,7 +369,7 @@ void TBuildIdGuesser::FeedProfile(TArrayRef<const char> profileBytes) {
         return;
     }
 
-    NPerforator::NProto::NPProf::Profile profile{};
+    TPerforatorProfile profile{};
     if (!profile.ParseFromString(std::string_view{profileBytes.data(), profileBytes.size()})) {
         return;
     }
@@ -431,7 +377,7 @@ void TBuildIdGuesser::FeedProfile(TArrayRef<const char> profileBytes) {
     FeedProfile(profile);
 }
 
-void TBuildIdGuesser::FeedProfile(const NPerforator::NProto::NPProf::Profile& profile) {
+void TBuildIdGuesser::FeedProfile(const TPerforatorProfile& profile) {
     TMappingsCounter mappingsCounter{profile};
 
     const auto locationById = PrepareProfileLocations(profile);

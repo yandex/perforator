@@ -51,7 +51,7 @@ var objectMap = map[string]Object{
 	},
 }
 
-// Object is an app contruct that might want to be logged.
+// Object is an app construct that might want to be logged.
 type Object struct {
 	Name    string
 	Kind    string
@@ -136,7 +136,7 @@ func (c *Controller) Run() {
 		log.V(1).Info("reconciling object for key")
 
 		// Do some complicated updates updates
-		obj.Details = obj.Details.(int) * 2
+		obj.Details = obj.Details.(int) * 2 //nolint:forcetypeassert
 
 		// actually save the updates
 		log.V(1).Info("updating object", "details", obj.Details)

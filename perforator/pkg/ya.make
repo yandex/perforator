@@ -2,8 +2,10 @@ RECURSE(
     atomicfs
     certifi
     clickhouse
+    cprofile
     debuginfod
     disjointsegmentsets
+    ebpf
     endpointsetresolver
     env
     foreach

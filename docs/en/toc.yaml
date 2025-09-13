@@ -26,6 +26,10 @@ items:
       items:
         - name: Overview
           href: explanation/architecture/overview.md
+    - name: Profiling
+      items:
+        - name: Address entities and conversions
+          href: explanation/profiling/address-conversion.md
 
   - name: How-to guides
     labeled: true

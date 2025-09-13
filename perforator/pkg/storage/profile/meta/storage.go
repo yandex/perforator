@@ -15,7 +15,6 @@ type (
 
 	ProfileMetadata struct {
 		ID                ProfileID
-		BlobID            ProfileID
 		System            string
 		MainEventType     string
 		AllEventTypes     []string

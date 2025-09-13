@@ -1,14 +1,19 @@
 import type { FormatNode, ProfileData, StringifiableFields } from './models/Profile';
 
-import type { H, I } from './renderer';
+import { FlamegraphOffseter, type Coordinate, type H, type I } from './renderer';
 
 import type { TopKeys } from './top-types';
 
 
 export type TableFunctionTop = FunctionTop
 
-export function calculateTopForTable(data: ProfileData['rows'], stringTableLength: number) {
-    const topData = calculateTop(data, stringTableLength);
+interface TopOpts {
+    rootCoords: Coordinate;
+    omitted: Coordinate[];
+}
+
+export function calculateTopForTable(rows: ProfileData['rows'], stringTableLength: number, opts?: TopOpts) {
+    const topData = calculateTop(rows, stringTableLength, opts);
 
     const res: (TableFunctionTop)[] = [];
     for (const value of topData.values()) {
@@ -60,48 +65,56 @@ function getNodeKeyFull(len: number, n: FormatNode) {
     return len ** 2 * (n.kind ?? 0) + (n.file ?? 0) * len + n.textId + (n.inlined ? 1 : 0);
 }
 
-export function calculateTop(rows: ProfileData['rows'], stringTableLength: number) {
+export function calculateTop(rows: ProfileData['rows'], stringTableLength: number, opts: TopOpts = {omitted: [], rootCoords: [0, 0]}) {
 
     const res: Map<number, FunctionTop> = new Map();
-
-
-    populateWithSelfEventCount(rows);
-
-
+    const fg = new FlamegraphOffseter(rows, {reverse: false, levelHeight: 20})
     const getNodeKey = getNodeKeyFull.bind(null, stringTableLength);
-    for (let h = 0; h < rows.length; h++) {
-        const row = rows[h];
-        for (let i = 0; i < row.length; i++) {
-            const node = row[i];
-            const funcKey = getNodeKey(node);
-            if (!res.has(funcKey)) {
-                res.set(funcKey, {
-                    'all.eventCount': 0,
-                    'all.sampleCount': 0,
-                    'self.eventCount': 0,
-                    'self.sampleCount': 0,
-                    'diff.all.eventCount': 0,
-                    'diff.all.sampleCount': 0,
-                    'diff.self.eventCount': 0,
-                    'diff.self.sampleCount': 0,
-                    textId: node.textId,
-                    file: node.file,
-                    frameOrigin: node.frameOrigin,
-                    inlined: node.inlined,
-                    kind: node.kind,
-                });
-            }
-            const funcTopData = res.get(funcKey)!;
-            funcTopData['self.eventCount'] += node.selfEventCount!;
-            funcTopData['self.sampleCount'] += node.selfSampleCount!;
-            funcTopData['diff.self.eventCount'] += (node.baseSelfEventCount ?? 0);
-            funcTopData['diff.self.sampleCount'] += (node.baseSelfSampleCount ?? 0);
+
+    const visitor = (node: FormatNode) => {
+        const funcKey = getNodeKey(node);
+        if (!res.has(funcKey)) {
+            res.set(funcKey, {
+                'all.eventCount': 0,
+                'all.sampleCount': 0,
+                'self.eventCount': 0,
+                'self.sampleCount': 0,
+                'diff.all.eventCount': 0,
+                'diff.all.sampleCount': 0,
+                'diff.self.eventCount': 0,
+                'diff.self.sampleCount': 0,
+                textId: node.textId,
+                file: node.file,
+                frameOrigin: node.frameOrigin,
+                inlined: node.inlined,
+                kind: node.kind,
+            });
         }
+        const funcTopData = res.get(funcKey)!;
+        funcTopData['self.eventCount'] += node.selfEventCount - (node.omittedEventCount ?? 0);
+        funcTopData['self.sampleCount'] += node.selfSampleCount - (node.omittedSampleCount ?? 0);
+        funcTopData['diff.self.eventCount'] += (node.baseSelfEventCount ?? 0);
+        funcTopData['diff.self.sampleCount'] += (node.baseSelfSampleCount ?? 0);
     }
 
+    populateWithSelfEventCount(rows);
     populateWithChildren(rows);
+    fg.prerenderOffsets(1000, opts.rootCoords, opts.omitted, null, false, [{run: visitor}])
 
-    calcTotalTime(res, rows, getNodeKey);
+
+    calcTotalTime(res, rows, getNodeKey, opts.rootCoords);
+
+    const rootNode = rows[opts.rootCoords[0]][opts.rootCoords[1]];
+    let currentH = opts.rootCoords[0] - 1;
+    let currentI = rootNode.parentIndex;
+    // delete parents
+    while (currentH >= 0) {
+        const currentNode = rows[currentH][currentI];
+        const key = getNodeKey(currentNode);
+        res.delete(key);
+        currentH--;
+        currentI = currentNode.parentIndex;
+    }
 
     return res;
 }
@@ -120,7 +133,7 @@ function isSubpath(path: I[], subpath: I[]) {
 
 // we can't just sum all the `all.eventCount` over all nodes with the same name (because recursion)
 // so instead we do DFS and keep the shortest path for every function
-function calcTotalTime<K>(res: Map<K, FunctionTop>, rows: FormatNode[][], getNodeTitle: (node: FormatNode) => K) {
+function calcTotalTime<K>(res: Map<K, FunctionTop>, rows: FormatNode[][], getNodeTitle: (node: FormatNode) => K, rootCoords: Coordinate) {
     function walker(h: H, i: I, indexesPath: I[]) {
         const node = rows[h][i];
         const key = getNodeTitle(node);
@@ -140,5 +153,5 @@ function calcTotalTime<K>(res: Map<K, FunctionTop>, rows: FormatNode[][], getNod
         }
     }
 
-    walker(0, 0, [0]);
+    walker(rootCoords[0], rootCoords[1], [rootCoords[1]]);
 }

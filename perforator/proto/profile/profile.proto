@@ -186,6 +186,8 @@ enum StackKind {
 // Stacks are expected to be stored in non-natural order:
 // First stack address is the most nested one.
 message Stacks {
+    reserved 1, 2;
+
     // Origin of this stack. A sample can reference
     // multiple stacks of different kinds.
     // NOTE: When @kind is not equal to StackKind.Other, @runtime_name should be empty.
@@ -196,6 +198,18 @@ message Stacks {
     // NOTE: When @runtime_name is not empty, @kind should be set to StackKind.Other.
     // References Profile.strtab.
     repeated uint32 runtime_name = 4;
+    // Top of the stack, the most nested frame. We store stacks separated into
+    // two components: top frame and the rest frames. There is a lot of unique
+    // top frames (for each instruction in the binary in the extreme case), but
+    // there are not many call stacks. References Profile.StackFrames.
+    repeated uint32 top_frame_id = 5;
+    // ID if the rest of the stack (frames from 1 to the end).
+    // References Profile.StackSegments.
+    repeated uint32 stack_segment_id = 6;
+}
+
+// StackSegments represents different arrays of stack frames.
+message StackSegments {
     // Offsets into address_id array for each stack
     repeated uint32 offset = 1;
     // IDs of frames in each stack. References Profile.StackFrames.
@@ -366,8 +380,10 @@ message Profile {
     Samples samples = 2;
     // sample_keys -> [stacks, labels*, threads]
     SampleKeys sample_keys = 3;
-    // stacks -> [stack_frames*]
+    // stacks -> [stack_frames, stack_segments]
     Stacks stacks = 4;
+    // stack_segments -> [stack_frames*]
+    StackSegments stack_segments = 11;
     // stack_frames -> [binaries, inline_chains]
     StackFrames stack_frames = 5;
     // inline_chains -> [functions*]

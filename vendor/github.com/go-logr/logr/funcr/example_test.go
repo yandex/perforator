@@ -19,12 +19,11 @@ package funcr_test
 import (
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/funcr"
 )
 
 func ExampleNew() {
-	var log logr.Logger = funcr.New(func(prefix, args string) {
+	log := funcr.New(func(prefix, args string) {
 		fmt.Println(prefix, args)
 	}, funcr.Options{})
 
@@ -35,7 +34,7 @@ func ExampleNew() {
 }
 
 func ExampleNewJSON() {
-	var log logr.Logger = funcr.NewJSON(func(obj string) {
+	log := funcr.NewJSON(func(obj string) {
 		fmt.Println(obj)
 	}, funcr.Options{})
 
@@ -46,7 +45,7 @@ func ExampleNewJSON() {
 }
 
 func ExampleUnderlier() {
-	var log logr.Logger = funcr.New(func(prefix, args string) {
+	log := funcr.New(func(prefix, args string) {
 		fmt.Println(prefix, args)
 	}, funcr.Options{})
 
@@ -58,7 +57,7 @@ func ExampleUnderlier() {
 }
 
 func ExampleOptions() {
-	var log logr.Logger = funcr.NewJSON(
+	log := funcr.NewJSON(
 		func(obj string) { fmt.Println(obj) },
 		funcr.Options{
 			LogCaller: funcr.All,
@@ -68,8 +67,8 @@ func ExampleOptions() {
 	log.V(1).Info("V(1) message", "key", "value")
 	log.V(2).Info("V(2) message", "key", "value")
 	// Output:
-	// {"logger":"","caller":{"file":"example_test.go","line":67},"level":0,"msg":"V(0) message","key":"value"}
-	// {"logger":"","caller":{"file":"example_test.go","line":68},"level":1,"msg":"V(1) message","key":"value"}
+	// {"logger":"","caller":{"file":"example_test.go","line":66},"level":0,"msg":"V(0) message","key":"value"}
+	// {"logger":"","caller":{"file":"example_test.go","line":67},"level":1,"msg":"V(1) message","key":"value"}
 }
 
 func ExampleOptions_renderHooks() {
@@ -87,7 +86,7 @@ func ExampleOptions_renderHooks() {
 		return []any{"labels", funcr.PseudoStruct(kvList)}
 	}
 
-	var log logr.Logger = funcr.NewJSON(
+	log := funcr.NewJSON(
 		func(obj string) { fmt.Println(obj) },
 		funcr.Options{
 			RenderBuiltinsHook: prefixSpecialKeys,
@@ -101,7 +100,7 @@ func ExampleOptions_renderHooks() {
 }
 
 func ExamplePseudoStruct() {
-	var log logr.Logger = funcr.NewJSON(
+	log := funcr.NewJSON(
 		func(obj string) { fmt.Println(obj) },
 		funcr.Options{})
 	kv := []any{
@@ -119,7 +118,7 @@ func ExampleOptions_maxLogDepth() {
 	l := List{}
 	l.Next = &l // recursive
 
-	var log logr.Logger = funcr.NewJSON(
+	log := funcr.NewJSON(
 		func(obj string) { fmt.Println(obj) },
 		funcr.Options{MaxLogDepth: 4})
 	log.Info("recursive", "list", l)

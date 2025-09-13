@@ -1,5 +1,4 @@
 {
-    "extends": "./tsconfig.node.json",
     "compilerOptions": {
         "rootDir": "src",
         "target": "ES2020",

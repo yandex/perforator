@@ -1,8 +1,11 @@
 on:
-  release:
-    types:
-      # TODO: is this right?
-      - created
+  push:
+    tags:
+      - v*
+permissions:
+  contents: write
+  attestations: write
+  packages: write
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -64,7 +67,7 @@ jobs:
         run: |
           chmod +x ./cli
           chmod +x ./migrate
-          gh -R ${{ github.repository }} release upload ${{ github.event.release.tag_name }} ./cli ./migrate
+          gh -R ${{ github.repository }} release create --target ${{ github.sha }} --verify-tag --latest=false --draft ${{ github.ref_name }} ./cli ./migrate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   release-images:

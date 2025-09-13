@@ -1,6 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
+    access.go
     banned_users.go
     config.go
     llvm_tools.go

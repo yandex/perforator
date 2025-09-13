@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/aws/aws-sdk-go/service/s3"
 	hasql "golang.yandex/hasql/sqlx"
 
@@ -18,24 +17,25 @@ import (
 type Databases struct {
 	PostgresCluster *hasql.Cluster
 
-	ClickhouseConn driver.Conn
+	ClickhouseConn *clickhouse.Connection
 
 	S3Client *s3.S3
 }
 
-func NewDatabases(ctx context.Context, l xlog.Logger, c *Config, reg metrics.Registry) (*Databases, error) {
+// bgCtx should be valid for as long as databases are used
+func NewDatabases(ctx context.Context, bgCtx context.Context, l xlog.Logger, c *Config, app string, reg metrics.Registry) (*Databases, error) {
 	res := &Databases{}
 	var err error
 
 	if c.S3Config != nil {
-		res.S3Client, err = s3client.NewClient(c.S3Config, reg)
+		res.S3Client, err = s3client.NewClient(ctx, bgCtx, l, c.S3Config, reg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init s3: %w", err)
 		}
 	}
 
 	if c.PostgresCluster != nil {
-		res.PostgresCluster, err = postgres.NewCluster(ctx, l, c.PostgresCluster)
+		res.PostgresCluster, err = postgres.NewCluster(ctx, bgCtx, l, app, c.PostgresCluster)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init postgres cluster: %w", err)
 		}

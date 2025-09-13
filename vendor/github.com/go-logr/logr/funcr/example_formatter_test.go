@@ -41,17 +41,17 @@ type stdoutlogger struct {
 }
 
 func (l stdoutlogger) WithName(name string) logr.LogSink {
-	l.Formatter.AddName(name)
+	l.AddName(name)
 	return &l
 }
 
 func (l stdoutlogger) WithValues(kvList ...any) logr.LogSink {
-	l.Formatter.AddValues(kvList)
+	l.AddValues(kvList)
 	return &l
 }
 
 func (l stdoutlogger) WithCallDepth(depth int) logr.LogSink {
-	l.Formatter.AddCallDepth(depth)
+	l.AddCallDepth(depth)
 	return &l
 }
 

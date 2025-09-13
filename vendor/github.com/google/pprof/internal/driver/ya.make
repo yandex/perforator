@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.0.0-20240424215950-a892ee059fd6)
+VERSION(v0.0.0-20250317173921-a4b03ec1a45e)
 
 SRCS(
     cli.go
@@ -24,7 +24,6 @@ SRCS(
 )
 
 GO_TEST_SRCS(
-    # browser_test.go
     driver_test.go
     fetch_test.go
     interactive_test.go
@@ -35,10 +34,6 @@ GO_TEST_SRCS(
 )
 
 GO_EMBED_PATTERN(html)
-
-GO_TEST_EMBED_PATTERN(testdata/testfixture.js)
-
-GO_TEST_EMBED_PATTERN(testdata/testflame.js)
 
 END()
 

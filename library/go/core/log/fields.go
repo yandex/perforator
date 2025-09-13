@@ -47,10 +47,14 @@ const (
 	FieldTypeByteString
 	// FieldTypeContext wraps context for lazy context fields evaluation if possible
 	FieldTypeContext
+	// FieldTypeRawContext is for raw context that is not serialized, used by logger plugins
+	FieldTypeRawContext
 	// FieldTypeLazyCall wraps function to lazy evaluate it after log level confirm
 	FieldTypeLazyCall
 	// FieldTypeStringer is for fmt.Stringer
 	FieldTypeStringer
+	// FieldTypeSkip is for not logged fields
+	FieldTypeSkip
 
 	fieldTypeLast // service type for testing purposes
 )
@@ -166,9 +170,13 @@ func (f Field) Any() interface{} {
 		return f.Interface()
 	case FieldTypeContext:
 		return f.Interface()
+	case FieldTypeRawContext:
+		return f.Interface()
 	case FieldTypeLazyCall:
 		return f.Interface()
 	case FieldTypeStringer:
+		return f.Interface()
+	case FieldTypeSkip:
 		return f.Interface()
 	default:
 		// For when new field type is not added to this func
@@ -398,6 +406,12 @@ func Context(ctx context.Context) Field {
 	return Field{ftype: FieldTypeContext, iface: ctx}
 }
 
+// RawContext constructs field of raw context type that is not serialized.
+// This field is intended for use by logger plugins that need access to the raw Context object.
+func RawContext(ctx context.Context) Field {
+	return Field{ftype: FieldTypeRawContext, iface: ctx}
+}
+
 // LazyEvaluator represents types that can be evaluate in a lazy manner
 type LazyEvaluator interface {
 	func() (any, error) | zapcore.ObjectMarshalerFunc
@@ -406,6 +420,11 @@ type LazyEvaluator interface {
 // Lazy constructs field with lazy evaluation type
 func Lazy[T LazyEvaluator](key string, fn T) Field {
 	return Field{key: key, ftype: FieldTypeLazyCall, iface: fn}
+}
+
+// Skip constructs field for not logged values
+func Skip(key string, value interface{}) Field {
+	return Field{key: key, ftype: FieldTypeSkip, iface: value}
 }
 
 // Any tries to deduce interface{} underlying type and constructs Field from it.

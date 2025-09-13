@@ -19,10 +19,14 @@
 package leakcheck
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"google.golang.org/grpc/internal"
 )
 
 type testLogger struct {
@@ -40,19 +44,24 @@ func (e *testLogger) Errorf(format string, args ...any) {
 
 func TestCheck(t *testing.T) {
 	const leakCount = 3
+	ch := make(chan struct{})
 	for i := 0; i < leakCount; i++ {
-		go func() { time.Sleep(2 * time.Second) }()
+		go func() { <-ch }()
 	}
-	if ig := interestingGoroutines(); len(ig) == 0 {
-		t.Error("blah")
+	if leaked := interestingGoroutines(); len(leaked) != leakCount {
+		t.Errorf("interestingGoroutines() = %d, want length %d", len(leaked), leakCount)
 	}
 	e := &testLogger{}
-	CheckGoroutines(e, time.Second)
-	if e.errorCount != leakCount {
-		t.Errorf("CheckGoroutines found %v leaks, want %v leaks", e.errorCount, leakCount)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if CheckGoroutines(ctx, e); e.errorCount < leakCount {
+		t.Errorf("CheckGoroutines() = %d, want count %d", e.errorCount, leakCount)
 		t.Logf("leaked goroutines:\n%v", strings.Join(e.errors, "\n"))
 	}
-	CheckGoroutines(t, 3*time.Second)
+	close(ch)
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	CheckGoroutines(ctx, t)
 }
 
 func ignoredTestingLeak(d time.Duration) {
@@ -61,19 +70,65 @@ func ignoredTestingLeak(d time.Duration) {
 
 func TestCheckRegisterIgnore(t *testing.T) {
 	RegisterIgnoreGoroutine("ignoredTestingLeak")
+	go ignoredTestingLeak(3 * time.Second)
 	const leakCount = 3
+	ch := make(chan struct{})
 	for i := 0; i < leakCount; i++ {
-		go func() { time.Sleep(2 * time.Second) }()
+		go func() { <-ch }()
 	}
-	go func() { ignoredTestingLeak(3 * time.Second) }()
-	if ig := interestingGoroutines(); len(ig) == 0 {
-		t.Error("blah")
+	if leaked := interestingGoroutines(); len(leaked) != leakCount {
+		t.Errorf("interestingGoroutines() = %d, want length %d", len(leaked), leakCount)
 	}
 	e := &testLogger{}
-	CheckGoroutines(e, time.Second)
-	if e.errorCount != leakCount {
-		t.Errorf("CheckGoroutines found %v leaks, want %v leaks", e.errorCount, leakCount)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if CheckGoroutines(ctx, e); e.errorCount < leakCount {
+		t.Errorf("CheckGoroutines() = %d, want count %d", e.errorCount, leakCount)
 		t.Logf("leaked goroutines:\n%v", strings.Join(e.errors, "\n"))
 	}
-	CheckGoroutines(t, 3*time.Second)
+	close(ch)
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	CheckGoroutines(ctx, t)
+}
+
+// TestTrackTimers verifies that only leaked timers are reported and expired,
+// stopped timers are ignored.
+func TestTrackTimers(t *testing.T) {
+	TrackTimers()
+	const leakCount = 3
+	for i := 0; i < leakCount; i++ {
+		internal.TimeAfterFunc(2*time.Second, func() {
+			t.Logf("Timer %d fired.", i)
+		})
+	}
+	wg := sync.WaitGroup{}
+	// Let a couple of timers expire.
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		internal.TimeAfterFunc(time.Millisecond, func() {
+			wg.Done()
+		})
+	}
+	wg.Wait()
+
+	// Stop a couple of timers.
+	for i := 0; i < leakCount; i++ {
+		t := internal.TimeAfterFunc(time.Hour, func() {
+			t.Error("Timer fired before test ended.")
+		})
+		t.Stop()
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	e := &testLogger{}
+	CheckTimers(ctx, e)
+	if e.errorCount != leakCount {
+		t.Errorf("CheckTimers found %v leaks, want %v leaks", e.errorCount, leakCount)
+		t.Logf("leaked timers:\n%v", strings.Join(e.errors, "\n"))
+	}
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	CheckTimers(ctx, t)
 }

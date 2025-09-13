@@ -1,5 +1,5 @@
-//go:build go1.22
-// +build go1.22
+//go:build go1.22 && !tinygo
+// +build go1.22,!tinygo
 
 package chi
 
@@ -15,9 +15,9 @@ func TestPathValue(t *testing.T) {
 		name         string
 		pattern      string
 		method       string
-		pathKeys     []string
 		requestPath  string
 		expectedBody string
+		pathKeys     []string
 	}{
 		{
 			name:         "Basic path value",

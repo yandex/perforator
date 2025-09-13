@@ -14,4 +14,5 @@ END()
 
 RECURSE(
     gotest
+    resourcekeys
 )

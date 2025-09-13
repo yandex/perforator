@@ -10,15 +10,14 @@ function namehash(name: string, reversed = false): number {
     let max = 1;
     let mod = 10;
     const start = reversed ? name.length - 1 : 0;
-    const check = reversed ? (j: number) => j > 0 : (j: number) => j < name.length;
     const increment = reversed ? -1 : 1;
 
-    for (let j = start; check(j); j += increment) {
+    for (let j = start; reversed ? j > 0 : j < name.length; j += increment) {
         const i = name.charCodeAt(j) % mod;
 
         vector += (i / (mod - 1)) * weight;
         mod += 1;
-        max += Number(weight);
+        max += weight;
         weight *= 0.7;
 
         if (mod > 13) {
@@ -99,13 +98,16 @@ export function hsv2hsl(h: number, s: number, v: number) {
 }
 
 
-export function diffcolor(node: FormatNode, root: FormatNode) {
+export function diffcolor(node: FormatNode, root: FormatNode, reverse?: boolean): string {
     const lhs = node.eventCount;
     const rhs = root.baseEventCount && root.baseEventCount > 1e-5
         ? (node.baseEventCount ?? 0) * root.eventCount / root.baseEventCount
         : 0;
 
-    const diff = rhs > 1e-5 ? (lhs - rhs) / rhs : 1.0;
+    let diff = rhs > 1e-5 ? (lhs - rhs) / rhs : 1.0;
+    if(reverse) {
+        diff *= -1
+    }
     const d = Math.min(Math.abs(diff), 1.0);
 
     if (d < 1e-3) {

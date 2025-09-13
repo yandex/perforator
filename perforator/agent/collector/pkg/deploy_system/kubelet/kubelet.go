@@ -27,7 +27,10 @@ const (
 	nodeEnv     = "NODE_NAME"
 	nodeIP      = "NODE_IP"
 
-	kubernetesAPIServerHost = "kubernetes.default.svc.cluster.local"
+	// See https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/#directly-accessing-the-rest-api
+	kubernetesAPIServerHostFallback = "kubernetes.default.svc.cluster.local"
+	kubernetesAPIServerHostEnv      = "KUBERNETES_SERVICE_HOST"
+	kubernetesAPIServerPortEnv      = "KUBERNETES_SERVICE_PORT"
 
 	getPodsRequestTimeout = 10 * time.Second
 
@@ -40,6 +43,17 @@ var qosClassToCgroupSubstr = map[kube.PodQOSClass]string{
 	kube.PodQOSGuaranteed: "guaranteed",
 	kube.PodQOSBestEffort: "besteffort",
 	kube.PodQOSBurstable:  "burstable",
+}
+
+func getKubernetesAPIServerHost() string {
+	host := os.Getenv(kubernetesAPIServerHostEnv)
+	port := os.Getenv(kubernetesAPIServerPortEnv)
+
+	if host != "" && port != "" {
+		return fmt.Sprintf("%s:%s", host, port)
+	}
+
+	return kubernetesAPIServerHostFallback
 }
 
 func getNodeName() (string, error) {
@@ -117,6 +131,8 @@ type KubeletSettingsOverrides struct {
 	CgroupDriver          string   `json:"cgroupDriver"`
 	CgroupsQOSMode        string   `json:"cgroupsQOSMode"`
 	CgroupContainerPrefix string   `json:"cgroupContainerPrefix"`
+
+	KubernetesAPIServerHost string `json:"kubernetesAPIServerHost"`
 }
 
 type cgroupsQOSMode int
@@ -259,7 +275,7 @@ func (p *PodsLister) getTopology(topologyLableKey string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), getPodsRequestTimeout)
 	defer cancel()
 
-	url := fmt.Sprintf("https://%s/api/v1/nodes/%s", kubernetesAPIServerHost, p.nodeName)
+	url := fmt.Sprintf("https://%s/api/v1/nodes/%s", p.apiServerHost, p.nodeName)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

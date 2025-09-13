@@ -4,6 +4,8 @@ SRCS(
     buildid_filter.go
     env_filter.go
     filter.go
+    protofilter.go
+    selector.go
     tls_filter.go
 )
 

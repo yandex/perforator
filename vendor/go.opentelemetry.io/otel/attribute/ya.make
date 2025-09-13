@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.35.0)
+VERSION(v1.37.0)
 
 SRCS(
     doc.go
@@ -11,6 +11,7 @@ SRCS(
     iterator.go
     key.go
     kv.go
+    rawhelpers.go
     set.go
     type_string.go
     value.go
@@ -31,4 +32,5 @@ END()
 
 RECURSE(
     gotest
+    internal
 )

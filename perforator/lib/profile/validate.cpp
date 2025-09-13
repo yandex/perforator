@@ -162,13 +162,19 @@ private:
         ExpectEntityArray(stackFrames.inline_chain_id(), Profile_.inline_chains().offset(), "inline_chain");
     }
 
-    void VisitStacks(const NProto::NProfile::Stacks& stacks) override {
-        RequireFlattenedArray(stacks.offset(), stacks.frame_id());
-        ExpectEntityArray(stacks.frame_id(), Profile_.stack_frames().binary_id(), "stack_frame");
+    void VisitStackSegments(const NProto::NProfile::StackSegments& stackSegments) override {
+        RequireFlattenedArray(stackSegments.offset(), stackSegments.frame_id());
+        ExpectEntityArray(stackSegments.frame_id(), Profile_.stack_frames().binary_id(), "stack_frame");
 
-        Y_ENSURE(stacks.offset_size() > 0, "The first stack must be defined empty");
-        Y_ENSURE(stacks.offset(0) == 0, "The first stack must be defined empty");
-        Y_ENSURE(stacks.offset_size() == 1 || stacks.offset(1) == 0, "The first stack must be defined empty");
+        // Check that the first stack frame is empty.
+        Y_ENSURE(stackSegments.offset(0) == 0);
+        Y_ENSURE(stackSegments.offset_size() == 1 || stackSegments.offset(1) == 0);
+    }
+
+    void VisitStacks(const NProto::NProfile::Stacks& stacks) override {
+        RequireStringArray(stacks.runtime_name());
+        ExpectEntityArray(stacks.top_frame_id(), Profile_.stack_frames().binary_id(), "stack_frame");
+        ExpectEntityArray(stacks.stack_segment_id(), Profile_.stack_segments().offset(), "stack_segment");
     }
 
     void VisitSampleKeys(const NProto::NProfile::SampleKeys& keys) override {
@@ -180,7 +186,7 @@ private:
 
         RequireFlattenedArray(keys.labels().first_label_id(), keys.labels().packed_label_id());
         RequireFlattenedArray(keys.stacks().first_stack_id(), keys.stacks().stack_id());
-        ExpectEntityArray(keys.stacks().stack_id(), Profile_.stacks().offset(), "stack");
+        ExpectEntityArray(keys.stacks().stack_id(), Profile_.stacks().kind(), "stack");
         ExpectEntityArray(keys.threads().thread_id(), Profile_.threads().thread_id(), "thread");
 
         // Packed labels require custom checks.

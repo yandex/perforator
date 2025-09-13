@@ -24,7 +24,7 @@ class TscBuilder(BaseTsBuilder):
     ):
         super(TscBuilder, self).__init__(
             options=options,
-            output_dirs=[ts_config.compiler_option("outDir")],
+            output_dirs=list(ts_config.get_out_dirs()),
             ts_config_path=os.path.relpath(ts_config.path, options.curdir),
         )
 

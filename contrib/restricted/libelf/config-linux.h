@@ -5,7 +5,7 @@
 #define CHECK_UNDEFINED 0
 
 /* Should ar and ranlib use -D behavior by default? */
-#define DEFAULT_AR_DETERMINISTIC true
+#define DEFAULT_AR_DETERMINISTIC false
 
 /* Build dummy libdebuginfod */
 /* #undef DUMMY_LIBDEBUGINFOD */

@@ -3,22 +3,25 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type { FlamegraphProps, QueryKeys } from '@perforator/flamegraph';
-import { calculateTopForTable, Flamegraph, prerenderColors, TopTable } from '@perforator/flamegraph';
+import { calculateTopForTable, Flamegraph, prerenderColors, SideBySide, TopTable } from '@perforator/flamegraph';
 
-import { Loader, Tabs, useThemeType } from '@gravity-ui/uikit';
-
+import { Loader, useThemeType } from '@gravity-ui/uikit';
+import { Tabs } from '@gravity-ui/uikit/legacy';
 import { Link } from '../Link/Link';
 import { createSuccessToast } from '../../utils/toaster';
 
 import { useTypedQuery } from '../../query-utils';
 
 import './Visualisation.css';
+import { cn } from '../../utils/cn';
 
-export type Tab = 'flame' | 'top'
+export type Tab = 'flame' | 'top' | 'sbs';
 export interface VisualisationProps
     extends Pick<FlamegraphProps, 'profileData' | 'theme'> {
     loading: boolean;
 }
+
+const b = cn('vis')
 
 export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...props }) => {
     const navigate = useNavigate();
@@ -43,45 +46,56 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             : null;
     }, [profileData, isFirstTopRender]);
 
+    const userSettings  = {
+        monospace: 'default',
+        numTemplating: 'exponent',
+        reverseFlameByDefault: true,
+        shortenFrameTexts: 'false',
+        theme: 'system'
+    } as const;
+
+    const flamegraphProps: FlamegraphProps = {
+        goToDefinitionHref: () => '',
+        profileData,
+        getState: getQuery,
+        isDiff,
+        setState: setQuery,
+        onSuccess: createSuccessToast,
+        userSettings,
+        ...props
+    };
+
     let content: React.JSX.Element | undefined;
 
     if (props.loading) {
         content = <Loader />;
     } else {
         if (tab === 'flame') {
-            content = (
-                <Flamegraph
-                goToDefinitionHref={() => ''}    
-                profileData={profileData}
-                    getState={getQuery}
-                    isDiff={isDiff}
-                    setState={setQuery}
-                    onSuccess={createSuccessToast}
-                    userSettings={{monospace: 'default', numTemplating: 'exponent', 'reverseFlameByDefault': true, shortenFrameTexts: 'false', theme: 'system'}}
-                    {...props}
-                />
-            );
+            content = <Flamegraph {...flamegraphProps} />;
         }
         if (tab === 'top' && topData && profileData) {
-            content = (
-                <TopTable
-                    goToDefinitionHref={() => ''}
-                    topData={topData}
-                    profileData={profileData}
-                    userSettings={{monospace: 'default', numTemplating: 'exponent', 'reverseFlameByDefault': true, shortenFrameTexts: 'false', theme: 'system'}}
-                    navigate={navigate}
-                    getState={getQuery}
-                    setState={setQuery}
-                    {...props}
-                />
-            );
+            const topTableProps = {
+                goToDefinitionHref: () => '',
+                topData,
+                profileData,
+                userSettings,
+                navigate,
+                getState: getQuery,
+                setState: setQuery,
+                ...props
+            };
+            content = <TopTable {...topTableProps} />;
+        }
+
+        if(tab === 'sbs') {
+            content = <SideBySide navigate={navigate} {...flamegraphProps} />;
         }
     }
 
     return (
-        <div className='visualisation'>
+        <div className={b({sbs: tab === 'sbs'})}>
             <Tabs
-                className={'visualisation_tabs'}
+                className={'vis_tabs'}
                 activeTab={tab}
                 wrapTo={(item, node) => (
                     <Link key={item.id} href={`?tab=${item?.id}`}>
@@ -91,6 +105,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
                 items={[
                     { id: 'flame', title: 'Flamegraph' },
                     { id: 'top', title: 'Top' },
+                    { id: 'sbs', title: 'Side by side' }
                 ]}
                 onSelectTab={() => {}}
             />

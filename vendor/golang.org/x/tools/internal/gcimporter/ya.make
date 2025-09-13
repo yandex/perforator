@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.30.1-0.20250221230316-5055f70f240c)
+VERSION(v0.35.1-0.20250728180453-01a3475a31bc)
 
 SRCS(
     bimport.go
@@ -10,7 +10,6 @@ SRCS(
     gcimporter.go
     iexport.go
     iimport.go
-    iimport_go122.go
     predeclared.go
     support.go
     ureader_yes.go

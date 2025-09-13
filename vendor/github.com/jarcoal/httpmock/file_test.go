@@ -1,11 +1,11 @@
 package httpmock_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"path/filepath"
-	"strings"
 	"testing"
+
+	"github.com/maxatome/go-testdeep/td"
 
 	"github.com/jarcoal/httpmock"
 )
@@ -13,87 +13,64 @@ import (
 var _ json.Marshaler = httpmock.File("test.json")
 
 func TestFile(t *testing.T) {
-	dir, cleanup := tmpDir(t)
+	assert := td.Assert(t)
+
+	dir, cleanup := tmpDir(assert)
 	defer cleanup()
 
-	t.Run("Valid JSON file", func(t *testing.T) {
+	assert.Run("Valid JSON file", func(assert *td.T) {
 		okFile := filepath.Join(dir, "ok.json")
-		writeFile(t, okFile, []byte(`{ "test": true }`))
+		writeFile(assert, okFile, []byte(`{ "test": true }`))
 
 		encoded, err := json.Marshal(httpmock.File(okFile))
-		if err != nil {
-			t.Errorf("json.Marshal(%s) failed: %s", okFile, err)
+		if !assert.CmpNoError(err, "json.Marshal(%s)", okFile) {
 			return
 		}
-		got, expected := string(encoded), `{"test":true}`
-		if got != expected {
-			t.Errorf("json.Marshal(%s): got=<%s> expected=<%s>", okFile, got, expected)
-		}
+		assert.String(encoded, `{"test":true}`)
 	})
 
-	t.Run("Nonexistent JSON file", func(t *testing.T) {
+	assert.Run("Nonexistent JSON file", func(assert *td.T) {
 		nonexistentFile := filepath.Join(dir, "nonexistent.json")
 		_, err := json.Marshal(httpmock.File(nonexistentFile))
-		if err == nil {
-			t.Errorf("json.Marshal(%s) succeeded, but an error is expected!", nonexistentFile)
-		}
+		assert.CmpError(err, "json.Marshal(%s), error expected", nonexistentFile)
 	})
 
-	t.Run("Invalid JSON file", func(t *testing.T) {
+	assert.Run("Invalid JSON file", func(assert *td.T) {
 		badFile := filepath.Join(dir, "bad.json")
-		writeFile(t, badFile, []byte(`[123`))
+		writeFile(assert, badFile, []byte(`[123`))
 
 		_, err := json.Marshal(httpmock.File(badFile))
-		if err == nil {
-			t.Errorf("json.Marshal(%s) succeeded, but an error is expected!", badFile)
-		}
+		assert.CmpError(err, "json.Marshal(%s), error expected", badFile)
 	})
 
-	t.Run("Bytes", func(t *testing.T) {
+	assert.Run("Bytes", func(assert *td.T) {
 		file := filepath.Join(dir, "ok.raw")
 		content := []byte(`abc123`)
-		writeFile(t, file, content)
+		writeFile(assert, file, content)
 
-		if got := httpmock.File(file).Bytes(); !bytes.Equal(content, got) {
-			t.Errorf("bytes differ:\n      got: %v\n expected: %v", got, content)
-		}
+		assert.Cmp(httpmock.File(file).Bytes(), content)
 	})
 
-	t.Run("Bytes panic", func(t *testing.T) {
+	assert.Run("Bytes panic", func(assert *td.T) {
 		nonexistentFile := filepath.Join(dir, "nonexistent.raw")
-		panicked, mesg := catchPanic(func() {
-			httpmock.File(nonexistentFile).Bytes()
-		})
-		if !panicked {
-			t.Error("No panic detected")
-			return
-		}
-		if !strings.HasPrefix(mesg, "Cannot read "+nonexistentFile) {
-			t.Errorf("Bad panic mesg: <%s>", mesg)
-		}
+		assert.CmpPanic(func() { httpmock.File(nonexistentFile).Bytes() },
+			td.HasPrefix("Cannot read "+nonexistentFile))
 	})
 
-	t.Run("String", func(t *testing.T) {
+	assert.Run("String", func(assert *td.T) {
 		file := filepath.Join(dir, "ok.txt")
 		content := `abc123`
-		writeFile(t, file, []byte(content))
+		writeFile(assert, file, []byte(content))
 
-		if got := httpmock.File(file).String(); got != content {
-			t.Errorf("strings differ:\n      got: <%s>\n expected: <%s>", got, content)
-		}
+		assert.Cmp(httpmock.File(file).String(), content)
 	})
 
-	t.Run("String panic", func(t *testing.T) {
+	assert.Run("String panic", func(assert *td.T) {
 		nonexistentFile := filepath.Join(dir, "nonexistent.txt")
-		panicked, mesg := catchPanic(func() {
-			httpmock.File(nonexistentFile).String() //nolint: govet
-		})
-		if !panicked {
-			t.Error("No panic detected")
-			return
-		}
-		if !strings.HasPrefix(mesg, "Cannot read "+nonexistentFile) {
-			t.Errorf("Bad panic mesg: <%s>", mesg)
-		}
+		assert.CmpPanic(
+			func() {
+				httpmock.File(nonexistentFile).String() //nolint: govet
+			},
+			td.HasPrefix("Cannot read "+nonexistentFile))
 	})
 }

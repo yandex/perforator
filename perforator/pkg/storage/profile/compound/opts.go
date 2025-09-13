@@ -1,15 +1,15 @@
 package compound
 
 import (
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta/clickhouse"
+	"github.com/yandex/perforator/perforator/pkg/clickhouse"
+	clickhouse_meta "github.com/yandex/perforator/perforator/pkg/storage/profile/meta/clickhouse"
 )
 
 type options struct {
-	clickhouseConn          driver.Conn
-	clickhouseConf          *clickhouse.Config
+	clickhouseConn          *clickhouse.Connection
+	clickhouseConf          *clickhouse_meta.Config
 	s3client                *s3.S3
 	s3bucket                string
 	blobDownloadConcurrency uint32
@@ -21,7 +21,7 @@ func defaultOpts() *options {
 
 type Option = func(o *options)
 
-func WithClickhouseMetaStorage(conn driver.Conn, conf *clickhouse.Config) Option {
+func WithClickhouseMetaStorage(conn *clickhouse.Connection, conf *clickhouse_meta.Config) Option {
 	return func(o *options) {
 		o.clickhouseConn = conn
 		o.clickhouseConf = conf

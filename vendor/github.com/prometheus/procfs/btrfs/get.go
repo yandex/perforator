@@ -22,14 +22,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/prometheus/procfs"
 	"github.com/prometheus/procfs/internal/fs"
 	"github.com/prometheus/procfs/internal/util"
 )
-
-// SectorSize contains the Linux sector size.
-// > Linux always considers sectors to be 512 bytes long independently
-// > of the devices real block size.
-const SectorSize = 512
 
 // FS represents the pseudo-filesystem sys, which provides an interface to
 // kernel data structures.
@@ -213,7 +209,7 @@ func (r *reader) readDeviceInfo(d string) map[string]*Device {
 	info := make(map[string]*Device, len(devs))
 	for _, n := range devs {
 		info[n] = &Device{
-			Size: SectorSize * r.readValue("devices/"+n+"/size"),
+			Size: procfs.SectorSize * r.readValue("devices/"+n+"/size"),
 		}
 	}
 

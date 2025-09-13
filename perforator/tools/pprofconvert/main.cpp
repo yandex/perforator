@@ -2,6 +2,7 @@
 #include <perforator/lib/profile/parallel_merge.h>
 #include <perforator/lib/profile/pprof.h>
 #include <perforator/lib/profile/profile.h>
+#include <perforator/lib/profile/flat_diffable.h>
 #include <perforator/lib/profile/validate.h>
 
 #include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
@@ -22,11 +23,13 @@
 #include <util/stream/format.h>
 #include <util/stream/input.h>
 #include <util/stream/zlib.h>
+#include <util/string/builder.h>
 #include <util/system/yassert.h>
 #include <util/thread/pool.h>
 
 #include <google/protobuf/arena.h>
 
+#include <concepts>
 #include <type_traits>
 
 
@@ -50,10 +53,73 @@ size_t CountBits(Range&& range) {
 NPerforator::NProto::NProfile::MergeOptions MakeCommonMergeOptions() {
     NPerforator::NProto::NProfile::MergeOptions options;
     options.set_ignore_process_ids(true);
+    options.set_ignore_thread_ids(true);
     options.set_ignore_timestamps(true);
     options.mutable_label_filter()->add_skipped_key_prefixes("tls:");
     options.mutable_label_filter()->add_skipped_key_prefixes("cgroup");
     return options;
+}
+
+template <typename F>
+static decltype(auto) LogTime(TStringBuf before, TStringBuf after, F&& func) {
+    TInstant start = Now();
+    Cerr << before << Endl;
+
+    auto result = std::invoke(std::forward<F>(func));
+
+    TInstant end = Now();
+    Cerr << after << " in " << HumanReadable(end - start) << Endl;
+
+    return result;
+}
+
+template <std::derived_from<google::protobuf::Message> M>
+M ParseProtoTimed(const TString& path) {
+    TString name = M::descriptor()->full_name();
+    return LogTime("Parsing " + name  + " from " + path, "Parsed " + name, [path] {
+        TFileInput in{path};
+        M proto;
+        Y_ENSURE(proto.ParseFromArcadiaStream(&in));
+        return proto;
+    });
+}
+
+TString DebugDump(NPerforator::NProfile::TStackFrame frame) {
+    TStringBuilder builder;
+
+    auto chain = frame.GetInlineChain();
+    for (auto line : chain.GetLines()) {
+        builder << line.GetFunction().GetFileName() << ":" << line.GetFunction().GetName() << ":" << line.GetFunction().GetStartLine() << ":(" << line.GetLine() << ":" << line.GetColumn() << ')';
+    }
+
+    builder << "@<" << frame.GetBinary().GetBuildId().View();
+    i64 offset = frame.GetBinaryOffset();
+    if (offset >= 0) {
+        builder << '+';
+    }
+    builder << Hex(offset, 0) << ">";
+
+    return builder;
+}
+
+TString DebugDump(NPerforator::NProfile::TStack stack) {
+    if (stack.GetKind() == NPerforator::NProto::NProfile::Other) {
+        return "<REMOVED>";
+    }
+
+    TStringBuilder builder;
+    builder << StackKind_Name(stack.GetKind()) << ":";
+    builder << stack.GetRuntimeName().View() << "[";
+    for (auto [i, frame] : Enumerate(stack.GetFrames())) {
+        if (i != 0) {
+            builder << DebugDump(frame) << ",";
+        }
+    }
+    if (builder.back() == ',') {
+        builder.pop_back();
+    }
+    builder << ']';
+    return builder;
 }
 
 int main(int argc, const char* argv[]) {
@@ -205,7 +271,6 @@ int main(int argc, const char* argv[]) {
         Cerr << "Parsed profile" << Endl;
         arrstats("samples.labels.first_label_id", profile.sample_keys().labels().first_label_id());
         arrstats("samples.labels.packed_label_id", profile.sample_keys().labels().packed_label_id());
-        arrstats("stacks.frame_id", profile.stacks().frame_id());
 
         volatile bool loop = true;
         while (loop) {
@@ -280,6 +345,7 @@ int main(int argc, const char* argv[]) {
     if (argv[1] == "merge-threaded"sv) {
         Y_ENSURE(argc > 3);
 
+        const TInstant start = Now();
         const int threadCount = 20;
 
         TThreadPool tp;
@@ -290,7 +356,7 @@ int main(int argc, const char* argv[]) {
 
         NPerforator::NProfile::TParallelProfileMergerOptions mergerOptions;
         mergerOptions.MergeOptions = options;
-        mergerOptions.ConcurrencyLevel = 10;
+        mergerOptions.ConcurrencyLevel = 16;
         mergerOptions.BufferSize = 20;
 
         NPerforator::NProfile::TParallelProfileMerger merger{&merged, mergerOptions, &tp};
@@ -326,6 +392,8 @@ int main(int argc, const char* argv[]) {
         TFileOutput out{argv[2]};
         merged.SerializeToArcadiaStream(&out);
 
+        Cerr << "Finished merge in " << HumanReadable(Now() - start) << Endl;
+
         return 0;
     }
 
@@ -340,6 +408,7 @@ int main(int argc, const char* argv[]) {
 
         int cnt = 0;
 
+        int prevSize = 0;
         NPerforator::NProto::NProfile::Profile profile;
         for (int i = 3; i < argc; ++i) {
             TFileInput in{argv[i]};
@@ -347,6 +416,18 @@ int main(int argc, const char* argv[]) {
 
             merger.Add(profile);
             Cerr << "Merged profile #" << cnt++ << Endl;
+
+            int size = merged.stack_segments().offset_size();
+            int delta = size - prevSize;
+
+            Cout
+                << cnt
+                << '\t' << size
+                << '\t' << delta
+                << '\t' << Prec(size * 1.0 / cnt, PREC_POINT_DIGITS, 2)
+                << '\t' << Prec(delta * 100.0 / profile.stack_segments().offset_size(), PREC_POINT_DIGITS, 2) << "% new stack segments"
+                << Endl;
+            prevSize = size;
         }
 
         std::move(merger).Finish();
@@ -361,23 +442,147 @@ int main(int argc, const char* argv[]) {
 
     if (argv[1] == "dump"sv) {
         Y_ENSURE(argc == 3);
-        TFileInput in{argv[2]};
-        NPerforator::NProto::NProfile::Profile profile;
-        Y_ENSURE(profile.ParseFromArcadiaStream(&in));
 
-        NPerforator::NProfile::TProfile prof{&profile};
+        auto proto = LogTime("Parsing profile", "Parsed profile", [argv] {
+            TFileInput in{argv[2]};
+            NPerforator::NProto::NProfile::Profile proto;
+            Y_ENSURE(proto.ParseFromArcadiaStream(&in));
+            return proto;
+        });
 
-        NJson::TJsonWriter writer{&Cout, false};
+        NPerforator::NProfile::TProfile profile{&proto};
 
+        /*
         writer.OpenMap();
         writer.WriteKey("samples");
-
         writer.OpenArray();
-        for (auto sample : prof.Samples()) {
+        */
+
+        for (auto sample : profile.Samples()) {
+            NJson::TJsonWriter writer{&Cout, NJson::TJsonWriterConfig{
+                .FormatOutput = false,
+                .Unbuffered = true,
+            }};
             sample.DumpJson(writer);
         }
-        writer.CloseArray();
 
+        /*
+        writer.CloseArray();
         writer.CloseMap();
+        */
+    }
+
+    if (argv[1] == "stats"sv) {
+        Y_ENSURE(argc == 3);
+        TFileInput in{argv[2]};
+        NPerforator::NProto::NProfile::Profile proto;
+        Y_ENSURE(proto.ParseFromArcadiaStream(&in));
+
+        NPerforator::NProfile::TProfile profile{&proto};
+
+        Cerr << "Profile has " << profile.Stacks().Size() << " stacks" << Endl;
+    }
+
+    if (argv[1] == "dump-stacks"sv) {
+        Y_ENSURE(argc == 3);
+        TFileInput in{argv[2]};
+        NPerforator::NProto::NProfile::Profile proto;
+        Y_ENSURE(proto.ParseFromArcadiaStream(&in));
+
+        NPerforator::NProfile::TProfile profile{&proto};
+
+        Cerr << "Profile has " << profile.Stacks().Size() << " stacks" << Endl;
+
+        for (auto stack : profile.Stacks()) {
+            TString key = DebugDump(stack);
+            Cout << Hex(MultiHash(key)) << ": " << key << Endl;
+        }
+    }
+
+    if (argv[1] == "diff-stacks"sv) {
+        Y_ENSURE(argc == 4);
+
+        NPerforator::NProto::NProfile::Profile protos[] {
+            ParseProtoTimed<NPerforator::NProto::NProfile::Profile>(argv[2]),
+            ParseProtoTimed<NPerforator::NProto::NProfile::Profile>(argv[3]),
+        };
+
+        NPerforator::NProfile::TProfile profiles[]{
+            NPerforator::NProfile::TProfile{&protos[0]},
+            NPerforator::NProfile::TProfile{&protos[1]},
+        };
+
+        auto iterateStackValues = [](const NPerforator::NProfile::TProfile& profile, auto&& consumer) {
+            for (auto sample : profile.Samples()) {
+                auto key = sample.GetKey();
+                for (auto stack : key.GetStacks()) {
+                    for (auto value : sample.GetValues()) {
+                        consumer(stack, value);
+                    }
+                }
+            }
+        };
+
+        THashMap<TString, double> weights;
+        iterateStackValues(profiles[0], [&weights](NPerforator::NProfile::TStack stack, ui64 value) {
+            weights[DebugDump(stack)] += value;
+        });
+
+        THashMap<NPerforator::NProto::NProfile::StackKind, double> commonWeight;
+        THashMap<NPerforator::NProto::NProfile::StackKind, double> totalWeight;
+        THashMap<NPerforator::NProto::NProfile::StackKind, ui64> uniqueStacks;
+        iterateStackValues(profiles[1], [&](NPerforator::NProfile::TStack stack, ui64 value) {
+            auto kind = stack.GetKind();
+
+            TString key = DebugDump(stack);
+            auto it = weights.find(key);
+            if (it != weights.end()) {
+                commonWeight[kind] += value;
+            } else {
+                if (uniqueStacks[kind]++ < 5) {
+                    Cout << Hex(MultiHash(key)) << ": " << key << Endl;
+                    /*
+                    NJson::TJsonWriter writer{&Cout, NJson::TJsonWriterConfig{
+                        .FormatOutput = false,
+                        .Unbuffered = true,
+                    }};
+                    stack.DumpJson(writer);
+                    Cout << Endl;
+                    */
+                }
+            }
+            totalWeight[kind] += value;
+        });
+
+        ui32 commonStacks = 0;
+        ui32 totalStacks = 0;
+        for (auto stack : profiles[1].Stacks()) {
+            TString key = DebugDump(stack);
+            commonStacks += weights.contains(key);
+            totalStacks += 1;
+        }
+
+        Cerr << commonStacks << " / " << totalStacks << " common stacks" << Endl;
+        for (auto [kind, _] : commonWeight) {
+            Cerr << NPerforator::NProto::NProfile::StackKind_Name(kind) << ":\n";
+            Cerr << '\t' << commonWeight[kind] << " / " << totalWeight[kind] << " (" << Prec(commonWeight[kind] * 100.0 / totalWeight[kind], PREC_NDIGITS, 8) << "% common samples)" << Endl;
+        }
+    }
+
+    if (argv[1] == "dump-diffable"sv) {
+        Y_ENSURE(argc == 3);
+
+        auto proto = ParseProtoTimed<NPerforator::NProto::NProfile::Profile>(argv[2]);
+        NPerforator::NProfile::TProfile profile{&proto};
+        NPerforator::NProfile::TFlatDiffableProfile{profile}.WriteTo(Cout);
+    }
+
+    if (argv[1] == "dump-diffable-pprof"sv) {
+        Y_ENSURE(argc == 3);
+
+        auto profile = ParseProtoTimed<NPerforator::NProto::NPProf::Profile>(argv[2]);
+        NPerforator::NProfile::TFlatDiffableProfile{profile, {
+            .LabelBlacklist = {"comm"},
+        }}.WriteTo(Cout);
     }
 }

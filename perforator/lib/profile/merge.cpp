@@ -136,9 +136,13 @@ public:
 
 private:
     bool SampleHasOneOfRequiredBinaries(TSample sample) const {
+        if (RequiredOneOfBinaries_.empty()) {
+            return true;
+        }
+
         TSampleKey key = sample.GetKey();
         for (TStack stack : key.GetStacks()) {
-            for (TStackFrame frame : stack.GetStackFrames()) {
+            for (TStackFrame frame : stack.GetFrames()) {
                 TBinaryId binaryId = frame.GetBinary().GetIndex();
                 if (RequiredOneOfBinaries_.contains(binaryId)) {
                     return true;
@@ -149,6 +153,10 @@ private:
     }
 
     bool SampleHasAllOfRequiredLabels(TSample sample) const {
+        if (RequiredAllOfLabels_.empty()) {
+            return true;
+        }
+
         std::bitset<MaxRequiredLabelCount> found;
         Y_ASSERT(found.size() >= RequiredAllOfLabels_.size());
 
@@ -160,7 +168,7 @@ private:
             }
         }
 
-        return found.all();
+        return found.count() == RequiredAllOfLabels_.size();
     }
 
     void PopulateFilters() {
@@ -190,6 +198,9 @@ private:
                 }
             }
         }
+        if (RequiredOneOfBinaries_.empty() && !buildIds.empty()) {
+            HasTriviallyNegativeSampleFilter_ = true;
+        }
 
         // Map labels to internal ids.
         ui64 labelCount = filter.required_all_of_string_labels_size()
@@ -211,6 +222,10 @@ private:
         // If we cannot find some labels, we will not be able to accept any sample.
         if (RequiredAllOfLabels_.size() != labelCount) {
             HasTriviallyNegativeSampleFilter_ = true;
+        }
+
+        if (labelCount == 0 && buildIds.empty()) {
+            HasTriviallyPositiveSampleFilter_ = true;
         }
     }
 
@@ -270,6 +285,7 @@ public:
         , SampleKeys_{*Profile_.SampleKeys().GetPastTheEndIndex()}
         , Stacks_{*Profile_.Stacks().GetPastTheEndIndex()}
         , Binaries_{*Profile_.Binaries().GetPastTheEndIndex()}
+        , StackSegments_{*Profile_.StackSegments().GetPastTheEndIndex()}
         , StackFrames_{*Profile_.StackFrames().GetPastTheEndIndex()}
         , InlineChains_{*Profile_.InlineChains().GetPastTheEndIndex()}
         , SourceLines_{*Profile_.SourceLines().GetPastTheEndIndex()}
@@ -321,7 +337,7 @@ private:
     void MergeSample(TSample sample) {
         auto builder = Builder_.AddSample();
 
-        if (auto ts = sample.GetTimestamp(); ts && !Policy_.MergeTimestamps()) {
+        if (auto ts = sample.GetProtoTimestamp(); ts && !Policy_.MergeTimestamps()) {
             builder.SetTimestamp(ts->seconds(), ts->nanos());
         }
 
@@ -336,7 +352,7 @@ private:
 
     TValueTypeId MapValueType(TValueType type) {
         // TODO(sskvor): If different profiles have different value type sets,
-        // the process of merging should fail inside ProfileBuilder on the first
+        // the process of merging should fail inside TProfileBuilder on the first
         // call to "AddValueType" that follows calls to "AddSample".
         return ValueTypes_.TryMap(type.GetIndex(), [&, this] {
             return Builder_.AddValueType(
@@ -437,10 +453,21 @@ private:
         return Stacks_.TryMap(stack.GetIndex(), [&, this] {
             auto builder = Builder_.AddStack();
 
-            builder.SetKind(stack.GetStackKind());
-            builder.SetRuntimeName(MapString(stack.GetStackRuntimeName()));
-            for (TStackFrame frame : stack.GetStackFrames()) {
-                builder.AddStackFrame(MapStackFrame(frame));
+            builder.SetKind(stack.GetKind());
+            builder.SetRuntimeName(MapString(stack.GetRuntimeName()));
+            builder.SetTopFrame(MapStackFrame(stack.GetTopFrame()));
+            builder.SetStackSegment(MapStackSegment(stack.GetStackSegment()));
+
+            return builder.Finish();
+        });
+    }
+
+    TStackSegmentId MapStackSegment(TStackSegment segment) {
+        return StackSegments_.TryMap(segment.GetIndex(), [&, this] {
+            auto builder = Builder_.AddStackSegment();
+
+            for (auto&& frame : segment.GetFrames()) {
+                builder.AddFrame(MapStackFrame(frame));
             }
 
             return builder.Finish();
@@ -527,6 +554,7 @@ private:
     TIndexRemapping<TSampleKeyId> SampleKeys_;
     TIndexRemapping<TStackId> Stacks_;
     TIndexRemapping<TBinaryId> Binaries_;
+    TIndexRemapping<TStackSegmentId> StackSegments_;
     TIndexRemapping<TStackFrameId> StackFrames_;
     TIndexRemapping<TInlineChainId> InlineChains_;
     TIndexRemapping<TSourceLineId> SourceLines_;
@@ -544,8 +572,8 @@ public:
         , Builder_{merged}
     {}
 
-    void Finish() {
-        std::move(Builder_).Finish();
+    NProto::NProfile::Profile* Finish() {
+        return std::move(Builder_).Finish();
     }
 
     void Add(const NProto::NProfile::Profile& proto) {
@@ -565,13 +593,17 @@ TProfileMerger::TProfileMerger(NProto::NProfile::Profile* merged, const NProto::
     : Impl_{MakeHolder<TImpl>(merged, options)}
 {}
 
+TProfileMerger::TProfileMerger(TProfileMerger&& rhs) noexcept = default;
+
+TProfileMerger& TProfileMerger::operator=(TProfileMerger&& rhs) noexcept = default;
+
 TProfileMerger::~TProfileMerger() = default;
 
 void TProfileMerger::Add(const NProto::NProfile::Profile& proto) {
     return Impl_->Add(proto);
 }
 
-void TProfileMerger::Finish() && {
+NProto::NProfile::Profile* TProfileMerger::Finish() && {
     return Impl_->Finish();
 }
 

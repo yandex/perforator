@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.73.0)
+VERSION(v1.76.1)
 
 GO_SKIP_TESTS(
     TestTakeFromIdleWriteListChecked
@@ -24,6 +24,7 @@ SRCS(
     pdml.go
     protoutils.go
     read.go
+    request_id_header.go
     retry.go
     row.go
     session.go
@@ -50,6 +51,7 @@ GO_TEST_SRCS(
     # oc_test.go
     # pdml_test.go
     # read_test.go
+    # request_id_header_test.go
     retry_test.go
     # row_test.go
     # session_test.go

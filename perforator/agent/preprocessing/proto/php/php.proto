@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package NPerforator.NBinaryProcessing.NPhp;
+
+option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/php";
+
+message PhpVersion {
+    uint32 Major = 1;
+    uint32 Minor = 2;
+    uint32 Release = 3;
+}
+
+message PhpConfig {
+    PhpVersion Version = 1;
+    uint64 ExecutorGlobalsELFVaddr = 2;
+    bool ZtsEnabled = 3;
+    uint32 ZendVmKind = 4;
+}

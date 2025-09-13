@@ -8,6 +8,7 @@ import (
 	"github.com/yandex/perforator/observability/lib/querylang"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/tls"
+	profilepb "github.com/yandex/perforator/perforator/proto/profile"
 )
 
 type tlsFilter map[string]string
@@ -30,6 +31,16 @@ func (tf tlsFilter) Matches(sample *pprof.Sample) bool {
 		}
 	}
 	return len(matches) == len(tf)
+}
+
+func (tf tlsFilter) AppendToProto(filter *profilepb.SampleFilter) {
+	if filter.RequiredAllOfStringLabels == nil {
+		filter.RequiredAllOfStringLabels = make(map[string]string)
+	}
+
+	for k, v := range tf {
+		filter.RequiredAllOfStringLabels[tls.BuildTLSLabelKey(k)] = v
+	}
 }
 
 func BuildTLSFilter(selector *querylang.Selector) (SampleFilter, error) {

@@ -68,7 +68,7 @@ type Mapping struct {
 	// Inode of the file.
 	Inode Inode
 	// Offset from the beginning of the file to the beginning of the mapping.
-	Offset int64
+	Offset uint64
 	// Path
 	Path string
 }

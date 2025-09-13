@@ -163,8 +163,7 @@ func (ss *StubServer) setupServer(sopts ...grpc.ServerOption) (net.Listener, err
 		ss.S = grpc.NewServer(sopts...)
 	}
 	for _, so := range sopts {
-		switch x := so.(type) {
-		case *registerServiceServerOption:
+		if x, ok := so.(*registerServiceServerOption); ok {
 			x.f(ss.S)
 		}
 	}
@@ -226,10 +225,11 @@ func (ss *StubServer) StartClient(dopts ...grpc.DialOption) error {
 		opts = append(opts, grpc.WithResolvers(ss.R))
 	}
 
-	cc, err := grpc.Dial(ss.Target, opts...)
+	cc, err := grpc.NewClient(ss.Target, opts...)
 	if err != nil {
-		return fmt.Errorf("grpc.Dial(%q) = %v", ss.Target, err)
+		return fmt.Errorf("grpc.NewClient(%q) = %v", ss.Target, err)
 	}
+	cc.Connect()
 	ss.CC = cc
 	if ss.R != nil {
 		ss.R.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: ss.Address}}})
@@ -276,7 +276,7 @@ func (ss *StubServer) Stop() {
 }
 
 func parseCfg(r *manual.Resolver, s string) *serviceconfig.ParseResult {
-	g := r.CC.ParseServiceConfig(s)
+	g := r.CC().ParseServiceConfig(s)
 	if g.Err != nil {
 		panic(fmt.Sprintf("Error parsing config %q: %v", s, g.Err))
 	}

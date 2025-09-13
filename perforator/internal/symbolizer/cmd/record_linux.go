@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -46,6 +47,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/perforator"
+	symbolizerClient "github.com/yandex/perforator/perforator/symbolizer/pkg/client"
 )
 
 var (
@@ -73,13 +75,14 @@ type recordOptions struct {
 	uploadURL string
 
 	renderFormat                  string
-	flamegraphOptions             perforator.FlamegraphOptions
+	formatOpts                    symbolizerClient.FormatOptions
 	profileSinkOptions            sinkOptions
 	enableSymbolization           bool
 	enableInterpreterStackMerging bool
 	disablePerfMap                bool
 	disablePerfMapJVM             bool
 	enableJVM                     bool
+	enablePHP                     bool
 }
 
 func (o *recordOptions) Bind(cmd *cobra.Command) {
@@ -107,10 +110,12 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.disablePerfMap, "disable-perf-maps", false, "Disable perf map")
 	cmd.Flags().BoolVar(&o.disablePerfMapJVM, "disable-perf-maps-jvm", false, "Disable perf map for JVM")
 	cmd.Flags().BoolVar(&o.enableJVM, "experimental-enable-jvm", false, "[Experimental feature] Enable JVM profiling")
+	cmd.Flags().BoolVar(&o.enablePHP, "experimental-enable-php", false, "[Experimental feature] Enable PHP profiling")
 
 	cmd.MarkFlagsMutuallyExclusive("freq", "count")
 
-	bindFlamegraphRenderOptions(cmd.Flags(), &o.flamegraphOptions)
+	bindFlamegraphRenderOptions(cmd.Flags(), o.formatOpts.Flamegraph)
+	bindTextProfileRenderOptions(cmd.Flags(), o.formatOpts.TextProfile)
 	addSinkOptions(cmd, &o.profileSinkOptions)
 }
 
@@ -147,7 +152,7 @@ func record(opts *recordOptions, args []string) error {
 	ctx := app.Context()
 
 	// let's validate the format before we run profiling
-	format, err := makeRenderFormat(opts.renderFormat, &opts.flamegraphOptions, opts.enableSymbolization, opts.enableInterpreterStackMerging)
+	format, err := makeRenderFormat(opts.renderFormat, opts.formatOpts, opts.enableSymbolization, opts.enableInterpreterStackMerging)
 	if err != nil {
 		return fmt.Errorf("failed to build render format: %w", err)
 	}
@@ -162,13 +167,15 @@ func record(opts *recordOptions, args []string) error {
 		return err
 	}
 
-	postProcessResults := python.PostprocessSymbolizedProfileWithPython(profile)
-	if len(postProcessResults.Errors) > 0 {
-		logger.Fmt().Debugf("Errors on merge python and native stacks: %v", errors.Join(postProcessResults.Errors...))
-	}
+	if opts.enableInterpreterStackMerging {
+		postProcessResults := python.PostprocessSymbolizedProfileWithPython(profile)
+		if len(postProcessResults.Errors) > 0 {
+			logger.Fmt().Debugf("Errors on merge python and native stacks: %v", errors.Join(postProcessResults.Errors...))
+		}
 
-	mergedStacksPercentage := 100 * float64(postProcessResults.MergedStacksCount) / float64(postProcessResults.MergedStacksCount+postProcessResults.UnmergedStacksCount)
-	logger.Fmt().Debugf("Merged stacks percentage %.2f%%", mergedStacksPercentage)
+		mergedStacksPercentage := 100 * float64(postProcessResults.MergedStacksCount) / float64(postProcessResults.MergedStacksCount+postProcessResults.UnmergedStacksCount)
+		logger.Fmt().Debugf("Merged stacks percentage %.2f%%", mergedStacksPercentage)
+	}
 
 	if opts.upload {
 		profileID, taskID, err := uploadProfile(app, opts, profile, startTime)
@@ -382,6 +389,7 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 		EnablePerfMapsJVM: ptr.Bool(!opts.disablePerfMapJVM),
 		FeatureFlagsConfig: config.FeatureFlagsConfig{
 			EnableJVM: ptr.Bool(opts.enableJVM),
+			EnablePHP: ptr.Bool(opts.enablePHP),
 		},
 	}, logger.WithContext(ctx), registry, profiler.WithStorage(storage))
 
@@ -552,7 +560,7 @@ func uploadProfile(app *cli.App, opts *recordOptions, profile *pprof.Profile, st
 		Timestamp: timestamppb.New(startTime),
 	}
 
-	profileID, taskID, err = app.Client().UploadRenderedProfile(app.Context(), meta, &opts.flamegraphOptions, profile)
+	profileID, taskID, err = app.Client().UploadRenderedProfile(app.Context(), meta, opts.formatOpts, profile)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to upload profile: %w", err)
 	}
@@ -682,21 +690,68 @@ func (s *binaryStorage) Acquire(ctx context.Context, buildID string) (binaryprov
 	return &dsoFileHandle{file, buildID}, nil
 }
 
+func (s *binaryStorage) fetchDebugInfoByGnuDebugLink(ctx context.Context, buildID string) (h binaryprovider.FileHandle, err error) {
+
+	handle, ok := s.binaries[buildID]
+	if !ok {
+		return nil, fmt.Errorf("unable to locate binary by buildID %s", buildID)
+	}
+
+	file, err := handle.Unseal()
+	if err != nil {
+		return nil, fmt.Errorf("unable to unseal handle, buildID %s: %w", buildID, err)
+	}
+	debugLink, err := xelf.ReadGnuDebugLink(file.GetFile())
+	if err != nil {
+		return nil, fmt.Errorf("couldn't read GNU debug link, buildID %s: %w", buildID, err)
+	}
+
+	originalPath := fmt.Sprintf("/proc/self/fd/%d", file.GetFile().Fd())
+
+	realPath, err := os.Readlink(originalPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to obtain real file path %s: %w", originalPath, err)
+	}
+
+	dir := filepath.Dir(realPath)
+	debugPath := filepath.Join(dir, debugLink)
+
+	f, err := os.Open(debugPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open debug file %s: %w", debugPath, err)
+	}
+	s.logger.Debug(ctx, "successfully opened debug file", log.String("buildID", buildID),
+		log.String("debugPath", debugPath))
+
+	return &osFileHandle{f}, nil
+}
+
 func (s *binaryStorage) fetchSeparateDebugInfo(ctx context.Context, buildID string) (h binaryprovider.FileHandle, err error) {
 	s.logger.Debug(ctx, "Trying to fetch separate debug info", log.String("buildID", buildID))
 	defer func() {
 		if err == nil {
 			s.logger.Info(ctx, "Fetched separate debug info",
-				log.String("build_id", buildID),
+				log.String("buildID", buildID),
 				log.String("path", h.Path()),
 			)
 		} else {
 			s.logger.Warn(ctx, "Failed to find separate debug info",
-				log.String("build_id", buildID),
+				log.String("buildID", buildID),
 				log.Error(err),
 			)
 		}
 	}()
+
+	h, err = s.fetchDebugInfoByGnuDebugLink(ctx, buildID)
+	if err != nil {
+		s.logger.Warn(ctx, "Failed to locate separate debug info by GNU debug link",
+			log.String("buildID", buildID),
+			log.Error(err),
+		)
+	}
+	if h != nil {
+		return h, nil
+	}
 
 	if s.debuginfodClient == nil {
 		return nil, fmt.Errorf("no handle found")
@@ -778,7 +833,12 @@ func runSubProcess(ctx context.Context, args []string, register func(int) error)
 }
 
 func makeRecordCommand() *cobra.Command {
-	opts := &recordOptions{}
+	opts := &recordOptions{
+		formatOpts: symbolizerClient.FormatOptions{
+			Flamegraph:  &symbolizerClient.FlamegraphOptions{},
+			TextProfile: &symbolizerClient.TextProfileOptions{},
+		},
+	}
 
 	cmd := &cobra.Command{
 		Use:   "record",

@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/gofrs/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
@@ -16,7 +17,6 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/asynctask"
-	"github.com/yandex/perforator/perforator/pkg/sqlbuilder"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 )
@@ -90,17 +90,20 @@ func (s *TaskService) GetTask(ctx context.Context, id asynctask.TaskID) (*asynct
 	return task, nil
 }
 
-func enrichBuilderWithTaskFilter(builder *sqlbuilder.SelectQueryBuilder, filter *asynctask.TaskFilter) *sqlbuilder.SelectQueryBuilder {
+func enrichBuilderWithTaskFilter(builder sq.SelectBuilder, filter *asynctask.TaskFilter) sq.SelectBuilder {
+	if filter == nil {
+		return builder
+	}
 	if author := filter.Author; author != "" {
-		builder.Where(fmt.Sprintf(`(meta->>'Author') = '%s'`, author))
+		builder = builder.Where(sq.Expr("(meta->>'Author') = ?", author))
 	}
 
 	if ts := filter.From.UnixMicro(); ts != 0 {
-		builder.Where(fmt.Sprintf(`(meta->>'CreationTime')::bigint > %d`, ts))
+		builder = builder.Where(sq.Expr("(meta->>'CreationTime')::bigint > ?", ts))
 	}
 
 	if ts := filter.To.UnixMicro(); ts != 0 {
-		builder.Where(fmt.Sprintf(`(meta->>'CreationTime')::bigint < %d`, ts))
+		builder = builder.Where(sq.Expr("(meta->>'CreationTime')::bigint < ?", ts))
 	}
 
 	return builder
@@ -112,28 +115,25 @@ func (s *TaskService) CountTasks(ctx context.Context, filter *asynctask.TaskFilt
 		return 0, fmt.Errorf("can't list tasks: %w", err)
 	}
 
-	builder := sqlbuilder.Select().
+	builder := sq.Select("count(*)").
 		From(tasksTable).
-		Values("count(*)")
+		PlaceholderFormat(sq.Dollar)
 
 	builder = enrichBuilderWithTaskFilter(builder, filter)
 
-	query, err := builder.Query()
+	query, args, err := builder.ToSql()
 	if err != nil {
 		return 0, fmt.Errorf("can't list tasks: %w", err)
 	}
-	s.logger.Debug(ctx, "Counting tasks in postgres", log.String("sql", query))
+	s.logger.Debug(ctx, "Counting tasks in postgres", log.String("sql", query), log.Array("args", args))
 
-	row := alive.DBx().QueryRowContext(ctx, query)
+	row := alive.DBx().QueryRowContext(ctx, query, args...)
 	if err = row.Err(); err != nil {
 		return 0, err
 	}
 
 	var count uint64
-
-	err = row.Scan(&count)
-
-	if err != nil {
+	if err := row.Scan(&count); err != nil {
 		return 0, fmt.Errorf("can't list tasks: %w", err)
 	}
 
@@ -146,30 +146,22 @@ func (s *TaskService) ListTasks(ctx context.Context, filter *asynctask.TaskFilte
 		return nil, fmt.Errorf("can't list tasks: %w", err)
 	}
 
-	builder := sqlbuilder.Select().
+	builder := sq.Select("id, idempotency_key, meta, spec, status, result").
 		From(tasksTable).
-		Values("id, idempotency_key, meta, spec, status, result").
-		OrderBy(&sqlbuilder.OrderBy{
-			Columns:    []string{`(meta->>'CreationTime')::bigint`},
-			Descending: true,
-		}).
+		OrderBy("(meta->>'CreationTime')::bigint DESC").
 		Offset(offset).
-		Limit(limit)
+		Limit(limit).
+		PlaceholderFormat(sq.Dollar)
 
 	builder = enrichBuilderWithTaskFilter(builder, filter)
 
-	query, err := builder.Query()
+	query, args, err := builder.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("can't list tasks: %w", err)
 	}
 
 	var rows []*TaskRow
-	err = alive.DBx().SelectContext(
-		ctx,
-		&rows,
-		query,
-	)
-	if err != nil {
+	if err = alive.DBx().SelectContext(ctx, &rows, query, args...); err != nil {
 		return nil, fmt.Errorf("can't list tasks: %w", err)
 	}
 

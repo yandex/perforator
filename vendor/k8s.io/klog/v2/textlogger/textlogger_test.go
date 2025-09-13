@@ -82,7 +82,7 @@ func ExampleBacktrace() {
 	backtraceCounter := 0
 	config := textlogger.NewConfig(
 		textlogger.FixedTime(ts), // To get consistent output for each run.
-		textlogger.Backtrace(func(skip int) (filename string, line int) {
+		textlogger.Backtrace(func(_ /* skip */ int) (filename string, line int) {
 			backtraceCounter++
 			if backtraceCounter == 1 {
 				// Simulate "missing information".

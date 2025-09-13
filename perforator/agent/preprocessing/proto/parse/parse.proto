@@ -6,6 +6,7 @@ import "perforator/agent/preprocessing/proto/unwind/table.proto";
 import "perforator/agent/preprocessing/proto/tls/tls.proto";
 import "perforator/agent/preprocessing/proto/pthread/pthread.proto";
 import "perforator/agent/preprocessing/proto/python/python.proto";
+import "perforator/agent/preprocessing/proto/php/php.proto";
 
 option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse";
 
@@ -14,4 +15,5 @@ message BinaryAnalysis {
     NPerforator.NBinaryProcessing.NTls.TLSConfig TLSConfig = 2;
     NPerforator.NBinaryProcessing.NPython.PythonConfig PythonConfig = 3;
     NPerforator.NBinaryProcessing.NPthread.PthreadConfig PthreadConfig = 4;
+    NPerforator.NBinaryProcessing.NPhp.PhpConfig PhpConfig = 5;
 }

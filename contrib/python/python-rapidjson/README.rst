@@ -3,7 +3,7 @@
 .. :Author:    Ken Robbins <ken@kenrobbins.com>
 .. :License:   MIT License
 .. :Copyright: © 2015 Ken Robbins
-.. :Copyright: © 2016, 2017, 2018, 2020, 2022 Lele Gaifax
+.. :Copyright: © 2016, 2017, 2018, 2020, 2022, 2024 Lele Gaifax
 ..
 
 ==================
@@ -108,7 +108,7 @@ Performance
 ``python-rapidjson`` tries to be as performant as possible while staying
 compatible with the ``json`` module.
 
-See the `this section`__ in the documentation for a comparison with other JSON libraries.
+See `this section`__ in the documentation for a comparison with other JSON libraries.
 
 __ https://python-rapidjson.readthedocs.io/en/latest/benchmarks.html
 

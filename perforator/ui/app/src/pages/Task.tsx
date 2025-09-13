@@ -2,6 +2,8 @@ import React from 'react';
 
 import { useParams } from 'react-router-dom';
 
+import { Fullscreen } from 'src/components/Fullscreen/Fullscreen';
+import { FullscreenProvider } from 'src/components/Fullscreen/FullscreenProvider';
 import { TaskCard as RawTaskCard } from 'src/components/TaskCard/TaskCard';
 import { TaskReport } from 'src/components/TaskReport/TaskReport';
 import type { TaskResult } from 'src/models/Task';
@@ -37,12 +39,12 @@ export const Task: Page = props => {
     };
 
     React.useEffect(() => {
-        getTask();
-
         // @ts-ignore
         pollingInterval.current = setInterval(() => {
             getTask();
         }, POLLING_PERIOD);
+
+        getTask();
 
         return () => { clearInterval(pollingInterval.current); };
     }, [taskId]);
@@ -68,9 +70,11 @@ export const Task: Page = props => {
         : null;
 
     return (
-        <>
-            {taskCard}
-            {taskReport}
-        </>
+        <FullscreenProvider>
+            <Fullscreen>
+                {taskCard}
+                {taskReport}
+            </Fullscreen>
+        </FullscreenProvider>
     );
 };

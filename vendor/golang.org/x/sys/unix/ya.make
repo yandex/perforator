@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.31.0)
+VERSION(v0.34.0)
 
 BUILD_ONLY_IF(
     WARNING
@@ -12,7 +12,6 @@ BUILD_ONLY_IF(
 
 SRCS(
     endian_little.go
-    vgetrandom_unsupported.go
 )
 
 IF (OS_LINUX)
@@ -45,6 +44,7 @@ IF (OS_LINUX)
         sysvshm_linux.go
         sysvshm_unix.go
         timestruct.go
+        vgetrandom_linux.go
         zerrors_linux.go
         zsyscall_linux.go
         ztypes_linux.go
@@ -147,6 +147,7 @@ IF (OS_DARWIN)
         sysvshm_unix.go
         sysvshm_unix_other.go
         timestruct.go
+        vgetrandom_unsupported.go
     )
 
     GO_TEST_SRCS(
@@ -204,6 +205,12 @@ IF (OS_DARWIN AND ARCH_ARM64)
     )
 
     GO_TEST_SRCS(darwin_arm64_test.go)
+ENDIF()
+
+IF (OS_WINDOWS)
+    SRCS(
+        vgetrandom_unsupported.go
+    )
 ENDIF()
 
 END()

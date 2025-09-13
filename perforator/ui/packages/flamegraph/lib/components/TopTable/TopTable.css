@@ -1,3 +1,7 @@
+.top-table {
+    overflow-y: auto;
+}
+
 .top-table .g-table__cell {
     /* original padding in table source
     padding: 11px var(--g-spacing-2) 10px; */

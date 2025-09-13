@@ -94,7 +94,7 @@ func ParseProcessMapping(mapping *Mapping, line []byte, path *string) error {
 	if err != nil || line[0] != ' ' {
 		return fmt.Errorf("failed to parse mapping offset in %s line %q", *path, string(sourceLine))
 	}
-	mapping.Offset = int64(offset)
+	mapping.Offset = offset
 
 	deviceMaj, line, err := scanInt(line, 1, 16)
 	if err != nil || line[0] != ':' {

@@ -62,7 +62,7 @@ func (fs FS) StatsWithoutPriority() ([]*Stats, error) {
 	return fs.stats(false)
 }
 
-// stats() retrieves bcache runtime statistics for each bcache.
+// stats retrieves bcache runtime statistics for each bcache and
 // priorityStats flag controls if we need to read priority_stats.
 func (fs FS) stats(priorityStats bool) ([]*Stats, error) {
 	matches, err := filepath.Glob(fs.sys.Path("fs/bcache/*-*"))

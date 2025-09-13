@@ -14,6 +14,7 @@ from .commands.build_ts_proto import build_ts_proto_parser, TsProtoBuilderOption
 from .commands.build_tsc import build_tsc_parser, TscBuilderOptions
 from .commands.build_vite import build_vite_parser, ViteBuilderOptions
 from .commands.build_webpack import build_webpack_parser, WebpackBuilderOptions
+from .commands.build_rspack import build_rspack_parser, RspackBuilderOptions
 from .commands.create_node_modules import create_node_modules_parser, CreateNodeModulesOptions
 from .commands.prepare_deps import prepare_deps_parser, PrepareDepsOptions
 from .models import YesNoAction
@@ -40,11 +41,6 @@ def register_base_args(parser: ArgumentParser) -> None:
     )
     parser.add_argument('--nm-bundle', action=YesNoAction, default=False, help="Bundle node_modules into a tar archive")
 
-    parser.add_argument(
-        '--trace',
-        action=YesNoAction,
-        help="Add to the <module_name>.output.tar *.trace file (Trace Events Format, Chrome DevTools compatible)",
-    )
     parser.add_argument('--verbose', action=YesNoAction, default=False, help="Use logging")
 
 
@@ -56,7 +52,7 @@ def __with_bundlers_options(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         '--bundler-config-path',
         required=True,
-        help="Path to the bundler config (vite.config.ts, webpack.config.js, etc...)",
+        help="Path to the bundler config (vite.config.ts, webpack.config.js, rspack.config.js, etc...)",
     )
 
     return parser
@@ -155,6 +151,7 @@ def register_builders(subparsers):
     add_bundler_options(build_next_parser(subparsers))
     add_bundler_options(build_vite_parser(subparsers))
     add_bundler_options(build_webpack_parser(subparsers))
+    add_bundler_options(build_rspack_parser(subparsers))
 
 
 @timeit
@@ -178,6 +175,7 @@ AllOptions = (
     | TscBuilderOptions
     | ViteBuilderOptions
     | WebpackBuilderOptions
+    | RspackBuilderOptions
     | PrepareDepsOptions
 )
 
@@ -192,6 +190,9 @@ def parse_args(parser, custom_args: list[str] = None) -> AllOptions:
 
     bindir = os.path.join(args.arcadia_build_root, args.moddir)
     setattr(args, 'bindir', bindir)
+
+    if os.environ.get('NOTS_BUILDER_VERBOSE', '').lower() in {'yes', 'on', 'true', '1'}:
+        setattr(args, 'verbose', True)
 
     node_modules_bundle = (
         os.path.join(bindir, pm_constants.NODE_MODULES_WORKSPACE_BUNDLE_FILENAME) if args.nm_bundle else False

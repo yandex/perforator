@@ -1,6 +1,8 @@
 package postgrestaskservice
 
-import "time"
+import (
+	"time"
+)
 
 type Config struct {
 	PingPeriod  time.Duration `yaml:"ping_period"`

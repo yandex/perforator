@@ -88,7 +88,7 @@ func TestExporterExportSpan(t *testing.T) {
 		// write to buffer for testing
 		var b bytes.Buffer
 		ex, err := stdouttrace.New(append(tt.opts, stdouttrace.WithWriter(&b))...)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		err = ex.ExportSpans(tt.ctx, tracetest.SpanStubs{ss, ss}.Snapshots())
 		assert.Equal(t, tt.wantErr, err)
@@ -189,12 +189,14 @@ func expectedJSON(now time.Time) string {
 	"InstrumentationScope": {
 		"Name": "",
 		"Version": "",
-		"SchemaURL": ""
+		"SchemaURL": "",
+		"Attributes": null
 	},
 	"InstrumentationLibrary": {
 		"Name": "",
 		"Version": "",
-		"SchemaURL": ""
+		"SchemaURL": "",
+		"Attributes": null
 	}
 }
 `

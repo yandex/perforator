@@ -1,4 +1,5 @@
 RECURSE(
+    agent
     binary
     cgroups
     config

@@ -6,13 +6,17 @@
     --g-popover-max-width: fit-content;
 }
 
+.task-card__divider {
+    margin: var(--g-spacing-1) 0;
+}
+
 .task-card__button-copy {
     margin-left: var(--g-spacing-1);
 }
 
 .task-card__title {
     font-size: 1.2em;
-    margin: var(--g-spacing-2) 0;
+    margin: var(--g-spacing-1) 0;
 }
 
 .task-card__buttons {

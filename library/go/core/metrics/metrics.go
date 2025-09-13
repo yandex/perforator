@@ -65,7 +65,7 @@ type DurationBuckets interface {
 
 	// UpperBound of the last bucket is always +Inf.
 	//
-	// bucketIndex is integer in range [0, Size()-1).
+	// bucketIndex is integer in range [0, Size()).
 	UpperBound(bucketIndex int) time.Duration
 }
 

@@ -310,7 +310,7 @@ func (c *FileCache) Acquire(entryName string, size uint64) (acquiredRef *Acquire
 
 	acquiredRef = &AcquiredFileReference{
 		entry: entry,
-		sub:   entry.pubsub.Subscribe(subFileStateChannelCapacity),
+		sub:   entry.pubsub.Subscribe(pubsub.WithChanCapacity(subFileStateChannelCapacity)),
 		cache: c,
 	}
 	return

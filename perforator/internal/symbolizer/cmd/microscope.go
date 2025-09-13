@@ -21,8 +21,9 @@ var (
 	startTimeListMicroscope string
 
 	// create microscope
-	podID                     string
-	nodeID                    string
+	microscopePodID           string
+	microscopeNodeID          string
+	microscopeService         string
 	duration                  time.Duration
 	startTimeCreateMicroscope string
 )
@@ -30,6 +31,7 @@ var (
 func makeSelectorForNewMicroscope(
 	podID string,
 	nodeID string,
+	service string,
 	startTime time.Time,
 	duration time.Duration,
 ) (string, error) {
@@ -42,6 +44,9 @@ func makeSelectorForNewMicroscope(
 	}
 	if nodeID != "" {
 		builder.NodeIDs(nodeID)
+	}
+	if service != "" {
+		builder.Services(service)
 	}
 
 	return profilequerylang.SelectorToString(builder.Build())
@@ -124,7 +129,13 @@ var (
 				return err
 			}
 
-			selector, err := makeSelectorForNewMicroscope(podID, nodeID, stTime, duration)
+			selector, err := makeSelectorForNewMicroscope(
+				microscopePodID,
+				microscopeNodeID,
+				microscopeService,
+				stTime,
+				duration,
+			)
 			if err != nil {
 				return err
 			}
@@ -155,6 +166,8 @@ func init() {
 		cmd.Flags().StringVar(&logLevel, "log-level", "info", "Logging level, one of ('debug', 'info', 'warn', 'error')")
 	}
 
+	// List Microscopes Flags
+
 	listMicroscopesCmd.Flags().Uint64VarP(&limit, "limit", "l", 500, "Limit for output")
 	listMicroscopesCmd.Flags().Uint64VarP(&offset, "offset", "o", 0, "Offset for output")
 	listMicroscopesCmd.Flags().BoolVarP(&allMicroscopes, "all", "a", false, "Output all microscopes (created by any user)")
@@ -167,8 +180,11 @@ func init() {
 		`Start time to list microscopes from. Unix time in seconds, ISO8601, or HH:MM in the last 24 hours`,
 	)
 
-	createMicroscopeCmd.Flags().StringVarP(&podID, "pod-id", "p", "", "Pod id to microscope")
-	createMicroscopeCmd.Flags().StringVarP(&nodeID, "node-id", "n", "", "Node id to microscope")
+	// Create Microscope Flags
+
+	createMicroscopeCmd.Flags().StringVarP(&microscopePodID, "pod-id", "p", "", "Pod id to microscope")
+	createMicroscopeCmd.Flags().StringVarP(&microscopeNodeID, "node-id", "n", "", "Node id to microscope")
+	createMicroscopeCmd.Flags().StringVar(&microscopeService, "service", "", "Service name to microscope")
 	createMicroscopeCmd.Flags().StringVarP(
 		&startTimeCreateMicroscope,
 		"start-time",
@@ -178,8 +194,10 @@ func init() {
 	)
 	createMicroscopeCmd.Flags().DurationVar(&duration, "duration", time.Hour, "Duration of microscope. Not more than 1 hour.")
 
-	createMicroscopeCmd.MarkFlagsMutuallyExclusive("pod-id", "node-id")
-	createMicroscopeCmd.MarkFlagsOneRequired("pod-id", "node-id")
+	//
+
+	createMicroscopeCmd.MarkFlagsMutuallyExclusive("pod-id", "node-id", "service")
+	createMicroscopeCmd.MarkFlagsOneRequired("pod-id", "node-id", "service")
 
 	microscopeCmd.AddCommand(listMicroscopesCmd)
 	microscopeCmd.AddCommand(createMicroscopeCmd)

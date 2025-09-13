@@ -34,7 +34,7 @@ class NextBuilder(BaseTsBuilder):
 
     @timeit
     def _get_exec_args(self) -> list[str]:
-        return [self.options.ts_next_command]
+        return self.options.ts_next_command.split(' ')
 
     def _output_macro(self):
         return "TS_NEXT_OUTPUT"

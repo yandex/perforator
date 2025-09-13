@@ -1,63 +1,57 @@
-package httpmock
+package httpmock_test
 
 import (
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/maxatome/go-testdeep/td"
+
+	"github.com/jarcoal/httpmock"
 )
 
-func TestEnv(t *testing.T) {
-	DeactivateAndReset()
+const envVarName = "GONOMOCKS"
 
-	orig := os.Getenv(envVarName)
+func TestEnv(t *testing.T) {
+	require := td.Require(t)
+
+	httpmock.DeactivateAndReset()
+
+	defer func(orig string) {
+		require.CmpNoError(os.Setenv(envVarName, orig))
+	}(os.Getenv(envVarName))
 
 	// put it in an enabled state
-	if err := os.Setenv(envVarName, ""); err != nil {
-		t.Fatal(err)
-	} else if Disabled() {
-		t.Fatal("expected not to be disabled")
-	}
+	require.CmpNoError(os.Setenv(envVarName, ""))
+	require.False(httpmock.Disabled(), "expected not to be disabled")
 
 	client1 := &http.Client{Transport: &http.Transport{}}
 	client2 := &http.Client{Transport: &http.Transport{}}
 
 	// make sure an activation works
-	Activate()
-	ActivateNonDefault(client1)
-	ActivateNonDefault(client2)
-	if http.DefaultTransport != DefaultTransport {
-		t.Fatal("expected http.DefaultTransport to be our DefaultTransport")
-	}
-	if client1.Transport != DefaultTransport {
-		t.Fatal("expected client1.Transport to be our DefaultTransport")
-	}
-	if client2.Transport != DefaultTransport {
-		t.Fatal("expected client2.Transport to be our DefaultTransport")
-	}
-	Deactivate()
+	httpmock.Activate()
+	httpmock.ActivateNonDefault(client1)
+	httpmock.ActivateNonDefault(client2)
+	require.Cmp(http.DefaultTransport, httpmock.DefaultTransport,
+		"expected http.DefaultTransport to be our DefaultTransport")
+	require.Cmp(client1.Transport, httpmock.DefaultTransport,
+		"expected client1.Transport to be our DefaultTransport")
+	require.Cmp(client2.Transport, httpmock.DefaultTransport,
+		"expected client2.Transport to be our DefaultTransport")
+	httpmock.Deactivate()
 
-	if err := os.Setenv(envVarName, "1"); err != nil {
-		t.Fatal(err)
-	} else if !Disabled() {
-		t.Fatal("expected to be disabled")
-	}
+	require.CmpNoError(os.Setenv(envVarName, "1"))
+	require.True(httpmock.Disabled(), "expected to be disabled")
 
 	// make sure activation doesn't work
-	Activate()
-	ActivateNonDefault(client1)
-	ActivateNonDefault(client2)
-	if http.DefaultTransport == DefaultTransport {
-		t.Fatal("expected http.DefaultTransport to not be our DefaultTransport")
-	}
-	if client1.Transport == DefaultTransport {
-		t.Fatal("expected client1.Transport to not be our DefaultTransport")
-	}
-	if client2.Transport == DefaultTransport {
-		t.Fatal("expected client2.Transport to not be our DefaultTransport")
-	}
-	Deactivate()
-
-	if err := os.Setenv(envVarName, orig); err != nil {
-		t.Fatalf("could not reset %s to it's original value '%s'", envVarName, orig)
-	}
+	httpmock.Activate()
+	httpmock.ActivateNonDefault(client1)
+	httpmock.ActivateNonDefault(client2)
+	require.Not(http.DefaultTransport, httpmock.DefaultTransport,
+		"expected http.DefaultTransport to not be our DefaultTransport")
+	require.Not(client1.Transport, httpmock.DefaultTransport,
+		"expected client1.Transport to not be our DefaultTransport")
+	require.Not(client2.Transport, httpmock.DefaultTransport,
+		"expected client2.Transport to not be our DefaultTransport")
+	httpmock.Deactivate()
 }

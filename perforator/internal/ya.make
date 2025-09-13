@@ -1,4 +1,5 @@
 RECURSE(
+    agent_gateway
     asyncfilecache
     asynctask
     buildinfo

@@ -1,7 +1,7 @@
 import { AxiosError } from 'axios';
 
 import type { ToastProps } from '@gravity-ui/uikit';
-import { toaster } from '@gravity-ui/uikit/toaster-singleton-react-18';
+import { toaster } from '@gravity-ui/uikit/toaster-singleton';
 
 
 const HIDING_TIME = 10000;  // 10 seconds

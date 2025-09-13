@@ -65,11 +65,34 @@ func (s *Subscription[T]) Close() {
 	s.pubSub.close(s.id)
 }
 
-func (p *PubSub[T]) Subscribe(chanCapacity uint32) *Subscription[T] {
+type subscriptionOptions struct {
+	chanCapacity uint32
+}
+
+func defaultSubscriptionOptions() *subscriptionOptions {
+	return &subscriptionOptions{
+		chanCapacity: 0,
+	}
+}
+
+type SubscriptionOption func(o *subscriptionOptions)
+
+func WithChanCapacity(chanCapacity uint32) SubscriptionOption {
+	return func(o *subscriptionOptions) {
+		o.chanCapacity = chanCapacity
+	}
+}
+
+func (p *PubSub[T]) Subscribe(opts ...SubscriptionOption) *Subscription[T] {
+	options := defaultSubscriptionOptions()
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	newChan := make(chan T, chanCapacity)
+	newChan := make(chan T, options.chanCapacity)
 	id := p.lastID
 	p.lastID++
 	p.clientChans[id] = newChan
