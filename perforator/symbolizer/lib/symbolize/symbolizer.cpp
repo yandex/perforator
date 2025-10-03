@@ -114,7 +114,7 @@ std::string CleanupFunctionName(std::string&& name) {
         }
     }
 
-    return std::move(name);
+    return name;
 }
 
 TCodeSymbolizer::TCodeSymbolizer()
