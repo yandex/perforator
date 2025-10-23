@@ -9,15 +9,18 @@ IF (NOT OPENSOURCE)
 ENDIF()
 
 SRCS(
+    btime.go
     fs.go
     maps.go
     meminfo.go
     namespaces.go
     process.go
     scan.go
+    stat.go
 )
 
 GO_TEST_SRCS(
+    btime_test.go
     meminfo_test.go
     process_test.go
 )

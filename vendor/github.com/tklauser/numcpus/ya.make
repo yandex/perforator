@@ -33,6 +33,14 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        numcpus_linux.go
+    )
+
+    GO_TEST_SRCS(numcpus_linux_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

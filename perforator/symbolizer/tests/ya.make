@@ -1,6 +1,7 @@
 GTEST()
 
 PEERDIR(
+    perforator/lib/demangle
     perforator/symbolizer/lib/symbolize
 )
 

@@ -188,6 +188,7 @@ require (
 	github.com/NVIDIA/mig-parted v0.8.0
 	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
+	github.com/NoL1m1ts/go-oapi-merge v1.1.2
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.31
@@ -233,7 +234,7 @@ require (
 	github.com/awalterschulze/gographviz v2.0.3+incompatible
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/aws/aws-sdk-go-v2 v1.39.0
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.3
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.4
 	github.com/aws/aws-sdk-go-v2/config v1.28.9
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.50
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.23
@@ -243,7 +244,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.24.3
 	github.com/aws/aws-sdk-go-v2/service/kms v1.31.0
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.23.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.58.2
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.60.1
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.28.6
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.64.4
 	github.com/aws/smithy-go v1.23.0
@@ -331,6 +332,7 @@ require (
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-metrics v0.0.1
 	github.com/dolthub/swiss v0.1.0
+	github.com/dongri/phonenumber v0.1.12
 	github.com/doug-martin/goqu/v9 v9.19.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/eapache/channels v1.1.0
@@ -496,6 +498,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.23.0
 	github.com/hashicorp/memberlist v0.5.1
 	github.com/hashicorp/terraform-exec v0.23.1
+	github.com/hashicorp/terraform-json v0.26.0
 	github.com/hashicorp/terraform-plugin-docs v0.15.0
 	github.com/hashicorp/terraform-plugin-framework v1.14.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.18.0
@@ -619,7 +622,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/ginkgo/v2 v2.22.1
+	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
 	github.com/open-policy-agent/opa v1.1.0
 	github.com/openai/openai-go v1.12.0
@@ -663,7 +666,7 @@ require (
 	github.com/pion/rtcp v1.2.15
 	github.com/pion/rtp v1.8.15
 	github.com/pion/sctp v1.8.39
-	github.com/pion/sdp/v3 v3.0.11
+	github.com/pion/sdp/v3 v3.0.16
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pion/webrtc/v3 v3.3.3
 	github.com/pion/webrtc/v4 v4.1.0
@@ -747,7 +750,7 @@ require (
 	github.com/sqlc-dev/sqlc v1.29.0
 	github.com/ssgreg/nlreturn/v2 v2.2.1
 	github.com/streadway/amqp v1.0.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/stripe/krl v0.0.0-20220202203423-9dc12b164150
 	github.com/strongswan/govici v0.7.0
 	github.com/swaggo/echo-swagger v1.4.1
@@ -777,13 +780,17 @@ require (
 	github.com/twmb/murmur3 v1.1.8
 	github.com/uber-go/tally v3.5.0+incompatible
 	github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
+	github.com/uber/h3-go/v4 v4.3.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/ugorji/go/codec v1.3.0
 	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli v1.22.16
 	github.com/urfave/cli/v2 v2.27.6
-	github.com/valkey-io/valkey-go v1.0.60
+	github.com/valkey-io/valkey-go v1.0.66
+	github.com/valkey-io/valkey-go/mock v1.0.60
+	github.com/valkey-io/valkey-go/valkeycompat v1.0.60
+	github.com/valkey-io/valkey-go/valkeyotel v1.0.66
 	github.com/valyala/fastjson v1.6.4
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vbauerster/mpb v3.4.0+incompatible
@@ -798,6 +805,7 @@ require (
 	github.com/vrischmann/envconfig v1.3.0
 	github.com/wI2L/jsondiff v0.6.0
 	github.com/walkerus/go-wiremock v1.3.0
+	github.com/weppos/publicsuffix-go v0.50.0
 	github.com/wk8/go-win-iscsidsc v0.0.0-20190724224204-4e4ffe953c77
 	github.com/wneessen/go-mail v0.5.2
 	github.com/wundergraph/astjson v0.0.0-20250106123708-be463c97e083
@@ -810,6 +818,7 @@ require (
 	github.com/xuri/excelize/v2 v2.9.1
 	github.com/yandex-cloud/go-genproto v0.24.0
 	github.com/yandex-cloud/go-sdk v0.0.0
+	github.com/yandex-cloud/kms-clients-go/yckmstink v0.0.0-20200608135605-a61de9ba71a6
 	github.com/yandex/pandora v0.5.3
 	github.com/ybbus/jsonrpc/v3 v3.1.1
 	github.com/ydb-platform/fq-connector-go v0.9.3-rc.1
@@ -822,7 +831,7 @@ require (
 	github.com/ydb-platform/ydb-go-sdk-prometheus/v2 v2.0.1
 	github.com/ydb-platform/ydb-go-sdk-zap v0.16.0
 	github.com/ydb-platform/ydb-go-sdk-zerolog v0.14.0
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.116.1
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.117.1
 	github.com/ydb-platform/ydb-go-yc-metadata v0.6.1
 	github.com/ydb-platform/ydbops v0.0.19
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
@@ -1199,7 +1208,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.15 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/appconfig v1.4.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.19.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.24.0 // indirect
@@ -1207,10 +1216,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.13.20 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.13.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.17 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.18 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.7.17 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.15 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.8 // indirect
@@ -1651,7 +1660,6 @@ require (
 	github.com/hashicorp/mdns v1.0.5 // indirect
 	github.com/hashicorp/nomad/api v0.0.0-20241218080744-e3ac00f30eec // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
-	github.com/hashicorp/terraform-json v0.26.0 // indirect
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.5 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
@@ -2189,8 +2197,6 @@ require (
 	github.com/vultr/govultr v1.1.1 // indirect
 	github.com/vultr/govultr/v2 v2.17.2 // indirect
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad // indirect
-	github.com/weppos/publicsuffix-go v0.30.0 // indirect
-	github.com/weppos/publicsuffix-go/publicsuffix/generator v0.0.0-20220927085643-dc0d00c92642 // indirect
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0 // indirect
@@ -2504,6 +2510,8 @@ replace buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go => buf.build/
 replace github.com/bufbuild/protoyaml-go => buf.build/go/protoyaml v0.3.2
 
 replace golang.org/x/sync => golang.org/x/sync v0.15.0
+
+replace github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
 
 // Workaround weird go.mod shipped with k8s.io submodules.
 // For the reasoning see

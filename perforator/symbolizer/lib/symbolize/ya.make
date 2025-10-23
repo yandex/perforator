@@ -3,14 +3,13 @@ LIBRARY()
 PEERDIR(
     contrib/libs/llvm18/lib/DebugInfo/Symbolize
     contrib/libs/pdqsort
-    contrib/libs/re2
 
     library/cpp/logger/global
     library/cpp/yt/compact_containers
 
     perforator/proto/pprofprofile
     perforator/lib/llvmex
-    perforator/lib/rustc_demangle
+    perforator/lib/demangle
 
     perforator/symbolizer/lib/gsym
 )

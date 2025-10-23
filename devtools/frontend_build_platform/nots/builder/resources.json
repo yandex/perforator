@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-18T17:21:59Z",
+    "created": "2025-10-21T11:47:08Z",
     "pr": {
-      "id": 9983120,
-      "author": "baymer",
-      "summary": "FBP-1978: nots: сделать `output.tar` как основной output сборочного модуля"
+      "id": 9961292,
+      "author": "khoden",
+      "summary": "FBP-2517: nots/builder: Убрать слишком подробный трейсинг рекурсивного копирования"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9760738429"
+      "uri": "sbr:10057919999"
     },
     "darwin-arm64": {
-      "uri": "sbr:9760736676"
+      "uri": "sbr:10057916635"
     },
     "linux": {
-      "uri": "sbr:9760741942"
+      "uri": "sbr:10057926803"
     },
     "linux-aarch64": {
-      "uri": "sbr:9760739881"
+      "uri": "sbr:10057923083"
     }
   }
 }

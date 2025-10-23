@@ -23,6 +23,13 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    GO_TEST_SRCS(
+        alts_test.go
+        utils_test.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

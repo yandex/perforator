@@ -2,19 +2,18 @@ import React from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import type { FlamegraphProps, QueryKeys, TopTableProps } from '@perforator/flamegraph';
-import { calculateTopForTable as calculateTopForTableOriginal, Flamegraph, SideBySide, TopTable } from '@perforator/flamegraph';
+import type { Coordinate, FlamegraphProps, QueryKeys, TopTableProps } from '@perforator/flamegraph';
+import { calculateTopForTable as calculateTopForTableOriginal, createLeftHeavy as createLeftHeavyOriginal, Flamegraph, inverseLeftHeavy as inverseLeftHeavyOriginal, SideBySide, TopTable } from '@perforator/flamegraph';
 
 import { Loader } from '@gravity-ui/uikit';
 import { Tabs } from '@gravity-ui/uikit/legacy';
 
 import { Beta } from 'src/components/Beta/Beta';
 import { useFullscreen } from 'src/components/Fullscreen/FullscreenContext';
-import { Link } from 'src/components/Link/Link';
 import { uiFactory } from 'src/factory';
 import { withMeasureTime } from 'src/utils/logging';
 import { measureBrowserMemory } from 'src/utils/performance';
-import { useTypedQuery } from 'src/utils/query';
+import { parseStacks, stringifyStacks, useTypedQuery } from 'src/utils/query';
 import { createSuccessToast } from 'src/utils/toaster';
 
 import type { Tab } from '../TaskFlamegraph/TaskFlamegraph';
@@ -23,6 +22,8 @@ import './Visualisation.css';
 
 
 const calculateTopForTable = withMeasureTime(calculateTopForTableOriginal, 'calculateTopForTable', (ms) => uiFactory().rum()?.sendDelta?.('calculateTopForTable', ms));
+const createLeftHeavy = withMeasureTime(createLeftHeavyOriginal, 'createLeftHeavy', (ms) => uiFactory().rum()?.sendDelta?.('createLeftHeavy', ms));
+const inverseLeftHeavy = withMeasureTime(inverseLeftHeavyOriginal, 'inverseLeftHeavy', (ms) => uiFactory().rum()?.sendDelta?.('inverseLeftHeavy', ms));
 
 
 type FlamegraphSizes = 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
@@ -66,7 +67,6 @@ export interface VisualisationProps extends Pick<FlamegraphProps,
 
 const RUM_BASE_NAME = 'flamegraph-render';
 
-
 export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...props }) => {
     const navigate = useNavigate();
     const [getQuery, setQuery] = useTypedQuery<'tab' | QueryKeys>();
@@ -77,6 +77,54 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
         setIsFirstTopRender(isFirstTopRender || isTopTab);
     }, [isFirstTopRender, isTopTab]);
     const { setEnabled } = useFullscreen();
+    const isLeftHeavy = getQuery('leftHeavy', 'false') === 'true';
+    const setIsLeftHeavy = React.useCallback((value: boolean) => {
+        setQuery({ 'leftHeavy': value ? 'true' : 'false' });
+    }, [setQuery]);
+
+
+    const rowsRef = React.useRef(profileData?.rows);
+    // HACK using memo for ref modification
+    // otherwise would need useLayoutEffect + force the rerender
+    React.useMemo(() => {
+        const currentRootH = parseInt(getQuery('frameDepth') ?? '0');
+        const currentRootI = parseInt(getQuery('framePos') ?? '0');
+        const omittedIndices = parseStacks(getQuery('omittedIndexes') ?? '');
+        const newOmittedIndices: Coordinate[] = [];
+        function findSatisfiesOmittedIndex (h: number, i: number) {
+            for (let j = 0; j < omittedIndices.length; j++) {
+                if (omittedIndices[j][0] === h && omittedIndices[j][1] === i) {
+                    return j;
+                }
+            }
+            return -1;
+        }
+        const coordsMapper = (hmap: number, oldI: number, newI: number) => {
+            if (hmap === currentRootH && oldI === currentRootI) {
+                setQuery({ framePos: String(newI) });
+            }
+            const idx = findSatisfiesOmittedIndex(hmap, oldI);
+            if (idx !== -1) {
+                newOmittedIndices[idx] = [hmap, newI];
+            }
+        };
+        if (profileData?.rows && isLeftHeavy) {
+            const rows = createLeftHeavy(rowsRef.current ?? profileData.rows, 'eventCount', coordsMapper);
+            rowsRef.current = rows;
+            if (newOmittedIndices && newOmittedIndices.length > 0) {
+                setQuery({ omittedIndexes: stringifyStacks(newOmittedIndices) });
+            }
+            return;
+        } else if (profileData?.rows && !isLeftHeavy) {
+            const rows = inverseLeftHeavy(rowsRef.current ?? profileData.rows, profileData.stringTable, coordsMapper);
+            rowsRef.current = rows;
+            if (newOmittedIndices && newOmittedIndices.length > 0) {
+                setQuery({ omittedIndexes: stringifyStacks(newOmittedIndices) });
+            }
+            return;
+        }
+    }, [profileData?.rows, isLeftHeavy, props.loading]);
+
     React.useEffect(() => {
         if (tab === 'sbs') {
             setEnabled(true);
@@ -87,7 +135,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
     }, []);
 
     const topData = React.useMemo(() => {
-        return profileData && isFirstTopRender ? calculateTopForTable(profileData.rows, profileData.stringTable.length, { rootCoords: [0, 0], omitted: [] }) : null;
+        return profileData && isFirstTopRender && rowsRef.current ? calculateTopForTable(rowsRef.current, profileData.stringTable.length, { rootCoords: [0, 0], omitted: [] }) : null;
     }, [profileData, isFirstTopRender]);
 
     const totalFrames = profileData?.rows.reduce((a, row) => a + row.length, 0);
@@ -104,7 +152,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
         content = <Loader />;
     } else {
         const flamegraphProps: FlamegraphProps = {
-            profileData,
+            profileData: profileData ? { rows: rowsRef.current!, meta: profileData?.meta, stringTable: profileData?.stringTable } : null,
             getState: getQuery,
             setState: setQuery,
             onFinishRendering: (opts) => {
@@ -128,6 +176,8 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             },
             onSuccess: createSuccessToast,
             goToDefinitionHref: uiFactory().goToDefinitionHref,
+            isLeftHeavy,
+            onChangeLeftHeavy: setIsLeftHeavy,
             ...props,
         };
         const topTableProps: TopTableProps | null = topData && profileData ? {
@@ -169,13 +219,13 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
         <Tabs
             className={'visualisation_tabs'}
             activeTab={tab}
-            wrapTo={(item, node) => <Link key={item.id} href={`?tab=${item?.id}`}>{node}</Link>}
             items={[
                 { id: 'flame', title: 'Flamegraph' },
                 { id: 'top', title: 'Top' },
                 { id: 'sbs', title: <>Side by side <Beta/></> },
             ]}
             onSelectTab={(newTab: Tab) => {
+                setQuery({ tab: newTab });
                 if (newTab === 'sbs') {
                     setEnabled(true);
                 }

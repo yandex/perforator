@@ -30,4 +30,10 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        sockopt_linux.go
+    )
+ENDIF()
+
 END()

@@ -15,6 +15,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/client/storage"
 	"github.com/yandex/perforator/perforator/pkg/env"
+	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -157,6 +158,8 @@ func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile
 		return nil
 	}
 
+	cpoID := profile.Labels[profilequerylang.CPOIDLabel]
+
 	buildIDs := getProfileBuildIDs(profile.Profile)
 
 	envs := getProfileEnvs(profile.Profile)
@@ -173,6 +176,7 @@ func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile
 		envs,
 		eventTypes,
 		signalTypes,
+		cpoID,
 	)
 	if err != nil {
 		return err

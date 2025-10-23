@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.ya/build,sharing=locked --mount=type=cache,
 
 ####################################################################################################################
 
-FROM ubuntu:24.04 AS autofdo_build
+FROM ubuntu:25.10 AS autofdo_build
 
 RUN apt update && \
  apt install -y libunwind-dev libgflags-dev libssl-dev libelf-dev protobuf-compiler \
@@ -51,6 +51,11 @@ COPY --from=build /out/perforator/bundle/storage /perforator/storage
 FROM base AS proxy
 COPY --from=build /out/perforator/bundle/proxy /perforator/proxy
 COPY --from=autofdo_build /autofdo/autofdo/build/create_llvm_prof /perforator/create_llvm_prof
+
+####################################################################################################################
+
+FROM base AS binproc
+COPY --from=build /out/perforator/bundle/binproc /perforator/binproc
 
 ####################################################################################################################
 

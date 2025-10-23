@@ -16,9 +16,10 @@ import (
 type ClientConfig = client.Config
 
 type Config struct {
-	LogLevel string
-	Timeout  time.Duration
-	Client   *ClientConfig
+	LogLevel  string
+	LogFormat string
+	Timeout   time.Duration
+	Client    *ClientConfig
 }
 
 func (c *Config) fillDefault() {
@@ -57,7 +58,16 @@ func New(config *Config) (*App, error) {
 		return nil, fmt.Errorf("failed to parse log level: %w", err)
 	}
 
-	logger, err := NewLogger(level)
+	var logFormat LogFormat
+	switch config.LogFormat {
+	case "text":
+		logFormat = LogFormatText
+	case "json":
+		logFormat = LogFormatJson
+	default:
+		return nil, fmt.Errorf("unknown log format %q", config.LogFormat)
+	}
+	logger, err := NewLogger(level, logFormat)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}

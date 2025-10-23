@@ -35,6 +35,12 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        os.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

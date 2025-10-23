@@ -27,6 +27,12 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        tcp_keepalive_unix.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(
@@ -67,12 +73,6 @@ RECURSE(
     # yo
 )
 
-IF (OS_LINUX)
-    RECURSE(
-        syscall
-    )
-ENDIF()
-
 IF (OS_DARWIN)
     RECURSE(
         syscall
@@ -80,6 +80,12 @@ IF (OS_DARWIN)
 ENDIF()
 
 IF (OS_WINDOWS)
+    RECURSE(
+        syscall
+    )
+ENDIF()
+
+IF (OS_LINUX OR OS_ANDROID)
     RECURSE(
         syscall
     )

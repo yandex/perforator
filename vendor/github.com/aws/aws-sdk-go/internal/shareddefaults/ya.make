@@ -22,6 +22,10 @@ IF (OS_WINDOWS)
     GO_XTEST_SRCS(shared_config_windows_test.go)
 ENDIF()
 
+IF (OS_ANDROID)
+    GO_XTEST_SRCS(shared_config_other_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

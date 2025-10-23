@@ -41,7 +41,8 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
     const { data: profileData, error } = useFetchResult<ProfileData>({ url: props.url, extractData: async(req) => {
         if (props.format === 'JSONFlamegraph') {
             const data = await parseFromWebStream(req.body!);
-            return ({ rows: data.rows.filter(Boolean), stringTable: data.stringTable, meta: data.meta });
+            const rows = data.rows.filter(Boolean);
+            return ({ rows, stringTable: data.stringTable, meta: data.meta });
         } else if (props.format === 'Flamegraph') {
             const data = await req.text();
             return (uiFactory()?.parseLegacyFormat?.(data)!);

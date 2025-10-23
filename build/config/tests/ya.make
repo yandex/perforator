@@ -7,4 +7,5 @@ RECURSE(
     cpp_style
     py_style
     ruff
+    json_style
 )

@@ -40,6 +40,8 @@ export interface FlamegraphProps extends Pick<RenderFlamegraphOptions, 'onFinish
     className?: string;
     onFrameClick?: (event: React.MouseEvent, frame: StringifiedNode) => void;
     getHoverText?: (coord: Coordinate) => string;
+    isLeftHeavy?: boolean;
+    onChangeLeftHeavy?: (leftHeavy: boolean) => void;
 }
 
 
@@ -55,7 +57,9 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     setState: setQuery,
     className,
     onFrameClick,
-    getHoverText
+    getHoverText,
+    isLeftHeavy,
+    onChangeLeftHeavy,
 }) => {
     const flamegraphContainer = React.useRef<HTMLDivElement | null>(null);
     const flamegraphCanvas = React.useRef<HTMLCanvasElement | null>(null);
@@ -130,7 +134,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
             return newFlame(flamegraphContainer.current, profileData, flamegraphOffsets.current, renderOptions);
         }
         return () => { };
-    }, [exactMatch, getQuery, isDiff, keepOnlyFound, profileData, reverse, search, setQuery, theme, userSettings, levelHeight, onFinishRendering]);
+    }, [exactMatch, getQuery, isDiff, keepOnlyFound, profileData, reverse, search, setQuery, theme, userSettings, levelHeight, onFinishRendering, isLeftHeavy]);
 
     const handleContextMenu = React.useCallback((event: React.MouseEvent) => {
         if (!flamegraphContainer.current || !profileData || !flamegraphOffsets.current) {
@@ -290,6 +294,14 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                                 Swap Base and Diff Profiles
                             </Switch>
                             : null}
+                        {
+                            isLeftHeavy !== undefined && onChangeLeftHeavy !== undefined ?
+                                <Switch className="flamegraph__switch" checked={isLeftHeavy} onUpdate={onChangeLeftHeavy}>
+                                    <Icon data={ArrowRightArrowLeft} />
+                                Left-heavy
+                                </Switch>
+                                : null
+                        }
                     </div>
                     <div className="flamegraph__frames-count">Showing {framesCount} frames</div>
                 </div>

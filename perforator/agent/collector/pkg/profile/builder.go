@@ -322,7 +322,12 @@ func (b *FrameBuilder) Finish() *LocationBuilder {
 	}
 
 	f := b.line.Function
-	nf, isnew := b.cache.GetOrAddFunction(b.line.Function.Name)
+	nf, isnew := b.cache.GetOrAddFunction(&functionKey{
+		name:       f.Name,
+		systemName: f.SystemName,
+		filename:   f.Filename,
+		startLine:  f.StartLine,
+	})
 	if isnew {
 		f.ID = nf.ID
 		*nf = *f
@@ -341,6 +346,13 @@ type InterpreterLocationKey struct {
 	Linestart     int32
 }
 
+type functionKey struct {
+	name       string
+	systemName string
+	filename   string
+	startLine  int64
+}
+
 func isSpecialMapping(mp *profile.Mapping) bool {
 	return mp.Start == 0 && SpecialMappings[mp.File]
 }
@@ -350,7 +362,7 @@ type ProcessCache struct {
 	interpreterLocations map[InterpreterLocationKey]*profile.Location
 	mappings             map[uint64]*profile.Mapping
 	specialMappings      map[string]*profile.Mapping
-	functions            map[string]*profile.Function
+	functions            map[functionKey]*profile.Function
 	ids                  *ids
 }
 
@@ -360,7 +372,7 @@ func NewProcessCache(pid uint32, ids *ids) *ProcessCache {
 		interpreterLocations: make(map[InterpreterLocationKey]*profile.Location),
 		mappings:             make(map[uint64]*profile.Mapping),
 		specialMappings:      make(map[string]*profile.Mapping),
-		functions:            make(map[string]*profile.Function),
+		functions:            make(map[functionKey]*profile.Function),
 		ids:                  ids,
 	}
 }
@@ -428,18 +440,18 @@ func (c *ProcessCache) GetOrAddMapping(mp *profile.Mapping) (loc *profile.Mappin
 	return m, true
 }
 
-func (c *ProcessCache) GetOrAddFunction(name string) (loc *profile.Function, isnew bool) {
-	f, ok := c.functions[name]
+func (c *ProcessCache) GetOrAddFunction(key *functionKey) (loc *profile.Function, isnew bool) {
+	f, ok := c.functions[*key]
 	if ok {
 		return f, false
 	}
 
 	f = &profile.Function{
 		ID:   c.ids.nextFunction.Add(1),
-		Name: name,
+		Name: key.name,
 	}
 
-	c.functions[name] = f
+	c.functions[*key] = f
 	return f, true
 }
 

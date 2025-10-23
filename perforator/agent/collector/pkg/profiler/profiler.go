@@ -70,16 +70,19 @@ type Profiler struct {
 	eventListener  EventListener
 	initialTargets *initialTargets
 
-	bpf          *machine.BPF
-	eventmanager *perfevent.EventManager
-	mounts       *mountinfo.Watcher
-	kallsyms     *kallsyms.KallsymsResolver
-	events       map[perfevent.Type]*perfevent.EventBundle
-	debugmu      sync.Mutex
-	debugmode    bool
-	envWhitelist map[string]struct{}
-	progready    sync.Once
-	perfmap      *perfmap.Registry
+	bpf            *machine.BPF
+	eventmanager   *perfevent.EventManager
+	uprobeRegistry *uprobeRegistry
+	mounts         *mountinfo.Watcher
+	kallsyms       *kallsyms.KallsymsResolver
+	events         map[perfevent.Type]*perfevent.EventBundle
+	// uprobes which are created on Profiler startup
+	initialUprobes []Uprobe
+	debugmu        sync.Mutex
+	debugmode      bool
+	envWhitelist   map[string]struct{}
+	progready      sync.Once
+	perfmap        *perfmap.Registry
 
 	dsoStorage *dso.Storage
 	procs      *process.ProcessRegistry
@@ -316,11 +319,17 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		return fmt.Errorf("failed to initialize perf event subsystem: %w", err)
 	}
 
+	// Prepare uprobe registry
+	p.uprobeRegistry = newUprobeRegistry(p.bpf)
+
 	// Setup system-wide perf events
 	err = p.setupPerfEvents()
 	if err != nil {
 		return fmt.Errorf("failed to setup perf events: %w", err)
 	}
+
+	// Setup configured uprobes
+	p.setupUprobes()
 
 	// Link perf events with the eBPF program.
 	err = p.installPerfEventBPF()
@@ -336,7 +345,9 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	// 2. sampling an AMD-specific event
 	// Thus, we have to create an additional perf-event, to which we only attach
 	// the LBR-collecting ebpf-program.
-	p.maybeInitializeAmdFam19hBRSPerfEvent()
+	if p.conf.BPF.TraceLBR != nil && *p.conf.BPF.TraceLBR && p.conf.BPF.TraceLBROnAMD != nil && *p.conf.BPF.TraceLBROnAMD {
+		p.maybeInitializeAmdFam19hBRSPerfEvent()
+	}
 
 	// Load common profile labels (e.g. nodename or cpu model).
 	err = p.setupCommonProfileLabels()
@@ -465,7 +476,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 
 func (p *Profiler) initializeTargets() error {
 	if p.initialTargets.selfTargetLabels != nil {
-		err := p.TraceSelf(p.initialTargets.selfTargetLabels)
+		_, err := p.TraceSelf(p.initialTargets.selfTargetLabels)
 		if err != nil {
 			return fmt.Errorf("failed to initialize self tracing: %w", err)
 		}
@@ -480,7 +491,7 @@ func (p *Profiler) initializeTargets() error {
 
 	for _, target := range p.initialTargets.processTargets {
 		p.log.Info("Registering process", log.Int("pid", target.pid))
-		err := p.TracePid(linux.ProcessID(target.pid), target.labels)
+		_, err := p.TracePid(linux.ProcessID(target.pid), WithProfileLabels(target.labels))
 		if err != nil {
 			return fmt.Errorf("failed to initialize pid %d tracing: %w", target.pid, err)
 		}
@@ -488,7 +499,7 @@ func (p *Profiler) initializeTargets() error {
 
 	for _, target := range p.initialTargets.threadTargets {
 		p.log.Info("Registering thread", log.Int("tid", target.tid))
-		err := p.TracePid(linux.ProcessID(target.tid), target.labels)
+		_, err := p.TracePid(linux.ProcessID(target.tid), WithProfileLabels(target.labels))
 		if err != nil {
 			return fmt.Errorf("failed to initialize tid %d tracing: %w", target.tid, err)
 		}
@@ -538,6 +549,22 @@ func (p *Profiler) installPerfEventBPF() error {
 		}
 	}
 	return nil
+}
+
+func (p *Profiler) setupUprobes() {
+	uprobeConfigs := p.conf.Uprobes
+	if len(uprobeConfigs) == 0 {
+		uprobeConfigs = p.conf.BPF.UprobesDeprecated
+	}
+
+	for _, conf := range uprobeConfigs {
+		uprobe := p.uprobeRegistry.Create(conf)
+		p.initialUprobes = append(p.initialUprobes, uprobe)
+	}
+}
+
+func (p *Profiler) UprobeManager() UprobeManager {
+	return p.uprobeRegistry
 }
 
 func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
@@ -756,6 +783,11 @@ func (p *Profiler) Start(ctx context.Context) error {
 	err := p.enablePerfEvents()
 	if err != nil {
 		return fmt.Errorf("failed to enable perf events: %w", err)
+	}
+
+	err = p.uprobeRegistry.attachAll()
+	if err != nil {
+		return fmt.Errorf("failed to attach uprobes: %w", err)
 	}
 
 	p.wg, ctx = errgroup.WithContext(ctx)
@@ -1086,16 +1118,75 @@ func (p *Profiler) TraceWholeSystem(labels map[string]string) error {
 	})
 }
 
-func (p *Profiler) TraceSelf(labels map[string]string) error {
-	return p.TracePid(linux.ProcessID(os.Getpid()), labels)
+func (p *Profiler) TraceSelf(labels map[string]string) (Closer, error) {
+	return p.TracePid(linux.ProcessID(os.Getpid()), WithProfileLabels(labels))
 }
 
-func (p *Profiler) TracePid(pid linux.ProcessID, labels map[string]string) error {
-	labels = p.enrichProfileLabels(labels)
+type Closer interface {
+	Close() error
+}
 
-	trackedProcess, err := newTrackedProcess(pid, labels, p.bpf)
+type pidTracingCloser struct {
+	profiler *Profiler
+	pid      linux.ProcessID
+}
+
+func (p *pidTracingCloser) Close() error {
+	trackedProcess := p.profiler.removeTracedPid(p.pid)
+	if trackedProcess == nil {
+		return nil
+	}
+
+	return trackedProcess.close()
+}
+
+type traceFeatures struct {
+	enableSampleTimeCollection bool
+}
+
+func defaultTraceFeatures() traceFeatures {
+	return traceFeatures{
+		enableSampleTimeCollection: false,
+	}
+}
+
+type traceOptions struct {
+	profileLabels map[string]string
+	features      traceFeatures
+}
+
+func defaultTraceOptions() *traceOptions {
+	return &traceOptions{
+		features:      defaultTraceFeatures(),
+		profileLabels: make(map[string]string),
+	}
+}
+
+type TraceOption func(o *traceOptions)
+
+func WithAbsoluteSampleTimeCollection() TraceOption {
+	return func(o *traceOptions) {
+		o.features.enableSampleTimeCollection = true
+	}
+}
+
+func WithProfileLabels(labels map[string]string) TraceOption {
+	return func(o *traceOptions) {
+		o.profileLabels = labels
+	}
+}
+
+func (p *Profiler) TracePid(pid linux.ProcessID, optAppliers ...TraceOption) (Closer, error) {
+	opts := defaultTraceOptions()
+	for _, optApplier := range optAppliers {
+		optApplier(opts)
+	}
+
+	labels := p.enrichProfileLabels(opts.profileLabels)
+
+	trackedProcess, err := newTrackedProcess(pid, labels, opts.features, p.bpf)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	p.pidsmu.Lock()
@@ -1103,7 +1194,23 @@ func (p *Profiler) TracePid(pid linux.ProcessID, labels map[string]string) error
 	p.pidsmu.Unlock()
 
 	p.log.Info("Registered process", logfield.Pid(pid))
-	return nil
+	return &pidTracingCloser{
+		profiler: p,
+		pid:      pid,
+	}, nil
+}
+
+func (p *Profiler) removeTracedPid(pid linux.ProcessID) *trackedProcess {
+	p.pidsmu.Lock()
+	defer p.pidsmu.Unlock()
+
+	trackedProcess, ok := p.pids[pid]
+	if !ok {
+		return nil
+	}
+
+	delete(p.pids, pid)
+	return trackedProcess
 }
 
 func (p *Profiler) DeleteCgroup(name string) error {
@@ -1151,6 +1258,11 @@ func (p *Profiler) SetDebugMode(debug bool) (err error) {
 
 	p.log.Warn("Toggling debug mode", log.Bool("enabled", debug))
 
+	err = p.uprobeRegistry.detachAll()
+	if err != nil {
+		return fmt.Errorf("failed to detach uprobes: %w", err)
+	}
+
 	err = p.bpf.ReloadProgram(debug)
 	if err != nil {
 		return fmt.Errorf("failed to reload program: %w", err)
@@ -1164,6 +1276,11 @@ func (p *Profiler) SetDebugMode(debug bool) (err error) {
 	err = p.enablePerfEvents()
 	if err != nil {
 		return fmt.Errorf("failed to enable perf events: %w", err)
+	}
+
+	err = p.uprobeRegistry.attachAll()
+	if err != nil {
+		return fmt.Errorf("failed to attach uprobes: %w", err)
 	}
 
 	return err
@@ -1190,20 +1307,38 @@ func (p *Profiler) Storage() client.Storage {
 }
 
 func (p *Profiler) Close() error {
+	err := p.uprobeRegistry.detachAll()
+	if err != nil {
+		return fmt.Errorf("failed to detach uprobes: %w", err)
+	}
+
+	for _, uprobe := range p.initialUprobes {
+		err := uprobe.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close uprobe: %w", err)
+		}
+	}
+
 	return p.bpf.Close()
 }
 
 func (p *Profiler) Stop(ctx context.Context) error {
 	// Shutdown sequence:
 	// 1. Disable any active perf events.
-	// 2. Disable any active eBPF program.
-	// 3. Drain sample queue
-	// 4. Drain profile queue
-	// 5. Abort any running background job (e.g. process, mountinfo and cgroup pollers)
+	// 2. Detach any active uprobes
+	// 3. Disable any active eBPF program.
+	// 4. Drain sample queue
+	// 5. Drain profile queue
+	// 6. Abort any running background job (e.g. process, mountinfo and cgroup pollers)
 
 	err := p.disablePerfEvents()
 	if err != nil {
 		p.log.Error("Failed to disable perf events", log.Error(err))
+	}
+
+	err = p.uprobeRegistry.detachAll()
+	if err != nil {
+		return fmt.Errorf("failed to detach uprobes: %w", err)
 	}
 
 	err = p.bpf.UnlinkPrograms()

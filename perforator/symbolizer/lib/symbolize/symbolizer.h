@@ -18,11 +18,6 @@ namespace NPerforator::NSymbolize {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-std::string DemangleFunctionName(const std::string& name);
-std::string CleanupFunctionName(std::string&& name);
-
-////////////////////////////////////////////////////////////////////////////////
-
 template<typename T>
 using TSmallVector = NYT::TCompactVector<T, 4>;
 

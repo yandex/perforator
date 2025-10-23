@@ -36,6 +36,14 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        cpu_linux.go
+    )
+
+    GO_TEST_SRCS(cpu_linux_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

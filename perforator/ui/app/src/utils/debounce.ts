@@ -5,6 +5,11 @@ const DEBOUNCE_TIMEOUT = 300;
 
 export const useDebounce = () => {
     const timer = React.useRef<ReturnType<typeof setTimeout>>();
+
+    React.useEffect(() => {
+        return () => {clearTimeout(timer.current);};
+    }, []);
+
     return <ReturnType>(
         callback: () => ReturnType,
         timeout = DEBOUNCE_TIMEOUT,

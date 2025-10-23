@@ -74,6 +74,7 @@ func (s *Service) collectOperations(ctx context.Context) ([]*cpo_proto.Operation
 		&custom_profiling_operation.OperationFilter{
 			StartsBefore: ptr.Time(time.Now().Add(s.conf.PrefetchInterval)),
 			EndsAfter:    ptr.Time(time.Now()),
+			States:       custom_profiling_operation.NonTerminalStates(),
 		},
 		nil,
 	)

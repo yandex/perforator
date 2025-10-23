@@ -19,7 +19,7 @@ export const SampleSizeInput: React.FC<SampleSizeInputProps> = props => {
     }));
     return (
         <div className="sample-size-input">
-            <span className="sample-size-input__caption">Sample size</span>
+            <span className="sample-size-input__caption">Profile count</span>
             <Select
                 className="sample-size-input__select"
                 value={[props.value.toString()]}

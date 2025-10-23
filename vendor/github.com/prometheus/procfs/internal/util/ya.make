@@ -30,6 +30,12 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        sysreadfile.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

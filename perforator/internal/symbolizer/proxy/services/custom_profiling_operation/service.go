@@ -10,6 +10,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
+	cpo_internal "github.com/yandex/perforator/perforator/internal/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/services"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -67,7 +68,7 @@ func (s *APIService) Schedule(ctx context.Context, req *perforator_proto.Schedul
 		return nil, status.Errorf(codes.InvalidArgument, "req is nil or req.OperationSpec is nil")
 	}
 
-	if err := validateOperationSpec(req.OperationSpec); err != nil {
+	if err := cpo_internal.ValidateOperationSpec(req.OperationSpec); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid operation spec: %v", err)
 	}
 

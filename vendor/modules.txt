@@ -3677,6 +3677,10 @@ github.com/Nerzal/gocloak/v13/pkg/jwx
 # github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 ## explicit; go 1.13
 github.com/Netflix/go-expect
+# github.com/NoL1m1ts/go-oapi-merge v1.1.2
+## explicit; go 1.23
+github.com/NoL1m1ts/go-oapi-merge
+github.com/NoL1m1ts/go-oapi-merge/merge
 # github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5
 ## explicit
 github.com/Nvveen/Gotty
@@ -4464,8 +4468,8 @@ github.com/aws/aws-sdk-go-v2/internal/shareddefaults
 github.com/aws/aws-sdk-go-v2/internal/strings
 github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
 github.com/aws/aws-sdk-go-v2/internal/timeconv
-# github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.3
-## explicit; go 1.20
+# github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.4
+## explicit; go 1.21
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream/eventstreamapi
 # github.com/aws/aws-sdk-go-v2/config v1.28.9
@@ -4502,8 +4506,8 @@ github.com/aws/aws-sdk-go-v2/internal/endpoints/v2
 # github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1
 ## explicit; go 1.21
 github.com/aws/aws-sdk-go-v2/internal/ini
-# github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.15
-## explicit; go 1.20
+# github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.16
+## explicit; go 1.21
 github.com/aws/aws-sdk-go-v2/internal/v4a
 github.com/aws/aws-sdk-go-v2/internal/v4a/internal/crypto
 github.com/aws/aws-sdk-go-v2/internal/v4a/internal/v4
@@ -4538,16 +4542,16 @@ github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types
 # github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1
 ## explicit; go 1.21
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding
-# github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.17
-## explicit; go 1.20
+# github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.18
+## explicit; go 1.21
 github.com/aws/aws-sdk-go-v2/service/internal/checksum
 # github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.7.17
 ## explicit; go 1.15
 # github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.8
 ## explicit; go 1.21
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
-# github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.15
-## explicit; go 1.20
+# github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.16
+## explicit; go 1.21
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared/arn
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared/config
@@ -4561,8 +4565,8 @@ github.com/aws/aws-sdk-go-v2/service/kms/types
 github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi
 github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types
-# github.com/aws/aws-sdk-go-v2/service/s3 v1.58.2
-## explicit; go 1.20
+# github.com/aws/aws-sdk-go-v2/service/s3 v1.60.1
+## explicit; go 1.21
 github.com/aws/aws-sdk-go-v2/service/s3
 github.com/aws/aws-sdk-go-v2/service/s3/internal/arn
 github.com/aws/aws-sdk-go-v2/service/s3/internal/customizations
@@ -6497,6 +6501,10 @@ github.com/dolthub/maphash
 ## explicit; go 1.18
 github.com/dolthub/swiss
 github.com/dolthub/swiss/simd
+# github.com/dongri/phonenumber v0.1.12
+## explicit; go 1.21
+github.com/dongri/phonenumber
+github.com/dongri/phonenumber/examples
 # github.com/doug-martin/goqu/v9 v9.19.0
 ## explicit; go 1.12
 github.com/doug-martin/goqu/v9
@@ -10088,6 +10096,8 @@ github.com/hashicorp/terraform-exec/tfexec/internal/testutil
 # github.com/hashicorp/terraform-json v0.26.0
 ## explicit; go 1.21
 github.com/hashicorp/terraform-json
+github.com/hashicorp/terraform-json/cmd/round-trip-dumper
+github.com/hashicorp/terraform-json/sanitize
 # github.com/hashicorp/terraform-plugin-docs v0.15.0
 ## explicit; go 1.19
 github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
@@ -12280,7 +12290,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/ginkgo/v2 v2.22.1
+# github.com/onsi/ginkgo/v2 v2.22.2
 ## explicit; go 1.22.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -13158,8 +13168,8 @@ github.com/pion/rtp/pkg/obu
 # github.com/pion/sctp v1.8.39
 ## explicit; go 1.20
 github.com/pion/sctp
-# github.com/pion/sdp/v3 v3.0.11
-## explicit; go 1.20
+# github.com/pion/sdp/v3 v3.0.16
+## explicit; go 1.21
 github.com/pion/sdp/v3
 # github.com/pion/srtp/v2 v2.0.20
 ## explicit; go 1.14
@@ -13998,6 +14008,7 @@ github.com/scim2/filter-parser/v2/internal/types
 github.com/sean-/seed
 # github.com/sebdah/goldie v1.0.0
 ## explicit; go 1.12
+github.com/sebdah/goldie
 # github.com/sebdah/goldie/v2 v2.7.1
 ## explicit; go 1.12
 github.com/sebdah/goldie/v2
@@ -14833,7 +14844,7 @@ github.com/streadway/amqp
 # github.com/stretchr/objx v0.5.2
 ## explicit; go 1.20
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.10.0
+# github.com/stretchr/testify v1.11.1 => github.com/stretchr/testify v1.10.0
 ## explicit; go 1.17
 github.com/stretchr/testify
 github.com/stretchr/testify/assert
@@ -15352,6 +15363,9 @@ github.com/uber-go/tally/v4/statsd
 github.com/uber-go/tally/v4/statsd/example
 github.com/uber-go/tally/v4/tallymock
 github.com/uber-go/tally/v4/thirdparty/github.com/apache/thrift/lib/go/thrift
+# github.com/uber/h3-go/v4 v4.3.0
+## explicit; go 1.22
+github.com/uber/h3-go/v4
 # github.com/uber/jaeger-client-go v2.30.0+incompatible
 ## explicit
 github.com/uber/jaeger-client-go
@@ -15430,13 +15444,22 @@ github.com/urfave/cli/v2/internal/example-cli
 github.com/urfave/cli/v2/internal/example-hello-world
 # github.com/urfave/negroni v1.0.0
 ## explicit
-# github.com/valkey-io/valkey-go v1.0.60
+# github.com/valkey-io/valkey-go v1.0.66
 ## explicit; go 1.23.0
 github.com/valkey-io/valkey-go
 github.com/valkey-io/valkey-go/hack/cmds
 github.com/valkey-io/valkey-go/internal/cmds
 github.com/valkey-io/valkey-go/internal/util
 github.com/valkey-io/valkey-go/valkeylock
+# github.com/valkey-io/valkey-go/mock v1.0.60
+## explicit; go 1.23.0
+github.com/valkey-io/valkey-go/mock
+# github.com/valkey-io/valkey-go/valkeycompat v1.0.60
+## explicit; go 1.23.0
+github.com/valkey-io/valkey-go/valkeycompat
+# github.com/valkey-io/valkey-go/valkeyotel v1.0.66
+## explicit; go 1.23.0
+github.com/valkey-io/valkey-go/valkeyotel
 # github.com/valyala/bytebufferpool v1.0.0
 ## explicit
 github.com/valyala/bytebufferpool
@@ -15574,11 +15597,12 @@ github.com/wI2L/jsondiff
 # github.com/walkerus/go-wiremock v1.3.0
 ## explicit; go 1.14
 github.com/walkerus/go-wiremock
-# github.com/weppos/publicsuffix-go v0.30.0
-## explicit; go 1.16
+# github.com/weppos/publicsuffix-go v0.50.0
+## explicit; go 1.23.0
+github.com/weppos/publicsuffix-go
+github.com/weppos/publicsuffix-go/net/publicsuffix
 github.com/weppos/publicsuffix-go/publicsuffix
-# github.com/weppos/publicsuffix-go/publicsuffix/generator v0.0.0-20220927085643-dc0d00c92642
-## explicit; go 1.11
+github.com/weppos/publicsuffix-go/publicsuffix/generator
 # github.com/willf/bitset v1.1.11
 ## explicit; go 1.14
 github.com/willf/bitset
@@ -16018,6 +16042,11 @@ github.com/yandex-cloud/go-sdk/pkg/sdkerrors
 github.com/yandex-cloud/go-sdk/pkg/singleflight
 github.com/yandex-cloud/go-sdk/pkg/testutil
 github.com/yandex-cloud/go-sdk/sdkresolvers
+# github.com/yandex-cloud/kms-clients-go/yckmstink v0.0.0-20200608135605-a61de9ba71a6
+## explicit; go 1.13
+github.com/yandex-cloud/kms-clients-go/yckmstink
+github.com/yandex-cloud/kms-clients-go/yckmstink/examples/basic
+github.com/yandex-cloud/kms-clients-go/yckmstink/examples/envelope
 # github.com/yandex/pandora v0.5.3
 ## explicit; go 1.19
 github.com/yandex/pandora
@@ -16257,7 +16286,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.116.1
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.117.1
 ## explicit; go 1.22.5
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
@@ -21029,6 +21058,7 @@ www.velocidex.com/golang/regparser
 # github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
 # github.com/prometheus/client_model => github.com/prometheus/client_model v0.6.1
 # github.com/prometheus/common => github.com/prometheus/common v0.62.0
+# github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
 # github.com/temporalio/features => github.com/temporalio/features v0.0.0-20231218231852-27c681667dae
 # github.com/temporalio/features/features => github.com/temporalio/features/features v0.0.0-20231218231852-27c681667dae
 # github.com/temporalio/features/harness/go => github.com/temporalio/features/harness/go v0.0.0-20231218231852-27c681667dae

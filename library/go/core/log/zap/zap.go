@@ -155,14 +155,14 @@ func (l *Logger) AddCallerSkip(skip int) log.Logger {
 	}
 }
 
-// Trace logs at Trace log level using fields
+// Trace logs at Debug log level using fields
 func (l *Logger) Trace(msg string, fields ...log.Field) {
 	if ce := l.L.Check(zap.DebugLevel, msg); ce != nil {
 		ce.Write(zapifyFields(fields...)...)
 	}
 }
 
-// Tracef logs at Trace log level using fmt formatter
+// Tracef logs at Debug log level using fmt formatter
 func (l *Logger) Tracef(msg string, args ...interface{}) {
 	if ce := l.L.Check(zap.DebugLevel, ""); ce != nil {
 		ce.Message = fmt.Sprintf(msg, args...)

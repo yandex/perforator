@@ -59,14 +59,12 @@ def main():
 
     init_logging(args.verbose)
 
-    pm_utils.init_nots_path(args.arcadia_build_root, args.local_cli)
-
     args.func(args)
 
     _postprocess_output(args)
 
     if args.local_cli:
-        dir_name = pm_utils.build_traces_store_path(args.moddir)
+        dir_name = pm_utils.build_traces_store_path(args.arcadia_build_root, args.moddir)
         trace_file = os.path.join(dir_name, f'{args.command}.builder.trace.json')
         timeit_options.dump_trace(trace_file, otherData=dict(moddir=args.moddir))
         if args.verbose:

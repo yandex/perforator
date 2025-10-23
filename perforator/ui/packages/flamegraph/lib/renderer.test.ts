@@ -1,9 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
 
 import type { FormatNode } from './models/Profile';
-
-import { getCanvasTitleFull, getStatusTitleFull, renderTitleFull } from './title';
 import { getNodeTitleFull } from './node-title';
+import { getCanvasTitleFull, getStatusTitleFull, renderTitleFull } from './title';
 
 
 const stringTable = ['all', 'child1', 'child2', 'child3', 'child4', '@[kernel]'];

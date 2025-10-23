@@ -1,0 +1,3 @@
+{
+    "clang_format_json": "build/config/tests/json_style/.clang-format"
+}

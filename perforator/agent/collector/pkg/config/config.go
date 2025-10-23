@@ -8,6 +8,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	storage "github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/upload"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
@@ -137,6 +138,7 @@ type Config struct {
 	Symbolizer            SymbolizerConfig       `yaml:"symbolizer,omitempty"`
 
 	PerfEvents []PerfEventConfig `yaml:"perf_events"`
+	Uprobes    []uprobe.Config   `yaml:"uprobes,omitempty"`
 	Signals    []string          `yaml:"signals"`
 
 	EnableLBRDeprecated *bool              `yaml:"enable_lbr"`
@@ -202,7 +204,12 @@ func (c *Config) FillDefault() {
 		c.BPF.Debug = c.Debug
 	}
 
-	if (c.BPF.TraceSignals == nil || !*c.BPF.TraceSignals) && len(c.PerfEvents) == 0 && len(c.BPF.Uprobes) == 0 {
+	uprobes := c.Uprobes
+	if len(uprobes) == 0 {
+		uprobes = c.BPF.UprobesDeprecated
+	}
+
+	if (c.BPF.TraceSignals == nil || !*c.BPF.TraceSignals) && len(c.PerfEvents) == 0 && len(uprobes) == 0 {
 		c.PerfEvents = []PerfEventConfig{{
 			Type:      perfevent.CPUCycles,
 			Frequency: ptr.Uint64(99),
@@ -211,6 +218,9 @@ func (c *Config) FillDefault() {
 
 	if c.BPF.TraceLBR == nil {
 		c.BPF.TraceLBR = ptr.Bool(true)
+	}
+	if c.BPF.TraceLBROnAMD == nil {
+		c.BPF.TraceLBROnAMD = ptr.Bool(true)
 	}
 	if c.BPF.TraceWallTime == nil {
 		c.BPF.TraceWallTime = ptr.Bool(true)

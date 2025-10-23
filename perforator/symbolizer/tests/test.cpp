@@ -1,3 +1,4 @@
+#include <perforator/lib/demangle/demangle.h>
 #include <perforator/symbolizer/lib/symbolize/symbolizer.h>
 
 #include <library/cpp/testing/common/env.h>
@@ -20,7 +21,7 @@ TEST(Symbolization, ElfObjectFile) {
         ASSERT_EQ(functions.size(), inlinedFunctions.size());
 
         for (size_t i = 0; i < inlinedFunctions.size(); ++i) {
-            ASSERT_EQ(NPerforator::NSymbolize::DemangleFunctionName(inlinedFunctions[i].FunctionName), functions[i]);
+            ASSERT_EQ(NPerforator::NDemangle::Demangle(inlinedFunctions[i].FunctionName), functions[i]);
         }
     }
 }
@@ -109,19 +110,4 @@ TEST(Symbolization, ProfileProto) {
             }
         }
     }
-}
-
-TEST(Symbolization, FunctionNameDemanglingAndPruning) {
-    auto check = [](std::string dirtyMangled, std::string expected) {
-        const auto cleanedUpDemangled = NPerforator::NSymbolize::DemangleFunctionName(
-            NPerforator::NSymbolize::CleanupFunctionName(std::move(dirtyMangled))
-        );
-        ASSERT_EQ(expected, cleanedUpDemangled);
-    };
-
-    check("_Z3foov", "foo()");
-    check("_ZN4llvm3foo3bar3bazEv", "llvm::foo::bar::baz()");
-    check("_ZN4llvm4llvmEid", "llvm::llvm(int, double)");
-    check("_ZN4llvm4llvmEid.llvm.123456", "llvm::llvm(int, double)");
-    check("ZSTD_decodeLiteralsBlock.llvm.8240084484405978173", "ZSTD_decodeLiteralsBlock");
 }

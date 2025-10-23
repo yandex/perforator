@@ -18,6 +18,20 @@ IF (OS_LINUX)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        avc_cache_stats.go
+        avc_hash_stats.go
+        fs.go
+    )
+
+    GO_TEST_SRCS(
+        # avc_cache_stats_test.go
+        # avc_hash_stats_test.go
+        # fs_test.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

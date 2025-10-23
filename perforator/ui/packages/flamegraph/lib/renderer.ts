@@ -13,17 +13,16 @@
 // * rewritten the render logic with higher order functions
 // * added different titles for hover and status
 
-import type { FormatNode, ProfileData } from './models/Profile';
-
+import { darken, DARKEN_FACTOR, diffcolor } from './colors';
 import { hugenum } from './flame-utils';
+import type { FormatNode, ProfileData } from './models/Profile';
+import { getNodeTitleFull } from './node-title';
 import { pct } from './pct';
 import type { GetStateFromQuery, SetStateFromQuery } from './query-utils';
 import { parseStacks, stringifyStacks } from './query-utils';
-import { shorten } from './shorten/shorten';
-import { getCanvasTitleFull, getStatusTitleFull, renderTitleFull } from './title';
-import { darken, DARKEN_FACTOR, diffcolor } from './colors';
-import { getNodeTitleFull } from './node-title';
 import { escapeRegex, search as outerSearch } from './search';
+import { shorten } from './shorten/shorten';
+import { getStatusTitleFull, renderTitleFull } from './title';
 
 
 const dw = Math.floor(255 * (1 - DARKEN_FACTOR)).toString(16);
@@ -48,6 +47,7 @@ export type QueryKeys =
     | 'frameDepth'
     | 'tab'
     | 'topQuery'
+    | 'leftHeavy'
     | 'flameBase'
     | 'framePos';
 export type RenderFlamegraphOptions = {
@@ -56,7 +56,7 @@ export type RenderFlamegraphOptions = {
     theme: 'dark' | 'light';
     isDiff: boolean;
     shortenFrameTexts: 'true' | 'false' | 'hover';
-    onFinishRendering?: (opts?: {textNodesCount: number, delta: number, exceededLimit: boolean}) => void;
+    onFinishRendering?: (opts?: {textNodesCount: number; delta: number; exceededLimit: boolean}) => void;
     searchPattern: RegExp | string | null;
     reverse: boolean;
     keepOnlyFound: boolean;
@@ -105,7 +105,7 @@ export class FlamegraphOffseter {
     private minVisibleEv: number | undefined;
     private reverse: boolean;
     private levelHeight: number;
-    private shouldReverseDiff: boolean = false;
+    private shouldReverseDiff = false;
 
     constructor(rows: ProfileData['rows'], options: { reverse: boolean; levelHeight: number }) {
         this.rows = rows;
@@ -113,19 +113,19 @@ export class FlamegraphOffseter {
         this.levelHeight = options.levelHeight;
     }
     fillFramesWindow([hmax, imax]: Coordinate): FramesWindow {
-            const res: Record<number, Interval> = [];
-            let nextParentIndex = imax;
+        const res: Record<number, Interval> = [];
+        let nextParentIndex = imax;
 
-            for (let h = Math.min(hmax, this.rows.length - 1); h >= 0; h--) {
-                const row = this.rows[h];
-                res[h] = [nextParentIndex, nextParentIndex];
-                // will be assigned -1 on the last iteration (root)
-                // we do not care about it because it will not be assigned anywhere else
-                nextParentIndex = row[nextParentIndex].parentIndex;
-            }
-
-            return res;
+        for (let h = Math.min(hmax, this.rows.length - 1); h >= 0; h--) {
+            const row = this.rows[h];
+            res[h] = [nextParentIndex, nextParentIndex];
+            // will be assigned -1 on the last iteration (root)
+            // we do not care about it because it will not be assigned anywhere else
+            nextParentIndex = row[nextParentIndex].parentIndex;
         }
+
+        return res;
+    }
     createOffsetKeeper(h: number) {
         let prevParentIndex: number | null = null;
         let currentOffset = 0;
@@ -226,9 +226,9 @@ export class FlamegraphOffseter {
         }
 
         let maxH = 0;
-        for(let i = 0; i < keepCoordinates.length; i++){
+        for (let i = 0; i < keepCoordinates.length; i++) {
             const h = keepCoordinates[i][0];
-            if(h > maxH){
+            if (h > maxH) {
                 maxH = h;
             }
         }
@@ -284,13 +284,13 @@ export class FlamegraphOffseter {
             const row = this.rows[h];
             for (let i = 0; i < row.length; i++) {
                 const node = row[i];
-                if(node.omittedEventCount) {
+                if (node.omittedEventCount) {
                     node.omittedEventCount = undefined;
                 }
-                if(node.omittedSampleCount) {
+                if (node.omittedSampleCount) {
                     node.omittedSampleCount = undefined;
                 }
-                if(node.omittedNode) {
+                if (node.omittedNode) {
                     node.omittedNode = false;
                 }
             }
@@ -302,8 +302,8 @@ export class FlamegraphOffseter {
         initialCoordinates: Coordinate,
         omittedOffsetCoordinates: Coordinate[] = [],
         keepFoundCoordinates: Coordinate[] | null = null,
-        shouldReverseDiff: boolean = false,
-        visitors: Array<{run: (node: FormatNode) => void}> = []
+        shouldReverseDiff = false,
+        visitors: Array<{run: (node: FormatNode) => void}> = [],
     ) {
         this.clearOmittedEventCount();
         this.shouldReverseDiff = shouldReverseDiff;
@@ -362,19 +362,19 @@ export class FlamegraphOffseter {
         }
 
         // may be 0-width node, check closest non-zero neighbour
-        while(!this.visibleNode(frames[left]) && left < frames.length){
-            ++left
+        while (!this.visibleNode(frames[left]) && left < frames.length) {
+            ++left;
         }
         if (left >= 0 && left < frames.length && frames[left].x && (frames[left].x! - x) < 0.5) { return left; }
-        while(!this.visibleNode(frames[right]) && right > 0){
-            --right
+        while (!this.visibleNode(frames[right]) && right > 0) {
+            --right;
         }
         if (right >= 0 && right < frames.length && frames[right].x && (x - (frames[right].x! + this.countWidth(frames[right]))) < 0.5) { return right; }
 
         return null;
     }
     countEventCountWidth(node: FormatNode) {
-        return (this.getEvents(node))- (node.omittedEventCount ?? 0);
+        return (this.getEvents(node)) - (node.omittedEventCount ?? 0);
     }
     countSampleCountWidth(node: FormatNode) {
         return (this.getSamples(node)) - (node.omittedSampleCount ?? 0);
@@ -463,7 +463,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     fg,
     { getState, setState, theme, isDiff, onFinishRendering, shortenFrameTexts, searchPattern, reverse, keepOnlyFound },
 ) => {
-    const shouldSwapDiff = getState('flameBase') === 'diff'
+    const shouldSwapDiff = getState('flameBase') === 'diff';
 
     function findElement(name: string): HTMLElement {
         return flamegraphContainer.querySelector(`.flamegraph__${name}`)!;
@@ -641,6 +641,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
             const alpha = fg.isBeforeCurrentNode(h);
 
 
+            // eslint-disable-next-line @typescript-eslint/no-loop-func
             const drawFrame = function(i: number) {
                 const node = row[i];
                 const width = fg.countWidth(node);
@@ -661,18 +662,18 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
                 if (width > charWidth * 3 + 6) {
                     labelCount++;
-                    if(newLabels.length < MAX_TEXT_LABELS){
+                    if (newLabels.length < MAX_TEXT_LABELS) {
 
-                    const chars = Math.floor((width - 6) / charWidth);
-                    const title = nodeTitle.length <= chars ? nodeTitle : nodeTitle.substring(0, chars - 1) + '…';
-                    let labelColor: string | undefined;
+                        const chars = Math.floor((width - 6) / charWidth);
+                        const title = nodeTitle.length <= chars ? nodeTitle : nodeTitle.substring(0, chars - 1) + '…';
+                        let labelColor: string | undefined;
 
-                    if (alpha && theme === 'dark') {
-                        labelColor = WHITE_TEXT_COLOR;
+                        if (alpha && theme === 'dark') {
+                            labelColor = WHITE_TEXT_COLOR;
+                        }
+                        const label = drawLabel(title, node.x!, y, width, alpha ? '0.5' : '1', labelColor!);
+                        newLabels.push(label);
                     }
-                    const label = drawLabel(title, node.x!, y, width, alpha ? '0.5' : '1', labelColor!);
-                    newLabels.push(label);
-                }
                 }
 
 
@@ -711,8 +712,8 @@ export const renderFlamegraph: RenderFlamegraphType = (
             }
         }
 
-        if(labelCount > MAX_TEXT_LABELS) {
-            console.log(`label count limit is ${MAX_TEXT_LABELS}, without it would have shown ${labelCount} labels`)
+        if (labelCount > MAX_TEXT_LABELS) {
+            console.log(`label count limit is ${MAX_TEXT_LABELS}, without it would have shown ${labelCount} labels`);
         }
 
         labels?.replaceChildren(...newLabels);
@@ -729,7 +730,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
         renderSearch(totalMarked(), title, Boolean(opts?.pattern));
 
-        return {textNodesCount: labelCount}
+        return { textNodesCount: labelCount };
 
     }
 
@@ -748,7 +749,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
         const finish = performance.now();
         const delta = finish - start;
         if (firstRender) {
-            onFinishRendering?.({textNodesCount: res.textNodesCount, delta, exceededLimit: res.textNodesCount > MAX_TEXT_LABELS})
+            onFinishRendering?.({ textNodesCount: res.textNodesCount, delta, exceededLimit: res.textNodesCount > MAX_TEXT_LABELS });
             firstRender = false;
         }
         console.log('Rendered flamegraph in', delta, 'ms');
@@ -792,7 +793,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     function calcHighlightColor(node: FormatNode) {
         const parsedColor = isDiff ? calculateDiffColor(node, root) : node.color as string;
 
-        let color: string | null = null
+        let color: string | null = null;
         // currently we calculate diff color on the fly during render
         // highlight is 0.4 darker than default color
         // but for non-diffs the node.color is already darkened by 0.2 so 0.2 is enough
@@ -878,7 +879,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
         hl.firstChild!.textContent = title;
         //@ts-ignore allowing to use null for reset
         hl.style.backgroundColor = newColor;
-        hl.style.transform = `translate(${left}px, ${top}px)`
+        hl.style.transform = `translate(${left}px, ${top}px)`;
         hl.style.width = width + 'px';
         hl.style.display = 'block';
         canvas.style.cursor = 'pointer';

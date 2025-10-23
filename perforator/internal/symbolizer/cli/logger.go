@@ -12,18 +12,32 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func NewLogger(level log.Level) (xlog.Logger, error) {
-	config := uberzap.NewDevelopmentConfig()
-	config.Level = uberzap.NewAtomicLevelAt(zap.ZapifyLevel(level))
+type LogFormat int
 
-	if isatty.IsTerminal(os.Stderr.Fd()) {
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+const (
+	LogFormatText LogFormat = iota
+	LogFormatJson
+)
+
+func NewLogger(level log.Level, format LogFormat) (xlog.Logger, error) {
+	var logger *zap.Logger
+	var err error
+	if format == LogFormatJson {
+		logger, err = zap.NewDeployLogger(level)
 	} else {
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	}
+		config := uberzap.NewDevelopmentConfig()
+		config.Level = uberzap.NewAtomicLevelAt(zap.ZapifyLevel(level))
 
-	config.EncoderConfig.ConsoleSeparator = " "
-	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(`15:04:05.000`)
-	config.DisableStacktrace = true
-	return xlog.TryNew(zap.New(config))
+		if isatty.IsTerminal(os.Stderr.Fd()) {
+			config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		} else {
+			config.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+		}
+
+		config.EncoderConfig.ConsoleSeparator = " "
+		config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(`15:04:05.000`)
+		config.DisableStacktrace = true
+		logger, err = zap.New(config)
+	}
+	return xlog.TryNew(logger, err)
 }

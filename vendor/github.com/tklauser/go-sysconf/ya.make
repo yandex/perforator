@@ -63,6 +63,23 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        sysconf_generic.go
+        sysconf_linux.go
+        sysconf_posix.go
+        zsysconf_defs_linux.go
+        zsysconf_values_linux_arm64.go
+    )
+
+    GO_TEST_SRCS(sysconf_linux_test.go)
+
+    GO_XTEST_SRCS(
+        example_test.go
+        sysconf_test.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

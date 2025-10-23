@@ -72,6 +72,13 @@ perforator.component: proxy
 {{- end }}
 
 {{/*
+Binproc selector labels
+*/}}
+{{- define "perforator.binproc.selectorLabels" -}}
+perforator.component: binproc
+{{- end }}
+
+{{/*
 Web selector labels
 */}}
 {{- define "perforator.web.selectorLabels" -}}
@@ -484,6 +491,14 @@ Construct appropriate URL prefix for task results
     {{- fail "Error: Either proxy.url_prefix or web.host must be specified. Use web.host when web service is enabled, or proxy.url_prefix for direct S3 access when web is disabled." -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+//////////////////////////////////////////////////////////////////////////////////////////// 
+*/}}
+
+{{- define "perforator.binproc.service.name" -}}
+{{ printf "%s-binproc-service" (include "perforator.fullname" .) }}
+{{- end }}
 
 {{/*
 //////////////////////////////////////////////////////////////////////////////////////////// 

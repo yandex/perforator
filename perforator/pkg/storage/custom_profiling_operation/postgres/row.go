@@ -94,6 +94,15 @@ func operationToRow(op *cpo_proto.Operation) (*operationRow, error) {
 	return &row, nil
 }
 
+func stateToString(state cpo_proto.OperationState) string {
+	if state == cpo_proto.OperationState_Unknown {
+		// this means the state is not set at all
+		return ""
+	}
+
+	return state.String()
+}
+
 func json2proto(buf []byte, protomsg protoreflect.ProtoMessage) error {
 	if buf == nil {
 		return nil

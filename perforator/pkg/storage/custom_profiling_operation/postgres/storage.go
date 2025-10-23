@@ -179,6 +179,15 @@ func (s *Storage) ListOperations(ctx context.Context, filter *custom_profiling_o
 		if filter.StartsBefore != nil {
 			query = query.Where("(spec->'TimeInterval'->>'From')::timestamptz < ?", *filter.StartsBefore)
 		}
+
+		if len(filter.States) > 0 {
+			stateStrings := make([]string, 0, len(filter.States))
+			for _, state := range filter.States {
+				stateStrings = append(stateStrings, stateToString(state))
+			}
+			// Use COALESCE to convert NULL to empty string for Unknown state matching
+			query = query.Where(squirrel.Eq{"COALESCE(status->>'State', '')": stateStrings})
+		}
 	}
 
 	if pagination != nil && pagination.Limit != 0 {

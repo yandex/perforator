@@ -28,6 +28,12 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        manufacturer_linux.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

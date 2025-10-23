@@ -1,5 +1,4 @@
 import type { FormatNode } from './/models/Profile';
-
 import { hugenum } from './flame-utils';
 import { formatPct, pct } from './pct';
 
@@ -47,7 +46,7 @@ export function renderTitleFull(countEventCountWidth: NodeGetter<number>, countS
                 delta =
                     f.eventCount / anyFrame.eventCount -
                     f.baseEventCount / anyFrame.baseEventCount;
-                if(isReversed) {
+                if (isReversed) {
                     delta *= -1;
                 }
             } else {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/agent/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
@@ -18,7 +19,7 @@ type agentOptions struct {
 	debugModeTogglerConfig *DebugModeTogglerConfig
 	profilerOpts           []profiler.Option
 	agentGatewayConfig     *agent_gateway_client.Config
-	cpoProcessorConfig     *CPOProcessorConfig
+	cpoServiceConfig       *custom_profiling_operation.ServiceConfig
 }
 
 type Option func(*agentOptions)
@@ -41,9 +42,9 @@ func WithAgentGateway(config *agent_gateway_client.Config) Option {
 	}
 }
 
-func WithCPOProcessor(config *CPOProcessorConfig) Option {
+func WithCPOService(config *custom_profiling_operation.ServiceConfig) Option {
 	return func(o *agentOptions) {
-		o.cpoProcessorConfig = config
+		o.cpoServiceConfig = config
 	}
 }
 
@@ -57,11 +58,11 @@ type PerforatorAgent struct {
 	options          *agentOptions
 
 	agentGatewayClient *agent_gateway_client.GatewayClient
-	cpoProcessor       *cpoProcessor
+	cpoService         *custom_profiling_operation.Service
 }
 
 type targetManipulator interface {
-	TraceSelf(labels map[string]string) error
+	TraceSelf(labels map[string]string) (profiler.Closer, error)
 	TraceCgroups(configs []*profiler.CgroupConfig) error
 }
 
@@ -110,8 +111,10 @@ func NewPerforatorAgent(
 		agent.debugModeToggler = newDebugModeTogglerWatcher(l, options.debugModeTogglerConfig, agent.profiler)
 	}
 
-	if options.cpoProcessorConfig != nil {
-		agent.cpoProcessor, err = newCPOProcessor(xLogger, options.cpoProcessorConfig, agent.agentGatewayClient.CustomProfilingOperationClient)
+	if options.cpoServiceConfig != nil {
+		registry := custom_profiling_operation.NewOperationExecutionRegistry(xLogger, r, agent.profiler, agent.agentGatewayClient.CustomProfilingOperationClient)
+		handler := custom_profiling_operation.NewCPOHandler(xLogger, registry)
+		agent.cpoService, err = custom_profiling_operation.NewService(xLogger, r, options.cpoServiceConfig, agent.agentGatewayClient.CustomProfilingOperationClient, handler)
 		if err != nil {
 			return nil, err
 		}
@@ -132,11 +135,11 @@ func (a *PerforatorAgent) Run(ctx context.Context) error {
 		})
 	}
 
-	if a.cpoProcessor != nil {
+	if a.cpoService != nil {
 		g.Go(func() error {
-			a.l.Info("Starting custom profiling operation processor", log.Any("config", a.cpoProcessor.config))
-			err := a.cpoProcessor.Run(ctx)
-			a.l.Error("Exiting custom profiling operation processor", log.Error(err))
+			a.l.Info("Starting custom profiling operation service")
+			err := a.cpoService.Run(ctx)
+			a.l.Error("Exiting custom profiling operation service", log.Error(err))
 			return err
 		})
 	}

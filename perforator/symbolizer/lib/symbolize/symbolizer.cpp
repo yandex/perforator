@@ -2,14 +2,13 @@
 
 #include <perforator/lib/llvmex/llvm_elf.h>
 #include <perforator/lib/llvmex/llvm_exception.h>
-#include <perforator/lib/rustc_demangle/demangle.h>
+#include <perforator/lib/demangle/demangle.h>
 
 #include <library/cpp/logger/global/global.h>
 #include <library/cpp/iterator/enumerate.h>
 
 #include <util/charset/wide.h>
 #include <util/generic/algorithm.h>
-#include <util/generic/deque.h>
 #include <util/generic/hash.h>
 #include <util/generic/vector.h>
 #include <util/stream/format.h>
@@ -300,11 +299,10 @@ ui64 TLocationSymbolizer::AddFunction(
     TString&& fileName,
     ui32 startLine
 ) {
-    std::string demangledName = DemangleFunctionName(functionName);
-    std::string cleanFunctionName = CleanupFunctionName(std::move(demangledName));
+    std::string demangledName = NDemangle::Demangle(functionName);
 
     Profile_.add_string_table(std::move(functionName));
-    Profile_.add_string_table(std::move(cleanFunctionName));
+    Profile_.add_string_table(std::move(demangledName));
     Profile_.add_string_table(std::move(fileName));
 
     NPerforator::NProto::NPProf::Function* func = Profile_.add_function();

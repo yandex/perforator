@@ -313,3 +313,19 @@ func TestParseExpression(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkParser(b *testing.B) {
+	b.Run("Selector", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			p := parserv2.NewParser()
+			_, _ = p.ParseSelector(`{project="a*", service=="b*", cluster!="c*", other!=="d|c"}`)
+		}
+	})
+
+	b.Run("Expression", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			p := parserv2.NewParser()
+			_, _ = p.ParseExpression(`filter({a = 1}, any( all(eq('a', 'b'), eq('c', 'd')), eq('x', 'y') ))`)
+		}
+	})
+}

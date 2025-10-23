@@ -1,0 +1,17 @@
+Language: Json
+BasedOnStyle: Google  # Not sure about BasedOnStyle support for Json
+DerivePointerAlignment: false
+IncludeBlocks: Preserve
+AttributeMacros: ["noexcept"]
+IndentRequires: false
+ColumnLimit: 0
+IndentWidth: 2
+TabWidth: 4
+AccessModifierOffset: -4
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AlignAfterOpenBracket: BlockIndent
+AlwaysBreakAfterDefinitionReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 200
+MaxEmptyLinesToKeep: 0

@@ -1,9 +1,7 @@
 import type { ProfileData } from './models/Profile';
-
-import type { Coordinate } from './renderer';
-
 import type { ReadString, StringModifier } from './node-title';
 import { getNodeTitleFull } from './node-title';
+import type { Coordinate } from './renderer';
 
 
 // TODO replace with RegExp.escape once ES2025 is adopted by typescript and babel

@@ -93,6 +93,14 @@ IF (OS_WINDOWS AND ARCH_ARM64)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        cpu_linux_arm64.go
+        hwcap_linux.go
+        proc_cpuinfo_linux.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

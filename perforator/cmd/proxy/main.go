@@ -16,6 +16,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/mlock"
 	"github.com/yandex/perforator/perforator/pkg/must"
 	"github.com/yandex/perforator/perforator/pkg/polyheapprof"
+	"github.com/yandex/perforator/perforator/pkg/validateconfig"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -64,6 +65,10 @@ var (
 			if err != nil {
 				return err
 			}
+			if err := conf.Validate(); err != nil {
+				return err
+			}
+			conf.FillDefault()
 
 			reg := xmetrics.NewRegistry(
 				xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
@@ -142,6 +147,24 @@ func init() {
 		false,
 		"Whether to profile allocations",
 	)
+
+	proxyCmd.AddCommand(validateconfig.NewValidateConfigCmd(
+		"proxy",
+		validateconfig.ValidateConfigFunc(
+			func(configPath string) error {
+				config, err := server.ParseConfig(configPath)
+				if err != nil {
+					return err
+				}
+
+				err = config.Validate()
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}),
+	))
 
 	cobrabuildinfo.Init(proxyCmd)
 }

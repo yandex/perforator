@@ -1,0 +1,17 @@
+service: jsoncommittee
+title: clang-format default config for json
+
+arcanum:
+  review:
+    auto_assign: true
+    min_approvers_count: 1
+    groups:
+      - name: jsoncommittee
+        roles: jsoncommittee:consultant
+    rules:
+      - subpaths: ".clang-format"
+        reviewers:
+          - name: jsoncommittee
+            assign: 1
+            ship: 0
+            ignore_self_ship: false

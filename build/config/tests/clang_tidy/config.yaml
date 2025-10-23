@@ -36,7 +36,7 @@ CheckOptions:
     value: CamelCase
   # do not tide public begin / end methods to workaround clang-tidy bug in range-based for loops
   - key: readability-identifier-naming.PublicMethodIgnoredRegexp
-    value: "(begin|end|empty|size|ysize|front|back)"
+    value: "(begin|end|empty|size|ysize|front|back|Save|Load)"
   - key: readability-identifier-naming.MacroDefinitionCase
     value: UPPER_CASE
   - key: readability-identifier-naming.MacroDefinitionIgnoredRegexp

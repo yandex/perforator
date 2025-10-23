@@ -41,6 +41,7 @@ import (
 	"github.com/yandex/perforator/observability/lib/querylang"
 	"github.com/yandex/perforator/observability/lib/querylang/operator"
 	"github.com/yandex/perforator/perforator/internal/asynctask"
+	bpclient "github.com/yandex/perforator/perforator/internal/binaryprocessor/client"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/auth"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/autofdo"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
@@ -70,17 +71,11 @@ import (
 	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 	profileproto "github.com/yandex/perforator/perforator/proto/profile"
+	symbolizerproto "github.com/yandex/perforator/perforator/proto/symbolizer"
 )
 
 var (
 	ErrFailedGetProfile = errors.New("failed to get profile")
-
-	ValidTargetEventTypes = map[string]struct{}{
-		sampletype.SampleTypeCPUCycles:   struct{}{},
-		sampletype.SampleTypeLbrStacks:   struct{}{},
-		sampletype.SampleTypeSignalCount: struct{}{},
-		sampletype.SampleTypeWallSeconds: struct{}{},
-	}
 )
 
 // TODO(itrofimow): make this 8 configurable?
@@ -110,6 +105,11 @@ type perforatorServerMetrics struct {
 	tasksStartedCount  metrics.CounterVec
 	tasksFinishedCount metrics.CounterVec
 	tasksFailedCount   metrics.CounterVec
+
+	remoteSymbolizationCount             requestsMetrics
+	remoteSymbolizationCompletenessCount requestsMetrics
+
+	symbolizationProxyFallbackCount metrics.Counter
 }
 
 type Tags = map[string]string
@@ -132,6 +132,8 @@ type PerforatorServer struct {
 
 	symbolizer   *symbolize.Symbolizer
 	mergemanager *cprofile.MergeManager
+
+	bpClient *bpclient.DistributingClient
 
 	llvmTools LLVMTools
 
@@ -160,8 +162,6 @@ func NewPerforatorServer(
 	l xlog.Logger,
 	reg xmetrics.Registry,
 ) (server *PerforatorServer, err error) {
-	conf.FillDefault()
-
 	ctx := context.Background()
 
 	// Setup OpenTelemetry tracing.
@@ -239,6 +239,18 @@ func NewPerforatorServer(
 		return nil, err
 	}
 
+	var bpClient *bpclient.DistributingClient
+	if *conf.FeaturesConfig.EnableRemoteSymbolization {
+		bpClient, err = bpclient.NewDistributingClient(
+			conf.BinaryProcessorClientConfig,
+			l.WithName("BPClient"),
+		)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	additionalGrpcServices, err := newServices(&conf.FeaturesConfig, l, reg, storageBundle)
 	if err != nil {
 		return nil, err
@@ -304,6 +316,7 @@ func NewPerforatorServer(
 		llvmTools:              llvmTools,
 		symbolizer:             symbolizer,
 		mergemanager:           mergemanager,
+		bpClient:               bpClient,
 		grpcServer:             grpcServer,
 		httpRouter:             httpr,
 		healthServer:           healthServer,
@@ -377,6 +390,17 @@ func (s *PerforatorServer) registerMetrics() {
 		tasksStartedCount:  s.reg.CounterVec("tasks.started.count", []string{"kind"}),
 		tasksFinishedCount: s.reg.CounterVec("tasks.finished.count", []string{"kind"}),
 		tasksFailedCount:   s.reg.CounterVec("tasks.failed.count", []string{"kind"}),
+
+		remoteSymbolizationCount: requestsMetrics{
+			successes: s.reg.WithTags(Tags{"status": "success"}).Counter("remote_symbolization.count"),
+			fails:     s.reg.WithTags(Tags{"status": "fail"}).Counter("remote_symbolization.count"),
+		},
+		remoteSymbolizationCompletenessCount: requestsMetrics{
+			successes: s.reg.WithTags(Tags{"status": "complete"}).Counter("remote_symbolization.count"),
+			fails:     s.reg.WithTags(Tags{"status": "incomplete"}).Counter("remote_symbolization.count"),
+		},
+
+		symbolizationProxyFallbackCount: s.reg.Counter("symbolization.proxy_fallback.count"),
 	}
 }
 
@@ -452,6 +476,10 @@ func (s *PerforatorServer) ListSuggestions(
 	}
 	parsedSelector = enrichCPOIDMatcher(parsedSelector)
 
+	parsedSelector = replaceSelectorTimeInterval(parsedSelector, &time_interval.TimeInterval{
+		From: timestamppb.New(time.Now().Add(-time.Hour * 24 * 14)),
+		To:   timestamppb.Now(),
+	})
 	query := &meta.SuggestionsQuery{
 		Field:    req.Field,
 		Regex:    req.Regex,
@@ -772,7 +800,7 @@ func (s *PerforatorServer) fetchProfile(ctx context.Context, id meta.ProfileID) 
 		return
 	}
 
-	if len(profiles) != 1 {
+	if len(profiles) == 0 {
 		err = ErrFailedGetProfile
 		return
 	}
@@ -1210,11 +1238,6 @@ func (s *PerforatorServer) MergeProfiles(
 	targetEventType, err := deriveEventTypeFromSelector(query.Selector)
 	if err != nil {
 		return nil, fmt.Errorf("failed to derive target event type from selector: %w", err)
-	}
-
-	// some validation here
-	if _, ok := ValidTargetEventTypes[targetEventType]; !ok {
-		return nil, fmt.Errorf("event type %s is not valid", targetEventType)
 	}
 
 	if query.MaxSamples == 0 {
@@ -1835,6 +1858,118 @@ func (s *PerforatorServer) parseProfiles(
 	return
 }
 
+// Stores references to the original profile locations
+type pprofBuildIDLocationsOffsetIndex struct {
+	locationAtOffset map[uint64]*pprof.Location
+}
+
+func prepareRemoteSymbolizeRequest(ctx context.Context, l xlog.Logger, profile *pprof.Profile) ([]*symbolizerproto.PerBinaryRequest, map[string]*pprofBuildIDLocationsOffsetIndex) {
+	locsPerBuildID := make(map[string]*pprofBuildIDLocationsOffsetIndex)
+	offsetsPerBuildID := make(map[string][]uint64)
+
+	var nilMappingLocs []uint64
+	for _, loc := range profile.Location {
+		if loc.Mapping == nil {
+			nilMappingLocs = append(nilMappingLocs, loc.ID)
+			continue
+		}
+		buildID := loc.Mapping.BuildID
+		offset := loc.Address
+
+		locs, ok := locsPerBuildID[buildID]
+		if !ok {
+			locs = &pprofBuildIDLocationsOffsetIndex{
+				locationAtOffset: make(map[uint64]*pprof.Location),
+			}
+			locsPerBuildID[buildID] = locs
+			offsetsPerBuildID[buildID] = make([]uint64, 0)
+		}
+
+		offsetsPerBuildID[buildID] = append(offsetsPerBuildID[buildID], offset)
+		locs.locationAtOffset[offset] = loc
+	}
+
+	if nilMappingLocs != nil {
+		l.Warn(ctx, "Couldn't retrieve BuildID: locations with nil mapping found", log.Array("location-id", nilMappingLocs))
+	}
+
+	batch := make([]*symbolizerproto.PerBinaryRequest, 0, len(locsPerBuildID))
+	for buildID := range locsPerBuildID {
+		batch = append(batch, &symbolizerproto.PerBinaryRequest{
+			BuildID: buildID,
+			Offsets: offsetsPerBuildID[buildID],
+		})
+	}
+
+	return batch, locsPerBuildID
+}
+
+func populatePprofLocation(profile *pprof.Profile, pprofLoc *pprof.Location, loc *symbolizerproto.LocationSymbolizationResult, opts *perforator.SymbolizeOptions) {
+	for _, line := range loc.Lines {
+		symbolize.AddLine(profile, pprofLoc, line, opts)
+	}
+}
+
+func (s *PerforatorServer) performRemoteSymbolize(
+	ctx context.Context,
+	profile *pprof.Profile,
+	opts *perforator.SymbolizeOptions,
+) (ok bool) {
+	batch, locsPerBuildID := prepareRemoteSymbolizeRequest(ctx, s.l, profile)
+	resp, failedReqs, err := s.bpClient.DistributeSymbolize(ctx, batch)
+
+	if err != nil {
+		// Perform symbolization on proxy instead
+		s.l.Error(ctx, "Remote symbolization error: %w", log.Error(err))
+		s.metrics.remoteSymbolizationCount.fails.Inc()
+		return false
+	}
+
+	complete := true
+	defer func() {
+		s.metrics.remoteSymbolizationCount.successes.Inc()
+		if complete {
+			s.metrics.remoteSymbolizationCompletenessCount.successes.Inc()
+		} else {
+			s.metrics.remoteSymbolizationCompletenessCount.fails.Inc()
+		}
+	}()
+
+	for _, perBinaryResponse := range resp.Batch {
+		buildID := perBinaryResponse.BuildID
+		if perBinaryResponse.Error != "" {
+			complete = false
+			s.l.Warn(
+				ctx,
+				"Remote symbolization for binary failed",
+				log.String("buildID", buildID),
+				log.String("error", perBinaryResponse.Error),
+			)
+			continue
+		}
+
+		pprofLocs := locsPerBuildID[buildID]
+		for _, loc := range perBinaryResponse.Locations {
+			if loc.Error != "" {
+				complete = false
+				s.l.Warn(
+					ctx,
+					"Remote symbolization for location failed",
+					log.String("buildID", buildID),
+					log.UInt64("offset", loc.GetELFOffset()),
+					log.String("error", loc.Error),
+				)
+				continue
+			}
+
+			pprofLoc := pprofLocs.locationAtOffset[loc.GetELFOffset()]
+			populatePprofLocation(profile, pprofLoc, loc, opts)
+		}
+	}
+
+	return failedReqs == nil
+}
+
 func (s *PerforatorServer) symbolizeProfile(
 	ctx context.Context,
 	profile *pprof.Profile,
@@ -1853,6 +1988,15 @@ func (s *PerforatorServer) symbolizeProfile(
 		return profile, nil
 	}
 
+	if s.bpClient != nil {
+		ok := s.performRemoteSymbolize(ctx, profile, opts)
+
+		if ok {
+			return profile, nil
+		}
+	}
+
+	s.metrics.symbolizationProxyFallbackCount.Inc()
 	return s.symbolizer.SymbolizeStorageProfile(
 		ctx,
 		profile,
@@ -2075,6 +2219,18 @@ func (s *PerforatorServer) Run(ctx context.Context, conf *RunConfig) error {
 		}
 		return err
 	})
+
+	if s.bpClient != nil {
+		g.Go(func() error {
+			s.l.Info(ctx, "Starting binary processor client")
+			err := s.bpClient.Run(ctx)
+			if err != nil {
+				s.l.Error(ctx, "Binary processor client failed", log.Error(err))
+			}
+
+			return err
+		})
+	}
 
 	g.Go(func() error {
 		err := s.runAsyncTasks(ctx)

@@ -609,6 +609,131 @@ proxy:
   # DEPRECATED: use web.config.HTTPProxyHostnameOverride and web.config.GRPCProxyHostnameOverride instead.
   hostname: ""
 
+# EXPERIMENTAL: this functionality is not stable, `.binproc` section is subject to change
+# binary processor
+binproc:
+  enabled: false
+  config:
+    # Create a new user provided config for the binproc.
+    useCustom: false
+    # Custom config content. This is passed into tpl function which allows templating from values.
+    custom: ''
+  # Number of pods to deploy.
+  replicas: 1
+  # Perforator binproc log level
+  logLevel: info
+  # Additional arguments to pass to the binproc
+  extraArgs: []
+
+  image:
+    repository: ghcr.io/yandex/perforator/binproc
+    # Perforator binproc image tag. When empty, the chart's appVersion is used.
+    tag: ""
+    pullPolicy: Always
+
+  # Security context to apply to the perforator binproc pod.
+  podSecurityContext: {}
+  # Security context to apply to the perforator binproc container.
+  securityContext: {}
+  # Resource requests and limits for the perforator binproc container.
+  resources: {}
+
+  mounts:
+    # Mount /var/log from the host into the container for log collection.
+    varlog: false
+
+    # Mount /var/lib/docker/containers from the host into the container for log collection.
+    dockercontainers: false
+
+    # Extra volume mounts to add into the perforator binproc container.
+    extra: []
+    # - name: perforator-config
+    #   mountPath: /config
+    #   subPath: ""
+    #   configMap: perforator-config
+    #   readOnly: true
+  
+  # NodeSelector to apply to perforator binproc pods.
+  nodeSelector: {}
+  # Tolerations to apply to perforator binproc pods.
+  tolerations: []
+  # Affinity configuration for pods.
+  affinity: {}
+  # Annotations to add to perforator binproc daemon set.
+  annotations: {}
+  # Additional environment variables to set
+  extraEnv: []
+  # - name: ...
+  #   value: ...
+
+  deployment:
+    # Perforator binproc deployment updateStrategy.
+    updateStrategy: {}
+      # type: RollingUpdate
+      # rollingUpdate:
+      #   maxUnavailable: 1
+  useHostNetwork: false
+  # DNS policy for the pod.
+  dnsPolicy: ClusterFirst
+  # priorityClassName to apply to binproc pods.
+  priorityClassName: ""
+
+  service:
+    # Annotations to be added for service.
+    annotations: {}
+    # The ip families. Options: IPv4, IPv6
+    ipFamilies: []
+
+  metrics:
+    # Enable Prometheus metrics.
+    enabled: false
+    # Metrics service configuration.
+    service:
+      # Metrics service type for perforator proxy.
+      type: ClusterIP
+      # Load balancer static IP for perforator proxy.
+      loadBalancerIP:
+      # Annotations to be added for service.
+      annotations: {}
+      # The ip families. Options: IPv4, IPv6
+      ipFamilies: []
+      # Metrics service ports.
+      ports:
+        metrics:   
+          # Metrics service port to expose.
+          port: 8005
+          # Node port to expose.
+          nodePort:
+
+    serviceMonitor:
+      # Create ServiceMonitor resources for perforator binproc.
+      enabled: false
+      # Additional labels that can be used so ServiceMonitor can be discovered by Prometheus.
+      additionalLabels: {}
+      # Interval at which metrics should be scraped
+      interval: ""
+      # Timeout after which the scrape is ended
+      scrapeTimeout: ""
+      # RelabelConfigs to apply to samples before scraping
+      relabelings: []
+      # MetricRelabelConfigs to apply to samples before ingestion
+      metricRelabelings: []
+      # HonorLabels parameter for the scrape endpoint
+      honorLabels: false
+      # The name of the label on the target service to use as the job name in prometheus.
+      jobLabel: ""
+
+  containerPorts:
+    grpc: 81
+    metrics: 85
+
+  binary_provider:
+    file_cache:
+      max_size: "500G"
+      max_items: 1000000
+      root_path: "/cache/binaries"
+    max_simultaneous_downloads: 30
+
 web:
   # Proxy does not support ui, if web server is disabled you must support ui with other means.
   enabled: true

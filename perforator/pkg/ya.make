@@ -30,6 +30,7 @@ RECURSE(
     storage
     tls
     tracing
+    validateconfig
     weightedlru
     xelf
     xlog

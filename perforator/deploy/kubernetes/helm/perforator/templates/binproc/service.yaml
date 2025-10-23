@@ -1,0 +1,24 @@
+{{- if .Values.binproc.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "perforator.binproc.service.name" . }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.binproc.selectorLabels" . | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.binproc.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.binproc.selectorLabels" . | nindent 4 }}
+  type: ClusterIP
+  clusterIP: None
+  {{- range .Values.binproc.service.ipFamilies }}
+  ipFamilies:
+    - {{ . }}
+  {{- end}}
+{{- end }}

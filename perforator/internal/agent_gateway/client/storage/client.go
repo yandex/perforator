@@ -154,6 +154,7 @@ func (c *Client) PushProfile(
 	envs []string,
 	eventTypes []string,
 	signalTypes []string,
+	customProfilingOperationID string,
 ) (uint64, error) {
 	var err error
 	if c.compressionFunc != nil {
@@ -180,6 +181,7 @@ func (c *Client) PushProfile(
 			Envs:        envs,
 			EventTypes:  eventTypes,
 			SignalTypes: signalTypes,
+			CPOID:       customProfilingOperationID,
 		},
 	)
 	if err != nil {

@@ -21,6 +21,10 @@ BUNDLE(
     NAME
     proxy
 
+    perforator/cmd/binproc
+    NAME
+    binproc
+
     perforator/cmd/web
     NAME
     web

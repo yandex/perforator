@@ -735,3 +735,53 @@ func TestService_UpdateOperationStatus_ValidationErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestService_CollectOperationsFiltersOutTerminalStates(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	defer cancel()
+
+	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
+	service := createTestService(t, operationsMockStorage, 2*time.Second)
+
+	// Expect that ListOperations is called with a filter containing only non-terminal states
+	operationsMockStorage.EXPECT().
+		ListOperations(
+			gomock.Any(),
+			gomock.Cond(func(filter any) bool {
+				opFilter, ok := filter.(*custom_profiling_operation.OperationFilter)
+				if !ok {
+					return false
+				}
+
+				expectedStates := custom_profiling_operation.NonTerminalStates()
+				if len(opFilter.States) != len(expectedStates) {
+					t.Logf("Expected %d states, got %d", len(expectedStates), len(opFilter.States))
+					return false
+				}
+
+				stateMap := make(map[cpo_proto.OperationState]bool)
+				for _, state := range opFilter.States {
+					stateMap[state] = true
+				}
+
+				for _, expectedState := range expectedStates {
+					if !stateMap[expectedState] {
+						t.Logf("Expected state %v not found in filter", expectedState)
+						return false
+					}
+				}
+
+				return true
+			}),
+			gomock.Nil(),
+		).
+		Return(nil, nil).
+		Times(1)
+
+	operations, err := service.collectOperations(ctx)
+	require.NoError(t, err)
+	require.Nil(t, operations)
+}

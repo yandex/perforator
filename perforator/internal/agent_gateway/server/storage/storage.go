@@ -416,9 +416,12 @@ func (s *Service) PushProfile(ctx context.Context, req *perforatorstorage.PushPr
 	eventTypes := fixupEventTypes(req.EventTypes)
 	metas := createMetasWithEventType(meta, eventTypes)
 
-	metas = s.sampleProfiles(ctx, l, metas)
-	if len(metas) == 0 {
-		return &perforatorstorage.PushProfileResponse{ID: ""}, nil
+	if req.CPOID == "" {
+		// Do not sample CPO profiles
+		metas = s.sampleProfiles(ctx, l, metas)
+		if len(metas) == 0 {
+			return &perforatorstorage.PushProfileResponse{ID: ""}, nil
+		}
 	}
 
 	defer func() {

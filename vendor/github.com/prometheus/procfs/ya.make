@@ -178,6 +178,29 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        cpuinfo.go
+        cpuinfo_armx.go
+        fs_statfs_type.go
+        kernel_random.go
+        proc_maps.go
+        proc_smaps.go
+        vm.go
+        zoneinfo.go
+    )
+
+    GO_TEST_SRCS(
+        cmdline_test.go
+        cpuinfo_test.go
+        kernel_random_test.go
+        proc_maps64_test.go
+        proc_smaps_test.go
+        vm_test.go
+        zoneinfo_test.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(
@@ -192,7 +215,7 @@ RECURSE(
     xfs
 )
 
-IF (OS_LINUX)
+IF (OS_LINUX OR OS_ANDROID)
     RECURSE(
         sysfs
         selinuxfs

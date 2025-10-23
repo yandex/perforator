@@ -56,6 +56,13 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        default_read_seeker_write_to.go
+        default_writer_read_from.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

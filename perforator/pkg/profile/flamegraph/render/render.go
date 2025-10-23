@@ -728,7 +728,7 @@ func getLocationFrames(loc *pprof.Location, options LocationFrameOptions) []loca
 }
 
 func (f *FlameGraph) getLocationFramesCached(loc *pprof.Location) []locationData {
-	if loc.Mapping == nil {
+	if loc.Mapping == nil || loc.Mapping.BuildID == "" {
 		return getLocationFrames(loc, f.locationFrameOptions)
 	}
 

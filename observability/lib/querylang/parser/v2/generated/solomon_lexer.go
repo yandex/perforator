@@ -1,4 +1,4 @@
-// Code generated from ../../../solomon/libs/java/solomon-grammar/SolomonLexer.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from ../../../observability/lib/querylang/parser/v2/grammar/SolomonLexer.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
 package parser
 

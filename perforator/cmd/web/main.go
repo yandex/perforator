@@ -19,6 +19,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	service "github.com/yandex/perforator/perforator/internal/web"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
+	"github.com/yandex/perforator/perforator/pkg/validateconfig"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -38,24 +39,6 @@ var (
 	logLevel   string
 )
 
-var (
-	storageConfigForValidationPath string
-
-	storageValidateConfigCmd = &cobra.Command{
-		Use:   "validate-config",
-		Short: "Validate storage config",
-		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			config, err := service.ParseConfig(storageConfigForValidationPath)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Invalid config: %v\n", err)
-				os.Exit(1)
-			}
-			fmt.Printf("%#v\n", config)
-		},
-	}
-)
-
 func init() {
 	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", "path to web service config")
 	rootCmd.Flags().StringVarP(&logLevel, "log-level", "l", "info", "log level (must be one of `debug`, `info`, `warn`, `error`)")
@@ -63,10 +46,16 @@ func init() {
 	cobrabuildinfo.Init(rootCmd)
 
 	rootCmd.MarkFlagsOneRequired("config")
-	rootCmd.AddCommand(storageValidateConfigCmd)
 
-	storageValidateConfigCmd.Flags().StringVarP(&storageConfigForValidationPath, "config", "c", "", "path to web service config")
-	storageValidateConfigCmd.MarkFlagsOneRequired("config")
+	rootCmd.AddCommand(validateconfig.NewValidateConfigCmd(
+		"web service",
+		validateconfig.ValidateConfigFunc(
+			func(configPath string) error {
+				_, err := service.ParseConfig(configPath)
+				return err
+			},
+		),
+	))
 }
 
 func main() {

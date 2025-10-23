@@ -22,6 +22,14 @@ func NewClient(conn *grpc.ClientConn, l xlog.Logger) *Client {
 	}
 }
 
+func (c *Client) UpdateOperationStatus(ctx context.Context, id string, status *cpo_proto.OperationStatus) error {
+	_, err := c.client.UpdateOperationStatus(ctx, &cpo_proto.UpdateOperationStatusRequest{
+		ID:     id,
+		Status: status,
+	})
+	return err
+}
+
 type LongPoller struct {
 	client              *Client
 	lastLongPollingData *cpo_proto.LongPollingData

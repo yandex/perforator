@@ -37,6 +37,17 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        net_linux.go
+    )
+
+    GO_TEST_SRCS(
+        net_linux_netlink_test.go
+        net_linux_test.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

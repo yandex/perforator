@@ -105,8 +105,8 @@ export function diffcolor(node: FormatNode, root: FormatNode, reverse?: boolean)
         : 0;
 
     let diff = rhs > 1e-5 ? (lhs - rhs) / rhs : 1.0;
-    if(reverse) {
-        diff *= -1
+    if (reverse) {
+        diff *= -1;
     }
     const d = Math.min(Math.abs(diff), 1.0);
 

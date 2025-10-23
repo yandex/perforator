@@ -1,31 +1,30 @@
-import * as React from 'react'
+import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+
 import { type NavigateFunction } from 'react-router-dom';
 
 import { ArrowUpRightFromSquare, Magnifier } from '@gravity-ui/icons';
 import type { ProgressColorStops, TableColumnConfig, TableSettingsData, TableSortState } from '@gravity-ui/uikit';
-import { Icon, Link as UIKitLink, Progress, Table, TextInput, withTableSettings, withTableSorting, HelpMark } from '@gravity-ui/uikit';
+import { HelpMark, Icon, Link as UIKitLink, Progress, Table, TextInput, withTableSettings, withTableSorting } from '@gravity-ui/uikit';
 
-import { NegativePositiveProgress } from '../NegativePositiveProgress/NegativePositiveProgress';
-import type { ProfileData, StringifiedNode } from '../../models/Profile';
-
-
-import { cn } from '../../utils/cn';
-import type { UserSettings, NumTemplatingFormat } from '../../models/UserSettings';
-
-import { GetStateFromQuery, modifyQuery, SetStateFromQuery } from '../../query-utils';
 import { useRegexError } from '../../components/RegexpDialog/useRegexError';
-import type { QueryKeys } from '../../renderer';
-import { shorten } from '../../shorten';
+import { hugenum } from '../../flame-utils';
+import type { GoToDefinitionHref } from '../../models/goto';
+import type { ProfileData, StringifiedNode } from '../../models/Profile';
+import type { NumTemplatingFormat, UserSettings } from '../../models/UserSettings';
 import type { ReadString } from '../../node-title';
 import { getNodeTitleFull } from '../../node-title';
+import { pct } from '../../pct';
+import type { GetStateFromQuery, SetStateFromQuery } from '../../query-utils';
+import { modifyQuery } from '../../query-utils';
+import type { QueryKeys } from '../../renderer';
+import { shorten } from '../../shorten';
 import type { TableFunctionTop } from '../../top';
 import { isNonDiffKey, isSelfKey, type NonDiffTopKeys, type TopKeys } from '../../top-types';
+import { cn } from '../../utils/cn';
+import { NegativePositiveProgress } from '../NegativePositiveProgress/NegativePositiveProgress';
 
-import { hugenum } from '../../flame-utils';
-import { pct } from '../../pct';
 import './TopTable.css';
-import { GoToDefinitionHref } from '../../models/goto';
 
 
 const b = cn('top-table');
@@ -135,7 +134,7 @@ function topColumns (
             id: key,
             name: () => <>
                 {name}
-                <HelpMark popoverProps={{placement: ['bottom', 'bottom'] }}>{getHelpContent(key)}</HelpMark>
+                <HelpMark popoverProps={{ placement: ['bottom', 'bottom'] }}>{getHelpContent(key)}</HelpMark>
             </>,
             template: (node) => {
                 const count = node[key];

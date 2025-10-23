@@ -172,6 +172,12 @@ func run() error {
 			TogglerPath: "perforator.debug",
 		}
 	}
+	agentOpts := []agent.Option{
+		agent.WithDebugModeToggler(c.DebugModeToggler),
+	}
+	if c.CPOService != nil {
+		agentOpts = append(agentOpts, agent.WithCPOService(c.CPOService))
+	}
 
 	profilerOpts := []profiler.Option{}
 	profilerOpts = append(profilerOpts, profiler.WithSelfTarget(map[string]string{
@@ -197,12 +203,13 @@ func run() error {
 		}))
 	}
 
+	agentOpts = append(agentOpts, agent.WithProfilerOptions(profilerOpts...))
+
 	perforatorAgent, err := agent.NewPerforatorAgent(
 		l,
 		r,
-		c.Profiler,
-		agent.WithProfilerOptions(profilerOpts...),
-		agent.WithDebugModeToggler(c.DebugModeToggler),
+		&c.Profiler,
+		agentOpts...,
 	)
 	if err != nil {
 		return err

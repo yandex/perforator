@@ -59,6 +59,18 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        process_linux.go
+        process_posix.go
+    )
+
+    GO_TEST_SRCS(
+        process_linux_test.go
+        process_posix_test.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

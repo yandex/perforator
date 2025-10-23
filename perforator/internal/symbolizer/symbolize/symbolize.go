@@ -54,6 +54,8 @@ type Symbolizer struct { // thread-safe
 	mutex sync.Mutex
 }
 
+// `location` must belong to given `profile` - since this function
+// is used to apply symbolization result to profile
 func AddLine(profile *pprof.Profile, location *pprof.Location, lineInfo *symbolizer.Line, opts *perforator.SymbolizeOptions) {
 	function := &pprof.Function{
 		ID:         uint64(len(profile.Function)) + 1,

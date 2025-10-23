@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-12T13:54:56.543Z",
+    "created": "2025-10-09T13:57:41.919Z",
     "pr": {
-      "id": 9975072,
-      "author": "baymer",
-      "summary": "FBP-2515: другое: Перенести ca-store в из .cache/pnpm-9-store в .nots/pnpm-store"
+      "id": 10203687,
+      "author": "vturov",
+      "summary": "FBP-1712: jest: use install-node-modules recipe"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9707070377"
+      "uri": "sbr:9952124440"
     },
     "darwin-arm64": {
-      "uri": "sbr:9707067801"
+      "uri": "sbr:9952121039"
     },
     "linux": {
-      "uri": "sbr:9707075326"
+      "uri": "sbr:9952131254"
     },
     "linux-aarch64": {
-      "uri": "sbr:9707072930"
+      "uri": "sbr:9952127805"
     }
   }
 }

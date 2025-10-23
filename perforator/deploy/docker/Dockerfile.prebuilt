@@ -13,6 +13,9 @@ COPY /gc /perforator/gc
 FROM base AS storage
 COPY /storage /perforator/storage
 
+FROM base AS binproc
+COPY /binproc /perforator/binproc
+
 FROM base AS proxy
 COPY /proxy /perforator/proxy
 COPY /create_llvm_prof /perforator/create_llvm_prof

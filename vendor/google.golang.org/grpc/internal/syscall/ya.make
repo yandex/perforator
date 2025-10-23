@@ -22,4 +22,10 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        syscall_linux.go
+    )
+ENDIF()
+
 END()

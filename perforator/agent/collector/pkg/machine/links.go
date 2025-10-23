@@ -8,7 +8,6 @@ import (
 	"github.com/cilium/ebpf/link"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/uprobe"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux/kallsyms"
 )
@@ -18,9 +17,6 @@ type bpfLinks struct {
 
 	finishTaskSwitch link.Link
 	signalDeliver    link.Link
-
-	uprobes        []uprobe.Uprobe
-	uprobeRegistry *uprobe.Registry
 }
 
 func (l *bpfLinks) close() error {
@@ -35,11 +31,6 @@ func (l *bpfLinks) close() error {
 	if l.signalDeliver != nil {
 		errs = append(errs, l.signalDeliver.Close())
 	}
-
-	for _, uprobe := range l.uprobes {
-		errs = append(errs, uprobe.Close())
-	}
-	l.uprobes = l.uprobes[:0]
 
 	return errors.Join(errs...)
 }
@@ -68,26 +59,12 @@ func (l *bpfLinks) setup(conf *Config, progs *unwinder.Progs) (err error) {
 		}
 	}
 
-	for _, uprobeConfig := range conf.Uprobes {
-		opts := []uprobe.Option{}
-		if uprobeConfig.Pid != 0 {
-			opts = append(opts, uprobe.WithPID(uint32(uprobeConfig.Pid)))
-		}
-		uprobe := l.uprobeRegistry.Create(uprobeConfig.Config, opts...)
-		err = uprobe.Attach(progs.PerforatorUprobe)
-		if err != nil {
-			return fmt.Errorf("failed to attach uprobe: %w", err)
-		}
-		l.uprobes = append(l.uprobes, uprobe)
-	}
-
 	return nil
 }
 
 func newBPFLinks(l log.Logger) *bpfLinks {
 	return &bpfLinks{
-		l:              l,
-		uprobeRegistry: uprobe.NewRegistry(),
+		l: l,
 	}
 }
 

@@ -10,4 +10,10 @@ IF (OS_LINUX)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        client_linux.go
+    )
+ENDIF()
+
 END()

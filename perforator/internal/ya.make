@@ -4,9 +4,11 @@ RECURSE(
     asynctask
     binaryprocessor
     buildinfo
+    custom_profiling_operation
     linguist
     logfield
     offline_processing
+    servicediscovery
     symbolizer
     unwinder
     web

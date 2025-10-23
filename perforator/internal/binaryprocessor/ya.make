@@ -6,3 +6,5 @@ SRCS(
 )
 
 END()
+
+RECURSE(client)

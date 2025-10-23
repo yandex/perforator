@@ -1,6 +1,7 @@
+#include <perforator/lib/demangle/demangle.h>
+#include <perforator/lib/llvmex/llvm_exception.h>
 #include <perforator/symbolizer/lib/symbolize/symbolizec.h>
 #include <perforator/symbolizer/lib/symbolize/symbolizer.h>
-#include <perforator/lib/llvmex/llvm_exception.h>
 
 #include <library/cpp/yt/compact_containers/compact_vector.h>
 
@@ -12,10 +13,8 @@ namespace {
 void FillLineInfo(TLineInfo& lineInfo, llvm::DILineInfo&& info) {
     lineInfo.FunctionName = strdup(info.FunctionName.c_str());
 
-    const auto demangledName = NPerforator::NSymbolize::DemangleFunctionName(
-        NPerforator::NSymbolize::CleanupFunctionName(std::move(info.FunctionName))
-    );
-    lineInfo.DemangledFunctionName = strdup(demangledName.c_str());
+    auto name = NPerforator::NDemangle::Demangle(std::move(info.FunctionName));
+    lineInfo.DemangledFunctionName = strdup(name.c_str());
 
     lineInfo.FileName = strdup(info.FileName.c_str());
 

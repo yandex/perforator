@@ -116,11 +116,11 @@ message Event {
     EventSettings Settings = 1;
 }
 
-message CollectStackTimestampsFeature {}
+message CollectStackAbsoluteTimestampsFeature {}
 
 message Feature {
     oneof Feature {
-        CollectStackTimestampsFeature CollectStackTimestamps = 11;
+        CollectStackAbsoluteTimestampsFeature CollectStackAbsoluteTimestampsFeature = 11;
     }
 }
 

@@ -12,4 +12,5 @@ RECURSE(
     profile
     profiler
     storage
+    uprobe
 )

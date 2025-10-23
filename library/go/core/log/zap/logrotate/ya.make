@@ -4,7 +4,7 @@ SRCS(
     error.go
 )
 
-IF (OS_LINUX)
+IF (OS_LINUX OR OS_ANDROID)
     SRCS(
         sink.go
     )
@@ -32,7 +32,7 @@ ENDIF()
 
 END()
 
-IF (OS_DARWIN OR OS_FREEBSD OR OS_LINUX)
+IF (OS_DARWIN OR OS_FREEBSD OR OS_LINUX OR OS_ANDROID)
     RECURSE_FOR_TESTS(
         gotest
     )

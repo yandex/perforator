@@ -1,21 +1,19 @@
-import * as React from 'react'
+import * as React from 'react';
 
 import { CopyCheck } from '@gravity-ui/icons';
 import type { MenuItemProps, PopupProps, ToastProps } from '@gravity-ui/uikit';
 import { CopyToClipboard, Icon, Menu, Popup } from '@gravity-ui/uikit';
 
-import { Hotkey } from '../Hotkey/Hotkey';
-import type { StringifiedNode } from '../../models/Profile';
-
 import { getAtLessPath } from '../../file-path';
+import type { GoToDefinitionHref } from '../../models/goto';
+import type { StringifiedNode } from '../../models/Profile';
 import type { GetStateFromQuery, SetStateFromQuery } from '../../query-utils';
 import { parseStacks, stringifyStacks } from '../../query-utils';
 import type { QueryKeys } from '../../renderer';
-import { GoToDefinitionHref } from '../../models/goto';
+import { Hotkey } from '../Hotkey/Hotkey';
 
 
 export type PopupData = { offset: [number, number]; node: StringifiedNode; coords: [number, number] };
-
 
 
 export type ContextMenuProps = {
@@ -25,7 +23,7 @@ export type ContextMenuProps = {
     setQuery: SetStateFromQuery<QueryKeys>;
     getQuery: GetStateFromQuery<QueryKeys>;
     goToDefinitionHref: GoToDefinitionHref;
-    onSuccess: (options: Pick<ToastProps, 'renderIcon' | 'name' | 'content'>) => void
+    onSuccess: (options: Pick<ToastProps, 'renderIcon' | 'name' | 'content'>) => void;
 };
 export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, onClosePopup, setQuery, getQuery, goToDefinitionHref, onSuccess }) => {
     const href = goToDefinitionHref(popupData.node);
@@ -42,7 +40,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, 
     return <Popup
         open={Boolean(popupData)}
         anchorRef={anchorRef}
-        offset={{crossAxis: popupData.offset[0], mainAxis: popupData.offset[1]}}
+        offset={{ crossAxis: popupData.offset[0], mainAxis: popupData.offset[1] }}
         floatingClassName={'flamegraph__popup'}
         placement={['top-start']}
         onEscapeKeyDown={onClosePopup}
@@ -83,15 +81,15 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, 
                     </Menu.Item>}
                 </CopyToClipboard>
             ) : null}
-            <Menu.Item 
-            {...commonButtonProps} 
-            onClick={() => {
-                setQuery({
-                    exactMatch: 'true',
-                    flamegraphQuery: popupData.node.textId,
-                });
-                onClosePopup();
-            }}>
+            <Menu.Item
+                {...commonButtonProps}
+                onClick={() => {
+                    setQuery({
+                        exactMatch: 'true',
+                        flamegraphQuery: popupData.node.textId,
+                    });
+                    onClosePopup();
+                }}>
                 Find similar nodes
             </Menu.Item>
             <Menu.Group>

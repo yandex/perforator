@@ -1,5 +1,6 @@
 RECURSE(
     asm
+    demangle
     elf
     llvmex
     permutation
@@ -8,6 +9,5 @@ RECURSE(
     profile/c
     pthread
     python
-    rustc_demangle
     tls
 )

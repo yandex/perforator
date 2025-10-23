@@ -43,8 +43,11 @@ def extract_all_output_tars(moddir_abs: str, visited: set[str] = set()):
         return
 
     visited.add(moddir_abs)
-    _extract_output_tar(moddir_abs)
-    extract_peer_tars(moddir_abs, visited)
+    try:
+        _extract_output_tar(moddir_abs)
+        extract_peer_tars(moddir_abs, visited)
+    except Exception as e:
+        eprint(f"could not extract output tar for {moddir_abs}: {e}")
 
 
 @timeit
@@ -70,7 +73,6 @@ def _extract_output_tar(moddir_abs: str):
     archive.extract_tar(output_tar_path, moddir_abs, fail_on_duplicates=False)
 
 
-@timeit
 def __add_write_permissions(path):
     if not os.path.exists(path):
         eprint(f"Directory not exists: {path}")
@@ -86,7 +88,6 @@ def __add_write_permissions(path):
             eprint(f"Can't update permissions for {path}")
 
 
-@timeit
 def __copy_file_with_write_permissions(src, dst):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copy(src, dst)
@@ -106,19 +107,26 @@ def copy_if_not_exists(src: str, dst: str):
         __copy_file_with_write_permissions(src, dst)
 
 
-@timeit
-def recursive_copy(src, dest, overwrite=False):
+def recursive_copy_impl(src: str, dest: str, overwrite: bool, recurse_level=0):
+    # just for avoiding extra tracing with @timeit decorator
+    copy_fn = recursive_copy_impl if recurse_level >= 1 else recursive_copy
+
     __add_write_permissions(os.path.dirname(dest))
 
     if os.path.isdir(src):
         os.makedirs(dest, exist_ok=True)
         files = os.listdir(src)
         for f in files:
-            recursive_copy(os.path.join(src, f), os.path.join(dest, f), overwrite)
+            copy_fn(os.path.join(src, f), os.path.join(dest, f), overwrite, recurse_level=recurse_level + 1)
 
     if os.path.isfile(src):
         if not os.path.exists(dest) or overwrite:
             __copy_file_with_write_permissions(src, dest)
+
+
+@timeit
+def recursive_copy(src, dest, overwrite=False, recurse_level=0):
+    recursive_copy_impl(src, dest, overwrite, recurse_level=recurse_level)
 
 
 @timeit

@@ -1,4 +1,4 @@
-import * as React from 'react'
+import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { Magnifier } from '@gravity-ui/icons';
@@ -20,13 +20,13 @@ interface RegexpDialogProps {
 export function RegexpDialog({ showDialog, onCloseDialog, onSearchUpdate, initialExact, initialSearch }: RegexpDialogProps) {
     const [searchQuery, setSearchQuery] = useState(initialSearch ?? '');
     const [exact, setExact] = useState(initialExact ?? false);
-    const controlRef = React.useRef<null | HTMLInputElement>(null)
+    const controlRef = React.useRef<null | HTMLInputElement>(null);
     const regexError = useRegexError(searchQuery);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Enter' && !regexError) {
             onSearchUpdate(searchQuery, exact);
-            e.preventDefault()
+            e.preventDefault();
         }
     }, [exact, onSearchUpdate, regexError, searchQuery]);
 

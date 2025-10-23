@@ -33,6 +33,9 @@ export interface FormatNode {
     omittedSampleCount?: number;
     inlined?: boolean;
     childrenIndices?: Set<number>;
+    children?: Array<FormatNode>;
+    level?: number;
+    index?: number;
 }
 
 export type ProfileData = {

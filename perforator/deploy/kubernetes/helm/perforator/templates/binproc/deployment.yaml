@@ -1,0 +1,154 @@
+{{- if .Values.binproc.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "perforator.fullname" . }}-binproc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "perforator.selectorLabels" . | nindent 4 }}
+    {{- include "perforator.binproc.selectorLabels" . | nindent 4 }}
+  {{- with .Values.binproc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.binproc.replicas }}
+  selector:
+    matchLabels:
+      {{- include "perforator.selectorLabels" . | nindent 6 }}
+      {{- include "perforator.binproc.selectorLabels" . | nindent 6 }}
+  {{- with .Values.binproc.deployment.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+      labels:
+        {{- include "perforator.selectorLabels" . | nindent 8 }}
+        {{- include "perforator.binproc.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.binproc.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      dnsPolicy: {{ .Values.binproc.dnsPolicy }}
+      containers:
+      - name: {{ include "perforator.fullname" . }}-binproc
+        image: "{{ .Values.binproc.image.repository }}:{{ .Values.binproc.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.binproc.image.pullPolicy }}
+        args:
+        - /perforator/binproc
+        - --config=/etc/perforator/config.yaml
+        - --metrics-port={{ .Values.binproc.containerPorts.metrics }}
+        - --grpc-port={{ .Values.binproc.containerPorts.grpc }}
+        - --cache-path=/cache
+        - --log-level={{ .Values.binproc.logLevel }}
+          {{- range .Values.binproc.extraArgs }}
+        - {{ . }}
+          {{- end}}
+        resources:
+        {{- toYaml .Values.binproc.resources | nindent 10 }}
+        securityContext:
+            {{- toYaml .Values.binproc.securityContext | nindent 10 }}
+        {{- if .Values.binproc.useHostNetwork }}
+        hostNetwork: true
+        {{- end }}
+        {{- with .Values.binproc.priorityClassName }}
+        priorityClassName: {{ . }}
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.binproc.containerPorts.grpc }}
+          name: grpc
+        - containerPort: {{ .Values.binproc.containerPorts.metrics }}
+          name: metrics
+        volumeMounts:
+        {{- if include "perforator.clickhouse.tlsSecretName" . }}
+        - name: clickhouse-tls
+          mountPath: "/etc/perforator/certificates/clickhouse"
+        {{- end }}
+        {{- if include "perforator.s3.tlsSecretName" . }}
+        - name: s3-tls
+          mountPath: "/etc/perforator/certificates/s3"
+        {{- end }}
+        - name: storage-s3-keys
+          mountPath: "/etc/perforator/s3"
+        - name: config
+          mountPath: /etc/perforator/
+        {{- if .Values.binproc.mounts.varlog }}
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        {{- end }}
+        {{- if .Values.binproc.mounts.dockercontainers }}
+        - name: dockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        {{- end }}
+        {{- range .Values.binproc.mounts.extra }}
+        - name: {{ .name }}
+          mountPath: {{ .mountPath }}
+          subPath: {{ .subPath }}
+          readOnly: {{ .readOnly }}
+        {{- end }}
+        env:
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.clickhouse" . | nindent 14 }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef: {{ include "perforator.secretKeyRef.postgresql" . | nindent 14 }}
+        {{- range .Values.binproc.extraEnv }}
+        - name: {{ .name }}
+          value: {{ .value }}
+        {{- end }}
+      volumes:
+      {{- if include "perforator.clickhouse.tlsSecretName" . }}
+      - name: clickhouse-tls
+        secret:
+          secretName: {{ include "perforator.clickhouse.tlsSecretName" . }}
+      {{- end }}
+      {{- if include "perforator.s3.tlsSecretName" . }}
+      - name: s3-tls
+        secret:
+          secretName: {{ include "perforator.s3.tlsSecretName" . }}
+      {{- end }}
+      - name: storage-s3-keys
+        secret:
+          secretName: {{ include "perforator.secretName.s3" . }}
+      - name: config
+        configMap:
+          name: {{ include "perforator.fullname" . }}-binproc-config
+      {{- if .Values.binproc.mounts.varlog }}
+      - name: varlog
+        hostPath:
+          path: /var/log
+      {{- end }}
+      {{- if .Values.binproc.mounts.dockercontainers }}
+      - name: dockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      {{- end }}
+      {{- range .Values.binproc.mounts.extra }}
+      - name: {{ .name }}
+        configMap:
+          name: {{ .configMap }}
+      {{- end }}
+      {{- with .Values.binproc.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.binproc.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.binproc.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -36,10 +36,27 @@ type OperationID string
 type OperationFilter struct {
 	EndsAfter    *time.Time
 	StartsBefore *time.Time
+	States       []cpo_proto.OperationState
 }
 
 func IsTerminalState(state cpo_proto.OperationState) bool {
 	return state == cpo_proto.OperationState_Finished || state == cpo_proto.OperationState_Failed || state == cpo_proto.OperationState_Stopped
+}
+
+func TerminalStates() []cpo_proto.OperationState {
+	return []cpo_proto.OperationState{
+		cpo_proto.OperationState_Finished,
+		cpo_proto.OperationState_Failed,
+		cpo_proto.OperationState_Stopped,
+	}
+}
+
+func NonTerminalStates() []cpo_proto.OperationState {
+	return []cpo_proto.OperationState{
+		cpo_proto.OperationState_Unknown,
+		cpo_proto.OperationState_Prepared,
+		cpo_proto.OperationState_Running,
+	}
 }
 
 var (
@@ -54,5 +71,9 @@ var (
 )
 
 func IsAllowedStateChange(oldState, newState cpo_proto.OperationState) bool {
+	if oldState == newState && oldState == cpo_proto.OperationState_Running {
+		return true
+	}
+
 	return stateOrder[oldState] < stateOrder[newState]
 }

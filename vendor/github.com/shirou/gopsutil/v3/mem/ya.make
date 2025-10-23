@@ -38,6 +38,14 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        mem_linux.go
+    )
+
+    GO_TEST_SRCS(mem_linux_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

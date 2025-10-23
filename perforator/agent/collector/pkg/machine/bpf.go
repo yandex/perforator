@@ -22,7 +22,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/library/go/ptr"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/uprobe"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/graceful"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -36,11 +36,6 @@ const (
 	ebpfMapSizeLimitBytes = 1<<32 - 1<<20
 )
 
-type UprobeConfig struct {
-	uprobe.Config `yaml:",inline"`
-	Pid           int `yaml:"pid,omitempty"`
-}
-
 type Config struct {
 	Debug bool `yaml:"debug"`
 
@@ -53,14 +48,16 @@ type Config struct {
 
 	// Collect LBR stacks.
 	TraceLBR *bool `yaml:"trace_lbr"`
+	// Collect BRS on AMD. Requires `trace_lbr`.
+	TraceLBROnAMD *bool `yaml:"trace_lbr_on_amd"`
 	// Trace potentially fatal signals.
 	TraceSignals *bool `yaml:"trace_signals"`
 	// Trace wall time.
 	TraceWallTime *bool `yaml:"trace_walltime"`
 	// Collect python stacks
 	TracePython *bool `yaml:"trace_python"`
-	// Configuration for uprobes tracing
-	Uprobes []UprobeConfig `yaml:"uprobes,omitempty"`
+	// Configuration for uprobes tracing (deprecated, this field has moved to profiler config)
+	UprobesDeprecated []uprobe.Config `yaml:"uprobes,omitempty"`
 }
 
 type Options struct {
@@ -83,7 +80,7 @@ type BPF struct {
 	maps            *unwinder.Maps
 	mapreplacements map[string]*ebpf.Map
 
-	progsmu   sync.Mutex
+	progsmu   sync.RWMutex
 	progdebug bool
 	progs     *unwinder.Progs
 
@@ -477,8 +474,11 @@ func (b *BPF) RemoveTracedProcess(pid linux.ProcessID) error {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (b *BPF) UprobeRegistry() *uprobe.Registry {
-	return b.links.uprobeRegistry
+func (b *BPF) GenericUprobeProgram() *ebpf.Program {
+	b.progsmu.RLock()
+	defer b.progsmu.RUnlock()
+
+	return b.progs.PerforatorUprobe
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -27,12 +27,12 @@ export const HoverPopup: React.FC<HoverPopupProps> = ({ hoverData, anchorRef, ge
             crossAxis: true,
         }),
         size({
-            apply: ({availableWidth, elements}) => {
-                const value = `${Math.max(0, Math.min(MAX_WIDTH ,availableWidth))}px`;
+            apply: ({ availableWidth, elements }) => {
+                const value = `${Math.max(0, Math.min(MAX_WIDTH, availableWidth))}px`;
                 elements.floating.style.maxWidth = value;
             },
-            boundary: anchorRef?.current
-         }),
+            boundary: anchorRef?.current,
+        }),
     ];
     const { refs, floatingStyles, context } = useFloating({
         open: isOpen,

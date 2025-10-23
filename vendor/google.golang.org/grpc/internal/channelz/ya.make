@@ -35,6 +35,14 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        syscall_linux.go
+    )
+
+    GO_XTEST_SRCS(syscall_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

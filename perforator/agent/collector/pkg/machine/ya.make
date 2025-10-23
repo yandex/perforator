@@ -7,6 +7,3 @@ SRCS(
 
 END()
 
-RECURSE(
-    uprobe
-)

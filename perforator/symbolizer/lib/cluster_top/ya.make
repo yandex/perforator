@@ -1,9 +1,9 @@
 LIBRARY()
 
 PEERDIR(
-    perforator/symbolizer/lib/gsym
-
+    perforator/lib/demangle
     perforator/proto/pprofprofile
+    perforator/symbolizer/lib/gsym
 
     library/cpp/int128
 )

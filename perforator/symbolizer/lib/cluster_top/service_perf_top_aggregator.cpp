@@ -1,5 +1,6 @@
 #include "service_perf_top_aggregator.h"
 
+#include <perforator/lib/demangle/demangle.h>
 #include <perforator/symbolizer/lib/symbolize/symbolizer.h>
 
 #include <library/cpp/yt/compact_containers/compact_vector.h>
@@ -366,9 +367,7 @@ TServicePerfTopAggregator::PerfTop TServicePerfTopAggregator::ExtractEntries() {
 
         for (auto& [name, _] : total) {
             const auto isKernelFunction = KernelFunctions_.contains(name);
-            name = NPerforator::NSymbolize::CleanupFunctionName(
-                NPerforator::NSymbolize::DemangleFunctionName(name)
-            );
+            name = NDemangle::Demangle(name);
 
             if (isKernelFunction) {
                 name = "[kernel] " + name;

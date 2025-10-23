@@ -12,12 +12,13 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/uprobe"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/linux"
+	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/tls"
 )
@@ -27,6 +28,7 @@ type SampleConsumer struct {
 	sample *unwinder.RecordSample
 
 	profileBuilder *multiProfileBuilder
+	traceFeatures  traceFeatures
 	envWhitelist   map[string]struct{}
 
 	stacklen  int
@@ -41,6 +43,7 @@ type SampleConsumer struct {
 func NewSampleConsumer(p *Profiler, envWhitelist map[string]struct{}, sample *unwinder.RecordSample) *SampleConsumer {
 	return &SampleConsumer{
 		p:               p,
+		traceFeatures:   defaultTraceFeatures(),
 		sample:          sample,
 		envWhitelist:    envWhitelist,
 		pythonProcessor: newPythonSampleStackProcessor(p.pythonSymbolizer),
@@ -66,17 +69,24 @@ func (c *SampleConsumer) countMetrics(ctx context.Context) {
 	}
 }
 
-func (c *SampleConsumer) tryInitializeProcessProfileBuilder() bool {
+func (c *SampleConsumer) initializeProcessTarget(p *trackedProcess) {
+	c.profileBuilder = p.builder
+	c.traceFeatures = p.traceFeatures()
+}
+
+func (c *SampleConsumer) tryInitializeProcessTarget() bool {
 	c.p.pidsmu.RLock()
 	defer c.p.pidsmu.RUnlock()
+
 	if trackedProcess := c.p.pids[linux.ProcessID(c.sample.Pid)]; trackedProcess != nil {
-		c.profileBuilder = trackedProcess.builder
+		c.initializeProcessTarget(trackedProcess)
 		return true
 	}
 	if trackedProcess := c.p.pids[linux.ProcessID(c.sample.Tid)]; trackedProcess != nil {
-		c.profileBuilder = trackedProcess.builder
+		c.initializeProcessTarget(trackedProcess)
 		return true
 	}
+
 	return false
 }
 
@@ -86,7 +96,7 @@ func (c *SampleConsumer) getSampleCollector() bool {
 		return true
 	}
 
-	if c.tryInitializeProcessProfileBuilder() {
+	if c.tryInitializeProcessTarget() {
 		return true
 	}
 
@@ -377,6 +387,15 @@ func (c *SampleConsumer) collectStacksInto(ctx context.Context, builder *profile
 	c.collectUserStackInto(ctx, builder)
 }
 
+func (c *SampleConsumer) collectSampleTime(builder *profile.SampleBuilder) {
+	btime, err := procfs.GetBootTime()
+	if err == nil {
+		builder.AddIntLabel("absolute_timestamp_ns", int64(btime+c.sample.Starttime), "absolute_timestamp_ns")
+	} else {
+		panic(fmt.Sprintf("failed to get system boot time: %v", err))
+	}
+}
+
 func (c *SampleConsumer) collectWallTime(builder *profile.SampleBuilder) {
 	builder.AddValue(int64(c.sample.Timedelta))
 }
@@ -473,6 +492,9 @@ func (c *SampleConsumer) recordCPUSample(ctx context.Context) {
 
 	c.collectEventCount(builder)
 	c.collectStacksInto(ctx, builder)
+	if c.traceFeatures.enableSampleTimeCollection {
+		c.collectSampleTime(builder)
+	}
 
 	if hasWallTime {
 		c.collectWallTime(builder)
@@ -503,6 +525,9 @@ func (c *SampleConsumer) recordSignalSample(ctx context.Context) error {
 
 	builder.AddValue(1)
 	c.collectStacksInto(ctx, builder)
+	if c.traceFeatures.enableSampleTimeCollection {
+		c.collectSampleTime(builder)
+	}
 
 	if err := c.collectSignalInto(builder); err != nil {
 		return err
@@ -531,7 +556,7 @@ func (c *SampleConsumer) resolveUprobe(ctx context.Context) *uprobe.UprobeInfo {
 		return nil
 	}
 
-	return c.p.bpf.UprobeRegistry().ResolveUprobe(uprobe.Key{
+	return c.p.uprobeRegistry.Resolve(uprobe.BinaryInfo{
 		Offset:  topStackIP - mapping.Begin + mapping.Offset,
 		BuildID: mapping.BuildInfo.BuildID,
 	})
@@ -546,20 +571,20 @@ func (c *SampleConsumer) recordUprobeSample(ctx context.Context) {
 
 	c.p.log.Debug("Resolved uprobe info", log.Any("uprobe_info", uprobeInfo))
 
-	sampleTypeKind := uprobeInfo.SampleType
+	sampleTypeKind := uprobeInfo.SampleKind
 	if sampleTypeKind == "" {
-		// fallback to "uprobe.count"
+		// fallback to "uprobe"
 		sampleTypeKind = sampletype.SampleTypeUprobe
 	}
 	sampleTypes := []profile.SampleType{{Kind: sampleTypeKind, Unit: "count"}}
 
-	// We create a separate profile for each sample type kind.
-	// If multiple uprobes are configured with different samples types -> samples will be in different profiles
-	// If not sample type is specified for each uprobe -> all samples will be in the same profile
-	builder := c.initBuilderCommon(sampleTypeKind, sampleTypes)
+	builder := c.initBuilderCommon(uprobeInfo.ProfileName, sampleTypes)
 
 	builder.AddValue(1)
 	c.collectStacksInto(ctx, builder)
+	if c.traceFeatures.enableSampleTimeCollection {
+		c.collectSampleTime(builder)
+	}
 
 	builder.Finish()
 }
