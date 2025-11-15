@@ -708,6 +708,25 @@ func (s *binaryStorage) fetchDebugInfoByGnuDebugLink(ctx context.Context, buildI
 	return &osFileHandle{f}, nil
 }
 
+func (s *binaryStorage) fetchDebugInfoByBuildId(ctx context.Context, buildID string) (h binaryprovider.FileHandle, err error) {
+
+	if len(buildID) < 2 {
+		return nil, fmt.Errorf("invalid buildID %s: too short", buildID)
+	}
+	dir := buildID[:2]
+	file := buildID[2:] + ".debug"
+	debugPath := filepath.Join("/usr/lib/debug/.build-id", dir, file)
+
+	f, err := os.Open(debugPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open debug file %s: %w", debugPath, err)
+	}
+	s.logger.Debug(ctx, "successfully opened debug file", log.String("buildID", buildID),
+		log.String("debugPath", debugPath))
+
+	return &osFileHandle{f}, nil
+}
+
 func (s *binaryStorage) fetchSeparateDebugInfo(ctx context.Context, buildID string) (h binaryprovider.FileHandle, err error) {
 	s.logger.Debug(ctx, "Trying to fetch separate debug info", log.String("buildID", buildID))
 	defer func() {
@@ -727,6 +746,17 @@ func (s *binaryStorage) fetchSeparateDebugInfo(ctx context.Context, buildID stri
 	h, err = s.fetchDebugInfoByGnuDebugLink(ctx, buildID)
 	if err != nil {
 		s.logger.Warn(ctx, "Failed to locate separate debug info by GNU debug link",
+			log.String("buildID", buildID),
+			log.Error(err),
+		)
+	}
+	if h != nil {
+		return h, nil
+	}
+
+	h, err = s.fetchDebugInfoByBuildId(ctx, buildID)
+	if err != nil {
+		s.logger.Warn(ctx, "Failed to locate separate debug info by build ID",
 			log.String("buildID", buildID),
 			log.Error(err),
 		)
