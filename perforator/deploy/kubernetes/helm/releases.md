@@ -21,6 +21,11 @@ Internal changes:
 
 1: If you are sending patch to GitHub, specify PR. Otherwise (if you are sending patch to internal monorepo), leave unset and then specify Git commit.
 -->
+# 0.2.11
+
+Fixes:
++ Remove `--tls-ca` from migrate clickhouse because [is not supported for clickhouse](https://github.com/yandex/perforator/blob/main/perforator/cmd/migrate/main.go#L269)
+
 # 0.2.10
 
 Enhancements:

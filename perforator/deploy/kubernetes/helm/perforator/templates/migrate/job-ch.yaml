@@ -19,13 +19,6 @@
   {{- if or .Values.databases.clickhouse.tls.insecureSkipVerify .Values.databases.clickhouse.insecure }}
     {{- $tlsOpts = printf "%s --tls-trust-all" $tlsOpts }}
   {{- end }}
-  
-  {{- $caCertPath := include "perforator.clickhouse.tlsCACert" . }}
-  {{- if $caCertPath }}
-    {{- $tlsOpts = printf "%s --tls-ca %s" $tlsOpts $caCertPath }}
-  {{- else if .Values.databases.clickhouse.ca_cert_path }}
-    {{- $tlsOpts = printf "%s --tls-ca %s" $tlsOpts .Values.databases.clickhouse.ca_cert_path }}
-  {{- end }}
 {{- else }}
   {{- $tlsOpts = " --plaintext" }}
 {{- end }}
