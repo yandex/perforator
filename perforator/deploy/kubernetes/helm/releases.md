@@ -24,8 +24,8 @@ Internal changes:
 # 0.2.11
 
 Fixes:
-+ Remove `--tls-ca` from migrate clickhouse because [is not supported for clickhouse](https://github.com/yandex/perforator/blob/main/perforator/cmd/migrate/main.go#L269)
-+ storage.s3.tls was missed in web config
++ Removed `--tls-ca` from clickhouse migration job as it was not implemented
++ Object storage TLS settings are now propagated to web.
 
 # 0.2.10
 
