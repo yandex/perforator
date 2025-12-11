@@ -25,7 +25,7 @@ Internal changes:
 
 Fixes:
 + Remove `--tls-ca` from migrate clickhouse because [is not supported for clickhouse](https://github.com/yandex/perforator/blob/main/perforator/cmd/migrate/main.go#L269)
-+ Fix missing storage.s3.tls in web config
++ storage.s3.tls was missed in web config
 
 # 0.2.10
 
