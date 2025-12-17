@@ -2094,6 +2094,15 @@ func (s *PerforatorServer) renderProfile(
 	return RenderProfile(ctx, profile, format)
 }
 
+func TransformUUID(s string) string {
+	// 01234567-89ab-cdef-ghij-klmnopqrstuw
+	// transform to
+	// 0123/4567-/89ab-/cdef-/ghij-/klmn/opqr/stuw
+
+	//     0123			  4567-		     89ab-		     cdef-			  ghij-			   klmn			    opqr			 stuw
+	return s[0:4] + "/" + s[4:9] + "/" + s[9:14] + "/" + s[14:19] + "/" + s[19:24] + "/" + s[24:28] + "/" + s[28:32] + "/" + s[32:]
+}
+
 func (s *PerforatorServer) maybeUploadProfileWithID(ctx context.Context, profile []byte, id string) (url string, err error) {
 	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.maybeUploadProfile")
 	defer span.End()
@@ -2108,7 +2117,7 @@ func (s *PerforatorServer) maybeUploadProfileWithID(ctx context.Context, profile
 		return "", nil
 	}
 
-	w, err := s.renderedProfiles.Put(ctx, id)
+	w, err := s.renderedProfiles.Put(ctx, TransformUUID(id))
 	if err != nil {
 		return "", fmt.Errorf("failed to start rendered profile writer: %w", err)
 	}

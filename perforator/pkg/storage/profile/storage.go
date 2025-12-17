@@ -47,6 +47,18 @@ func (s *ProfileStorage) putBlob(ctx context.Context, id string, bytes []byte) e
 	return err
 }
 
+func TransformUUID(s string) string {
+	// Do not want to store all s3 files into root bucket, so make this workaroud for uuid
+	// Original uuid will go to clickhouse, modified to s3 storage
+
+	// 01234567-89ab-cdef-ghij-klmnopqrstuw
+	// transform to
+	// 0123/4567-/89ab-/cdef-/ghij-/klmn/opqr/stuw
+
+	//     0123			  4567-		     89ab-		     cdef-			  ghij-			   klmn			    opqr			 stuw
+	return s[0:4] + "/" + s[4:9] + "/" + s[9:14] + "/" + s[14:19] + "/" + s[19:24] + "/" + s[24:28] + "/" + s[28:32] + "/" + s[32:]
+}
+
 // implements profilestorage.Storage
 func (s *ProfileStorage) StoreProfile(ctx context.Context, metas []*meta.ProfileMetadata, body []byte) (meta.ProfileID, error) {
 	if len(metas) == 0 {
@@ -64,7 +76,7 @@ func (s *ProfileStorage) StoreProfile(ctx context.Context, metas []*meta.Profile
 
 	s.log.Debug(ctx, "Store profile", log.Array("metas", metas))
 
-	err = s.putBlob(ctx, id.String(), body)
+	err = s.putBlob(ctx, TransformUUID(id.String()), body)
 	if err != nil {
 		return "", err
 	}
@@ -163,7 +175,7 @@ func (s *ProfileStorage) SelectProfiles(ctx context.Context, filters *meta.Profi
 
 // implements profilestorage.Storage
 func (s *ProfileStorage) FetchProfile(ctx context.Context, meta *meta.ProfileMetadata) (ProfileData, error) {
-	data, err := s.getBlob(ctx, meta.ID)
+	data, err := s.getBlob(ctx, TransformUUID(meta.ID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch profile %q blob: %w", meta.ID, err)
 	}
@@ -212,7 +224,7 @@ func (s *ProfileStorage) Delete(ctx context.Context, IDs []string) error {
 
 	keys := make([]string, 0, len(metas))
 	for _, meta := range metas {
-		keys = append(keys, meta.ID)
+		keys = append(keys, TransformUUID(meta.ID))
 	}
 
 	err = s.BlobStorage.DeleteObjects(ctx, keys)

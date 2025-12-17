@@ -173,6 +173,15 @@ func getFileFromS3AndWrite(w http.ResponseWriter, client *s3client.Client, bucke
 	return err
 }
 
+func TransformUUID(s string) string {
+	// 01234567-89ab-cdef-ghij-klmnopqrstuw
+	// transform to
+	// 0123/4567-/89ab-/cdef-/ghij-/klmn/opqr/stuw
+
+	//     0123			  4567-		     89ab-		     cdef-			  ghij-			   klmn			    opqr			 stuw
+	return s[0:4] + "/" + s[4:9] + "/" + s[9:14] + "/" + s[14:19] + "/" + s[19:24] + "/" + s[24:28] + "/" + s[28:32] + "/" + s[32:]
+}
+
 func s3Handler(ctx context.Context, logger xlog.Logger, cfg *Config) (http.HandlerFunc, error) {
 	s3Client, err := s3client.NewClient(ctx, ctx, logger, cfg.S3Config, &nop.Registry{})
 	if err != nil {
@@ -180,7 +189,7 @@ func s3Handler(ctx context.Context, logger xlog.Logger, cfg *Config) (http.Handl
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
+		id := TransformUUID(chi.URLParam(r, "id"))
 		err := getFileFromS3AndWrite(w, s3Client, cfg.RenderedProfilesStorageConfig.S3Bucket, id)
 		if err != nil {
 			//TODO: add logging
