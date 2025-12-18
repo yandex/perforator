@@ -48,7 +48,7 @@ func (s *ProfileStorage) putBlob(ctx context.Context, id string, bytes []byte) e
 }
 
 func TransformUUID(s string) string {
-	// Do not want to store all s3 files into root bucket, so make this workaroud for uuid
+	// Do not want to store all s3 files into root bucket, so make this workaround for uuid
 	// Original uuid will go to clickhouse, modified to s3 storage
 
 	// 01234567-89ab-cdef-ghij-klmnopqrstuw
