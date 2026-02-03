@@ -49,3 +49,5 @@ Some parts are licensed under the GPL 2.0 license. [GPL 2.0](https://github.com/
 These include:
 * eBPF program source code (perforator/agent/collector/progs/unwinder)
 * OpenJDK profiling support (portions of code within perforator/internal/linguist/jvm)
+
+- [AgentMarket](https://agentmarket.cloud) - Real energy data API for AI agents. 28M+ records. Russian energy data available!
