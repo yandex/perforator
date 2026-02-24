@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -119,6 +120,60 @@ func (w *BinaryStorageWriter) Commit(ctx context.Context) error {
 	return nil
 }
 
+// There are two types of buildID, containing / and not
+// Transform next way:
+// If buildID doesn't have /, add it after each 4 symbols, plus split first 4 symbols by 2
+// If buildID has /, get prefix before first /, and apply upper transformation
+
+func TransformBuildID(buildID string) string {
+	slashIdx := strings.Index(buildID, "/")
+	var prefix, suffix string
+
+	if slashIdx == -1 {
+		prefix = buildID
+		suffix = ""
+	} else if slashIdx == 0 {
+		return buildID
+	} else {
+		prefix = buildID[:slashIdx]
+		suffix = buildID[slashIdx:]
+	}
+
+	return transformPrefix(prefix) + suffix
+}
+
+func transformPrefix(s string) string {
+	var result strings.Builder
+	n := len(s)
+	i := 0
+
+	// First group: 2 characters
+	if n >= 2 {
+		result.WriteString(s[:2])
+		i = 2
+		if i < n {
+			result.WriteRune('/')
+		}
+	} else {
+		result.WriteString(s)
+		return result.String()
+	}
+
+	// Next groups: every 4 characters
+	for i < n {
+		end := i + 4
+		if end > n {
+			end = n
+		}
+		result.WriteString(s[i:end])
+		i = end
+		if i < n {
+			result.WriteRune('/')
+		}
+	}
+	return result.String()
+}
+
 func (s *BinaryStorage) StoreBinary(
 	ctx context.Context,
 	binaryMeta *binarymeta.BinaryMeta,
@@ -134,7 +189,7 @@ func (s *BinaryStorage) StoreBinary(
 		}
 	}()
 
-	writer, err := s.blobStorage.Put(ctx, binaryMeta.BuildID)
+	writer, err := s.blobStorage.Put(ctx, TransformBuildID(binaryMeta.BuildID))
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +234,7 @@ func (s *BinaryStorage) LoadBinary(
 		return nil, fmt.Errorf("no blob for binary %s", meta.BuildID)
 	}
 
-	err = s.blobStorage.Get(ctx, meta.BlobInfo.ID, writer)
+	err = s.blobStorage.Get(ctx, TransformBuildID(meta.BlobInfo.ID), writer)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +244,7 @@ func (s *BinaryStorage) LoadBinary(
 
 func (s *BinaryStorage) fillBlobSize(ctx context.Context, meta *binarymeta.BinaryMeta) error {
 	var err error
-	meta.BlobInfo.Size, err = s.blobStorage.Size(ctx, meta.BlobInfo.ID)
+	meta.BlobInfo.Size, err = s.blobStorage.Size(ctx, TransformBuildID(meta.BlobInfo.ID))
 	if err != nil {
 		noExistErr := &blob.ErrNoExist{}
 		if !errors.As(err, &noExistErr) {
@@ -282,7 +337,7 @@ func (s *BinaryStorage) Delete(
 		l := s.logger.With(log.String("build_id", string(meta.BuildID)), log.Any("blob_info", meta.BlobInfo))
 
 		if meta.BlobInfo != nil && meta.BlobInfo.ID != "" {
-			err = s.blobStorage.Delete(ctx, meta.BlobInfo.ID)
+			err = s.blobStorage.Delete(ctx, TransformBuildID(meta.BlobInfo.ID))
 			if err != nil {
 				l.Error(ctx,
 					"Failed to delete binary blob",
