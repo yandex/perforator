@@ -1,5 +1,6 @@
 RECURSE(
     custom_profiling_operation
+    jvmsupp
     lib
     perforator
     pprofprofile

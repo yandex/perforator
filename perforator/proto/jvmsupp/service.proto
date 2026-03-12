@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package perforator.internal.jvmsupp;
+
+import "perforator/agent/preprocessing/proto/jvm/jvm.proto";
+
+option go_package = "github.com/yandex/perforator/perforator/proto/jvmsupp";
+
+
+// Note that all APIs defined in this file are strictly internal and any
+// version skew is unsupported.
+message ScanRequest {
+    int64 pid = 1;
+}
+
+message MethodInfo {
+    string name = 2;
+    bool is_jit = 6;
+    int64 frame_size_bytes = 3;
+    uint64 code_begin = 4;
+    uint64 code_end = 5;
+}
+
+message ScanResponse {
+    repeated MethodInfo methods = 1;
+    // TODO: replace with a delta-based streaming API
+    // repeated MethodInfo new_methods = 1;
+    // repeated int64 deleted_methods = 2;
+    // int64 continuation_token = 3;
+}
+
+message KeepAliveRequest {}
+
+message KeepAliveResponse {}
+
+message SymbolizeRequest {
+    int64 pid = 1;
+    repeated uint64 methods = 2;
+}
+
+message SymbolizationError {
+    string message = 1;
+}
+
+message AddressSymbolization {
+    optional SymbolizationError error = 1;
+    // may be empty only if error is present
+    string name = 2;
+}
+
+message SymbolizeResponse {
+    // has same len as the methods field in the request.
+    repeated AddressSymbolization symbolized = 1;
+}
+
+message InitProcessRequest {
+    uint32 pid = 1;
+
+    uint64 libjvm_binary_id = 2;
+
+    // not sent if there were successful calls with the same binary_id.
+    optional NPerforator.NBinaryProcessing.NJvm.Cheatsheet cheatsheet = 3;
+
+    // libjvm.so mapping base address
+    uint64 base_address = 4;
+}
+
+message InitProcessResponse {
+    uint64 interpreter_begin = 1;
+    uint64 interpreter_end = 2;
+}
+
+message RetainProcessesRequest {
+    repeated uint32 pids = 1;
+}
+
+message RetainProcessesResponse {
+}
+
+message RetainBinariesRequest {
+    repeated uint64 binary_ids = 1;
+}
+
+message RetainBinariesResponse {
+}
+
+service JvmSupportService {
+    rpc Scan(ScanRequest) returns (ScanResponse) {}
+    // This method ensures that child does not outlive parent for too long.
+    // Rules:
+    // 1. Parent calls it exactly once after starting the child.
+    // 2. Child dies if the call does not start within timeout after its start.
+    // 3. Child never finishes the call.
+    // 4. If the call does finish (i.e. gRPC reports network error), child dies as well.
+    // This way child tracks lifetime of its parent without low-level tricks.
+    //
+    // TODO: move this method to another service when helper subprocess starts doing something
+    // beyond JVM support.
+    rpc KeepAlive(KeepAliveRequest) returns (KeepAliveResponse) {}
+    rpc Symbolize(SymbolizeRequest) returns (SymbolizeResponse) {}
+    rpc InitProcess(InitProcessRequest) returns (InitProcessResponse) {}
+    rpc RetainProcesses(RetainProcessesRequest) returns (RetainProcessesResponse) {}
+    rpc RetainBinaries(RetainBinariesRequest) returns (RetainBinariesResponse) {}
+}

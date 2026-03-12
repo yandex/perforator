@@ -2,5 +2,8 @@ RECURSE(
     analysis
     cheatsheets
     jvmattach
+    jvmbindings
+    jvmscanner
+    jvmsupportservice
     unwind
 )

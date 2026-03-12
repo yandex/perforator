@@ -3,6 +3,7 @@ RECURSE(
     binproc
     cli
     gc
+    jvm_scanner
     migrate
     offline_processing
     proxy
