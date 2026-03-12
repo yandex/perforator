@@ -34,3 +34,5 @@ def build_next_func(args: NextBuilderOptions):
 
     # Step 3 - create 'output.tar'
     builder.bundle()
+
+    return builder.output_dirs

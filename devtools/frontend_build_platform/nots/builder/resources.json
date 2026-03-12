@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-02-26T13:09:15.180Z",
+    "created": "2026-03-12T18:58:30.350Z",
     "pr": {
-      "id": 11856341,
+      "id": 12162756,
       "author": "baymer",
-      "summary": "FBP-2877: fix calculating output.tar.uuid"
+      "summary": "FBP-2958: подкладывать outputdir в output.uuid"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11218403246"
+      "uri": "sbr:11363546207"
     },
     "darwin-arm64": {
-      "uri": "sbr:11218399709"
+      "uri": "sbr:11363544688"
     },
     "linux": {
-      "uri": "sbr:11218410670"
+      "uri": "sbr:11363549614"
     },
     "linux-aarch64": {
-      "uri": "sbr:11218406589"
+      "uri": "sbr:11363547859"
     }
   }
 }

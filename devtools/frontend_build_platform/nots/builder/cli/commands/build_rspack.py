@@ -27,3 +27,5 @@ def build_rspack_func(args: RspackBuilderOptions):
 
     # Step 3 - create 'output.tar'
     builder.bundle()
+
+    return builder.options.output_dirs

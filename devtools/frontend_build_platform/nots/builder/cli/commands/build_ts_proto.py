@@ -64,5 +64,9 @@ def build_ts_proto_func(args: TsProtoBuilderOptions):
         for ts_config in ts_configs:
             TscBuilder(options=args, ts_config=ts_config).build()
 
+    out_dirs = get_output_dirs(ts_configs)
+
     # Step 4 - create 'output.tar'
-    TscBuilder.bundle_dirs(get_output_dirs(ts_configs), args.bindir, args.output_file)
+    TscBuilder.bundle_dirs(out_dirs, args.bindir, args.output_file)
+
+    return out_dirs

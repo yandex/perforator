@@ -27,3 +27,5 @@ def build_webpack_func(args: WebpackBuilderOptions):
 
     # Step 3 - create 'output.tar'
     builder.bundle()
+
+    return builder.output_dirs

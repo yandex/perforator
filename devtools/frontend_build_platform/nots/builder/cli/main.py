@@ -31,15 +31,17 @@ def __add_uuid_for_output(bindir: str, output_file: str, outputs: list[str] | No
         timestamp = datetime.now(UTC).isoformat()
 
         f.write(f"{output_filename}: {uuid_str} - {timestamp}")
-
-        if outputs is not None:
-            f.write("\noutputs: ")
-            json.dump(outputs, f)
+        f.write("\noutputs: ")
+        json.dump(list(set(outputs)), f)
 
 
-def _postprocess_output(args: AllOptions) -> None:
+def _postprocess_output(args: AllOptions, outputs: list[str]) -> None:
     output_file = getattr(args, 'output_file', args.node_modules_bundle)
-    outputs = getattr(args, 'outputs', None)
+    outputs.extend(getattr(args, 'outputs', []))
+    outputs.extend(getattr(args, 'output_dirs', []))
+    after_build_outdir = getattr(args, 'after_build_outdir', [])
+    if after_build_outdir:
+        outputs.append(after_build_outdir)
 
     if output_file and os.path.isfile(output_file):
         if output_file != args.node_modules_bundle:
@@ -61,9 +63,9 @@ def main():
 
     init_logging(args.verbose)
 
-    args.func(args)
+    output_dirs = args.func(args)
 
-    _postprocess_output(args)
+    _postprocess_output(args, output_dirs)
 
     if args.local_cli:
         dir_name = pm_utils.build_traces_store_path(args.arcadia_build_root, args.moddir)

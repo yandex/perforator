@@ -23,3 +23,5 @@ def prepare_deps_parser(subparsers) -> ArgumentParser:
 @timeit
 def prepare_deps_func(args: PrepareDepsOptions):
     prepare_deps(args)
+
+    return []

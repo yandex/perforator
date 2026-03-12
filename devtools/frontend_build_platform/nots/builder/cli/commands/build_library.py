@@ -41,3 +41,5 @@ def build_library_func(args: TsLibraryBuilderOptions):
 
     # Step 3 - create 'output.tar'
     builder.bundle()
+
+    return builder.options.outputs
