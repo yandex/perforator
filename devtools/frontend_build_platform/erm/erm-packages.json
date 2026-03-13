@@ -496,7 +496,7 @@
     "title": "@yatool/nots",
     "description": "Основной инструмент для жизни frontend в arcadia (tier-0).\n\nУправляет зависимостями и собирает код, запускает тесты.\n\nВ erm является внутренним инструментом, используется исключительно из `nots/bootstrap`.",
     "type": "NPM_PACKAGE",
-    "default": "0.58.0",
+    "default": "0.58.1",
     "links": {
       "Home": "https://a.yandex-team.ru/arcadia/devtools/frontend_build_platform/nots/cli",
       "Sources": "https://a.yandex-team.ru/arcadia/devtools/frontend_build_platform/nots/cli",
@@ -506,6 +506,16 @@
     "specifier": ">=0.30.4",
     "internal": true,
     "versions": {
+      "0.58.1": {
+        "add_date": "2026-03-13T20:44:18",
+        "resources": [
+          {
+            "id": 11375753076,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
       "0.58.0": {
         "add_date": "2026-03-11T23:42:36",
         "resources": [
