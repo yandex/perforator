@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-03-12T18:58:30.350Z",
+    "created": "2026-03-13T17:08:50Z",
     "pr": {
-      "id": 12162756,
+      "id": 12083028,
       "author": "baymer",
-      "summary": "FBP-2958: подкладывать outputdir в output.uuid"
+      "summary": "FBP-2950: вынести .pnpm из node_modules"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11363546207"
+      "uri": "sbr:11375581641"
     },
     "darwin-arm64": {
-      "uri": "sbr:11363544688"
+      "uri": "sbr:11375579631"
     },
     "linux": {
-      "uri": "sbr:11363549614"
+      "uri": "sbr:11375586241"
     },
     "linux-aarch64": {
-      "uri": "sbr:11363547859"
+      "uri": "sbr:11375583789"
     }
   }
 }
