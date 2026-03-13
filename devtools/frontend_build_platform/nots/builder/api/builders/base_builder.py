@@ -17,6 +17,11 @@ from devtools.frontend_build_platform.libraries.logging import timeit
 from ..models import BuildError, BaseBuildersOptions, CommonBuildersOptions, CommonTsBuildersOptions
 from ..utils import recursive_copy, extract_peer_tars, popen, resolve_bin, bundle_fs_entries
 
+npmignore_content = """__tarball__
+.pnpm
+pnpm-workspace.yaml
+"""
+
 
 @add_metaclass(ABCMeta)
 class BaseBuilder(object):
@@ -26,6 +31,36 @@ class BaseBuilder(object):
     def build(self):
         self._prepare_bindir()
         self._build()
+
+    @timeit
+    def _get_pack_files(self) -> list[str]:
+        """Run pnpm pack --json and return list of files to include in archive"""
+        # Create or update .npmignore file
+        npmignore_path = os.path.join(self.options.bindir, '.npmignore')
+
+        with open(npmignore_path, 'w') as f:
+            f.write(npmignore_content)
+
+        args = [
+            self.options.nodejs_bin,
+            self.options.pm_script,
+            'pack',
+            '--json',
+            '--dry-run',
+            '--config.ignoreScripts=true',
+        ]
+        return_code, stdout, stderr = popen(args, env=self._get_envs(), cwd=self.options.bindir)
+
+        if return_code != 0:
+            raise BuildError(self.options.command, return_code, stdout, stderr)
+
+        # Parse JSON output
+        pack_data = json.loads(stdout)
+
+        # Extract file paths from json['files'][]['path']
+        files = [file_entry['path'] for file_entry in pack_data['files']]
+        files.append('.npmignore')
+        return files
 
     def _prepare_bindir(self):
         self._prepare_dependencies()

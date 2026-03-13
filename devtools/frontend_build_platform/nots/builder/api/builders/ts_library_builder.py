@@ -1,4 +1,3 @@
-import json
 import os
 import textwrap
 from dataclasses import dataclass
@@ -68,28 +67,6 @@ class TsLibraryBuilder(BaseBuilder):
                     The build script may have failed to generate output files.
                 """
                 raise BuildError(self.options.command, 1, "", textwrap.dedent(message))
-
-    @timeit
-    def _get_pack_files(self) -> list[str]:
-        """Run pnpm pack --json and return list of files to include in archive"""
-        args = [
-            self.options.nodejs_bin,
-            self.options.pm_script,
-            'pack',
-            '--json',
-            '--dry-run',
-            '--config.ignoreScripts=true',
-        ]
-        return_code, stdout, stderr = popen(args, env=self._get_envs(), cwd=self.options.bindir)
-
-        if return_code != 0:
-            raise BuildError(self.options.command, return_code, stdout, stderr)
-
-        # Parse JSON output
-        pack_data = json.loads(stdout)
-
-        # Extract file paths from json['files'][]['path']
-        return [file_entry['path'] for file_entry in pack_data['files']]
 
     @timeit
     def bundle(self):
