@@ -10,7 +10,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func ScheduleBinaryDownloads(
+func DownloadBinaries(
 	ctx context.Context,
 	l xlog.Logger,
 	buildIDs []string,

@@ -164,7 +164,7 @@ func (s *Symbolizer) acquireBinaries(ctx context.Context, buildIDs []string) (
 	withGSYMLogger := s.logger.WithName("WithGSYM")
 	gsymCachedBinaries = NewCachedBinariesBatch(withGSYMLogger, s.gsymBinaryProvider, false)
 	if s.symbolizationMode == SymbolizationModeGSYMPreferred {
-		gsymCachedBinaries, err = ScheduleBinaryDownloads(ctx, withGSYMLogger, buildIDs, s.gsymBinaryProvider, false)
+		gsymCachedBinaries, err = DownloadBinaries(ctx, withGSYMLogger, buildIDs, s.gsymBinaryProvider, false)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -176,14 +176,13 @@ func (s *Symbolizer) acquireBinaries(ctx context.Context, buildIDs []string) (
 			buildIDsWithoutGSYM = append(buildIDsWithoutGSYM, buildID)
 		}
 	}
-	dwarf := len(buildIDsWithoutGSYM)
-	s.metrics.binariesWithDWARFFallback.Add(int64(dwarf))
-	s.metrics.binariesWithGSYM.Add(int64(len(buildIDs) - dwarf))
-	cachedBinaries, err = ScheduleBinaryDownloads(ctx, s.logger.WithName("WithoutGSYM"), buildIDsWithoutGSYM, s.binaryProvider, true)
+	cachedBinaries, err = DownloadBinaries(ctx, s.logger.WithName("WithoutGSYM"), buildIDsWithoutGSYM, s.binaryProvider, true)
 	if err != nil {
 		gsymCachedBinaries.Release()
 		return nil, nil, err
 	}
+	s.metrics.binariesWithGSYM.Add(int64(len(buildIDs) - len(buildIDsWithoutGSYM)))
+	s.metrics.binariesWithDWARFFallback.Add(int64(cachedBinaries.Count()))
 
 	return gsymCachedBinaries, cachedBinaries, nil
 }

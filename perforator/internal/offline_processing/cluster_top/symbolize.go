@@ -32,7 +32,7 @@ func (s *ClusterTopSymbolizer) DownloadAllGSYMs(
 	ctx context.Context,
 	buildIDs []string,
 ) (binaries *symbolize.CachedBinariesBatch, err error) {
-	return symbolize.ScheduleBinaryDownloads(ctx, s.l, buildIDs, s.gsymDownloader, false)
+	return symbolize.DownloadBinaries(ctx, s.l, buildIDs, s.gsymDownloader, false)
 }
 
 type ServicePerfTopAggregator struct {
