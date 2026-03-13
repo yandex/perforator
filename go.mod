@@ -959,6 +959,7 @@ require (
 	go.opentelemetry.io/collector/service/hostcapabilities v0.121.0
 	go.opentelemetry.io/contrib/bridges/otelzap v0.12.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.62.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.60.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.62.0
 	go.opentelemetry.io/contrib/propagators/b3 v1.34.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.34.0
@@ -2424,7 +2425,6 @@ require (
 	go.opentelemetry.io/contrib/config v0.14.0 // indirect
 	go.opentelemetry.io/contrib/detectors/aws/ec2 v1.37.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.38.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.60.0 // indirect
 	go.opentelemetry.io/contrib/propagators/aws v1.37.0 // indirect
 	go.opentelemetry.io/contrib/zpages v0.59.0 // indirect
 	go.opentelemetry.io/proto/slim/otlp v1.9.0 // indirect
