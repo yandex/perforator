@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.66.3)
+VERSION(v1.67.0)
 
 SRCS(
     fsync.go
@@ -40,8 +40,8 @@ ENDIF()
 
 IF (OS_LINUX AND ARCH_X86_64)
     SRCS(
-        asm_linux_amd64.go
-        asm_linux_amd64.s
+        abi0_linux_amd64.go
+        abi0_linux_amd64.s
         atomic64.go
         builtin64.go
         capi_linux_amd64.go

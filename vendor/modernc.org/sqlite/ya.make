@@ -2,13 +2,15 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.38.0)
+VERSION(v1.40.1)
 
 SRCS(
+    convert.go
     doc.go
     fcntl.go
     mutex.go
     nodmesg.go
+    pre_update_hook.go
     sqlite.go
     sqlite_go18.go
 )
@@ -20,6 +22,8 @@ GO_TEST_SRCS(
     # null_test.go
     # sqlite_go18_test.go
 )
+
+GO_XTEST_SRCS(pre_update_hook_test.go)
 
 IF (OS_LINUX)
     SRCS(

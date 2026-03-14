@@ -236,6 +236,7 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/anttsov/curator v0.0.0-20220418135948-cfbcac4c267c
 	github.com/apache/arrow/go/v13 v13.0.0-20230512153032-cd6e2a4d2b93
+	github.com/apache/iceberg-go v0.4.0
 	github.com/apache/thrift v0.22.0
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/araddon/dateparse v0.0.0-20190510211750-d2ba70357e92
@@ -1008,10 +1009,11 @@ require (
 	go.uber.org/zap/exp v0.3.0
 	go.withmatt.com/connect-brotli v0.4.0
 	go.yaml.in/yaml/v3 v3.0.4
+	gocloud.dev v0.43.0
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0
 	golang.org/x/crypto v0.47.0
-	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
+	golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6
 	golang.org/x/image v0.32.0
 	golang.org/x/mod v0.31.0
 	golang.org/x/net v0.49.0
@@ -1088,6 +1090,7 @@ require (
 )
 
 require (
+	atomicgo.dev/assert v0.0.2 // indirect
 	atomicgo.dev/cursor v0.2.0 // indirect
 	atomicgo.dev/keyboard v0.2.9 // indirect
 	atomicgo.dev/schedule v0.1.0 // indirect
@@ -1175,6 +1178,7 @@ require (
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
+	github.com/MarvinJWendt/testza v0.5.2 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
@@ -1258,7 +1262,6 @@ require (
 	github.com/apache/arrow/go/v12 v12.0.1 // indirect
 	github.com/apache/arrow/go/v14 v14.0.2 // indirect
 	github.com/apache/arrow/go/v15 v15.0.2 // indirect
-	github.com/apache/iceberg-go v0.4.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/apcera/termtables v0.0.0-20170405184538-bcbc5dc54055 // indirect
 	github.com/apex/log v1.9.0 // indirect
@@ -1304,7 +1307,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lightsail v1.50.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.19.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sns v1.34.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sns v1.38.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.6 // indirect
@@ -1718,6 +1721,7 @@ require (
 	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/googleapis/go-type-adapters v1.0.0 // indirect
+	github.com/gookit/assert v0.1.1 // indirect
 	github.com/gookit/color v1.6.0 // indirect
 	github.com/gophercloud/gophercloud v1.1.1 // indirect
 	github.com/gophercloud/gophercloud/v2 v2.6.0 // indirect
@@ -2037,7 +2041,7 @@ require (
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32 // indirect
 	github.com/nbutton23/zxcvbn-go v0.0.0-20210217022336-fa2cb2858354 // indirect
-	github.com/ncruces/go-strftime v0.1.9 // indirect
+	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncw/swift v1.0.53 // indirect
 	github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86 // indirect
 	github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c // indirect
@@ -2326,13 +2330,13 @@ require (
 	github.com/uber/tchannel-go v1.32.1 // indirect
 	github.com/ugorji/go v1.2.7 // indirect
 	github.com/uptrace/bun v1.2.16 // indirect
-	github.com/uptrace/bun/dialect/mssqldialect v1.2.15 // indirect
-	github.com/uptrace/bun/dialect/mysqldialect v1.2.15 // indirect
-	github.com/uptrace/bun/dialect/oracledialect v1.2.15 // indirect
-	github.com/uptrace/bun/dialect/pgdialect v1.2.15 // indirect
-	github.com/uptrace/bun/dialect/sqlitedialect v1.2.15 // indirect
-	github.com/uptrace/bun/driver/sqliteshim v1.2.15 // indirect
-	github.com/uptrace/bun/extra/bundebug v1.2.15 // indirect
+	github.com/uptrace/bun/dialect/mssqldialect v1.2.16 // indirect
+	github.com/uptrace/bun/dialect/mysqldialect v1.2.16 // indirect
+	github.com/uptrace/bun/dialect/oracledialect v1.2.16 // indirect
+	github.com/uptrace/bun/dialect/pgdialect v1.2.16 // indirect
+	github.com/uptrace/bun/dialect/sqlitedialect v1.2.16 // indirect
+	github.com/uptrace/bun/driver/sqliteshim v1.2.16 // indirect
+	github.com/uptrace/bun/extra/bundebug v1.2.16 // indirect
 	github.com/urfave/negroni v1.0.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.62.0 // indirect
@@ -2438,7 +2442,6 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go4.org/intern v0.0.0-20220617035311-6925f38cc365 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
-	gocloud.dev v0.43.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20241009180824-f66d83c29e7c // indirect
 	golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067 // indirect
@@ -2518,22 +2521,22 @@ require (
 	lukechampine.com/uint128 v1.3.0 // indirect
 	modernc.org/cc v1.0.1 // indirect
 	modernc.org/cc/v3 v3.41.0 // indirect
-	modernc.org/cc/v4 v4.26.2 // indirect
+	modernc.org/cc/v4 v4.27.1 // indirect
 	modernc.org/ccgo/v3 v3.17.0 // indirect
-	modernc.org/ccgo/v4 v4.28.0 // indirect
-	modernc.org/fileutil v1.3.8 // indirect
+	modernc.org/ccgo/v4 v4.30.1 // indirect
+	modernc.org/fileutil v1.3.40 // indirect
 	modernc.org/gc/v2 v2.6.5 // indirect
-	modernc.org/gc/v3 v3.0.0 // indirect
+	modernc.org/gc/v3 v3.1.1 // indirect
 	modernc.org/golex v1.1.0 // indirect
 	modernc.org/httpfs v1.0.6 // indirect
 	modernc.org/lex v1.1.1 // indirect
 	modernc.org/lexer v1.0.5 // indirect
-	modernc.org/libc v1.66.3 // indirect
+	modernc.org/libc v1.67.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/opt v0.1.4 // indirect
 	modernc.org/sortutil v1.2.1 // indirect
-	modernc.org/sqlite v1.38.0 // indirect
+	modernc.org/sqlite v1.40.1 // indirect
 	modernc.org/strutil v1.2.1 // indirect
 	modernc.org/tcl v1.15.2 // indirect
 	modernc.org/token v1.1.0 // indirect
@@ -2688,6 +2691,10 @@ replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelg
 replace github.com/moby/buildkit => github.com/moby/buildkit v0.12.2
 
 replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20230629203738-36ef4d8c0dbb
+
+replace github.com/substrait-io/substrait-protobuf/go => github.com/substrait-io/substrait-protobuf/go v0.71.0
+
+replace github.com/substrait-io/substrait => github.com/substrait-io/substrait v0.69.0
 
 // Workaround weird go.mod shipped with k8s.io submodules.
 // For the reasoning see
