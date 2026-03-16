@@ -518,6 +518,7 @@ require (
 	github.com/gruntwork-io/terratest v0.36.8
 	github.com/haivision/srtgo v0.0.0-20211019211331-3f0cef2e19ee
 	github.com/hamba/avro/v2 v2.30.0
+	github.com/hanwen/go-fuse/v2 v2.9.0
 	github.com/haproxytech/client-native/v5 v5.0.0
 	github.com/haproxytech/config-parser/v5 v5.0.0
 	github.com/haproxytech/go-logger v1.1.0
