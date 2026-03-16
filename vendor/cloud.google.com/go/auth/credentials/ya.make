@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.16.5)
+VERSION(v0.18.1)
 
 DATA(
     arcadia/vendor/cloud.google.com/go/auth/internal/testdata
@@ -20,6 +20,7 @@ SRCS(
 
 GO_TEST_SRCS(
     compute_test.go
+    detect_new_credentials_test.go
     detect_test.go
     selfsignedjwt_test.go
 )

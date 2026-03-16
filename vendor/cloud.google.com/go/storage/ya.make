@@ -2,12 +2,13 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.57.0)
+VERSION(v1.60.0)
 
 SRCS(
     acl.go
     bucket.go
     client.go
+    contexts.go
     copy.go
     doc.go
     dynamic_delay.go
@@ -23,6 +24,7 @@ SRCS(
     invoke.go
     notifications.go
     option.go
+    pcu.go
     post_policy_v4.go
     reader.go
     storage.go
@@ -35,10 +37,12 @@ GO_TEST_SRCS(
     bucket_test.go
     client_test.go
     conformance_test.go
+    contexts_test.go
     copy_test.go
     dynamic_delay_test.go
     grpc_client_test.go
     grpc_metrics_test.go
+    grpc_writer_test.go
     headers_test.go
     hmac_test.go
     http_client_test.go
@@ -47,6 +51,7 @@ GO_TEST_SRCS(
     mock_test.go
     notifications_test.go
     option_test.go
+    pcu_test.go
     post_policy_v4_test.go
     reader_test.go
     retry_conformance_test.go

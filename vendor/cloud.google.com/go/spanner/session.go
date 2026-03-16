@@ -393,8 +393,9 @@ func (s *session) recycle() {
 		// s is rejected by its home session pool because it expired and the
 		// session pool currently has enough open sessions.
 		s.pool.mu.Unlock()
+		// s.destroy internally calls decNumInUseLocked.
 		s.destroy(false, true)
-		s.pool.mu.Lock()
+		return
 	}
 	s.pool.decNumInUseLocked(context.Background())
 	s.pool.mu.Unlock()
@@ -509,9 +510,11 @@ type SessionPoolConfig struct {
 	enableMultiplexSession bool
 
 	// enableMultiplexedSessionForRW is a flag to enable multiplexed session for read/write transactions
+	// Defaults to true
 	enableMultiplexedSessionForRW bool
 
 	// enableMultiplexedSessionForPartitionedOps is a flag to enable multiplexed session for partitioned DML and read/query operations
+	// Defaults to true
 	enableMultiplexedSessionForPartitionedOps bool
 
 	// healthCheckSampleInterval is how often the health checker samples live
@@ -1065,6 +1068,7 @@ func (p *sessionPool) close(ctx context.Context) {
 	}
 	p.mu.Unlock()
 	p.hc.close()
+	close(p.multiplexedSessionReq)
 	// destroy all the sessions
 	p.hc.mu.Lock()
 	allSessions := make([]*session, len(p.hc.queue.sessions))
@@ -1365,6 +1369,7 @@ func (p *sessionPool) remove(s *session, isExpire bool, wasInUse bool) bool {
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
 	if isExpire && (p.numOpened <= p.MinOpened || s.getIdleList() == nil) {
 		// Don't expire session if the session is not in idle list (in use), or
 		// if number of open sessions is going below p.MinOpened.

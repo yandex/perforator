@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.6.7)
+VERSION(v0.8.0)
 
 SRCS(
     longrunning.go

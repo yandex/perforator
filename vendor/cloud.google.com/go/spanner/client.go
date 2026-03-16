@@ -44,6 +44,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
@@ -553,26 +554,35 @@ func newClientWithConfig(ctx context.Context, database string, config ClientConf
 		md.Append(afeMetricHeader, "true")
 	}
 
-	if isMultiplexed := strings.ToLower(os.Getenv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS")); isMultiplexed != "" && !config.enableMultiplexSession {
-		config.enableMultiplexSession, err = strconv.ParseBool(isMultiplexed)
+	if isMultiplexed, found := os.LookupEnv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS"); found {
+		config.enableMultiplexSession, err = strconv.ParseBool(strings.ToLower(isMultiplexed))
 		if err != nil {
 			return nil, spannerErrorf(codes.InvalidArgument, "GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS must be either true or false")
 		}
+	} else {
+		config.enableMultiplexSession = true
 	}
-	if isMultiplexForRW := os.Getenv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS_FOR_RW"); isMultiplexForRW != "" && !config.enableMultiplexedSessionForRW {
-		config.enableMultiplexedSessionForRW, err = strconv.ParseBool(isMultiplexForRW)
+
+	if isMultiplexForRW, found := os.LookupEnv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS_FOR_RW"); found {
+		config.enableMultiplexedSessionForRW, err = strconv.ParseBool(strings.ToLower(isMultiplexForRW))
 		if err != nil {
 			return nil, spannerErrorf(codes.InvalidArgument, "GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS_FOR_RW must be either true or false")
 		}
-		config.enableMultiplexedSessionForRW = config.enableMultiplexedSessionForRW && config.SessionPoolConfig.enableMultiplexSession
+	} else {
+		config.enableMultiplexedSessionForRW = true
 	}
-	if isMultiplexForPartitionOps := os.Getenv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS_PARTITIONED_OPS"); isMultiplexForPartitionOps != "" && !config.enableMultiplexedSessionForPartitionedOps {
-		config.enableMultiplexedSessionForPartitionedOps, err = strconv.ParseBool(isMultiplexForPartitionOps)
+
+	if isMultiplexForPartitionOps, found := os.LookupEnv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS_PARTITIONED_OPS"); found {
+		config.enableMultiplexedSessionForPartitionedOps, err = strconv.ParseBool(strings.ToLower(isMultiplexForPartitionOps))
 		if err != nil {
 			return nil, spannerErrorf(codes.InvalidArgument, "GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS_PARTITIONED_OPS must be either true or false")
 		}
-		config.enableMultiplexedSessionForPartitionedOps = config.enableMultiplexedSessionForPartitionedOps && config.SessionPoolConfig.enableMultiplexSession
+	} else {
+		config.enableMultiplexedSessionForPartitionedOps = true
 	}
+
+	config.enableMultiplexedSessionForRW = config.SessionPoolConfig.enableMultiplexSession && config.enableMultiplexedSessionForRW
+	config.enableMultiplexedSessionForPartitionedOps = config.SessionPoolConfig.enableMultiplexSession && config.enableMultiplexedSessionForPartitionedOps
 
 	if config.IsExperimentalHost {
 		config.SessionPoolConfig.enableMultiplexSession = true
@@ -604,6 +614,28 @@ func newClientWithConfig(ctx context.Context, database string, config ClientConf
 		return nil, err
 	}
 
+	if enableLogClientOptions() {
+		projectID, _, _, _ := parseDatabaseName(database)
+		logf(config.Logger, `
+-----Client Options--------
+Project ID: %v
+Num of gRPC channels: %v
+LAR enabled: %v
+Directpath enabled: %v
+End To End Tracing enabled: %v
+Built-in metrics enabled: %v
+gRPC metrics enabled: %v
+Min Sessions: %v
+Max Sessions: %v
+Multiplexed session enabled: %v
+Multiplexed session enabled for RW: %v
+Multiplexed session enabled for Partition Ops: %v
+-----------------------------`,
+			projectID, config.NumChannels, !config.DisableRouteToLeader, isDirectPathEnabled,
+			config.EnableEndToEndTracing, !config.DisableNativeMetrics, isGRPCBuiltInMetricsEnabled,
+			config.SessionPoolConfig.MinOpened, config.SessionPoolConfig.MaxOpened, config.enableMultiplexSession,
+			config.enableMultiplexedSessionForRW, config.enableMultiplexedSessionForPartitionedOps)
+	}
 	c = &Client{
 		sc:                   sc,
 		idleSessions:         sp,
@@ -674,11 +706,14 @@ func allClientOpts(numChannels int, compression string, userOpts ...option.Clien
 		option.WithUserAgent(fmt.Sprintf("spanner-go/v%s", internal.Version)),
 		option.WithGRPCDialOption(grpc.WithChainUnaryInterceptor(addNativeMetricsInterceptor()...)),
 		option.WithGRPCDialOption(grpc.WithChainStreamInterceptor(addStreamNativeMetricsInterceptor()...)),
+		option.WithGRPCDialOption(grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 120 * time.Second})),
 	}
 	if enableDirectPathXds, _ := strconv.ParseBool(os.Getenv("GOOGLE_SPANNER_ENABLE_DIRECT_ACCESS")); enableDirectPathXds {
 		clientDefaultOpts = append(clientDefaultOpts, internaloption.AllowNonDefaultServiceAccount(true))
 		clientDefaultOpts = append(clientDefaultOpts, internaloption.EnableDirectPath(true), internaloption.EnableDirectPathXds())
-		clientDefaultOpts = append(clientDefaultOpts, internaloption.AllowHardBoundTokens("ALTS"))
+		if disableBoundToken, _ := strconv.ParseBool(os.Getenv("GOOGLE_SPANNER_DISABLE_DIRECT_ACCESS_BOUND_TOKEN")); !disableBoundToken {
+			clientDefaultOpts = append(clientDefaultOpts, internaloption.AllowHardBoundTokens("ALTS"))
+		}
 	}
 	if compression == "gzip" {
 		userOpts = append(userOpts, option.WithGRPCDialOption(grpc.WithDefaultCallOptions(
@@ -1490,4 +1525,14 @@ func parseServerTimingHeader(md metadata.MD) map[string]time.Duration {
 		}
 	}
 	return metrics
+}
+
+// enableLogClientOptions returns true if the environment variable for this doesn't exist or is set to false
+func enableLogClientOptions() bool {
+	if disableLogString, found := os.LookupEnv("GOOGLE_CLOUD_SPANNER_DISABLE_LOG_CLIENT_OPTIONS"); found {
+		if disableLog, err := strconv.ParseBool(disableLogString); err == nil {
+			return !disableLog
+		}
+	}
+	return true
 }

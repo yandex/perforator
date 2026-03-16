@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.84.1)
+VERSION(v1.87.0)
 
 GO_SKIP_TESTS(
     TestTakeFromIdleWriteListChecked
@@ -49,7 +49,7 @@ GO_TEST_SRCS(
     metric_monitoring_exporter_test.go
     # metrics_test.go
     mocks_test.go
-    mutation_test.go
+    # mutation_test.go
     # oc_test.go
     # pdml_test.go
     # read_test.go

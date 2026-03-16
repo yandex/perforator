@@ -21,13 +21,14 @@
 package spannerpb
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -37,7 +38,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// `IsolationLevel` is used when setting `isolation_level` for a transaction.
+// `IsolationLevel` is used when setting the [isolation
+// level](https://cloud.google.com/spanner/docs/isolation-levels) for a
+// transaction.
 type TransactionOptions_IsolationLevel int32
 
 const (
@@ -51,8 +54,9 @@ const (
 	// actually occurred in parallel. Spanner assigns commit timestamps that
 	// reflect the order of committed transactions to implement this property.
 	// Spanner offers a stronger guarantee than serializability called external
-	// consistency. For further details, please refer to
-	// https://cloud.google.com/spanner/docs/true-time-external-consistency#serializability.
+	// consistency. For more information, see
+	// [TrueTime and external
+	// consistency](https://cloud.google.com/spanner/docs/true-time-external-consistency#serializability).
 	TransactionOptions_SERIALIZABLE TransactionOptions_IsolationLevel = 1
 	// All reads performed during the transaction observe a consistent snapshot
 	// of the database, and the transaction is only successfully committed in
@@ -61,7 +65,7 @@ const (
 	// `SERIALIZABLE` transactions, only write-write conflicts are detected in
 	// snapshot transactions.
 	//
-	// This isolation level does not support Read-only and Partitioned DML
+	// This isolation level does not support read-only and partitioned DML
 	// transactions.
 	//
 	// When `REPEATABLE_READ` is specified on a read-write transaction, the

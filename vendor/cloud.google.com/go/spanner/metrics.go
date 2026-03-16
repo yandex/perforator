@@ -68,6 +68,7 @@ const (
 	metricLabelKeyDirectPathUsed        = "directpath_used"
 	metricLabelKeyGRPCLBPickResult      = "grpc.lb.pick_result"
 	metricLabelKeyGRPCLBDataPlaneTarget = "grpc.lb.rls.data_plane_target"
+	metricLabelKeyGRPCXDSResourceType   = "grpc.xds.resource_type"
 
 	// Metric names
 	metricNameOperationLatencies        = "operation_latencies"
@@ -82,6 +83,8 @@ const (
 	// Metric units
 	metricUnitMS    = "ms"
 	metricUnitCount = "1"
+
+	defaultClientLocation = "global"
 )
 
 // These are effectively const, but for testing purposes they are mutable
@@ -188,9 +191,13 @@ var (
 	}
 
 	detectClientLocation = func(ctx context.Context) string {
+		if emulatorAddr, found := os.LookupEnv("SPANNER_EMULATOR_HOST"); found && emulatorAddr != "" {
+			return defaultClientLocation
+		}
+
 		resource, err := gcp.NewDetector().Detect(ctx)
 		if err != nil {
-			return "global"
+			return defaultClientLocation
 		}
 		for _, attr := range resource.Attributes() {
 			if attr.Key == semconv.CloudRegionKey {
@@ -198,7 +205,7 @@ var (
 			}
 		}
 		// If region is not found, return global
-		return "global"
+		return defaultClientLocation
 	}
 
 	// GCM exporter should use the same options as Spanner client
@@ -610,14 +617,8 @@ func (t *builtinMetricsTracer) recordGFEError() {
 }
 
 func (t *builtinMetricsTracer) recordAFEError() {
-	if !t.isAFEBuiltInMetricEnabled {
-		return
-	}
-	attrs, err := t.toOtelMetricAttrs(metricNameAFEConnectivityErrorCount)
-	if err != nil {
-		return
-	}
-	t.instrumentAFEErrorCount.Add(t.ctx, 1, metric.WithAttributes(attrs...))
+	// no-op: disable afe_connectivity_error_count metric as AFE header is disabled in backend currently
+	return
 }
 
 // Convert error to grpc status error

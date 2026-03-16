@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.121.6)
+VERSION(v0.123.0)
 
 SRCS(
     civil.go

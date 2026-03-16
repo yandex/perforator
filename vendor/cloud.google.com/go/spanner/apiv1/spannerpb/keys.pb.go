@@ -21,11 +21,12 @@
 package spannerpb
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -273,8 +274,8 @@ type KeySet struct {
 	// with which this `KeySet` is used.  Individual key values are
 	// encoded as described [here][google.spanner.v1.TypeCode].
 	Keys []*structpb.ListValue `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
-	// A list of key ranges. See [KeyRange][google.spanner.v1.KeyRange] for more information about
-	// key range specifications.
+	// A list of key ranges. See [KeyRange][google.spanner.v1.KeyRange] for more
+	// information about key range specifications.
 	Ranges []*KeyRange `protobuf:"bytes,2,rep,name=ranges,proto3" json:"ranges,omitempty"`
 	// For convenience `all` can be set to `true` to indicate that this
 	// `KeySet` matches all keys in the table or index. Note that any keys

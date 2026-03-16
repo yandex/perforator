@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.16.5)
+VERSION(v0.18.1)
 
 SRCS(
     cba.go
@@ -21,4 +21,5 @@ END()
 RECURSE(
     cert
     gotest
+    headers
 )
