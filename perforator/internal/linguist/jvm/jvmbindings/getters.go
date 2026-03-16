@@ -5,7 +5,10 @@ func (ch CodeHeap) NextSegment() (uint64, error) {
 }
 
 func (ch CodeHeap) Memory() VirtualSpace {
-	return VirtualSpace{addr: ch.addr + uintptr(*ch.j.jc.CodeHeapMemory)}
+	return VirtualSpace{
+		addr: ch.addr + uintptr(*ch.j.jc.CodeHeapMemory),
+		j:    ch.j,
+	}
 }
 
 func (ch CodeHeap) Log2SegmentSize() (int32, error) {

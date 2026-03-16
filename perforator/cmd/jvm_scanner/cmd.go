@@ -52,25 +52,19 @@ func makeSubcommand() *cobra.Command {
 }
 
 func run(ctx context.Context, logger xlog.Logger) error {
-	jvmProcesses, err := ebpf.LoadPinnedMap(mapPrefix+"jvm_processes", &ebpf.LoadPinOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to load jvm_processes map: %w", err)
-	}
 	processInfo, err := ebpf.LoadPinnedMap(mapPrefix+"process_info", &ebpf.LoadPinOptions{ReadOnly: true})
 	if err != nil {
 		return fmt.Errorf("failed to load process_info map: %w", err)
 	}
 
 	bpf := programstate.New(&unwinder.Maps{
-		JvmProcesses: jvmProcesses,
-		ProcessInfo:  processInfo,
+		ProcessInfo: processInfo,
 	}, nil)
 
 	scanner := jvmscanner.New(logger.WithName("scanner"), bpf)
 	s := jvmsupportservice.New(
 		logger.WithName("api"),
 		scanner,
-		bpf,
 		jvmsupportservice.Options{
 			SocketPath: socketPath,
 		},

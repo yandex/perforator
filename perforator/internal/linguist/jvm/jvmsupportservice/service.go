@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm"
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmscanner"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -31,7 +30,6 @@ type Service struct {
 	l       xlog.Logger
 	opts    Options
 	scanner *jvmscanner.Scanner
-	bpf     *programstate.State
 
 	firstKeepaliveCall   atomic.Bool
 	keepaliveCallStarted chan struct{}
@@ -44,12 +42,11 @@ type Service struct {
 	cheatsheets   map[uint64]*jvm.Cheatsheet
 }
 
-func New(logger xlog.Logger, scanner *jvmscanner.Scanner, bpf *programstate.State, opts Options) *Service {
+func New(logger xlog.Logger, scanner *jvmscanner.Scanner, opts Options) *Service {
 	return &Service{
 		l:                    logger,
 		opts:                 opts,
 		scanner:              scanner,
-		bpf:                  bpf,
 		keepaliveCallStarted: make(chan struct{}),
 		keepaliveCallFailed:  make(chan error, 1),
 		procs:                make(map[linux.CurrentNamespacePID]*jvmscanner.ProcessState),
