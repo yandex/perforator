@@ -6,7 +6,7 @@
     "title": "Biome",
     "description": "Biome is a fast formatter for JavaScript, TypeScript, JSX, TSX, JSON, CSS and GraphQL that scores 97% compatibility with Prettier, saving CI and developer time.\n\n[Подробнее про линтинг в tier-0](https://docs.yandex-team.ru/frontend-in-arcadia/index/quick-start#lint)",
     "type": "NPM_PACKAGE",
-    "default": "2.4.4",
+    "default": "2.4.5",
     "links": {
       "Home": "https://biomejs.dev/",
       "Sources": "https://github.com/biomejs/biome",
@@ -16,6 +16,10 @@
     "specifier": ">=2.0.0",
     "useDirectly": true,
     "versions": {
+      "2.4.5": {
+        "add_date": "2026-03-17T05:30:37",
+        "resources": []
+      },
       "2.4.4": {
         "add_date": "2026-03-10T05:31:01",
         "resources": []
@@ -6623,7 +6627,7 @@
     "title": "Stylelint",
     "description": "Инструмент для линтинга файлов стилей.\n\nИспользуется в макросе [TS_STYLELINT()](https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-stylelint).",
     "type": "NPM_PACKAGE",
-    "default": "17.3.0",
+    "default": "17.4.0",
     "links": {
       "Home": "https://stylelint.io/",
       "Sources": "https://github.com/stylelint/stylelint",
@@ -6633,6 +6637,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "17.4.0": {
+        "add_date": "2026-03-17T05:34:54",
+        "resources": []
+      },
       "17.3.0": {
         "add_date": "2026-03-03T05:40:27",
         "resources": []
