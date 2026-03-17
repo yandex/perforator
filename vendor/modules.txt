@@ -4407,7 +4407,7 @@ github.com/andybalholm/cascadia/fuzz
 # github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 ## explicit; go 1.13
 github.com/anmitsu/go-shlex
-# github.com/annetutil/gnetcli v1.2.12
+# github.com/annetutil/gnetcli v1.2.13
 ## explicit; go 1.25
 github.com/annetutil/gnetcli
 github.com/annetutil/gnetcli/cmd/cli
