@@ -1032,7 +1032,7 @@ require (
 	golang.org/x/tools/gopls v0.21.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 	golang.yandex/hasql v1.1.1
-	golang.yandex/hasql/v2 v2.0.0
+	golang.yandex/hasql/v2 v2.1.1
 	golang.yandex/linters v1.3.3
 	gomodules.xyz/jsonpatch/v2 v2.4.0
 	gonum.org/v1/gonum v0.17.0

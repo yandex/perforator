@@ -20244,8 +20244,8 @@ golang.org/x/xerrors/internal
 golang.yandex/hasql
 golang.yandex/hasql/checkers
 golang.yandex/hasql/sqlx
-# golang.yandex/hasql/v2 v2.0.0
-## explicit; go 1.22
+# golang.yandex/hasql/v2 v2.1.1
+## explicit; go 1.23.0
 golang.yandex/hasql/v2
 # golang.yandex/linters v1.3.3
 ## explicit; go 1.23.0
