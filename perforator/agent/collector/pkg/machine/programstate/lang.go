@@ -41,9 +41,23 @@ func (s *State) DeletePthreadConfig(id unwinder.BinaryId) error {
 	return s.maps.PthreadStorage.Delete(&id)
 }
 
-// TODO: we can use batch lookups into bpf maps
 func (s *State) SymbolizeInterpeter(key *unwinder.SymbolKey) (res unwinder.Symbol, exists bool) {
 	err := s.maps.InterpreterSymbols.Lookup(key, &res)
 	exists = (err == nil)
+	return
+}
+
+// SymbolizeInterpreterBatch resolves |keys| symbol keys via individual Lookup calls.
+// BPF_MAP_TYPE_LRU_HASH does not support BPF_MAP_LOOKUP_BATCH for arbitrary key sets,
+// so per-key Lookup is the correct approach here.
+// Intended to be invoked for LRU cache misses only (see Symbolizer.SymbolizeBatch),
+// so |keys| ≤ n where n is the full stack depth.
+// found[i] == false iff keys[i] is absent from the eBPF map.
+func (s *State) SymbolizeInterpreterBatch(keys []unwinder.SymbolKey) (symbols []unwinder.Symbol, found []bool) {
+	symbols = make([]unwinder.Symbol, len(keys))
+	found = make([]bool, len(keys))
+	for i := range keys {
+		found[i] = s.maps.InterpreterSymbols.Lookup(&keys[i], &symbols[i]) == nil
+	}
 	return
 }
