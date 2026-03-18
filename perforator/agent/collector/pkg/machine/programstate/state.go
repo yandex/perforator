@@ -202,5 +202,6 @@ func (s *State) DeleteProcessUnwindTable(pid linux.CurrentNamespacePID) error {
 }
 
 func (s *State) GetMetric(metric unwinder.Metric, val []uint64) error {
-	return s.maps.Metrics.Lookup(&metric, &val)
+	// we expect that val has suitable size
+	return s.maps.Metrics.Lookup(&metric, val)
 }
