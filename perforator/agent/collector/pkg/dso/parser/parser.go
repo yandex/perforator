@@ -27,7 +27,7 @@ type BinaryParser struct {
 
 func NewBinaryParser(l xlog.Logger, r metrics.Registry, options *parse.BinaryAnalysisOptions) (*BinaryParser, error) {
 	if options == nil {
-		l.Info(context.TODO(), "Create a new BinaryParser with default options, as the user has not provided a custom one")
+		l.Info(context.Background(), "Create a new BinaryParser with default options, as the user has not provided a custom one")
 		options = &parse.BinaryAnalysisOptions{}
 	}
 

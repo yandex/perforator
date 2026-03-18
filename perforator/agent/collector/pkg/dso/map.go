@@ -35,8 +35,10 @@ type DSO struct {
 	// Build info of the binary.
 	buildInfo *xelf.BuildInfo
 
-	// Link to the allocation.
-	bpfAllocationMutex sync.Mutex
+	// Guards bpfAllocation. RLock for read, Lock for write.
+	// binaryParser.Parse is done outside the lock to avoid serialising
+	// concurrent DSO loads on an expensive ELF parse operation.
+	bpfAllocationMutex sync.RWMutex
 	bpfAllocation      *bpf.Allocation
 }
 
@@ -268,7 +270,7 @@ func (d *Registry) release(ctx context.Context, buildID string) {
 func (d *Registry) onDelete(item *ccache.Item[*DSO]) {
 	dso := item.Value()
 	d.maybeReleaseBinary(dso)
-	d.l.Debug(context.TODO(), "Delete DSO from cache", log.String("buildid", dso.buildInfo.BuildID))
+	d.l.Debug(context.Background(), "Delete DSO from cache", log.String("buildid", dso.buildInfo.BuildID))
 }
 
 func (d *Registry) maybeReleaseBinary(dso *DSO) {
@@ -284,23 +286,24 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 	}
 	buildID := dso.buildInfo.BuildID
 
+	// Fast path: allocation already exists — handle under exclusive lock
+	// (MoveFromCache/Release mutate bpfBinaryManager state).
 	dso.bpfAllocationMutex.Lock()
-	defer dso.bpfAllocationMutex.Unlock()
-
-	// Happy path. Our DSO was analyzed previously and unwind tables were cached.
 	if alloc := dso.bpfAllocation; alloc != nil {
 		if d.bpfBinaryManager.MoveFromCache(alloc) {
+			dso.bpfAllocationMutex.Unlock()
 			d.onPagesRestoredFromCache(ctx, len(alloc.UnwindTableAllocation.Pages))
 			return
 		}
-
-		// We had analyzed our DSO previously, but the allocation
-		// had been evicted from the BPF DSO unwind table cache.
-		// So let's try to release current allocation and create the new one.
+		// Allocation evicted from BPF cache; release and re-parse.
 		d.bpfBinaryManager.Release(alloc)
+		dso.bpfAllocation = nil
 		d.l.Debug(ctx, "Removing stale BPF DSO allocation", log.String("buildid", buildID))
 	}
+	dso.bpfAllocationMutex.Unlock()
 
+	// Slow path: parse binary WITHOUT holding the lock to avoid serialising
+	// concurrent DSO loads on an expensive ELF parse operation.
 	analysis, err := d.binaryParser.Parse(ctx, f)
 	if err != nil {
 		d.l.Warn(ctx,
@@ -342,6 +345,13 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 		dso.BinaryClass = PthreadGlibcBinaryClass
 	}
 
+	// Re-acquire write lock to store the result.
+	dso.bpfAllocationMutex.Lock()
+	defer dso.bpfAllocationMutex.Unlock()
+	// Double-check: another goroutine may have raced and already populated.
+	if dso.bpfAllocation != nil {
+		return
+	}
 	dso.bpfAllocation, err = d.bpfBinaryManager.Add(ctx, buildID, dso.ID, analysis)
 	if err != nil {
 		d.l.Error(

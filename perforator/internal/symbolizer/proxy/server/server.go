@@ -168,7 +168,7 @@ func NewPerforatorServer(
 	defer cancel()
 
 	// TODO: this context should be tied to e.g. Run() duration.
-	bgCtx := context.TODO()
+	bgCtx := context.Background()
 
 	storageBundle, err := bundle.NewStorageBundle(initCtx, bgCtx, l, "proxy", reg, &conf.StorageConfig)
 	if err != nil {

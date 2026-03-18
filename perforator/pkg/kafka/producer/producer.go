@@ -23,7 +23,7 @@ type KafkaProducer struct {
 }
 
 func NewKafkaProducer(l xlog.Logger, cfg *Config) (*KafkaProducer, error) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	w, err := NewKafkaWriter(ctx, l, cfg)
 	if err != nil {
 		return nil, err

@@ -113,7 +113,8 @@ func (c *continuousProfilingSampleConsumer) Consume(ctx context.Context, sample 
 }
 
 func (c *continuousProfilingSampleConsumer) Flush(ctx context.Context) error {
-	errs := make([]error, 0)
+	// Pre-size to avoid O(log n) reallocations: 1 (wholeSystem) + tracked pids + cgroups.
+	errs := make([]error, 0, 1+len(c.p.pids))
 
 	if c.p.wholeSystem != nil {
 		c.p.log.Info("Flushing whole system profile")

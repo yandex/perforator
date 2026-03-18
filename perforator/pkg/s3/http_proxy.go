@@ -59,7 +59,7 @@ func (dp *dynamicProxy) proxy() *url.URL {
 	dp.currentProxyMu.RLock()
 	defer dp.currentProxyMu.RUnlock()
 	if dp.canceled {
-		dp.logger.Warn(context.TODO(), "Using http proxy after updater shutdown")
+		dp.logger.Warn(context.Background(), "Using http proxy after updater shutdown")
 	}
 	return dp.currentProxy
 }
