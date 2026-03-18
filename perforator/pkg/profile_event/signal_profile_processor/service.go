@@ -76,7 +76,7 @@ func NewService(log xlog.Logger, cfg Config, reg xmetrics.Registry) (*Service, e
 		return nil, errors.New("kafka_producer config is required")
 	}
 
-	client, err := client.NewClient(context.TODO(), &cfg.ProxyClient, log.WithName("client"))
+	client, err := client.NewClient(context.Background(), &cfg.ProxyClient, log.WithName("client"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize client: %w", err)
 	}

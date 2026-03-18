@@ -123,11 +123,11 @@ var (
 			}
 			defer outputFile.Close()
 
-			initCtx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+			initCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
 			// TODO: this context should be tied to e.g. Run() duration.
-			bgCtx := context.TODO()
+			bgCtx := context.Background()
 
 			bundle, err := bundle.NewStorageBundleFromConfig(initCtx, bgCtx, logger, "local-symbolize", &nop.Registry{}, configPath)
 			if err != nil {
