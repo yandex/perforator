@@ -236,6 +236,7 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/anttsov/curator v0.0.0-20220418135948-cfbcac4c267c
+	github.com/apache/arrow-go/v18 v18.4.1
 	github.com/apache/arrow/go/v13 v13.0.0-20230512153032-cd6e2a4d2b93
 	github.com/apache/iceberg-go v0.4.0
 	github.com/apache/thrift v0.22.0
@@ -1259,7 +1260,6 @@ require (
 	github.com/antonmedv/expr v1.15.5 // indirect
 	github.com/anuraaga/go-modsecurity v0.0.0-20220824035035-b9a4099778df // indirect
 	github.com/aokoli/goutils v1.0.1 // indirect
-	github.com/apache/arrow-go/v18 v18.4.1 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
 	github.com/apache/arrow/go/v12 v12.0.1 // indirect
 	github.com/apache/arrow/go/v14 v14.0.2 // indirect
