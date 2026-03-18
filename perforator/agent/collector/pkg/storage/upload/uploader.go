@@ -176,7 +176,7 @@ func (u *Scheduler) uploadBinary(ctx context.Context, buildID string, binary *Cl
 
 func (u *Scheduler) announceBinariesWithCache(ctx context.Context, buildIDs []string) (unknownBuildIDs []string, err error) {
 	unknownBuildIDs = []string{}
-	askBuildIDs := make([]string, 0)
+	askBuildIDs := make([]string, 0, len(buildIDs))
 	for _, buildID := range buildIDs {
 		item := u.uploadedBinariesCache.Get(buildID)
 		if item == nil || item.Expired() {
