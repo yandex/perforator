@@ -113,7 +113,9 @@ func (c *continuousProfilingSampleConsumer) Consume(ctx context.Context, sample 
 }
 
 func (c *continuousProfilingSampleConsumer) Flush(ctx context.Context) error {
-	errs := make([]error, 0)
+	// Pre-size for the common append sites: 1 (wholeSystem) + per-pid consumers.
+	// Cgroup errors may exceed this hint; the slice will grow if needed.
+	errs := make([]error, 0, 1+len(c.p.pids))
 
 	if c.p.wholeSystem != nil {
 		c.p.log.Info("Flushing whole system profile")
