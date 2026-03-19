@@ -28,6 +28,7 @@ type LocalStorageConfig struct {
 	ProfileDir       string `yaml:"profile_dir"`
 	BinaryDir        string `yaml:"binary_dir"`
 	MaxProfilesCount *int   `yaml:"max_profiles_count,omitempty"`
+	SkipBinaries     *bool  `yaml:"skip_binaries,omitempty"`
 }
 
 type LocalStorage struct {
@@ -35,6 +36,13 @@ type LocalStorage struct {
 	l              log.Logger
 	ringBufferSize int
 	counter        int
+}
+
+func (c *LocalStorageConfig) skipBinaries() bool {
+	if c.SkipBinaries == nil {
+		return false
+	}
+	return *c.SkipBinaries
 }
 
 func checkDir(path string) error {
@@ -55,9 +63,11 @@ func NewLocalStorage(conf *LocalStorageConfig, l log.Logger) (*LocalStorage, err
 	if err != nil {
 		return nil, err
 	}
-	err = checkDir(conf.BinaryDir)
-	if err != nil {
-		return nil, err
+	if !conf.skipBinaries() {
+		err = checkDir(conf.BinaryDir)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	ringBufferSize := defaultMaxProfilesCount
@@ -114,6 +124,10 @@ func (s *LocalStorage) binaryPath(buildID string) string {
 }
 
 func (s *LocalStorage) StoreBinary(ctx context.Context, buildID string, binary binary.SealedFile) error {
+	if s.conf.skipBinaries() {
+		return nil
+	}
+
 	src, err := binary.Unseal()
 	if err != nil {
 		return err
@@ -134,7 +148,7 @@ func (s *LocalStorage) StoreBinary(ctx context.Context, buildID string, binary b
 	return nil
 }
 
-func (s *LocalStorage) HasBinary(ctx context.Context, buildID string) (bool, error) {
+func (s *LocalStorage) hasBinary(ctx context.Context, buildID string) (bool, error) {
 	path := s.binaryPath(buildID)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false, nil
@@ -144,9 +158,13 @@ func (s *LocalStorage) HasBinary(ctx context.Context, buildID string) (bool, err
 }
 
 func (s *LocalStorage) AnnounceBinaries(ctx context.Context, buildIDs []string) ([]string, error) {
+	if s.conf.skipBinaries() {
+		return nil, nil
+	}
+
 	unknownBuildIDs := []string{}
 	for _, buildID := range buildIDs {
-		present, err := s.HasBinary(ctx, buildID)
+		present, err := s.hasBinary(ctx, buildID)
 		if err != nil {
 			return nil, err
 		}
