@@ -223,7 +223,7 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/aleroyer/rsyslog_exporter v1.1.0
 	github.com/alexflint/go-filemutex v1.3.0
-	github.com/alicebob/miniredis/v2 v2.33.0
+	github.com/alicebob/miniredis/v2 v2.37.0
 	github.com/alitto/pond v1.9.2
 	github.com/anatol/luks.go v0.0.0-20211210165108-5d9a15b4f614
 	github.com/andybalholm/brotli v1.2.0

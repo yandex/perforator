@@ -4357,12 +4357,12 @@ github.com/alexbrainman/sspi/kerberos
 github.com/alexflint/go-filemutex
 # github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a
 ## explicit
-github.com/alicebob/gopher-json
-# github.com/alicebob/miniredis/v2 v2.33.0
+# github.com/alicebob/miniredis/v2 v2.37.0
 ## explicit; go 1.17
 github.com/alicebob/miniredis/v2
 github.com/alicebob/miniredis/v2/fpconv
 github.com/alicebob/miniredis/v2/geohash
+github.com/alicebob/miniredis/v2/gopher-json
 github.com/alicebob/miniredis/v2/hyperloglog
 github.com/alicebob/miniredis/v2/metro
 github.com/alicebob/miniredis/v2/proto
