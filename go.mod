@@ -741,9 +741,9 @@ require (
 	github.com/r3labs/diff/v3 v3.0.0
 	github.com/rafaelmartins/usbhid v0.0.0-20240923181811-9aaabf870f67
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
-	github.com/redis/go-redis/extra/rediscmd/v9 v9.0.5
-	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
-	github.com/redis/go-redis/v9 v9.17.2
+	github.com/redis/go-redis/extra/rediscmd/v9 v9.18.0
+	github.com/redis/go-redis/extra/redisotel/v9 v9.18.0
+	github.com/redis/go-redis/v9 v9.18.0
 	github.com/rekby/fixenv v0.7.0
 	github.com/riverqueue/river v0.26.0
 	github.com/riverqueue/river/riverdriver v0.26.0

@@ -14712,14 +14712,14 @@ github.com/rcrowley/go-metrics/cmd/never-read
 github.com/rcrowley/go-metrics/exp
 github.com/rcrowley/go-metrics/librato
 github.com/rcrowley/go-metrics/stathat
-# github.com/redis/go-redis/extra/rediscmd/v9 v9.0.5
-## explicit; go 1.15
+# github.com/redis/go-redis/extra/rediscmd/v9 v9.18.0
+## explicit; go 1.21
 github.com/redis/go-redis/extra/rediscmd/v9
-# github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
-## explicit; go 1.19
+# github.com/redis/go-redis/extra/redisotel/v9 v9.18.0
+## explicit; go 1.21
 github.com/redis/go-redis/extra/redisotel/v9
-# github.com/redis/go-redis/v9 v9.17.2
-## explicit; go 1.18
+# github.com/redis/go-redis/v9 v9.18.0
+## explicit; go 1.21
 github.com/redis/go-redis/v9
 github.com/redis/go-redis/v9/auth
 github.com/redis/go-redis/v9/doctests
@@ -14730,13 +14730,16 @@ github.com/redis/go-redis/v9/internal/hashtag
 github.com/redis/go-redis/v9/internal/hscan
 github.com/redis/go-redis/v9/internal/interfaces
 github.com/redis/go-redis/v9/internal/maintnotifications/logs
+github.com/redis/go-redis/v9/internal/otel
 github.com/redis/go-redis/v9/internal/pool
 github.com/redis/go-redis/v9/internal/proto
 github.com/redis/go-redis/v9/internal/rand
+github.com/redis/go-redis/v9/internal/routing
 github.com/redis/go-redis/v9/internal/util
 github.com/redis/go-redis/v9/logging
 github.com/redis/go-redis/v9/maintnotifications
 github.com/redis/go-redis/v9/maintnotifications/e2e
+github.com/redis/go-redis/v9/maintnotifications/e2e/cmd/proxy-fi-server
 github.com/redis/go-redis/v9/push
 # github.com/rekby/fixenv v0.7.0
 ## explicit; go 1.18
