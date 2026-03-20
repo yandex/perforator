@@ -46,9 +46,15 @@ namespace NInPlaceProto {
         void SetCorrupted() noexcept {
             Corrupted = true;
         }
+        void UpdateCorrupted(bool corrupted) noexcept {
+            Corrupted |= corrupted;
+        }
 
         bool NotEmpty() const noexcept {
             return Start < End;
+        }
+        bool CanRead(size_t n) const noexcept {
+            return Start + n <= End;
         }
 
         void SkipVarint64() noexcept {

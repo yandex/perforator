@@ -1,6 +1,9 @@
 #pragma once
 
+#include "packed_repeated_view.h"
 #include "serialized.h"
+
+#include <util/generic/vector.h>
 
 #include <google/protobuf/wire_format_lite.h>
 
@@ -196,6 +199,35 @@ namespace NInPlaceProto {
         template <typename TProtoMessage>
         TSerialized<TProtoMessage> GetSerialized() noexcept {
             return AsSerialized<TProtoMessage>(GetStringAsBuf());
+        }
+
+        template <EPackedType PackedType>
+        TPackedRepeatedView<PackedType> GetPackedRepeatedView() noexcept {
+            if (WireType == WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+                ui32 length = TDataProvider::ReadVarint32();
+                TArrayRef<const char> region = TDataProvider::GetRegion(length);
+                return TPackedRepeatedView<PackedType>(region, *this);
+            }
+            TDataProvider::SetCorrupted();
+            return TPackedRepeatedView<PackedType>(TStringBuf{}, *this);
+        }
+
+        template <EPackedType PackedType>
+        TVector<typename NPackedRepeatedDetail::TPackedTypeTraits<PackedType>::TValue> GetPackedRepeated() {
+            using TTraits = NPackedRepeatedDetail::TPackedTypeTraits<PackedType>;
+            using T = typename TTraits::TValue;
+            auto view = GetPackedRepeatedView<PackedType>();
+            TVector<T> result;
+            if constexpr (TTraits::IsFixed) {
+                result.reserve(view.size());
+            } else {
+                result.reserve(NPackedRepeatedDetail::CountVarintElements(
+                    view.GetRawBuf().data(), view.GetRawBuf().size()));
+            }
+            for (auto x : view) {
+                result.push_back(x);
+            }
+            return result;
         }
 
         // For advanced usage only. Generic parsers & etc
