@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-03-13T17:08:50Z",
+    "created": "2026-03-20T11:19:41Z",
     "pr": {
-      "id": 12083028,
+      "id": 12474703,
       "author": "baymer",
-      "summary": "FBP-2950: вынести .pnpm из node_modules"
+      "summary": "DEVTOOLSSUPPORT-81453: Рецидив: nots/cli: build не приносит результат TS_LARGE_FILES"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11375581641"
+      "uri": "sbr:11448225615"
     },
     "darwin-arm64": {
-      "uri": "sbr:11375579631"
+      "uri": "sbr:11448221335"
     },
     "linux": {
-      "uri": "sbr:11375586241"
+      "uri": "sbr:11448233881"
     },
     "linux-aarch64": {
-      "uri": "sbr:11375583789"
+      "uri": "sbr:11448229735"
     }
   }
 }
