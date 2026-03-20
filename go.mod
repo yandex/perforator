@@ -1007,6 +1007,7 @@ require (
 	go.uber.org/fx v1.23.0
 	go.uber.org/goleak v1.3.0
 	go.uber.org/mock v0.5.2
+	go.uber.org/nilaway v0.0.0-20260213150243-937701de96c7
 	go.uber.org/ratelimit v0.3.1
 	go.uber.org/zap v1.27.1
 	go.uber.org/zap/exp v0.3.0
@@ -1689,6 +1690,7 @@ require (
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
 	github.com/golang/glog v1.2.5 // indirect
 	github.com/golangci/lint-1 v0.0.0-20191013205115-297bf364a8e0 // indirect
+	github.com/golangci/plugin-module-register v0.1.2 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20241105142532-d03b89096d81 // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/google/cel-spec v0.6.0 // indirect

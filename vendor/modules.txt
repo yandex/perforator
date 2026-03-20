@@ -9406,6 +9406,9 @@ github.com/golang/snappy/cmd/snappytool
 # github.com/golangci/lint-1 v0.0.0-20191013205115-297bf364a8e0
 ## explicit
 github.com/golangci/lint-1
+# github.com/golangci/plugin-module-register v0.1.2
+## explicit; go 1.23.0
+github.com/golangci/plugin-module-register/register
 # github.com/gomarkdown/markdown v0.0.0-20241105142532-d03b89096d81
 ## explicit; go 1.12
 github.com/gomarkdown/markdown
@@ -19422,6 +19425,34 @@ go.uber.org/mock/sample/imp4
 # go.uber.org/multierr v1.11.0
 ## explicit; go 1.19
 go.uber.org/multierr
+# go.uber.org/nilaway v0.0.0-20260213150243-937701de96c7
+## explicit; go 1.24
+go.uber.org/nilaway
+go.uber.org/nilaway/accumulation
+go.uber.org/nilaway/annotation
+go.uber.org/nilaway/assertion
+go.uber.org/nilaway/assertion/affiliation
+go.uber.org/nilaway/assertion/anonymousfunc
+go.uber.org/nilaway/assertion/function
+go.uber.org/nilaway/assertion/function/assertiontree
+go.uber.org/nilaway/assertion/function/functioncontracts
+go.uber.org/nilaway/assertion/function/preprocess
+go.uber.org/nilaway/assertion/function/producer
+go.uber.org/nilaway/assertion/global
+go.uber.org/nilaway/assertion/structfield
+go.uber.org/nilaway/cmd/gclplugin
+go.uber.org/nilaway/cmd/nilaway
+go.uber.org/nilaway/config
+go.uber.org/nilaway/diagnostic
+go.uber.org/nilaway/guard
+go.uber.org/nilaway/hook
+go.uber.org/nilaway/inference
+go.uber.org/nilaway/nilawaytest
+go.uber.org/nilaway/util/analysishelper
+go.uber.org/nilaway/util/asthelper
+go.uber.org/nilaway/util/orderedmap
+go.uber.org/nilaway/util/tokenhelper
+go.uber.org/nilaway/util/typeshelper
 # go.uber.org/ratelimit v0.3.1
 ## explicit; go 1.20
 go.uber.org/ratelimit
