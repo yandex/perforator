@@ -1,4 +1,5 @@
 import os.path
+import re
 import json
 import sys
 import uuid
@@ -48,6 +49,21 @@ def _postprocess_output(args: AllOptions, outputs: list[str]) -> None:
             __add_uuid_for_output(args.bindir, output_file, outputs)
 
 
+def _get_ouput_large_dirs(args: AllOptions) -> list[str]:
+    LARGE_FILES_RE = re.compile(
+        r'^\s*TS_LARGE_FILES\([^)]*DESTINATION\s+(?P<destination>\S+)', re.MULTILINE | re.DOTALL
+    )
+    yamake_file = os.path.join(args.curdir, 'ya.make')
+    with open(yamake_file) as f:
+        yamake_content = f.read()
+        result: list[str] = list()
+
+        for destination in LARGE_FILES_RE.findall(yamake_content):
+            result.append(destination.strip('"\''))
+
+        return result
+
+
 # @timeit тут нельзя, т.к. измерение включается внутри
 def main():
     args_parser = get_args_parser()
@@ -64,6 +80,7 @@ def main():
     init_logging(args.verbose)
 
     output_dirs = args.func(args)
+    output_dirs.extend(_get_ouput_large_dirs(args))
 
     _postprocess_output(args, output_dirs)
 
