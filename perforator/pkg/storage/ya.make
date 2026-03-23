@@ -6,6 +6,7 @@ RECURSE(
     custom_profiling_operation
     databases
     gc
+    gsym
     microscope
     profile
     storage
