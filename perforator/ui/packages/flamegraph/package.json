@@ -66,6 +66,7 @@
     "culori": "4.0.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "lib/components/**/*.css"
   ]
 }
