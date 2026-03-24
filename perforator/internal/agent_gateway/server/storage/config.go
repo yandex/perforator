@@ -8,6 +8,7 @@ import (
 
 type ProfileSignalEventsConfig struct {
 	async_publisher.Config
+	SamplingRate   float64       `yaml:"sampling_rate"`
 	AllowedSignals []string      `yaml:"allowed_signals"` // e.g, SIGSEGV, SIGQUIT
 	Kafka          *kafka.Config `yaml:"kafka"`
 }

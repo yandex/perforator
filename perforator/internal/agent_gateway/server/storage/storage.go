@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"slices"
 	"sync"
 	"time"
@@ -489,27 +490,29 @@ func (s *Service) PushProfile(ctx context.Context, req *perforatorstorage.PushPr
 	)
 
 	if s.signalPublisher != nil && s.shouldPublishSignals(req.GetSignalTypes()) {
-		if slices.Contains(eventTypes, sampletype.SampleTypeSignalCount) {
-			ev := &profile_event.SignalProfileEvent{
-				ProfileID:   profileID,
-				Service:     meta.Service,
-				Cluster:     meta.Cluster,
-				NodeID:      meta.NodeID,
-				PodID:       meta.PodID,
-				Timestamp:   meta.Timestamp.UTC(),
-				BuildIDs:    meta.BuildIDs,
-				MainEvent:   sampletype.SampleTypeSignalCount,
-				SignalTypes: req.GetSignalTypes(),
-			}
+		if s.conf.ProfileSignalEvents.SamplingRate > 0 && rand.Float64() <= s.conf.ProfileSignalEvents.SamplingRate {
+			if slices.Contains(eventTypes, sampletype.SampleTypeSignalCount) {
+				ev := &profile_event.SignalProfileEvent{
+					ProfileID:   profileID,
+					Service:     meta.Service,
+					Cluster:     meta.Cluster,
+					NodeID:      meta.NodeID,
+					PodID:       meta.PodID,
+					Timestamp:   meta.Timestamp.UTC(),
+					BuildIDs:    meta.BuildIDs,
+					MainEvent:   sampletype.SampleTypeSignalCount,
+					SignalTypes: req.GetSignalTypes(),
+				}
 
-			s.signalPublisher.TryEnqueueForPublish(ctx, ev)
-		} else {
-			l.Warn(ctx,
-				"Missing proper event type",
-				log.String("service", meta.Service),
-				log.Time("timestamp", meta.Timestamp),
-				log.String("profile_id", profileID),
-			)
+				s.signalPublisher.TryEnqueueForPublish(ctx, ev)
+			} else {
+				l.Warn(ctx,
+					"Missing proper event type",
+					log.String("service", meta.Service),
+					log.Time("timestamp", meta.Timestamp),
+					log.String("profile_id", profileID),
+				)
+			}
 		}
 	}
 
