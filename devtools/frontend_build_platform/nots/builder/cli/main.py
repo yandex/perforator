@@ -54,6 +54,9 @@ def _get_ouput_large_dirs(args: AllOptions) -> list[str]:
         r'^\s*TS_LARGE_FILES\([^)]*DESTINATION\s+(?P<destination>\S+)', re.MULTILINE | re.DOTALL
     )
     yamake_file = os.path.join(args.curdir, 'ya.make')
+    if not os.path.isfile(yamake_file):
+        return []
+
     with open(yamake_file) as f:
         yamake_content = f.read()
         result: list[str] = list()
