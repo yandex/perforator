@@ -214,7 +214,7 @@
     "title": "rspack Core",
     "description": "Альтернативный сборщик frontend проектов\n\nВ tier-0 используется в модуле/макросе [`TS_RSPACK()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_RSPACK).",
     "type": "NPM_PACKAGE",
-    "default": "1.7.6",
+    "default": "1.7.7",
     "links": {
       "Home": "https://rspack.rs",
       "Sources": "https://github.com/web-infra-dev/rspack",
@@ -224,6 +224,10 @@
     "specifier": ">=1.3.11",
     "useDirectly": true,
     "versions": {
+      "1.7.7": {
+        "add_date": "2026-03-24T05:33:35",
+        "resources": []
+      },
       "1.7.6": {
         "add_date": "2026-03-03T05:32:56",
         "resources": []
