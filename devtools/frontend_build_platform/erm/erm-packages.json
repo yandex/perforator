@@ -3057,6 +3057,31 @@
       "Release schedule": "https://github.com/nodejs/Release#release-schedule"
     },
     "versions": {
+      "25.8.1": {
+        "add_date": "2026-03-24T05:45:24",
+        "resources": [
+          {
+            "id": 11479001829,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 11479004554,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 11479006125,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 11479008916,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "25.8.0": {
         "add_date": "2026-03-17T05:31:31",
         "resources": [
@@ -4082,6 +4107,31 @@
           }
         ]
       },
+      "22.22.1": {
+        "add_date": "2026-03-24T05:39:54",
+        "resources": [
+          {
+            "id": 11478989773,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 11478993094,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 11478996221,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 11478998784,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "22.22.0": {
         "add_date": "2026-02-03T05:36:35",
         "resources": [
@@ -4828,6 +4878,31 @@
           {
             "id": 6360057114,
             "platform": "linux",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "20.20.1": {
+        "add_date": "2026-03-24T05:35:36",
+        "resources": [
+          {
+            "id": 11478980224,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 11478982837,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 11478984531,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 11478986499,
+            "platform": "darwin",
             "arch": "arm64"
           }
         ]
