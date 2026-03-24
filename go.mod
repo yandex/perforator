@@ -784,7 +784,7 @@ require (
 	github.com/smallstep/pkcs7 v0.1.1
 	github.com/smira/go-statsd v1.3.2
 	github.com/sony/gobreaker v1.0.0
-	github.com/sony/gobreaker/v2 v2.0.0
+	github.com/sony/gobreaker/v2 v2.4.0
 	github.com/sony/sonyflake v1.2.0
 	github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c
 	github.com/spf13/afero v1.12.0

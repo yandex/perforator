@@ -15487,8 +15487,8 @@ github.com/soheilhy/cmux
 ## explicit; go 1.12
 github.com/sony/gobreaker
 github.com/sony/gobreaker/example
-# github.com/sony/gobreaker/v2 v2.0.0
-## explicit; go 1.21
+# github.com/sony/gobreaker/v2 v2.4.0
+## explicit; go 1.22.0
 github.com/sony/gobreaker/v2
 github.com/sony/gobreaker/v2/example
 # github.com/sony/sonyflake v1.2.0
