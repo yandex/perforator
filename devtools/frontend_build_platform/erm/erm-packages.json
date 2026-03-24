@@ -78,7 +78,7 @@
     "title": "rspack CLI",
     "description": "CLI часть от `rspack`, вынесенная в отдельный пакет.\n\nНеобходима на проекте для того, чтобы мочь в принципе запускать сборку `rspack`.",
     "type": "NPM_PACKAGE",
-    "default": "1.7.6",
+    "default": "1.7.7",
     "links": {
       "Home": "https://rspack.rs/api/cli",
       "Sources": "https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-cli",
@@ -88,6 +88,10 @@
     "specifier": ">=1.3.11",
     "useDirectly": true,
     "versions": {
+      "1.7.7": {
+        "add_date": "2026-03-24T05:33:22",
+        "resources": []
+      },
       "1.7.6": {
         "add_date": "2026-03-03T05:32:44",
         "resources": []
