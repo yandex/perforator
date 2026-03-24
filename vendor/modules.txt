@@ -9254,7 +9254,7 @@ github.com/golang-jwt/jwt/v4
 github.com/golang-jwt/jwt/v4/cmd/jwt
 github.com/golang-jwt/jwt/v4/request
 github.com/golang-jwt/jwt/v4/test
-# github.com/golang-jwt/jwt/v5 v5.3.0
+# github.com/golang-jwt/jwt/v5 v5.3.1
 ## explicit; go 1.21
 github.com/golang-jwt/jwt/v5
 github.com/golang-jwt/jwt/v5/cmd/jwt
