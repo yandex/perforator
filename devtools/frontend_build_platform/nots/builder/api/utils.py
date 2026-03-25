@@ -4,6 +4,7 @@ import stat
 import subprocess
 import sys
 
+import click
 import library.python.archive as archive
 import libarchive
 
@@ -208,8 +209,28 @@ def simplify_colors(data):
     return data
 
 
+def print_cmd_info(cmd: list[str], cwd: str, env: dict[str, str]):
+    sys.stderr.write("\n")
+    export = click.style("export", fg="green")
+    for key, value in env.items():
+        escaped_value = value.replace('"', '\\"').replace("$", "\\$")
+        sys.stderr.write(f'{export} {key}="{escaped_value}"\n')
+
+    sys.stderr.write(f"cd {click.style(cwd, fg='cyan')} && {click.style(' '.join(cmd), fg='magenta')}\n\n")
+
+
+def print_cmd_output(stdout: str, stderr: str):
+    if stdout:
+        sys.stderr.write(f"{click.style('_exec stdout:', fg='green')}\n{stdout}\n")
+    if stderr:
+        sys.stderr.write(f"{click.style('_exec stderr:', fg='yellow')}\n{stderr}\n")
+
+
 @timeit
-def popen(args: list[str], env: dict[str, str], cwd: str):
+def popen(args: list[str], env: dict[str, str], cwd: str, verbose: bool = False):
+    if verbose:
+        print_cmd_info(args, cwd, env)
+
     p = subprocess.Popen(
         args,
         cwd=cwd,
@@ -221,6 +242,9 @@ def popen(args: list[str], env: dict[str, str], cwd: str):
     )
     stdout, stderr = p.communicate()
     return_code = p.returncode
+
+    if verbose:
+        print_cmd_output(stdout, stderr)
 
     return return_code, stdout, stderr
 

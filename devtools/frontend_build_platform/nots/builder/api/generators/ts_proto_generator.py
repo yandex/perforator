@@ -1,12 +1,8 @@
 from dataclasses import dataclass
-import click
 import os
-import sys
 
 from devtools.frontend_build_platform.libraries.logging import timeit
-
 from build.plugins.lib.nots.package_manager import PackageJson, utils as pm_utils
-
 
 from ..models import BuildError, BaseOptions
 from ..utils import copy_if_not_exists, dict_to_ts_proto_opt, parse_opt_to_dict, popen, resolve_bin
@@ -153,18 +149,9 @@ class TsProtoGenerator:
     def _exec(self):
         args = [self.options.protoc_bin] + self._get_exec_args()
 
-        if self.options.verbose:
-            sys.stderr.write(
-                f"cd {click.style(self.options.bindir, fg='cyan')} && {click.style(' '.join(args), fg='magenta')}\n"
-            )
-
-        return_code, stdout, stderr = popen(args, env=self._get_envs(), cwd=self.options.bindir)
-
-        if self.options.verbose:
-            if stdout:
-                sys.stderr.write(f"_exec stdout:\n{click.style(stdout, fg='green')}\n")
-            if stderr:
-                sys.stderr.write(f"_exec stderr:\n{click.style(stderr, fg='yellow')}\n")
+        return_code, stdout, stderr = popen(
+            args, env=self._get_envs(), cwd=self.options.bindir, verbose=self.options.verbose
+        )
 
         if return_code != 0:
             raise BuildError(self.options.command, return_code, stdout, stderr)

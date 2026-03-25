@@ -39,7 +39,9 @@ class TsLibraryBuilder(BaseBuilder):
         """Execute node --run <build_script> in bindir"""
         args = [self.options.nodejs_bin, '--run', self.options.build_script]
         env = self._get_envs()
-        return_code, stdout, stderr = popen(args, env=env, cwd=self.options.bindir)
+
+        return_code, stdout, stderr = popen(args, env=env, cwd=self.options.bindir, verbose=self.options.verbose)
+
         if return_code != 0:
             raise BuildError(self.options.command, return_code, stdout, stderr)
 

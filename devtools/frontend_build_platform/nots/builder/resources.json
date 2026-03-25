@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-03-20T11:19:41Z",
+    "created": "2026-03-25T05:26:30.228Z",
     "pr": {
-      "id": 12474703,
-      "author": "baymer",
-      "summary": "DEVTOOLSSUPPORT-81453: Рецидив: nots/cli: build не приносит результат TS_LARGE_FILES"
+      "id": 12607933,
+      "author": "zaverden",
+      "summary": "FBP-2785: builder: verbose popen for all"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11448225615"
+      "uri": "sbr:11492851725"
     },
     "darwin-arm64": {
-      "uri": "sbr:11448221335"
+      "uri": "sbr:11492850734"
     },
     "linux": {
-      "uri": "sbr:11448233881"
+      "uri": "sbr:11492853196"
     },
     "linux-aarch64": {
-      "uri": "sbr:11448229735"
+      "uri": "sbr:11492852397"
     }
   }
 }

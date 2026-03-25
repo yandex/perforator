@@ -1,7 +1,6 @@
 import json
 import os
 import stat
-import sys
 import textwrap
 from abc import ABCMeta, abstractmethod
 from six import add_metaclass
@@ -15,7 +14,13 @@ from build.plugins.lib.nots.package_manager import (
 from build.plugins.lib.nots.typescript import TsConfig
 from devtools.frontend_build_platform.libraries.logging import timeit
 from ..models import BuildError, BaseBuildersOptions, CommonBuildersOptions, CommonTsBuildersOptions
-from ..utils import recursive_copy, extract_peer_tars, popen, resolve_bin, bundle_fs_entries
+from ..utils import (
+    recursive_copy,
+    extract_peer_tars,
+    popen,
+    resolve_bin,
+    bundle_fs_entries,
+)
 
 npmignore_content = """__tarball__
 .pnpm
@@ -206,25 +211,7 @@ class BaseLegacyBuilder(BaseBuilder):
     @timeit
     def _exec_nodejs_script(self, script_path: str, script_args: list[str], env: dict):
         args = [self.options.nodejs_bin, script_path] + script_args
-
-        if self.options.verbose:
-            sys.stderr.write("\n")
-            export = click.style("export", fg="green")
-            for key, value in env.items():
-                escaped_value = value.replace('"', '\\"').replace("$", "\\$")
-                sys.stderr.write(f'{export} {key}="{escaped_value}"\n')
-
-            sys.stderr.write(
-                f"cd {click.style(self.options.bindir, fg='cyan')} && {click.style(' '.join(args), fg='magenta')}\n\n"
-            )
-
-        return_code, stdout, stderr = popen(args, env=env, cwd=self.options.bindir)
-
-        if self.options.verbose:
-            if stdout:
-                sys.stderr.write(f"_exec stdout:\n{click.style(stdout, fg='green')}\n")
-            if stderr:
-                sys.stderr.write(f"_exec stderr:\n{click.style(stderr, fg='yellow')}\n")
+        return_code, stdout, stderr = popen(args, env=env, cwd=self.options.bindir, verbose=self.options.verbose)
 
         if return_code != 0:
             raise BuildError(self.options.command, return_code, stdout, stderr)
