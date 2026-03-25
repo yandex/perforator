@@ -1353,6 +1353,9 @@ deps.dev/api/v3
 # deps.dev/util/maven v0.0.0-20250307021655-d811e36f9cad
 ## explicit; go 1.23.4
 deps.dev/util/maven
+# deps.dev/util/pypi v0.0.0-20250903005441-604c45d5b44b
+## explicit; go 1.23.4
+deps.dev/util/pypi
 # deps.dev/util/resolve v0.0.0-20250310223405-f4cf91c9e684
 ## explicit; go 1.23.4
 deps.dev/util/resolve
@@ -6150,8 +6153,8 @@ github.com/containerd/cgroups/v3/cgroup2/stats
 # github.com/containerd/console v1.0.5
 ## explicit; go 1.13
 github.com/containerd/console
-# github.com/containerd/containerd v1.7.25
-## explicit; go 1.21
+# github.com/containerd/containerd v1.7.29
+## explicit; go 1.23.0
 github.com/containerd/containerd
 github.com/containerd/containerd/archive
 github.com/containerd/containerd/archive/compression
@@ -6248,6 +6251,8 @@ github.com/containerd/containerd/api/types
 github.com/containerd/containerd/api/types/runc/options
 github.com/containerd/containerd/api/types/task
 github.com/containerd/containerd/api/types/transfer
+# github.com/containerd/containerd/v2 v2.0.5
+## explicit; go 1.23.0
 # github.com/containerd/continuity v0.4.5
 ## explicit; go 1.21
 github.com/containerd/continuity
@@ -8514,7 +8519,7 @@ github.com/go-gorp/gorp/v3
 # github.com/go-ini/ini v1.67.0
 ## explicit
 github.com/go-ini/ini
-# github.com/go-jose/go-jose/v3 v3.0.3
+# github.com/go-jose/go-jose/v3 v3.0.4
 ## explicit; go 1.12
 github.com/go-jose/go-jose/v3
 github.com/go-jose/go-jose/v3/cipher
@@ -9556,6 +9561,8 @@ github.com/google/go-containerregistry/pkg/v1/validate
 ## explicit; go 1.17
 # github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20220516044946-14395f1b4b4e
 ## explicit; go 1.17
+# github.com/google/go-cpy v0.0.0-20211218193943-a9c933c06932
+## explicit; go 1.17
 # github.com/google/go-dap v0.12.0
 ## explicit; go 1.18
 github.com/google/go-dap
@@ -9717,13 +9724,14 @@ github.com/google/nftables/internal/nftest
 github.com/google/nftables/internal/parseexprfunc
 github.com/google/nftables/userdata
 github.com/google/nftables/xt
-# github.com/google/osv-scalibr v0.1.7
-## explicit; go 1.23.4
+# github.com/google/osv-scalibr v0.2.0
+## explicit; go 1.24.0
 github.com/google/osv-scalibr
 github.com/google/osv-scalibr/artifact/image
 github.com/google/osv-scalibr/artifact/image/layerscanning/image
 github.com/google/osv-scalibr/artifact/image/layerscanning/testing/fakechainlayer
 github.com/google/osv-scalibr/artifact/image/layerscanning/testing/fakelayer
+github.com/google/osv-scalibr/artifact/image/layerscanning/testing/fakelayerbuilder
 github.com/google/osv-scalibr/artifact/image/layerscanning/testing/fakev1layer
 github.com/google/osv-scalibr/artifact/image/layerscanning/trace
 github.com/google/osv-scalibr/artifact/image/pathtree
@@ -9742,25 +9750,28 @@ github.com/google/osv-scalibr/binary/scanrunner
 github.com/google/osv-scalibr/binary/spdx
 github.com/google/osv-scalibr/clients/clienttest
 github.com/google/osv-scalibr/clients/datasource
+github.com/google/osv-scalibr/clients/datasource/internal/pypi
 github.com/google/osv-scalibr/clients/resolution
 github.com/google/osv-scalibr/common/linux/proc
 github.com/google/osv-scalibr/common/windows/registry
 github.com/google/osv-scalibr/converter
 github.com/google/osv-scalibr/detector
 github.com/google/osv-scalibr/detector/cis/generic_linux/etcpasswdpermissions
-github.com/google/osv-scalibr/detector/cve/cve202011978
-github.com/google/osv-scalibr/detector/cve/cve202016846
-github.com/google/osv-scalibr/detector/cve/cve202233891
-github.com/google/osv-scalibr/detector/cve/cve202338408
-github.com/google/osv-scalibr/detector/cve/cve20236019
-github.com/google/osv-scalibr/detector/cve/cve20242912
+github.com/google/osv-scalibr/detector/cve/untested/cve202011978
+github.com/google/osv-scalibr/detector/cve/untested/cve202016846
+github.com/google/osv-scalibr/detector/cve/untested/cve202233891
+github.com/google/osv-scalibr/detector/cve/untested/cve202338408
+github.com/google/osv-scalibr/detector/cve/untested/cve20236019
+github.com/google/osv-scalibr/detector/cve/untested/cve20242912
 github.com/google/osv-scalibr/detector/govulncheck/binary
 github.com/google/osv-scalibr/detector/list
+github.com/google/osv-scalibr/detector/weakcredentials/codeserver
 github.com/google/osv-scalibr/detector/weakcredentials/etcshadow
 github.com/google/osv-scalibr/detector/weakcredentials/filebrowser
 github.com/google/osv-scalibr/detector/weakcredentials/winlocal
 github.com/google/osv-scalibr/detector/weakcredentials/winlocal/samreg
 github.com/google/osv-scalibr/detector/weakcredentials/winlocal/systemreg
+github.com/google/osv-scalibr/enricher
 github.com/google/osv-scalibr/extractor
 github.com/google/osv-scalibr/extractor/filesystem
 github.com/google/osv-scalibr/extractor/filesystem/containers/containerd
@@ -9769,6 +9780,7 @@ github.com/google/osv-scalibr/extractor/filesystem/internal/units
 github.com/google/osv-scalibr/extractor/filesystem/language/cpp/conanlock
 github.com/google/osv-scalibr/extractor/filesystem/language/dart/pubspec
 github.com/google/osv-scalibr/extractor/filesystem/language/dotnet/depsjson
+github.com/google/osv-scalibr/extractor/filesystem/language/dotnet/dotnetpe
 github.com/google/osv-scalibr/extractor/filesystem/language/dotnet/packagesconfig
 github.com/google/osv-scalibr/extractor/filesystem/language/dotnet/packageslockjson
 github.com/google/osv-scalibr/extractor/filesystem/language/elixir/mixlock
@@ -9811,6 +9823,7 @@ github.com/google/osv-scalibr/extractor/filesystem/language/swift/packageresolve
 github.com/google/osv-scalibr/extractor/filesystem/language/swift/podfilelock
 github.com/google/osv-scalibr/extractor/filesystem/language/swift/swiftutils
 github.com/google/osv-scalibr/extractor/filesystem/list
+github.com/google/osv-scalibr/extractor/filesystem/misc/chrome/extensions
 github.com/google/osv-scalibr/extractor/filesystem/misc/vscodeextensions
 github.com/google/osv-scalibr/extractor/filesystem/misc/wordpress/plugins
 github.com/google/osv-scalibr/extractor/filesystem/os/apk
@@ -9844,30 +9857,41 @@ github.com/google/osv-scalibr/extractor/standalone/windows/ospackages
 github.com/google/osv-scalibr/extractor/standalone/windows/regosversion
 github.com/google/osv-scalibr/extractor/standalone/windows/regpatchlevel
 github.com/google/osv-scalibr/fs
+github.com/google/osv-scalibr/guidedremediation
+github.com/google/osv-scalibr/guidedremediation/internal/lockfile
+github.com/google/osv-scalibr/guidedremediation/internal/lockfile/npm
+github.com/google/osv-scalibr/guidedremediation/internal/manifest
+github.com/google/osv-scalibr/guidedremediation/internal/manifest/maven
+github.com/google/osv-scalibr/guidedremediation/internal/manifest/npm
+github.com/google/osv-scalibr/guidedremediation/internal/matchertest
+github.com/google/osv-scalibr/guidedremediation/internal/remediation
+github.com/google/osv-scalibr/guidedremediation/internal/resolution
+github.com/google/osv-scalibr/guidedremediation/internal/severity
+github.com/google/osv-scalibr/guidedremediation/internal/strategy/common
+github.com/google/osv-scalibr/guidedremediation/internal/strategy/inplace
+github.com/google/osv-scalibr/guidedremediation/internal/strategy/override
+github.com/google/osv-scalibr/guidedremediation/internal/strategy/relax
+github.com/google/osv-scalibr/guidedremediation/internal/strategy/relax/relaxer
+github.com/google/osv-scalibr/guidedremediation/internal/suggest
+github.com/google/osv-scalibr/guidedremediation/internal/util
+github.com/google/osv-scalibr/guidedremediation/internal/vulns
+github.com/google/osv-scalibr/guidedremediation/matcher
+github.com/google/osv-scalibr/guidedremediation/options
+github.com/google/osv-scalibr/guidedremediation/result
+github.com/google/osv-scalibr/guidedremediation/strategy
+github.com/google/osv-scalibr/guidedremediation/upgrade
 github.com/google/osv-scalibr/internal/dependencyfile/packagelockjson
-github.com/google/osv-scalibr/internal/guidedremediation/lockfile
-github.com/google/osv-scalibr/internal/guidedremediation/lockfile/npm
-github.com/google/osv-scalibr/internal/guidedremediation/manifest
-github.com/google/osv-scalibr/internal/guidedremediation/manifest/maven
-github.com/google/osv-scalibr/internal/guidedremediation/manifest/npm
-github.com/google/osv-scalibr/internal/guidedremediation/matcher
-github.com/google/osv-scalibr/internal/guidedremediation/matchertest
-github.com/google/osv-scalibr/internal/guidedremediation/remediation
-github.com/google/osv-scalibr/internal/guidedremediation/remediation/strategy
-github.com/google/osv-scalibr/internal/guidedremediation/remediation/strategy/override
-github.com/google/osv-scalibr/internal/guidedremediation/remediation/upgrade
-github.com/google/osv-scalibr/internal/guidedremediation/resolution
-github.com/google/osv-scalibr/internal/guidedremediation/severity
-github.com/google/osv-scalibr/internal/guidedremediation/vulns
 github.com/google/osv-scalibr/internal/mavenutil
-github.com/google/osv-scalibr/inventoryindex
+github.com/google/osv-scalibr/inventory
 github.com/google/osv-scalibr/log
+github.com/google/osv-scalibr/packageindex
 github.com/google/osv-scalibr/plugin
 github.com/google/osv-scalibr/purl
 github.com/google/osv-scalibr/semantic
 github.com/google/osv-scalibr/stats
 github.com/google/osv-scalibr/testing/extracttest
 github.com/google/osv-scalibr/testing/fakedetector
+github.com/google/osv-scalibr/testing/fakeenricher
 github.com/google/osv-scalibr/testing/fakeextractor
 github.com/google/osv-scalibr/testing/fakefs
 github.com/google/osv-scalibr/testing/mockregistry
@@ -12527,6 +12551,9 @@ github.com/mgutz/logxi/v1
 ## explicit
 # github.com/mholt/certmagic v0.8.3
 ## explicit; go 1.13
+# github.com/michaelkedar/xml v0.0.0-20250501021638-021a7b1a061e
+## explicit; go 1.23
+github.com/michaelkedar/xml
 # github.com/microcosm-cc/bluemonday v1.0.27
 ## explicit; go 1.19
 github.com/microcosm-cc/bluemonday
@@ -12639,6 +12666,7 @@ github.com/mitchellh/go-wordwrap
 ## explicit
 # github.com/mitchellh/hashstructure/v2 v2.0.2
 ## explicit; go 1.14
+github.com/mitchellh/hashstructure/v2
 # github.com/mitchellh/iochan v1.0.0
 ## explicit
 # github.com/mitchellh/mapstructure v1.5.1-0.20220423185008-bf980b35cac4
@@ -14966,6 +14994,10 @@ github.com/ryanuber/go-glob
 ## explicit; go 1.16
 github.com/safchain/ethtool
 github.com/safchain/ethtool/example
+# github.com/saferwall/pe v1.5.7
+## explicit; go 1.15
+github.com/saferwall/pe
+github.com/saferwall/pe/log
 # github.com/sagikazarmark/crypt v0.19.0
 ## explicit; go 1.20
 # github.com/sagikazarmark/locafero v0.7.0
@@ -15047,6 +15079,9 @@ github.com/sebdah/goldie
 # github.com/sebdah/goldie/v2 v2.7.1
 ## explicit; go 1.12
 github.com/sebdah/goldie/v2
+# github.com/secDre4mer/pkcs7 v0.0.0-20240322103146-665324a4461d
+## explicit; go 1.11
+github.com/secDre4mer/pkcs7
 # github.com/seccomp/libseccomp-golang v0.10.0
 ## explicit; go 1.14
 # github.com/secsy/goftp v0.0.0-20200609142545-aa2de14babf4

@@ -309,7 +309,7 @@ require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
 	github.com/container-storage-interface/spec v1.10.0
 	github.com/containerd/cgroups/v3 v3.0.5
-	github.com/containerd/containerd v1.7.25
+	github.com/containerd/containerd v1.7.29
 	github.com/containerd/continuity v0.4.5
 	github.com/containerd/go-cni v1.1.12
 	github.com/containernetworking/cni v1.2.3
@@ -487,7 +487,7 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/google/licensecheck v0.3.1
 	github.com/google/nftables v0.3.0
-	github.com/google/osv-scalibr v0.1.7
+	github.com/google/osv-scalibr v0.2.0
 	github.com/google/osv-scanner v1.8.1
 	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e
 	github.com/google/renameio/v2 v2.0.0
@@ -1120,6 +1120,7 @@ require (
 	dario.cat/mergo v1.0.2 // indirect
 	deps.dev/api/v3 v3.0.0-20250307021655-d811e36f9cad // indirect
 	deps.dev/util/maven v0.0.0-20250307021655-d811e36f9cad // indirect
+	deps.dev/util/pypi v0.0.0-20250903005441-604c45d5b44b // indirect
 	deps.dev/util/resolve v0.0.0-20250310223405-f4cf91c9e684 // indirect
 	deps.dev/util/semver v0.0.0-20250902032900-f16136c5dcd3 // indirect
 	dmitri.shuralyov.com/gpu/mtl v0.0.0-20221208032759-85de2813cf6b // indirect
@@ -1420,6 +1421,7 @@ require (
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/console v1.0.5 // indirect
 	github.com/containerd/containerd/api v1.8.0 // indirect
+	github.com/containerd/containerd/v2 v2.0.5 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
@@ -1627,7 +1629,7 @@ require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20231223183121-56fa3ac82ce7 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-kit/kit v0.13.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
@@ -1698,6 +1700,7 @@ require (
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220517194345-84eb52633e96 // indirect
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20220516044946-14395f1b4b4e // indirect
+	github.com/google/go-cpy v0.0.0-20211218193943-a9c933c06932 // indirect
 	github.com/google/go-dap v0.12.0 // indirect
 	github.com/google/go-github/v28 v28.1.1 // indirect
 	github.com/google/go-licenses v1.6.0 // indirect
@@ -1980,6 +1983,7 @@ require (
 	github.com/mgutz/str v1.2.0 // indirect
 	github.com/mgutz/to v1.0.0 // indirect
 	github.com/mholt/certmagic v0.8.3 // indirect
+	github.com/michaelkedar/xml v0.0.0-20250501021638-021a7b1a061e // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/milvus-io/milvus-proto/go-api/v2 v2.4.10-0.20240819025435-512e3b98866a // indirect
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
@@ -2201,6 +2205,7 @@ require (
 	github.com/ryanuber/columnize v2.1.2+incompatible // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sacloud/libsacloud v1.36.2 // indirect
+	github.com/saferwall/pe v1.5.7 // indirect
 	github.com/sagikazarmark/crypt v0.19.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
@@ -2218,6 +2223,7 @@ require (
 	github.com/sclevine/spec v1.4.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sebdah/goldie v1.0.0 // indirect
+	github.com/secDre4mer/pkcs7 v0.0.0-20240322103146-665324a4461d // indirect
 	github.com/seccomp/libseccomp-golang v0.10.0 // indirect
 	github.com/secsy/goftp v0.0.0-20200609142545-aa2de14babf4 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.7.0 // indirect
