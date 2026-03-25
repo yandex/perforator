@@ -31,7 +31,8 @@ class TsLibraryBuilder(BaseBuilder):
     def _prepare_bindir(self):
         """Prepare bindir by extracting dependencies and copying source files"""
         super()._prepare_bindir()
-        copy_files_with_exclusions(self.options.curdir, self.options.bindir, self.options.exclude_globs)
+        exclude_globs = self.options.exclude_globs + [f"{o}/**/*" for o in self.options.outputs]
+        copy_files_with_exclusions(self.options.curdir, self.options.bindir, exclude_globs)
 
     @timeit
     def _run_build_script(self):
