@@ -14,6 +14,10 @@ import (
 type BuildIDKey struct {
 	Device procfs.Device
 	Inode  procfs.Inode
+	// Mtime and Size are used as fallback disambiguation when Inode.Gen is 0
+	// (e.g. on overlayfs where FS_IOC_GETVERSION is not supported).
+	Mtime time.Time
+	Size  int64
 }
 
 type BuildIDCache struct {
@@ -25,7 +29,7 @@ func NewBuildIDCache() *BuildIDCache {
 }
 
 func (c *BuildIDCache) Load(key BuildIDKey, f *os.File) (*xelf.BuildInfo, error) {
-	s := fmt.Sprintf("%d/%d/%d/%d", key.Device.Maj, key.Device.Min, key.Inode.ID, key.Inode.Gen)
+	s := fmt.Sprintf("%d/%d/%d/%d/%d/%d", key.Device.Maj, key.Device.Min, key.Inode.ID, key.Inode.Gen, key.Mtime.UnixNano(), key.Size)
 
 	item, err := c.cache.Fetch(s, time.Hour, func() (*xelf.BuildInfo, error) {
 		return xelf.ReadBuildInfo(f)

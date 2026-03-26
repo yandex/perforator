@@ -210,7 +210,8 @@ type ProcessMappingBinary struct {
 	ProcRootFilePath string
 	InodeID          uint64
 	InodeGen         uint32
-	mtime            time.Time
+	Mtime            time.Time
+	Size             int64
 
 	file   *os.File
 	isVDSO bool
@@ -247,12 +248,12 @@ func (p *ProcessMappingBinary) tryCalcSecondaryHandle() (SealedFile, error) {
 	}
 
 	mtime := time.Unix(stat.Mtim.Sec, stat.Mtim.Nsec)
-	if stat.Ino != p.InodeID || p.mtime != mtime {
+	if stat.Ino != p.InodeID || p.Mtime != mtime {
 		return nil, fmt.Errorf(
 			"mismatched file %s, expected inode %d, mtime %d, actual inode %d, mtime %d",
 			p.ProcRootFilePath,
 			p.InodeID,
-			p.mtime.UnixNano(),
+			p.Mtime.UnixNano(),
 			stat.Ino,
 			mtime.UnixNano(),
 		)
@@ -326,7 +327,8 @@ func (p *ProcessMappingBinary) Open() error {
 		return fmt.Errorf("failed to get mapping %s inode: %w", p.ProcMapFilesPath, err)
 	}
 	p.InodeID = stat.Ino
-	p.mtime = time.Unix(stat.Mtim.Sec, stat.Mtim.Nsec)
+	p.Mtime = time.Unix(stat.Mtim.Sec, stat.Mtim.Nsec)
+	p.Size = stat.Size
 
 	gen, err := linux.GetInodeGeneration(p.file)
 	if err == nil {

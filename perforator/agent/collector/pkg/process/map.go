@@ -619,6 +619,8 @@ func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping)
 	buildinfo, err := a.reg.buildids.Load(BuildIDKey{
 		Device: mapping.Device,
 		Inode:  mapping.Inode,
+		Mtime:  binary.Mtime,
+		Size:   binary.Size,
 	}, binary.GetFile())
 
 	if err != nil {
