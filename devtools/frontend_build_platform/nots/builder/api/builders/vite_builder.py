@@ -29,12 +29,6 @@ class ViteBuilder(BaseTsBuilder):
         )
         self.bundler_config_path = bundler_config_path
 
-    def bundle(self):
-        """
-        Should not bundle itself to support multiple vite.config.ts files
-        """
-        pass
-
     @timeit
     def _get_script_path(self):
         return self.resolve_bin("vite")

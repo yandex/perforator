@@ -47,14 +47,16 @@ def extract_all_output_tars(moddir_abs: str, visited: set[str] = set()):
 
     visited.add(moddir_abs)
     try:
-        _extract_output_tar(moddir_abs)
-        extract_peer_tars(moddir_abs, visited)
+        extract_output_tar(moddir_abs)
     except Exception as e:
         eprint(f"could not extract output tar for {moddir_abs}: {e}")
+        raise e
+
+    extract_peer_tars(moddir_abs, visited)
 
 
 @timeit
-def _extract_output_tar(moddir_abs: str):
+def extract_output_tar(moddir_abs: str):
     """Extracts the output tar for a module
 
     Args:
@@ -73,12 +75,8 @@ def _extract_output_tar(moddir_abs: str):
     if not os.path.exists(output_tar_path):
         raise FileNotFoundError(output_tar_path)
 
-    pj_exists = os.path.exists(os.path.join(moddir_abs, pm_constants.PACKAGE_JSON_FILENAME))
-
     def pj_filter(e: libarchive.Entry):
-        # extract package.json if it does not exist yet
-        should_extract = e.pathname != pm_constants.PACKAGE_JSON_FILENAME or not pj_exists
-        return should_extract
+        return not os.path.exists(os.path.join(moddir_abs, e.pathname))
 
     archive.extract_tar(output_tar_path, moddir_abs, fail_on_duplicates=False, entry_filter=pj_filter)
 

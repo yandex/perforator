@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-03-25T05:26:30.228Z",
+    "created": "2026-03-26T11:37:31.324Z",
     "pr": {
-      "id": 12607933,
-      "author": "zaverden",
-      "summary": "FBP-2785: builder: verbose popen for all"
+      "id": 12572227,
+      "author": "baymer",
+      "summary": "FBP-2939: паковать output.tar с помощью pnpm pack"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11492851725"
+      "uri": "sbr:11509947194"
     },
     "darwin-arm64": {
-      "uri": "sbr:11492850734"
+      "uri": "sbr:11509943851"
     },
     "linux": {
-      "uri": "sbr:11492853196"
+      "uri": "sbr:11509953534"
     },
     "linux-aarch64": {
-      "uri": "sbr:11492852397"
+      "uri": "sbr:11509950428"
     }
   }
 }

@@ -38,6 +38,12 @@ class BaseBuilder(object):
         self._build()
 
     @timeit
+    def bundle(self):
+        """Create output archive from files listed by pnpm pack"""
+        file_paths = self._get_pack_files()
+        bundle_fs_entries(file_paths, self.options.bindir, self.options.output_file)
+
+    @timeit
     def _get_pack_files(self) -> list[str]:
         """Run pnpm pack --json and return list of files to include in archive"""
         # Create or update .npmignore file
@@ -54,6 +60,31 @@ class BaseBuilder(object):
             '--dry-run',
             '--config.ignoreScripts=true',
         ]
+
+        pj = PackageJson.load(pm_utils.build_pj_path(self.options.bindir))
+
+        # todo: FBP-2979
+        is_pj_need_update = False
+        if 'name' not in pj.data:
+            parts = self.options.moddir.split('/')
+            pj.data['name'] = f'@{parts[0]}/{parts[-1]}'
+            is_pj_need_update = True
+        if 'version' not in pj.data:
+            pj.data['version'] = '0.0.0'
+            is_pj_need_update = True
+        if 'files' not in pj.data:
+            files = []
+            if hasattr(self.options, 'output_dirs') and self.options.output_dirs is not None:
+                files.append(self.options.output_dirs)
+            if hasattr(self.options, 'outputs') and self.options.outputs is not None:
+                files.append(self.options.outputs)
+
+            pj.data['files'] = files
+            is_pj_need_update = True
+
+        if is_pj_need_update:
+            pj.write()
+
         return_code, stdout, stderr = popen(args, env=self._get_envs(), cwd=self.options.bindir)
 
         if return_code != 0:
@@ -64,6 +95,12 @@ class BaseBuilder(object):
 
         # Extract file paths from json['files'][]['path']
         files = [file_entry['path'] for file_entry in pack_data['files']]
+
+        publish_config = pj.data.get('publishConfig', {})
+        publish_directory = publish_config.get('directory')
+        if publish_directory and files:
+            files = [os.path.join(publish_directory, f) for f in files]
+
         files.append('.npmignore')
         return files
 
@@ -159,10 +196,6 @@ class BaseBuilder(object):
 
 @add_metaclass(ABCMeta)
 class BaseLegacyBuilder(BaseBuilder):
-    @staticmethod
-    def bundle_dirs(output_dirs: list[str], build_path: str, bundle_path: str):
-        bundle_fs_entries(output_dirs, build_path, bundle_path)
-
     def __init__(self, options: CommonBuildersOptions):
         super(BaseLegacyBuilder, self).__init__(options)
         self.options = options  # this is for type hints to understand real options' type
@@ -340,15 +373,6 @@ class BaseTsBuilder(BaseLegacyBuilder):
         Should return arguments for the build script
         """
         pass
-
-    @timeit
-    def bundle(self):
-        output_dirs = self.output_dirs
-
-        if self.options.with_after_build and self.options.after_build_outdir:
-            output_dirs.append(self.options.after_build_outdir)
-
-        return self.bundle_dirs(output_dirs, self.options.bindir, self.options.output_file)
 
     @timeit
     def _build(self):

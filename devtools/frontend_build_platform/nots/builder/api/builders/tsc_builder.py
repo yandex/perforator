@@ -28,12 +28,6 @@ class TscBuilder(BaseTsBuilder):
             ts_config_path=os.path.relpath(ts_config.path, options.curdir),
         )
 
-    def bundle(self):
-        """
-        Should not bundle itself, see FBP-868
-        """
-        pass
-
     @timeit
     def _get_script_path(self) -> str:
         return self.resolve_bin("typescript", "tsc")
