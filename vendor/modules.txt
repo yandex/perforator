@@ -4325,7 +4325,7 @@ github.com/alecthomas/participle/lexer
 github.com/alecthomas/participle/lexer/ebnf
 github.com/alecthomas/participle/lexer/ebnf/internal
 github.com/alecthomas/participle/lexer/regex
-# github.com/alecthomas/participle/v2 v2.1.0
+# github.com/alecthomas/participle/v2 v2.1.4
 ## explicit; go 1.18
 github.com/alecthomas/participle/v2
 github.com/alecthomas/participle/v2/cmd/railroad

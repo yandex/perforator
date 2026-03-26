@@ -219,7 +219,7 @@ require (
 	github.com/airbusgeo/godal v0.0.16
 	github.com/airbusgeo/osio v0.1.4
 	github.com/alecthomas/participle v0.4.1
-	github.com/alecthomas/participle/v2 v2.1.0
+	github.com/alecthomas/participle/v2 v2.1.4
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/aleroyer/rsyslog_exporter v1.1.0
 	github.com/alexflint/go-filemutex v1.3.0
