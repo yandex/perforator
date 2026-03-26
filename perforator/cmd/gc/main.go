@@ -132,7 +132,9 @@ var (
 			}
 			if conf.BinaryStorage != nil {
 				gcConfig.Storages = append(gcConfig.Storages, binaryGCConfig)
-				gcConfig.Storages = append(gcConfig.Storages, gsymGCConfig)
+				if bundle.GSYMStorage != nil {
+					gcConfig.Storages = append(gcConfig.Storages, gsymGCConfig)
+				}
 			}
 			if conf.ProfileStorage != nil {
 				gcConfig.Storages = append(gcConfig.Storages, profileGCConfig)
