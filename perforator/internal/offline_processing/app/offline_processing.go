@@ -68,7 +68,7 @@ func NewOfflineProcessingApp(
 		return nil, err
 	}
 
-	binaryDownloader, err := downloader.NewBinaryDownloader(downloaderInstance, storageBundle.BinaryStorage.Binary())
+	binaryDownloader, err := downloader.NewBinaryDownloader(downloaderInstance, storageBundle.BinaryStorage)
 	if err != nil {
 		return nil, err
 	}

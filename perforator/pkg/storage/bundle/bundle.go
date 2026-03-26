@@ -17,6 +17,8 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	cpo_factory "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation/factory"
 	"github.com/yandex/perforator/perforator/pkg/storage/databases"
+	gsymstorage "github.com/yandex/perforator/perforator/pkg/storage/gsym"
+	gsymcompound "github.com/yandex/perforator/perforator/pkg/storage/gsym/compound"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope"
 	postgres_microscope "github.com/yandex/perforator/perforator/pkg/storage/microscope/pg"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
@@ -38,7 +40,8 @@ type StorageBundle struct {
 	DBs *databases.Databases
 
 	ProfileStorage                  profilestorage.Storage
-	BinaryStorage                   binarystorage.StorageSelector
+	BinaryStorage                   binarystorage.Storage
+	GSYMStorage                     gsymstorage.Storage
 	MicroscopeStorage               microscope.Storage
 	TaskStorage                     asynctask.TaskService
 	CustomProfilingOperationStorage custom_profiling_operation.Storage
@@ -96,12 +99,27 @@ func NewStorageBundle(ctx context.Context, bgCtx context.Context, l xlog.Logger,
 		opts = append(opts, binarycompound.WithS3(
 			res.DBs.S3Client,
 			c.BinaryStorage.S3Bucket,
-			c.BinaryStorage.GSYMS3Bucket,
 		))
 
 		res.BinaryStorage, err = binarycompound.NewStorage(l, reg, opts...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init binary storage: %w", err)
+		}
+	}
+
+	if c.BinaryStorage != nil && c.BinaryStorage.GSYMS3Bucket != "" {
+		opts, err := res.createGSYMOptsFromMetaStorageType(c.BinaryStorage.MetaStorage)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gsym storage options: %w", err)
+		}
+		opts = append(opts, gsymcompound.WithS3(
+			res.DBs.S3Client,
+			c.BinaryStorage.GSYMS3Bucket,
+		))
+
+		res.GSYMStorage, err = gsymcompound.NewStorage(l, reg, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init gsym storage: %w", err)
 		}
 	}
 
@@ -179,6 +197,21 @@ func (b *StorageBundle) createOptsFromMetaStorageType(metaStorageType binarystor
 			return nil, ErrPostgresClusterNotSpecified
 		}
 		opts = append(opts, binarycompound.WithPostgresMetaStorage(b.DBs.PostgresCluster))
+	default:
+		return nil, ErrMetaStorageIsNotSpecified
+	}
+
+	return opts, nil
+}
+
+func (b *StorageBundle) createGSYMOptsFromMetaStorageType(metaStorageType binarystorage.MetaStorageType) ([]gsymcompound.Option, error) {
+	opts := []gsymcompound.Option{}
+	switch metaStorageType {
+	case binarystorage.PostgresMetaStorage:
+		if b.DBs.PostgresCluster == nil {
+			return nil, ErrPostgresClusterNotSpecified
+		}
+		opts = append(opts, gsymcompound.WithPostgresMetaStorage(b.DBs.PostgresCluster))
 	default:
 		return nil, ErrMetaStorageIsNotSpecified
 	}

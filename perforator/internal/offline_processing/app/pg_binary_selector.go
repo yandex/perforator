@@ -94,12 +94,13 @@ func (h *PgTransactionHandler) Finalize(ctx context.Context, processingErr error
 func (h *PgTransactionHandler) SetGSYMSizes(ctx context.Context, uncompressedSize uint64, compressedSize uint64) error {
 	_, err := h.tx.ExecContext(
 		ctx,
-		`INSERT INTO gsym(build_id, uncompressed_size, compressed_size)
-		VALUES ($1, $2, $3)
+		`INSERT INTO gsym(build_id, uncompressed_size, compressed_size, last_used_timestamp)
+		VALUES ($1, $2, $3, NOW())
 		ON CONFLICT(build_id) DO UPDATE
 		SET
 			uncompressed_size = $2,
-			compressed_size = $3
+			compressed_size = $3,
+			last_used_timestamp = NOW()
 		`,
 		h.queueItem.BuildID,
 		uncompressedSize,

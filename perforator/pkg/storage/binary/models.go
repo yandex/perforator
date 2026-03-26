@@ -47,9 +47,3 @@ type Storage interface {
 
 	Delete(ctx context.Context, IDs []string) error
 }
-
-type StorageSelector interface {
-	Binary() Storage
-
-	GSYM() Storage
-}

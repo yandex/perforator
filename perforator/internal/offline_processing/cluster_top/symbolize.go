@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"unsafe"
 
-	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
+	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -18,10 +18,10 @@ import (
 type ClusterTopSymbolizer struct {
 	l xlog.Logger
 
-	gsymDownloader *downloader.GSYMDownloader
+	gsymDownloader binaryprovider.BinaryProvider
 }
 
-func NewClusterTopSymbolizer(l xlog.Logger, gsymDownloader *downloader.GSYMDownloader) (*ClusterTopSymbolizer, error) {
+func NewClusterTopSymbolizer(l xlog.Logger, gsymDownloader binaryprovider.BinaryProvider) (*ClusterTopSymbolizer, error) {
 	return &ClusterTopSymbolizer{
 		l:              l,
 		gsymDownloader: gsymDownloader,

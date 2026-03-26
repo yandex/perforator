@@ -12,6 +12,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/storage/binary"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/gc/config"
+	gsymstorage "github.com/yandex/perforator/perforator/pkg/storage/gsym"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -195,12 +196,32 @@ func NewBinaryGC(l xlog.Logger, gcConf *config.StorageConfig, binaryStorage bina
 	return gc, nil
 }
 
+func NewGsymGC(l xlog.Logger, gcConf *config.StorageConfig, gsymStorage gsymstorage.Storage, r metrics.Registry) (Collector, error) {
+	r = r.WithTags(map[string]string{"storage_type": "gsym"})
+
+	gc := &collector{
+		l:       l.WithName("gsym_gc"),
+		storage: gsymStorage,
+		gcConf:  gcConf,
+		metrics: newGcStorageMetrics(r),
+	}
+
+	err := gc.initConcurrency()
+	if err != nil {
+		return nil, err
+	}
+
+	return gc, nil
+}
+
 func NewCollector(l xlog.Logger, r metrics.Registry, gcConf *config.StorageConfig, storageBundle *bundle.StorageBundle) (Collector, error) {
 	switch gcConf.Type {
 	case config.Profile:
 		return NewProfileGC(l, gcConf, storageBundle.ProfileStorage, r)
 	case config.Binary:
-		return NewBinaryGC(l, gcConf, storageBundle.BinaryStorage.Binary(), r)
+		return NewBinaryGC(l, gcConf, storageBundle.BinaryStorage, r)
+	case config.GSYM:
+		return NewGsymGC(l, gcConf, storageBundle.GSYMStorage, r)
 	default:
 		return nil, fmt.Errorf("unsupported storage type %s", string(gcConf.Type))
 	}

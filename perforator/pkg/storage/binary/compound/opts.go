@@ -11,9 +11,8 @@ type Option = func(*options)
 type options struct {
 	postgresCluster *hasql.Cluster
 
-	s3client     *s3.Client
-	s3bucket     string
-	s3GSYMbucket string
+	s3client *s3.Client
+	s3bucket string
 }
 
 func defaultOpts() *options {
@@ -26,10 +25,9 @@ func WithPostgresMetaStorage(cluster *hasql.Cluster) Option {
 	}
 }
 
-func WithS3(client *s3.Client, bucket string, gsymBucket string) Option {
+func WithS3(client *s3.Client, bucket string) Option {
 	return func(o *options) {
 		o.s3client = client
 		o.s3bucket = bucket
-		o.s3GSYMbucket = gsymBucket
 	}
 }

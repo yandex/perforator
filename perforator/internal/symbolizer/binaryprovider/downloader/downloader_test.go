@@ -33,7 +33,8 @@ func newTestObjects(
 	xlog.Logger,
 	metrics.Registry,
 	*mock_binary.MockStorage,
-	*BinaryDownloader,
+	*Downloader,
+	binaryprovider.BinaryProvider,
 ) {
 	l := xlog.ForTest(t)
 	reg := metricsmock.NewRegistry(nil)
@@ -49,24 +50,27 @@ func newTestObjects(
 	ctrl := gomock.NewController(t)
 	storage := mock_binary.NewMockStorage(ctrl)
 
-	downloader, err := NewDownloader(l, reg, fileCache, *config)
+	downloaderInstance, err := NewDownloader(l, reg, fileCache, *config)
 	require.NoError(t, err)
 
-	binaryDownloader, err := NewBinaryDownloader(downloader, storage)
+	binaryDownloader, err := NewBinaryDownloader(
+		downloaderInstance,
+		storage,
+	)
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func(t *testing.T) {
-		err := downloader.RunBackgroundDownloader(ctx)
+		err := downloaderInstance.RunBackgroundDownloader(ctx)
 		if !errors.Is(err, context.Canceled) {
 			require.NoError(t, err)
 		}
 	}(t)
-	return ctx, cancel, l, reg, storage, binaryDownloader
+	return ctx, cancel, l, reg, storage, downloaderInstance, binaryDownloader
 }
 
 func TestDownloader_Simple(t *testing.T) {
-	ctx, cancel, _, _, mockStorage, downloader := newTestObjects(
+	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
 		t,
 		&asyncfilecache.Config{
 			MaxSize:  "100G",
@@ -118,7 +122,7 @@ func TestDownloader_Simple(t *testing.T) {
 	err = acquiredBinary.WaitStored(ctx)
 	require.NoError(t, err)
 
-	suffix := fmt.Sprintf("%sa", BinaryFilePrefix)
+	suffix := fmt.Sprintf("%sa", binaryFilePrefix)
 	require.True(
 		t,
 		strings.HasSuffix(acquiredBinary.Path(), suffix),
@@ -134,7 +138,7 @@ func TestDownloader_Simple(t *testing.T) {
 }
 
 func TestDownloader_SameBinarySimple(t *testing.T) {
-	ctx, cancel, _, _, mockStorage, downloader := newTestObjects(
+	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
 		t,
 		&asyncfilecache.Config{
 			MaxSize:  "100G",
@@ -182,7 +186,7 @@ func TestDownloader_SameBinarySimple(t *testing.T) {
 
 	err = acquiredBinary1.WaitStored(ctx)
 	require.NoError(t, err)
-	suffix := fmt.Sprintf("%s%s", BinaryFilePrefix, buildID)
+	suffix := fmt.Sprintf("%s%s", binaryFilePrefix, buildID)
 	require.True(
 		t,
 		strings.HasSuffix(acquiredBinary1.Path(), suffix),
@@ -209,7 +213,7 @@ func TestDownloader_SameBinarySimple(t *testing.T) {
 }
 
 func TestCachedDownloader_ErrorHandling(t *testing.T) {
-	ctx, cancel, _, _, mockStorage, downloader := newTestObjects(
+	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
 		t,
 		&asyncfilecache.Config{
 			MaxSize:  "100G",
@@ -302,7 +306,7 @@ func buildRequests(binaries uint32, requestsCount uint32) ([]*Request, map[strin
 }
 
 func TestCachedDownloader_Concurrent(t *testing.T) {
-	ctx, cancel, l, _, mockStorage, downloader := newTestObjects(
+	ctx, cancel, l, _, mockStorage, _, downloader := newTestObjects(
 		t,
 		&asyncfilecache.Config{
 			MaxSize:  "100B",
@@ -375,7 +379,7 @@ func TestCachedDownloader_Concurrent(t *testing.T) {
 			for buildID, acquiredBinary := range acquiredBinaries {
 				err := acquiredBinary.WaitStored(ctx)
 				require.NoError(t, err)
-				require.True(t, strings.HasSuffix(acquiredBinary.Path(), getBinaryFileEntryName(buildID, BinaryFilePrefix)))
+				require.True(t, strings.HasSuffix(acquiredBinary.Path(), getBinaryFileEntryName(buildID, binaryFilePrefix)))
 			}
 
 			if !failedToAcquire {

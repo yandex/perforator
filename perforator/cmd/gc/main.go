@@ -69,6 +69,16 @@ var (
 			Concurrency: 1,
 		},
 	}
+	gsymGCConfig = gcconfig.StorageConfig{
+		Type: gcconfig.GSYM,
+		TTL: gcconfig.TTLConfig{
+			TTL: 1440 * time.Hour,
+		},
+		Concurrency: &gcconfig.ConcurrencyConfig{
+			Shards:      1,
+			Concurrency: 1,
+		},
+	}
 
 	iterationInterval *time.Duration
 
@@ -122,6 +132,7 @@ var (
 			}
 			if conf.BinaryStorage != nil {
 				gcConfig.Storages = append(gcConfig.Storages, binaryGCConfig)
+				gcConfig.Storages = append(gcConfig.Storages, gsymGCConfig)
 			}
 			if conf.ProfileStorage != nil {
 				gcConfig.Storages = append(gcConfig.Storages, profileGCConfig)
@@ -161,6 +172,12 @@ func init() {
 		"profile-ttl",
 		time.Hour*1440,
 		"Profile TTL",
+	)
+	gcCmd.Flags().DurationVar(
+		&gsymGCConfig.TTL.TTL,
+		"gsym-ttl",
+		time.Hour*1440,
+		"GSYM TTL",
 	)
 
 	gcCmd.Flags().StringVarP(

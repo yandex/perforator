@@ -9,6 +9,7 @@ type StorageType string
 const (
 	Profile StorageType = "profile"
 	Binary  StorageType = "binary"
+	GSYM    StorageType = "gsym"
 )
 
 type TTLConfig struct {

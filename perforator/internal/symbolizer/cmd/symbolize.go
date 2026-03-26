@@ -143,8 +143,8 @@ var (
 				},
 				20,
 				logger, nop.Registry{},
-				bundle.BinaryStorage.Binary(),
-				bundle.BinaryStorage.GSYM(),
+				bundle.BinaryStorage,
+				bundle.GSYMStorage,
 			)
 			if err != nil {
 				return err

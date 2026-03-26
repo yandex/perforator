@@ -197,7 +197,7 @@ func NewPerforatorServer(
 		conf.BinaryProvider.FileCache,
 		conf.BinaryProvider.MaxSimultaneousDownloads,
 		l, reg,
-		storageBundle.BinaryStorage.Binary(), storageBundle.BinaryStorage.GSYM(),
+		storageBundle.BinaryStorage, storageBundle.GSYMStorage,
 	)
 
 	if err != nil {

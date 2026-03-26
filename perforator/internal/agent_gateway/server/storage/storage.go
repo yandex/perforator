@@ -184,7 +184,7 @@ func NewService(
 		profileSamplerByEvent:    make(map[string]*moduloSampler),
 		binaryUploadLimiter:      semaphore.NewWeighted(1),
 		profileStorage:           storageBundle.ProfileStorage,
-		binaryStorage:            storageBundle.BinaryStorage.Binary(),
+		binaryStorage:            storageBundle.BinaryStorage,
 		microscopeFilter:         microscopeFilter,
 		buildIDCache:             cache,
 		profileCommentProcessors: make(map[string]func(string, *profilemeta.ProfileMetadata) error),

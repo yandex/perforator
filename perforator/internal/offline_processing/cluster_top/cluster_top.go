@@ -62,7 +62,7 @@ func NewClusterTop(
 		return nil, err
 	}
 
-	gsymDownloader, err := downloader.NewGSYMDownloader(downloaderInstance, storageBundle.BinaryStorage.GSYM())
+	gsymDownloader, err := downloader.NewGSYMDownloader(downloaderInstance, storageBundle.GSYMStorage)
 	if err != nil {
 		return nil, err
 	}
