@@ -36,6 +36,9 @@ BPF(unwinder/unwinder.bpf.c unwinder.debug.k54.elf $BPF_FLAGS $BPF_ARCH_FLAGS -D
 BPF(unwinder/unwinder.bpf.c unwinder.release.php.elf $BPF_FLAGS $BPF_ARCH_FLAGS -DPERFORATOR_ENABLE_PHP)
 BPF(unwinder/unwinder.bpf.c unwinder.debug.php.elf $BPF_FLAGS $BPF_ARCH_FLAGS -DBPF_DEBUG -DPERFORATOR_ENABLE_PHP)
 
+BPF(unwinder/unwinder.bpf.c unwinder.release.k54.php.elf $BPF_FLAGS $BPF_ARCH_FLAGS -DPERFORATOR_COMPAT_5_4 -Wno-unused-function -DPERFORATOR_ENABLE_PHP)
+BPF(unwinder/unwinder.bpf.c unwinder.debug.k54.php.elf $BPF_FLAGS $BPF_ARCH_FLAGS -DBPF_DEBUG -DPERFORATOR_COMPAT_5_4 -Wno-unused-function -DPERFORATOR_ENABLE_PHP)
+
 
 ADDINCL(
     contrib/libs/libbpf/include

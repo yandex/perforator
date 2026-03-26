@@ -631,3 +631,12 @@ func (p *Prettifier) Prettify() {
 		return isImportlibLocation(loc) || isTrampolinePythonLocation(loc)
 	})
 }
+
+// PrettifyProfile runs prettification on all samples that contain Python frames.
+func PrettifyProfile(p *pprof.Profile) {
+	for _, sample := range p.Sample {
+		if containsInterpretedPythonStack(sample) {
+			NewPrettifier(sample).Prettify()
+		}
+	}
+}

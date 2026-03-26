@@ -56,7 +56,7 @@ export const startProfileTask = async (
 
     const maxProfiles = query.maxProfiles;
     const flamegraphRender = getRenderFlamegraph(query, flamegraphOptions);
-    const postprocessingOptions: PostprocessOptions = settings.showPrettyPythonFrames ? { MergePythonAndNativeStacks: true, PrettifyPythonStacksExperimental: true } : {};
+    const postprocessingOptions: PostprocessOptions = settings.showPrettyPythonFrames ? { MergePythonAndNativeStacks: true, PrettifyPythonStacksExperimental: true, MergePHPAndNativeStacks: true } : {};
 
     const request =
         diffSelector

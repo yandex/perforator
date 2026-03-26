@@ -599,6 +599,7 @@ message PostprocessOptions {
     optional bool MergePythonAndNativeStacks = 1;
     // This is only considered if MergePythonAndNativeStacks is not false
     optional bool PrettifyPythonStacksExperimental = 2;
+    optional bool MergePHPAndNativeStacks = 3;
 }
 
 message RenderFormat {

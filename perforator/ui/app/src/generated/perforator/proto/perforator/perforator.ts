@@ -561,6 +561,7 @@ export interface PostprocessOptions {
     | undefined;
   /** This is only considered if MergePythonAndNativeStacks is not false */
   PrettifyPythonStacksExperimental?: boolean | undefined;
+  MergePHPAndNativeStacks?: boolean | undefined;
 }
 
 export interface RenderFormat {

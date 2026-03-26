@@ -42,8 +42,8 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
+	"github.com/yandex/perforator/perforator/pkg/profile/interpreterstack"
 	"github.com/yandex/perforator/perforator/pkg/profile/merge"
-	"github.com/yandex/perforator/perforator/pkg/profile/python"
 	"github.com/yandex/perforator/perforator/pkg/profile/quality"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
@@ -178,16 +178,16 @@ func record(opts *recordOptions, args []string) error {
 	}
 
 	if opts.enableInterpreterStackMerging {
-		postprocessOptions := []python.Option{}
+		var postprocessOptions []interpreterstack.Option
 		if opts.experimentalEnablePythonStackPrettification {
-			postprocessOptions = append(postprocessOptions, python.PrettifyPythonStacksOption())
+			postprocessOptions = append(postprocessOptions, interpreterstack.WithPythonPrettification())
 		}
-		postProcessResults := python.Postprocess(profile, postprocessOptions...)
-		if len(postProcessResults.Errors) > 0 {
-			logger.Fmt().Debugf("Errors on merge python and native stacks: %v", errors.Join(postProcessResults.Errors...))
+		postProcessResults := interpreterstack.Postprocess(profile, postprocessOptions...)
+		if len(postProcessResults.Python.Errors) > 0 {
+			logger.Fmt().Debugf("Errors on merge python and native stacks: %v", errors.Join(postProcessResults.Python.Errors...))
 		}
 
-		mergedStacksPercentage := 100 * float64(postProcessResults.MergedStacksCount) / float64(postProcessResults.MergedStacksCount+postProcessResults.UnmergedStacksCount)
+		mergedStacksPercentage := 100 * float64(postProcessResults.Python.MergedStacksCount) / float64(postProcessResults.Python.MergedStacksCount+postProcessResults.Python.UnmergedStacksCount)
 		logger.Fmt().Debugf("Merged stacks percentage %.2f%%", mergedStacksPercentage)
 	}
 

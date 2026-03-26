@@ -26,7 +26,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/symbolizer/autofdo"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
-	"github.com/yandex/perforator/perforator/pkg/profile/python"
+	"github.com/yandex/perforator/perforator/pkg/profile/interpreterstack"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
@@ -1253,25 +1253,19 @@ func (s *PerforatorServer) renderProfile(
 		return nil, err
 	}
 
-	if format.Postprocessing == nil || format.Postprocessing.MergePythonAndNativeStacks == nil || *format.Postprocessing.MergePythonAndNativeStacks {
-		opts := []python.Option{}
-		if format.Postprocessing != nil && format.Postprocessing.PrettifyPythonStacksExperimental != nil && *format.Postprocessing.PrettifyPythonStacksExperimental {
-			opts = append(opts, python.PrettifyPythonStacksOption())
+	{
+		postprocessResults := interpreterstack.Postprocess(profile, interpreterstack.OptionsFromProto(format.Postprocessing)...)
+		if len(postprocessResults.Python.Errors) > 0 {
+			s.l.Warn(ctx, "Found errors on joining python and native stacks", log.Error(errors.Join(postprocessResults.Python.Errors...)))
 		}
 
-		postprocessResults := python.Postprocess(profile, opts...)
-		if len(postprocessResults.Errors) > 0 {
-			s.l.Warn(ctx, "Found errors on joining python and native stacks", log.Error(errors.Join(postprocessResults.Errors...)))
-		}
-
-		s.metrics.mergedPythonStacks.Add(int64(postprocessResults.MergedStacksCount))
-		s.metrics.unmergedPythonStacks.Add(int64(postprocessResults.UnmergedStacksCount))
-		if postprocessResults.MergedStacksCount+postprocessResults.UnmergedStacksCount > 0 {
+		s.metrics.mergedPythonStacks.Add(int64(postprocessResults.Python.MergedStacksCount))
+		s.metrics.unmergedPythonStacks.Add(int64(postprocessResults.Python.UnmergedStacksCount))
+		if postprocessResults.Python.MergedStacksCount+postprocessResults.Python.UnmergedStacksCount > 0 {
 			s.metrics.mergedPythonStacksRatios.RecordValue(
-				float64(postprocessResults.MergedStacksCount) / float64(postprocessResults.MergedStacksCount+postprocessResults.UnmergedStacksCount),
+				float64(postprocessResults.Python.MergedStacksCount) / float64(postprocessResults.Python.MergedStacksCount+postprocessResults.Python.UnmergedStacksCount),
 			)
 		}
-
 	}
 
 	start := time.Now()
