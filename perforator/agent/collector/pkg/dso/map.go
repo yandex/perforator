@@ -14,6 +14,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	bpf "github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/parser"
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm"
 	preprocessig_proto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
 	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
@@ -47,6 +48,7 @@ const (
 	PythonBinaryClass
 	PthreadGlibcBinaryClass
 	PhpBinaryClass
+	JvmBinaryClass
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -340,6 +342,9 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 
 	if analysis.PthreadConfig != nil {
 		dso.BinaryClass = PthreadGlibcBinaryClass
+	}
+	if analysis.Jvm.GetStatus() == jvm.JvmAnalysis_STATUS_OK {
+		dso.BinaryClass = JvmBinaryClass
 	}
 
 	dso.bpfAllocation, err = d.bpfBinaryManager.Add(ctx, buildID, dso.ID, analysis)

@@ -7,6 +7,7 @@ import "perforator/agent/preprocessing/proto/tls/tls.proto";
 import "perforator/agent/preprocessing/proto/pthread/pthread.proto";
 import "perforator/agent/preprocessing/proto/python/python.proto";
 import "perforator/agent/preprocessing/proto/php/php.proto";
+import "perforator/agent/preprocessing/proto/jvm/jvm.proto";
 
 option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse";
 
@@ -16,6 +17,7 @@ message BinaryAnalysis {
     NPerforator.NBinaryProcessing.NPython.PythonConfig PythonConfig = 3;
     NPerforator.NBinaryProcessing.NPthread.PthreadConfig PthreadConfig = 4;
     NPerforator.NBinaryProcessing.NPhp.PhpConfig PhpConfig = 5;
+    NPerforator.NBinaryProcessing.NJvm.JvmAnalysis Jvm = 6;
 }
 
 enum UnwindInfoSource {

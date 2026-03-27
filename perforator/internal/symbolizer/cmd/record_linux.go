@@ -88,6 +88,8 @@ type recordOptions struct {
 	enableJVM                                   bool
 	enablePHP                                   bool
 	enableSframe                                bool
+
+	jvmHelperBinaryPath string
 }
 
 func (o *recordOptions) Bind(cmd *cobra.Command) {
@@ -120,6 +122,8 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.enablePHP, "experimental-enable-php", false, "[Experimental feature] Enable PHP profiling")
 	cmd.Flags().BoolVar(&o.enableSframe, "experimental-enable-sframe-parsing", false, "[Experimental feature] Enable Sframe unwinder")
 	cmd.Flags().BoolVar(&o.experimentalEnablePythonStackPrettification, "experimental-prettify-python-stacks", false, "[Experimental feature] Enable Python stack prettification")
+
+	cmd.Flags().StringVar(&o.jvmHelperBinaryPath, "jvm-helper-binary-path", "perforator-jvm-helper", "Path to JVM profiling helper")
 
 	cmd.MarkFlagsMutuallyExclusive("freq", "count")
 
@@ -374,6 +378,13 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 		return nil, "", fmt.Errorf("failed to parse events: %w", err)
 	}
 
+	var jvmConfig *config.JVM
+	if opts.enableJVM {
+		jvmConfig = &config.JVM{
+			ScannerBinaryPath: opts.jvmHelperBinaryPath,
+		}
+	}
+
 	prof, err := profiler.NewProfiler(&config.Config{
 		Debug: opts.debug,
 		BPF: machine.Config{
@@ -400,11 +411,12 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 			EnablePHP:    ptr.Bool(opts.enablePHP),
 			EnableSframe: ptr.Bool(opts.enableSframe),
 		},
+		JVM: jvmConfig,
 	},
 		logger.WithContext(ctx),
 		registry,
 		profiler.WithStorage(storage),
-		profiler.WithDefaultBPFPinPrefix(fmt.Sprint("perforator-internal-cli", uuid.New().String(), "-")),
+		profiler.WithIdentity(uuid.New().String()),
 	)
 
 	if err != nil {

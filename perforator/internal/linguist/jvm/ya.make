@@ -3,6 +3,7 @@ RECURSE(
     cheatsheets
     jvmattach
     jvmbindings
+    jvmregistry
     jvmscanner
     jvmsupportservice
     unwind

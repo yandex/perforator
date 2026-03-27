@@ -8,6 +8,7 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
 
@@ -17,9 +18,10 @@ func (b *BPF) pinMap(mp *ebpf.Map, name string) error {
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("failed to unpin old %s map: %w", name, err)
 	}
+	b.log.Debug("Pinning BPF map", log.String("map", name), log.String("path", path))
 	err = mp.Pin(path)
 	if err != nil {
-		return fmt.Errorf("failed to pin %s map: %w", name, err)
+		return fmt.Errorf("failed to pin %s map to %q: %w", name, path, err)
 	}
 	b.mapsToUnpin = append(b.mapsToUnpin, mp)
 	return nil
@@ -29,6 +31,7 @@ func (b *BPF) pinIfNeeded(maps *unwinder.Maps) error {
 	if !b.opts.EnableJVM {
 		return nil
 	}
+	b.log.Debug("Pinning BPF objects")
 	if b.conf.PinPrefix == "" {
 		return fmt.Errorf("internal error: pinning is needed, but no pin_prefix was configured")
 	}

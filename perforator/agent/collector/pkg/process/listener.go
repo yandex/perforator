@@ -11,7 +11,8 @@ import (
 type Mapping interface {
 	Path() string
 	BinaryClass() dso.BinaryClass
-	dso() *dso.DSO
+	ID() uint64
+	BaseAddress() uint64
 	begin() uint64
 	end() uint64
 	buildInfo() *xelf.BuildInfo

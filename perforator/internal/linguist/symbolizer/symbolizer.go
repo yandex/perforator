@@ -18,6 +18,7 @@ import (
 
 const (
 	DefaultMaxCacheSize = (1 << 13)
+	DefaultCacheTTL     = 5 * time.Minute
 )
 
 type SymbolizerConfig struct {
@@ -57,7 +58,7 @@ func NewPhpSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metric
 
 func newSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metrics.Registry, language string) (*Symbolizer, error) {
 	cacheSize := DefaultMaxCacheSize
-	itemTTL := 5 * time.Minute
+	itemTTL := DefaultCacheTTL
 	if c.ItemTTL != 0 {
 		itemTTL = c.ItemTTL
 	}

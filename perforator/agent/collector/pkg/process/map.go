@@ -74,8 +74,12 @@ type mappingImpl struct {
 	m *dso.Mapping
 }
 
-func (m mappingImpl) dso() *dso.DSO {
-	return m.m.DSO
+func (m mappingImpl) ID() uint64 {
+	return m.m.DSO.ID
+}
+
+func (m mappingImpl) BaseAddress() uint64 {
+	return m.m.BaseAddress
 }
 
 func (m mappingImpl) begin() uint64 {
@@ -718,6 +722,8 @@ func (a *processAnalyzer) fillMappedBinaryInfo(pi *unwinder.ProcessInfo, mapping
 			pi.PhpBinary = mappedBinaryFromMapping(m)
 		case dso.PthreadGlibcBinaryClass:
 			pi.PthreadBinary = mappedBinaryFromMapping(m)
+		case dso.JvmBinaryClass:
+			pi.LibjvmBinary = mappedBinaryFromMapping(m)
 		}
 	}
 }
@@ -747,6 +753,10 @@ func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
 		pi.MainBinaryId = unwinder.BinaryId(a.exemappings[0].DSO.ID)
 	}
 	a.fillMappedBinaryInfo(pi, a.exemappings)
+	if pi.LibjvmBinary.BaseAddress != math.MaxUint64 {
+		pi.UnwindType = unwinder.UnwindTypeMixed
+		a.log.Debug(ctx, "Enabling mixed unwinder", log.UInt32("pid", uint32(a.proc.currentNamespaceID)))
+	}
 
 	a.log.Debug(ctx, "Put process info", log.Any("info", pi))
 	err := a.reg.state.AddProcess(a.proc.currentNamespaceID, pi)
@@ -774,7 +784,7 @@ func (a *processAnalyzer) syncMaps(ctx context.Context) {
 
 		mapping, ok := a.proc.registeredmaps[m.Begin]
 		// Happy path. Mapping exist and points to the valid binary.
-		if ok && mapping.dso().ID == m.DSO.ID && mapping.end() == m.End {
+		if ok && mapping.ID() == m.DSO.ID && mapping.end() == m.End {
 			continue
 		}
 

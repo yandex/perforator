@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/binary"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/unwindtable"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/perfmap"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
@@ -28,6 +30,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	preprocessig_proto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
+	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmregistry"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/logfield"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
@@ -99,6 +102,8 @@ type Profiler struct {
 
 	jitSymbolizers []profilerext.JITSymbolizer
 
+	jvmRegistry *jvmregistry.Registry
+
 	// Profiling targets
 	wholeSystem SampleConsumer
 	cgroups     *cgroups.Tracker
@@ -122,7 +127,7 @@ type Profiler struct {
 	enablePerfMaps    bool
 	enablePerfMapsJVM bool
 
-	defaultBPFPinPrefix string
+	identity string
 }
 
 type languageCollectionMetrics struct {
@@ -226,11 +231,9 @@ func WithThreadTarget(tid int, labels map[string]string) Option {
 	}
 }
 
-// WithDefaultBPFPinPrefix sets the default BPF pin prefix that will be used if no other prefix
-// is set in config.BPF.
-func WithDefaultBPFPinPrefix(pinPrefix string) Option {
+func WithIdentity(id string) Option {
 	return func(p *Profiler) error {
-		p.defaultBPFPinPrefix = pinPrefix
+		p.identity = id
 		return nil
 	}
 }
@@ -358,8 +361,11 @@ func (p *Profiler) initializeStorage(r metrics.Registry) (err error) {
 // Initialize the profiler.
 // Prepare and load eBPF programs, tune rlimits, ...
 func (p *Profiler) initialize(r metrics.Registry) (err error) {
+	if p.conf.JVM.Identity != "" {
+		p.identity = p.conf.JVM.Identity
+	}
 	if p.conf.BPF.PinPrefix == "" {
-		p.conf.BPF.PinPrefix = p.defaultBPFPinPrefix
+		p.conf.BPF.PinPrefix = p.identity
 	}
 	// Load eBPF programs
 	p.bpf, err = machine.NewBPF(
@@ -461,11 +467,51 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		p.processListeners = append(p.processListeners, p.perfmap)
 		p.jitSymbolizers = append(p.jitSymbolizers, p.perfmap)
 	}
+	// TODO: ProcessRegistry prefix seems wrong
+	unwmanager, err := unwindtable.NewBPFManager(p.log.WithName("ProcessRegistry"), r.WithPrefix("ProcessRegistry"), p.bpf.State())
+	if err != nil {
+		return fmt.Errorf("failed to create unwind table manager: %w", err)
+	}
+
+	if p.conf.FeatureFlagsConfig.JVMEnabled() {
+		if p.identity == "" {
+			return fmt.Errorf("bug: identity is required for jvm support")
+		}
+		var err error
+		p.jvmRegistry, err = jvmregistry.New(
+			xlog.Wrap(p.log),
+			r,
+			p.bpf,
+			unwmanager,
+			jvmregistry.Options{
+				SocketPath:        p.conf.JVM.SocketPathPrefix + p.identity + ".sock",
+				ScannerBinaryPath: p.conf.JVM.ScannerBinaryPath,
+
+				MapPrefix:               path.Join(p.conf.BPF.BPFFSRoot, p.conf.BPF.PinPrefix),
+				DisambiguateFrameSource: p.conf.JVM.DisambiguateMethodKinds,
+
+				InterpetedSymbolCacheSize: p.conf.JVM.InterpretedMethodSymbolizationCacheSize,
+				InterpretedSymbolCacheTTL: p.conf.JVM.InterpretedMethodSymbolizationCacheTTL,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create jvm registry: %w", err)
+		}
+		p.processListeners = append(p.processListeners, p.jvmRegistry)
+		p.jitSymbolizers = append(p.jitSymbolizers, p.jvmRegistry)
+	}
+
+	var binaryListeners []binary.Listener
+	if p.conf.FeatureFlagsConfig.JVMEnabled() {
+		binaryListeners = append(binaryListeners, p.jvmRegistry)
+	}
 
 	bpfManager, err := binary.NewBPFBinaryManager(
 		p.log.WithName("ProcessRegistry"),
 		r.WithPrefix("ProcessRegistry"),
 		p.bpf.State(),
+		unwmanager,
+		binary.WithAddListeners(binaryListeners...),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create bpf binary manager: %w", err)
@@ -881,7 +927,7 @@ func (p *Profiler) handleWorkerError(ctx context.Context, err error, workerName 
 	}
 
 	l.Error("Worker failed", log.Error(err))
-	return err
+	return fmt.Errorf("worker %q failed: %w", workerName, err)
 }
 
 var ErrStopped = errors.New("profiler is stopped")
@@ -958,6 +1004,12 @@ func (p *Profiler) Start(ctx context.Context) error {
 		p.wg.Go(func() error {
 			err := p.runPodsCgroupTracker(ctx)
 			return p.handleWorkerError(ctx, err, "pods cgroup tracker")
+		})
+	}
+	if p.jvmRegistry != nil {
+		p.wg.Go(func() error {
+			err := p.jvmRegistry.Run(ctx)
+			return p.handleWorkerError(ctx, err, "jvm registry")
 		})
 	}
 

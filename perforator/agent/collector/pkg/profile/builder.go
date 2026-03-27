@@ -239,6 +239,11 @@ func (b *SampleBuilder) AddNativeLocation(address uint64) *LocationBuilder {
 
 	return &LocationBuilder{b.cache, b, loc}
 }
+func (b *SampleBuilder) AddNativeLocationUncached(address uint64) *LocationBuilder {
+	loc := b.cache.newLocation(address)
+
+	return &LocationBuilder{b.cache, b, loc}
+}
 
 // Must be called before all AddNativeLocation calls.
 // Shitty but we want to adapt to pprof here until new profile format
@@ -431,16 +436,20 @@ func NewProcessCache(pid uint32, ids *ids) *ProcessCache {
 	}
 }
 
+func (c *ProcessCache) newLocation(address uint64) *profile.Location {
+	return &profile.Location{
+		ID:      c.ids.nextLocation.Add(1),
+		Address: address,
+	}
+}
+
 func (c *ProcessCache) GetOrAddNativeLocation(address uint64) (loc *profile.Location, isnew bool) {
 	l, ok := c.nativeLocations[address]
 	if ok {
 		return l, false
 	}
 
-	l = &profile.Location{
-		ID:      c.ids.nextLocation.Add(1),
-		Address: address,
-	}
+	l = c.newLocation(address)
 
 	c.nativeLocations[address] = l
 	return l, true

@@ -102,7 +102,7 @@ func NewPerforatorAgent(
 		remoteStorage := client.NewRemoteStorage(xLogger, r, agent.agentGatewayClient.StorageClient)
 		options.profilerOpts = append(options.profilerOpts, profiler.WithStorage(remoteStorage))
 	}
-	options.profilerOpts = append(options.profilerOpts, profiler.WithDefaultBPFPinPrefix("perforator-internal-agent-"))
+	options.profilerOpts = append(options.profilerOpts, profiler.WithIdentity("agent"))
 
 	agent.profiler, err = profiler.NewProfiler(profilerConfig, l, r, options.profilerOpts...)
 	if err != nil {

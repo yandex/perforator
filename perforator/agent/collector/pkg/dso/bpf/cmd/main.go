@@ -9,6 +9,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics/mock"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/binary"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/unwindtable"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/parser"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -37,8 +38,12 @@ func run(ctx context.Context, l xlog.Logger) error {
 	if preferSframe {
 		binaryParserOptions.PreferredUnwindInfoSource = parse.UnwindInfoSource_Sframe
 	}
+	unwindTableManager, err := unwindtable.NewBPFManager(l.Logger(), r, nil)
+	if err != nil {
+		return err
+	}
 
-	m, err := binary.NewBPFBinaryManager(l.Logger(), r, nil /* state */)
+	m, err := binary.NewBPFBinaryManager(l.Logger(), r, nil /* state */, unwindTableManager)
 	if err != nil {
 		return err
 	}

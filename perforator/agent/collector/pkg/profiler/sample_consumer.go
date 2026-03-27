@@ -18,6 +18,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/logfield"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/env"
@@ -26,6 +27,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/tls"
+	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
 const (
@@ -450,7 +452,7 @@ func (c *oneShotSampleConsumer) collectKernelStackInto(builder *profile.SampleBu
 	}
 }
 
-func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, loc *profile.LocationBuilder, ip uint64) {
+func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, loc *profile.LocationBuilder, ip uint64, jvmFrame *unwinder.JvmFrame) {
 	for _, s := range c.p.jitSymbolizers {
 		out, ok := s.Resolve(linux.CurrentNamespacePID(c.sample.Pid), ip)
 		if !ok {
@@ -485,6 +487,24 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 		}
 
 		m.Finish()
+	} else if jvmFrame != nil {
+		fb := loc.AddFrame()
+		if c.p.conf.JVM.DisableInterpretedMethodSymbolization {
+			fb.
+				SetName(models.UnsymbolizedInterpreterLocation).
+				SetMangledName(models.UnsymbolizedInterpreterLocation)
+		} else {
+			name, err := c.p.jvmRegistry.SymbolizeInterpreted(ctx, linux.CurrentNamespacePID(c.sample.Pid), jvmFrame.MethodAddr)
+			if err != nil {
+				name = models.UnsymbolizedInterpreterLocation
+				xlog.Wrap(c.p.log).Error(ctx, "Failed to symbolize interpreted JVM method", log.Error(err))
+			}
+			fb.SetName(name).SetMangledName(name)
+		}
+
+		fb.Finish()
+
+		loc.SetMapping().SetPath(profile.JVMSpecialMapping).Finish()
 	} else {
 		c.p.procs.MaybeRescanProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
 	}
@@ -493,13 +513,33 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 }
 
 func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builder *profile.SampleBuilder) {
-	for _, ip := range c.sample.Userstack {
+	jvmStack := c.sample.JvmStack
+	jvmStackIdx := 0
+	for locIdx, ip := range c.sample.Userstack {
 		if ip == 0 {
 			continue
 		}
+		var matchingJVMFrame *unwinder.JvmFrame
+		for jvmStackIdx < int(jvmStack.FramesLen) {
+			curLocIdx := jvmStack.Frames[jvmStackIdx].Index
+			locIdxU32 := uint32(locIdx)
+			if curLocIdx == locIdxU32 {
+				matchingJVMFrame = &jvmStack.Frames[jvmStackIdx]
+				break
+			} else if curLocIdx < locIdxU32 {
+				jvmStackIdx++
+			} else {
+				break
+			}
+		}
 
-		loc := builder.AddNativeLocation(ip)
-		c.processUserSpaceLocation(ctx, loc, ip)
+		var loc *profile.LocationBuilder
+		if matchingJVMFrame != nil {
+			loc = builder.AddNativeLocationUncached(ip)
+		} else {
+			loc = builder.AddNativeLocation(ip)
+		}
+		c.processUserSpaceLocation(ctx, loc, ip, matchingJVMFrame)
 		c.stacklen++
 	}
 }
@@ -574,7 +614,7 @@ func (c *oneShotSampleConsumer) collectLBRStackInto(ctx context.Context, builder
 
 		processAddress := func(ip uint64) {
 			loc := builder.AddNativeLocation(ip)
-			c.processUserSpaceLocation(ctx, loc, ip)
+			c.processUserSpaceLocation(ctx, loc, ip, nil)
 		}
 		processAddress(from)
 		processAddress(to)

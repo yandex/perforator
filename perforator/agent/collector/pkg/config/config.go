@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"path"
 	"time"
 
 	"github.com/yandex/perforator/library/go/ptr"
@@ -153,6 +155,36 @@ func (f *FeatureFlagsConfig) SampleParsingBypassEnabled() bool {
 	return *f.EnableSampleParsingBypass
 }
 
+type JVM struct {
+	ScannerBinaryPath string `yaml:"scanner_binary_path"`
+
+	SocketPathPrefix string `yaml:"socket_path_prefix"`
+	Identity         string `yaml:"identity"`
+
+	DisambiguateMethodKinds bool `yaml:"debug_disambiguate_method_kinds"`
+
+	DisableInterpretedMethodSymbolization   bool          `yaml:"disable_interpreted_method_symbolization"`
+	InterpretedMethodSymbolizationCacheSize int           `yaml:"interpreted_method_symbolization_cache_size"`
+	InterpretedMethodSymbolizationCacheTTL  time.Duration `yaml:"interpreted_method_symbolization_cache_ttl"`
+}
+
+func (c *JVM) FillDefault() {
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	if runtimeDir == "" {
+		runtimeDir = "/tmp"
+	}
+	if c.SocketPathPrefix == "" {
+		c.SocketPathPrefix = path.Join(runtimeDir, "perforator-profiler-jvm-helper")
+	}
+	// cache defaults are the same as for the python
+	if c.InterpretedMethodSymbolizationCacheSize == 0 {
+		c.InterpretedMethodSymbolizationCacheSize = symbolizer.DefaultMaxCacheSize
+	}
+	if c.InterpretedMethodSymbolizationCacheTTL == time.Duration(0) {
+		c.InterpretedMethodSymbolizationCacheTTL = symbolizer.DefaultCacheTTL
+	}
+}
+
 type Config struct {
 	Debug bool           `yaml:"debug"`
 	BPF   machine.Config `yaml:"bpf"`
@@ -172,6 +204,8 @@ type Config struct {
 	PerfEvents []PerfEventConfig `yaml:"perf_events"`
 	Uprobes    []uprobe.Config   `yaml:"uprobes,omitempty"`
 	Signals    []string          `yaml:"signals"`
+
+	JVM *JVM `yaml:"experimental_jvm,omitempty"`
 
 	EnableLBRDeprecated *bool              `yaml:"enable_lbr"`
 	EnablePerfMaps      *bool              `yaml:"enable_perf_map"`
@@ -293,4 +327,8 @@ func (c *Config) FillDefault() {
 	}
 
 	c.ProcessDiscovery.FillDefault()
+	if c.JVM == nil {
+		c.JVM = &JVM{}
+	}
+	c.JVM.FillDefault()
 }

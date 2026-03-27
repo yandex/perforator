@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -58,7 +59,7 @@ func startProfilerAndCollectRawSamples() [][]byte {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*120)
 	defer cancel()
 	err = p.Run(ctx)
-	if err != ctx.Err() {
+	if !errors.Is(err, context.Cause(ctx)) {
 		panic(err)
 	}
 	return storage

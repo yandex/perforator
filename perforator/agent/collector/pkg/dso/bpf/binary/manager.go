@@ -40,19 +40,15 @@ func NewBPFBinaryManager(
 	l log.Logger,
 	r metrics.Registry,
 	state *programstate.State,
+	unwindTableManager *unwindtable.BPFManager,
 	opts ...ManagerOption,
 ) (*BPFBinaryManager, error) {
 	l = l.WithName("BinaryManager")
 
-	unwmanager, err := unwindtable.NewBPFManager(l, r, state)
-	if err != nil {
-		return nil, err
-	}
-
 	m := &BPFBinaryManager{
 		l:      l,
 		state:  state,
-		tables: unwmanager,
+		tables: unwindTableManager,
 	}
 
 	for _, opt := range opts {

@@ -1,6 +1,7 @@
 #include "analyze.h"
 #include "ehframe.h"
 
+#include <perforator/internal/linguist/jvm/analysis/lite/lite_analysis.h>
 #include <perforator/lib/tls/parser/tls.h>
 #include <perforator/lib/llvmex/llvm_exception.h>
 #include <perforator/lib/pthread/pthread.h>
@@ -141,6 +142,25 @@ TMaybe<NPerforator::NBinaryProcessing::NPhp::PhpConfig> BuildPhpConfig(llvm::obj
 
 namespace NPerforator::NBinaryProcessing {
 
+NPerforator::NBinaryProcessing::NJvm::JvmAnalysis BuildJvmAnalysis(const llvm::object::ObjectFile* binary) {
+    NPerforator::NBinaryProcessing::NJvm::JvmAnalysis proto;
+    try {
+        std::optional<NLinguist::NJvm::TJvmAnalysis> output;
+        output = NLinguist::NJvm::ProcessJvmBinaryMinimal(*binary);
+        if (!output) {
+            proto.set_status(NJvm::JvmAnalysis::STATUS_NOT_JVM);
+            return proto;
+        }
+        *proto.mutable_cheatsheet() = std::move(output->Cheatsheet);
+        proto.set_status(NJvm::JvmAnalysis::STATUS_OK);
+    } catch (const std::exception& e) {
+        proto.set_error_message(e.what());
+        proto.set_status(NJvm::JvmAnalysis::STATUS_ERROR);
+    }
+    return proto;
+}
+
+
 void SerializeBinaryAnalysis(BinaryAnalysis&& analysis, IOutputStream* out) {
     NUnwind::DeltaEncode(*analysis.MutableUnwindTable());
     TZstdCompress compress{out};
@@ -172,6 +192,7 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
     auto pythonConfig = NPython::BuildPythonConfig(objectFile.getBinary());
     auto pthreadConfig = NPthread::BuildPthreadConfig(objectFile.getBinary());
     auto phpConfig = NPhp::BuildPhpConfig(objectFile.getBinary());
+    auto jvm = BuildJvmAnalysis(objectFile.getBinary());
 
     NPerforator::NBinaryProcessing::BinaryAnalysis result;
     *result.MutableUnwindTable() = std::move(unwtable);
@@ -185,6 +206,7 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
     if (pthreadConfig) {
         *result.MutablePthreadConfig() = std::move(pthreadConfig.GetRef());
     }
+    *result.mutable_jvm() = std::move(jvm);
 
     return result;
 }
