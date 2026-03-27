@@ -334,16 +334,16 @@ typedef uint64_t uintmax_t;
 /* #undef ARCHIVE_XATTR_LINUX */
 
 /* Version number of bsdcpio */
-#define BSDCPIO_VERSION_STRING "3.8.5"
+#define BSDCPIO_VERSION_STRING "3.8.6"
 
 /* Version number of bsdtar */
-#define BSDTAR_VERSION_STRING "3.8.5"
+#define BSDTAR_VERSION_STRING "3.8.6"
 
 /* Version number of bsdcat */
-#define BSDCAT_VERSION_STRING "3.8.5"
+#define BSDCAT_VERSION_STRING "3.8.6"
 
 /* Version number of bsdunzip */
-#define BSDUNZIP_VERSION_STRING "3.8.5"
+#define BSDUNZIP_VERSION_STRING "3.8.6"
 
 /* Define to 1 if you have the `acl_create_entry' function. */
 /* #undef HAVE_ACL_CREATE_ENTRY */
@@ -641,6 +641,9 @@ typedef uint64_t uintmax_t;
 
 /* Define to 1 if you have the `getea' function. */
 /* #undef HAVE_GETEA */
+
+/* Define to 1 if you have the `getegid' function. */
+#define HAVE_GETEGID 1
 
 /* Define to 1 if you have the `geteuid' function. */
 #define HAVE_GETEUID 1
@@ -1316,10 +1319,10 @@ typedef uint64_t uintmax_t;
 #define ICONV_CONST 
 
 /* Version number of libarchive as a single integer */
-#define LIBARCHIVE_VERSION_NUMBER "3008005"
+#define LIBARCHIVE_VERSION_NUMBER "3008006"
 
 /* Version number of libarchive */
-#define LIBARCHIVE_VERSION_STRING "3.8.5"
+#define LIBARCHIVE_VERSION_STRING "3.8.6"
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
@@ -1382,7 +1385,7 @@ typedef uint64_t uintmax_t;
 #endif /* SAFE_TO_DEFINE_EXTENSIONS */
 
 /* Version number of package */
-#define VERSION "3.8.5"
+#define VERSION "3.8.6"
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 /* #undef _FILE_OFFSET_BITS */
