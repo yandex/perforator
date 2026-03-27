@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-03-26T17:02:26Z",
+    "created": "2026-03-27T14:08:00.963Z",
     "pr": {
-      "id": 12572227,
+      "id": 12673252,
       "author": "baymer",
-      "summary": "FBP-2939: паковать output.tar с помощью pnpm pack"
+      "summary": "DEVTOOLSSUPPORT-82120: Сломался nots deploy"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11516355004"
+      "uri": "sbr:11527275928"
     },
     "darwin-arm64": {
-      "uri": "sbr:11516353007"
+      "uri": "sbr:11527272378"
     },
     "linux": {
-      "uri": "sbr:11516358827"
+      "uri": "sbr:11527283101"
     },
     "linux-aarch64": {
-      "uri": "sbr:11516356763"
+      "uri": "sbr:11527279212"
     }
   }
 }

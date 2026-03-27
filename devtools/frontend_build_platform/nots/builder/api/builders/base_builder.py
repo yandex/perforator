@@ -64,26 +64,25 @@ class BaseBuilder(object):
         pj = PackageJson.load(pm_utils.build_pj_path(self.options.bindir))
 
         # todo: FBP-2979
-        is_pj_need_update = False
         if 'name' not in pj.data:
             parts = self.options.moddir.split('/')
             pj.data['name'] = f'@{parts[0]}/{parts[-1]}'
-            is_pj_need_update = True
         if 'version' not in pj.data:
             pj.data['version'] = '0.0.0'
-            is_pj_need_update = True
-        if 'files' not in pj.data:
-            files = []
-            if hasattr(self.options, 'output_dirs') and self.options.output_dirs is not None:
-                files.append(self.options.output_dirs)
-            if hasattr(self.options, 'outputs') and self.options.outputs is not None:
-                files.append(self.options.outputs)
 
-            pj.data['files'] = files
-            is_pj_need_update = True
+        outputs = []
+        if hasattr(self.options, 'output_dirs') and self.options.output_dirs is not None:
+            outputs.extend(self.options.output_dirs)
+        if hasattr(self.options, 'outputs') and self.options.outputs is not None:
+            outputs.extend(self.options.outputs)
 
-        if is_pj_need_update:
-            pj.write()
+        outputs_to_pack = []
+        for file in pj.get_files():
+            if file not in outputs:
+                outputs_to_pack.append(file)
+
+        pj.data['files'] = outputs_to_pack
+        pj.write()
 
         return_code, stdout, stderr = popen(args, env=self._get_envs(), cwd=self.options.bindir)
 
@@ -101,7 +100,9 @@ class BaseBuilder(object):
         if publish_directory and files:
             files = [os.path.join(publish_directory, f) for f in files]
 
+        files.extend(outputs)
         files.append('.npmignore')
+
         return files
 
     def _prepare_bindir(self):
