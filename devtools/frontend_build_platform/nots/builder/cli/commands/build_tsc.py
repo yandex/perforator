@@ -46,8 +46,7 @@ def build_tsc_func(args: TscBuilderOptions):
     out_dirs = get_output_dirs(ts_configs)
 
     for ts_config in ts_configs:
-        builder = TscBuilder(options=args, ts_config=ts_config)
-        builder.build()
+        TscBuilder(options=args, ts_config=ts_config).build()
 
     # Step 2.5 - run after build script
     if args.with_after_build:
@@ -56,6 +55,6 @@ def build_tsc_func(args: TscBuilderOptions):
             out_dirs.append(args.after_build_outdir)
 
     # Step 3 - create 'output.tar'
-    builder.bundle()
+    TscBuilder.bundle_dirs(out_dirs, args.bindir, args.output_file)
 
     return out_dirs

@@ -5,7 +5,7 @@ from devtools.frontend_build_platform.libraries.logging import timeit
 from build.plugins.lib.nots.package_manager import PackageJson, utils as pm_utils
 
 from ..models import BuildError, BaseOptions
-from ..utils import copy_if_not_exists, dict_to_ts_proto_opt, parse_opt_to_dict, popen, resolve_bin, extract_output_tar
+from ..utils import copy_if_not_exists, dict_to_ts_proto_opt, parse_opt_to_dict, popen, resolve_bin
 
 from .default_ts_proto_opt import DEFAULT_TS_PROTO_OPT, DEFAULT_TS_PROTO_AUTO_OPT
 
@@ -59,8 +59,6 @@ class TsProtoGenerator:
             return
 
         auto_deps_build_path = os.path.join(self.options.arcadia_build_root, self.options.auto_deps_path)
-        extract_output_tar(auto_deps_build_path)
-
         deps_pj = PackageJson.load(pm_utils.build_pj_path(auto_deps_build_path))
         pj = PackageJson(pm_utils.build_pj_path(self.options.bindir))
         gen_name = self.options.moddir.replace("/", "-")

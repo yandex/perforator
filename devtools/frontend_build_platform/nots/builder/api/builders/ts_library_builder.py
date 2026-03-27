@@ -7,7 +7,7 @@ from devtools.frontend_build_platform.libraries.logging import timeit
 
 from .base_builder import BaseBuilder
 from ..models import BaseBuildersOptions, BuildError
-from ..utils import copy_files_with_exclusions, popen
+from ..utils import bundle_fs_entries, copy_files_with_exclusions, popen
 
 
 @dataclass
@@ -70,6 +70,12 @@ class TsLibraryBuilder(BaseBuilder):
                     The build script may have failed to generate output files.
                 """
                 raise BuildError(self.options.command, 1, "", textwrap.dedent(message))
+
+    @timeit
+    def bundle(self):
+        """Create output archive from files listed by pnpm pack"""
+        file_paths = self._get_pack_files()
+        bundle_fs_entries(file_paths, self.options.bindir, self.options.output_file)
 
     @timeit
     def _build(self):

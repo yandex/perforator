@@ -57,18 +57,16 @@ def build_ts_proto_func(args: TsProtoBuilderOptions):
         ts_config_names = ["tsconfig.cjs.json", "tsconfig.esm.json"]
         ts_configs = [TscBuilder.load_ts_config(tc, args.bindir) for tc in ts_config_names]
         for ts_config in ts_configs:
-            builder = TsProtoAutoTscBuilder(options=args, ts_config=ts_config)
-            builder.build()
+            TsProtoAutoTscBuilder(options=args, ts_config=ts_config).build()
         generator.generate_cjs_pj()
     else:
         ts_configs = [TscBuilder.load_ts_config(tc, args.curdir) for tc in args.tsconfigs]
         for ts_config in ts_configs:
-            builder = TscBuilder(options=args, ts_config=ts_config)
-            builder.build()
+            TscBuilder(options=args, ts_config=ts_config).build()
 
     out_dirs = get_output_dirs(ts_configs)
 
     # Step 4 - create 'output.tar'
-    builder.bundle()
+    TscBuilder.bundle_dirs(out_dirs, args.bindir, args.output_file)
 
     return out_dirs
