@@ -1,0 +1,6 @@
+{
+  "extends": "@gravity-ui/stylelint-config",
+  "rules": {
+    "no-missing-end-of-source-newline": true
+  }
+}
