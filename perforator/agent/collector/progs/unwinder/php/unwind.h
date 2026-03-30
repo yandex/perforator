@@ -73,14 +73,15 @@ static ALWAYS_INLINE bool php_read_string(char* buf, size_t buf_size, u8* res_le
 
     PHP_TRACE("read string length %d, buf_size %u", length, buf_size);
 
-    if (length >= buf_size) {
-        length = buf_size - 1;
+    ++length;
+    if (length > buf_size) {
+        length = buf_size;
     }
     length &= INTERPRETER_SYMBOL_STRING_LENGTH_VERIFIER_MASK;
 
     // On success, the strictly positive length of the output string,
     // including the trailing NULL character. On error, a negative value.
-    err = bpf_probe_read_user_str(buf, length + 1, (void*) zend_string_addr + config->offsets.zend_string.val);
+    err = bpf_probe_read_user_str(buf, length, (void*) zend_string_addr + config->offsets.zend_string.val);
     if (err <= 0) {
         PHP_TRACE("failed to read string data: %d", err);
         return false;
