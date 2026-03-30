@@ -1,4 +1,6 @@
+import logging
 import os
+from pathlib import Path
 import shutil
 import stat
 import subprocess
@@ -15,6 +17,8 @@ from build.plugins.lib.nots.package_manager import (
 )
 from devtools.frontend_build_platform.libraries.logging import timeit
 from .globs import GlobMatcher
+
+logger = logging.getLogger(__name__)
 
 
 def eprint(*args, **kwargs):
@@ -47,14 +51,16 @@ def extract_all_output_tars(moddir_abs: str, visited: set[str] = set()):
 
     visited.add(moddir_abs)
     try:
-        _extract_output_tar(moddir_abs)
-        extract_peer_tars(moddir_abs, visited)
+        extract_output_tar(moddir_abs)
     except Exception as e:
         eprint(f"could not extract output tar for {moddir_abs}: {e}")
+        raise e
+
+    extract_peer_tars(moddir_abs, visited)
 
 
 @timeit
-def _extract_output_tar(moddir_abs: str):
+def extract_output_tar(moddir_abs: str):
     """Extracts the output tar for a module
 
     Args:
@@ -73,12 +79,8 @@ def _extract_output_tar(moddir_abs: str):
     if not os.path.exists(output_tar_path):
         raise FileNotFoundError(output_tar_path)
 
-    pj_exists = os.path.exists(os.path.join(moddir_abs, pm_constants.PACKAGE_JSON_FILENAME))
-
     def pj_filter(e: libarchive.Entry):
-        # extract package.json if it does not exist yet
-        should_extract = e.pathname != pm_constants.PACKAGE_JSON_FILENAME or not pj_exists
-        return should_extract
+        return not os.path.exists(os.path.join(moddir_abs, e.pathname))
 
     archive.extract_tar(output_tar_path, moddir_abs, fail_on_duplicates=False, entry_filter=pj_filter)
 
@@ -291,11 +293,59 @@ def bundle_fs_entries(dirs_and_files: list[str], build_path: str, bundle_path: s
         raise RuntimeError("Please define `output_dirs`")
 
     paths_to_pack = {}
+    build_path_obj = Path(build_path)
+
     for dir_or_file in dirs_and_files:
         arcname = os.path.normpath(dir_or_file)
         path_to_pack = os.path.normpath(os.path.join(build_path, dir_or_file))
+        path_to_pack_obj = Path(path_to_pack)
+
+        # Filter out non-existent paths
+        if not os.path.lexists(path_to_pack):
+            logger.warning(f"Skipping non-existent path: {path_to_pack}")
+            continue
+
+        # Handle symlinks
+        if os.path.islink(path_to_pack):
+            # SECURITY: Check symlink doesn't escape build_path
+            if not is_symlink_safe(path_to_pack_obj, build_path_obj):
+                target = os.readlink(path_to_pack)
+                logger.warning(
+                    f"Skipping unsafe symlink: {path_to_pack} -> {target} " f"(broken or escapes build context)"
+                )
+                continue
+
         paths_to_pack[path_to_pack] = arcname
 
     archive.tar(
-        list(paths_to_pack.items()), bundle_path, compression_filter=None, compression_level=None, fixed_mtime=0
+        list(paths_to_pack.items()),
+        bundle_path,
+        compression_filter=None,
+        compression_level=None,
+        fixed_mtime=0,
+        dereference=False,
     )
+
+
+def is_symlink_safe(symlink: Path, boundary: Path) -> bool:
+    """
+    Проверяет, что симлинк существует и не выходит за boundary.
+    """
+    try:
+        resolved = symlink.resolve(strict=True)
+    except OSError as e:
+        logger.warning(f"Cannot resolve symlink {symlink}: {e}")
+        return False
+
+    try:
+        boundary_resolved = boundary.resolve(strict=True)
+    except OSError as e:
+        logger.error(f"Cannot resolve boundary path {boundary}: {e}")
+        return False
+
+    is_safe = resolved.is_relative_to(boundary_resolved)
+
+    if not is_safe:
+        logger.warning(f"Symlink escapes boundary: {symlink} -> {resolved} is not within {boundary_resolved}")
+
+    return is_safe

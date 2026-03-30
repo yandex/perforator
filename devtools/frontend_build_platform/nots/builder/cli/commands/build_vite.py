@@ -51,6 +51,6 @@ def build_vite_func(args: ViteBuilderOptions):
             out_dirs.append(args.after_build_outdir)
 
     # Step 3 - create 'output.tar'
-    ViteBuilder.bundle_dirs(out_dirs, args.bindir, args.output_file)
+    builder.bundle()
 
     return out_dirs

@@ -212,13 +212,19 @@ def tar(
             # determine order if fixed_mtime is specified to produce stable archive
             paths = paths if fixed_mtime is None else sorted(paths)
 
+            # Track written archive paths to avoid duplicates
+            written_arcnames = set()
+
             for p in paths:
                 if isinstance(p, tuple):
                     path, arcname = p
                 else:
                     path, arcname = p, os.path.basename(p)
 
-                if os.path.isdir(path):
+                is_dir = os.path.isdir(path)
+                should_walk = dereference or not os.path.islink(path)
+
+                if is_dir and should_walk:
                     for root, dirs, files in os.walk(path, followlinks=dereference):
                         if fixed_mtime is None:
                             entries = dirs + files
@@ -227,18 +233,23 @@ def tar(
 
                         reldir = os.path.relpath(root, path)
                         for f in entries:
-                            _writepath(
-                                tarfile,
-                                os.path.join(root, f),
-                                os.path.normpath(os.path.join(arcname, reldir, f)),
-                                onerror,
-                                postprocess,
-                                dereference,
-                            )
+                            dst = os.path.normpath(os.path.join(arcname, reldir, f))
+                            if dst not in written_arcnames:
+                                written_arcnames.add(dst)
+                                _writepath(
+                                    tarfile,
+                                    os.path.join(root, f),
+                                    dst,
+                                    onerror,
+                                    postprocess,
+                                    dereference,
+                                )
                 else:
                     if not os.path.exists(path):
                         raise OSError("Specified path doesn't exist: {}".format(path))
-                    _writepath(tarfile, path, arcname, onerror, postprocess, dereference)
+                    if arcname not in written_arcnames:
+                        written_arcnames.add(arcname)
+                        _writepath(tarfile, path, arcname, onerror, postprocess, dereference)
 
         if temp_tar_path:
             os.rename(temp_tar_path, output)
