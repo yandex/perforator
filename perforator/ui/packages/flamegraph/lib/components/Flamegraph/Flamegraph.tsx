@@ -411,7 +411,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                             : null}
                         {
                             isLeftHeavy !== undefined && onChangeLeftHeavy !== undefined ?
-                                <Switch className="flamegraph__switch flamegraph__switch_left-heavy" checked={isLeftHeavy} onUpdate={onChangeLeftHeavy}>
+                                <Switch qa={'flamegraph-left-heavy'} className="flamegraph__switch flamegraph__switch_left-heavy" checked={isLeftHeavy} onUpdate={onChangeLeftHeavy}>
                                     <Icon data={ArrowRightArrowLeft} />
                                 Left-heavy
                                 </Switch>
