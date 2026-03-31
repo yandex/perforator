@@ -2046,7 +2046,7 @@ require (
 	github.com/nats-io/jwt v1.2.2 // indirect
 	github.com/nats-io/jwt/v2 v2.5.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.9.11 // indirect
-	github.com/nats-io/nkeys v0.4.7 // indirect
+	github.com/nats-io/nkeys v0.4.15 // indirect
 	github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32 // indirect
 	github.com/nbutton23/zxcvbn-go v0.0.0-20210217022336-fa2cb2858354 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
