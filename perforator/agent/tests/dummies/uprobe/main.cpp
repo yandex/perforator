@@ -2,11 +2,12 @@
 #include <thread>
 #include <chrono>
 #include <vector>
-#include <functional>
 #include <unistd.h>
 #include <dlfcn.h>
 #include <mutex>
 #include <sys/syscall.h>
+
+#include <library/cpp/getopt/last_getopt.h>
 
 typedef int (*TargetFuncLevel2Type)(int);
 typedef int (*RecursiveFuncType)(int);
@@ -21,11 +22,35 @@ __attribute__((noinline)) int target_function_level1(int value, TargetFuncLevel2
     return target_function_level2(value) + 100;
 }
 
-int main(int, char** argv) {
+int main(int argc, const char* argv[]) {
+    int freqHz = 1;
+
+    NLastGetopt::TOpts opts;
+    opts.AddLongOption("freq-hz", "Call frequency per second (Hz)")
+        .RequiredArgument("N")
+        .DefaultValue("1")
+        .StoreResult(&freqHz);
+    opts.SetFreeArgsMin(1);
+    opts.SetFreeArgsMax(1);
+
+    NLastGetopt::TOptsParseResult parseResult(&opts, argc, argv);
+    const auto freeArgs = parseResult.GetFreeArgs();
+
+    if (freqHz <= 0) {
+        std::cerr << "freq-hz must be positive" << std::endl;
+        return 1;
+    }
+
+    const auto interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::duration<double>(1.0 / static_cast<double>(freqHz))
+    );
+
+    const char* libPath = freeArgs[0].c_str();
+
     std::cout << "Uprobe test program started" << std::endl;
     std::cout << "Process ID: " << getpid() << std::endl;
 
-    void* lib_handle = dlopen(argv[1], RTLD_LAZY);
+    void* lib_handle = dlopen(libPath, RTLD_LAZY);
     if (!lib_handle) {
         std::cerr << "Error loading library: " << dlerror() << std::endl;
         return 1;
@@ -60,7 +85,7 @@ int main(int, char** argv) {
             recursive_function(value);
             lambda_caller(value);
 
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(interval);
         }
     };
 
