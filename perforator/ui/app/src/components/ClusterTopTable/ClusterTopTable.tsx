@@ -106,9 +106,9 @@ export const ClusterTopTable: React.FC<ClusterTopTableProps> = ({ generation, ti
     const [offset, setOffset] = useState<string>('0');
     const [hasMore, setHasMore] = useState<boolean>(false);
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
-    const [filterInput, setFilterInput] = useState<string>('');
     const [getQuery, setQuery] = useTypedQuery<'query'>();
     const currentFilter = getQuery('query');
+    const [filterInput, setFilterInput] = useState<string>(currentFilter ?? '');
     const setCurrentFilter = (v: string) => setQuery({ query: v });
 
     const getData = useCallback(
