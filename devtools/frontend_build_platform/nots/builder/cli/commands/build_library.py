@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 
 from devtools.frontend_build_platform.libraries.logging import timeit
 from devtools.frontend_build_platform.nots.builder.api import (
-    create_node_modules,
     TsLibraryBuilder,
     TsLibraryBuilderOptions,
 )
@@ -33,11 +32,11 @@ def build_library_parser(subparsers) -> ArgumentParser:
 @timeit
 def build_library_func(args: TsLibraryBuilderOptions):
     # Step 1 - install node_modules
-    create_node_modules(args)
+    # create_node_modules(args)
 
     # Step 2 - run build script
     builder = TsLibraryBuilder(options=args)
-    builder.build()
+    builder.build(args)
 
     # Step 3 - create 'output.tar'
     builder.bundle()

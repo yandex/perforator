@@ -9,6 +9,8 @@ from .base_builder import BaseBuilder
 from ..models import BaseBuildersOptions, BuildError
 from ..utils import copy_files_with_exclusions, popen
 
+from ..create_node_modules import create_node_modules
+
 
 @dataclass
 class TsLibraryBuilderOptions(BaseBuildersOptions):
@@ -23,6 +25,13 @@ class TsLibraryBuilderOptions(BaseBuildersOptions):
 
 
 class TsLibraryBuilder(BaseBuilder):
+    def build(self, args: TsLibraryBuilderOptions):
+        self._prepare_bindir()
+
+        create_node_modules(args)
+
+        self._build()
+
     def __init__(self, options: TsLibraryBuilderOptions):
         super(TsLibraryBuilder, self).__init__(options)
         self.options = options  # for type hints
