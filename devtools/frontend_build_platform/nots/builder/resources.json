@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-03-30T19:50:29Z",
+    "created": "2026-04-01T13:21:32Z",
     "pr": {
-      "id": 12680816,
+      "id": 12742037,
       "author": "baymer",
-      "summary": "FBP-2939: паковать output.tar с помощью pnpm pack. V3"
+      "summary": "DEVTOOLSSUPPORT-82477: Поддержать установку зависимостей из file:./"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11555019516"
+      "uri": "sbr:11579199611"
     },
     "darwin-arm64": {
-      "uri": "sbr:11555018118"
+      "uri": "sbr:11579195811"
     },
     "linux": {
-      "uri": "sbr:11555022801"
+      "uri": "sbr:11579206354"
     },
     "linux-aarch64": {
-      "uri": "sbr:11555021066"
+      "uri": "sbr:11579202929"
     }
   }
 }
