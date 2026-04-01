@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-01T13:21:32Z",
+    "created": "2026-04-01T14:15:27Z",
     "pr": {
-      "id": 12742037,
+      "id": 12745741,
       "author": "baymer",
-      "summary": "DEVTOOLSSUPPORT-82477: Поддержать установку зависимостей из file:./"
+      "summary": "feat(nots-builder): take v63 build resources into use ci: https://a.yandex-team.ru/projects/frontend_build_platform/ci/releases/flow?dir=devtools%2Ffrontend_build_platform%2Fnots%2Fbuilder&id=release-nots-builder&version=63&selectedJob=deploy&launchNumber=1"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11579199611"
+      "uri": "sbr:11579984966"
     },
     "darwin-arm64": {
-      "uri": "sbr:11579195811"
+      "uri": "sbr:11579980964"
     },
     "linux": {
-      "uri": "sbr:11579206354"
+      "uri": "sbr:11579993627"
     },
     "linux-aarch64": {
-      "uri": "sbr:11579202929"
+      "uri": "sbr:11579989254"
     }
   }
 }
