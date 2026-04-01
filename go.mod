@@ -398,7 +398,8 @@ require (
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/getsentry/raven-go v0.2.0
-	github.com/getsentry/sentry-go v0.13.0
+	github.com/getsentry/sentry-go v0.34.1
+	github.com/getsentry/sentry-go/echo v0.34.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/ghostiam/protogetter v0.3.5
 	github.com/gin-contrib/gzip v0.0.5
@@ -450,7 +451,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/go-swagger/go-swagger v0.30.5
-	github.com/go-test/deep v1.1.0
+	github.com/go-test/deep v1.1.1
 	github.com/go-testfixtures/testfixtures/v3 v3.6.1
 	github.com/go-zookeeper/zk v1.0.4
 	github.com/gobwas/ws v1.4.0
@@ -685,6 +686,7 @@ require (
 	github.com/opentracing-contrib/go-stdlib v1.0.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/osrg/gobgp v0.0.0-20211201041502-6248c576b118
+	github.com/osrg/gobgp/v4 v4.3.0
 	github.com/otiai10/copy v1.14.1
 	github.com/ozontech/allure-go v0.6.32
 	github.com/ozontech/allure-go/pkg/allure v0.6.13
@@ -2093,6 +2095,7 @@ require (
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.5.0 // indirect
 	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	github.com/oracle/oci-go-sdk v24.3.0+incompatible // indirect
+	github.com/orcaman/concurrent-map/v2 v2.0.1 // indirect
 	github.com/orcaman/writerseeker v0.0.0-20200621085525-1d3f536ff85e // indirect
 	github.com/ory/dockertest/v3 v3.10.0 // indirect
 	github.com/oschwald/geoip2-golang v1.9.0 // indirect
@@ -2230,6 +2233,7 @@ require (
 	github.com/securego/gosec v0.0.0-20200203094520-d13bb6d2420c // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.3.6 // indirect
+	github.com/segmentio/fasthash v1.0.3 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sethgrid/pester v1.2.0 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect

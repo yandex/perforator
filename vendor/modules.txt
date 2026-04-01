@@ -8209,14 +8209,21 @@ github.com/getkin/kin-openapi/routers/legacy/pathpattern
 ## explicit
 github.com/getsentry/raven-go
 github.com/getsentry/raven-go/example
-# github.com/getsentry/sentry-go v0.13.0
-## explicit; go 1.17
+# github.com/getsentry/sentry-go v0.34.1
+## explicit; go 1.21
 github.com/getsentry/sentry-go
-github.com/getsentry/sentry-go/echo
+github.com/getsentry/sentry-go/attribute
 github.com/getsentry/sentry-go/http
-github.com/getsentry/sentry-go/internal/crypto/randutil
 github.com/getsentry/sentry-go/internal/debug
+github.com/getsentry/sentry-go/internal/httputils
+github.com/getsentry/sentry-go/internal/otel/baggage
+github.com/getsentry/sentry-go/internal/otel/baggage/internal/baggage
 github.com/getsentry/sentry-go/internal/ratelimit
+github.com/getsentry/sentry-go/internal/testutils
+github.com/getsentry/sentry-go/internal/traceutils
+# github.com/getsentry/sentry-go/echo v0.34.1
+## explicit; go 1.21
+github.com/getsentry/sentry-go/echo
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
@@ -8880,7 +8887,7 @@ github.com/go-task/slim-sprig
 # github.com/go-task/slim-sprig/v3 v3.0.0
 ## explicit; go 1.20
 github.com/go-task/slim-sprig/v3
-# github.com/go-test/deep v1.1.0
+# github.com/go-test/deep v1.1.1
 ## explicit; go 1.16
 github.com/go-test/deep
 github.com/go-test/deep/test/v1
@@ -13686,6 +13693,9 @@ github.com/opentracing/opentracing-go/mocktracer
 ## explicit; go 1.18
 # github.com/oracle/oci-go-sdk v24.3.0+incompatible
 ## explicit
+# github.com/orcaman/concurrent-map/v2 v2.0.1
+## explicit; go 1.18
+github.com/orcaman/concurrent-map/v2
 # github.com/orcaman/writerseeker v0.0.0-20200621085525-1d3f536ff85e
 ## explicit
 # github.com/ory/dockertest/v3 v3.10.0
@@ -13734,6 +13744,26 @@ github.com/osrg/gobgp/pkg/packet/mrt
 github.com/osrg/gobgp/pkg/packet/rtr
 github.com/osrg/gobgp/pkg/server
 github.com/osrg/gobgp/tools/config
+# github.com/osrg/gobgp/v4 v4.3.0
+## explicit; go 1.24.5
+github.com/osrg/gobgp/v4
+github.com/osrg/gobgp/v4/api
+github.com/osrg/gobgp/v4/cmd/gobgp
+github.com/osrg/gobgp/v4/cmd/gobgpd
+github.com/osrg/gobgp/v4/internal/pkg/netutils
+github.com/osrg/gobgp/v4/internal/pkg/table
+github.com/osrg/gobgp/v4/internal/pkg/version
+github.com/osrg/gobgp/v4/pkg/apiutil
+github.com/osrg/gobgp/v4/pkg/config
+github.com/osrg/gobgp/v4/pkg/config/oc
+github.com/osrg/gobgp/v4/pkg/metrics
+github.com/osrg/gobgp/v4/pkg/packet/bgp
+github.com/osrg/gobgp/v4/pkg/packet/bmp
+github.com/osrg/gobgp/v4/pkg/packet/mrt
+github.com/osrg/gobgp/v4/pkg/packet/rtr
+github.com/osrg/gobgp/v4/pkg/server
+github.com/osrg/gobgp/v4/pkg/zebra
+github.com/osrg/gobgp/v4/tools/config
 # github.com/ossf/osv-schema/bindings/go v0.0.0-20250210065807-ab8a4f6e6389
 ## explicit; go 1.22.7
 github.com/ossf/osv-schema/bindings/go/osvschema
@@ -15108,6 +15138,11 @@ github.com/segmentio/asm/internal/buffer
 github.com/segmentio/asm/internal/unsafebytes
 # github.com/segmentio/encoding v0.3.6
 ## explicit; go 1.14
+# github.com/segmentio/fasthash v1.0.3
+## explicit; go 1.11
+github.com/segmentio/fasthash
+github.com/segmentio/fasthash/fasthashtest
+github.com/segmentio/fasthash/fnv1a
 # github.com/segmentio/kafka-go v0.4.48
 ## explicit; go 1.15
 github.com/segmentio/kafka-go
