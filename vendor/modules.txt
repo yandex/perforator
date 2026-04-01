@@ -17516,8 +17516,8 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.127.3
-## explicit; go 1.23.9
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.128.4
+## explicit; go 1.24.0
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
 github.com/ydb-platform/ydb-go-sdk/v3/config
@@ -17539,6 +17539,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/cmd/gstack/utils
 github.com/ydb-platform/ydb-go-sdk/v3/internal/cmd/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/conn
+github.com/ydb-platform/ydb-go-sdk/v3/internal/conn/state
 github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination
 github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination/conversation
@@ -17594,8 +17595,12 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/topic
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicclientinternal
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topiclistenerinternal
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicmock
+github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicmultiwriter
+github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicmultiwriter/partitionchooser
+github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicmultiwriter/stubs
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicreadercommon
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicreaderinternal
+github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicwritercommon
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicwriterinternal
 github.com/ydb-platform/ydb-go-sdk/v3/internal/tx
 github.com/ydb-platform/ydb-go-sdk/v3/internal/types
@@ -17620,6 +17625,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/metrics
 github.com/ydb-platform/ydb-go-sdk/v3/operation
 github.com/ydb-platform/ydb-go-sdk/v3/pkg/decimal
 github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors
+github.com/ydb-platform/ydb-go-sdk/v3/pkg/xhash
 github.com/ydb-platform/ydb-go-sdk/v3/pkg/xslices
 github.com/ydb-platform/ydb-go-sdk/v3/pkg/xstring
 github.com/ydb-platform/ydb-go-sdk/v3/pkg/xtest
