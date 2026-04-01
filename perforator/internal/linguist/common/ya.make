@@ -1,5 +1,4 @@
 RECURSE(
-    agent
-    hardcode
+    offsetloader
     scripts
 )

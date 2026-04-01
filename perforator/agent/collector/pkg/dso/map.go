@@ -331,7 +331,6 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 	}
 
 	if analysis.PhpConfig != nil && (!php_agent.IsVersionSupported(analysis.PhpConfig.Version) ||
-		!php_agent.IsSupportedZendVmKind(analysis.PhpConfig.ZendVmKind) ||
 		analysis.PhpConfig.ZtsEnabled) {
 		analysis.PhpConfig = nil
 	}

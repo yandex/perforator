@@ -3,14 +3,10 @@ package agent
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
-	"path"
 	"reflect"
 	"regexp"
-	"strconv"
-	"strings"
 
-	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/python"
+	"github.com/yandex/perforator/perforator/internal/linguist/common/offsetloader"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
 
@@ -21,8 +17,7 @@ const (
 //go:embed offsets/*.json
 var offsetsFS embed.FS
 
-// Map from Python version (encoded as uint32) to offsets
-var pythonVersionOffsets map[encodedVersion]*unwinder.PythonInternalsOffsets
+var pythonOffsets *offsetloader.VersionOffsets[*unwinder.PythonInternalsOffsets]
 
 // unfilledOffsets is a PythonInternalsOffsets with all numeric fields set to UnspecifiedOffset
 var unfilledOffsets unwinder.PythonInternalsOffsets
@@ -67,92 +62,19 @@ func fillUnspecifiedOffsets(val reflect.Value) {
 	}
 }
 
-// Convert a version string (major.minor.micro or major.minor) to an encoded uint32
-func encodeVersionFromString(version string) encodedVersion {
-	parts := strings.Split(version, ".")
-	if len(parts) < 2 {
-		return 0
-	}
+var pythonFilenamePattern = regexp.MustCompile(`cpython-(\d+\.\d+(?:\.\d+)?)-offsets\.json`)
 
-	major, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return 0
-	}
-
-	minor, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return 0
-	}
-
-	micro := 0
-	if len(parts) >= 3 {
-		micro, err = strconv.Atoi(parts[2])
-		if err != nil {
-			return 0
-		}
-	}
-
-	// Create a PythonVersion struct and use encodeVersion
-	pythonVersion := &python.PythonVersion{
-		Major: uint32(major),
-		Minor: uint32(minor),
-		Micro: uint32(micro),
-	}
-
-	return encodeVersion(pythonVersion)
+func init() {
+	fillUnspecifiedOffsets(reflect.ValueOf(&unfilledOffsets))
+	pythonOffsets = offsetloader.Load(offsetsFS, "offsets", pythonFilenamePattern, parsePythonOffsets)
 }
 
-// Init function to load all JSON files and build the offsets map
-func init() {
-	// Initialize unfilledOffsets
-	fillUnspecifiedOffsets(reflect.ValueOf(&unfilledOffsets))
-
-	pythonVersionOffsets = make(map[encodedVersion]*unwinder.PythonInternalsOffsets)
-
-	// Read all files from the embedded filesystem
-	entries, err := offsetsFS.ReadDir("offsets")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to read offsets directory: %v", err))
+func parsePythonOffsets(data []byte) (*unwinder.PythonInternalsOffsets, error) {
+	var j jsonOffsets
+	if err := json.Unmarshal(data, &j); err != nil {
+		return nil, err
 	}
-
-	// Compile the regex pattern once - support both x.y.z and x.y formats
-	versionPattern := regexp.MustCompile(`cpython-(\d+\.\d+(?:\.\d+)?)-offsets\.json`)
-
-	// Parse each file
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
-			// Parse the version from the filename
-			matches := versionPattern.FindStringSubmatch(entry.Name())
-			if len(matches) < 2 {
-				continue // Skip files that don't match the pattern
-			}
-
-			versionStr := matches[1]
-			versionParts := strings.Split(versionStr, ".")
-			if len(versionParts) < 2 {
-				continue // Skip invalid versions
-			}
-
-			// Read the file content
-			jsonData, err := offsetsFS.ReadFile(path.Join("offsets", entry.Name()))
-			if err != nil {
-				panic(fmt.Sprintf("Failed to read offset file %s: %v", entry.Name(), err))
-			}
-
-			// Parse the JSON into offsets
-			var data jsonOffsets
-			if err := json.Unmarshal(jsonData, &data); err != nil {
-				panic(fmt.Sprintf("Failed to parse JSON from %s: %v", entry.Name(), err))
-			}
-
-			// Convert to PythonInternalsOffsets
-			offsets := convertToPythonInternalsOffsets(data)
-
-			// Store by encoded version
-			versionKey := encodeVersionFromString(versionStr)
-			pythonVersionOffsets[versionKey] = offsets
-		}
-	}
+	return convertToPythonInternalsOffsets(j), nil
 }
 
 // Extract PyThreadState offsets from JSON data

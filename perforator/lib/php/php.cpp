@@ -66,6 +66,7 @@ void TZendPhpAnalyzer::ParseSymbolLocations() {
         kZendVmKindSymbol,
         kZmInfoPhpCoreSymbol,
         kPhpTsrmStartupSymbol,
+        kTsrmStartupSymbol,
         kExecutorGlobalsSymbol
     );
 
@@ -82,18 +83,20 @@ void TZendPhpAnalyzer::ParseSymbolLocations() {
         setSymbolIfFound(*symbols, kZendVmKindSymbol, Symbols_->ZendVmKind);
         setSymbolIfFound(*symbols, kZmInfoPhpCoreSymbol, Symbols_->ZmInfoPhpCore);
         setSymbolIfFound(*symbols, kPhpTsrmStartupSymbol, Symbols_->PhpTsrmStartup);
+        setSymbolIfFound(*symbols, kTsrmStartupSymbol, Symbols_->TsrmStartup);
         setSymbolIfFound(*symbols, kExecutorGlobalsSymbol, Symbols_->ExecutorGlobals);
     }
 }
 
 TMaybe<bool> TZendPhpAnalyzer::ParseZts() {
-    static constexpr NPerforator::NLinguist::NPhp::TPhpVersion minZtsSupportVersion{7, 4, 1};;
-    TMaybe<TParsedPhpVersion> version = ParseVersion();
-    if (version && version->Version >= minZtsSupportVersion) {
-        return MakeMaybe(Symbols_ && Symbols_->PhpTsrmStartup);
+    ParseSymbolLocations();
+    if (!Symbols_) {
+        return Nothing();
     }
 
-    return Nothing();
+    // php_tsrm_startup exists since PHP 7.4.0, tsrm_startup exists in all ZTS builds.
+    // Either symbol present means ZTS is enabled.
+    return MakeMaybe(Symbols_->PhpTsrmStartup.Defined() || Symbols_->TsrmStartup.Defined());
 }
 
 TMaybe<TPhpVersion> TryScanVersion(TConstArrayRef<char> data) {

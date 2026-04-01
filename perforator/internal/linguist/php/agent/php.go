@@ -1,68 +1,34 @@
 package agent
 
 import (
+	"fmt"
+
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/php"
+	"github.com/yandex/perforator/perforator/internal/linguist/common/offsetloader"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
 
-var (
-	minSupportedVersion = encodeVersion(&php.PhpVersion{
-		Major:   7,
-		Minor:   4,
-		Release: 0,
-	})
-	maxSupportedVersion = encodeVersion(&php.PhpVersion{
-		Major:   7,
-		Minor:   4,
-		Release: 33,
-	})
-)
-
+// IsVersionSupported checks whether offsets are available for this PHP version.
 func IsVersionSupported(version *php.PhpVersion) bool {
 	if version == nil {
 		return false
 	}
+	_, err := GetOffsets(version)
+	return err == nil
+}
 
-	versionKey := encodeVersion(version)
-	if versionKey < minSupportedVersion || versionKey > maxSupportedVersion {
-		return false
+// ParsePhpUnwinderConfig converts a PhpConfig proto to an unwinder config
+// with version-appropriate struct offsets.
+func ParsePhpUnwinderConfig(config *php.PhpConfig) (*unwinder.PhpConfig, error) {
+	offsets, err := GetOffsets(config.Version)
+	if err != nil {
+		return nil, fmt.Errorf("unsupported PHP version %d.%d.%d: %w",
+			config.Version.Major, config.Version.Minor, config.Version.Release, err)
 	}
-	// _, ok := phpVersionOffsets[versionKey]
-	return true
-}
 
-const (
-	// https://github.com/php/php-src/blob/2e2494fbef842171257b0ae2b6d4392ba303f43f/Zend/zend_vm_opcodes.h#L31
-	zendVmKindHybrid = 4
-)
-
-func IsSupportedZendVmKind(zendVmKind uint32) bool {
-	return zendVmKind == zendVmKindHybrid
-}
-
-func encodeVersion(version *php.PhpVersion) uint32 {
-	return version.Release | (version.Minor << 8) | (version.Major << 16)
-}
-
-func ParsePhpUnwinderConfig(config *php.PhpConfig) *unwinder.PhpConfig {
-	return &unwinder.PhpConfig{Version: encodeVersion(config.Version), ExecutorGlobalsElfVaddr: config.ExecutorGlobalsELFVaddr, Offsets: unwinder.PhpInternalsOffsets{
-		ZendExecuteData: 488,
-		ExecuteData: unwinder.PhpExecuteDataOffsets{
-			Function:        24,
-			ThisTypeInfo:    40,
-			PrevExecuteData: 48,
-		},
-		Function: unwinder.PhpFunctionOffsets{
-			Type:           0,
-			CommonFuncname: 8,
-			OpArray: unwinder.PhpOpArrayOffsets{ // differs for other versions
-				Filename:  136, // for 7.4
-				Linestart: 144, // for 7.4
-			},
-		},
-		ZendString: unwinder.PhpZendStringOffsets{
-			Len: 16,
-			Val: 24,
-		},
-	}}
+	return &unwinder.PhpConfig{
+		Version:                 offsetloader.NewLanguageVersion(config.Version.Major, config.Version.Minor, config.Version.Release).EncodeToUint32(),
+		ExecutorGlobalsElfVaddr: config.ExecutorGlobalsELFVaddr,
+		Offsets:                 *offsets,
+	}, nil
 }

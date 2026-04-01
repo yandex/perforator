@@ -1,0 +1,22 @@
+{
+  "zend_executor_globals": {
+    "current_execute_data": 480
+  },
+  "zend_execute_data": {
+    "func": 24,
+    "prev_execute_data": 56,
+    "This.u1.type_info": 40
+  },
+  "zend_function": {
+    "type": 0,
+    "common.function_name": 8
+  },
+  "zend_op_array": {
+    "filename": 120,
+    "line_start": 128
+  },
+  "zend_string": {
+    "len": 16,
+    "val": 24
+  }
+}

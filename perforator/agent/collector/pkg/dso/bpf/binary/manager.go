@@ -105,7 +105,11 @@ func (m *BPFBinaryManager) Add(ctx context.Context, buildID string, id uint64, a
 	}
 
 	if analysis.PhpConfig != nil {
-		err = m.state.AddPhpConfig(binId, convertToUnwindPhpConfig(analysis.PhpConfig))
+		phpConfig, phpErr := convertToUnwindPhpConfig(analysis.PhpConfig)
+		if phpErr != nil {
+			return nil, phpErr
+		}
+		err = m.state.AddPhpConfig(binId, phpConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -206,7 +210,7 @@ func convertToUnwindPthreadConfig(config *pthread.PthreadConfig) *unwinder.Pthre
 	}
 }
 
-func convertToUnwindPhpConfig(config *php.PhpConfig) *unwinder.PhpConfig {
+func convertToUnwindPhpConfig(config *php.PhpConfig) (*unwinder.PhpConfig, error) {
 	return php_agent.ParsePhpUnwinderConfig(config)
 }
 

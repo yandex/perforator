@@ -6,22 +6,24 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/python"
+	"github.com/yandex/perforator/perforator/internal/linguist/common/offsetloader"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
 
-// preparePythonOffsetsForTest sets up pythonVersionOffsets with the given versions
+// preparePythonOffsetsForTest sets up pythonOffsets with the given versions
 // and sets a cleanup function that restores the original offsets after the test.
 func preparePythonOffsetsForTest(t *testing.T, versions []*python.PythonVersion) {
-	originalOffsets := pythonVersionOffsets
+	original := pythonOffsets
 	t.Cleanup(func() {
-		pythonVersionOffsets = originalOffsets
+		pythonOffsets = original
 	})
 
-	pythonVersionOffsets = make(map[encodedVersion]*unwinder.PythonInternalsOffsets)
+	m := make(map[offsetloader.LanguageVersion]*unwinder.PythonInternalsOffsets)
 	for _, v := range versions {
-		versionKey := encodeVersion(v)
-		pythonVersionOffsets[versionKey] = &unwinder.PythonInternalsOffsets{}
+		key := offsetloader.NewLanguageVersion(v.Major, v.Minor, v.Micro)
+		m[key] = &unwinder.PythonInternalsOffsets{}
 	}
+	pythonOffsets = offsetloader.NewFromMap(m)
 }
 
 func TestPythonInternalsOffsetsByVersion_ExactMatch(t *testing.T) {
@@ -99,6 +101,6 @@ func TestDecodeVersion(t *testing.T) {
 	}
 
 	for _, version := range testCases {
-		require.Equal(t, version, decodeVersion(encodeVersion(version)))
+		require.Equal(t, version, decodeVersion(offsetloader.NewLanguageVersion(version.Major, version.Minor, version.Micro)))
 	}
 }

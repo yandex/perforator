@@ -45,6 +45,7 @@ constexpr TStringBuf kPhpVersionSymbol = "php_version";
 constexpr TStringBuf kZmInfoPhpCoreSymbol = "zm_info_php_core";
 constexpr TStringBuf kZendVmKindSymbol = "zend_vm_kind";
 constexpr TStringBuf kPhpTsrmStartupSymbol = "php_tsrm_startup";
+constexpr TStringBuf kTsrmStartupSymbol = "tsrm_startup";
 constexpr TStringBuf kExecutorGlobalsSymbol = "executor_globals";
 
 // since:   PHP-4.0
@@ -75,6 +76,11 @@ public:
         // link:    https://github.com/php/php-src/blob/b871261c10fcf5ffef3851ae31ac12a0170044d2/main/php_main.h#L78
         // section: dynsym
         TMaybe<NPerforator::NELF::TLocation> PhpTsrmStartup;
+
+        // since:   PHP-5.0 (ZTS builds only)
+        // link:    https://github.com/php/php-src/blob/60fffd296abce5fc071f3c173c25a2696cf683c6/TSRM/TSRM.h#L104
+        // section: dynsym
+        TMaybe<NPerforator::NELF::TLocation> TsrmStartup;
 
         // since:   PHP-5.0
         // link:    https://github.com/php/php-src/blob/b871261c10fcf5ffef3851ae31ac12a0170044d2/Zend/zend_globals_macros.h#L47
