@@ -625,7 +625,7 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.1+incompatible
 	github.com/maxence-charriere/go-app/v9 v9.8.0
 	github.com/mdlayher/netlink v1.7.3-0.20250113171957-fbb4dce95f42
-	github.com/mennanov/fieldmask-utils v0.7.0
+	github.com/mennanov/fieldmask-utils v1.1.4
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.1.0
 	github.com/micromdm/plist v0.2.1
