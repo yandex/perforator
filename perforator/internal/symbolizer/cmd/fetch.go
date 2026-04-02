@@ -68,20 +68,25 @@ func fillBaseRenderFormat(enableSymbolization, enableStackMerge, experimentalEna
 	}
 }
 
-func makeRenderFormat(format string, formatOptions client.FormatOptions, enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification bool) (*proto.RenderFormat, error) {
+func makeRenderFormat(ctx context.Context, logger xlog.Logger, format string, formatOptions client.FormatOptions, enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification bool) (*proto.RenderFormat, error) {
 	if !enableStackMerge && experimentalEnablePythonStackPrettification {
 		return nil, errors.New("python stack prettification is not supported without stack merging")
 	}
 
 	rf := fillBaseRenderFormat(enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification)
 
-	switch format {
-	case "flamegraph", "flame", "fg", string(render.HTMLFormat):
-		rf.Format = &proto.RenderFormat_Flamegraph{
-			Flamegraph: formatOptions.Flamegraph,
-		}
+	old := render.Format(format)
+	normalized := normalizeFormat(old)
+	if normalized != old {
+		logger.Warn(ctx, "Format is deprecated",
+			log.String("format", format),
+			log.String("use", string(normalized)),
+		)
+	}
+	format = string(normalized)
 
-	case "visualisation", "vis", string(render.HTMLFormatV2):
+	switch format {
+	case string(render.HTMLFormat):
 		rf.Format = &proto.RenderFormat_HTMLVisualisation{
 			HTMLVisualisation: formatOptions.Flamegraph,
 		}
@@ -97,7 +102,7 @@ func makeRenderFormat(format string, formatOptions client.FormatOptions, enableS
 		}
 
 	default:
-		return nil, fmt.Errorf("unsuppported format %s", format)
+		return nil, fmt.Errorf("unsupported format %s", format)
 	}
 
 	return rf, nil
@@ -239,7 +244,7 @@ func fetchProfile() error {
 		experimentalOptions.SampleProfileStacks = true
 	}
 
-	format, err := makeRenderFormat(format, formatOpts, enableSymbolization, enableInterpreterStackMerging, experimentalEnablePythonStackPrettification)
+	format, err := makeRenderFormat(cli.Context(), cli.Logger(), format, formatOpts, enableSymbolization, enableInterpreterStackMerging, experimentalEnablePythonStackPrettification)
 	if err != nil {
 		return err
 	}
@@ -326,7 +331,7 @@ func fetchDiffProfile(args []string) error {
 	if strings.Contains(format, string(render.PlainTextFormat)) {
 		return fmt.Errorf("unsupported format for diff profile: %s", format)
 	}
-	format, err := makeRenderFormat(format, formatOpts, enableSymbolization, enableInterpreterStackMerging, experimentalEnablePythonStackPrettification)
+	format, err := makeRenderFormat(cli.Context(), cli.Logger(), format, formatOpts, enableSymbolization, enableInterpreterStackMerging, experimentalEnablePythonStackPrettification)
 	if err != nil {
 		return err
 	}
@@ -389,7 +394,7 @@ func makePGORenderFormat(format string) (*proto.PGOProfileFormat, error) {
 		}, nil
 
 	default:
-		return nil, fmt.Errorf("unsuppported pgo format %s", format)
+		return nil, fmt.Errorf("unsupported pgo format %s", format)
 	}
 }
 
@@ -829,13 +834,13 @@ func setupFetchCmd() *cobra.Command {
 		"Aggregate profiles by profiler version",
 	)
 
-	knownFormats := strings.Join([]string{"pprof", string(render.HTMLFormat), string(render.HTMLFormatV2), string(render.PlainTextFormat)}, ", ")
+	knownFormats := strings.Join([]string{"pprof", string(render.HTMLFormat), string(render.PlainTextFormat)}, ", ")
 	// profile format
 	fetchCmd.Flags().StringVarP(
 		&format,
 		"format",
 		"f",
-		string(render.HTMLFormatV2),
+		string(render.HTMLFormat),
 		"Format of the profile ("+knownFormats+")",
 	)
 

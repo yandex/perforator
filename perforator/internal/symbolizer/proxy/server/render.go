@@ -26,7 +26,7 @@ func RenderProfile(ctx context.Context, profile *profile.Profile, format *perfor
 	case *perforator.RenderFormat_JSONFlamegraph:
 		return buildProfileFlamegraph(profile, v.JSONFlamegraph, render.JSONFormat)
 	case *perforator.RenderFormat_HTMLVisualisation:
-		return buildProfileFlamegraph(profile, v.HTMLVisualisation, render.HTMLFormatV2)
+		return buildProfileFlamegraph(profile, v.HTMLVisualisation, render.HTMLFormat)
 	case *perforator.RenderFormat_TextProfile:
 		return buildProfileTextFormat(profile, v.TextProfile)
 	case *perforator.RenderFormat_ProtoProfile:

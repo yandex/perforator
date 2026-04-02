@@ -11,7 +11,6 @@ ENDIF()
 
 SRCS(
     blocks.go
-    hsv.go
     json_renderer.go
     output.go
     render.go
@@ -42,7 +41,6 @@ ENDIF()
 GO_TEST_SRCS(text_format_test.go)
 
 GO_EMBED_PATTERN(tmpl.html)
-GO_EMBED_PATTERN(new_templ.html)
 
 RESOURCE(
     ${ARCADIA_BUILD_ROOT}/perforator/ui/union/viewer.js viewer.js

@@ -107,8 +107,8 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 		Currently only multiple uprobes are supported.`,
 	)
 	cmd.Flags().DurationVarP(&o.duration, "duration", "d", 0, "Profiling duration")
-	knownFormats := strings.Join([]string{"pprof", string(render.HTMLFormat), string(render.HTMLFormatV2)}, ", ")
-	cmd.Flags().StringVarP(&o.renderFormat, "format", "f", string(render.HTMLFormatV2), "Profile visualization format: "+knownFormats)
+	knownFormats := strings.Join([]string{"pprof", string(render.HTMLFormat)}, ", ")
+	cmd.Flags().StringVarP(&o.renderFormat, "format", "f", string(render.HTMLFormat), "Profile visualization format: "+knownFormats)
 	cmd.Flags().BoolVarP(&o.debug, "debug", "", false, "Run perforator in debug mode")
 	cmd.Flags().BoolVarP(&o.signals, "record-signals", "", false, "Record fatal signals")
 	cmd.Flags().BoolVarP(&o.walltime, "record-walltime", "", false, "Record wall time")
@@ -166,7 +166,7 @@ func record(opts *recordOptions, args []string) error {
 	ctx := app.Context()
 
 	// let's validate the format before we run profiling
-	format, err := makeRenderFormat(opts.renderFormat, opts.formatOpts, opts.enableSymbolization, opts.enableInterpreterStackMerging, opts.experimentalEnablePythonStackPrettification)
+	format, err := makeRenderFormat(ctx, logger, opts.renderFormat, opts.formatOpts, opts.enableSymbolization, opts.enableInterpreterStackMerging, opts.experimentalEnablePythonStackPrettification)
 	if err != nil {
 		return fmt.Errorf("failed to build render format: %w", err)
 	}

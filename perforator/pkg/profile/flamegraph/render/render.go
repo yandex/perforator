@@ -5,11 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"html/template"
-	"image/color"
 	"io"
-	"math"
-	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -23,42 +19,16 @@ import (
 //go:embed tmpl.html
 var htmlTmpl string
 
-//go:embed new_templ.html
-var newHtmlTmpl string
-
 var tmpl *template.Template
 
 func init() {
-	tmpl = template.New("root").Funcs(template.FuncMap{
-		"add": func(a float64, b ...float64) float64 {
-			for _, x := range b {
-				a += x
-			}
-			return a
-		},
-		"sub": func(a float64, b ...float64) float64 {
-			for _, x := range b {
-				a -= x
-			}
-			return a
-		},
-		"mul": func(a, b float64) float64 {
-			return a * b
-		},
-		"div": func(a, b float64) float64 {
-			return a / b
-		},
-	})
-
-	template.Must(tmpl.New("html").Parse(htmlTmpl))
-	template.Must(tmpl.New("html-v2").Parse(newHtmlTmpl))
+	tmpl = template.Must(template.New("html").Parse(htmlTmpl))
 }
 
 type Format string
 
 const (
 	HTMLFormat       Format = "html"
-	HTMLFormatV2     Format = "html-v2"
 	JSONFormat       Format = "json"
 	JSONPrettyFormat Format = "json-pretty"
 
@@ -113,7 +83,6 @@ type LocationFrameOptions struct {
 type FlameGraph struct {
 	format   Format
 	inverted bool
-	diff     bool
 
 	locationFrameOptions LocationFrameOptions
 
@@ -123,18 +92,8 @@ type FlameGraph struct {
 	frameType  string
 	sampleType string // Sample type in type.unit format (e.g., cpu.cycles)
 
-	width               float64
-	blockHeight         float64
-	blockVerticalMargin float64
-
-	fontSize  float64
-	fontWidth float64
-
-	padX float64
-
 	locationsCache map[locationMeta][]locationData
 	bb             *blocksBuilder
-	diffmult       float64
 }
 
 // Compile-time check that FlameGraph implements FlameGraphRenderer.
@@ -146,18 +105,10 @@ func NewFlameGraph() *FlameGraph {
 			FileNames:      true,
 			FilePathPrefix: "@",
 		},
-		format:              HTMLFormatV2,
-		title:               "Flame Graph",
-		frameType:           "Function",
-		sampleType:          "",
-		width:               1200,
-		blockHeight:         15.0,
-		blockVerticalMargin: 1.0,
-
-		fontSize:  12.0,
-		fontWidth: 0.59,
-
-		padX:           10.0,
+		format:         HTMLFormat,
+		title:          "Flame Graph",
+		frameType:      "Function",
+		sampleType:     "",
 		locationsCache: make(map[locationMeta][]locationData),
 		bb:             newBlocksBuilder(),
 	}
@@ -193,14 +144,6 @@ func (f *FlameGraph) SetSampleType(typ string) {
 	f.sampleType = typ
 }
 
-func (f *FlameGraph) SetWidth(value float64) {
-	f.width = value
-}
-
-func (f *FlameGraph) SetFontSize(size float64) {
-	f.fontSize = size
-}
-
 func (f *FlameGraph) SetLineNumbers(value bool) {
 	f.locationFrameOptions.LineNumbers = value
 }
@@ -221,118 +164,11 @@ func (f *FlameGraph) SetAddressRenderPolicy(policy AddressRenderPolicy) {
 	f.locationFrameOptions.AddressPolicy = policy
 }
 
-func reverse(s string) string {
-	runes := []rune(s)
-	slices.Reverse(runes)
-	return string(runes)
-}
-
-func (f *FlameGraph) namehash(name string) float64 {
-	vector := 0.0
-	weight := 1.0
-	max := 1.0
-	mod := 10
-	for _, c := range name {
-		i := int(c) % mod
-
-		vector += float64(i) / float64(mod-1) * weight
-		mod += 1
-		max += 1 * weight
-		weight *= 0.7
-
-		if mod > 13 {
-			break
-		}
-	}
-	return (1.0 - vector/max)
-}
-
-func (f *FlameGraph) hashcolor(name string, module FrameOrigin) color.RGBA {
-	v1 := f.namehash(name)
-	v2 := f.namehash(reverse(name))
-	v3 := v2
-
-	switch module {
-	case FrameOriginKernel:
-		return color.RGBA{
-			R: uint8(96 + 55*v2),
-			G: uint8(96 + (255-96)*v1),
-			B: uint8(205 + 50*v3),
-			A: 0,
-		}
-	case FrameOriginJVM:
-		return color.RGBA{
-			R: uint8(245 + 5*v3),
-			G: uint8(110 - 58*v1),
-			B: uint8(110 + 71*v2),
-			A: 0,
-		}
-	case FrameOriginPHP:
-		return color.RGBA{
-			R: uint8(120 + 40*v2),
-			G: uint8(130 + 40*v1),
-			B: uint8(180 + 40*v3),
-			A: 0,
-		}
-	case FrameOriginPython:
-		return color.RGBA{
-			R: uint8(103 + 50*v2),
-			G: uint8(178 + 77*v1),
-			B: uint8(120 + 50*v3),
-			A: 0,
-		}
-	default:
-		return color.RGBA{
-			R: uint8(205 + 50*v3),
-			G: uint8(0 + 230*v1),
-			B: uint8(0 + 55*v2),
-			A: 0,
-		}
-	}
-}
-
-// Copy-pase from https://github.com/yandex/perforator/arcadia/yabs/poormansprofiler/flames/lib/__init__.py?blame=true&rev=r14194743#L170-185
-func (f *FlameGraph) diffcolor(node *block) color.RGBA {
-	lhs, rhs := node.nextCount.events, node.prevCount.events*f.diffmult
-	diff := (lhs - rhs) / rhs
-	d := min(math.Abs(diff), 1.)
-
-	if d < 0.001 {
-		hash := f.namehash(node.name)
-		value := 180 + uint8(hash*60)
-		return color.RGBA{value, value, value, 0}
-	}
-
-	var hoff, hpow, hcoef = 0.16, 4.0, -0.14
-	if diff <= 0 {
-		hoff, hpow, hcoef = 0.58, 2.0, 0.10
-	}
-	var soff, spow, scoef = 0.0, 4.5, 0.75
-
-	h := hoff + math.Pow(d, 1./hpow)*hcoef
-	s := soff + math.Pow(d, 1./spow)*scoef
-	v := 1.0
-
-	rgb := HSV(h*360, s, v)
-	return rgb
-}
-
-func (f *FlameGraph) color(block *block) color.RGBA {
-	if f.diff {
-		return f.diffcolor(block)
-	}
-
-	return f.hashcolor(block.name, block.frameOrigin)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 func (f *FlameGraph) AddProfile(profile *pprof.Profile) error {
 	return f.addProfile(profile, false)
 }
 
 func (f *FlameGraph) AddBaselineProfile(profile *pprof.Profile) error {
-	f.diff = true
 	return f.addProfile(profile, true)
 }
 
@@ -342,7 +178,6 @@ func (f *FlameGraph) AddCollapsedProfile(profile *collapsed.Profile) error {
 }
 
 func (f *FlameGraph) AddCollapsedBaselineProfile(profile *collapsed.Profile) error {
-	f.diff = true
 	f.addCollapsedProfile(profile, true)
 	return nil
 }
@@ -382,58 +217,6 @@ func (f *FlameGraph) RenderCollapsed(profile *collapsed.Profile, w io.Writer) er
 	return f.Render(w)
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-type frame struct {
-	FullText        int
-	RectX           float64
-	RectWidth       float64
-	Level           int
-	Color           color.RGBA
-	FillStyle       int
-	EventCount      float64
-	SampleCount     int64
-	BaseEventCount  float64
-	BaseSampleCount int64
-}
-
-// Yes, this is ugly, but we have a LOT of frames, and rendering them through template engine is really slow,
-// dozens of seconds slow.
-func renderFramesByHand(frameLevels [][]*frame, diff bool) string {
-	w := strings.Builder{}
-
-	renderField := func(selector func(*frame) any, frames []*frame) {
-		fmt.Fprint(&w, "[")
-		for _, frame := range frames {
-			fmt.Fprint(&w, selector(frame))
-			fmt.Fprint(&w, ",")
-		}
-		fmt.Fprint(&w, "],\n")
-	}
-
-	fmt.Fprint(&w, "[\n")
-	for _, frameLevel := range frameLevels {
-		fmt.Fprint(&w, "[\n")
-
-		renderField(func(f *frame) any { return f.RectX }, frameLevel)
-		renderField(func(f *frame) any { return f.RectWidth }, frameLevel)
-		renderField(func(f *frame) any { return f.FullText }, frameLevel)
-		renderField(func(f *frame) any { return f.EventCount }, frameLevel)
-		renderField(func(f *frame) any { return f.SampleCount }, frameLevel)
-		renderField(func(f *frame) any { return f.FillStyle }, frameLevel)
-
-		if diff {
-			renderField(func(f *frame) any { return f.BaseEventCount }, frameLevel)
-			renderField(func(f *frame) any { return f.BaseSampleCount }, frameLevel)
-		}
-
-		fmt.Fprint(&w, "],\n")
-	}
-	fmt.Fprint(&w, "]")
-
-	return w.String()
-}
-
 func (f *FlameGraph) newBlocksJSONRenderer(blocks []*block) *BlocksJSONRenderer {
 	return NewBlocksJSONRenderer(blocks, f.sampleType, f.frameType)
 }
@@ -445,110 +228,11 @@ func (f *FlameGraph) renderBlocks(blocks []*block, w io.Writer) error {
 	case JSONPrettyFormat:
 		return f.newBlocksJSONRenderer(blocks).RenderPrettyJSON(w)
 	case HTMLFormat:
-		return f.renderBlocksToHTML(blocks, w)
-	case HTMLFormatV2:
 		return RenderJSONAsHTML(f.newBlocksJSONRenderer(blocks), w)
 	default:
 		return fmt.Errorf("unsupported format: %s", f.format)
 	}
 }
-
-func (f *FlameGraph) renderBlocksToHTML(blocks []*block, w io.Writer) error {
-	strtab := NewStringTable()
-
-	maxLevel := 0
-	for _, block := range blocks {
-		if block.level > maxLevel {
-			maxLevel = block.level
-		}
-	}
-
-	padTop := f.fontSize * 3
-
-	canvasWidth := f.width - 2.0*f.padX
-	canvasHeight := (f.blockHeight + f.blockVerticalMargin) * float64(1+maxLevel)
-
-	frames := make([]frame, 0, len(blocks))
-	total := blocks[0].nextCount.events
-	if blocks[0].prevCount.events >= 0 {
-		f.diffmult = total / blocks[0].prevCount.events
-	} else {
-		f.diffmult = 1.0
-	}
-
-	for _, block := range blocks {
-		// Skip disappeared (present in baseline, but not in the diff profile) blocks
-		if block.weight == 0.0 {
-			continue
-		}
-
-		x := f.padX + block.offset*canvasWidth
-		y := padTop
-		if f.inverted {
-			y += float64(block.level) * (f.blockHeight + f.blockVerticalMargin)
-		} else {
-			y += canvasHeight - float64(1+block.level)*(f.blockHeight+f.blockVerticalMargin)
-		}
-
-		w := block.weight * canvasWidth
-
-		color := f.color(block)
-		fillStyle := fmt.Sprintf("#%02x%02x%02x", color.R, color.G, color.B)
-
-		fullname := blockToString(block)
-
-		res := frame{
-			FullText:        strtab.Add(fullname),
-			RectX:           x,
-			RectWidth:       w,
-			Level:           block.level,
-			Color:           color,
-			FillStyle:       strtab.Add(fillStyle),
-			EventCount:      block.nextCount.events,
-			SampleCount:     block.nextCount.count,
-			BaseEventCount:  block.prevCount.events,
-			BaseSampleCount: block.prevCount.count,
-		}
-		frames = append(frames, res)
-	}
-
-	sort.Slice(frames, func(i, j int) bool {
-		if frames[i].RectX == frames[j].RectX {
-			return frames[i].Level < frames[j].Level
-		}
-		return frames[i].RectX < frames[j].RectX
-	})
-
-	frameLevels := make([][]*frame, maxLevel+1)
-	for i, frame := range frames {
-		frameLevels[frame.Level] = append(frameLevels[frame.Level], &frames[i])
-	}
-
-	return tmpl.ExecuteTemplate(w, string(f.format), &struct {
-		Diff                    bool
-		Inverted                bool
-		Title                   string
-		SampleType              string
-		Frames                  []frame
-		FrameLevels             [][]*frame
-		Strings                 []string
-		HandRenderedFrameLevels template.JS
-	}{
-		Diff:       f.diff,
-		Inverted:   f.inverted,
-		Title:      f.title,
-		SampleType: f.sampleType,
-		// NOTE: is only used for {{len .Frames}} in tmpl.html
-		// but was actively used in SVG
-		// probably should be removed from args later
-		Frames:                  frames,
-		FrameLevels:             frameLevels,
-		Strings:                 strtab.Table(),
-		HandRenderedFrameLevels: template.JS(renderFramesByHand(frameLevels, f.diff)),
-	})
-}
-
-////////////////////////////////////////////////////////////////////////////////
 
 // Best-effort attempts to guess origins of collapsed frames.
 func guessCollapsedFrameOrigin(name string) FrameOrigin {
@@ -818,22 +502,4 @@ func IsInvalidFunctionName(funcname string) bool {
 
 func isInvalidFilename(filename string) bool {
 	return filename == "" || filename == "??" || filename == "<invalid>" || filename == "<undefined>" || filename == "<unknown>"
-}
-
-func blockToString(b *block) string {
-	fullname := b.name
-
-	if b.file != "" {
-		fullname += fmt.Sprintf(" %s", b.file)
-	} else if b.frameOrigin != "" && b.frameOrigin != FrameOriginNative {
-		fullname += fmt.Sprintf(" [%s]", b.frameOrigin)
-	} else if b.kind != "" {
-		fullname += fmt.Sprintf(" (%s)", b.kind)
-	}
-
-	if b.inlined {
-		fullname += " (inlined)"
-	}
-
-	return fullname
 }

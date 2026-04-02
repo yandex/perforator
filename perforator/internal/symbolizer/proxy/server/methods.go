@@ -933,10 +933,13 @@ func (s *PerforatorServer) DiffProfiles(
 	} else {
 		switch v := (req.RenderFormat.Format).(type) {
 		case *perforator.RenderFormat_Flamegraph:
-			fgOptions = req.RenderFormat.GetFlamegraph()
+			fgOptions = v.Flamegraph
+			fgFormat = render.HTMLFormat
+		case *perforator.RenderFormat_HTMLVisualisation:
+			fgOptions = v.HTMLVisualisation
 			fgFormat = render.HTMLFormat
 		case *perforator.RenderFormat_JSONFlamegraph:
-			fgOptions = req.RenderFormat.GetJSONFlamegraph()
+			fgOptions = v.JSONFlamegraph
 			fgFormat = render.JSONFormat
 		default:
 			return nil, status.Errorf(codes.Unimplemented, "unsupported diff render format %T", v)

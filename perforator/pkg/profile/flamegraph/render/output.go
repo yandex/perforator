@@ -10,9 +10,9 @@ import (
 	"github.com/yandex/perforator/library/go/core/resource"
 )
 
-// WrapJSONInHTMLV2 takes flamegraph JSON data and wraps it in the HTML-v2 template.
+// WrapJSONInHTML takes flamegraph JSON data and wraps it in the HTML template.
 // The JSON is gzip-compressed and base64-encoded before embedding.
-func WrapJSONInHTMLV2(jsonData []byte, w io.Writer) error {
+func WrapJSONInHTML(jsonData []byte, w io.Writer) error {
 	// Compress JSON
 	buf := new(bytes.Buffer)
 	compressor := gzip.NewWriter(buf)
@@ -27,7 +27,7 @@ func WrapJSONInHTMLV2(jsonData []byte, w io.Writer) error {
 	jsCode := template.HTML("<script>" + string(resource.Get("viewer.js")) + "</script>")
 	jsonHtml := template.HTML("<script>window.__data__=\"" + base64.StdEncoding.EncodeToString(buf.Bytes()) + "\"</script>")
 
-	return tmpl.ExecuteTemplate(w, string(HTMLFormatV2), &struct {
+	return tmpl.Execute(w, &struct {
 		Json   template.HTML
 		Script template.HTML
 	}{
@@ -36,11 +36,11 @@ func WrapJSONInHTMLV2(jsonData []byte, w io.Writer) error {
 	})
 }
 
-// RenderJSONAsHTML renders a JSONRenderer's output as HTML-v2.
+// RenderJSONAsHTML renders a JSONRenderer's output as HTML.
 func RenderJSONAsHTML(renderer JSONRenderer, w io.Writer) error {
 	var jsonBuf bytes.Buffer
 	if err := renderer.RenderJSON(&jsonBuf); err != nil {
 		return err
 	}
-	return WrapJSONInHTMLV2(jsonBuf.Bytes(), w)
+	return WrapJSONInHTML(jsonBuf.Bytes(), w)
 }

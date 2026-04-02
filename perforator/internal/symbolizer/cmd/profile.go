@@ -18,7 +18,7 @@ func makeFlamegraphCmd() *cobra.Command {
 	var baselinePath string
 	var minWeight = 0.000001
 	var maxDepth = 0
-	var format = render.HTMLFormatV2
+	var format = render.HTMLFormat
 	var title = "Flamegraph"
 	var sampleType string
 	var useNewRenderer = false
@@ -49,11 +49,15 @@ func makeFlamegraphCmd() *cobra.Command {
 	flamegraphCmd := &cobra.Command{
 		Use:   "flamegraph",
 		Short: "Build flamegraph from various profiles",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			format = normalizeFormat(format)
+			return nil
+		},
 	}
-	knownFormats := strings.Join([]string{string(render.HTMLFormat), string(render.HTMLFormatV2)}, ", ")
+	knownFormats := strings.Join([]string{string(render.HTMLFormat), string(render.JSONFormat)}, ", ")
 	flamegraphCmd.PersistentFlags().StringVarP(&inputPath, "input", "i", "stdin", "Path to the input")
 	flamegraphCmd.PersistentFlags().StringVarP(&baselinePath, "baseline", "b", "", "Path to the baseline profile")
-	flamegraphCmd.PersistentFlags().StringVarP((*string)(&format), "format", "f", string(render.HTMLFormatV2), "Render format ("+knownFormats+")")
+	flamegraphCmd.PersistentFlags().StringVarP((*string)(&format), "format", "f", string(render.HTMLFormat), "Render format ("+knownFormats+")")
 	flamegraphCmd.PersistentFlags().Float64VarP(&minWeight, "min-weight", "w", 0, "Minimum function weight to draw")
 	flamegraphCmd.PersistentFlags().IntVarP(&maxDepth, "max-depth", "d", 0, "Maximum flamegraph height. Use 0 to disable")
 	flamegraphCmd.PersistentFlags().StringVarP(&title, "title", "t", "Flamegraph", "Flamegraph title")
@@ -127,6 +131,15 @@ func loadPerfProfile(path string) (*profile.Profile, error) {
 	defer done()
 
 	return perf.ParsePerfScript(input)
+}
+
+func normalizeFormat(format render.Format) render.Format {
+	switch format {
+	case "html-v2", "flamegraph":
+		return render.HTMLFormat
+	default:
+		return format
+	}
 }
 
 func buildPerfFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string) error {

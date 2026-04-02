@@ -608,8 +608,8 @@ message RenderFormat {
     PostprocessOptions Postprocessing = 6;
 
     oneof Format {
-        // Build flamegraph.
-        FlamegraphOptions Flamegraph = 2;
+        // @deprecated Use JSONFlamegraph or HTMLVisualisation instead.
+        FlamegraphOptions Flamegraph = 2 [deprecated=true];
 
         // Return raw profile, potentially symbolized.
         RawProfileOptions RawProfile = 3;

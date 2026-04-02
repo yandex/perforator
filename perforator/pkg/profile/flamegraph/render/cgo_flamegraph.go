@@ -43,7 +43,7 @@ var _ FlameGraphRenderer = (*CGOFlameGraph)(nil)
 // NewCGOFlameGraph creates a new C++ trie-based flamegraph renderer.
 func NewCGOFlameGraph() *CGOFlameGraph {
 	return &CGOFlameGraph{
-		format:     HTMLFormatV2,
+		format:     HTMLFormat,
 		title:      "Flame Graph",
 		sampleType: "", // Empty uses pprof default behavior: DefaultSampleType or last sample type
 		fileNames:  true,
@@ -145,9 +145,6 @@ func (f *CGOFlameGraph) Render(w io.Writer) error {
 	if !f.hasProfile {
 		return fmt.Errorf("no profile added")
 	}
-	if f.format == HTMLFormat {
-		return fmt.Errorf("CGO renderer does not support HTML v1 format, use html-v2")
-	}
 	if f.format == JSONPrettyFormat {
 		return fmt.Errorf("CGO renderer does not support JSON pretty format")
 	}
@@ -177,8 +174,8 @@ func (f *CGOFlameGraph) Render(w io.Writer) error {
 	case JSONFormat:
 		_, err = w.Write(jsonData)
 		return err
-	case HTMLFormatV2:
-		return WrapJSONInHTMLV2(jsonData, w)
+	case HTMLFormat:
+		return WrapJSONInHTML(jsonData, w)
 	default:
 		return fmt.Errorf("unsupported format: %s", f.format)
 	}
