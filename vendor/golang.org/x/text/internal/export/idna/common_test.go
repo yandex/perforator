@@ -12,7 +12,12 @@ import (
 )
 
 func catFromEntry(p *ucd.Parser) (cat category) {
+	// Note: As of Unicode 16, IdnaMappingTable.txt no longer includes
+	// disallowed_STD3_valid and disallowed_STD3_mapped.
+	// It is up to us to bring them back with our definition of disallowedSTD3,
+	// which is exactly the runes from Unicode 15.
 	r := p.Rune(0)
+	idna2008status := p.String(3)
 	switch s := p.String(1); s {
 	case "valid":
 		cat = valid
@@ -31,9 +36,9 @@ func catFromEntry(p *ucd.Parser) (cat category) {
 	default:
 		log.Fatalf("%U: Unknown category %q", r, s)
 	}
-	if s := p.String(3); s != "" {
+	if s := idna2008status; s != "" {
 		if cat != valid {
-			log.Fatalf(`%U: %s defined for %q; want "valid"`, r, s, p.String(1))
+			log.Fatalf(`%U: %s defined for %q/%v; want "valid"`, r, s, p.String(1), cat)
 		}
 		switch s {
 		case "NV8":
