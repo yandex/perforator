@@ -5,7 +5,7 @@ import { Button, DropdownMenu, Icon } from '@gravity-ui/uikit';
 
 import { LocalStorageKey } from 'src/const/localStorage';
 import { uiFactory } from 'src/factory';
-import { createSuccessToast } from 'src/utils/toaster';
+import { createErrorToast, createSuccessToast } from 'src/utils/toaster';
 
 import type { ShareFormat } from './utils';
 import { SHARE_FORMAT_LINK } from './utils';
@@ -53,12 +53,12 @@ export const ShareButton: React.FC<ShareButtonProps> = props => {
 
         const builder = builders[format] || DEFAULT_SHARE_FORMAT.builder;
         const shared = builder(props.getUrl());
-        navigator.clipboard.writeText(shared);
-
-        createSuccessToast({
-            name: 'share-copy',
-            title: 'Copied to clipboard',
-        });
+        navigator.clipboard.writeText(shared)
+            .then(() => createSuccessToast({
+                name: 'share-copy',
+                title: 'Copied to clipboard',
+            }))
+            .catch(e => createErrorToast(e, { name: 'share-copy' }));
     };
 
     const items = listShareFormats(formats, shareFormat).map(format => ({
