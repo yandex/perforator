@@ -648,6 +648,7 @@ require (
 	github.com/montanaflynn/stats v0.7.1
 	github.com/mrknow-all/go-oae v0.0.0-20221221002406-36600e4f6b43
 	github.com/nathan-osman/go-sunrise v1.1.0
+	github.com/nats-io/jwt/v2 v2.8.1
 	github.com/nats-io/nats.go v1.36.0
 	github.com/nats-io/nkeys v0.4.15
 	github.com/nats-io/nuid v1.0.1
@@ -2047,7 +2048,6 @@ require (
 	github.com/naoina/toml v0.1.1 // indirect
 	github.com/natefinch/wrap v0.2.0 // indirect
 	github.com/nats-io/jwt v1.2.2 // indirect
-	github.com/nats-io/jwt/v2 v2.8.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.9.11 // indirect
 	github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32 // indirect
 	github.com/nbutton23/zxcvbn-go v0.0.0-20210217022336-fa2cb2858354 // indirect
