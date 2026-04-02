@@ -42,9 +42,7 @@ enum unwind_page_table_params : u32 {
     UNWIND_PAGE_TABLE_NUM_PAGES_PER_PART = (1 << 14),
     UNWIND_PAGE_TABLE_NUM_PARTS = (UNWIND_PAGE_TABLE_NUM_PAGES_TOTAL-1) / UNWIND_PAGE_TABLE_NUM_PAGES_PER_PART + 1,
 
-    UNWIND_PAGE_TABLE_LEVEL_0_WIDTH = 10,
-    UNWIND_PAGE_TABLE_LEVEL_1_WIDTH = 10,
-    UNWIND_PAGE_TABLE_LEVEL_2_WIDTH = 9,
+    UNWIND_PAGE_TABLE_NODE_WIDTH = 10,
     UNWIND_PAGE_TABLE_LEAF_WIDTH = 8,
 };
 
@@ -58,7 +56,7 @@ struct unwind_table_page_leaf {
 };
 
 struct unwind_table_page_node {
-    page_id children[POW2(UNWIND_PAGE_TABLE_LEVEL_0_WIDTH)];
+    page_id children[POW2(UNWIND_PAGE_TABLE_NODE_WIDTH)];
 };
 
 struct unwind_table_page {

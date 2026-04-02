@@ -339,7 +339,7 @@ func (l *link) empty() bool {
 
 type node struct {
 	id       PageID
-	children [1 << int(unwinder.UnwindPageTableLevel0Width)]link
+	children [1 << int(unwinder.UnwindPageTableNodeWidth)]link
 }
 
 func (b *pageTableBuilder) do() (pg []PageID, err error) {
