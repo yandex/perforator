@@ -41,6 +41,10 @@ func (h *PgTransactionHandler) GetBinaryID() string {
 	return h.queueItem.BuildID
 }
 
+func (h *PgTransactionHandler) EnqueuedAt() time.Time {
+	return h.queueItem.CreatedAt
+}
+
 func (h *PgTransactionHandler) Finalize(ctx context.Context, processingErr error) {
 	processingAttemps := h.queueItem.ProcessingAttempts + 1
 

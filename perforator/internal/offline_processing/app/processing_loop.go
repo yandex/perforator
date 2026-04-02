@@ -14,6 +14,7 @@ import (
 type processingMetrics struct {
 	success metrics.Counter
 	failure metrics.Counter
+	lag     metrics.Gauge
 }
 
 type ProcessingLoop struct {
@@ -38,6 +39,7 @@ func NewProcessingLoop(
 		metrics: processingMetrics{
 			success: reg.Counter("success"),
 			failure: reg.Counter("failure"),
+			lag:     reg.Gauge("processing_lag_seconds"),
 		},
 		binarySelector: binarySelector,
 		binaryFetcher:  binaryFetcher,
@@ -89,6 +91,8 @@ func (l *ProcessingLoop) loopIteration(ctx context.Context) error {
 		}
 	}
 	l.l.Info(ctx, "Successfully processed the binary", log.String("build_id", binaryHandler.GetBinaryID()))
+
+	l.metrics.lag.Set(time.Since(binaryHandler.EnqueuedAt()).Seconds())
 
 	return nil
 }
