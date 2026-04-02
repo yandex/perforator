@@ -17519,7 +17519,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.128.4
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.130.0
 ## explicit; go 1.24.0
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
@@ -17563,7 +17563,6 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/grpcwrapper/rawtopic/rawtopicwrit
 github.com/ydb-platform/ydb-go-sdk/v3/internal/grpcwrapper/rawydb
 github.com/ydb-platform/ydb-go-sdk/v3/internal/kv
 github.com/ydb-platform/ydb-go-sdk/v3/internal/meta
-github.com/ydb-platform/ydb-go-sdk/v3/internal/meta/test
 github.com/ydb-platform/ydb-go-sdk/v3/internal/mock
 github.com/ydb-platform/ydb-go-sdk/v3/internal/node
 github.com/ydb-platform/ydb-go-sdk/v3/internal/operation
