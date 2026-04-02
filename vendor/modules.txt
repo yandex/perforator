@@ -20570,7 +20570,7 @@ google.golang.org/api/transport/http
 ## explicit; go 1.11
 # google.golang.org/cloud v0.0.0-20151119220103-975617b05ea8
 ## explicit
-# google.golang.org/genai v1.30.0
+# google.golang.org/genai v1.40.0
 ## explicit; go 1.24
 google.golang.org/genai
 google.golang.org/genai/tokenizer

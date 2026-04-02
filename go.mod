@@ -1042,7 +1042,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.4.0
 	gonum.org/v1/gonum v0.17.0
 	google.golang.org/api v0.265.0
-	google.golang.org/genai v1.30.0
+	google.golang.org/genai v1.40.0
 	google.golang.org/genproto v0.0.0-20260128011058-8636f8732409
 	google.golang.org/genproto/googleapis/api v0.0.0-20260203192932-546029d2fa20
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260203192932-546029d2fa20
