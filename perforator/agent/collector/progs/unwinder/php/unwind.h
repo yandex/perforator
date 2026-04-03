@@ -267,6 +267,8 @@ static ALWAYS_INLINE void php_walk_stack(struct php_state* state, void* execute_
         return;
     }
 
+    state->frame_count = 0;
+
     u32 type_info = 0;
     struct php_config* config = &state->config;
 
@@ -279,8 +281,8 @@ static ALWAYS_INLINE void php_walk_stack(struct php_state* state, void* execute_
             break;
         }
 
-        state->frame_count = i + 1;
-        PHP_TRACE("Successfully processed frame %d", i);
+        ++state->frame_count;
+        PHP_TRACE("Successfully processed frame %d", state->frame_count);
 
         if (type_info & ZEND_TOP_FUNCTION) {
             break;

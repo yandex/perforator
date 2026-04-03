@@ -228,7 +228,11 @@ static ALWAYS_INLINE bool python_read_unicode_object(char* buf, size_t buf_size,
         return false;
     }
 
-    u32 bytes_length = (length << state->config.unicode_type_size_log2);
+    /**
+     * unicode_type_size_log2 is 1 or 2, so we need to mask it to 2 bits
+     * to ensure the eBPF verifier understands that bytes_length won't be enormous
+     */
+    u32 bytes_length = (length << (state->config.unicode_type_size_log2 & 0b11));
     if (bytes_length > buf_size) {
         bytes_length = buf_size;
     }
@@ -266,7 +270,8 @@ static ALWAYS_INLINE bool python_read_symbol(struct python_state* state) {
         return false;
     }
 
-    state->symbol.codepoint_size = (state->config.version >= PYVERSION(3, 0, 0) && state->config.version < PYVERSION(3, 3, 0)) ? (1 << state->config.unicode_type_size_log2) : 1;
+    /** unicode_type_size_log2 is 1 or 2, so we need to mask it to 2 bits */
+    state->symbol.codepoint_size = (state->config.version >= PYVERSION(3, 0, 0) && state->config.version < PYVERSION(3, 3, 0)) ? (1 << (state->config.unicode_type_size_log2 & 0b11)) : 1;
 
     char* buf = state->symbol.data;
     if (!python_read_string(buf, sizeof(state->symbol.data), &state->symbol.name_length, state, (void*) state->code_object.name)) {
@@ -363,8 +368,15 @@ static ALWAYS_INLINE void python_walk_stack(
         return;
     }
 
+    state->frame_count = 0;
+
     for (int i = 0; i < PYTHON_MAX_STACK_DEPTH; i++) {
         if (py_frame == NULL) {
+            break;
+        }
+
+        u32 cur_frame = state->frame_count;
+        if (cur_frame >= PYTHON_MAX_STACK_DEPTH) {
             break;
         }
 
@@ -377,17 +389,19 @@ static ALWAYS_INLINE void python_walk_stack(
             // stub frame in case python is called from C code.
             //  2 consecutive frames must not be owned by C stack.
             BPF_TRACE("python: frame owned by c stack");
-            state->frames[i].symbol_key.linestart = PYTHON_CFRAME_LINENO_ID;
-            state->frames[i].symbol_key.pid = 0;
-            state->frames[i].symbol_key.object_addr = 0;
-            state->frame_count = i + 1;
+
+            state->frames[cur_frame].symbol_key.linestart = PYTHON_CFRAME_LINENO_ID;
+            state->frames[cur_frame].symbol_key.pid = 0;
+            state->frames[cur_frame].symbol_key.object_addr = 0;
+
+            ++state->frame_count;
             goto move_to_next_frame;
         }
 
         if (!python_process_frame(&state->frames[i], py_frame, state)) {
             break;
         }
-        state->frame_count = i + 1;
+        ++state->frame_count;
 
         BPF_TRACE("python: Successfully processed frame %d", i);
 

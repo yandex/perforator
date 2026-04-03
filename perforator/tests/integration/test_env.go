@@ -777,6 +777,7 @@ func testEnvConfig() *Config {
 				}},
 				FeatureFlagsConfig: profiler_config.FeatureFlagsConfig{
 					EnableSampleParsingBypass: ptr.Bool(true),
+					EnablePHP:                 ptr.Bool(true),
 				},
 			},
 			CPOService: &agentcpo.ServiceConfig{
