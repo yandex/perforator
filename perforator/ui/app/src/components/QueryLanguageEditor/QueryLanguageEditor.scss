@@ -2,6 +2,18 @@
     align-items: center;
     display: flex;
     gap: 2px;
+
+    &__help-code {
+        background: var(--g-color-base-misc-light);
+        border-radius: 4px;
+        padding: 2px;
+        color: var(--g-color-text-misc-heavy);
+    }
+
+    &__help-popover {
+        max-width: 400px;
+        white-space: pre-line
+    }
 }
 
 .selector-input__skeleton {
