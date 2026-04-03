@@ -14693,6 +14693,9 @@ github.com/qdrant/go-client/examples
 github.com/qdrant/go-client/examples/authentication
 github.com/qdrant/go-client/qdrant
 github.com/qdrant/go-client/qdrant_test
+# github.com/qmuntal/stateless v1.8.0
+## explicit; go 1.24
+github.com/qmuntal/stateless
 # github.com/quasilyte/go-ruleguard v0.4.0
 ## explicit; go 1.19
 github.com/quasilyte/go-ruleguard/analyzer

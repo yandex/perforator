@@ -742,6 +742,7 @@ require (
 	github.com/proxy-wasm/proxy-wasm-go-sdk v0.0.0-20260105142703-44c7d5847745
 	github.com/pseudomuto/protoc-gen-doc v1.5.1
 	github.com/qdrant/go-client v1.15.2
+	github.com/qmuntal/stateless v1.8.0
 	github.com/r3labs/diff/v3 v3.0.0
 	github.com/rafaelmartins/usbhid v0.0.0-20240923181811-9aaabf870f67
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
