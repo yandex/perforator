@@ -94,11 +94,7 @@ func (s *gsymStorage) CollectExpired(
 	result := make([]*storage.ObjectMeta, 0, len(metas))
 	for _, meta := range metas {
 		result = append(result, &storage.ObjectMeta{
-			ID: meta.BuildID,
-			BlobInfo: &storage.BlobInfo{
-				ID:   meta.BuildID,
-				Size: meta.CompressedSize,
-			},
+			ID:                meta.BuildID,
 			LastUsedTimestamp: meta.LastUsedTimestamp,
 		})
 	}

@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"sync/atomic"
 	"time"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	"github.com/yandex/perforator/library/go/core/metrics"
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
@@ -17,21 +19,29 @@ import (
 )
 
 type BinaryStorage struct {
-	logger      xlog.Logger
-	metaStorage binarymeta.Storage
+	logger xlog.Logger
+	reg    metrics.Registry
 
+	metaStorage binarymeta.Storage
 	blobStorage blob.Storage
+
+	failedS3DeleteCounter metrics.Counter
 }
 
 func NewStorage(
 	metaStorage binarymeta.Storage,
 	blobStorage blob.Storage,
 	logger xlog.Logger,
+	reg metrics.Registry,
 ) *BinaryStorage {
+	reg = reg.WithPrefix("binaries")
+
 	return &BinaryStorage{
-		metaStorage: metaStorage,
-		blobStorage: blobStorage,
-		logger:      logger,
+		metaStorage:           metaStorage,
+		blobStorage:           blobStorage,
+		logger:                logger,
+		reg:                   reg,
+		failedS3DeleteCounter: reg.Counter("failed_to_delete_blobs_error.count"),
 	}
 }
 
@@ -245,18 +255,8 @@ func (s *BinaryStorage) CollectExpired(
 
 	result := make([]*storage.ObjectMeta, 0, len(metas))
 	for _, meta := range metas {
-		if meta.BlobInfo == nil || meta.BlobInfo.ID == "" {
-			continue
-		}
-
-		err = s.fillBlobSize(ctx, meta)
-		if err != nil {
-			return nil, err
-		}
-
 		result = append(result, &storage.ObjectMeta{
 			ID:                meta.BuildID,
-			BlobInfo:          meta.BlobInfo,
 			LastUsedTimestamp: meta.LastUsedTimestamp,
 		})
 	}
@@ -273,25 +273,42 @@ func (s *BinaryStorage) Delete(
 		return err
 	}
 
-	err = s.metaStorage.RemoveBinaries(ctx, IDs)
-	if err != nil {
-		return err
-	}
-
+	failedToDeleteBlobs := make(map[string]struct{}, 0)
 	for _, meta := range metas {
 		l := s.logger.With(log.String("build_id", string(meta.BuildID)), log.Any("blob_info", meta.BlobInfo))
 
-		if meta.BlobInfo != nil && meta.BlobInfo.ID != "" {
-			err = s.blobStorage.Delete(ctx, meta.BlobInfo.ID)
-			if err != nil {
-				l.Error(ctx,
+		err = s.blobStorage.Delete(ctx, meta.BuildID)
+		if err != nil {
+			var noExistErr *blob.ErrNoExist
+			if errors.As(err, &noExistErr) {
+				l.Info(ctx, "Blob to delete was not found")
+			} else {
+				l.Error(
+					ctx,
 					"Failed to delete binary blob",
 					log.Error(err),
 				)
-			} else {
-				l.Info(ctx, "Deleted binary blob")
+				s.failedS3DeleteCounter.Inc()
+				failedToDeleteBlobs[meta.BuildID] = struct{}{}
 			}
+		} else {
+			l.Info(ctx, "Deleted binary blob")
 		}
+	}
+
+	metas = slices.DeleteFunc(metas, func(meta *binarymeta.BinaryMeta) bool {
+		_, ok := failedToDeleteBlobs[meta.BuildID]
+		return ok
+	})
+
+	idsToDelete := make([]string, 0, len(metas))
+	for _, meta := range metas {
+		idsToDelete = append(idsToDelete, meta.BuildID)
+	}
+
+	err = s.metaStorage.RemoveBinaries(ctx, idsToDelete)
+	if err != nil {
+		return err
 	}
 
 	return err

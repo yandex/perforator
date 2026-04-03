@@ -39,5 +39,5 @@ func NewStorage(logger xlog.Logger, reg metrics.Registry, opts ...Option) (binar
 		return nil, ErrUnspecifiedMetaStorage
 	}
 
-	return binarystorage.NewStorage(metaStorage, blobStorage, logger), nil
+	return binarystorage.NewStorage(metaStorage, blobStorage, logger, reg), nil
 }

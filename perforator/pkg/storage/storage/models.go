@@ -16,7 +16,6 @@ type BlobInfo struct {
 
 type ObjectMeta struct {
 	ID                string
-	BlobInfo          *BlobInfo
 	LastUsedTimestamp time.Time
 }
 

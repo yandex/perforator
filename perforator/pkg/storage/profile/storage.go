@@ -192,10 +192,7 @@ func (s *ProfileStorage) CollectExpired(
 	result := make([]*storage.ObjectMeta, 0, len(profiles))
 	for _, profile := range profiles {
 		result = append(result, &storage.ObjectMeta{
-			ID: profile.ID,
-			BlobInfo: &storage.BlobInfo{
-				ID: profile.ID,
-			},
+			ID:                profile.ID,
 			LastUsedTimestamp: profile.LastUsedTimestamp,
 		})
 	}
