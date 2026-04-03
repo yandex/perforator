@@ -10,6 +10,7 @@ PEERDIR(
 
     library/cpp/yt/compact_containers
 
+    perforator/lib/elf
     perforator/lib/llvmex
 )
 

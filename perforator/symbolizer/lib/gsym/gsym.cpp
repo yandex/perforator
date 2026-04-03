@@ -2,6 +2,7 @@
 
 #include <string_view>
 
+#include <llvm/ADT/DenseMap.h>
 #include <llvm/DebugInfo/DWARF/DWARFContext.h>
 #include <llvm/DebugInfo/GSYM/GsymCreator.h>
 #include <llvm/DebugInfo/GSYM/DwarfTransformer.h>
@@ -12,6 +13,7 @@
 #include <llvm/Object/ELF.h>
 
 #include <perforator/lib/llvmex/llvm_elf.h>
+#include <perforator/lib/elf/elf.h>
 
 namespace {
 
@@ -131,6 +133,51 @@ llvm::Error DoFixupObjectFileTransformation(
     return processSymbols(obj.getDynamicSymbolIterators(), ProcessingMode::kProcess);
 }
 
+// Collect mangled symbol names from symtab keyed by address.
+// These are used to fix up short DWARF names before GSYM finalization.
+llvm::DenseMap<uint64_t, llvm::StringRef> CollectSymtabNames(
+    const llvm::object::ObjectFile& obj
+) {
+    auto syms = NPerforator::NELF::FilterSymbolsFromSymtab(obj, [](TStringBuf name) {
+        Y_UNUSED(name);
+        return true;
+    });
+
+    llvm::DenseMap<uint64_t, llvm::StringRef> result;
+    for (auto [name, loc] : syms) {
+        result.try_emplace(loc.Address, name);
+    }
+
+    return result;
+}
+
+// FixupFunctionNamesFromSymtab overrides dwarf-sourced name with symtab-sourced
+// for each function where former is available.
+//
+// Preconditions: StringRef's inside symtabNames must outlive gsymCreator.
+void FixupFunctionNamesFromSymtab(
+    llvm::gsym::GsymCreator& gsymCreator,
+    const llvm::DenseMap<uint64_t, llvm::StringRef>& symtabNames
+) {
+    llvm::DenseMap<uint64_t, uint32_t> addrToNameOffset;
+    addrToNameOffset.reserve(symtabNames.size());
+    for (const auto& [addr, name] : symtabNames) {
+        addrToNameOffset.try_emplace(addr, gsymCreator.insertString(name, /* Copy */ false));
+    }
+
+    // Note that we can't call insertString in the callback because it locks `gsymCreator.Mutex` as well as forEachFunctionInfo.
+    gsymCreator.forEachFunctionInfo([&](llvm::gsym::FunctionInfo& FI) -> bool {
+        auto it = addrToNameOffset.find(FI.Range.start());
+        if (it != addrToNameOffset.end()) {
+            FI.Name = it->second;
+        }
+        return true;
+    });
+
+    // TODO: after this loop string table contains orphaned entries.
+    // We should win some gsym size (esp. uncompressed) if we find a way to GC them.
+}
+
 // This is a close adaptation of how llvm-gsymutil-18 does the convertion
 // https://github.com/llvm/llvm-project/blob/release/18.x/llvm/tools/llvm-gsymutil/llvm-gsymutil.cpp#L303
 llvm::Error ConvertDWARFToGSYM(llvm::object::ObjectFile& obj, std::string_view output, ui32 convertNumThreads) {
@@ -189,6 +236,13 @@ llvm::Error ConvertDWARFToGSYM(llvm::object::ObjectFile& obj, std::string_view o
     if (auto err = FixupObjectFileTransformation(obj, gsymCreator)) {
         return err;
     }
+
+    // Patch DWARF-sourced FunctionInfo entries with mangled symtab names before
+    // finalization. Clang often omits DW_AT_linkage_name (especially with ThinLTO),
+    // leaving only short names like "Run" instead of "Namespace::Class::Run(args)".
+    // The symtab has the full mangled name which demangles to the qualified form.
+    // This must run before finalize() because finalize() freezes the string table.
+    FixupFunctionNamesFromSymtab(gsymCreator, CollectSymtabNames(obj));
 
     if (auto err = gsymCreator.finalize(os)) {
         return err;

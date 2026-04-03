@@ -32,10 +32,10 @@ using TSymbolMap = THashMap<TStringBuf, TLocation>;
 
 namespace NPrivate {
 
-template <typename Container>
+template <typename Predicate>
 TSymbolMap ParseSymbolsImpl(
     const llvm::object::ELFObjectFileBase::elf_symbol_iterator_range& symbols,
-    const Container& targetSymbols
+    const Predicate& predicate
 ) {
     TSymbolMap result;
 
@@ -49,25 +49,22 @@ TSymbolMap ParseSymbolsImpl(
         location.Size = symbol.getSize();
 
         TStringBuf symbolName{name.data(), name.size()};
-        for (const auto& targetSymbol : targetSymbols) {
-            if (symbolName == targetSymbol) {
-                result[symbolName] = location;
-                break;
-            }
+        if (predicate(symbolName)) {
+            result[symbolName] = location;
         }
     }
 
     return result;
 }
 
-template <typename ELFT, typename Container>
-TSymbolMap ParseDynsym(const llvm::object::ELFObjectFile<ELFT>& elf, const Container& symbols) {
-    return ParseSymbolsImpl(elf.getDynamicSymbolIterators(), symbols);
+template <typename ELFT, typename Predicate>
+TSymbolMap ParseDynsym(const llvm::object::ELFObjectFile<ELFT>& elf, const Predicate& predicate) {
+    return ParseSymbolsImpl(elf.getDynamicSymbolIterators(), predicate);
 }
 
-template <typename ELFT, typename Container>
-TSymbolMap ParseSymtab(const llvm::object::ELFObjectFile<ELFT>& elf, const Container& symbols) {
-    return ParseSymbolsImpl(elf.symbols(), symbols);
+template <typename ELFT, typename Predicate>
+TSymbolMap ParseSymtab(const llvm::object::ELFObjectFile<ELFT>& elf, const Predicate& predicate) {
+    return ParseSymbolsImpl(elf.symbols(), predicate);
 }
 
 TMaybe<TSymbolMap> RetrieveSymbolsFromDynsym(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols);
@@ -78,6 +75,16 @@ TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, std::in
 
 } // namespace NPerforator::NELF::NPrivate
 
+template<typename Predicate>
+TSymbolMap FilterSymbolsFromSymtab(const llvm::object::ObjectFile& file, const Predicate& predicate) {
+    auto res = NLLVM::VisitELF(&file, [&predicate](const auto& elf) {
+        return NPrivate::ParseSymtab(elf, predicate);
+    });
+    if (res) {
+        return std::move(*res);
+    }
+    return {};
+}
 
 template <typename... Args>
 TMaybe<TSymbolMap> RetrieveSymbolsFromDynsym(const llvm::object::ObjectFile& file, Args... symbols) {

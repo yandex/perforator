@@ -5,21 +5,35 @@
 
 namespace NPerforator::NELF::NPrivate {
 
+namespace {
+template<typename Container>
+auto MakePredicate(const Container& symbols) {
+    return [&symbols](TStringBuf name) {
+        for (auto s : symbols) {
+            if (s == name) {
+                return true;
+            }
+        }
+        return false;
+    };
+}
+}
+
 TMaybe<TSymbolMap> RetrieveSymbolsFromDynsym(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols) {
     return NLLVM::VisitELF(&file, [&symbols](const auto& elf) {
-        return ParseDynsym(elf, symbols);
+        return ParseDynsym(elf, MakePredicate(symbols));
     });
 }
 
 TMaybe<TSymbolMap> RetrieveSymbolsFromSymtab(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols) {
     return NLLVM::VisitELF(&file, [&symbols](const auto& elf) {
-        return ParseSymtab(elf, symbols);
+        return ParseSymtab(elf, MakePredicate(symbols));
     });
 }
 
 TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile &file, std::initializer_list<TStringBuf> symbols) {
     return NLLVM::VisitELF(&file, [&symbols](const auto& elf) {
-        TSymbolMap res = ParseDynsym(elf, symbols);
+        TSymbolMap res = ParseDynsym(elf, MakePredicate(symbols));
 
         llvm::SmallVector<TStringBuf> symtabSymbols;
         symtabSymbols.reserve(symbols.size());
@@ -29,7 +43,7 @@ TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile &file, std::in
             }
         }
 
-        TSymbolMap symtab = ParseSymtab(elf, symtabSymbols);
+        TSymbolMap symtab = ParseSymtab(elf, MakePredicate(symtabSymbols));
         for (auto& [key, value] : symtab) {
             res[key] = std::move(value);
         }
