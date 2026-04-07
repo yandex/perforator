@@ -625,7 +625,11 @@ func (r *PerfReader) instrument(m metrics.Registry) {
 	r.metrics.samplesLost = samples.With(Labels{"status": "lost"})
 }
 
-func (r *PerfReader) Read(ctx context.Context, sample encoding.BinaryUnmarshaler) error {
+type PerfReadMeta struct {
+	CPU int
+}
+
+func (r *PerfReader) Read(ctx context.Context, sample encoding.BinaryUnmarshaler) (PerfReadMeta, error) {
 	for {
 		r.reader.SetDeadline(time.Now().Add(perfReaderTimeout))
 
@@ -634,7 +638,7 @@ func (r *PerfReader) Read(ctx context.Context, sample encoding.BinaryUnmarshaler
 			if !errors.Is(err, os.ErrDeadlineExceeded) {
 				r.log.Error("Failed to read sample", log.Error(err))
 			}
-			return err
+			return PerfReadMeta{}, err
 		}
 
 		if r.record.LostSamples != 0 {
@@ -649,11 +653,11 @@ func (r *PerfReader) Read(ctx context.Context, sample encoding.BinaryUnmarshaler
 		if err != nil {
 			r.metrics.samplesMalformed.Inc()
 			r.log.Error("Failed to decode sample", log.Error(err))
-			return err
+			return PerfReadMeta{CPU: r.record.CPU}, err
 		}
 
 		r.metrics.samplesCollected.Inc()
-		return nil
+		return PerfReadMeta{CPU: r.record.CPU}, nil
 	}
 }
 

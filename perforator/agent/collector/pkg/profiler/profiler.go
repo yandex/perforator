@@ -77,6 +77,9 @@ type Profiler struct {
 	eventListener  EventListener
 	initialTargets *initialTargets
 
+	sampleProcessor        *sampleProcessor
+	sampleConsumerRegistry SampleConsumerRegistry
+
 	bpf              *machine.BPF
 	eventmanager     *perfevent.EventManager
 	perfEventManager *PerfEventManager
@@ -110,14 +113,12 @@ type Profiler struct {
 	pids        map[linux.CurrentNamespacePID]*trackedProcess
 	pidsmu      sync.RWMutex
 
-	mainSampleConsumer     SampleConsumer
-	sampleConsumerRegistry *sampleConsumerRegistry
+	mainSampleConsumer SampleConsumer
 
 	profileChan  chan client.LabeledProfile
 	commonLabels map[string]string
 
 	wg                      *errgroup.Group
-	sampleReaderShutdown    graceful.ShutdownCookie
 	profileUploaderShutdown graceful.ShutdownCookie
 	ebpfMetricsShutdown     graceful.ShutdownCookie
 	shutdownCancel          context.CancelCauseFunc
@@ -136,9 +137,8 @@ type languageCollectionMetrics struct {
 }
 
 type profilerMetrics struct {
-	samplesDuration metrics.Counter
-	mappingsHit     metrics.Counter
-	mappingsMiss    metrics.Counter
+	mappingsHit  metrics.Counter
+	mappingsMiss metrics.Counter
 
 	cgroupHits   metrics.Counter
 	cgroupMisses metrics.Counter
@@ -273,18 +273,16 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 	}
 
 	profiler := &Profiler{
-		conf:                   c,
-		log:                    l,
-		mounts:                 mountinfo.NewWatcher(l, r),
-		events:                 make(map[perfevent.Type]*PerfEvent),
-		pids:                   make(map[linux.CurrentNamespacePID]*trackedProcess),
-		profileChan:            make(chan client.LabeledProfile, 64),
-		debugmode:              c.Debug,
-		envWhitelist:           envWhitelist,
-		initialTargets:         &initialTargets{},
-		sampleConsumerRegistry: newSampleConsumerRegistry(),
+		conf:           c,
+		log:            l,
+		mounts:         mountinfo.NewWatcher(l, r),
+		events:         make(map[perfevent.Type]*PerfEvent),
+		pids:           make(map[linux.CurrentNamespacePID]*trackedProcess),
+		profileChan:    make(chan client.LabeledProfile, 64),
+		debugmode:      c.Debug,
+		envWhitelist:   envWhitelist,
+		initialTargets: &initialTargets{},
 
-		sampleReaderShutdown:    graceful.NewShutdownCookie(),
 		profileUploaderShutdown: graceful.NewShutdownCookie(),
 		ebpfMetricsShutdown:     graceful.NewShutdownCookie(),
 	}
@@ -585,6 +583,18 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		return fmt.Errorf("failed to register metrics: %w", err)
 	}
 
+	p.sampleConsumerRegistry = newSampleConsumerRegistry()
+
+	p.sampleProcessor = newSampleProcessor(
+		p.log.WithName("sample_processor"),
+		r,
+		p.bpf,
+		&p.conf.SampleConsumer,
+		p.sampleCallback,
+		p.sampleConsumerRegistry,
+		WithSampleParsingBypass(p.conf.FeatureFlagsConfig.SampleParsingBypassEnabled()),
+	)
+
 	// Initialize targets
 	err = p.initializeTargets()
 	if err != nil {
@@ -733,6 +743,10 @@ func (p *Profiler) SampleConsumerRegistry() SampleConsumerRegistry {
 	return p.sampleConsumerRegistry
 }
 
+func (p *Profiler) WaitForSampleProcessing(ctx context.Context) error {
+	return p.sampleProcessor.waitForSampleProcessing(ctx)
+}
+
 func (p *Profiler) PidNamespaceIndex() process.PidNamespaceIndex {
 	return p.procs
 }
@@ -788,7 +802,6 @@ func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
 
 func (p *Profiler) registerMetrics(r metrics.Registry) error {
 	type Labels map[string]string
-	p.metrics.samplesDuration = r.Counter("sample_duration.nsec")
 
 	mappings := r.CounterVec("mapping_resolving.count", []string{"status"})
 	p.metrics.mappingsHit = mappings.With(Labels{"status": "hit"})
@@ -977,8 +990,8 @@ func (p *Profiler) Start(ctx context.Context) error {
 		})
 	}
 	p.wg.Go(func() error {
-		err := p.runSampleReader(ctx)
-		return p.handleWorkerError(ctx, err, "sample reader")
+		err := p.sampleProcessor.Run(ctx)
+		return p.handleWorkerError(ctx, err, "sample processor")
 	})
 	p.wg.Go(func() error {
 		err := p.runProfileSender(ctx)
@@ -1056,93 +1069,6 @@ func (p *Profiler) disablePerfEvents() error {
 	}
 
 	return nil
-}
-
-func (p *Profiler) openSampleReader(watermark int, sampleCallback machine.RawSampleCallback) (*machine.PerfReader, error) {
-	opts := &machine.PerfReaderOptions{
-		PerCPUBufferSize: *p.conf.SampleConsumer.PerfBufferPerCPUSize,
-		Watermark:        watermark,
-		SampleCallback:   sampleCallback,
-	}
-	return p.bpf.MakeSampleReader(opts)
-}
-
-type sampleUnmarshaller struct {
-	sample *unwinder.RecordSample
-	bypass bool
-}
-
-func (u *sampleUnmarshaller) UnmarshalBinary(data []byte) error {
-	if u.bypass {
-		return u.sample.UnmarshalBinaryUnsafe(data)
-	}
-
-	return u.sample.UnmarshalBinary(data)
-}
-
-func (p *Profiler) runSampleReader(ctx context.Context) error {
-	stopSource := p.sampleReaderShutdown.GetSource()
-	defer stopSource.Finish()
-
-	reader, err := p.openSampleReader(*p.conf.SampleConsumer.PerfBufferWatermark, p.sampleCallback)
-	if err != nil {
-		return err
-	}
-	defer reader.Close()
-
-	unmarshaller := &sampleUnmarshaller{
-		sample: &unwinder.RecordSample{},
-		bypass: p.conf.FeatureFlagsConfig.SampleParsingBypassEnabled(),
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-stopSource.Done():
-			goto gracefulstop
-		default:
-		}
-
-		p.readSample(ctx, reader, unmarshaller)
-	}
-
-gracefulstop:
-	p.log.Debug("Graceful shutdown has been requested, going to drain sample queue")
-
-	for p.readSample(ctx, reader, unmarshaller) {
-		// drain sample queue
-	}
-
-	p.log.Debug("Restarting sample reader in order to consume last non-notified samples")
-	_ = reader.Close()
-	reader, err = p.openSampleReader(0, nil)
-	if err != nil {
-		return err
-	}
-
-	for p.readSample(ctx, reader, unmarshaller) {
-		// drain sample queue once again
-	}
-
-	return nil
-}
-
-func (p *Profiler) readSample(ctx context.Context, reader *machine.PerfReader, unmarshaller *sampleUnmarshaller) bool {
-	err := reader.Read(ctx, unmarshaller)
-	if err != nil {
-		return false
-	}
-
-	sample := unmarshaller.sample
-	p.metrics.samplesDuration.Add(int64(sample.Runtime))
-
-	consumers := p.sampleConsumerRegistry.Consumers()
-	for _, consumer := range consumers {
-		consumer.Consume(ctx, sample)
-	}
-
-	return true
 }
 
 func (p *Profiler) finishAllProfiles(ctx context.Context) {
@@ -1266,7 +1192,7 @@ func (p *Profiler) runProcessDiscovery(ctx context.Context) error {
 		default:
 		}
 
-		err := r.Read(ctx, &sample)
+		_, err := r.Read(ctx, &sample)
 		if err != nil {
 			if !errors.Is(err, os.ErrDeadlineExceeded) {
 				p.log.Error("Failed to read sample", log.Error(err))
@@ -1536,7 +1462,7 @@ func (p *Profiler) Stop(ctx context.Context) error {
 	}
 
 	p.log.Info("Stopping sample reader")
-	err = p.sampleReaderShutdown.Stop(ctx)
+	err = p.sampleProcessor.GracefulStop(ctx)
 	if err != nil {
 		return err
 	}

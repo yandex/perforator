@@ -2,28 +2,54 @@ package pubsub
 
 import "sync"
 
+type pubSubOptions struct {
+	nonBlocking bool
+}
+
+type PubSubOption func(*pubSubOptions)
+
+func WithNonBlockingPublish() PubSubOption {
+	return func(o *pubSubOptions) {
+		o.nonBlocking = true
+	}
+}
+
 // thread safe
 type PubSub[T any] struct {
 	mutex sync.Mutex
 
 	clientChans map[uint64]chan<- T
 	lastID      uint64
+	nonBlocking bool
 }
 
-func NewPubSub[T any]() *PubSub[T] {
+func NewPubSub[T any](opts ...PubSubOption) *PubSub[T] {
+	options := &pubSubOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	return &PubSub[T]{
 		clientChans: make(map[uint64]chan<- T),
 		lastID:      0,
+		nonBlocking: options.nonBlocking,
 	}
 }
 
-// will block until finishes all publications
+// will block until finishes all publications if nonBlocking is false
 func (p *PubSub[T]) Publish(val T) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
 	for _, clientChan := range p.clientChans {
-		clientChan <- val
+		if p.nonBlocking {
+			select {
+			case clientChan <- val:
+			default:
+			}
+		} else {
+			clientChan <- val
+		}
 	}
 }
 

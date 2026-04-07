@@ -62,7 +62,7 @@ func newOperationController(l xlog.Logger, profiler *profiler.Profiler, id model
 	return c, nil
 }
 
-func (o *operationController) releaseProfilerResources() error {
+func (o *operationController) disableEventSources() error {
 	errs := []error{}
 	for _, uprobe := range o.uprobes {
 		err := uprobe.Close()
@@ -78,9 +78,13 @@ func (o *operationController) releaseProfilerResources() error {
 		}
 	}
 
-	o.profiler.SampleConsumerRegistry().Unregister(o.sampleConsumerName)
-
 	return errors.Join(errs...)
+}
+
+func (o *operationController) releaseProfilerResources() error {
+	err := o.disableEventSources()
+	o.profiler.SampleConsumerRegistry().Unregister(o.sampleConsumerName)
+	return err
 }
 
 func buildIDString(id models.OperationID) string {
@@ -316,10 +320,27 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 
 func (o *operationController) Stop(ctx context.Context) error {
 	errs := []error{}
+
+	// 1. Disable event sources so BPF stops generating new samples for this operation.
+	if err := o.disableEventSources(); err != nil {
+		o.l.Error(ctx, "Failed to disable event sources", log.Error(err))
+		errs = append(errs, err)
+	}
+
+	// 2. Wait until the sample reader processes all samples that were already in the perfbuf.
+	if err := o.profiler.WaitForSampleProcessing(ctx); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			o.l.Warn(ctx, "Timed out waiting for sample processing", log.Error(err))
+		} else {
+			o.l.Error(ctx, "Failed to wait for sample processing", log.Error(err))
+		}
+		errs = append(errs, err)
+	}
+
+	// 3. Flush the sample consumer to serialize accumulated samples into a profile.
 	sampleConsumer := o.profiler.SampleConsumerRegistry().Get(o.sampleConsumerName)
-	if sampleConsumer != nil { // sanity check
-		err := sampleConsumer.Flush(ctx)
-		if err != nil {
+	if sampleConsumer != nil {
+		if err := sampleConsumer.Flush(ctx); err != nil {
 			o.l.Error(ctx, "Failed to flush CPO sample consumer", log.Error(err))
 			errs = append(errs, err)
 		} else {
@@ -327,10 +348,8 @@ func (o *operationController) Stop(ctx context.Context) error {
 		}
 	}
 
-	err := o.releaseProfilerResources()
-	if err != nil {
-		errs = append(errs, err)
-	}
+	// 4. Unregister the sample consumer.
+	o.profiler.SampleConsumerRegistry().Unregister(o.sampleConsumerName)
 
 	return errors.Join(errs...)
 }
