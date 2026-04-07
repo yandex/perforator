@@ -11,7 +11,6 @@ var parsers = []func(string, *time.Location) (time.Time, error){
 	parseWellKnownTimeLayouts,
 	parseSpecialTimes,
 	parseLast24HoursTime,
-	parseSpecialTimes,
 	parseRelativeTime,
 }
 
