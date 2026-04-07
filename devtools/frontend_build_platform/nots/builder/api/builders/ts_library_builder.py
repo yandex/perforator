@@ -85,3 +85,4 @@ class TsLibraryBuilder(BaseBuilder):
         """Execute the build process"""
         self._run_build_script()
         self._assert_output_dirs_exists()
+        self._make_bins_executable()

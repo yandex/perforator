@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-01T14:15:27Z",
+    "created": "2026-04-07T06:37:40.838Z",
     "pr": {
-      "id": 12745741,
-      "author": "baymer",
-      "summary": "feat(nots-builder): take v63 build resources into use ci: https://a.yandex-team.ru/projects/frontend_build_platform/ci/releases/flow?dir=devtools%2Ffrontend_build_platform%2Fnots%2Fbuilder&id=release-nots-builder&version=63&selectedJob=deploy&launchNumber=1"
+      "id": 12818450,
+      "author": "zaverden",
+      "summary": "fix(builder): _make_bins_executable for ts_library_builder"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11579984966"
+      "uri": "sbr:11637686362"
     },
     "darwin-arm64": {
-      "uri": "sbr:11579980964"
+      "uri": "sbr:11637685519"
     },
     "linux": {
-      "uri": "sbr:11579993627"
+      "uri": "sbr:11637688526"
     },
     "linux-aarch64": {
-      "uri": "sbr:11579989254"
+      "uri": "sbr:11637687247"
     }
   }
 }
