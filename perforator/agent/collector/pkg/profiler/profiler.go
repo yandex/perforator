@@ -1220,7 +1220,7 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 	conf.Labels = p.enrichProfileLabels(conf.Labels)
 
 	// TODO: For now we do not provide a way to enable features through AddCgroup
-	cg, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels), p.bpf.State(), p.log)
+	cg, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels, p.uprobeRegistry.Resolver), p.bpf.State(), p.log)
 	if err != nil {
 		return err
 	}
@@ -1233,7 +1233,7 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 
 func (p *Profiler) TraceWholeSystem(labels map[string]string) error {
 	labels = p.enrichProfileLabels(labels)
-	p.wholeSystem = NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), labels)
+	p.wholeSystem = NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), labels, p.uprobeRegistry.Resolver)
 	return p.bpf.State().PatchConfig(func(conf *unwinder.ProfilerConfig) error {
 		conf.TraceWholeSystem = true
 		return nil
@@ -1296,7 +1296,7 @@ func (p *Profiler) TracePid(pid linux.CurrentNamespacePID, optAppliers ...TraceO
 
 	labels := p.enrichProfileLabels(opts.profileLabels)
 
-	trackedProcess, err := p.newTrackedProcess(pid, NewSimpleSampleConsumer(p, opts.features, labels), p.bpf.State())
+	trackedProcess, err := p.newTrackedProcess(pid, NewSimpleSampleConsumer(p, opts.features, labels, p.uprobeRegistry.Resolver), p.bpf.State())
 	if err != nil {
 		return nil, err
 	}
@@ -1335,7 +1335,7 @@ func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
 		conf.Labels = p.enrichProfileLabels(conf.Labels)
 
 		// TODO: For now we do not provide a way to enable features through TraceCgroups
-		profiledCgroup, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels), p.bpf.State(), p.log)
+		profiledCgroup, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels, p.uprobeRegistry.Resolver), p.bpf.State(), p.log)
 		if err != nil {
 			return err
 		}

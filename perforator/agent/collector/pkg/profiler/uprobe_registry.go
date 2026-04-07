@@ -145,14 +145,14 @@ func (u *uprobeWrapper) Detach() error {
 		return nil
 	}
 
-	binaryInfo := u.uprobe.Info().BinaryInfo
+	info := u.uprobe.Info()
 	err := u.uprobe.Close()
 	if err != nil {
 		return err
 	}
 
 	u.attached = false
-	u.registry.Resolver.Remove(binaryInfo)
+	u.registry.Resolver.Remove(info)
 	return nil
 }
 

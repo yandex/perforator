@@ -1,6 +1,7 @@
 package uprobe
 
 import (
+	"slices"
 	"sync"
 )
 
@@ -34,28 +35,50 @@ type UprobeInfo struct {
 // uprobe_id to each bpf link.
 type Resolver struct {
 	sync.RWMutex
-	uprobes map[BinaryInfo]*UprobeInfo
+	uprobes map[BinaryInfo][]*UprobeInfo
 }
 
 func NewResolver() *Resolver {
 	return &Resolver{
-		uprobes: make(map[BinaryInfo]*UprobeInfo),
+		uprobes: make(map[BinaryInfo][]*UprobeInfo),
 	}
 }
 
 func (r *Resolver) Add(uprobeInfo *UprobeInfo) {
 	r.Lock()
 	defer r.Unlock()
-	r.uprobes[uprobeInfo.BinaryInfo] = uprobeInfo
+
+	oldSlice := r.uprobes[uprobeInfo.BinaryInfo]
+	newSlice := make([]*UprobeInfo, 0, len(oldSlice)+1)
+	newSlice = append(newSlice, oldSlice...)
+	newSlice = append(newSlice, uprobeInfo)
+
+	r.uprobes[uprobeInfo.BinaryInfo] = newSlice
 }
 
-func (r *Resolver) Remove(key BinaryInfo) {
+func (r *Resolver) Remove(uprobeInfo *UprobeInfo) {
 	r.Lock()
 	defer r.Unlock()
-	delete(r.uprobes, key)
+
+	oldSlice := r.uprobes[uprobeInfo.BinaryInfo]
+
+	if len(oldSlice) <= 1 {
+		delete(r.uprobes, uprobeInfo.BinaryInfo)
+		return
+	}
+
+	idx := slices.Index(oldSlice, uprobeInfo)
+	if idx == -1 {
+		return
+	}
+
+	newSlice := slices.Clone(oldSlice)
+	newSlice = slices.Delete(newSlice, idx, idx+1)
+
+	r.uprobes[uprobeInfo.BinaryInfo] = newSlice
 }
 
-func (r *Resolver) Resolve(key BinaryInfo) *UprobeInfo {
+func (r *Resolver) Resolve(key BinaryInfo) []*UprobeInfo {
 	r.RLock()
 	defer r.RUnlock()
 	return r.uprobes[key]

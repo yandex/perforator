@@ -267,14 +267,23 @@ func (o *operationController) setupSampleConsumer(ctx context.Context) (err erro
 			eventSampleFilters = append(eventSampleFilters, profiler.NewPerfEventSampleFilter())
 		}
 	}
+	var filters []profiler.SampleFilterFunc
+	filters = append(filters, profiler.NewORSampleFilter(eventSampleFilters...))
+	if pid != 0 {
+		filters = append(filters, profiler.NewPIDOrTIDSampleFilter(pid))
+	}
+
+	// Avoid resolving same uprobes from other concurrent CPOs in sample consumer
+	localResolver := uprobe.NewResolver()
+	for _, u := range o.uprobes {
+		localResolver.Add(u.Info())
+	}
+
 	err = o.profiler.SampleConsumerRegistry().Register(
 		sampleConsumerName,
 		profiler.NewFilterSampleConsumerAdapter(
-			profiler.NewSimpleSampleConsumer(o.profiler, sampleConsumerFeatures, profileLabels),
-			profiler.NewANDSampleFilter(
-				profiler.NewORSampleFilter(eventSampleFilters...),
-				profiler.NewPIDOrTIDSampleFilter(pid),
-			),
+			profiler.NewSimpleSampleConsumer(o.profiler, sampleConsumerFeatures, profileLabels, localResolver),
+			profiler.NewANDSampleFilter(filters...),
 		),
 	)
 	if err != nil {

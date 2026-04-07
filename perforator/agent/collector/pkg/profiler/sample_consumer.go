@@ -174,22 +174,26 @@ type simpleSampleConsumer struct {
 	p              *Profiler
 	features       SampleConsumerFeatures
 	profileBuilder *guardedProfileBuilder
+	uprobeResolver *uprobe.Resolver
 }
 
 func NewSimpleSampleConsumer(
 	p *Profiler,
 	features SampleConsumerFeatures,
 	labels map[string]string,
+	uprobeResolver *uprobe.Resolver,
 ) *simpleSampleConsumer {
-	return &simpleSampleConsumer{
+	c := &simpleSampleConsumer{
 		features:       features,
 		profileBuilder: &guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(labels)},
 		p:              p,
+		uprobeResolver: uprobeResolver,
 	}
+	return c
 }
 
 func (c *simpleSampleConsumer) Consume(ctx context.Context, sample *unwinder.RecordSample) {
-	oneShotConsumer := newOneShotSampleConsumer(c.p, c.features, c.profileBuilder, sample)
+	oneShotConsumer := newOneShotSampleConsumer(c.p, c.features, c.uprobeResolver, c.profileBuilder, sample)
 	oneShotConsumer.consume(ctx)
 }
 
@@ -205,6 +209,7 @@ type oneShotSampleConsumer struct {
 	p      *Profiler
 	sample *unwinder.RecordSample
 
+	uprobeResolver *uprobe.Resolver
 	profileBuilder *guardedProfileBuilder
 	features       SampleConsumerFeatures
 	envWhitelist   map[string]struct{}
@@ -220,6 +225,8 @@ type oneShotSampleConsumer struct {
 
 	pythonProcessor *sampleStackProcessor
 	phpProcessor    *sampleStackProcessor
+
+	workloadParts []string
 }
 
 func computeSampleTime(collectionTime uint64) time.Time {
@@ -233,11 +240,13 @@ func computeSampleTime(collectionTime uint64) time.Time {
 func newOneShotSampleConsumer(
 	p *Profiler,
 	features SampleConsumerFeatures,
+	uprobeResolver *uprobe.Resolver,
 	profileBuilder *guardedProfileBuilder,
 	sample *unwinder.RecordSample,
 ) *oneShotSampleConsumer {
 	return &oneShotSampleConsumer{
 		p:               p,
+		uprobeResolver:  uprobeResolver,
 		profileBuilder:  profileBuilder,
 		features:        features,
 		sample:          sample,
@@ -249,21 +258,29 @@ func newOneShotSampleConsumer(
 }
 
 func (c *oneShotSampleConsumer) countMetrics(ctx context.Context) {
-	// Count mappings cache hit/miss rate.
-	var stacklen uint64
 	for _, ip := range c.sample.Userstack {
-		if ip == 0 {
-			continue
-		}
-		stacklen += 1
+		if ip != 0 {
+			c.stacklen++
 
-		_, err := c.p.dsoStorage.ResolveAddress(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
-		if err == nil {
-			c.p.metrics.mappingsHit.Inc()
-		} else {
-			c.p.metrics.mappingsMiss.Inc()
+			_, err := c.p.dsoStorage.ResolveAddress(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
+			if err == nil {
+				c.p.metrics.mappingsHit.Inc()
+			} else {
+				c.p.metrics.mappingsMiss.Inc()
+			}
 		}
 	}
+	for _, ip := range c.sample.Kernstack {
+		if ip != 0 {
+			c.stacklen++
+		}
+	}
+}
+
+func (c *oneShotSampleConsumer) prepareData(ctx context.Context) {
+	c.resolveWorkloadOnce()
+	c.collectEnvironment()
+	c.collectTLS(ctx)
 }
 
 const (
@@ -271,7 +288,7 @@ const (
 	endOfCgroupList = ^uint64(0)
 )
 
-func (c *oneShotSampleConsumer) collectWorkloadInto(builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) resolveWorkloadOnce() {
 	var parts []string
 
 	var i int
@@ -323,8 +340,11 @@ func (c *oneShotSampleConsumer) collectWorkloadInto(builder *profile.SampleBuild
 			parts = newParts
 		}
 	}
+	c.workloadParts = parts
+}
 
-	for _, part := range parts {
+func (c *oneShotSampleConsumer) collectWorkloadInto(builder *profile.SampleBuilder) {
+	for _, part := range c.workloadParts {
 		builder.AddStringLabel("workload", part)
 	}
 }
@@ -448,7 +468,6 @@ func (c *oneShotSampleConsumer) collectKernelStackInto(builder *profile.SampleBu
 			Finish()
 
 		loc.Finish()
-		c.stacklen++
 	}
 }
 
@@ -540,7 +559,6 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 			loc = builder.AddNativeLocation(ip)
 		}
 		c.processUserSpaceLocation(ctx, loc, ip, matchingJVMFrame)
-		c.stacklen++
 	}
 }
 
@@ -650,9 +668,6 @@ func (c *oneShotSampleConsumer) initBuilderCommon(name string, sampleTypes []pro
 func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 	var err error
 
-	c.collectEnvironment()
-	c.collectTLS(ctx)
-
 	switch c.sample.SampleType {
 	case unwinder.SampleTypePerfEvent:
 		perfEvent := c.sample.SampleConfig.GetPerfEvent()
@@ -759,7 +774,7 @@ func (c *oneShotSampleConsumer) recordSignalSample(ctx context.Context) error {
 	return nil
 }
 
-func (c *oneShotSampleConsumer) resolveUprobe(ctx context.Context) *uprobe.UprobeInfo {
+func (c *oneShotSampleConsumer) resolveUprobes(ctx context.Context) []*uprobe.UprobeInfo {
 	topStackIP := c.sample.Userstack[0]
 	if topStackIP == 0 {
 		return nil
@@ -777,37 +792,41 @@ func (c *oneShotSampleConsumer) resolveUprobe(ctx context.Context) *uprobe.Uprob
 		return nil
 	}
 
-	return c.p.uprobeRegistry.Resolve(uprobe.BinaryInfo{
+	return c.uprobeResolver.Resolve(uprobe.BinaryInfo{
 		Offset:  topStackIP - mapping.Begin + mapping.Offset,
 		BuildID: mapping.BuildInfo.BuildID,
 	})
 }
 
 func (c *oneShotSampleConsumer) recordUprobeSample(ctx context.Context) {
-	uprobeInfo := c.resolveUprobe(ctx)
-	if uprobeInfo == nil {
+	uprobeInfos := c.resolveUprobes(ctx)
+	if len(uprobeInfos) == 0 {
 		c.p.log.Warn("Failed to resolve uprobe info", log.UInt64("top_stack_ip", c.sample.Userstack[0]))
 		return
 	}
 
-	c.p.log.Debug("Resolved uprobe info", log.Any("uprobe_info", uprobeInfo))
+	// There can be multiple uprobes for the same (buildID, offset) pair.
+	// In that case just feed sample into each profile
+	for _, uprobeInfo := range uprobeInfos {
+		c.p.log.Debug("Resolved uprobe info", log.Any("uprobe_info", uprobeInfo))
 
-	sampleTypeKind := uprobeInfo.SampleKind
-	if sampleTypeKind == "" {
-		// fallback to "uprobe"
-		sampleTypeKind = sampletype.SampleTypeUprobe
+		sampleTypeKind := uprobeInfo.SampleKind
+		if sampleTypeKind == "" {
+			// fallback to "uprobe"
+			sampleTypeKind = sampletype.SampleTypeUprobe
+		}
+		sampleTypes := []profile.SampleType{{Kind: sampleTypeKind, Unit: "count"}}
+
+		builder := c.initBuilderCommon(uprobeInfo.ProfileName, sampleTypes)
+
+		builder.AddValue(1)
+		c.collectStacksInto(ctx, builder)
+		if c.features.EnableSampleTimeCollection {
+			c.collectSampleTime(builder)
+		}
+
+		c.finishSample(builder)
 	}
-	sampleTypes := []profile.SampleType{{Kind: sampleTypeKind, Unit: "count"}}
-
-	builder := c.initBuilderCommon(uprobeInfo.ProfileName, sampleTypes)
-
-	builder.AddValue(1)
-	c.collectStacksInto(ctx, builder)
-	if c.features.EnableSampleTimeCollection {
-		c.collectSampleTime(builder)
-	}
-
-	c.finishSample(builder)
 }
 
 func (c *oneShotSampleConsumer) logSample(err error) {
@@ -859,6 +878,7 @@ func (c *oneShotSampleConsumer) consume(ctx context.Context) {
 	defer c.recordSampleConsumeLatency()
 	c.p.procs.DiscoverProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
 	c.countMetrics(ctx)
+	c.prepareData(ctx)
 	c.recordSample(ctx)
 	c.maybeFlushProfile()
 }
