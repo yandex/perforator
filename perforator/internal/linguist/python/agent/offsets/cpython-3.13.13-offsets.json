@@ -1,0 +1,37 @@
+{
+  "PyThreadState": {
+    "prev": 0,
+    "next": 8,
+    "native_thread_id": 160,
+    "current_frame": 72
+  },
+  "_PyInterpreterFrame": {
+    "f_executable": 0,
+    "previous": 8,
+    "owner": 70
+  },
+  "_PyRuntimeState": {
+    "interpreters.main": 640
+  },
+  "PyInterpreterState": {
+    "threads.head": 7344,
+    "next": 7264
+  },
+  "PyASCIIObject": {
+    "length": 16,
+    "state": 32,
+    "data": 40,
+    "ascii_bit": 6,
+    "compact_bit": 5,
+    "static_bit": 7
+  },
+  "PyCodeObject": {
+    "co_firstlineno": 68,
+    "co_filename": 112,
+    "co_qualname": 128
+  },
+  "Py_tss_t": {
+    "_is_initialized": 0,
+    "_key": 4
+  }
+}
