@@ -14,6 +14,8 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/ptr"
+	"github.com/yandex/perforator/observability/lib/querylang"
+	"github.com/yandex/perforator/observability/lib/querylang/operator"
 	"github.com/yandex/perforator/perforator/pkg/humantime"
 	"github.com/yandex/perforator/perforator/pkg/must"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
@@ -27,8 +29,12 @@ import (
 )
 
 var (
-	logLevel            string
-	startTime           string
+	logLevel  string
+	startTime string
+	// this must be different from startTime because it is defaulted to other value.
+	// See PERFORATOR-1151 / https://github.com/spf13/pflag/issues/257
+	pgoStartTime        string
+	pgoEndTime          string
 	endTime             string
 	sampleProfileStacks bool
 	maxSamples          uint32
@@ -399,6 +405,14 @@ func makePGORenderFormat(format string) (*proto.PGOProfileFormat, error) {
 }
 
 func fetchPGOProfile(args []string) error {
+	if len(args) == 0 {
+		if selector == "" {
+			return fmt.Errorf("either selector or service must be specified")
+		}
+	} else if selector != "" {
+		return fmt.Errorf("selector and service may not be specified together")
+	}
+
 	cli, err := makeCLI()
 	if err != nil {
 		return err
@@ -415,24 +429,41 @@ func fetchPGOProfile(args []string) error {
 		return err
 	}
 
-	startTime, endTime, err := humantime.ParseInterval(startTime, endTime)
+	startTS, endTS, err := humantime.ParseInterval(pgoStartTime, pgoEndTime)
 	if err != nil {
 		return err
 	}
 
-	builder := profilequerylang.NewBuilder().
-		Services(args[0]).
-		From(startTime).
-		To(endTime)
+	var effSelector *querylang.Selector
+	var logField log.Field
 
-	selector, err := profilequerylang.SelectorToString(builder.Build())
+	if selector != "" {
+		logField = log.String("Selector", selector)
+		effSelector, err = profilequerylang.ParseSelector(selector)
+		if err != nil {
+			return fmt.Errorf("invalid selector: %w", err)
+		}
+		profilequerylang.AddTimestampMatcher(effSelector, operator.GTE, startTS)
+		profilequerylang.AddTimestampMatcher(effSelector, operator.LTE, endTS)
+	} else {
+		logField = log.String("Service", args[0])
+
+		builder := profilequerylang.NewBuilder().
+			Services(args[0]).
+			From(startTS).
+			To(endTS)
+
+		effSelector = builder.Build()
+	}
+
+	effSelectorString, err := profilequerylang.SelectorToString(effSelector)
 	if err != nil {
 		return fmt.Errorf("failed to construct selector from cli arguments: %w", err)
 	}
 
 	profile, PGOMeta, err := cli.Client().GetPGOProfile(
 		cli.Context(),
-		selector,
+		effSelectorString,
 		format,
 		false,
 		taskAnnotation,
@@ -446,7 +477,7 @@ func fetchPGOProfile(args []string) error {
 	}
 	cli.Logger().Info(cli.Context(),
 		"Fetched PGO profile",
-		log.String("Service", args[0]),
+		logField,
 		log.String("GuessedBuildId", PGOMeta.GetGuessedBuildID()),
 		log.UInt64("TotalProfiles", PGOMeta.GetTotalProfiles()),
 		log.UInt64("TotalSamples", PGOMeta.GetTotalSamples()),
@@ -497,7 +528,7 @@ var (
 		Short: "Fetch PGO-profile for the Service",
 		Long: `Perforator supports creating sampling-PGO profile for binaries, which one might feed into
 subsequent compilation via '-fprofile-sample-use=<path-to-spgo-profile>'.`,
-		Args: cobra.ExactArgs(1),
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			postprocessArgs()
 			return fetchPGOProfile(args)
@@ -872,20 +903,24 @@ func setupPGOCmd() *cobra.Command {
 	)
 
 	pgoCmd.Flags().StringVarP(
-		&startTime,
+		&pgoStartTime,
 		"start",
 		"s",
-		fmt.Sprintf("%s -24h", humantime.Now),
+		"",
 		`Start time to aggregate from. Unix time in seconds, ISO8601, HH:MM in the last 24 hours, or "now - 1d2h3m4s"`,
 	)
 
 	pgoCmd.Flags().StringVarP(
-		&endTime,
+		&pgoEndTime,
 		"end",
 		"e",
-		humantime.Now,
+		"",
 		`End time to aggregate to. Unix time in seconds, ISO8601, HH:MM in the last 24 hours, or "now - 1d2h3m4s"`,
 	)
+
+	pgoCmd.Flags().StringVar(&selector, "selector", "", "Selector (https://perforator.tech/docs/en/reference/querylang)")
+	must.Must(pgoCmd.MarkFlagRequired("start"))
+	must.Must(pgoCmd.MarkFlagRequired("end"))
 
 	return pgoCmd
 }

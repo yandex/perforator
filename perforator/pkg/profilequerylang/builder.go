@@ -150,12 +150,12 @@ func (b *Builder) AddMatcher(selector *querylang.Selector, label string, values 
 	return b
 }
 
-func (b *Builder) AddTimestampMatcher(
+func AddTimestampMatcher(
 	selector *querylang.Selector,
 	oper operator.Operator,
-	value *time.Time,
-) *Builder {
-	if value != nil && !value.IsZero() {
+	value time.Time,
+) {
+	if !value.IsZero() {
 		selector.Matchers = append(
 			selector.Matchers,
 			BuildMatcher(
@@ -166,7 +166,6 @@ func (b *Builder) AddTimestampMatcher(
 			),
 		)
 	}
-	return b
 }
 
 func (b *Builder) Build() *querylang.Selector {
@@ -185,9 +184,12 @@ func (b *Builder) Build() *querylang.Selector {
 		AddMatcher(selector, ClusterLabel, b.clusters).
 		AddMatcher(selector, CPOIDLabel, b.cpoIDs)
 
-	b.
-		AddTimestampMatcher(selector, operator.GTE, b.timestampFrom).
-		AddTimestampMatcher(selector, operator.LTE, b.timestampTo)
+	if b.timestampFrom != nil {
+		AddTimestampMatcher(selector, operator.GTE, *b.timestampFrom)
+	}
+	if b.timestampTo != nil {
+		AddTimestampMatcher(selector, operator.LTE, *b.timestampTo)
+	}
 
 	return selector
 }
