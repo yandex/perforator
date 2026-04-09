@@ -27,6 +27,7 @@
     "@gravity-ui/components": "4.7.1",
     "@gravity-ui/date-components": "3.2.3",
     "@gravity-ui/date-utils": "2.5.5",
+    "@gravity-ui/icons": "2.15.0",
     "@gravity-ui/illustrations": "2.1.0",
     "@gravity-ui/navigation": "3.4.0",
     "@gravity-ui/onboarding": "1.11.4",
@@ -44,7 +45,6 @@
   },
   "devDependencies": {
     "@gravity-ui/eslint-config": "3.1.1",
-    "@gravity-ui/icons": "2.15.0",
     "@gravity-ui/stylelint-config": "^4.0.1",
     "@jest/globals": "29.7.0",
     "@playwright/test": "1.51.1",
