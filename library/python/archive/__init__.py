@@ -137,12 +137,14 @@ def extract_tar(
         sep = encode(os.sep, ENCODING)
         for path, mtime in mtime2fix:
             rel = path[len(output_dir) + 1 :]
+            if sys.platform == 'win32':
+                rel = rel.replace(encode('/', ENCODING), sep)
             path = output_dir
             for x in rel.split(sep):
                 path = os.path.join(path, x)
                 if path in seen:
                     continue
-                if six.PY3 and not sys.platform.startswith('win'):
+                if six.PY3 and os.utime in os.supports_follow_symlinks:
                     os.utime(path, (mtime, mtime), follow_symlinks=False)
                 else:
                     os.utime(path, (mtime, mtime))
