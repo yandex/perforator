@@ -20,7 +20,7 @@ import { TimeIntervalInput } from '../TimeIntervalInput/TimeIntervalInput';
 import type { QueryInput, QueryInputResult } from './QueryInput';
 import { QueryInputSwitcher } from './QueryInputSwitcher/QueryInputSwitcher';
 import { SampleSizeInput } from './SampleSizeInput/SampleSizeInput';
-import { useProfileStateQuery } from './utils';
+import { useProfileStateQuery } from './useProfileStateQuery';
 
 import './MergeProfilesForm.scss';
 
