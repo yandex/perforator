@@ -623,6 +623,7 @@ require (
 	github.com/masterzen/winrm v0.0.0-20210623064412-3b76017826b0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-sqlite3 v2.0.1+incompatible
+	github.com/max-messenger/max-bot-api-client-go v1.6.4
 	github.com/maxence-charriere/go-app/v9 v9.8.0
 	github.com/mdlayher/netlink v1.7.3-0.20250113171957-fbb4dce95f42
 	github.com/mennanov/fieldmask-utils v1.1.4
@@ -1011,7 +1012,7 @@ require (
 	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/fx v1.23.0
 	go.uber.org/goleak v1.3.0
-	go.uber.org/mock v0.5.2
+	go.uber.org/mock v0.6.0
 	go.uber.org/nilaway v0.0.0-20260213150243-937701de96c7
 	go.uber.org/ratelimit v0.3.1
 	go.uber.org/zap v1.27.1

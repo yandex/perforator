@@ -12483,6 +12483,11 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/matttproud/golang_protobuf_extensions/testdata
 # github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0
 ## explicit; go 1.19
+# github.com/max-messenger/max-bot-api-client-go v1.6.4
+## explicit; go 1.24.0
+github.com/max-messenger/max-bot-api-client-go
+github.com/max-messenger/max-bot-api-client-go/admins
+github.com/max-messenger/max-bot-api-client-go/schemes
 # github.com/maxatome/go-testdeep v1.14.0
 ## explicit; go 1.18
 github.com/maxatome/go-testdeep/helpers/tdsuite
@@ -19429,8 +19434,9 @@ go.uber.org/fx/internal/testutil
 ## explicit; go 1.20
 go.uber.org/goleak
 go.uber.org/goleak/internal/stack
-# go.uber.org/mock v0.5.2
-## explicit; go 1.23
+# go.uber.org/mock v0.6.0
+## explicit; go 1.23.0
+go.uber.org/mock
 go.uber.org/mock/gomock
 go.uber.org/mock/gomock/internal/mock_gomock
 go.uber.org/mock/mockgen
