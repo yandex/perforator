@@ -9,6 +9,7 @@
 #include <llvm/Object/ELFObjectFile.h>
 #include <llvm/Object/ObjectFile.h>
 
+#include <library/cpp/containers/absl_flat_hash/flat_hash_set.h>
 #include <library/cpp/yt/compact_containers/compact_vector.h>
 
 #include <perforator/proto/pprofprofile/lightweightprofile.pb.h>
@@ -72,26 +73,19 @@ TLocationByIdMap PrepareProfileLocations(const TPerforatorProfile& profile) {
     return TLocationByIdMap{profile};
 }
 
-std::optional<ui64> PrepareMainMappingId(const TPerforatorProfile& profile, const std::string& buildId) {
+// Collect all mapping IDs that match the given build ID.
+// A binary (especially a BOLT-optimized one) may have multiple executable
+// LOAD segments, each producing a separate mapping at runtime, all sharing
+// the same build ID.
+absl::flat_hash_set<ui64> PrepareMainMappingIds(const TPerforatorProfile& profile, const std::string& buildId) {
+    absl::flat_hash_set<ui64> result;
     for (std::size_t i = 0; i < profile.mappingSize(); ++i) {
         const auto& mapping = profile.mapping(i);
         if (profile.string_table(mapping.build_id()) == buildId) {
-            return mapping.id();
+            result.insert(mapping.id());
         }
     }
-
-    return std::nullopt;
-}
-
-ui64 PrepareMainMappingOffset(const TPerforatorProfile& profile, const std::string& buildId) {
-    for (std::size_t i = 0; i < profile.mappingSize(); ++i) {
-        const auto& mapping = profile.mapping(i);
-        if (profile.string_table(mapping.build_id()) == buildId) {
-            return mapping.memory_start() - mapping.file_offset();
-        }
-    }
-
-    return 0;
+    return result;
 }
 
 [[noreturn]] void ThrowInvalidSampleError() {
@@ -203,12 +197,21 @@ void TInputBuilder::AddProfile(std::string_view serviceName, TArrayRef<const cha
 void TInputBuilder::AddProfile(std::string_view serviceName, const TPerforatorProfile& profile) {
     const auto locationById = PrepareProfileLocations(profile);
     const auto mappingById = PrepareProfileMappings(profile);
-    const auto mainMappingIdOpt = PrepareMainMappingId(profile, BuildId_);
-    if (!mainMappingIdOpt.has_value()) {
+    const auto mainMappingIds = PrepareMainMappingIds(profile, BuildId_);
+    if (mainMappingIds.empty()) {
         return;
     }
-    const auto mainMappingId = *mainMappingIdOpt;
-    const auto mainMappingOffset = PrepareMainMappingOffset(profile, BuildId_);
+
+    // Compute the mapping offset for a given location.
+    // Each mapping (executable segment) has its own memory_start and file_offset,
+    // so the offset to convert file offsets back to virtual addresses differs per segment.
+    const auto calcMappingOffset = [&mappingById] (const NPerforator::NProto::NPProf::Location& loc) -> ui64 {
+        if (loc.mapping_id() == 0) {
+            return 0;
+        }
+        const auto& mapping = mappingById.At(loc.mapping_id());
+        return mapping.memory_start() - mapping.file_offset();
+    };
 
     const auto calcLocationAddress = [&mappingById] (const NPerforator::NProto::NPProf::Location& loc) -> ui64 {
         if (loc.mapping_id() == 0) {
@@ -235,11 +238,11 @@ void TInputBuilder::AddProfile(std::string_view serviceName, const TPerforatorPr
             const auto& locFrom = locationById.At(sample.location_id(j));
             const auto& locTo = locationById.At(sample.location_id(j + 1));
 
-            if (locFrom.mapping_id() == mainMappingId && locTo.mapping_id() == mainMappingId) {
+            if (mainMappingIds.contains(locFrom.mapping_id()) && mainMappingIds.contains(locTo.mapping_id())) {
                 branchStack.push_back(TAutofdoInputData::TTakenBranch{
                     .From = calcLocationAddress(locFrom),
                     .To = calcLocationAddress(locTo),
-                    .MappingOffset = mainMappingOffset,
+                    .MappingOffset = calcMappingOffset(locFrom),
                 });
             } else {
                 branchStack.push_back(TAutofdoInputData::TTakenBranch{0, 0, 0});
