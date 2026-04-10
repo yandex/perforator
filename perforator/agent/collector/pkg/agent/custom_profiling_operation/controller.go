@@ -300,6 +300,7 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 			releaseErr := o.releaseProfilerResources()
 			if releaseErr != nil {
 				o.l.Error(ctx, "Failed to release profiler resources on CPO start failure", log.Error(releaseErr))
+				err = models.NewResourceLeakError(fmt.Errorf("original start error: %v, rollback error: %w", err, releaseErr))
 			}
 		}
 	}()
@@ -333,7 +334,7 @@ func (o *operationController) Stop(ctx context.Context) error {
 	// 1. Disable event sources so BPF stops generating new samples for this operation.
 	if err := o.disableEventSources(); err != nil {
 		o.l.Error(ctx, "Failed to disable event sources", log.Error(err))
-		errs = append(errs, err)
+		errs = append(errs, models.NewResourceLeakError(err))
 	}
 
 	// 2. Wait until the sample reader processes all samples that were already in the perfbuf.
@@ -343,7 +344,7 @@ func (o *operationController) Stop(ctx context.Context) error {
 		} else {
 			o.l.Error(ctx, "Failed to wait for sample processing", log.Error(err))
 		}
-		errs = append(errs, err)
+		errs = append(errs, models.NewProfilingDataLostError(err))
 	}
 
 	// 3. Flush the sample consumer to serialize accumulated samples into a profile.
@@ -351,7 +352,7 @@ func (o *operationController) Stop(ctx context.Context) error {
 	if sampleConsumer != nil {
 		if err := sampleConsumer.Flush(ctx); err != nil {
 			o.l.Error(ctx, "Failed to flush CPO sample consumer", log.Error(err))
-			errs = append(errs, err)
+			errs = append(errs, models.NewProfilingDataLostError(err))
 		} else {
 			o.l.Info(ctx, "Successfully flushed CPO sample consumer")
 		}

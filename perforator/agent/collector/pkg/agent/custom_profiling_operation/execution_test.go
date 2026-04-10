@@ -144,48 +144,130 @@ func TestTimeBoundedOperationExecution_Success(t *testing.T) {
 	waitForChan(t, done, time.Second)
 }
 
-func TestTimeBoundedOperationExecution_StartOperation_Failure(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockController := mocks.NewMockOperationController(ctrl)
-	reporter := newMockReporter()
-	logger := xlog.ForTest(t)
-	metricsRegistry := &nop.Registry{}
-
-	now := time.Now()
-	timeInterval := &time_interval.TimeInterval{
-		From: timestamppb.New(now.Add(50 * time.Millisecond)),
-		To:   timestamppb.New(now.Add(5 * time.Second)),
+func TestTimeBoundedOperationExecution_StartOperation_Failures(t *testing.T) {
+	testCases := []struct {
+		name          string
+		expectedError error
+	}{
+		{
+			name:          "StartFailed",
+			expectedError: errors.New("start failed"),
+		},
+		{
+			name:          "ResourceLeak",
+			expectedError: models.NewResourceLeakError(errors.New("bpf attach failed")),
+		},
 	}
 
-	expectedError := errors.New("start failed")
-	mockController.EXPECT().Start(gomock.Any()).Return(expectedError).Times(1)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+			mockController := mocks.NewMockOperationController(ctrl)
+			reporter := newMockReporter()
+			logger := xlog.ForTest(t)
+			metricsRegistry := &nop.Registry{}
 
-	execution, err := newOperationExecution(logger, metricsRegistry, "test-operation-id", mockController, reporter, timeInterval)
-	require.NoError(t, err)
+			now := time.Now()
+			timeInterval := &time_interval.TimeInterval{
+				From: timestamppb.New(now.Add(50 * time.Millisecond)),
+				To:   timestamppb.New(now.Add(5 * time.Second)),
+			}
 
-	done := make(chan struct{})
-	go func() {
-		execution.Run(ctx)
-		close(done)
-	}()
+			mockController.EXPECT().Start(gomock.Any()).Return(tc.expectedError).Times(1)
 
-	// Wait for initial Prepared status
-	status, ok := reporter.waitForStatus(10 * time.Millisecond)
-	require.True(t, ok, "Expected Prepared status")
-	assert.Equal(t, cpo_proto.OperationState_Prepared, status.State)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
-	// Wait for Failed status
-	status, ok = reporter.waitForStatus(100 * time.Millisecond)
-	require.True(t, ok, "Expected Failed status to be reported")
-	assert.Equal(t, cpo_proto.OperationState_Failed, status.State)
-	assert.Equal(t, expectedError.Error(), status.Error)
+			execution, err := newOperationExecution(logger, metricsRegistry, "test-operation-id", mockController, reporter, timeInterval)
+			require.NoError(t, err)
 
-	waitForChan(t, done, time.Second)
+			done := make(chan struct{})
+			go func() {
+				execution.Run(ctx)
+				close(done)
+			}()
+
+			// Wait for initial Prepared status
+			status, ok := reporter.waitForStatus(10 * time.Millisecond)
+			require.True(t, ok, "Expected Prepared status")
+			assert.Equal(t, cpo_proto.OperationState_Prepared, status.State)
+
+			// Wait for Failed status
+			status, ok = reporter.waitForStatus(100 * time.Millisecond)
+			require.True(t, ok, "Expected Failed status to be reported")
+			assert.Equal(t, cpo_proto.OperationState_Failed, status.State)
+			assert.Equal(t, tc.expectedError.Error(), status.Error)
+
+			waitForChan(t, done, time.Second)
+		})
+	}
+}
+
+func TestTimeBoundedOperationExecution_StopOperation_Failures(t *testing.T) {
+	testCases := []struct {
+		name          string
+		expectedError error
+	}{
+		{
+			name:          "DataLost",
+			expectedError: models.NewProfilingDataLostError(errors.New("timeout")),
+		},
+		{
+			name:          "ResourceLeak",
+			expectedError: models.NewResourceLeakError(errors.New("failed to close uprobe")),
+		},
+		{
+			name:          "UnexpectedError",
+			expectedError: errors.New("something totally unexpected"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockController := mocks.NewMockOperationController(ctrl)
+			reporter := newMockReporter()
+			logger := xlog.ForTest(t)
+			metricsRegistry := &nop.Registry{}
+
+			now := time.Now()
+			timeInterval := &time_interval.TimeInterval{
+				From: timestamppb.New(now.Add(50 * time.Millisecond)),
+				To:   timestamppb.New(now.Add(200 * time.Millisecond)),
+			}
+
+			mockController.EXPECT().Start(gomock.Any()).Return(nil).Times(1)
+			mockController.EXPECT().Stop(gomock.Any()).Return(tc.expectedError).Times(1)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			execution, err := newOperationExecution(logger, metricsRegistry, "test-operation-id", mockController, reporter, timeInterval)
+			require.NoError(t, err)
+
+			done := make(chan struct{})
+			go func() {
+				execution.Run(ctx)
+				close(done)
+			}()
+
+			// Skip Prepared and Running
+			_, _ = reporter.waitForStatus(100 * time.Millisecond)
+			_, _ = reporter.waitForStatus(200 * time.Millisecond)
+
+			// Wait for Failed
+			status, ok := reporter.waitForStatus(1 * time.Second)
+			require.True(t, ok, "Expected Failed status to be reported")
+			assert.Equal(t, cpo_proto.OperationState_Failed, status.State)
+			assert.Equal(t, tc.expectedError.Error(), status.Error)
+
+			waitForChan(t, done, time.Second)
+		})
+	}
 }
 
 func TestTimeBoundedOperationExecution_ImmediateStartAndCancel(t *testing.T) {

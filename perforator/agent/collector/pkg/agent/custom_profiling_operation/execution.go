@@ -156,9 +156,16 @@ func (e *operationExecution) startOperation(ctx context.Context) (started bool) 
 	e.l.Info(ctx, "Starting CPO")
 	err := e.operationController.Start(ctx)
 	if err != nil {
-		e.l.Error(ctx, "Failed to start CPO", log.Error(err))
-		e.failOperation(err)
+		var leakErr models.ResourceLeakError
+		if errors.As(err, &leakErr) {
+			e.l.Error(ctx, "Failed to start CPO cleanly, resources leaked during rollback", log.Error(err))
+			e.metrics.zombie.Inc()
+		} else {
+			e.l.Error(ctx, "Failed to start CPO", log.Error(err))
+		}
+
 		e.metrics.failed.Inc()
+		e.failOperation(err)
 		return false
 	}
 
@@ -168,7 +175,7 @@ func (e *operationExecution) startOperation(ctx context.Context) (started bool) 
 	return true
 }
 
-func (e *operationExecution) stopOperationImpl(ctx context.Context, finalState cpo_proto.OperationState) {
+func (e *operationExecution) terminateOperation(ctx context.Context, targetState cpo_proto.OperationState) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
@@ -179,31 +186,43 @@ func (e *operationExecution) stopOperationImpl(ctx context.Context, finalState c
 	e.l.Info(ctx, "Stopping CPO")
 	err := e.operationController.Stop(ctx)
 	if err != nil {
-		e.l.Error(ctx, "Failed to stop CPO", log.Error(err))
-		// This should never occur - set up monitoring for this
-		e.metrics.zombie.Inc()
+		var leakErr models.ResourceLeakError
+		var lostErr models.ProfilingDataLostError
+
+		if errors.As(err, &leakErr) {
+			e.l.Error(ctx, "Failed to stop CPO correctly, resources leaked", log.Error(err))
+			e.metrics.zombie.Inc()
+		} else if errors.As(err, &lostErr) {
+			e.l.Error(ctx, "CPO stopped but some of the data could be lost", log.Error(err))
+			e.metrics.failed.Inc()
+		} else {
+			e.l.Error(ctx, "Failed to stop CPO with unexpected error", log.Error(err))
+			e.metrics.zombie.Inc()
+		}
+
+		e.failOperation(err)
 		return
 	}
 
 	e.l.Info(ctx, "Successfully stopped CPO")
-	e.updateState(finalState)
+	e.updateState(targetState)
 
-	if finalState == cpo_proto.OperationState_Finished {
+	if targetState == cpo_proto.OperationState_Finished {
 		e.metrics.finished.Inc()
-	} else if finalState == cpo_proto.OperationState_Stopped {
+	} else if targetState == cpo_proto.OperationState_Stopped {
 		e.metrics.stopped.Inc()
 	}
 }
 
 func (e *operationExecution) finishOperation(ctx context.Context) {
 	e.stopOnce.Do(func() {
-		e.stopOperationImpl(ctx, cpo_proto.OperationState_Finished)
+		e.terminateOperation(ctx, cpo_proto.OperationState_Finished)
 	})
 }
 
 func (e *operationExecution) stopOperation(ctx context.Context) {
 	e.stopOnce.Do(func() {
-		e.stopOperationImpl(ctx, cpo_proto.OperationState_Stopped)
+		e.terminateOperation(ctx, cpo_proto.OperationState_Stopped)
 	})
 }
 
