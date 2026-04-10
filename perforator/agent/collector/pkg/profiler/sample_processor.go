@@ -16,6 +16,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/graceful"
+	"github.com/yandex/perforator/perforator/pkg/linux/clock"
 	"github.com/yandex/perforator/perforator/pkg/pubsub"
 )
 
@@ -32,7 +33,7 @@ func (u *sampleUnmarshaller) UnmarshalBinary(data []byte) error {
 	return u.sample.UnmarshalBinary(data)
 }
 
-type GlobalProcessedWatermark = uint64
+type GlobalProcessedWatermark = clock.MonotonicTime
 
 func NewGlobalProcessedWatermark(monotonicTime unix.Timespec) GlobalProcessedWatermark {
 	return GlobalProcessedWatermark(uint64(monotonicTime.Sec)*1_000_000_000 + uint64(monotonicTime.Nsec))

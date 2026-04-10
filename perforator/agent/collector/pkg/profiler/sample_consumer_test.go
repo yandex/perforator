@@ -5,18 +5,24 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/yandex/perforator/library/go/core/metrics/nop"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
+	"github.com/yandex/perforator/perforator/pkg/linux/clock"
+	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
 func TestEnvWhitelist(t *testing.T) {
 	var sample unwinder.RecordSample
+	l := xlog.ForTest(t)
+	clockConverter, _ := clock.NewMonotonicClockConverter(l.Logger(), nop.Registry{})
 	sampleConsumer := newOneShotSampleConsumer(
 		&Profiler{
 			envWhitelist: map[string]struct{}{
 				"key1": {},
 				"key2": {},
 			},
+			clockConverter: clockConverter,
 		},
 		DefaultSampleConsumerFeatures(),
 		nil,
@@ -48,12 +54,15 @@ func TestEnvWhitelist(t *testing.T) {
 
 func TestNoEmptySamples(t *testing.T) {
 	var sample unwinder.RecordSample
+	l := xlog.ForTest(t)
+	clockConverter, _ := clock.NewMonotonicClockConverter(l.Logger(), nop.Registry{})
 	sampleConsumer := newOneShotSampleConsumer(
 		&Profiler{
 			envWhitelist: map[string]struct{}{
 				"key1": {},
 				"key2": {},
 			},
+			clockConverter: clockConverter,
 		},
 		DefaultSampleConsumerFeatures(),
 		nil,

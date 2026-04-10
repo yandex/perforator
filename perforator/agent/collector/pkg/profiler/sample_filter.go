@@ -2,6 +2,7 @@ package profiler
 
 import (
 	"context"
+	"time"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
@@ -98,6 +99,21 @@ func NewTIDSampleFilter(tid linux.CurrentNamespacePID) SampleFilterFunc {
 
 func NewPIDOrTIDSampleFilter(pid linux.CurrentNamespacePID) SampleFilterFunc {
 	return NewORSampleFilter(NewPIDSampleFilter(pid), NewTIDSampleFilter(pid))
+}
+
+func NewTimestampSampleFilter(p *Profiler, startTime *time.Time, endTime *time.Time) SampleFilterFunc {
+	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+		sampleTime := p.clockConverter.MonotonicToTime(sample.CollectionTime)
+
+		if startTime != nil && sampleTime.Before(*startTime) {
+			return false
+		}
+		if endTime != nil && sampleTime.After(*endTime) {
+			return false
+		}
+
+		return true
+	}
 }
 
 func NewORSampleFilter(filters ...SampleFilterFunc) SampleFilterFunc {

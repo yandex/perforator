@@ -36,6 +36,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/graceful"
 	"github.com/yandex/perforator/perforator/pkg/linux"
+	"github.com/yandex/perforator/perforator/pkg/linux/clock"
 	"github.com/yandex/perforator/perforator/pkg/linux/kallsyms"
 	"github.com/yandex/perforator/perforator/pkg/linux/mountinfo"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
@@ -68,6 +69,7 @@ type threadTarget struct {
 
 type Profiler struct {
 	log log.Logger
+	reg metrics.Registry
 
 	conf           *config.Config
 	storage        client.Storage
@@ -129,6 +131,8 @@ type Profiler struct {
 	enablePerfMapsJVM bool
 
 	identity string
+
+	clockConverter *clock.MonotonicClockConverter
 }
 
 type languageCollectionMetrics struct {
@@ -267,14 +271,21 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 		return nil, fmt.Errorf("invalid profiler config: %w", err)
 	}
 
+	clockConverter, err := clock.NewMonotonicClockConverter(l, r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create clock converter: %w", err)
+	}
+
 	envWhitelist := make(map[string]struct{})
 	for _, env := range c.SampleConsumer.EnvWhitelist {
 		envWhitelist[env] = struct{}{}
 	}
 
 	profiler := &Profiler{
-		conf:           c,
-		log:            l,
+		conf: c,
+		log:  l,
+		reg:  r,
+
 		mounts:         mountinfo.NewWatcher(l, r),
 		events:         make(map[perfevent.Type]*PerfEvent),
 		pids:           make(map[linux.CurrentNamespacePID]*trackedProcess),
@@ -285,6 +296,7 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 
 		profileUploaderShutdown: graceful.NewShutdownCookie(),
 		ebpfMetricsShutdown:     graceful.NewShutdownCookie(),
+		clockConverter:          clockConverter,
 	}
 
 	scanner := &process.ProcFSScanner{}
@@ -297,7 +309,7 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 		}
 	}
 
-	err := profiler.initialize(r)
+	err = profiler.initialize(r)
 	if err != nil {
 		l.Error("Failed to initialize profiler", log.Error(err))
 		return nil, err
@@ -989,6 +1001,10 @@ func (p *Profiler) Start(ctx context.Context) error {
 			return p.handleWorkerError(ctx, err, "perf map manager")
 		})
 	}
+	p.wg.Go(func() error {
+		err := p.clockConverter.Run(ctx)
+		return p.handleWorkerError(ctx, err, "clock converter")
+	})
 	p.wg.Go(func() error {
 		err := p.sampleProcessor.Run(ctx)
 		return p.handleWorkerError(ctx, err, "sample processor")

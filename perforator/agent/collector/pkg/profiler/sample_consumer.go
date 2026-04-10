@@ -23,7 +23,6 @@ import (
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/linux"
-	"github.com/yandex/perforator/perforator/pkg/linux/btime"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/tls"
@@ -214,8 +213,7 @@ type oneShotSampleConsumer struct {
 	features       SampleConsumerFeatures
 	envWhitelist   map[string]struct{}
 
-	// sampleTime is the absolute wall-clock time of the sample, computed once
-	// from boot time + CollectionTime and reused across the consumer.
+	// sampleTime is the absolute wall-clock time of the sample, computed once and reused across the consumer.
 	sampleTime time.Time
 
 	stacklen  int
@@ -227,14 +225,6 @@ type oneShotSampleConsumer struct {
 	phpProcessor    *sampleStackProcessor
 
 	workloadParts []string
-}
-
-func computeSampleTime(collectionTime uint64) time.Time {
-	bootTime, err := btime.GetBootTime()
-	if err != nil {
-		panic(fmt.Sprintf("failed to get system boot time: %v", err))
-	}
-	return bootTime.Add(time.Duration(collectionTime))
 }
 
 func newOneShotSampleConsumer(
@@ -250,7 +240,7 @@ func newOneShotSampleConsumer(
 		profileBuilder:  profileBuilder,
 		features:        features,
 		sample:          sample,
-		sampleTime:      computeSampleTime(sample.CollectionTime),
+		sampleTime:      p.clockConverter.MonotonicToTime(sample.CollectionTime),
 		envWhitelist:    p.envWhitelist,
 		pythonProcessor: newPythonSampleStackProcessor(p.pythonSymbolizer),
 		phpProcessor:    newPHPSampleStackProcessor(p.phpSymbolizer),

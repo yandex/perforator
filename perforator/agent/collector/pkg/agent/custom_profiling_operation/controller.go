@@ -9,12 +9,12 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/agent/custom_profiling_operation/models"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	cpo_internal "github.com/yandex/perforator/perforator/internal/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/linux"
-	"github.com/yandex/perforator/perforator/pkg/linux/btime"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -41,15 +41,6 @@ func newOperationController(l xlog.Logger, profiler *profiler.Profiler, id model
 	err := cpo_internal.ValidateOperationSpec(spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate spec: %w", err)
-	}
-
-	for _, feature := range spec.Features {
-		switch feature.Feature.(type) {
-		case *cpo_proto.Feature_CollectStackAbsoluteTimestampsFeature:
-			if _, err := btime.GetBootTime(); err != nil {
-				return nil, fmt.Errorf("failed to get host boot time: %w", err)
-			}
-		}
 	}
 
 	c := &operationController{
@@ -272,6 +263,15 @@ func (o *operationController) setupSampleConsumer(ctx context.Context) (err erro
 	if pid != 0 {
 		filters = append(filters, profiler.NewPIDOrTIDSampleFilter(pid))
 	}
+
+	filters = append(
+		filters,
+		profiler.NewTimestampSampleFilter(
+			o.profiler,
+			ptr.Time(o.spec.TimeInterval.From.AsTime()),
+			ptr.Time(o.spec.TimeInterval.To.AsTime()),
+		),
+	)
 
 	// Avoid resolving same uprobes from other concurrent CPOs in sample consumer
 	localResolver := uprobe.NewResolver()

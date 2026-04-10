@@ -8,8 +8,8 @@ SRCS(
 END()
 
 RECURSE(
-    btime
     cgroupfs
+    clock
     cpuinfo
     cpulist
     kallsyms
