@@ -2,11 +2,12 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.21.1)
+VERSION(v1.22.0)
 
 SRCS(
     build_info_collector.go
     collector.go
+    collectorfunc.go
     counter.go
     desc.go
     doc.go
@@ -35,11 +36,11 @@ SRCS(
 GO_TEST_SRCS(
     benchmark_test.go
     collector_test.go
+    collectorfunc_test.go
     counter_test.go
     desc_test.go
     gauge_test.go
     go_collector_latest_test.go
-    go_collector_metrics_go123_test.go
     go_collector_test.go
     histogram_test.go
     metric_test.go
@@ -92,6 +93,20 @@ IF (OS_WINDOWS)
     )
 
     GO_TEST_SRCS(process_collector_windows_test.go)
+ENDIF()
+
+IF (OS_ANDROID)
+    SRCS(
+        process_collector_procfsenabled.go
+    )
+
+    GO_TEST_SRCS(process_collector_test.go)
+ENDIF()
+
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        process_collector_not_supported.go
+    )
 ENDIF()
 
 END()

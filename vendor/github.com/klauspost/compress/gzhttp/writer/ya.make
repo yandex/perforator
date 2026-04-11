@@ -6,7 +6,7 @@ LICENSE(
     MIT
 )
 
-VERSION(v1.18.2)
+VERSION(v1.18.4)
 
 SRCS(
     interface.go
@@ -17,4 +17,5 @@ END()
 RECURSE(
     gzkp
     gzstd
+    zstdkp
 )

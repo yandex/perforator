@@ -74,6 +74,24 @@ func WithLogger(logger log.Logger) config.XDSOption {
 	}
 }
 
+// DeactivateLegacyWildcard deactivates legacy wildcard mode for all resource types.
+// In legacy wildcard mode, empty requests to a stream, are treated as wildcard requests as long
+// as there is no request made with resources or explicit wildcard requests on the same stream.
+// When deactivated, empty requests are treated as a request with no subscriptions to any resource.
+// This is recommended for when you are using the go-control-plane to serve grpc-xds clients.
+// These clients never want to treat an empty request as a wildcard subscription.
+func DeactivateLegacyWildcard() config.XDSOption {
+	return config.DeactivateLegacyWildcard()
+}
+
+// DeactivateLegacyWildcardForTypes deactivates legacy wildcard mode for specific resource types.
+// In legacy wildcard mode, empty requests to a stream, are treated as wildcard requests as long
+// as there is no request made with resources or explicit wildcard requests on the same stream.
+// When deactivated, empty requests are treated as a request with no subscriptions to any resource.
+func DeactivateLegacyWildcardForTypes(types []string) config.XDSOption {
+	return config.DeactivateLegacyWildcardForTypes(types)
+}
+
 type server struct {
 	cache     cache.ConfigWatcher
 	callbacks Callbacks

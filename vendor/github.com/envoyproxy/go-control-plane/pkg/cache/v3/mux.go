@@ -16,7 +16,6 @@ package cache
 
 import (
 	"context"
-	"errors"
 	"fmt"
 )
 
@@ -54,6 +53,13 @@ func (mux *MuxCache) CreateDeltaWatch(request *DeltaRequest, sub Subscription, v
 	return cache.CreateDeltaWatch(request, sub, value)
 }
 
-func (mux *MuxCache) Fetch(context.Context, *Request) (Response, error) {
-	return nil, errors.New("not implemented")
+func (mux *MuxCache) Fetch(ctx context.Context, request *Request) (Response, error) {
+	key := mux.Classify(request)
+	cache, exists := mux.Caches[key]
+	if !exists {
+		return nil, fmt.Errorf("no cache defined for key %s", key)
+	}
+	// Not all caches may implement Fetch; we delegate to the selected cache and if
+	// it does not implement Fetch, it will return an error.
+	return cache.Fetch(ctx, request)
 }

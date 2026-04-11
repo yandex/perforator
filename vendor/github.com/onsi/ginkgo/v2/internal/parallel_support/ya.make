@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v2.22.2)
+VERSION(v2.23.4)
 
 SRCS(
     client_server.go
@@ -13,13 +13,4 @@ SRCS(
     server_handler.go
 )
 
-GO_XTEST_SRCS(
-    client_server_test.go
-    parallel_support_suite_test.go
-)
-
 END()
-
-RECURSE(
-    gotest
-)

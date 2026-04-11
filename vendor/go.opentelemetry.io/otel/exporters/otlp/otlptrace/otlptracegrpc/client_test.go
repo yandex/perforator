@@ -14,6 +14,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	coltracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	"go.uber.org/goleak"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
@@ -29,8 +31,6 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal/otlptracetest"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	coltracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
-	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )
 
 func TestMain(m *testing.M) {
@@ -173,7 +173,7 @@ func TestNewInvokeStartThenStopManyTimes(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, exp.Shutdown(ctx)) })
 
 	// Invoke Start numerous times, should return errAlreadyStarted
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if err := exp.Start(ctx); err == nil || !strings.Contains(err.Error(), "already started") {
 			t.Fatalf("#%d unexpected Start error: %v", i, err)
 		}
@@ -183,7 +183,7 @@ func TestNewInvokeStartThenStopManyTimes(t *testing.T) {
 		t.Fatalf("failed to Shutdown the exporter: %v", err)
 	}
 	// Invoke Shutdown numerous times
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if err := exp.Shutdown(ctx); err != nil {
 			t.Fatalf(`#%d got error (%v) expected none`, i, err)
 		}

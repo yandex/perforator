@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v4.1.23)
+VERSION(v4.1.25)
 
 SRCS(
     block.go

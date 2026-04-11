@@ -6,7 +6,7 @@ LICENSE(
     MIT
 )
 
-VERSION(v1.18.2)
+VERSION(v1.18.4)
 
 SRCS(
     deflate.go

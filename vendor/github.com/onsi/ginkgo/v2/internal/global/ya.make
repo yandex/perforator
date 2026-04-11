@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v2.22.2)
+VERSION(v2.23.4)
 
 SRCS(
     init.go

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.34.0)
+VERSION(v0.33.0)
 
 SRCS(
     class.go
@@ -20,6 +20,7 @@ SRCS(
 GO_TEST_SRCS(
     benchmark_test.go
     class_test.go
+    enforce10.0.0_test.go
     enforce_test.go
     profile_test.go
     tables_test.go

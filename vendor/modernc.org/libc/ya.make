@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.67.0)
+VERSION(v1.67.7)
 
 SRCS(
     fsync.go
@@ -25,6 +25,7 @@ IF (OS_LINUX)
         atomic.go
         builtin.go
         etc_musl.go
+        libc_linux.go
         libc_musl.go
         mem_musl.go
         pthread_musl.go
@@ -165,6 +166,7 @@ IF (OS_ANDROID)
         capi_linux_arm64.go
         ccgo_linux_arm64.go
         etc_musl.go
+        libc_linux.go
         libc_musl.go
         libc_musl_linux_arm64.go
         mem_musl.go

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.3.11)
+VERSION(v0.3.9)
 
 SRCS(
     client.go

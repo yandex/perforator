@@ -1,7 +1,10 @@
 GO_TEST_FOR(vendor/go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal/envconfig)
 
-LICENSE(Apache-2.0)
+LICENSE(
+    Apache-2.0 AND
+    BSD-3-Clause
+)
 
-VERSION(v1.37.0)
+VERSION(v1.38.0)
 
 END()

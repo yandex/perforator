@@ -128,7 +128,7 @@ func (s *server) process(str stream.Stream, reqCh chan *discovery.DiscoveryReque
 				subscription.SetResourceSubscription(req.GetResourceNames())
 			} else {
 				s.opts.Logger.Debugf("[sotw] New subscription for type %s and stream %d", typeURL, sw.ID)
-				subscription = stream.NewSotwSubscription(req.GetResourceNames())
+				subscription = stream.NewSotwSubscription(req.GetResourceNames(), s.opts.IsLegacyWildcardActive(typeURL))
 			}
 
 			responder := make(chan cache.Response, 1)

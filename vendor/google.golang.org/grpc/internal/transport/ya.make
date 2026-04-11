@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.78.0)
+VERSION(v1.79.1)
 
 SRCS(
     bdp_estimator.go
@@ -36,6 +36,5 @@ END()
 
 RECURSE(
     gotest
-    grpchttp2
     networktype
 )

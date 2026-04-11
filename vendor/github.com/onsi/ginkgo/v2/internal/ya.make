@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v2.22.2)
+VERSION(v2.23.4)
 
 SRCS(
     counter.go
@@ -20,24 +20,6 @@ SRCS(
     suite.go
     tree.go
     writer.go
-)
-
-GO_XTEST_SRCS(
-    counter_test.go
-    failer_test.go
-    focus_test.go
-    internal_suite_test.go
-    node_test.go
-    ordering_test.go
-    output_interceptor_test.go
-    progress_report_test.go
-    progress_reporter_manager_test.go
-    report_entry_test.go
-    spec_context_test.go
-    spec_test.go
-    suite_test.go
-    tree_test.go
-    writer_test.go
 )
 
 IF (OS_LINUX)
@@ -79,8 +61,6 @@ END()
 
 RECURSE(
     global
-    # gotest
-    internal_integration
     interrupt_handler
     parallel_support
     test_helpers

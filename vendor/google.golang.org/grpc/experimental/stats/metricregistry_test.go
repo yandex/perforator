@@ -255,6 +255,7 @@ func (s) TestNumerousIntCounts(t *testing.T) {
 }
 
 type fakeMetricsRecorder struct {
+	UnimplementedMetricsRecorder
 	t *testing.T
 
 	intValues   map[*MetricDescriptor]int64
@@ -309,7 +310,9 @@ func (r *fakeMetricsRecorder) RecordInt64UpDownCount(handle *Int64UpDownCountHan
 	r.intValues[handle.Descriptor()] += incr
 }
 
-func (r *fakeMetricsRecorder) RecordInt64AsyncGauge(handle *Int64AsyncGaugeHandle, incr int64, labels ...string) {
+func (r *fakeMetricsRecorder) RecordInt64AsyncGauge(handle *Int64AsyncGaugeHandle, val int64, labels ...string) {
 	verifyLabels(r.t, handle.Descriptor().Labels, handle.Descriptor().OptionalLabels, labels)
-	r.intValues[handle.Descriptor()] += incr
+	// Async gauges in OTel are "Observer" instruments; they report
+	// the current state of the world every cycle, they do not accumulate deltas.
+	r.intValues[handle.Descriptor()] = val
 }

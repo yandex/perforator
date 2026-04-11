@@ -2,15 +2,10 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v2.22.2)
+VERSION(v2.23.4)
 
 SRCS(
     formatter.go
-)
-
-GO_XTEST_SRCS(
-    formatter_suite_test.go
-    formatter_test.go
 )
 
 IF (OS_LINUX)
@@ -44,7 +39,3 @@ IF (OS_EMSCRIPTEN)
 ENDIF()
 
 END()
-
-RECURSE(
-    gotest
-)

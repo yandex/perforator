@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.40.1)
+VERSION(v1.46.1)
 
 SRCS(
     defs.go
