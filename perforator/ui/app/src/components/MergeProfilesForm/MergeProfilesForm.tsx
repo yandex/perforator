@@ -7,10 +7,10 @@ import { Hotkey } from '@perforator/flamegraph';
 import { Button, DropdownMenu } from '@gravity-ui/uikit';
 
 import { LocalStorageKey } from 'src/const/localStorage';
-import { uiFactory } from 'src/factory';
 import type { ProfileTaskQuery } from 'src/models/Task';
 import { cn } from 'src/utils/cn';
 import { redirectToTaskPage } from 'src/utils/profileTask';
+import { parseServiceFromSelector, validateSelectorContainsOnlyService } from 'src/utils/selector';
 import { setPageTitle } from 'src/utils/title';
 import { createErrorToast } from 'src/utils/toaster';
 
@@ -18,8 +18,10 @@ import { ProfileTable } from '../ProfileTable/ProfileTable';
 import { TimeIntervalInput } from '../TimeIntervalInput/TimeIntervalInput';
 
 import type { QueryInput, QueryInputResult } from './QueryInput';
+import { QUERY_INPUTS } from './queryInputs';
 import { QueryInputSwitcher } from './QueryInputSwitcher/QueryInputSwitcher';
 import { SampleSizeInput } from './SampleSizeInput/SampleSizeInput';
+import { makeBasicTokensFromSelector } from './TokensInput/utils';
 import { useProfileStateQuery } from './useProfileStateQuery';
 
 import './MergeProfilesForm.scss';
@@ -58,12 +60,34 @@ const fixSelector = (selector: Optional<string>): Optional<string> => {
     return `{${fixed}}`;
 };
 
+const changeQueryToNewInput = (queryInput: QueryInput, tableSelector: string): Partial<QueryInputResult> | undefined => {
+    if (queryInput.queryField === 'selector') {
+        // fill selector after switching from another input mode
+        return ({
+            selector: tableSelector,
+        });
+    }
+    else if (queryInput.queryField === 'tokens' && ((tableSelector && validateSelectorContainsOnlyService(tableSelector || '')))) {
+        const tokens = makeBasicTokensFromSelector(tableSelector);
+        return ({
+            tokens,
+        });
+    } else if (queryInput.queryField === 'service' && tableSelector && validateSelectorContainsOnlyService(tableSelector || '')) {
+        const service = parseServiceFromSelector(tableSelector);
+        return ({
+            service,
+        });
+    } else {
+        return undefined;
+    }
+};
+
 export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
     const navigate = useNavigate();
 
     const [query, setQuery] = useProfileStateQuery({ inMemory: props.inMemory });
 
-    const queryInputs: QueryInput[] = React.useMemo(() => uiFactory().queryInputs(), []);
+    const queryInputs: QueryInput[] = React.useMemo(() => QUERY_INPUTS, []);
     const [queryInputName, setQueryInputName] = React.useState(defaultInput(query, queryInputs));
 
     const [tableSelector, setTableSelector] = React.useState<Optional<string>>(query.selector);
@@ -73,7 +97,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
         [queryInputs, queryInputName],
     );
 
-    React.useMemo(() => {
+    React.useEffect(() => {
         setPageTitle(tableSelector ? `Profiles: ${tableSelector}` : undefined);
     }, [tableSelector]);
 
@@ -82,7 +106,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
             return;
         }
 
-        const newField = uiFactory().changeQueryToNewInput(queryInput, tableSelector);
+        const newField = changeQueryToNewInput(queryInput, tableSelector);
         if (newField) {
             setQuery({ ...query, ...newField });
         }

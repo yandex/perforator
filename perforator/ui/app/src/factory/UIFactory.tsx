@@ -6,14 +6,11 @@ import type React from 'react';
 import type { SubheaderMenuItem } from '@gravity-ui/navigation';
 import type { ThemeType } from '@gravity-ui/uikit';
 
-import type { QueryInput, QueryInputResult } from 'src/components/MergeProfilesForm/QueryInput';
-import { QUERY_INPUTS } from 'src/components/MergeProfilesForm/queryInputs';
 import type { ShareStringBuilder } from 'src/components/ShareButton/utils';
 import { SHARE_FORMATS } from 'src/components/ShareButton/utils';
 import type { ProfileData, StringifiedNode } from 'src/models/Profile';
 import type { SendError } from 'src/utils/error';
 import { fakeRum, type Rum } from 'src/utils/rum';
-import { parseServiceFromSelector, validateSelectorContainsOnlyService } from 'src/utils/selector';
 
 
 export class UIFactory {
@@ -37,22 +34,6 @@ export class UIFactory {
     makeUserLink = (user: Optional<string>): Optional<string> => undefined;
     makeUserAvatarLink = (user: Optional<string>): Optional<string> => undefined;
 
-    changeQueryToNewInput = (queryInput: QueryInput, tableSelector: string): Partial<QueryInputResult> | undefined => {
-        if (queryInput.queryField === 'selector' || queryInput.queryField === 'tokens') {
-            // fill selector after switching from another input mode
-            return ({
-                selector: tableSelector,
-            });
-        } else if (queryInput.queryField === 'service' && tableSelector && validateSelectorContainsOnlyService(tableSelector || '')) {
-            const service = parseServiceFromSelector(tableSelector);
-            return ({
-                service,
-            });
-        } else {
-            return undefined;
-        }
-    };
-
     defaultCluster = () => 'unknown';
 
     clusterName = () => 'Zone';
@@ -69,8 +50,6 @@ export class UIFactory {
 
     subheaderItemsCount = () => 0;
     useSubheaderItems = (asideRef: React.RefObject<HTMLDivElement>): SubheaderMenuItem[] => [];
-
-    queryInputs = (): QueryInput[] => QUERY_INPUTS;
 
     initializeExternal = (_arg: { theme: ThemeType }) => null as React.ReactNode;
 

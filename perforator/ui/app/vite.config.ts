@@ -34,6 +34,14 @@ export default defineConfig(({ command }): UserConfig => {
         plugins,
         resolve: {
             alias: aliases,
+            dedupe: [
+                '@gravity-ui/uikit',
+                '@gravity-ui/components',
+                '@gravity-ui/icons',
+                '@bem-react/classname',
+                'react',
+                'react-dom',
+            ],
         },
         build: {
             sourcemap: true,

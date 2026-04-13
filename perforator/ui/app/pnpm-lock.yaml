@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@bem-react/classname':
-        specifier: 1.6.0
-        version: 1.6.0
+        specifier: 1.8.0
+        version: 1.8.0
       '@discoveryjs/json-ext':
         specifier: 0.6.3
         version: 0.6.3
@@ -24,32 +24,32 @@ importers:
         specifier: 2.1.4
         version: 2.1.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/components':
-        specifier: 4.7.1
-        version: 4.7.1(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 4.19.0
+        version: 4.19.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/date-components':
         specifier: 3.2.3
-        version: 3.2.3(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 3.2.3(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/date-utils':
         specifier: 2.5.5
         version: 2.5.5
       '@gravity-ui/icons':
-        specifier: 2.15.0
-        version: 2.15.0(react@18.3.1)
+        specifier: 2.18.0
+        version: 2.18.0(react@18.3.1)
       '@gravity-ui/illustrations':
         specifier: 2.1.0
-        version: 2.1.0(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 2.1.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/navigation':
         specifier: 3.4.0
-        version: 3.4.0(@bem-react/classname@1.6.0)(@gravity-ui/components@4.7.1(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@gravity-ui/icons@2.15.0(react@18.3.1))(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 3.4.0(@bem-react/classname@1.8.0)(@gravity-ui/components@4.19.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@gravity-ui/icons@2.18.0(react@18.3.1))(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/onboarding':
         specifier: 1.11.4
         version: 1.11.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/table':
         specifier: 1.13.0
-        version: 1.13.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1))(@gravity-ui/i18n@1.8.0)(@gravity-ui/icons@2.15.0(react@18.3.1))(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(lodash@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 1.13.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1))(@gravity-ui/i18n@1.8.0)(@gravity-ui/icons@2.18.0(react@18.3.1))(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(lodash@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/uikit':
-        specifier: 7.16.2
-        version: 7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 7.36.1
+        version: 7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perforator/flamegraph':
         specifier: workspace:../packages/flamegraph
         version: link:../packages/flamegraph
@@ -173,27 +173,27 @@ importers:
     dependencies:
       '@bem-react/classname':
         specifier: ^1.6.0
-        version: 1.6.0
+        version: 1.8.0
       '@floating-ui/core':
-        specifier: 1.7.2
+        specifier: ^1.7.2
         version: 1.7.2
       '@floating-ui/react':
-        specifier: 0.27.13
+        specifier: ^0.27.13
         version: 0.27.13(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@floating-ui/react-dom':
-        specifier: 2.1.4
+        specifier: ^2.1.4
         version: 2.1.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/components':
         specifier: ^4.7.1
-        version: 4.7.1(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 4.19.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/icons':
         specifier: ^2.15.0
-        version: 2.15.0(react@18.3.1)
+        version: 2.18.0(react@18.3.1)
       '@gravity-ui/uikit':
         specifier: ^7.16.2
-        version: 7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       culori:
-        specifier: 4.0.1
+        specifier: ^4.0.1
         version: 4.0.1
       react:
         specifier: ^18.3.1
@@ -269,17 +269,17 @@ importers:
   ../viewer:
     dependencies:
       '@bem-react/classname':
-        specifier: 1.6.0
-        version: 1.6.0
+        specifier: 1.8.0
+        version: 1.8.0
       '@gravity-ui/components':
-        specifier: 4.7.1
-        version: 4.7.1(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 4.19.0
+        version: 4.19.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.2.66)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/icons':
-        specifier: 2.15.0
-        version: 2.15.0(react@18.3.1)
+        specifier: 2.18.0
+        version: 2.18.0(react@18.3.1)
       '@gravity-ui/uikit':
-        specifier: 7.16.2
-        version: 7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 7.36.1
+        version: 7.36.1(@babel/runtime@7.26.7)(@types/react@18.2.66)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perforator/flamegraph':
         specifier: workspace:../packages/flamegraph
         version: link:../packages/flamegraph
@@ -564,8 +564,8 @@ packages:
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
-  '@bem-react/classname@1.6.0':
-    resolution: {integrity: sha512-SFBwUHMcb7TFFK5ld88+JhecoEun3/kHZ6KvLDjj3w5hv/tfRV8mtGHA8N42uMctXLF4bPEcr96xwXXcRFuweg==}
+  '@bem-react/classname@1.8.0':
+    resolution: {integrity: sha512-uazGRFKTMNbGR8KLvEh5qT+aP0yuym+sB+YFFaAyCkFodtjI0SskV6BfkiZ9+E3FloIFYPkwqJ1owxp48WCS9g==}
 
   '@bufbuild/protobuf@2.2.3':
     resolution: {integrity: sha512-tFQoXHJdkEOSwj5tRIZSPNUuXK3RaR7T1nUrPgbYX1pUbvqqaaZAsfo+NXBPsz5rZMSKVFrgK1WL8Q/MSLvprg==}
@@ -800,11 +800,20 @@ packages:
   '@floating-ui/core@1.7.2':
     resolution: {integrity: sha512-wNB5ooIKHQc+Kui96jE/n69rHFWAVoxn5CAzL1Xdd8FG03cgY3MLO+GF9U3W737fYDSgPWA6MReKhBQBop6Pcw==}
 
-  '@floating-ui/dom@1.7.2':
-    resolution: {integrity: sha512-7cfaOQuCS27HD7DX+6ib2OrnW+b4ZBwDNnCcT0uTyidcmyWb03FnQqJybDBoCnpdxwBSfA94UAYlRCt7mV+TbA==}
+  '@floating-ui/core@1.7.5':
+    resolution: {integrity: sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ==}
+
+  '@floating-ui/dom@1.7.6':
+    resolution: {integrity: sha512-9gZSAI5XM36880PPMm//9dfiEngYoC6Am2izES1FF406YFsjvyBMmeJ2g4SAju3xWwtuynNRFL2s9hgxpLI5SQ==}
 
   '@floating-ui/react-dom@2.1.4':
     resolution: {integrity: sha512-JbbpPhp38UmXDDAu60RJmbeme37Jbgsm7NrHGgzYYFKmblzRUh6Pa641dII6LsjwF4XlScDrde2UAzDo/b9KPw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  '@floating-ui/react-dom@2.1.8':
+    resolution: {integrity: sha512-cC52bHwM/n/CxS87FH0yWdngEZrjdtLW/qVruo68qg+prK7ZQ4YGdut2GyDVpoGeAYe/h899rVeOVm6Oi40k2A==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -815,13 +824,19 @@ packages:
       react: '>=17.0.0'
       react-dom: '>=17.0.0'
 
-  '@floating-ui/utils@0.2.10':
-    resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
-
-  '@gravity-ui/components@4.7.1':
-    resolution: {integrity: sha512-4FiFJAqtXXUq8snRAi/sevlOIyyLLpBBqe3bA/gqgs0y/6jA8BK3anvI7GPQVeFpGM7XWNh1EDUOxLvWgsKlYQ==}
+  '@floating-ui/react@0.27.19':
+    resolution: {integrity: sha512-31B8h5mm8YxotlE7/AU/PhNAl8eWxAmjL/v2QOxroDNkTFLk3Uu82u63N3b6TXa4EGJeeZLVcd/9AlNlVqzeog==}
     peerDependencies:
-      '@gravity-ui/uikit': ^7.0.0
+      react: '>=17.0.0'
+      react-dom: '>=17.0.0'
+
+  '@floating-ui/utils@0.2.11':
+    resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@gravity-ui/components@4.19.0':
+    resolution: {integrity: sha512-O1S7DXLk+m01suAUxKdt42Pzhu2KMzenPYrM7qVKHs11HOOogoG2UdR+mzOFZAt5NiWHRPWVpnYS0WOLdM/HQA==}
+    peerDependencies:
+      '@gravity-ui/uikit': ^7.21.0
       react: ^16.14.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0
 
@@ -847,8 +862,8 @@ packages:
   '@gravity-ui/i18n@1.8.0':
     resolution: {integrity: sha512-bVt/UGjL96Naw0h03QW+3z2tf6t4zvLh1j+eFzpdLlAIMeNu0dRjxn4X6EGtwhwKrfMyIfrlOqmLSroXtCNQAw==}
 
-  '@gravity-ui/icons@2.15.0':
-    resolution: {integrity: sha512-KEtnsj9ubJJFJu0L28l06K6j5WgHuqDTX83K8LSJkHTYvgd3ksNyOocv4LmAhEEigwdBDUMCKoRb44hoQhDlQQ==}
+  '@gravity-ui/icons@2.18.0':
+    resolution: {integrity: sha512-JoRc/4Ch9GLaufZfpGd2ePRRisMXEjMI+r3y8kPKyYIAdQZz07jpIXEgsft1gvBxjSht2MS2uu5+vfhe1WP0ow==}
     peerDependencies:
       react: '*'
     peerDependenciesMeta:
@@ -900,11 +915,17 @@ packages:
       react: ^17.0.0 || ^18.0.0
       react-dom: ^17.0.0 || ^18.0.0
 
-  '@gravity-ui/uikit@7.16.2':
-    resolution: {integrity: sha512-WxeDx7MKMHEjx4qjpD+W/+Yxk8/Zsqrc05gd5RGX3M2j+2tGMJzib+/eIdu1uEeuWnViTUtI4jQrVPPp2zSXNA==}
+  '@gravity-ui/uikit@7.36.1':
+    resolution: {integrity: sha512-ofwAHH/w8q4Z0z4QikAe0Fri5vZWgNKKnWASiO5twp3LZ+KKQ2fw01T/Mss4shCyELdtFQahsab+/7f/i9cn2w==}
     peerDependencies:
       react: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  '@hello-pangea/dnd@18.0.1':
+    resolution: {integrity: sha512-xojVWG8s/TGrKT1fC8K2tIWeejJYTAeJuj36zM//yEm/ZrnZUSFGS15BpO+jGZT1ybWvyXmeDJwPYb4dhWlbZQ==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
 
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
@@ -1282,9 +1303,6 @@ packages:
   '@types/graceful-fs@4.1.9':
     resolution: {integrity: sha512-olP3sd1qOEe5dXTSaFvQG+02VdRXcdytWLAZsAq1PecU8uqQAhkrnbli7DagjtXKW/Bl7YJbUsa8MPcuc8LHEQ==}
 
-  '@types/hoist-non-react-statics@3.3.6':
-    resolution: {integrity: sha512-lPByRJUer/iN/xa4qpyL0qmL11DqNW81iU/IG1S3uvRUq4oKagz8VCxZjiWkumgt66YT3vOdDgZ0o32sGKtCEw==}
-
   '@types/istanbul-lib-coverage@2.0.6':
     resolution: {integrity: sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w==}
 
@@ -1326,9 +1344,6 @@ packages:
     peerDependencies:
       '@types/react': ^18.0.0
 
-  '@types/react-redux@7.1.34':
-    resolution: {integrity: sha512-GdFaVjEbYv4Fthm2ZLvj1VSCedV7TqE5y1kNwnjSdBOTXuRSgowux6J8TAct15T3CKBr63UMk+2CO7ilRhyrAQ==}
-
   '@types/react@18.2.66':
     resolution: {integrity: sha512-OYTmMI4UigXeFMF/j4uv0lBBEbongSgptPrHBxqME44h9+yNov+oL6Z3ocJKo0WyXR84sQUNeyIp9MRfckvZpg==}
 
@@ -1343,6 +1358,9 @@ packages:
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
+
+  '@types/use-sync-external-store@0.0.6':
+    resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -1465,6 +1483,156 @@ packages:
   '@typescript-eslint/visitor-keys@7.5.0':
     resolution: {integrity: sha512-mcuHM/QircmA6O7fy6nn2w/3ditQkj+SgtOc8DW3uQ10Yfj42amm2i+6F2K4YAOPNNTmE6iM1ynM6lrSwdendA==}
     engines: {node: ^18.18.0 || >=20.0.0}
+
+  '@uiw/color-convert@2.10.1':
+    resolution: {integrity: sha512-/Z3YfBiX+SErRM59yQH88Id+Xy/k10nnkfTuqhX6RB2yYUcG57DoFqb6FudhiQ5fwzKvKf1k4xq9lfT1UTFUKQ==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+
+  '@uiw/react-color-alpha@2.10.1':
+    resolution: {integrity: sha512-3mllAyb3TgC0lRWGMLiwawgCuv3jIQWnarnxwggZ87HWvL4GLCWuVRxheYdLJTjAc6qd4Cd+d0jHMfkKXIdMFA==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-block@2.10.1':
+    resolution: {integrity: sha512-nGfhUGZhCbYH/gVvD12H9wZ/NBiToiSyrSdbracyIbA01tZInmkRNmfzTCkPq7yoXMa09I9G8pPISoyHre4TQg==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-chrome@2.10.1':
+    resolution: {integrity: sha512-V5Li6un5GOCVh+H1sCPSPHB3uQ/Cipm167C4aoHKVl6jb5oEeFM39p2egIP2+8HzuNHWzUnOKm1KphqTvAEyEw==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-circle@2.10.1':
+    resolution: {integrity: sha512-f7/RPnpOGOktmuX1pdPBvXNRoq4irddKG3LU+6vETB7DI0aJiYZH+NXPSrdtNM9j5msdPVH6aGZmfOVJMfbx/g==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-colorful@2.10.1':
+    resolution: {integrity: sha512-hjP7x/QMCYEO2bvjWQMGpjk3PUlqllwBF1432+qb705kB+HhjN5kucqQa9UZdoEiHfk10f91qAK9wCYXtNH8ZQ==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-compact@2.10.1':
+    resolution: {integrity: sha512-//hw8rCyk4G1bLazeVIvZ9gZrhx60DMPYdXAESqM5gHMWC3RBxycWi6yagx2cXh6qTlUA3/MDwJWbDXXHjKUJQ==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-editable-input-hsla@2.10.1':
+    resolution: {integrity: sha512-+n26sbqj5UYNer/QXdJCNJfmJTsLmA+eRiJEZd4fLBZ15eScPQFvmJojF4mSMTMksOGlkx4clsfk9P3Z5fXMiA==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-editable-input-rgba@2.10.1':
+    resolution: {integrity: sha512-ffjmwu9aD3hiHKEV4toT0inRGChEVxx6zh7YLZoaYwLZaISEL7ohKGcY/WREckGojnlnDF79GYGKVGc/pu9q2A==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-editable-input@2.10.1':
+    resolution: {integrity: sha512-jMim8eAw/5hz7gaZwBy3vM5wMxPMocOG+u1+wcKbqvavHaeg/wHq7Y29uRyFKj80s4FXvUKehXRQl0F68mA7jQ==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-github@2.10.1':
+    resolution: {integrity: sha512-iqJhIjRV/ZMFKYgQr8wDGwtkSNzGzuqedxBWwnEJOeDkYUYxU7xh2qqPoq5XpLdQjfa3IAtmXfMUb9fRNcdJCw==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-hue@2.10.1':
+    resolution: {integrity: sha512-88O/gDu68U0cJp9ijn3cfnPOQfTY0jGWKbyBCMnHTEeiePBo+oMyuWZ3YU3Vp1zOXRD0SWcp3wNfuIYLOl77yg==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-material@2.10.1':
+    resolution: {integrity: sha512-4KawXfzlR2JhFZAnqYaGkGJKptde++mx99P83b/4I7KdQReNMriWe1PIgv3fyU29lM9zM1ZhWMRwL/s/Ug0+Aw==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-name@2.10.1':
+    resolution: {integrity: sha512-HiqGT6XTyqPA0mTJEh8An7rIJIpcndYw4iXgAQFnvAhKqEerUuAx4ScOOUDRw40mczcRdRGUSuyV57oXZouHUQ==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+
+  '@uiw/react-color-saturation@2.10.1':
+    resolution: {integrity: sha512-d6aE8oR5RVtIwM6V5+pBkClhs33VyCKzUWXi+Gf4qNwPoOKD9mQ4pqGd3nvqBzwNtnnX1gzyGAN1vDdSh7cV1A==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-shade-slider@2.10.1':
+    resolution: {integrity: sha512-kp+DY4SvVLvdZ+u9K3+oGzwLVyogQB0iVknRGxrP3tDmTP7GQxdgmQVNTEQRqXVHtmcsIOqiWTN1QJA4p5g6BA==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-sketch@2.10.1':
+    resolution: {integrity: sha512-X8xojxEB0mLws19MWqAZzQ9N9m3cZh0WmQf1/yIiYLJNDtdrN+EKF2LM+5rc1IPmwuI4fYQAQlEqEwBpfJqvCA==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-slider@2.10.1':
+    resolution: {integrity: sha512-JjKwHsQ5lfNDOKmZT9E34ON9EYoZAI2uP3oDYUcyfvW7yHR1MnYII1AMaeeWb1z5GXDgAAsn6b+iX78NOaev+w==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-swatch@2.10.1':
+    resolution: {integrity: sha512-DuGlaIszNcvtsY8BfW+RiUkEK1yVmnAamkzc/S5cQZwaAA5bCKhwwyaKPqh1/XWs7pR4pysjSNlMaeqaSOO34A==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color-wheel@2.10.1':
+    resolution: {integrity: sha512-LnO7CAsfSDfOSUFUeedNycVtx+ODpkGgcgxAT4QindU2BplTcl3mxQJxC1SIszq9zFdGK+1nXhG8N8ZmgvmVYw==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-color@2.10.1':
+    resolution: {integrity: sha512-9npz9761fA9QxNekTeHvvYNsSMorRqUhaNH2NzN4mAJC0n1p4TZ07R2689ACduv1XZhABR7DREqG3++Peg06PQ==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@uiw/react-drag-event-interactive@2.10.1':
+    resolution: {integrity: sha512-eArtX/XdSrg5aQs8CV0vne9vChybw2GkNZCP9H68zjBBzucuYgjURqKBJ/+3jid06YpRZ5zz/YTnAlySqOt0Ag==}
+    peerDependencies:
+      '@babel/runtime': '>=7.19.0'
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
@@ -1739,6 +1907,14 @@ packages:
 
   colord@2.9.3:
     resolution: {integrity: sha512-jeC1axXpnb0/2nn/Y1LPuLdgXBLH7aDcHu4KEKfqw3CUhX7ZpfBSlPKyqXE6btIgEzfWtrX3/tyBCaCvXvMkOw==}
+
+  colors-named-hex@1.0.4:
+    resolution: {integrity: sha512-X+Enw/2fFAgDRhUac69cRO/RJvHnWDBBrP8J1sJuEU16Buiiu8PPpJP4abSo0V+fJbkfwmQITE6zKx/SBJERGw==}
+    engines: {node: '>=14.16'}
+
+  colors-named@1.0.5:
+    resolution: {integrity: sha512-xaspf9oddAOqP2LYNOgp8E3BwAzugrdO9J1kDNS5ySrzTgV9hrXGBt5w87ioLEr2pM4Ukt+GKedvzaLRxpv8pA==}
+    engines: {node: '>=14.16'}
 
   combined-stream@1.0.8:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
@@ -2390,9 +2566,6 @@ packages:
   hasown@2.0.2:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
-
-  hoist-non-react-statics@3.3.2:
-    resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
 
   hosted-git-info@4.1.0:
     resolution: {integrity: sha512-kyCuEOWjJqZuDbRHzL8V93NzQhwIB71oFWSyzVo+KPZI+pnQPPxucdkrOZvkLRnrf5URsQM+IJ09Dw29cRALIA==}
@@ -3191,8 +3364,8 @@ packages:
   raf-schd@4.0.3:
     resolution: {integrity: sha512-tQkJl2GRWh83ui2DiPTJz9wEiMN20syf+5oKfB03yYP7ioZcJwsIK8FjrtLwH1m7C7e+Tt2yYBlrOpdT+dyeIQ==}
 
-  rc-slider@11.1.8:
-    resolution: {integrity: sha512-2gg/72YFSpKP+Ja5AjC5DPL1YnV8DEITDQrcc1eASrUYjl0esptaBVJBh5nLTXCCp15eD8EuGjwezVGSHhs9tQ==}
+  rc-slider@11.1.9:
+    resolution: {integrity: sha512-h8IknhzSh3FEM9u8ivkskh+Ef4Yo4JRIY2nj7MrH6GQmrwV6mcpJf5/4KgH5JaVI1H3E52yCdpOlVyGZIeph5A==}
     engines: {node: '>=8.x'}
     peerDependencies:
       react: '>=16.9.0'
@@ -3204,13 +3377,6 @@ packages:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
 
-  react-beautiful-dnd@13.1.1:
-    resolution: {integrity: sha512-0Lvs4tq2VcrEjEgDXHjT98r+63drkKEgqyxdA7qD3mvKwga6a5SscbdLPO2IExotU1jW8L0Ksdl0Cj2AF67nPQ==}
-    deprecated: 'react-beautiful-dnd is now deprecated. Context and options: https://github.com/atlassian/react-beautiful-dnd/issues/2672'
-    peerDependencies:
-      react: ^16.8.5 || ^17.0.0 || ^18.0.0
-      react-dom: ^16.8.5 || ^17.0.0 || ^18.0.0
-
   react-dom@18.3.1:
     resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
     peerDependencies:
@@ -3218,9 +3384,6 @@ packages:
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
-
-  react-is@17.0.2:
-    resolution: {integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==}
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
@@ -3232,16 +3395,16 @@ packages:
       monaco-editor: ^0.52.0
       react: '>=16 <= 18'
 
-  react-redux@7.2.9:
-    resolution: {integrity: sha512-Gx4L3uM182jEEayZfRbI/G11ZpYdNAnBs70lFVMNdHJI76XYtR+7m0MN+eAs7UHBPhWXcnFPaS+9owSCJQHNpQ==}
+  react-redux@9.2.0:
+    resolution: {integrity: sha512-ROY9fvHhwOD9ySfrF0wmvu//bKCQ6AeZZq1nJNtbDC+kk5DuSuNX/n6YWYF/SYy7bSba4D4FSz8DJeKY/S/r+g==}
     peerDependencies:
-      react: ^16.8.3 || ^17 || ^18
-      react-dom: '*'
-      react-native: '*'
+      '@types/react': ^18.2.25 || ^19
+      react: ^18.0 || ^19
+      redux: ^5.0.0
     peerDependenciesMeta:
-      react-dom:
+      '@types/react':
         optional: true
-      react-native:
+      redux:
         optional: true
 
   react-refresh@0.17.0:
@@ -3312,8 +3475,8 @@ packages:
     resolution: {integrity: sha512-tYkDkVVtYkSVhuQ4zBgfvciymHaeuel+zFKXShfDnFP5SyVEP7qo70Rf1jTOTCx3vGNAbnEi/xFkcfQVMIBWag==}
     engines: {node: '>=12'}
 
-  redux@4.2.1:
-    resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
+  redux@5.0.1:
+    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
 
   reflect.getprototypeof@1.0.10:
     resolution: {integrity: sha512-00o4I+DVrefhv+nX0ulyi3biSHCPDe+yLv5o/p6d/UVlirijB8E16FtfwSAi4g3tcqrQ4lRAqQSoFEZJehYEcw==}
@@ -3765,10 +3928,10 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
-  use-memo-one@1.1.3:
-    resolution: {integrity: sha512-g66/K7ZQGYrI6dy8GLpVcMsBp4s17xNkYJVSMvTEevGy3nDxHOfE6z8BVE22+5G5x7t3+bhzrlTDB7ObrEE0cQ==}
+  use-sync-external-store@1.6.0:
+    resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -4156,7 +4319,7 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
-  '@bem-react/classname@1.6.0': {}
+  '@bem-react/classname@1.8.0': {}
 
   '@bufbuild/protobuf@2.2.3': {}
 
@@ -4312,47 +4475,75 @@ snapshots:
 
   '@floating-ui/core@1.7.2':
     dependencies:
-      '@floating-ui/utils': 0.2.10
+      '@floating-ui/utils': 0.2.11
 
-  '@floating-ui/dom@1.7.2':
+  '@floating-ui/core@1.7.5':
     dependencies:
-      '@floating-ui/core': 1.7.2
-      '@floating-ui/utils': 0.2.10
+      '@floating-ui/utils': 0.2.11
+
+  '@floating-ui/dom@1.7.6':
+    dependencies:
+      '@floating-ui/core': 1.7.5
+      '@floating-ui/utils': 0.2.11
 
   '@floating-ui/react-dom@2.1.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@floating-ui/dom': 1.7.2
+      '@floating-ui/dom': 1.7.6
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@floating-ui/react-dom@2.1.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@floating-ui/dom': 1.7.6
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
   '@floating-ui/react@0.27.13(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@floating-ui/react-dom': 2.1.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@floating-ui/utils': 0.2.10
+      '@floating-ui/utils': 0.2.11
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       tabbable: 6.2.0
 
-  '@floating-ui/utils@0.2.10': {}
-
-  '@gravity-ui/components@4.7.1(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@floating-ui/react@0.27.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@bem-react/classname': 1.6.0
+      '@floating-ui/react-dom': 2.1.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@floating-ui/utils': 0.2.11
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      tabbable: 6.2.0
+
+  '@floating-ui/utils@0.2.11': {}
+
+  '@gravity-ui/components@4.19.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.2.66)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@bem-react/classname': 1.8.0
       '@gravity-ui/date-utils': 2.5.5
-      '@gravity-ui/i18n': 1.8.0
-      '@gravity-ui/icons': 2.15.0(react@18.3.1)
-      '@gravity-ui/uikit': 7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@gravity-ui/icons': 2.18.0(react@18.3.1)
+      '@gravity-ui/uikit': 7.36.1(@babel/runtime@7.26.7)(@types/react@18.2.66)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lodash: 4.17.21
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       universal-cookie: 7.2.2
 
-  '@gravity-ui/date-components@3.2.3(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@gravity-ui/components@4.19.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@bem-react/classname': 1.6.0
+      '@bem-react/classname': 1.8.0
       '@gravity-ui/date-utils': 2.5.5
-      '@gravity-ui/icons': 2.15.0(react@18.3.1)
-      '@gravity-ui/uikit': 7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@gravity-ui/icons': 2.18.0(react@18.3.1)
+      '@gravity-ui/uikit': 7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      lodash: 4.17.21
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      universal-cookie: 7.2.2
+
+  '@gravity-ui/date-components@3.2.3(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@bem-react/classname': 1.8.0
+      '@gravity-ui/date-utils': 2.5.5
+      '@gravity-ui/icons': 2.18.0(react@18.3.1)
+      '@gravity-ui/uikit': 7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       tslib: 2.8.1
@@ -4389,24 +4580,24 @@ snapshots:
 
   '@gravity-ui/i18n@1.8.0': {}
 
-  '@gravity-ui/icons@2.15.0(react@18.3.1)':
+  '@gravity-ui/icons@2.18.0(react@18.3.1)':
     dependencies:
       tslib: 2.8.1
     optionalDependencies:
       react: 18.3.1
 
-  '@gravity-ui/illustrations@2.1.0(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@gravity-ui/illustrations@2.1.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@gravity-ui/uikit': 7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@gravity-ui/uikit': 7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@gravity-ui/navigation@3.4.0(@bem-react/classname@1.6.0)(@gravity-ui/components@4.7.1(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@gravity-ui/icons@2.15.0(react@18.3.1))(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@gravity-ui/navigation@3.4.0(@bem-react/classname@1.8.0)(@gravity-ui/components@4.19.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@gravity-ui/icons@2.18.0(react@18.3.1))(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@bem-react/classname': 1.6.0
-      '@gravity-ui/components': 4.7.1(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@gravity-ui/icons': 2.15.0(react@18.3.1)
-      '@gravity-ui/uikit': 7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@bem-react/classname': 1.8.0
+      '@gravity-ui/components': 4.19.0(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@gravity-ui/icons': 2.18.0(react@18.3.1)
+      '@gravity-ui/uikit': 7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-transition-group: 4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -4440,14 +4631,14 @@ snapshots:
     optionalDependencies:
       prettier: 3.2.5
 
-  '@gravity-ui/table@1.13.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1))(@gravity-ui/i18n@1.8.0)(@gravity-ui/icons@2.15.0(react@18.3.1))(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(lodash@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@gravity-ui/table@1.13.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1))(@gravity-ui/i18n@1.8.0)(@gravity-ui/icons@2.18.0(react@18.3.1))(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(lodash@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@bem-react/classname': 1.6.0
+      '@bem-react/classname': 1.8.0
       '@dnd-kit/core': 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@gravity-ui/i18n': 1.8.0
-      '@gravity-ui/icons': 2.15.0(react@18.3.1)
-      '@gravity-ui/uikit': 7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@gravity-ui/icons': 2.18.0(react@18.3.1)
+      '@gravity-ui/uikit': 7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-virtual': 3.13.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lodash: 4.17.21
@@ -4455,26 +4646,77 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       react-use: 17.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.2.66)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@bem-react/classname': 1.6.0
-      '@floating-ui/react': 0.27.13(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@bem-react/classname': 1.8.0
+      '@floating-ui/react': 0.27.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/i18n': 1.8.0
-      '@gravity-ui/icons': 2.15.0(react@18.3.1)
+      '@gravity-ui/icons': 2.18.0(react@18.3.1)
+      '@hello-pangea/dnd': 18.0.1(@types/react@18.2.66)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-virtual': 3.13.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       blueimp-md5: 2.19.0
       lodash: 4.17.21
-      rc-slider: 11.1.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      rc-slider: 11.1.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
-      react-beautiful-dnd: 13.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-dom: 18.3.1(react@18.3.1)
       react-transition-group: 4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-virtualized-auto-sizer: 1.0.26(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-window: 1.8.11(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       tabbable: 6.2.0
       tslib: 2.8.1
+      use-sync-external-store: 1.6.0(react@18.3.1)
     transitivePeerDependencies:
-      - react-native
+      - '@babel/runtime'
+      - '@types/react'
+
+  '@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@bem-react/classname': 1.8.0
+      '@floating-ui/react': 0.27.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@gravity-ui/i18n': 1.8.0
+      '@gravity-ui/icons': 2.18.0(react@18.3.1)
+      '@hello-pangea/dnd': 18.0.1(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@tanstack/react-virtual': 3.13.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      blueimp-md5: 2.19.0
+      lodash: 4.17.21
+      rc-slider: 11.1.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-transition-group: 4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-virtualized-auto-sizer: 1.0.26(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-window: 1.8.11(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      tabbable: 6.2.0
+      tslib: 2.8.1
+      use-sync-external-store: 1.6.0(react@18.3.1)
+    transitivePeerDependencies:
+      - '@babel/runtime'
+      - '@types/react'
+
+  '@hello-pangea/dnd@18.0.1(@types/react@18.2.66)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      css-box-model: 1.2.1
+      raf-schd: 4.0.3
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-redux: 9.2.0(@types/react@18.2.66)(react@18.3.1)(redux@5.0.1)
+      redux: 5.0.1
+    transitivePeerDependencies:
+      - '@types/react'
+
+  '@hello-pangea/dnd@18.0.1(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      css-box-model: 1.2.1
+      raf-schd: 4.0.3
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-redux: 9.2.0(@types/react@18.3.20)(react@18.3.1)(redux@5.0.1)
+      redux: 5.0.1
+    transitivePeerDependencies:
+      - '@types/react'
 
   '@humanwhocodes/config-array@0.11.14':
     dependencies:
@@ -4884,11 +5126,6 @@ snapshots:
     dependencies:
       '@types/node': 18.18.2
 
-  '@types/hoist-non-react-statics@3.3.6':
-    dependencies:
-      '@types/react': 18.3.20
-      hoist-non-react-statics: 3.3.2
-
   '@types/istanbul-lib-coverage@2.0.6': {}
 
   '@types/istanbul-lib-report@3.0.3':
@@ -4923,13 +5160,6 @@ snapshots:
     dependencies:
       '@types/react': 18.3.20
 
-  '@types/react-redux@7.1.34':
-    dependencies:
-      '@types/hoist-non-react-statics': 3.3.6
-      '@types/react': 18.3.20
-      hoist-non-react-statics: 3.3.2
-      redux: 4.2.1
-
   '@types/react@18.2.66':
     dependencies:
       '@types/prop-types': 15.7.14
@@ -4946,6 +5176,8 @@ snapshots:
   '@types/semver@7.5.8': {}
 
   '@types/stack-utils@2.0.3': {}
+
+  '@types/use-sync-external-store@0.0.6': {}
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -5124,6 +5356,206 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 7.5.0
       eslint-visitor-keys: 3.4.3
+
+  '@uiw/color-convert@2.10.1(@babel/runtime@7.26.7)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+
+  '@uiw/react-color-alpha@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-drag-event-interactive': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-block@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-editable-input': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-swatch': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-chrome@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-alpha': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input-hsla': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input-rgba': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-github': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-hue': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-saturation': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-circle@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-swatch': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-colorful@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-alpha': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-hue': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-saturation': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-compact@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-editable-input': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input-rgba': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-swatch': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-editable-input-hsla@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-editable-input-rgba': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-editable-input-rgba@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-editable-input': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-editable-input@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-github@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-swatch': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-hue@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-alpha': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-material@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-editable-input': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input-rgba': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-name@2.10.1(@babel/runtime@7.26.7)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      colors-named: 1.0.5
+      colors-named-hex: 1.0.4
+
+  '@uiw/react-color-saturation@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-drag-event-interactive': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-shade-slider@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-alpha': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-sketch@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-alpha': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input-rgba': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-hue': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-saturation': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-swatch': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-slider@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-alpha': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-swatch@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color-wheel@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-drag-event-interactive': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-color@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      '@uiw/color-convert': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-alpha': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-block': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-chrome': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-circle': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-colorful': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-compact': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input-hsla': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-editable-input-rgba': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-github': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-hue': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-material': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-name': 2.10.1(@babel/runtime@7.26.7)
+      '@uiw/react-color-saturation': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-shade-slider': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-sketch': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-slider': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-swatch': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-color-wheel': 2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@uiw/react-drag-event-interactive@2.10.1(@babel/runtime@7.26.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.26.7
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   '@ungap/structured-clone@1.3.0': {}
 
@@ -5460,6 +5892,10 @@ snapshots:
   color-name@1.1.4: {}
 
   colord@2.9.3: {}
+
+  colors-named-hex@1.0.4: {}
+
+  colors-named@1.0.5: {}
 
   combined-stream@1.0.8:
     dependencies:
@@ -6363,10 +6799,6 @@ snapshots:
   hasown@2.0.2:
     dependencies:
       function-bind: 1.1.2
-
-  hoist-non-react-statics@3.3.2:
-    dependencies:
-      react-is: 16.13.1
 
   hosted-git-info@4.1.0:
     dependencies:
@@ -7310,7 +7742,7 @@ snapshots:
 
   raf-schd@4.0.3: {}
 
-  rc-slider@11.1.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  rc-slider@11.1.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@babel/runtime': 7.26.7
       classnames: 2.5.1
@@ -7325,20 +7757,6 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       react-is: 18.3.1
 
-  react-beautiful-dnd@13.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
-    dependencies:
-      '@babel/runtime': 7.26.7
-      css-box-model: 1.2.1
-      memoize-one: 5.2.1
-      raf-schd: 4.0.3
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      react-redux: 7.2.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      redux: 4.2.1
-      use-memo-one: 1.1.3(react@18.3.1)
-    transitivePeerDependencies:
-      - react-native
-
   react-dom@18.3.1(react@18.3.1):
     dependencies:
       loose-envify: 1.4.0
@@ -7346,8 +7764,6 @@ snapshots:
       scheduler: 0.23.2
 
   react-is@16.13.1: {}
-
-  react-is@17.0.2: {}
 
   react-is@18.3.1: {}
 
@@ -7358,17 +7774,23 @@ snapshots:
       prop-types: 15.8.1
       react: 18.3.1
 
-  react-redux@7.2.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  react-redux@9.2.0(@types/react@18.2.66)(react@18.3.1)(redux@5.0.1):
     dependencies:
-      '@babel/runtime': 7.26.7
-      '@types/react-redux': 7.1.34
-      hoist-non-react-statics: 3.3.2
-      loose-envify: 1.4.0
-      prop-types: 15.8.1
+      '@types/use-sync-external-store': 0.0.6
       react: 18.3.1
-      react-is: 17.0.2
+      use-sync-external-store: 1.6.0(react@18.3.1)
     optionalDependencies:
-      react-dom: 18.3.1(react@18.3.1)
+      '@types/react': 18.2.66
+      redux: 5.0.1
+
+  react-redux@9.2.0(@types/react@18.3.20)(react@18.3.1)(redux@5.0.1):
+    dependencies:
+      '@types/use-sync-external-store': 0.0.6
+      react: 18.3.1
+      use-sync-external-store: 1.6.0(react@18.3.1)
+    optionalDependencies:
+      '@types/react': 18.3.20
+      redux: 5.0.1
 
   react-refresh@0.17.0: {}
 
@@ -7455,9 +7877,7 @@ snapshots:
       indent-string: 5.0.0
       strip-indent: 4.0.0
 
-  redux@4.2.1:
-    dependencies:
-      '@babel/runtime': 7.26.7
+  redux@5.0.1: {}
 
   reflect.getprototypeof@1.0.10:
     dependencies:
@@ -8090,7 +8510,7 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  use-memo-one@1.1.3(react@18.3.1):
+  use-sync-external-store@1.6.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 

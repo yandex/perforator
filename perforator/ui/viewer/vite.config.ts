@@ -12,7 +12,15 @@ export default defineConfig({
                 find: /^~.+/,
                 replacement: val => val.replace(/^~/, ''),
             },
-        ]
+        ],
+        dedupe: [
+            '@gravity-ui/uikit',
+            '@gravity-ui/components',
+            '@gravity-ui/icons',
+            '@bem-react/classname',
+            'react',
+            'react-dom',
+        ],
     },
     build: {
         rollupOptions: {
