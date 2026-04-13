@@ -335,6 +335,7 @@ require (
 	github.com/dave/jennifer v1.7.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/dchest/siphash v1.2.3
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1
 	github.com/deepmap/oapi-codegen v1.9.0
 	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/devsisters/go-applereceipt v0.0.0-20230806051143-d8eef1e6126b
@@ -1487,8 +1488,7 @@ require (
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/decker502/dnspod-go v0.2.0 // indirect
-	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
+	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/deitch/magic v0.0.0-20240306090643-c67ab88f10cb // indirect
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba // indirect
