@@ -136,7 +136,7 @@ func (f *FeatureFlagsConfig) JVMEnabled() bool {
 
 func (f *FeatureFlagsConfig) PhpEnabled() bool {
 	if f.EnablePHP == nil {
-		return false
+		return true
 	}
 	return *f.EnablePHP
 }

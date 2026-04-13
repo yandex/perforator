@@ -574,7 +574,7 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 		)
 	}
 
-	if enablePhp := c.p.conf.FeatureFlagsConfig.EnablePHP; enablePhp != nil && *enablePhp {
+	if c.p.conf.FeatureFlagsConfig.PhpEnabled() {
 		c.collectInterpreterStackInto(
 			&c.p.metrics.phpMetrics,
 			builder,

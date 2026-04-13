@@ -71,7 +71,7 @@ static ALWAYS_INLINE bool php_read_string(char* buf, size_t buf_size, u8* res_le
         return false;
     }
 
-    PHP_TRACE("read string length %d, buf_size %u", length, buf_size);
+    /** we should not log buf_size/len here: it causes eBPF verifier failure */
 
     ++length;
     if (length > buf_size) {
@@ -83,12 +83,12 @@ static ALWAYS_INLINE bool php_read_string(char* buf, size_t buf_size, u8* res_le
     // including the trailing NULL character. On error, a negative value.
     err = bpf_probe_read_user_str(buf, length, (void*) zend_string_addr + config->offsets.zend_string.val);
     if (err <= 0) {
-        PHP_TRACE("failed to read string data: %d", err);
+        PHP_TRACE("failed to read string data: %d (len %d, buf_size %u)", err, length, buf_size);
         return false;
     }
 
     *res_length = err - 1;
-    PHP_TRACE("Successfully read string of length %d", *res_length);
+    PHP_TRACE("Successfully read string of length %u (declared len %d, buf_size %u)", *res_length, length, buf_size);
     return true;
 }
 

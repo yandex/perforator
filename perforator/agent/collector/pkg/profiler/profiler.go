@@ -454,7 +454,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	}
 
 	// Create PHP symbolizer
-	if enabled := p.conf.FeatureFlagsConfig.EnablePHP; enabled != nil && *enabled {
+	if p.conf.FeatureFlagsConfig.PhpEnabled() {
 		p.phpSymbolizer, err = symbolizer.NewPhpSymbolizer(&p.conf.Symbolizer.Php, p.bpf.State(), r)
 		if err != nil {
 			return err
@@ -902,9 +902,7 @@ func (p *Profiler) setupConfig() error {
 		conf.EnableJvm = true
 	}
 
-	if p.conf.FeatureFlagsConfig.PhpEnabled() {
-		conf.EnablePhp = true
-	}
+	conf.EnablePhp = p.conf.FeatureFlagsConfig.PhpEnabled()
 
 	// Record current pidns.
 	pidns, err := procfs.Self().GetNamespaces().GetPidInode()
