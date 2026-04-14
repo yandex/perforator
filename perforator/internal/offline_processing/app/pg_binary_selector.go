@@ -164,7 +164,7 @@ func (s *PgBinarySelector) SelectBinary(ctx context.Context) (BinaryTranscationH
 		FROM binary_processing_queue
 		WHERE
 			status='ready'
-		ORDER BY created_at DESC LIMIT 1
+		ORDER BY created_at ASC LIMIT 1
 		FOR UPDATE SKIP LOCKED
 		`,
 	)

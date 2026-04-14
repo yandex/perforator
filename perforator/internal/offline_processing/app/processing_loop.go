@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sync/atomic"
 	"time"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -24,6 +26,8 @@ type ProcessingLoop struct {
 	binarySelector BinarySelector
 	binaryFetcher  BinaryFetcher
 	processors     []BinaryProcessor
+
+	lastIterationCompletion atomic.Pointer[time.Time]
 }
 
 func NewProcessingLoop(
@@ -34,7 +38,7 @@ func NewProcessingLoop(
 	binaryFetcher BinaryFetcher,
 	processors []BinaryProcessor,
 ) (*ProcessingLoop, error) {
-	return &ProcessingLoop{
+	loop := &ProcessingLoop{
 		l: l,
 		metrics: processingMetrics{
 			success: reg.Counter("success"),
@@ -44,7 +48,13 @@ func NewProcessingLoop(
 		binarySelector: binarySelector,
 		binaryFetcher:  binaryFetcher,
 		processors:     processors,
-	}, nil
+	}
+	loop.lastIterationCompletion.Store(ptr.T(time.Now()))
+	reg.FuncGauge("time_without_progress", func() float64 {
+		delay := time.Since(*loop.lastIterationCompletion.Load())
+		return delay.Seconds()
+	})
+	return loop, nil
 }
 
 func (l *ProcessingLoop) Run(ctx context.Context) error {
@@ -93,6 +103,7 @@ func (l *ProcessingLoop) loopIteration(ctx context.Context) error {
 	l.l.Info(ctx, "Successfully processed the binary", log.String("build_id", binaryHandler.GetBinaryID()))
 
 	l.metrics.lag.Set(time.Since(binaryHandler.EnqueuedAt()).Seconds())
+	l.lastIterationCompletion.Store(ptr.T(time.Now()))
 
 	return nil
 }
@@ -105,11 +116,15 @@ func (l *ProcessingLoop) processError(ctx context.Context, err error) {
 
 	// TODO : account for failures in metrics
 
-	shouldBackOff := errors.Is(err, sql.ErrNoRows)
-	l.l.Warn(ctx, "Loop iteration failed", log.Error(err), log.Bool("should_backoff", shouldBackOff))
+	isQueueEmpty := errors.Is(err, sql.ErrNoRows)
 
-	if shouldBackOff {
+	if isQueueEmpty {
+		l.l.Info(ctx, "Queue is empty")
 		// TODO : make this backoff more sophisticated
 		time.Sleep(3 * time.Second)
+		l.metrics.lag.Set(0)
+		l.lastIterationCompletion.Store(ptr.T(time.Now()))
+	} else {
+		l.l.Warn(ctx, "Loop iteration failed", log.Error(err))
 	}
 }
