@@ -11325,7 +11325,7 @@ github.com/jackc/fake
 github.com/jackc/pgconn
 github.com/jackc/pgconn/internal/ctxwatch
 github.com/jackc/pgconn/stmtcache
-# github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
+# github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 ## explicit; go 1.12
 github.com/jackc/pgerrcode
 # github.com/jackc/pgio v1.0.0

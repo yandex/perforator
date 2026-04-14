@@ -560,7 +560,7 @@ require (
 	github.com/iovisor/gobpf v0.0.0-20200311173154-8078b203833d
 	github.com/itchyny/gojq v0.12.18
 	github.com/jackc/pgconn v1.14.3
-	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
+	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgio v1.0.0
 	github.com/jackc/pglogrepl v0.0.0-20210731151948-9f1effd582c4
 	github.com/jackc/pgproto3/v2 v2.3.3
