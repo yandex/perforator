@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.67.7)
+VERSION(v1.68.0)
 
 SRCS(
     fsync.go
@@ -152,6 +152,7 @@ IF (OS_WINDOWS AND ARCH_ARM64)
         capi_windows_arm64.go
         libc_arm64.go
         libc_windows_arm64.go
+        libc_windows_arm64.s
         musl_windows_arm64.go
     )
 ENDIF()

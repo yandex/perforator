@@ -2,12 +2,13 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.49.0)
+VERSION(v0.51.0)
 
 SRCS(
     ascii.go
     ciphers.go
     client_conn_pool.go
+    client_priority_go126.go
     config.go
     config_go125.go
     databuffer.go

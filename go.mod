@@ -119,7 +119,7 @@ require (
 	cloud.google.com/go/shell v1.8.7
 	cloud.google.com/go/spanner v1.87.0
 	cloud.google.com/go/speech v1.29.0
-	cloud.google.com/go/storage v1.59.2
+	cloud.google.com/go/storage v1.60.0
 	cloud.google.com/go/storagetransfer v1.13.1
 	cloud.google.com/go/talent v1.8.4
 	cloud.google.com/go/texttospeech v1.16.0
@@ -236,7 +236,7 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/anttsov/curator v0.0.0-20220418135948-cfbcac4c267c
-	github.com/apache/arrow-go/v18 v18.4.1
+	github.com/apache/arrow-go/v18 v18.5.1
 	github.com/apache/arrow/go/v13 v13.0.0-20230512153032-cd6e2a4d2b93
 	github.com/apache/iceberg-go v0.4.0
 	github.com/apache/thrift v0.22.0
@@ -352,7 +352,7 @@ require (
 	github.com/dnaeon/go-vcr v1.2.0
 	github.com/dnstap/golang-dnstap v0.4.0
 	github.com/docker/distribution v2.8.3+incompatible
-	github.com/docker/docker v28.5.1+incompatible
+	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0
 	github.com/docker/go-metrics v0.0.1
 	github.com/dolthub/swiss v0.1.0
@@ -498,7 +498,7 @@ require (
 	github.com/google/tink/go v1.7.0
 	github.com/google/uuid v1.6.0
 	github.com/googleapis/api-linter v1.71.0
-	github.com/googleapis/gax-go/v2 v2.16.0
+	github.com/googleapis/gax-go/v2 v2.17.0
 	github.com/gordonklaus/ineffassign v0.0.0-20230107090616-13ace0543b28
 	github.com/gorilla/csrf v1.7.3
 	github.com/gorilla/css v1.0.1
@@ -521,7 +521,7 @@ require (
 	github.com/grpc-ecosystem/grpc-health-probe v0.4.14
 	github.com/gruntwork-io/terratest v0.36.8
 	github.com/haivision/srtgo v0.0.0-20211019211331-3f0cef2e19ee
-	github.com/hamba/avro/v2 v2.30.0
+	github.com/hamba/avro/v2 v2.31.0
 	github.com/hanwen/go-fuse/v2 v2.9.0
 	github.com/haproxytech/client-native/v5 v5.0.0
 	github.com/haproxytech/config-parser/v5 v5.0.0
@@ -1023,18 +1023,18 @@ require (
 	gocloud.dev v0.44.0
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0
-	golang.org/x/crypto v0.47.0
+	golang.org/x/crypto v0.48.0
 	golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6
 	golang.org/x/image v0.32.0
 	golang.org/x/mod v0.33.0
-	golang.org/x/net v0.49.0
+	golang.org/x/net v0.51.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.42.0
+	golang.org/x/sys v0.43.0
 	golang.org/x/term v0.41.0
-	golang.org/x/text v0.33.0
+	golang.org/x/text v0.35.0
 	golang.org/x/time v0.14.0
-	golang.org/x/tools v0.41.0
+	golang.org/x/tools v0.42.0
 	golang.org/x/tools/go/expect v0.1.1-deprecated
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
 	golang.org/x/tools/godoc v0.1.0-deprecated
@@ -1045,7 +1045,7 @@ require (
 	golang.yandex/linters v1.3.3
 	gomodules.xyz/jsonpatch/v2 v2.4.0
 	gonum.org/v1/gonum v0.17.0
-	google.golang.org/api v0.260.0
+	google.golang.org/api v0.267.0
 	google.golang.org/genai v1.40.0
 	google.golang.org/genproto v0.0.0-20260128011058-8636f8732409
 	google.golang.org/genproto/googleapis/api v0.0.0-20260203192932-546029d2fa20
@@ -1535,9 +1535,9 @@ require (
 	github.com/djherbis/atime v1.1.0 // indirect
 	github.com/dlclark/regexp2cg v0.2.0 // indirect
 	github.com/dnsimple/dnsimple-go v1.0.0 // indirect
-	github.com/docker/cli v28.0.4+incompatible // indirect
+	github.com/docker/cli v28.5.1+incompatible // indirect
 	github.com/docker/cli-docs-tool v0.10.0 // indirect
-	github.com/docker/docker-credential-helpers v0.8.2 // indirect
+	github.com/docker/docker-credential-helpers v0.9.3 // indirect
 	github.com/docker/go v1.5.1-1.0.20160303222718-d30aec9fd63c // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -1735,7 +1735,7 @@ require (
 	github.com/google/wire v0.7.0 // indirect
 	github.com/google/wycheproof v0.0.0-20191219022705-2196000605e4 // indirect
 	github.com/googleapis/cloud-bigtable-clients-test v0.0.4 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.9 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.11 // indirect
 	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/googleapis/go-type-adapters v1.0.0 // indirect
@@ -2294,10 +2294,10 @@ require (
 	github.com/stvp/tempredis v0.0.0-20181119212430-b82af8480203 // indirect
 	github.com/subeshb1/wasm-go-image-to-ascii v0.0.0-20200725121413-d828986df340 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/substrait-io/substrait v0.69.0 // indirect
+	github.com/substrait-io/substrait v0.81.0 // indirect
 	github.com/substrait-io/substrait-go v0.4.2 // indirect
-	github.com/substrait-io/substrait-go/v4 v4.4.0 // indirect
-	github.com/substrait-io/substrait-protobuf/go v0.71.0 // indirect
+	github.com/substrait-io/substrait-go/v7 v7.4.0 // indirect
+	github.com/substrait-io/substrait-protobuf/go v0.81.0 // indirect
 	github.com/sunfish-shogi/bufseekio v0.0.0-20210207115823-a4185644b365 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tadglines/go-pkgs v0.0.0-20210623144937-b983b20f54f9 // indirect
@@ -2469,7 +2469,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
-	golang.org/x/telemetry v0.0.0-20260109210033-bd525da824e2 // indirect
+	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
 	golang.org/x/vuln v1.1.4 // indirect
 	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f // indirect
 	gonum.org/v1/plot v0.15.2 // indirect
@@ -2546,7 +2546,7 @@ require (
 	modernc.org/cc/v3 v3.41.0 // indirect
 	modernc.org/cc/v4 v4.27.1 // indirect
 	modernc.org/ccgo/v3 v3.17.0 // indirect
-	modernc.org/ccgo/v4 v4.30.1 // indirect
+	modernc.org/ccgo/v4 v4.30.2 // indirect
 	modernc.org/fileutil v1.3.40 // indirect
 	modernc.org/gc/v2 v2.6.5 // indirect
 	modernc.org/gc/v3 v3.1.2 // indirect
@@ -2554,7 +2554,7 @@ require (
 	modernc.org/httpfs v1.0.6 // indirect
 	modernc.org/lex v1.1.1 // indirect
 	modernc.org/lexer v1.0.5 // indirect
-	modernc.org/libc v1.67.7 // indirect
+	modernc.org/libc v1.68.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/opt v0.1.4 // indirect
@@ -2715,10 +2715,6 @@ replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelg
 replace github.com/moby/buildkit => github.com/moby/buildkit v0.12.2
 
 replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20230629203738-36ef4d8c0dbb
-
-replace github.com/substrait-io/substrait-protobuf/go => github.com/substrait-io/substrait-protobuf/go v0.71.0
-
-replace github.com/substrait-io/substrait => github.com/substrait-io/substrait v0.69.0
 
 // Workaround weird go.mod shipped with k8s.io submodules.
 // For the reasoning see

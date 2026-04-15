@@ -1033,7 +1033,7 @@ cloud.google.com/go/speech/apiv1p1beta1/speechpb
 cloud.google.com/go/speech/apiv2
 cloud.google.com/go/speech/apiv2/speechpb
 cloud.google.com/go/speech/internal
-# cloud.google.com/go/storage v1.59.2
+# cloud.google.com/go/storage v1.60.0
 ## explicit; go 1.24.0
 cloud.google.com/go/storage
 cloud.google.com/go/storage/control/apiv2
@@ -4505,8 +4505,8 @@ github.com/anttsov/curator/recipes/cache
 ## explicit; go 1.15
 # github.com/aokoli/goutils v1.0.1
 ## explicit
-# github.com/apache/arrow-go/v18 v18.4.1
-## explicit; go 1.23.0
+# github.com/apache/arrow-go/v18 v18.5.1
+## explicit; go 1.24.0
 github.com/apache/arrow-go/v18
 github.com/apache/arrow-go/v18/arrow
 github.com/apache/arrow-go/v18/arrow/array
@@ -7003,7 +7003,7 @@ github.com/dnaeon/go-vcr/recorder
 ## explicit
 github.com/dnstap/golang-dnstap
 github.com/dnstap/golang-dnstap/dnstap
-# github.com/docker/cli v28.0.4+incompatible => github.com/docker/cli v25.0.4+incompatible
+# github.com/docker/cli v28.5.1+incompatible => github.com/docker/cli v25.0.4+incompatible
 ## explicit
 github.com/docker/cli/cli/compose/interpolation
 github.com/docker/cli/cli/compose/loader
@@ -7039,7 +7039,7 @@ github.com/docker/distribution/registry/storage/cache/cachecheck
 github.com/docker/distribution/registry/storage/cache/memory
 github.com/docker/distribution/testutil
 github.com/docker/distribution/uuid
-# github.com/docker/docker v28.5.1+incompatible => github.com/docker/docker v25.0.6+incompatible
+# github.com/docker/docker v28.5.2+incompatible => github.com/docker/docker v25.0.6+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -7078,8 +7078,8 @@ github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/pkg/stringid
 github.com/docker/docker/pkg/system
 github.com/docker/docker/registry
-# github.com/docker/docker-credential-helpers v0.8.2
-## explicit; go 1.19
+# github.com/docker/docker-credential-helpers v0.9.3
+## explicit; go 1.21
 github.com/docker/docker-credential-helpers/client
 github.com/docker/docker-credential-helpers/credentials
 # github.com/docker/go v1.5.1-1.0.20160303222718-d30aec9fd63c
@@ -10188,13 +10188,13 @@ github.com/googleapis/api-linter/rules/internal/utils
 # github.com/googleapis/cloud-bigtable-clients-test v0.0.4
 ## explicit; go 1.23.0
 github.com/googleapis/cloud-bigtable-clients-test/testproxypb
-# github.com/googleapis/enterprise-certificate-proxy v0.3.9
-## explicit; go 1.23.0
+# github.com/googleapis/enterprise-certificate-proxy v0.3.11
+## explicit; go 1.24.0
 github.com/googleapis/enterprise-certificate-proxy/client
 github.com/googleapis/enterprise-certificate-proxy/client/util
 # github.com/googleapis/gax-go v2.0.2+incompatible
 ## explicit
-# github.com/googleapis/gax-go/v2 v2.16.0
+# github.com/googleapis/gax-go/v2 v2.17.0
 ## explicit; go 1.24.0
 github.com/googleapis/gax-go/v2
 github.com/googleapis/gax-go/v2/apierror
@@ -10630,8 +10630,8 @@ github.com/hailocab/go-hostpool
 github.com/haivision/srtgo
 github.com/haivision/srtgo/examples/echo-receiver
 github.com/haivision/srtgo/examples/file-receiver
-# github.com/hamba/avro/v2 v2.30.0
-## explicit; go 1.23.0
+# github.com/hamba/avro/v2 v2.31.0
+## explicit; go 1.24.0
 github.com/hamba/avro/v2
 github.com/hamba/avro/v2/cmd/avrogen
 github.com/hamba/avro/v2/cmd/avrosv
@@ -10640,6 +10640,9 @@ github.com/hamba/avro/v2/internal/bytesx
 github.com/hamba/avro/v2/ocf
 github.com/hamba/avro/v2/pkg/crc64
 github.com/hamba/avro/v2/registry
+github.com/hamba/avro/v2/soe
+github.com/hamba/avro/v2/soe/internal/testdata
+github.com/hamba/avro/v2/soe/resolvers
 # github.com/hanwen/go-fuse/v2 v2.9.0
 ## explicit; go 1.17
 github.com/hanwen/go-fuse/v2/fs
@@ -16038,28 +16041,28 @@ github.com/stvp/tempredis
 # github.com/subosito/gotenv v1.6.0
 ## explicit; go 1.18
 github.com/subosito/gotenv
-# github.com/substrait-io/substrait v0.69.0 => github.com/substrait-io/substrait v0.69.0
+# github.com/substrait-io/substrait v0.81.0
 ## explicit; go 1.22.0
 github.com/substrait-io/substrait
 # github.com/substrait-io/substrait-go v0.4.2
 ## explicit; go 1.18
-# github.com/substrait-io/substrait-go/v4 v4.4.0
+# github.com/substrait-io/substrait-go/v7 v7.4.0
 ## explicit; go 1.23.0
-github.com/substrait-io/substrait-go/v4
-github.com/substrait-io/substrait-go/v4/expr
-github.com/substrait-io/substrait-go/v4/extensions
-github.com/substrait-io/substrait-go/v4/functions
-github.com/substrait-io/substrait-go/v4/literal
-github.com/substrait-io/substrait-go/v4/plan
-github.com/substrait-io/substrait-go/v4/plan/internal
-github.com/substrait-io/substrait-go/v4/testcases/parser
-github.com/substrait-io/substrait-go/v4/testcases/parser/baseparser
-github.com/substrait-io/substrait-go/v4/types
-github.com/substrait-io/substrait-go/v4/types/integer_parameters
-github.com/substrait-io/substrait-go/v4/types/parser
-github.com/substrait-io/substrait-go/v4/types/parser/baseparser
-github.com/substrait-io/substrait-go/v4/types/parser/util
-# github.com/substrait-io/substrait-protobuf/go v0.71.0 => github.com/substrait-io/substrait-protobuf/go v0.71.0
+github.com/substrait-io/substrait-go/v7
+github.com/substrait-io/substrait-go/v7/expr
+github.com/substrait-io/substrait-go/v7/extensions
+github.com/substrait-io/substrait-go/v7/functions
+github.com/substrait-io/substrait-go/v7/literal
+github.com/substrait-io/substrait-go/v7/plan
+github.com/substrait-io/substrait-go/v7/plan/internal
+github.com/substrait-io/substrait-go/v7/testcases/parser
+github.com/substrait-io/substrait-go/v7/testcases/parser/baseparser
+github.com/substrait-io/substrait-go/v7/types
+github.com/substrait-io/substrait-go/v7/types/integer_parameters
+github.com/substrait-io/substrait-go/v7/types/parser
+github.com/substrait-io/substrait-go/v7/types/parser/baseparser
+github.com/substrait-io/substrait-go/v7/types/parser/util
+# github.com/substrait-io/substrait-protobuf/go v0.81.0
 ## explicit; go 1.22.0
 github.com/substrait-io/substrait-protobuf/go/substraitpb
 github.com/substrait-io/substrait-protobuf/go/substraitpb/extensions
@@ -19731,7 +19734,7 @@ golang.org/x/arch/x86/x86csv
 golang.org/x/arch/x86/x86map
 golang.org/x/arch/x86/x86spec
 golang.org/x/arch/x86/xeddata
-# golang.org/x/crypto v0.47.0
+# golang.org/x/crypto v0.48.0
 ## explicit; go 1.24.0
 golang.org/x/crypto
 golang.org/x/crypto/acme
@@ -19862,8 +19865,8 @@ golang.org/x/mod/sumdb/note
 golang.org/x/mod/sumdb/storage
 golang.org/x/mod/sumdb/tlog
 golang.org/x/mod/zip
-# golang.org/x/net v0.49.0
-## explicit; go 1.24.0
+# golang.org/x/net v0.51.0
+## explicit; go 1.25.0
 golang.org/x/net
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -19958,7 +19961,7 @@ golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.42.0
+# golang.org/x/sys v0.43.0
 ## explicit; go 1.25.0
 golang.org/x/sys
 golang.org/x/sys/cpu
@@ -19973,7 +19976,7 @@ golang.org/x/sys/windows/svc/debug
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/example
 golang.org/x/sys/windows/svc/mgr
-# golang.org/x/telemetry v0.0.0-20260109210033-bd525da824e2
+# golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4
 ## explicit; go 1.24.0
 golang.org/x/telemetry
 golang.org/x/telemetry/counter
@@ -19987,8 +19990,8 @@ golang.org/x/telemetry/internal/upload
 # golang.org/x/term v0.41.0
 ## explicit; go 1.25.0
 golang.org/x/term
-# golang.org/x/text v0.33.0
-## explicit; go 1.24.0
+# golang.org/x/text v0.35.0
+## explicit; go 1.25.0
 golang.org/x/text
 golang.org/x/text/cases
 golang.org/x/text/cmd/gotext
@@ -20056,7 +20059,7 @@ golang.org/x/text/width
 ## explicit; go 1.24.0
 golang.org/x/time
 golang.org/x/time/rate
-# golang.org/x/tools v0.41.0
+# golang.org/x/tools v0.42.0
 ## explicit; go 1.24.0
 golang.org/x/tools
 golang.org/x/tools/benchmark/parse
@@ -20220,6 +20223,7 @@ golang.org/x/tools/internal/event/core
 golang.org/x/tools/internal/event/export
 golang.org/x/tools/internal/event/export/eventtest
 golang.org/x/tools/internal/event/export/metric
+golang.org/x/tools/internal/event/export/otel
 golang.org/x/tools/internal/event/export/prometheus
 golang.org/x/tools/internal/event/keys
 golang.org/x/tools/internal/event/label
@@ -20237,14 +20241,6 @@ golang.org/x/tools/internal/jsonrpc2/servertest
 golang.org/x/tools/internal/jsonrpc2/stack
 golang.org/x/tools/internal/jsonrpc2/stack/stacktest
 golang.org/x/tools/internal/jsonrpc2_v2
-golang.org/x/tools/internal/mcp
-golang.org/x/tools/internal/mcp/examples/hello
-golang.org/x/tools/internal/mcp/examples/sse
-golang.org/x/tools/internal/mcp/internal/oauthex
-golang.org/x/tools/internal/mcp/internal/readme/client
-golang.org/x/tools/internal/mcp/internal/readme/server
-golang.org/x/tools/internal/mcp/internal/util
-golang.org/x/tools/internal/mcp/jsonschema
 golang.org/x/tools/internal/modindex
 golang.org/x/tools/internal/modindex/gomodindex
 golang.org/x/tools/internal/moreiters
@@ -20579,7 +20575,7 @@ gonum.org/v1/plot/vg/vgimg
 gonum.org/v1/plot/vg/vgpdf
 gonum.org/v1/plot/vg/vgsvg
 gonum.org/v1/plot/vg/vgtex
-# google.golang.org/api v0.260.0
+# google.golang.org/api v0.267.0
 ## explicit; go 1.24.0
 google.golang.org/api/admin/directory/v1
 google.golang.org/api/androidpublisher/v3
@@ -22660,7 +22656,7 @@ k8s.io/utils/trace
 modernc.org/cc/v4
 # modernc.org/ccgo/v3 v3.17.0
 ## explicit; go 1.20
-# modernc.org/ccgo/v4 v4.30.1
+# modernc.org/ccgo/v4 v4.30.2
 ## explicit; go 1.24.0
 modernc.org/ccgo/v4/lib
 modernc.org/ccgo/v4/lib/internal/secret_sauce
@@ -22682,7 +22678,7 @@ modernc.org/gc/v3
 ## explicit; go 1.16
 # modernc.org/lexer v1.0.5
 ## explicit; go 1.18
-# modernc.org/libc v1.67.7
+# modernc.org/libc v1.68.0
 ## explicit; go 1.24.0
 modernc.org/libc
 modernc.org/libc/errno
@@ -23106,8 +23102,6 @@ www.velocidex.com/golang/regparser
 # github.com/prometheus/client_model => github.com/prometheus/client_model v0.6.1
 # github.com/prometheus/common => github.com/prometheus/common v0.62.0
 # github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
-# github.com/substrait-io/substrait => github.com/substrait-io/substrait v0.69.0
-# github.com/substrait-io/substrait-protobuf/go => github.com/substrait-io/substrait-protobuf/go v0.71.0
 # github.com/temporalio/features => github.com/temporalio/features v0.0.0-20231218231852-27c681667dae
 # github.com/temporalio/features/features => github.com/temporalio/features/features v0.0.0-20231218231852-27c681667dae
 # github.com/temporalio/features/harness/go => github.com/temporalio/features/harness/go v0.0.0-20231218231852-27c681667dae
