@@ -674,6 +674,34 @@ func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 	c.logSample()
 }
 
+func (c *oneShotSampleConsumer) logSample() {
+	c.p.log.Debug("Consumed sample",
+		log.Lazy("sample", func() (any, error) {
+			return map[string]any{
+				"sampletype":          c.sample.SampleType.String(),
+				"sampleconfig":        c.sample.SampleConfig.UnionBuf[:],
+				"events":              c.sample.Value,
+				"timedelta":           c.sample.Timedelta,
+				"cpu":                 c.sample.Cpu,
+				"threadcomm":          copy.ZeroTerminatedString(c.sample.ThreadComm[:]),
+				"proccomm":            copy.ZeroTerminatedString(c.sample.ProcessComm[:]),
+				"pid":                 c.sample.Pid,
+				"tid":                 c.sample.Tid,
+				"innermost_pidns_tid": c.sample.InnermostPidnsTid,
+				"starttime":           c.sample.Starttime,
+				"cgroup":              c.p.cgroups.CgroupFullName(c.sample.ParentCgroup),
+				"workload":            c.cgroupRel,
+				"cgroup_id":           c.sample.ParentCgroup,
+				"stacklen":            c.stacklen,
+				"runtime":             c.sample.Runtime,
+				"tlsvars":             len(c.tls),
+				"lbrvals":             c.sample.LbrValues.Nr,
+				"envvars":             len(c.env),
+			}, nil
+		}),
+	)
+}
+
 // Writing sample to profile builder which can be flushed by other goroutines (via RestartProfiles) requires synchronization.
 func (c *oneShotSampleConsumer) finishSample(builder *profile.SampleBuilder) {
 	c.profileBuilder.Lock()
@@ -808,30 +836,6 @@ func (c *oneShotSampleConsumer) recordUprobeSample(ctx context.Context) {
 
 		c.finishSample(builder)
 	}
-}
-
-func (c *oneShotSampleConsumer) logSample() {
-	c.p.log.Debug("Consumed sample",
-		log.Stringer("sampletype", c.sample.SampleType),
-		log.Binary("sampleconfig", c.sample.SampleConfig.UnionBuf[:]),
-		log.UInt64("events", c.sample.Value),
-		log.UInt64("timedelta", c.sample.Timedelta),
-		log.UInt16("cpu", c.sample.Cpu),
-		log.String("threadcomm", copy.ZeroTerminatedString(c.sample.ThreadComm[:])),
-		log.String("proccomm", copy.ZeroTerminatedString(c.sample.ProcessComm[:])),
-		log.UInt32("pid", c.sample.Pid),
-		log.UInt32("tid", c.sample.Tid),
-		log.UInt32("innermost_pidns_tid", c.sample.InnermostPidnsTid),
-		log.UInt64("starttime", c.sample.Starttime),
-		log.String("cgroup", c.p.cgroups.CgroupFullName(c.sample.ParentCgroup)),
-		log.String("workload", c.cgroupRel),
-		log.UInt64("cgroup_id", c.sample.ParentCgroup),
-		log.Int("stacklen", c.stacklen),
-		log.UInt32("runtime", c.sample.Runtime),
-		log.Int("tlsvars", len(c.tls)),
-		log.UInt64("lbrvals", c.sample.LbrValues.Nr),
-		log.Int("envvars", len(c.env)),
-	)
 }
 
 func (c *oneShotSampleConsumer) maybeFlushProfile() {
