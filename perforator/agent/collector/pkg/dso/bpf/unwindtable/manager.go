@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"sync"
-	"time"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
@@ -211,15 +210,6 @@ func (m *BPFManager) Release(a *Allocation) {
 	a.statemu.Lock()
 	defer a.statemu.Unlock()
 	m.release(a)
-}
-
-// Like Release, but waits for all ongoing program executions to complete
-func (m *BPFManager) ReleaseDeferred(a *Allocation) {
-	// TODO(PERFORATOR-1019): replace with a barrier (essentially we want rcu_retire here).
-	go func() {
-		time.Sleep(time.Second)
-		m.Release(a)
-	}()
 }
 
 func (m *BPFManager) release(a *Allocation) {

@@ -342,16 +342,24 @@ func (r *Registry) scanSingleProcess(ctx context.Context, tp *trackedProcess) er
 	if err != nil {
 		return fmt.Errorf("failed to synthesize dwarf for detected method: %w", err)
 	}
+	oldAlloc := tp.alloc
+	if oldAlloc != nil {
+		// TODO(PERFORATOR-1170): we are releasing old allocation before adding new one.
+		// This is bad as ongoing BPF program executions may behave incorrectly in two ways:
+		// 1. program looks root up between Release and Add and finds nothing.
+		// 2. program looks root up before Release and starts traversing the tree,
+		// but pages are rewritten by a concurrent Add that reuses them (as they are already in the freelist after Release),
+		// so program reads effectively garbage.
+		// In both cases recorded sample will be truncated or wrong.
+		r.l.Debug(ctx, "Releasing previous unwind table allocation", logfield.CurrentNamespacePID(tp.pid))
+		r.unwind.Release(tp.alloc)
+	}
 	alloc, err := r.unwind.Add(unwindtable.AllocationID{PID: tp.pid}, dwarf)
 	if err != nil {
 		return fmt.Errorf("failed to allocate bpf unwind table: %w", err)
 	}
-	oldAlloc := tp.alloc
+
 	tp.alloc = alloc
-	if oldAlloc != nil {
-		r.l.Debug(ctx, "Releasing previous unwind table allocation", logfield.CurrentNamespacePID(tp.pid))
-		r.unwind.ReleaseDeferred(tp.alloc)
-	}
 
 	return nil
 }
@@ -520,6 +528,6 @@ func (r *Registry) OnProcessDeath(ctx context.Context, pid linux.CurrentNamespac
 	defer tp.mu.Unlock()
 	if tp.alloc != nil {
 		r.l.Debug(logCtx, "Releasing unwind table allocation of dead process")
-		r.unwind.ReleaseDeferred(tp.alloc)
+		r.unwind.Release(tp.alloc)
 	}
 }
