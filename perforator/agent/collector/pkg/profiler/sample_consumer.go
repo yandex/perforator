@@ -421,10 +421,13 @@ func (c *oneShotSampleConsumer) collectEnvironment() {
 }
 
 func (c *oneShotSampleConsumer) doCollectEnvironment(processEnvs map[string]string) {
-	c.env = make([]formattedEnvVariable, 0, len(processEnvs))
-	for key, value := range processEnvs {
-		_, ok := c.envWhitelist[key]
-		if ok {
+	if len(processEnvs) == 0 || len(c.envWhitelist) == 0 {
+		return
+	}
+
+	c.env = make([]formattedEnvVariable, 0, len(c.envWhitelist))
+	for key := range c.envWhitelist {
+		if value, ok := processEnvs[key]; ok {
 			c.env = append(c.env, formattedEnvVariable{
 				Key:   env.BuildEnvLabelKey(key),
 				Value: value,
