@@ -602,16 +602,10 @@ func (c *oneShotSampleConsumer) collectEventCount(builder *profile.SampleBuilder
 	builder.AddValue(int64(c.sample.Value))
 }
 
-func (c *oneShotSampleConsumer) collectSignalInto(builder *profile.SampleBuilder) error {
-	if c.sample.SampleType != unwinder.SampleTypeTracepointSignalDeliver {
-		return fmt.Errorf("cannot collect signal info from sample of type %s", c.sample.SampleType.String())
-	}
-
+func (c *oneShotSampleConsumer) collectSignalInto(builder *profile.SampleBuilder) {
 	signo := c.sample.SampleConfig.GetSig()
 	signame := unix.SignalName(syscall.Signal(signo))
 	builder.AddStringLabel("signal:name", signame)
-
-	return nil
 }
 
 func (c *oneShotSampleConsumer) collectLBRStackInto(ctx context.Context, builder *profile.SampleBuilder) {
@@ -659,8 +653,6 @@ func (c *oneShotSampleConsumer) initBuilderCommon(name string, sampleTypes []pro
 }
 
 func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
-	var err error
-
 	switch c.sample.SampleType {
 	case unwinder.SampleTypePerfEvent:
 		perfEvent := c.sample.SampleConfig.GetPerfEvent()
@@ -672,14 +664,14 @@ func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 	case unwinder.SampleTypeKprobeFinishTaskSwitch:
 		c.recordCPUSample(ctx)
 	case unwinder.SampleTypeTracepointSignalDeliver:
-		err = c.recordSignalSample(ctx)
+		c.recordSignalSample(ctx)
 	case unwinder.SampleTypeUprobe:
 		c.recordUprobeSample(ctx)
 	default:
 		c.p.log.Warn("Skipped sample of unknown type", log.Stringer("type", c.sample.SampleType))
 	}
 
-	c.logSample(err)
+	c.logSample()
 }
 
 // Writing sample to profile builder which can be flushed by other goroutines (via RestartProfiles) requires synchronization.
@@ -744,9 +736,9 @@ func (c *oneShotSampleConsumer) recordLBRSample(ctx context.Context) {
 	c.finishSample(builder)
 }
 
-func (c *oneShotSampleConsumer) recordSignalSample(ctx context.Context) error {
+func (c *oneShotSampleConsumer) recordSignalSample(ctx context.Context) {
 	if enable := c.p.conf.BPF.TraceSignals; enable == nil || !*enable {
-		return nil
+		return
 	}
 
 	sampleTypes := []profile.SampleType{{Kind: "signal", Unit: "count"}}
@@ -758,13 +750,9 @@ func (c *oneShotSampleConsumer) recordSignalSample(ctx context.Context) error {
 		c.collectSampleTime(builder)
 	}
 
-	if err := c.collectSignalInto(builder); err != nil {
-		return err
-	}
+	c.collectSignalInto(builder)
 
 	c.finishSample(builder)
-
-	return nil
 }
 
 func (c *oneShotSampleConsumer) resolveUprobes(ctx context.Context) []*uprobe.UprobeInfo {
@@ -822,9 +810,8 @@ func (c *oneShotSampleConsumer) recordUprobeSample(ctx context.Context) {
 	}
 }
 
-func (c *oneShotSampleConsumer) logSample(err error) {
+func (c *oneShotSampleConsumer) logSample() {
 	c.p.log.Debug("Consumed sample",
-		log.Error(err),
 		log.Stringer("sampletype", c.sample.SampleType),
 		log.Binary("sampleconfig", c.sample.SampleConfig.UnionBuf[:]),
 		log.UInt64("events", c.sample.Value),
