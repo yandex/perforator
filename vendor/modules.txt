@@ -6911,14 +6911,17 @@ github.com/diegoholiveira/jsonlogic/v3/benchmark
 github.com/diegoholiveira/jsonlogic/v3/internal
 github.com/diegoholiveira/jsonlogic/v3/internal/javascript
 github.com/diegoholiveira/jsonlogic/v3/internal/typing
-# github.com/digitalocean/go-libvirt v0.0.0-20190715144809-7b622097a793
-## explicit
+# github.com/digitalocean/go-libvirt v0.0.0-20260217163227-273eaa321819
+## explicit; go 1.24.0
 github.com/digitalocean/go-libvirt
 github.com/digitalocean/go-libvirt/internal/constants
+github.com/digitalocean/go-libvirt/internal/event
 github.com/digitalocean/go-libvirt/internal/go-xdr/xdr2
 github.com/digitalocean/go-libvirt/internal/lvgen
 github.com/digitalocean/go-libvirt/internal/lvgen/gen
 github.com/digitalocean/go-libvirt/libvirttest
+github.com/digitalocean/go-libvirt/socket
+github.com/digitalocean/go-libvirt/socket/dialers
 # github.com/digitalocean/godo v1.136.0
 ## explicit; go 1.22
 github.com/digitalocean/godo

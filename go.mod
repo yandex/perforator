@@ -345,7 +345,7 @@ require (
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da
 	github.com/diegoholiveira/jsonlogic/v3 v3.9.0
-	github.com/digitalocean/go-libvirt v0.0.0-20190715144809-7b622097a793
+	github.com/digitalocean/go-libvirt v0.0.0-20260217163227-273eaa321819
 	github.com/disintegration/imaging v1.6.2
 	github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2
 	github.com/dlclark/regexp2 v1.11.5
