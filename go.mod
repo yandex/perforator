@@ -905,6 +905,7 @@ require (
 	github.com/zhangjianweibj/prometheus-libvirt-exporter v1.1.0
 	github.com/zimmski/go-mutesting v0.0.0-20210610104036-6d9217011a00
 	gitlab.com/metakeule/fmtdate v1.2.2
+	go.einride.tech/aip v0.73.0
 	go.etcd.io/bbolt v1.4.1
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20240613141046-5cd1d285d744
 	go.etcd.io/etcd/raft/v3 v3.5.16
@@ -2434,7 +2435,6 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20230310154051-c8b263fd8300 // indirect
 	github.com/zmap/zlint/v3 v3.6.0-rc1 // indirect
 	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20230209143738-95328d8c4438 // indirect
-	go.einride.tech/aip v0.73.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.16 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.16 // indirect
 	go.etcd.io/etcd/client/v2 v2.305.16 // indirect
