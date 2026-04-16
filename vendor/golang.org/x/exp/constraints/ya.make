@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.0.0-20251113190631-e25ba8c21ef6)
+VERSION(v0.0.0-20260218203240-3dfff04db8fa)
 
 SRCS(
     constraints.go

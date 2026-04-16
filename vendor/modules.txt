@@ -4505,7 +4505,7 @@ github.com/anttsov/curator/recipes/cache
 ## explicit; go 1.15
 # github.com/aokoli/goutils v1.0.1
 ## explicit
-# github.com/apache/arrow-go/v18 v18.5.1
+# github.com/apache/arrow-go/v18 v18.5.2-0.20260220015023-a886a5722b87
 ## explicit; go 1.24.0
 github.com/apache/arrow-go/v18
 github.com/apache/arrow-go/v18/arrow
@@ -4697,11 +4697,12 @@ github.com/apache/arrow/go/v15/internal/hashing
 github.com/apache/arrow/go/v15/internal/json
 github.com/apache/arrow/go/v15/internal/types
 github.com/apache/arrow/go/v15/internal/utils
-# github.com/apache/iceberg-go v0.4.0
-## explicit; go 1.24.0
+# github.com/apache/iceberg-go v0.5.0
+## explicit; go 1.25.0
 github.com/apache/iceberg-go
 github.com/apache/iceberg-go/catalog
 github.com/apache/iceberg-go/catalog/glue
+github.com/apache/iceberg-go/catalog/hive
 github.com/apache/iceberg-go/catalog/internal
 github.com/apache/iceberg-go/catalog/rest
 github.com/apache/iceberg-go/catalog/sql
@@ -4709,10 +4710,14 @@ github.com/apache/iceberg-go/cmd/iceberg
 github.com/apache/iceberg-go/config
 github.com/apache/iceberg-go/internal
 github.com/apache/iceberg-go/io
+github.com/apache/iceberg-go/io/gocloud
+github.com/apache/iceberg-go/puffin
 github.com/apache/iceberg-go/table
 github.com/apache/iceberg-go/table/internal
 github.com/apache/iceberg-go/table/substrait
 github.com/apache/iceberg-go/utils
+github.com/apache/iceberg-go/view
+github.com/apache/iceberg-go/view/internal
 # github.com/apache/thrift v0.22.0
 ## explicit; go 1.23
 github.com/apache/thrift/lib/go/thrift
@@ -5207,8 +5212,13 @@ github.com/beanstalkd/go-beanstalk
 github.com/beevik/etree
 # github.com/beltran/gohive v1.8.1
 ## explicit; go 1.23.0
+github.com/beltran/gohive
+github.com/beltran/gohive/gohivemeta/fb303
+github.com/beltran/gohive/hive_metastore
+github.com/beltran/gohive/hiveserver
 # github.com/beltran/gosasl v1.0.0
 ## explicit; go 1.14
+github.com/beltran/gosasl
 # github.com/beltran/gssapi v0.0.0-20200324152954-d86554db4bab
 ## explicit
 # github.com/benbjohnson/clock v1.3.5
@@ -7006,6 +7016,8 @@ github.com/dnaeon/go-vcr/recorder
 ## explicit
 github.com/dnstap/golang-dnstap
 github.com/dnstap/golang-dnstap/dnstap
+# github.com/docker/buildx v0.29.1
+## explicit; go 1.24.0
 # github.com/docker/cli v28.5.1+incompatible => github.com/docker/cli v25.0.4+incompatible
 ## explicit
 github.com/docker/cli/cli/compose/interpolation
@@ -7020,6 +7032,8 @@ github.com/docker/cli/cli/config/types
 github.com/docker/cli/opts
 # github.com/docker/cli-docs-tool v0.10.0
 ## explicit; go 1.23.0
+# github.com/docker/compose/v2 v2.40.2
+## explicit; go 1.24.9
 # github.com/docker/distribution v2.8.3+incompatible
 ## explicit
 github.com/docker/distribution
@@ -12738,7 +12752,7 @@ github.com/mkevac/debugcharts/bindata
 # github.com/mkrautz/goar v0.0.0-20150919110319-282caa8bd9da
 ## explicit
 github.com/mkrautz/goar
-# github.com/moby/buildkit v0.20.1 => github.com/moby/buildkit v0.12.2
+# github.com/moby/buildkit v0.25.1 => github.com/moby/buildkit v0.12.2
 ## explicit; go 1.20
 github.com/moby/buildkit/api/services/control
 github.com/moby/buildkit/api/types
@@ -16224,6 +16238,8 @@ github.com/testcontainers/testcontainers-go/internal/core
 github.com/testcontainers/testcontainers-go/internal/core/network
 github.com/testcontainers/testcontainers-go/network
 github.com/testcontainers/testcontainers-go/wait
+# github.com/testcontainers/testcontainers-go/modules/compose v0.40.0
+## explicit; go 1.24.9
 # github.com/tetratelabs/wazero v1.11.0
 ## explicit; go 1.24.0
 github.com/tetratelabs/wazero
@@ -16647,8 +16663,8 @@ github.com/uptrace/bun/dialect/pgdialect
 # github.com/uptrace/bun/dialect/sqlitedialect v1.2.17
 ## explicit; go 1.24.0
 github.com/uptrace/bun/dialect/sqlitedialect
-# github.com/uptrace/bun/driver/sqliteshim v1.2.16
-## explicit; go 1.24.0
+# github.com/uptrace/bun/driver/sqliteshim v1.2.17
+## explicit; go 1.25.0
 github.com/uptrace/bun/driver/sqliteshim
 # github.com/uptrace/bun/extra/bundebug v1.2.17
 ## explicit; go 1.24.0
@@ -19785,8 +19801,8 @@ golang.org/x/crypto/twofish
 golang.org/x/crypto/x509roots/nss
 golang.org/x/crypto/xtea
 golang.org/x/crypto/xts
-# golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6
-## explicit; go 1.24.0
+# golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
+## explicit; go 1.25.0
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
 golang.org/x/exp/mmap

@@ -236,9 +236,9 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/anttsov/curator v0.0.0-20220418135948-cfbcac4c267c
-	github.com/apache/arrow-go/v18 v18.5.1
+	github.com/apache/arrow-go/v18 v18.5.2-0.20260220015023-a886a5722b87
 	github.com/apache/arrow/go/v13 v13.0.0-20230512153032-cd6e2a4d2b93
-	github.com/apache/iceberg-go v0.4.0
+	github.com/apache/iceberg-go v0.5.0
 	github.com/apache/thrift v0.22.0
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/araddon/dateparse v0.0.0-20190510211750-d2ba70357e92
@@ -1023,7 +1023,7 @@ require (
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0
 	golang.org/x/crypto v0.48.0
-	golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/image v0.32.0
 	golang.org/x/mod v0.33.0
 	golang.org/x/net v0.51.0
@@ -1534,8 +1534,10 @@ require (
 	github.com/djherbis/atime v1.1.0 // indirect
 	github.com/dlclark/regexp2cg v0.2.0 // indirect
 	github.com/dnsimple/dnsimple-go v1.0.0 // indirect
+	github.com/docker/buildx v0.29.1 // indirect
 	github.com/docker/cli v28.5.1+incompatible // indirect
 	github.com/docker/cli-docs-tool v0.10.0 // indirect
+	github.com/docker/compose/v2 v2.40.2 // indirect
 	github.com/docker/docker-credential-helpers v0.9.3 // indirect
 	github.com/docker/go v1.5.1-1.0.20160303222718-d30aec9fd63c // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
@@ -2011,7 +2013,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/mjibson/esc v0.2.0 // indirect
 	github.com/mkevac/debugcharts v0.0.0-20191222103121-ae1c48aa8615 // indirect
-	github.com/moby/buildkit v0.20.1 // indirect
+	github.com/moby/buildkit v0.25.1 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.2.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
@@ -2310,6 +2312,7 @@ require (
 	github.com/temporalio/tctl-kit v0.0.0-20250107205014-58462b03dfb2 // indirect
 	github.com/tenntenn/modver v1.0.1 // indirect
 	github.com/tenntenn/text/transform v0.0.0-20200319021203-7eef512accb3 // indirect
+	github.com/testcontainers/testcontainers-go/modules/compose v0.40.0 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/tevino/abool v1.2.0 // indirect
 	github.com/thales-e-security/pool v0.0.2 // indirect
@@ -2354,7 +2357,7 @@ require (
 	github.com/uptrace/bun/dialect/oracledialect v1.2.17 // indirect
 	github.com/uptrace/bun/dialect/pgdialect v1.2.17 // indirect
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.17 // indirect
-	github.com/uptrace/bun/driver/sqliteshim v1.2.16 // indirect
+	github.com/uptrace/bun/driver/sqliteshim v1.2.17 // indirect
 	github.com/uptrace/bun/extra/bundebug v1.2.17 // indirect
 	github.com/urfave/negroni v1.0.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
@@ -2594,6 +2597,26 @@ require (
 exclude github.com/keybase/go.dbus v0.0.0-20220506165403-5aa21ea2c23a
 
 exclude github.com/knadh/koanf/providers/confmap v1.0.0
+
+// Force imports of github.com/docker/docker/api/... onto monolithic github.com/docker/docker:
+// tagged github.com/docker/docker/api/* on proxy declare module github.com/moby/moby/api (broken).
+exclude (
+	github.com/docker/docker/api v1.52.0-alpha.0
+	github.com/docker/docker/api v1.52.0-alpha.1
+	github.com/docker/docker/api v1.52.0-beta.0
+	github.com/docker/docker/api v1.52.0-beta.1
+	github.com/docker/docker/api v1.52.0-beta.2
+	github.com/docker/docker/api v1.52.0-beta.3
+	github.com/docker/docker/api v1.52.0-beta.4
+	github.com/docker/docker/api v1.52.0-rc.1
+	github.com/docker/docker/api v1.52.0
+	github.com/docker/docker/api v1.53.0-rc.1
+	github.com/docker/docker/api v1.53.0-rc.2
+	github.com/docker/docker/api v1.53.0
+	github.com/docker/docker/api v1.54.0-rc.1
+	github.com/docker/docker/api v1.54.0
+	github.com/docker/docker/api v1.54.1
+)
 
 replace github.com/insomniacslk/dhcp => github.com/insomniacslk/dhcp v0.0.0-20210120172423-cc9239ac6294
 
