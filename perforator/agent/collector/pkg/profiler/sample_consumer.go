@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -279,8 +278,6 @@ const (
 )
 
 func (c *oneShotSampleConsumer) resolveWorkloadOnce() {
-	var parts []string
-
 	var i int
 	for ; i < len(c.sample.CgroupsHierarchy); i++ {
 		cg := c.sample.CgroupsHierarchy[i]
@@ -295,6 +292,8 @@ func (c *oneShotSampleConsumer) resolveWorkloadOnce() {
 		// let's skip it.
 		i--
 	}
+
+	parts := make([]string, 0, i+1)
 
 	var lastCgroupHit bool
 	for ; i >= 0; i-- {
@@ -323,7 +322,6 @@ func (c *oneShotSampleConsumer) resolveWorkloadOnce() {
 		c.p.metrics.cgroupMisses.Inc()
 	}
 
-	c.cgroupRel = strings.Join(parts, "/")
 	if c.p.podsCgroupTracker != nil {
 		newParts, ok := c.p.podsCgroupTracker.ResolveWorkload(parts)
 		if ok {
@@ -690,7 +688,7 @@ func (c *oneShotSampleConsumer) logSample() {
 				"innermost_pidns_tid": c.sample.InnermostPidnsTid,
 				"starttime":           c.sample.Starttime,
 				"cgroup":              c.p.cgroups.CgroupFullName(c.sample.ParentCgroup),
-				"workload":            c.cgroupRel,
+				"workload":            c.workloadParts,
 				"cgroup_id":           c.sample.ParentCgroup,
 				"stacklen":            c.stacklen,
 				"runtime":             c.sample.Runtime,
