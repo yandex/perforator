@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	4d63.com/gochecknoglobals v0.2.2-0.20230617165002-a9cb75083ef8
+	buf.build/go/protovalidate v0.13.0
 	carvel.dev/ytt v0.52.2
 	cloud.google.com/go v0.123.0
 	cloud.google.com/go/accessapproval v1.8.8
@@ -1106,7 +1107,7 @@ require (
 	atomicgo.dev/schedule v0.1.0 // indirect
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
 	bitbucket.org/creachadair/stringset v0.0.14 // indirect
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250425153114-8976f5be98c1.1 // indirect
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250612022732-297b8109523d.1 // indirect
 	buf.build/go/protoyaml v0.6.0 // indirect
 	cel.dev/expr v0.25.1 // indirect
 	code.cloudfoundry.org/clock v1.1.0 // indirect
