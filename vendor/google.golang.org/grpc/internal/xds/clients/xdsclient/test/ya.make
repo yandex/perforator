@@ -2,7 +2,7 @@ GO_TEST()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.79.1)
+VERSION(v1.79.3)
 
 GO_XTEST_SRCS(
     ads_stream_ack_nack_test.go
