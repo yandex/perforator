@@ -5,7 +5,7 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v1.39.0)
+VERSION(v1.40.0)
 
 SRCS(
     aggregate.go

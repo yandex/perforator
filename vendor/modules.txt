@@ -18911,7 +18911,7 @@ go.opentelemetry.io/otel/log/logtest
 go.opentelemetry.io/otel/metric
 go.opentelemetry.io/otel/metric/embedded
 go.opentelemetry.io/otel/metric/noop
-# go.opentelemetry.io/otel/sdk v1.39.0
+# go.opentelemetry.io/otel/sdk v1.40.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/otel/sdk
 go.opentelemetry.io/otel/sdk/instrumentation
@@ -18928,7 +18928,7 @@ go.opentelemetry.io/otel/sdk/log
 # go.opentelemetry.io/otel/sdk/log/logtest v0.0.0-20250521073539-a85ae98dcedc
 ## explicit; go 1.23.0
 go.opentelemetry.io/otel/sdk/log/logtest
-# go.opentelemetry.io/otel/sdk/metric v1.39.0
+# go.opentelemetry.io/otel/sdk/metric v1.40.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/otel/sdk/metric
 go.opentelemetry.io/otel/sdk/metric/exemplar
