@@ -2736,6 +2736,9 @@ replace github.com/moby/buildkit => github.com/moby/buildkit v0.12.2
 
 replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20230629203738-36ef4d8c0dbb
 
+// DEVTOOLSSUPPORT-83733
+replace github.com/getsentry/sentry-go => github.com/getsentry/sentry-go v0.13.0
+
 // Workaround weird go.mod shipped with k8s.io submodules.
 // For the reasoning see
 // https://suraj.io/post/2021/05/k8s-import/

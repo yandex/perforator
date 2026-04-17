@@ -8273,7 +8273,7 @@ github.com/getkin/kin-openapi/routers/legacy/pathpattern
 ## explicit
 github.com/getsentry/raven-go
 github.com/getsentry/raven-go/example
-# github.com/getsentry/sentry-go v0.13.0
+# github.com/getsentry/sentry-go v0.13.0 => github.com/getsentry/sentry-go v0.13.0
 ## explicit; go 1.17
 github.com/getsentry/sentry-go
 github.com/getsentry/sentry-go/echo
@@ -23110,6 +23110,7 @@ www.velocidex.com/golang/regparser
 # github.com/distribution/reference => github.com/distribution/reference v0.5.0
 # github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
 # github.com/docker/docker => github.com/docker/docker v25.0.6+incompatible
+# github.com/getsentry/sentry-go => github.com/getsentry/sentry-go v0.13.0
 # github.com/grpc-ecosystem/go-grpc-middleware/v2 => github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
 # github.com/insomniacslk/dhcp => github.com/insomniacslk/dhcp v0.0.0-20210120172423-cc9239ac6294
 # github.com/jackc/pgconn => github.com/jackc/pgconn v1.14.0
