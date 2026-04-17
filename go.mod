@@ -841,7 +841,7 @@ require (
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/ugorji/go/codec v1.3.0
 	github.com/ulikunitz/xz v0.5.12
-	github.com/urfave/cli v1.22.16
+	github.com/urfave/cli v1.22.17
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/urfave/cli/v3 v3.6.1
 	github.com/vakenbolt/go-test-report v0.9.3
@@ -905,7 +905,7 @@ require (
 	github.com/zimmski/go-mutesting v0.0.0-20210610104036-6d9217011a00
 	gitlab.com/metakeule/fmtdate v1.2.2
 	go.einride.tech/aip v0.73.0
-	go.etcd.io/bbolt v1.4.1
+	go.etcd.io/bbolt v1.4.3
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20240613141046-5cd1d285d744
 	go.etcd.io/etcd/raft/v3 v3.5.16
 	go.mongodb.org/mongo-driver v1.17.3
@@ -1706,7 +1706,7 @@ require (
 	github.com/golang/glog v1.2.5 // indirect
 	github.com/golangci/lint-1 v0.0.0-20191013205115-297bf364a8e0 // indirect
 	github.com/golangci/plugin-module-register v0.1.2 // indirect
-	github.com/gomarkdown/markdown v0.0.0-20241105142532-d03b89096d81 // indirect
+	github.com/gomarkdown/markdown v0.0.0-20250311123330-531bef5e742b // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/google/cel-spec v0.6.0 // indirect
 	github.com/google/certificate-transparency-go v1.1.6 // indirect
@@ -2277,7 +2277,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spdx/gordf v0.0.0-20221230105357-b735bd5aac89 // indirect
-	github.com/spdx/tools-golang v0.5.4 // indirect
+	github.com/spdx/tools-golang v0.5.5 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.0 // indirect
 	github.com/speakeasy-api/openapi-overlay v0.10.2 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
@@ -2366,7 +2366,7 @@ require (
 	github.com/valyala/fastrand v1.1.0 // indirect
 	github.com/valyala/histogram v1.2.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	github.com/vbatts/tar-split v0.11.6 // indirect
+	github.com/vbatts/tar-split v0.12.1 // indirect
 	github.com/vburenin/nsync v0.0.0-20160822015540-9a75d1c80410 // indirect
 	github.com/vdemeester/k8s-pkg-credentialprovider v0.0.0-20200107171650-7c61ffa44238 // indirect
 	github.com/vektah/dataloaden v0.3.0 // indirect
