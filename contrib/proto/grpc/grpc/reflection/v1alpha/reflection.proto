@@ -11,21 +11,20 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// Service exported by server reflection
 
-// Service exported by server reflection.  A more complete description of how
-// server reflection works can be found at
-// https://github.com/grpc/grpc/blob/master/doc/server-reflection.md
-//
-// The canonical version of this proto can be found at
+
+// Warning: this entire file is deprecated. Use this instead:
 // https://github.com/grpc/grpc-proto/blob/master/grpc/reflection/v1/reflection.proto
 
 syntax = "proto3";
 
-package grpc.reflection.v1;
+package grpc.reflection.v1alpha;
 
-option go_package = "google.golang.org/grpc/reflection/grpc_reflection_v1";
+option deprecated = true;
+option go_package = "github.com/yandex/perforator/contrib/proto/grpc/grpc/reflection/v1alpha;grpc_reflection_v1alpha";
 option java_multiple_files = true;
-option java_package = "io.grpc.reflection.v1";
+option java_package = "io.grpc.reflection.v1alpha";
 option java_outer_classname = "ServerReflectionProto";
 
 service ServerReflection {
@@ -54,8 +53,8 @@ message ServerReflectionRequest {
     // message type with the given field number.
     ExtensionRequest file_containing_extension = 5;
 
-    // Finds the tag numbers used by all known extensions of the given message
-    // type, and appends them to ExtensionNumberResponse in an undefined order.
+    // Finds the tag numbers used by all known extensions of extendee_type, and
+    // appends them to ExtensionNumberResponse in an undefined order.
     // Its corresponding method is best-effort: it's not guaranteed that the
     // reflection service will implement this method, and it's not guaranteed
     // that this method will provide all extensions. Returns
@@ -82,21 +81,21 @@ message ExtensionRequest {
 message ServerReflectionResponse {
   string valid_host = 1;
   ServerReflectionRequest original_request = 2;
-  // The server sets one of the following fields according to the message_request
+  // The server set one of the following fields according to the message_request
   // in the request.
   oneof message_response {
     // This message is used to answer file_by_filename, file_containing_symbol,
-    // file_containing_extension requests with transitive dependencies.
-    // As the repeated label is not allowed in oneof fields, we use a
+    // file_containing_extension requests with transitive dependencies. As
+    // the repeated label is not allowed in oneof fields, we use a
     // FileDescriptorResponse message to encapsulate the repeated fields.
     // The reflection service is allowed to avoid sending FileDescriptorProtos
     // that were previously sent in response to earlier requests in the stream.
     FileDescriptorResponse file_descriptor_response = 4;
 
-    // This message is used to answer all_extension_numbers_of_type requests.
+    // This message is used to answer all_extension_numbers_of_type request.
     ExtensionNumberResponse all_extension_numbers_response = 5;
 
-    // This message is used to answer list_services requests.
+    // This message is used to answer list_services request.
     ListServiceResponse list_services_response = 6;
 
     // This message is used when an error occurs.
@@ -144,4 +143,3 @@ message ErrorResponse {
   int32 error_code = 1;
   string error_message = 2;
 }
-
