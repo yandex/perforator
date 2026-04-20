@@ -250,7 +250,12 @@ type TasksQuery = { from?: string; to?: string; user?: string }
 const initialPaginationState = { page: 1, pageSize: 100 };
 
 const taskRowDescriptor = (task: Task) => ({ id: task?.Meta?.ID });
-export const Tasks: React.FC = () => {
+
+interface TasksProps {
+    header: React.ReactElement;
+}
+
+export const Tasks: React.FC<TasksProps> = ({ header }) => {
     const [tasks, setTasks] = useState<Task[] | null>(null);
     const [tasksCount, setTasksCount] = useState(0);
     const [error, setError] = useState<any>(null);
@@ -470,6 +475,7 @@ export const Tasks: React.FC = () => {
                 end: state.to || 'now',
             }}
             onUpdate={updateTimeInterval}
+            header={header}
         />
         <Flex gap={4} alignItems={'center'}>
             <Select

@@ -62,6 +62,8 @@ export interface FlamegraphProps extends Pick<RenderFlamegraphOptions, 'onFinish
     onSearchReset?: () => void;
     onKeepOnlyFound?: (value: boolean) => void;
     useSelfAsScrollParent?: boolean;
+    showLineNumbers?: boolean;
+    setShowLineNumbers?: (showLineNumbers: boolean) => void;
 }
 
 const MAX_FIREFOX_DEPTH = 768;
@@ -91,6 +93,8 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     onSearch,
     onKeepOnlyFound,
     onSearchReset,
+    showLineNumbers,
+    setShowLineNumbers,
     useSelfAsScrollParent,
 }) => {
     const flamegraphContainer = React.useRef<HTMLDivElement | null>(null);
@@ -107,7 +111,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     const isDiffSwitchingSupported = profileData.meta.version > 1;
     const [shouldTrim, setShouldTrim] = React.useState(false);
     const shouldOmitHighlight = React.useRef(true);
-    const shouldScroll = React.useRef(false);
+
     const setQuery = React.useCallback<SetStateFromQuery<QueryKeys>>((q) => {
         outerSetQuery(q);
         shouldOmitHighlight.current = true;
@@ -209,7 +213,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                 // by default, we show highlight, e.g. after clicks
                 // and don't show it only on first render
                 disableHighlightRender: shouldOmitHighlight.current,
-                shouldScroll: shouldScroll.current,
+                shouldScroll: true,
                 scrollParent: useSelfAsScrollParent ? flamegraphContainer.current : document.documentElement,
             };
 
@@ -220,9 +224,6 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                     shouldOmitHighlight.current = false;
                 }
 
-                if (!shouldScroll.current) {
-                    shouldScroll.current = true;
-                }
                 return () => {
                     destructor();
                     shouldOmitHighlight.current = true;
@@ -374,6 +375,74 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
 
     const framesCount = profileData?.rows?.reduce((acc, row) => acc + row.length, 0);
 
+    const header = (
+        <div className={b('header-wrapper', { reverse: String(reverse) })}>
+            <div className="flamegraph__header">
+                <div className="flamegraph__buttons">
+                    <Button className="flamegraph__button flamegraph__button_reverse" onClick={handleReverse}>
+                        <Icon data={reverse ? BarsDescendingAlignLeftArrowDown : BarsAscendingAlignLeftArrowUp} /> Reverse
+                    </Button>
+                    <Button className="flamegraph__button flamegraph__button_search" onClick={handleSearch}>
+                        <Icon className="regexp-dialog__header-icon" data={Magnifier} />
+                                Search
+                        <Hotkey value="cmd+F" />
+                    </Button>
+                    {search ?
+                        <Button className="flamegraph__button flamegraph__button_keep-only-found" onClick={switchKeepOnlyFound}>
+                            <Icon data={keepOnlyFound ? FunnelXmark : Funnel} />
+                            {keepOnlyFound ? 'Show all stacks' : 'Show matched stacks'}
+                            <Hotkey value="alt+F" />
+                        </Button>
+                        : null}
+                    {isDiff && isDiffSwitchingSupported ?
+                        <Switch className="flamegraph__switch" checked={shouldSwapDiff} onUpdate={setShouldSwapdiff}>
+                            <Icon data={ArrowRightArrowLeft} />
+                                    Swap Base and Diff Profiles
+                        </Switch>
+                        : null}
+                    {
+                        isLeftHeavy !== undefined && onChangeLeftHeavy !== undefined ?
+                            <Switch qa={'flamegraph-left-heavy'} className="flamegraph__switch flamegraph__switch_left-heavy" checked={isLeftHeavy} onUpdate={onChangeLeftHeavy}>
+                                <Icon data={ArrowRightArrowLeft} />
+                                    Left-heavy
+                            </Switch>
+                            : null
+                    }
+                    {
+                        <Switch className="flamegraph__switch flamegraph__switch_left-heavy" checked={showLineNumbers} onUpdate={setShowLineNumbers}>
+                                    Line numbers
+                        </Switch>
+                    }
+                </div>
+                <div className="flamegraph__frames-count">Showing {framesCount} frames</div>
+            </div>
+            <div className={b('annotations', { reverse })}>
+                <div className="flamegraph__status" />
+                <div className="flamegraph__deletion" style={{ display: haveOmittedNodes ? 'inherit' : 'none' }}>
+                    <Button
+                        className="flamegraph__clear-deletion"
+                        view="flat-danger"
+                        title="Clear Deletions"
+                        onClick={handleOmittedNodesReset}
+                    >
+                        <Icon data={Xmark} size={20} /> Reset omitted stacks
+                    </Button>
+                </div>
+                <div className="flamegraph__match">
+                        Matched: <span className="flamegraph__match-value" />
+                    <Button
+                        className="flamegraph__clear"
+                        view="flat-danger"
+                        title="Clear"
+                        onClick={handleSearchReset}
+                    >
+                        <Icon data={Xmark} size={20} />
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <>
             <div ref={flamegraphContainer} className={b(null, className)}>
@@ -386,66 +455,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                     initialExcludeText={excludeSearch}
                     initialCaseInsensitive={getQuery('caseInsensitive') === 'true'}
                 />}
-                <div className="flamegraph__header">
-                    <div className="flamegraph__buttons">
-                        <Button className="flamegraph__button flamegraph__button_reverse" onClick={handleReverse}>
-                            <Icon data={reverse ? BarsDescendingAlignLeftArrowDown : BarsAscendingAlignLeftArrowUp} /> Reverse
-                        </Button>
-                        <Button className="flamegraph__button flamegraph__button_search" onClick={handleSearch}>
-                            <Icon className="regexp-dialog__header-icon" data={Magnifier} />
-                            Search
-                            <Hotkey value="cmd+F" />
-                        </Button>
-                        {search ?
-                            <Button className="flamegraph__button flamegraph__button_keep-only-found" onClick={switchKeepOnlyFound}>
-                                <Icon data={keepOnlyFound ? FunnelXmark : Funnel} />
-                                {keepOnlyFound ? 'Show all stacks' : 'Show matched stacks'}
-                                <Hotkey value="alt+F" />
-                            </Button>
-                            : null}
-                        {isDiff && isDiffSwitchingSupported ?
-                            <Switch className="flamegraph__switch" checked={shouldSwapDiff} onUpdate={setShouldSwapdiff}>
-                                <Icon data={ArrowRightArrowLeft} />
-                                Swap Base and Diff Profiles
-                            </Switch>
-                            : null}
-                        {
-                            isLeftHeavy !== undefined && onChangeLeftHeavy !== undefined ?
-                                <Switch qa={'flamegraph-left-heavy'} className="flamegraph__switch flamegraph__switch_left-heavy" checked={isLeftHeavy} onUpdate={onChangeLeftHeavy}>
-                                    <Icon data={ArrowRightArrowLeft} />
-                                Left-heavy
-                                </Switch>
-                                : null
-                        }
-                    </div>
-                    <div className="flamegraph__frames-count">Showing {framesCount} frames</div>
-                </div>
-
-                <div className="flamegraph__annotations">
-                    <div className="flamegraph__status" />
-                    <div className="flamegraph__deletion" style={{ display: haveOmittedNodes ? 'inherit' : 'none' }}>
-                        <Button
-                            className="flamegraph__clear-deletion"
-                            view="flat-danger"
-                            title="Clear Deletions"
-                            onClick={handleOmittedNodesReset}
-                        >
-                            <Icon data={Xmark} size={20} /> Reset omitted stacks
-                        </Button>
-                    </div>
-                    <div className="flamegraph__match">
-                        Matched: <span className="flamegraph__match-value" />
-                        <Button
-                            className="flamegraph__clear"
-                            view="flat-danger"
-                            title="Clear"
-                            onClick={handleSearchReset}
-                        >
-                            <Icon data={Xmark} size={20} />
-                        </Button>
-                    </div>
-                </div>
-
+                {reverse && header}
                 <div id="profile" className="flamegraph__content">
                     <div ref={canvasRef} onClickCapture={handleOnClick} onContextMenu={handleContextMenu}>
                         <canvas ref={flamegraphCanvas} className="flamegraph__canvas" />
@@ -457,6 +467,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                         <span />
                     </div>
                 </div>
+                {!reverse && header}
             </div>
             {popupData && (
                 <ContextMenu

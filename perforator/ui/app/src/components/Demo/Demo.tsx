@@ -144,7 +144,7 @@ export const Demo: React.FC = () => {
 
     return (
 
-        <FullscreenProvider>
+        <FullscreenProvider initialEnalbed={true}>
             <Fullscreen>
                 <div ref={commonRef}></div>
                 <Visualisation
@@ -181,4 +181,3 @@ export const Demo: React.FC = () => {
         </FullscreenProvider>
     );
 };
-

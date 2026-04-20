@@ -24,6 +24,8 @@ export interface TaskFlamegraphProps {
     url: string;
     isDiff: boolean;
     format?: SupportedRenderFormats;
+    onLineNumbersChange: (value: boolean) => void;
+    lineNumbers: boolean;
 }
 
 
@@ -87,7 +89,17 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
         return <ErrorPanel message={error.message}/>;
     }
 
-    return <Visualisation loading={loading} isDiff={props.isDiff} theme={theme} userSettings={userSettings} profileData={prerenderedNewData} />;
+    return (
+        <Visualisation
+            loading={loading}
+            isDiff={props.isDiff}
+            theme={theme}
+            userSettings={userSettings}
+            profileData={prerenderedNewData}
+            showLineNumbers={props.lineNumbers}
+            setShowLineNumbers={props.onLineNumbersChange}
+        />
+    );
 
 
 };

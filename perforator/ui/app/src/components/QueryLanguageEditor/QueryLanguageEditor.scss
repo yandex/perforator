@@ -1,8 +1,4 @@
 .query-language-editor {
-    align-items: center;
-    display: flex;
-    gap: 2px;
-
     &__help-code {
         background: var(--g-color-base-misc-light);
         border-radius: 4px;
@@ -40,7 +36,7 @@
 
 .query-language-editor__wrapper {
     overflow: hidden;
-    width: 100%;
+    flex-grow: 1;
 
     .monaco-editor {
         outline: none;

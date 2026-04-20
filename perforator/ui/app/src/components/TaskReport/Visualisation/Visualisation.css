@@ -1,4 +1,7 @@
 .visualisation_tabs {
-    margin-bottom: var(--g-spacing-4);
     flex-shrink: 0;
+}
+
+.flamegraph {
+    overflow-y: auto;
 }

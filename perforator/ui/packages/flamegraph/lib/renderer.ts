@@ -612,8 +612,6 @@ export const renderFlamegraph: RenderFlamegraphType = (
     const labels = findElement('labels-container');
     const labelTemplate = findElement('label-template') as HTMLTemplateElement;
     const status = findElement('status');
-    const annotations = findElement('annotations');
-    const content = findElement('content');
     hl.style.height = String(BLOCK_HEIGHT);
 
     let canvasWidth: number | undefined;
@@ -622,7 +620,6 @@ export const renderFlamegraph: RenderFlamegraphType = (
     function initCanvasVertical(layersCount: number, shouldPreserveVerticalScroll?: boolean, scrollableElement: HTMLElement = document.documentElement) {
         // need to keep the same vertical scroll when vertically resizing reversed flamegraph
         const prevScroll = scrollableElement.scrollTop;
-        const prevHeight = canvas.offsetHeight;
         const prevScrollHeight = getScrollHeight(scrollableElement);
         const prevBottomOffset = prevScrollHeight - prevScroll;
 
@@ -630,7 +627,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
         canvasHeight = canvas.offsetHeight;
         canvas.height = canvasHeight * (devicePixelRatio || 1);
         if (devicePixelRatio) { c.scale(devicePixelRatio, devicePixelRatio); }
-        if (shouldPreserveVerticalScroll && prevHeight !== 0) {
+        if (shouldPreserveVerticalScroll) {
             const scrollHeight = getScrollHeight(scrollableElement);
             const scroll = scrollableElement.scrollTop;
             const newBottomOffset = scrollHeight - scroll;
@@ -702,13 +699,6 @@ export const renderFlamegraph: RenderFlamegraphType = (
     function renderImpl(opts?: RenderOpts) {
 
         clearCanvas();
-
-
-        if (reverse) {
-            annotations.after(content);
-        } else {
-            annotations.before(content);
-        }
 
         const newLabels: HTMLDivElement[] = [];
         let labelCount = 0;
@@ -977,7 +967,10 @@ export const renderFlamegraph: RenderFlamegraphType = (
         initCanvasVertical(layerCount, !reverse && shouldScroll, scrollParent);
     }
     render({ pattern: searchPattern });
-    if (!disableHighlightRender) {
+    if (disableHighlightRender) {
+        clearHighlight();
+    }
+    else {
         renderHighlightRect(h, pos);
     }
 

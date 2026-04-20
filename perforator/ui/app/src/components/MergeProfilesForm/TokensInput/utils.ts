@@ -34,6 +34,20 @@ export const makeSelectorFromTokensString = (data: Optional<string>): string => 
     makeSelectorFromConditions(parseTokensString(data))
 );
 
+export const parseSelectorToTokensString = (selector: string): string => {
+    if (!selector || selector === '{}') {
+        return '[]';
+    }
+    const inner = selector.slice(1, -1);
+    const regex = /([a-zA-Z0-9_.-]+)\s*(=|!=|=~|!~|>|<|>=|<=)\s*"([^"]*)"/g;
+    const tokens: string[][] = [];
+    let match;
+    while ((match = regex.exec(inner)) !== null) {
+        tokens.push([match[1], match[2], match[3]]);
+    }
+    return JSON.stringify(tokens);
+};
+
 export const makeBasicTokensFromSelector = (selector: string) => {
     const service = parseServiceFromSelector(selector);
     return JSON.stringify([['service', '=', service]]);

@@ -1,5 +1,6 @@
 .fullscreen {
-    height: calc(100vh - var(--page-heading-height) - 2 * var(--page-padding-top) - var(--page-padding-bottom));
+    /* 40px comes from Footer from @gravity-ui/navigation */
+    height: calc(100vh - 40px);
     overflow-y: hidden;
     display: flex;
     flex-direction: column;

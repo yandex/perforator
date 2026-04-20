@@ -39,6 +39,7 @@ interface TimeIntervalControlsProps {
     interval: TimeInterval;
     onUpdate?: (value: TimeInterval) => void;
     header?: boolean;
+    additionalHeaderItems?: React.ReactElement;
 }
 
 export const TimeIntervalControls: React.FC<TimeIntervalControlsProps> = props => {
@@ -99,6 +100,7 @@ export const TimeIntervalControls: React.FC<TimeIntervalControlsProps> = props =
                 {renderPresetButtons()}
                 {renderCustomRangeInput()}
             </div>
+            {props.additionalHeaderItems}
         </div>
     );
 };

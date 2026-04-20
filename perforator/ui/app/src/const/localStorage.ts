@@ -8,4 +8,5 @@ export enum LocalStorageKey {
     TutorialBase = 'tutorialBase',
     ClusterTop = 'clusterTop',
     CustomSampleSizes = 'customSampleSizes',
+    CachedLineNumberTasks = 'cachedLineNumberTasks',
 }

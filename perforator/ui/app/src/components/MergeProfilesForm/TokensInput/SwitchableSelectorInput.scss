@@ -1,0 +1,30 @@
+.switchable-selector-input {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+
+    &__help {
+        margin-left: var(--g-spacing-1);
+    }
+    &__help-popover {
+        max-width: 400px;
+    }
+
+    &__wrapper {
+        overflow: hidden;
+        flex-grow: 1;
+    }
+
+    &__switcher {
+        margin-left: var(--g-spacing-1);
+        flex-shrink: 0;
+    }
+
+    &__editor {
+        flex-grow: 1;
+    }
+
+    &__editor-wrapper {
+        width: 100%;
+    }
+}

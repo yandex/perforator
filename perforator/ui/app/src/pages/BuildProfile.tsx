@@ -12,6 +12,7 @@ import {
     defaultProfileTaskQuery,
     startProfileTask,
 } from 'src/utils/profileTask';
+import { preserveWellKnownQueryParams } from 'src/utils/profileTask/preserveWellKnown';
 
 
 const setupQuery = (searchParams: URLSearchParams): ProfileTaskQuery => {
@@ -23,22 +24,6 @@ const setupQuery = (searchParams: URLSearchParams): ProfileTaskQuery => {
 };
 
 export interface BuildProfileProps {}
-
-const WELL_KNOWN_QUERY_PARAMS = [
-    'flamegraphQuery',
-    'exactMatch',
-];
-
-function preserveWellKnownQueryParams(searchParams: URLSearchParams): URLSearchParams {
-    const preserved = new URLSearchParams();
-    searchParams.forEach((value, key) => {
-        if (WELL_KNOWN_QUERY_PARAMS.includes(key)) {
-            preserved.set(key, value);
-        }
-    });
-    return preserved;
-}
-
 
 export const BuildProfile: React.FC<BuildProfileProps> = () => {
     const isMounted = React.useRef(false);

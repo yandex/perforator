@@ -1,0 +1,33 @@
+.editable-task-query {
+    display: flex;
+    flex-direction: column;
+    gap: var(--g-spacing-1);
+
+
+    &__input, &__controls {
+        display: flex;
+        align-items: center;
+        gap: var(--g-spacing-1);
+    }
+
+    &__editor-wrapper {
+        display: flex;
+        align-items: center;
+        gap: var(--g-spacing-1);
+        flex-grow: 1;
+        width: 0;
+    }
+
+    &__query-language-editor {
+        flex-grow: 1;
+        width: 100%;
+    }
+
+    &__button {
+        margin-left: var(--g-spacing-1);
+    }
+}
+
+.task-header__header-button {
+    margin-left: var(--g-spacing-2);
+}

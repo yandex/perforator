@@ -2,15 +2,16 @@ import React from 'react';
 
 import { useParams } from 'react-router-dom';
 
+import { Loader } from '@gravity-ui/uikit';
+
 import { Fullscreen } from 'src/components/Fullscreen/Fullscreen';
 import { FullscreenProvider } from 'src/components/Fullscreen/FullscreenProvider';
-import { EditableTaskTimeInterval } from 'src/components/TaskCard/EditableTaskTimeInterval';
 import { TaskCard as RawTaskCard } from 'src/components/TaskCard/TaskCard';
+import { TaskHeader } from 'src/components/TaskCard/TaskHeader';
 import { TaskReport } from 'src/components/TaskReport/TaskReport';
 import type { TaskResult } from 'src/models/Task';
 import { TaskState } from 'src/models/Task';
 import { apiClient } from 'src/utils/api';
-import { isDiffTaskResult } from 'src/utils/renderingFormat';
 
 import type { Page } from './Page';
 
@@ -53,7 +54,6 @@ export const Task: Page = props => {
 
     const state = task?.Status?.State;
 
-    const isDiff = isDiffTaskResult(task);
     const isFinished = state === TaskState.Finished || state === TaskState.Failed;
     if (isFinished || error) {
         clearInterval(pollingInterval.current);
@@ -69,16 +69,18 @@ export const Task: Page = props => {
                 error={error}
             />
         );
-    const taskReport = state === TaskState.Finished
-        ? (<TaskReport task={task} />)
-        : null;
+    const taskReport = (task && state !== TaskState.Created && state !== TaskState.Running)
+        ? (<TaskReport taskId={taskId} task={task} />)
+        : <Loader/>;
 
-    const timeline = (!isDiff && task) ? <EditableTaskTimeInterval
+    const timeline = (task) ? <TaskHeader
         task={task}
+        embed={props.embed}
+        header={props.header}
     /> : null;
 
     return (
-        <FullscreenProvider>
+        <FullscreenProvider initialEnalbed={true}>
             <Fullscreen>
                 {timeline}
                 {taskCard}

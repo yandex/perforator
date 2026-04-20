@@ -10,18 +10,17 @@ import { LocalStorageKey } from 'src/const/localStorage';
 import type { ProfileTaskQuery } from 'src/models/Task';
 import { cn } from 'src/utils/cn';
 import { redirectToTaskPage } from 'src/utils/profileTask';
-import { parseServiceFromSelector, validateSelectorContainsOnlyService } from 'src/utils/selector';
 import { setPageTitle } from 'src/utils/title';
 import { createErrorToast } from 'src/utils/toaster';
 
 import { ProfileTable } from '../ProfileTable/ProfileTable';
 import { TimeIntervalInput } from '../TimeIntervalInput/TimeIntervalInput';
 
+import { changeQueryToNewInput } from './changeQueryToNewInput';
 import type { QueryInput, QueryInputResult } from './QueryInput';
 import { QUERY_INPUTS } from './queryInputs';
 import { QueryInputSwitcher } from './QueryInputSwitcher/QueryInputSwitcher';
 import { SampleSizeInput } from './SampleSizeInput/SampleSizeInput';
-import { makeBasicTokensFromSelector } from './TokensInput/utils';
 import { useProfileStateQuery } from './useProfileStateQuery';
 
 import './MergeProfilesForm.scss';
@@ -34,6 +33,7 @@ interface MergeProfilesFormProps {
     inMemory?: boolean;
     compactTable?: boolean;
     diff?: boolean;
+    header?: React.ReactElement;
 }
 
 const b = cn('merge-profiles-form');
@@ -60,27 +60,6 @@ const fixSelector = (selector: Optional<string>): Optional<string> => {
     return `{${fixed}}`;
 };
 
-const changeQueryToNewInput = (queryInput: QueryInput, tableSelector: string): Partial<QueryInputResult> | undefined => {
-    if (queryInput.queryField === 'selector') {
-        // fill selector after switching from another input mode
-        return ({
-            selector: tableSelector,
-        });
-    }
-    else if (queryInput.queryField === 'tokens' && ((tableSelector && validateSelectorContainsOnlyService(tableSelector || '')))) {
-        const tokens = makeBasicTokensFromSelector(tableSelector);
-        return ({
-            tokens,
-        });
-    } else if (queryInput.queryField === 'service' && tableSelector && validateSelectorContainsOnlyService(tableSelector || '')) {
-        const service = parseServiceFromSelector(tableSelector);
-        return ({
-            service,
-        });
-    } else {
-        return undefined;
-    }
-};
 
 export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
     const navigate = useNavigate();
@@ -199,7 +178,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
         >
             <div className={b(null)}>
                 <TimeIntervalInput
-                    className={b('time-interval-input', { diff })}
+                    className={b('time-interval-input')}
                     headerControls={!diff}
                     initInterval={{
                         start: query.from,
@@ -212,6 +191,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
                             to: interval.end,
                         });
                     }}
+                    header={props.header}
                 />
                 <div className="merge-profiles-form__header">
                     {renderQueryInputSwitcher()}

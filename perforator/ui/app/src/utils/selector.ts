@@ -81,6 +81,10 @@ export function parseTimestampFromSelector(selector: string) {
 
 const timestampCutRegex = new RegExp(`((${timestampRg})(,\\s*)?)|((,\\s*)?${timestampRg})`, 'g');
 
+export function cutSpaceFromSelector(selector: string): string {
+    return selector.replace(/\s+/g, '');
+}
+
 export function cutTimeFromSelector(selector: string): string {
     return selector.replace(timestampCutRegex, '');
 }

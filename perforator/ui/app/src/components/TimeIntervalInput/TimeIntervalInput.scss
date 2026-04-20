@@ -1,7 +1,8 @@
 .time-interval-selector {
-    margin-bottom: var(--g-spacing-3);
+    margin-bottom: var(--g-spacing-1);
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
 
     &_gravity {
         .g-date-range-date-selection-control {
@@ -12,6 +13,17 @@
 
     &__button {
         margin-left: var(--g-spacing-1);
+    }
+
+    &__header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+    }
+
+    &__wrapper {
+        display: flex;
+        align-items: center;
     }
 }
 

@@ -3,6 +3,9 @@ import { DiffProfilesForm } from 'src/components/DiffProfilesForm/DiffProfilesFo
 import type { Page } from './Page';
 
 
-export const DiffLists: Page = () => {
-    return <DiffProfilesForm />;
+export const DiffLists: Page = (props) => {
+    return <>
+        {props.header}
+        <DiffProfilesForm />
+    </>;
 };

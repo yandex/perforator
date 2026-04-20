@@ -3,13 +3,11 @@ import React from 'react';
 import type { RangeDateSelectionProps, RangeValue } from '@gravity-ui/date-components';
 import { RangeDateSelection } from '@gravity-ui/date-components';
 import type { DateTime } from '@gravity-ui/date-utils';
-import { Check, Xmark } from '@gravity-ui/icons';
-import { Button, Icon } from '@gravity-ui/uikit';
 
 import { uiFactory } from 'src/factory';
 import { cn } from 'src/utils/cn';
 
-import { areIntervalsEqual, parseTimeInterval, type TimeInterval } from './TimeInterval';
+import { parseTimeInterval, type TimeInterval } from './TimeInterval';
 import { TimeIntervalControls } from './TimeIntervalControls/TimeIntervalControls';
 
 import './TimeIntervalInput.scss';
@@ -24,22 +22,35 @@ const MAX_SELECTION_DURATION = 365 * 24 * 60 * 60 * 100;  // 1 year
 
 export interface TimeIntervalInputProps extends Pick<RangeDateSelectionProps, 'numberOfIntervals'> {
     initInterval: TimeInterval;
+    interval?: TimeInterval;
     onUpdate: (range: TimeInterval) => void;
     className?: string;
     headerControls?: boolean;
-    isEditing?: boolean;
-    onSave?: () => void;
+    additionalHeaderItems?: React.ReactElement;
+    header?: React.ReactElement;
+    additionalItems?: React.ReactElement;
 }
 
 const b = cn('time-interval-selector');
 
-export const TimeIntervalInput: React.FC<TimeIntervalInputProps> = props => {
-    const [interval, setInterval] = React.useState(props.initInterval);
+
+export const TimeIntervalInput: React.FC<TimeIntervalInputProps> = ({
+    initInterval,
+    onUpdate,
+    additionalHeaderItems,
+    className,
+    headerControls,
+    interval,
+    numberOfIntervals,
+    header,
+    additionalItems,
+}) => {
+    const [intervalInternal, setIntervalInternal] = React.useState(initInterval);
 
     const handleUpdate = React.useCallback((newInterval: TimeInterval) => {
-        props.onUpdate(newInterval);
-        setInterval(newInterval);
-    }, [props.onUpdate, setInterval]);
+        onUpdate(newInterval);
+        setIntervalInternal(newInterval);
+    }, [onUpdate, setIntervalInternal]);
 
     const handleRangeUpdate = React.useCallback((range: RangeValue<DateTime>) => {
         handleUpdate({
@@ -48,45 +59,42 @@ export const TimeIntervalInput: React.FC<TimeIntervalInputProps> = props => {
         });
     }, [handleUpdate]);
 
-    const value = React.useMemo(() => parseTimeInterval(interval), [interval]);
+    const value = React.useMemo(() => parseTimeInterval(interval ?? intervalInternal), [interval, intervalInternal]);
 
-    const handleCancel = React.useCallback(() => {
-        props.onUpdate(props.initInterval);
-        setInterval(props.initInterval);
-    }, [props.onUpdate, props.initInterval, setInterval]);
-
-    const className = b(
+    const classNameWithGravity = b(
         {
             gravity: uiFactory().gravityStyles(),
         },
-        props.className,
+        className,
     );
 
-    const hasSelectionChanged = areIntervalsEqual(interval, props.initInterval);
 
     return (
-        <div className={className}>
-            <TimeIntervalControls
-                interval={interval}
-                onUpdate={handleUpdate}
-                header={props.headerControls}
-            />
-            <RangeDateSelection
-                className="time-interval-selector__ruler"
-                displayNow
-                hasScaleButtons
-                minDuration={MIN_SELECTION_DURATION}
-                maxDuration={MAX_SELECTION_DURATION}
-                align={MIN_SELECTION_PRECISION}
-                scaleButtonsPosition="end"
-                value={value}
-                onUpdate={handleRangeUpdate}
-                numberOfIntervals={props.numberOfIntervals}
-            />
-            {props.isEditing && <>
-                <Button className={b('button')} disabled={hasSelectionChanged} onClick={handleCancel}><Icon data={Xmark}/></Button>
-                <Button className={b('button')} view="action" disabled={hasSelectionChanged} onClick={props.onSave}><Icon data={Check}/></Button>
-            </>}
+        <div className={classNameWithGravity}>
+            <div className={b('header')}>
+                {header}
+                <TimeIntervalControls
+                    interval={interval ?? intervalInternal}
+                    onUpdate={handleUpdate}
+                    header={headerControls}
+                    additionalHeaderItems={additionalHeaderItems}
+                />
+            </div>
+            <div className={b('wrapper')}>
+                <RangeDateSelection
+                    className="time-interval-selector__ruler"
+                    displayNow
+                    hasScaleButtons
+                    minDuration={MIN_SELECTION_DURATION}
+                    maxDuration={MAX_SELECTION_DURATION}
+                    align={MIN_SELECTION_PRECISION}
+                    scaleButtonsPosition="end"
+                    value={value}
+                    onUpdate={handleRangeUpdate}
+                    numberOfIntervals={numberOfIntervals}
+                />
+                {additionalItems}
+            </div>
         </div>
     );
 };

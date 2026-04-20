@@ -9,7 +9,7 @@ import { RouterProvider } from 'src/providers/RouterProvider/RouterProvider';
 import { ThemeProvider } from 'src/providers/ThemeProvider/ThemeProvider';
 import { UserSettingsProvider } from 'src/providers/UserSettingsProvider/UserSettingsProvider';
 
-import type { PageProps } from '../Page/Page';
+import type { PagePublicProps } from '../Page/Page';
 
 import './App.scss';
 
@@ -19,7 +19,7 @@ const AppImpl: React.FC<{}> = () => {
     const external = uiFactory().initializeExternal({ theme });
     const searchParams = new URLSearchParams(window.location.search);
     const embed = searchParams.get(EMBED_PARAM) === '1';
-    const pageProps: PageProps = {
+    const pageProps: PagePublicProps = {
         embed,
     };
     return <>

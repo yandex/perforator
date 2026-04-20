@@ -23,6 +23,8 @@ export interface ProfileTaskQuery {
     rawProfile?: 'true' | 'false';
     format?: 'text' | 'raw';
     cluster?: string;
+    lineNumbers?: 'true' | 'false';
+    prevTask?: string;
 }
 
 

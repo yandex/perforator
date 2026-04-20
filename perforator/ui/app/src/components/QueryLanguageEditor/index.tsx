@@ -2,16 +2,11 @@ import React from 'react';
 
 import { QuerySuggestProvider } from 'src/providers/QuerySuggestProvider';
 
+import { QueryLanguageEditorImpl, QueryLanguageFallback } from './lazy';
 import type { QueryLanguageEditorProps } from './QueryLanguageEditor';
 
 import './QueryLanguageEditor.scss';
 
-
-const QueryLanguageEditorImpl = React.lazy(() => import('./QueryLanguageEditor').then(i => ({ default: i.QueryLanguageEditorImpl })));
-
-const QueryLanguageFallback: React.FC<{selector?: string; className?: string}> = ({ selector, className }) => (
-    <code className={'selector-input__skeleton' + (className ? ' ' + className : '')}>{selector}</code>
-);
 
 export const QueryLanguageEditor: React.FC<QueryLanguageEditorProps> = props => (
     <QuerySuggestProvider>
@@ -22,3 +17,4 @@ export const QueryLanguageEditor: React.FC<QueryLanguageEditorProps> = props => 
 );
 
 export type { QueryLanguageEditorProps } from './QueryLanguageEditor';
+export { QueryLanguageHelpPopover } from './QueryLanguageHelpPopover';

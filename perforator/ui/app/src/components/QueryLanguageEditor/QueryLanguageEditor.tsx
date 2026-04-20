@@ -2,13 +2,8 @@ import React from 'react';
 
 import MonacoEditor, { monaco } from 'react-monaco-editor';
 
-import {
-    HelpMark,
-    Link,
-    useThemeType,
-} from '@gravity-ui/uikit';
+import { useThemeType } from '@gravity-ui/uikit';
 
-import { uiFactory } from 'src/factory';
 import { useQuerySuggest } from 'src/providers/QuerySuggestProvider';
 import { cn } from 'src/utils/cn';
 import { useDebounce } from 'src/utils/debounce';
@@ -144,46 +139,17 @@ export const QueryLanguageEditorImpl: React.FC<QueryLanguageEditorProps> = props
     }, []);
 
     return (
-        <div className={b(null, props.className)}>
-            <div className={b('wrapper', props.wrapperClassName)}>
-                <MonacoEditor
-                    language={QUERY_LANGUAGE_ID}
-                    value={selector}
-                    onChange={props.onUpdate}
-                    height={props.height}
-                    options={editorOptions}
-                    theme={theme === 'light' ? 'light' : 'vs-dark'}
-                    editorWillMount={handleWillMount}
-                    editorDidMount={handleDidMount}
-                />
-            </div>
-            <HelpPopover/>
+        <div className={b('wrapper', props.wrapperClassName)}>
+            <MonacoEditor
+                language={QUERY_LANGUAGE_ID}
+                value={selector}
+                onChange={props.onUpdate}
+                height={props.height}
+                options={editorOptions}
+                theme={theme === 'light' ? 'light' : 'vs-dark'}
+                editorWillMount={handleWillMount}
+                editorDidMount={handleDidMount}
+            />
         </div>
     );
 };
-
-const HelpPopover = () => (
-    <HelpMark
-        iconSize={'l'}
-        className={b('help')}
-        popoverProps={{ className: b('help-popover') }}
-    >
-        Selector consists of comma-separated triples of keys, operators and values wrapped
-        in curly braces, i.e.{' '}
-        <code className={b('help-code')}>{' {label="value"}'}</code>
-        Example:
-        <code className={b('help-code')}>
-            {'{service="my-app", cpu=~"AMD.*", event_type = "wall.seconds"}'}
-        </code>
-        <br/>
-        Operators:
-        <br/>• =, != : Exact match (use | for OR, e.g., "app1|app2")
-        <br/>• =~, !~ : Regex match
-        <br/>• {'<'}, {'>'}, {'<='}, {'>='} : Ordinal comparison (useful for time)
-        <br />
-        <br />
-        <Link target="_blank" href={uiFactory().queryLanguageDocsLink()}>
-            Read full documentation
-        </Link>
-    </HelpMark>
-);

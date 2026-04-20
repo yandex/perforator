@@ -1,8 +1,7 @@
 .page-heading {
-    align-items: center;
+    height: calc(var(--page-padding-top) + var(--page-heading-height) + var(--page-padding-top));
     display: flex;
-    height: var(--page-heading-height);
-    margin-bottom: var(--page-padding-top);
+    align-items: center;
 }
 
 .page-heading__title {

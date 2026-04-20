@@ -18,6 +18,11 @@ export const DefinitionList: React.FC<DefinitionListProps> = props => {
                 <dd>{value}</dd>
             </div>
         ));
+
+    if (elements.length === 0) {
+        return null;
+    }
+
     return (
         <dl className="definition-list">
             {elements}

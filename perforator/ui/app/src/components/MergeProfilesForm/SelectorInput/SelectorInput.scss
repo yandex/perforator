@@ -1,4 +1,8 @@
 .selector-input {
+    display: flex;
+    align-items: center;
+    gap: var(--g-spacing-1);
+
     &__loader {
         height: 30px;
     }

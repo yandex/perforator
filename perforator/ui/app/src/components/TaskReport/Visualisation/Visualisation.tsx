@@ -12,6 +12,7 @@ import { Beta } from 'src/components/Beta/Beta';
 import { ErrorBoundary } from 'src/components/ErrorBoundary/ErrorBoundary';
 import { useFullscreen } from 'src/components/Fullscreen/FullscreenContext';
 import { uiFactory } from 'src/factory';
+import { boolToString } from 'src/utils/bool';
 import { withMeasureTime } from 'src/utils/logging';
 import { measureBrowserMemory } from 'src/utils/performance';
 import { parseStacks, stringifyStacks, useTypedQuery } from 'src/utils/query';
@@ -73,6 +74,8 @@ export interface VisualisationProps extends Pick<FlamegraphProps,
  | 'onSearchReset'
  | 'setOffsetterRef'
  | 'onChangeLeftHeavy'
+ | 'showLineNumbers'
+ | 'setShowLineNumbers'
  > {
     loading: boolean;
 }
@@ -92,7 +95,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
     const isLeftHeavy = getQuery('leftHeavy', 'false') === 'true';
     const setIsLeftHeavy = React.useCallback((value: boolean) => {
         props.onChangeLeftHeavy?.(value);
-        setQuery({ 'leftHeavy': value ? 'true' : 'false' });
+        setQuery({ 'leftHeavy':  boolToString(value) });
     }, [setQuery, props.onChangeLeftHeavy]);
 
     const firstRenderRef = React.useRef(true);
@@ -117,9 +120,20 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
     }, []);
 
     const rowsRef = React.useRef(profileData?.rows);
+    // Track the previous profileData.rows to detect when new data is loaded
+    const prevProfileDataRowsRef = React.useRef(profileData?.rows);
+
     // HACK using memo for ref modification
     // otherwise would need useLayoutEffect + force the rerender
     const newProfileData = React.useMemo(() => {
+        // Detect if profileData.rows has changed (e.g., line numbers toggled)
+        // If so, reset rowsRef to use the new rows
+        if (profileData?.rows !== prevProfileDataRowsRef.current) {
+            rowsRef.current = profileData?.rows;
+            prevProfileDataRowsRef.current = profileData?.rows;
+            firstRenderRef.current = true;
+        }
+
         const currentRootH = parseInt(getQuery('frameDepth') ?? '0');
         const currentRootI = parseInt(getQuery('framePos') ?? '0');
         const omittedIndices = parseStacks(getQuery('omittedIndexes') ?? '');
@@ -164,14 +178,12 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
 
         const res = profileData ? { rows: rowsRef.current, meta: profileData?.meta, stringTable: profileData?.stringTable } as ProfileData : null;
         return res;
-    }, [profileData?.rows, isLeftHeavy, props.loading]);
+    }, [getQuery, profileData, isLeftHeavy, setQuery]);
+
 
     React.useEffect(() => {
         if (tab === 'sbs') {
             setEnabled(true);
-        }
-        else {
-            setEnabled(false);
         }
     }, []);
 
@@ -202,6 +214,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             profileData: newProfileData,
             getState: getQuery,
             setState: setQuery,
+            useSelfAsScrollParent: true,
             onFinishRendering: (opts) => {
                 const size = getFlamegraphSize(totalFrames ?? 0);
                 uiFactory().rum()?.finishDataRendering?.('task-flamegraph');

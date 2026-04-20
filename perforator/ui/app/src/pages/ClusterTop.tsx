@@ -24,7 +24,7 @@ function generationStatusLabel(status: ClusterTopGenerationStatus) {
     }
 }
 
-export const ClusterTop: Page = () => {
+export const ClusterTop: Page = (props) => {
     const [getQuery, setQuery] = useTypedQuery<'generation'>();
     const currentGeneration = getQuery('generation', '') ?? '';
     const setGeneration = (value: string) => setQuery({ generation: value });
@@ -62,7 +62,8 @@ export const ClusterTop: Page = () => {
         return <Loader/>;
     }
 
-    return (
+    return (<>
+        {props.header}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>Cluster Top</div>
             <Select
@@ -81,5 +82,6 @@ export const ClusterTop: Page = () => {
             )}
             {currentGeneration && currentGenerationObject && timeInterval && <ClusterTopTable generation={Number(currentGeneration)} timeInterval={timeInterval}/>}
         </div>
+    </>
     );
 };

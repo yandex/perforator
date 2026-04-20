@@ -1,0 +1,14 @@
+.task-header {
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+    }
+
+    &__additional-items {
+        display: flex;
+          height: calc(var(--page-padding-top) + var(--page-heading-height) + var(--page-padding-top));
+          align-items: center;
+    }
+}

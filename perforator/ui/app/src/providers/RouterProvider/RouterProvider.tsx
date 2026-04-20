@@ -2,13 +2,13 @@ import React from 'react';
 
 import { RouterProvider as BaseRouterProvider } from 'react-router-dom';
 
-import type { PageProps } from 'src/components/Page/Page';
+import type { PagePublicProps } from 'src/components/Page/Page';
 
 import { getRouter } from './router';
 
 
 export interface RouterProviderProps {
-    pageProps: PageProps;
+    pageProps: PagePublicProps;
 }
 
 export const RouterProvider: React.FC<RouterProviderProps> = props => {

@@ -15,13 +15,23 @@ import {
 
 export interface TokensInputProps {
     initialTokens: Optional<string>;
+    tokens?: Optional<string>;
     onUpdate: (tokens: Optional<string>) => void;
 }
 
 export const TokensInput: React.FC<TokensInputProps> = props => {
     const [tokens, setTokens] = React.useState<Token[]>(parseTokensString(props.initialTokens));
 
+    React.useEffect(() => {
+        setTokens(parseTokensString(props.initialTokens));
+    }, [props.initialTokens]);
+
     React.useEffect(() => props.onUpdate(props.initialTokens), []);
+    React.useEffect(() => {
+        if (props.tokens) {
+            setTokens(parseTokensString(props.tokens));
+        }
+    }, [props.tokens]);
 
     const handleChange = (value: Token[]) => {
         setTokens(value);
@@ -41,7 +51,7 @@ export const TokensInput: React.FC<TokensInputProps> = props => {
 
     return (
         <TokenizedInput
-            tokens={tokens}
+            tokens={props.tokens ? parseTokensString(props.tokens) : tokens}
             onChange={handleChange}
             validateToken={validateToken}
             fields={tokenFields}

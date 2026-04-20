@@ -10,7 +10,7 @@ import { cn } from 'src/utils/cn';
 import { setPageTitle } from 'src/utils/title';
 
 import { NavigationBar } from '../../NavigationBar/NavigationBar';
-import type { PageComponent, PageProps } from '../Page';
+import type { PageComponent, PagePublicProps } from '../Page';
 import { PageFooter } from '../PageFooter/PageFooter';
 import { PageHeading } from '../PageHeading/PageHeading';
 
@@ -21,7 +21,7 @@ const b = cn('page-container');
 
 export type PageContainerProps = {
     page: PageComponent;
-    pageProps: PageProps;
+    pageProps: PagePublicProps;
     title?: string;
 };
 
@@ -55,8 +55,7 @@ export const PageContainer: React.FC<PageContainerProps> = props => {
                 {navigation}
                 <PageLayout.Content>
                     <Container className={pageClassName}>
-                        <PageHeading embed={embed} />
-                        {React.createElement(props.page, pageProps)}
+                        {React.createElement(props.page, { ...pageProps, header: <PageHeading embed={embed}/> })}
                         {embed ? null : <PageFooter />}
                     </Container>
                 </PageLayout.Content>

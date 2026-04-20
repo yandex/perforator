@@ -1,11 +1,12 @@
 import { createSearchParams } from 'react-router-dom';
 
+import { LocalStorageKey } from 'src/const/localStorage';
 import { uiFactory } from 'src/factory';
 import type { FlamegraphOptions, PostprocessOptions, RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
 import type { ProfileTaskQuery } from 'src/models/Task';
 
-import { apiClient } from './api';
-import { makeSelector } from './selector';
+import { apiClient } from '../api';
+import { makeSelector } from '../selector';
 
 
 export const taskQueryToSearchParams = (query: ProfileTaskQuery): { [key: string]: string } => (
@@ -48,6 +49,7 @@ export const startProfileTask = async (
     const flamegraphOptions: FlamegraphOptions = {
         MaxDepth: 256,
         MinWeight: 1e-10,
+        ShowLineNumbers: query.lineNumbers === 'true',
     };
 
     const symbolizeOptions = {
@@ -99,19 +101,33 @@ export const startProfileTask = async (
             };
 
     const response = await apiClient.startTask(request);
-    return response?.data?.TaskID;
+    const taskId = response?.data?.TaskID;
+
+    if (query.prevTask) {
+        try {
+            const cache = localStorage.getItem(LocalStorageKey.CachedLineNumberTasks);
+            const cachedLineNumberTasks = cache ? JSON.parse(cache) : {};
+            cachedLineNumberTasks[query.prevTask] = taskId;
+            cachedLineNumberTasks[taskId] = query.prevTask;
+            localStorage.setItem(LocalStorageKey.CachedLineNumberTasks, JSON.stringify(cachedLineNumberTasks));
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    return taskId;
 };
 
-export const redirectToTaskPage = (
+export function redirectToTaskPage<Q extends ProfileTaskQuery> (
     navigate: (data: object, options: object) => void,
-    query: ProfileTaskQuery,
+    query: Q,
     replace = false,
-) => {
-    navigate(
+) {
+    return navigate(
         {
             pathname: '/build',
             search: createSearchParams(taskQueryToSearchParams(query)).toString(),
         },
         { replace },
     );
-};
+}

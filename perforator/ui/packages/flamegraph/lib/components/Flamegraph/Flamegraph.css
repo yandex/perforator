@@ -21,9 +21,31 @@
     position: sticky;
     top: 0;
     left: 0;
+    bottom: 0;
     background: var(--g-color-base-background);
     z-index: 1;
     display: flex;
+}
+
+.flamegraph__header-wrapper {
+    --flamegraph-top-spacing: var(--g-spacing-2);
+    background: var(--g-color-base-background);
+    position: sticky;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.flamegraph__header-wrapper_reverse_true {
+    padding-top: var(--flamegraph-top-spacing);
+}
+
+.flamegraph__header-wrapper_reverse_false {
+    flex-direction: column-reverse;
+    padding-bottom: var(--flamegraph-top-spacing);
 }
 
 .flamegraph__deletion {
@@ -31,7 +53,6 @@
 }
 
 .flamegraph__header {
-    margin-bottom: var(--g-spacing-2);
     position: relative;
     justify-content: center;
     align-items: center;

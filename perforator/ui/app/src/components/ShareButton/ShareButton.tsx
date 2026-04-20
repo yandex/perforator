@@ -5,6 +5,7 @@ import { Button, DropdownMenu, Icon } from '@gravity-ui/uikit';
 
 import { LocalStorageKey } from 'src/const/localStorage';
 import { uiFactory } from 'src/factory';
+import { cn } from 'src/utils/cn';
 import { createErrorToast, createSuccessToast } from 'src/utils/toaster';
 
 import type { ShareFormat } from './utils';
@@ -30,7 +31,12 @@ const listShareFormats = (formats: ShareFormat[], selected: ShareFormat) => {
 
 export interface ShareButtonProps {
     getUrl: () => string;
+    view?: 'compact' | 'full';
+    size?: 's' | 'm';
+    className?: string;
 }
+
+const b = cn('share-button');
 
 export const ShareButton: React.FC<ShareButtonProps> = props => {
     const [shareFormat, setShareFormat] = React.useState<ShareFormat>(
@@ -67,22 +73,24 @@ export const ShareButton: React.FC<ShareButtonProps> = props => {
     }));
 
     return (
-        <span className="share-button">
+        <span className={b(null, props.className)}>
             <Button
-                className="share-button__text"
+                className={b('text')}
                 pin="round-clear"
                 onClick={() => copyShareString(shareFormat)}
+                size={props.size}
             >
                 <Icon size={SHARE_ICON_SIZE} data={ArrowShapeTurnUpRight} />
-                Share
+                {props.view === 'compact' ? null : 'Share'}
             </Button>
             <DropdownMenu
                 items={items}
                 popupProps={{ placement: 'bottom-end' }}
                 switcher={
                     <Button
-                        className="share-button__chevron"
+                        className={b('chevron')}
                         pin="clear-round"
+                        size={props.size}
                     >
                         <Icon size={SHARE_ICON_SIZE} data={ChevronDown} />
                     </Button>

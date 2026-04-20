@@ -1,5 +1,5 @@
 module.exports = {
-    moduleFileExtensions: ['js', 'json', 'ts'],
+    moduleFileExtensions: ['js', 'json', 'ts', 'tsx'],
     rootDir: 'src',
     collectCoverageFrom: ['**/*.(t|j)s'],
     coverageDirectory: '../coverage',
@@ -7,5 +7,8 @@ module.exports = {
     testRegex: '\\.test.(ts|js)$',
     transform: {
         '^.+\\.(t|j)sx?$': '@swc/jest',
+    },
+    moduleNameMapper: {
+        '^src/(.*)$': '<rootDir>/$1',
     },
 };
