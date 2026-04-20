@@ -1,6 +1,7 @@
 import type { NavigateFunction } from 'react-router-dom';
 
 import { LocalStorageKey } from 'src/const/localStorage';
+import { uiFactory } from 'src/factory';
 import type { ProfileTaskQuery } from 'src/models/Task';
 import { redirectToTaskPage } from 'src/utils/profileTask';
 import { preserveWellKnownQueryParams } from 'src/utils/profileTask/preserveWellKnown';
@@ -24,6 +25,7 @@ export function navigateToLineNumbers(navigate: NavigateFunction, query: Profile
             ...query,
         };
 
+        uiFactory().reachGoal('LINE_NUMBERS');
         redirectToTaskPage(navigate, query);
     }
 }
