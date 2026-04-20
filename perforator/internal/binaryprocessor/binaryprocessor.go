@@ -60,7 +60,7 @@ func NewBinaryProcessorServer(
 	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	bgCtx := context.TODO()
+	bgCtx := context.Background()
 	storageBundle, err := bundle.NewStorageBundle(initCtx, bgCtx, l, "binproc", reg, &conf.StorageConfig)
 	if err != nil {
 		return nil, err

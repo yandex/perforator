@@ -270,7 +270,7 @@ func (d *Registry) release(ctx context.Context, buildID string) {
 func (d *Registry) onDelete(item *ccache.Item[*DSO]) {
 	dso := item.Value()
 	d.maybeReleaseBinary(dso)
-	d.l.Debug(context.TODO(), "Delete DSO from cache", log.String("buildid", dso.buildInfo.BuildID))
+	d.l.Debug(context.Background(), "Delete DSO from cache", log.String("buildid", dso.buildInfo.BuildID))
 }
 
 func (d *Registry) maybeReleaseBinary(dso *DSO) {
