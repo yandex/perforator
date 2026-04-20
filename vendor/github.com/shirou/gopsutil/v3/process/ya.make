@@ -40,6 +40,10 @@ IF (OS_DARWIN AND CGO_ENABLED)
     CGO_SRCS(process_darwin_cgo.go)
 ENDIF()
 
+IF (OS_DARWIN AND NOT CGO_ENABLED)
+    SRCS(process_darwin_nocgo.go)
+ENDIF()
+
 IF (OS_DARWIN AND ARCH_X86_64)
     SRCS(
         process_darwin_amd64.go

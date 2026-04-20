@@ -32,6 +32,10 @@ IF (OS_DARWIN AND CGO_ENABLED)
     CGO_SRCS(mem_darwin_cgo.go)
 ENDIF()
 
+IF (OS_DARWIN AND NOT CGO_ENABLED)
+    SRCS(mem_darwin_nocgo.go)
+ENDIF()
+
 IF (OS_WINDOWS)
     SRCS(
         mem_windows.go
