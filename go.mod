@@ -1,6 +1,6 @@
 module github.com/yandex/perforator
 
-go 1.25.0
+go 1.25.8
 
 require (
 	4d63.com/gochecknoglobals v0.2.2-0.20230617165002-a9cb75083ef8
@@ -320,7 +320,7 @@ require (
 	github.com/coredns/caddy v1.1.1
 	github.com/coredns/coredns v1.11.3
 	github.com/coreos/go-iptables v0.8.0
-	github.com/coreos/go-oidc/v3 v3.11.0
+	github.com/coreos/go-oidc/v3 v3.13.0
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/creack/pty v1.1.24
@@ -814,7 +814,7 @@ require (
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/tc-hib/winres v0.2.0
 	github.com/tdewolff/minify/v2 v2.12.9
-	github.com/temporalio/cli v1.3.0
+	github.com/temporalio/cli v1.4.1
 	github.com/temporalio/omes v1.0.0
 	github.com/temporalio/omes/workers/go v0.0.0-20240701113332-211647aa9dae
 	github.com/temporalio/ui-server/v2 v2.40.0
@@ -1003,12 +1003,13 @@ require (
 	go.starlark.net v0.0.0-20250701195324-d457b4515e0e
 	go.step.sm/cli-utils v0.8.0
 	go.step.sm/crypto v0.38.0
-	go.temporal.io/api v1.50.1
-	go.temporal.io/sdk v1.34.0
+	go.temporal.io/api v1.53.0
+	go.temporal.io/sdk v1.35.0
+	go.temporal.io/sdk/contrib/envconfig v0.1.0
 	go.temporal.io/sdk/contrib/opentelemetry v0.3.1-0.20231014000700-06c90fb36987
 	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129171107-288a04f72145
 	go.temporal.io/sdk/contrib/tools/workflowcheck v0.4.0
-	go.temporal.io/server v1.28.2
+	go.temporal.io/server v1.29.6
 	go.uber.org/atomic v1.11.0
 	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/fx v1.23.0
@@ -2626,11 +2627,11 @@ replace github.com/insomniacslk/dhcp => github.com/insomniacslk/dhcp v0.0.0-2021
 // (Go version in go.mod is at least 1.14 and vendor directory exists.)
 replace cloud.google.com/go/pubsub => cloud.google.com/go/pubsub v1.30.0
 
-replace go.temporal.io/api => go.temporal.io/api v1.50.1
+replace go.temporal.io/api => go.temporal.io/api v1.53.0
 
-replace go.temporal.io/sdk => go.temporal.io/sdk v1.34.0
+replace go.temporal.io/sdk => go.temporal.io/sdk v1.35.0
 
-replace go.temporal.io/server => go.temporal.io/server v1.28.2
+replace go.temporal.io/server => go.temporal.io/server v1.29.6
 
 // keep arcadia own patched version
 replace github.com/uber-go/tally/v4 => github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
