@@ -661,6 +661,7 @@ require (
 	github.com/nginxinc/nginx-go-crossplane v0.4.86
 	github.com/nishanths/exhaustive v0.12.0
 	github.com/nishanths/predeclared v0.2.2
+	github.com/nttcom/pola v1.3.1
 	github.com/nxadm/tail v1.4.8
 	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oapi-codegen/oapi-codegen/v2 v2.5.0
