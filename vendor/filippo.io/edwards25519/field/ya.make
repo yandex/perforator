@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.1.0)
+VERSION(v1.2.0)
 
 SRCS(
     fe.go
@@ -21,15 +21,24 @@ IF (ARCH_X86_64)
     SRCS(
         fe_amd64.go
         fe_amd64.s
-        fe_arm64_noasm.go
     )
 ENDIF()
 
 IF (ARCH_ARM64)
     SRCS(
         fe_amd64_noasm.go
-        fe_arm64.go
-        fe_arm64.s
+    )
+ENDIF()
+
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        fe_amd64_noasm.go
+    )
+ENDIF()
+
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        fe_amd64_noasm.go
     )
 ENDIF()
 

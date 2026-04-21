@@ -176,7 +176,7 @@ require (
 	github.com/Azure/go-autorest/autorest/mocks v0.4.2
 	github.com/Azure/go-autorest/autorest/to v0.4.1
 	github.com/Azure/go-autorest/autorest/validation v0.3.1
-	github.com/BurntSushi/toml v1.5.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/ClickHouse/ch-go v0.65.1
 	github.com/ClickHouse/clickhouse-go v1.5.4
 	github.com/ClickHouse/clickhouse-go/v2 v2.33.1
@@ -424,7 +424,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.5
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
-	github.com/go-mysql-org/go-mysql v1.8.0
+	github.com/go-mysql-org/go-mysql v1.14.0
 	github.com/go-ole/go-ole v1.2.7-0.20211215081658-ee6c8cce8e87
 	github.com/go-openapi/analysis v0.23.0
 	github.com/go-openapi/errors v0.22.0
@@ -477,7 +477,7 @@ require (
 	github.com/golang/snappy v1.0.0
 	github.com/google/brotli v1.0.8-0.20190503095111-78e7bbc3c34b
 	github.com/google/btree v1.1.3
-	github.com/google/cel-go v0.25.0
+	github.com/google/cel-go v0.26.1
 	github.com/google/flatbuffers v25.12.19+incompatible
 	github.com/google/gnostic v0.7.0
 	github.com/google/go-attestation v0.5.1
@@ -707,7 +707,7 @@ require (
 	github.com/phin1x/go-ipp v1.6.1
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pierrec/lz4/v4 v4.1.25
-	github.com/pingcap/errors v0.11.5-0.20240311024730-e056997136bb
+	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee
 	github.com/pingcap/parser v0.0.0-20210415081931-48e7f467fd74
 	github.com/pion/datachannel v1.5.10
 	github.com/pion/ice/v4 v4.0.13
@@ -802,7 +802,7 @@ require (
 	github.com/spiral/endure v1.0.4
 	github.com/spiral/goridge/v3 v3.2.7
 	github.com/spiral/roadrunner/v2 v2.4.0
-	github.com/sqlc-dev/sqlc v1.29.0
+	github.com/sqlc-dev/sqlc v1.30.0
 	github.com/ssgreg/nlreturn/v2 v2.2.1
 	github.com/streadway/amqp v1.0.0
 	github.com/stretchr/testify v1.11.1
@@ -1134,7 +1134,7 @@ require (
 	deps.dev/util/semver v0.0.0-20250902032900-f16136c5dcd3 // indirect
 	dmitri.shuralyov.com/gpu/mtl v0.0.0-20221208032759-85de2813cf6b // indirect
 	eliasnaur.com/font v0.0.0-20230308162249-dd43949cb42d // indirect
-	filippo.io/edwards25519 v1.1.0 // indirect
+	filippo.io/edwards25519 v1.2.0 // indirect
 	gioui.org v0.8.0 // indirect
 	gioui.org/cpu v0.0.0-20220412190645-f1e9e8c3b1f7 // indirect
 	gioui.org/shader v1.0.8 // indirect
@@ -2145,10 +2145,10 @@ require (
 	github.com/phpdave11/gofpdf v1.4.2 // indirect
 	github.com/phpdave11/gofpdi v1.0.15 // indirect
 	github.com/pingcap/check v0.0.0-20211026125417-57bd13f7b5f0 // indirect
-	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
+	github.com/pingcap/failpoint v0.0.0-20251231045439-91d91e123837 // indirect
 	github.com/pingcap/go-ycsb v1.0.1 // indirect
-	github.com/pingcap/log v1.1.1-0.20230317032135-a0d097d16e22 // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20250324122243-d51e00e5bbf0 // indirect
+	github.com/pingcap/log v1.1.1-0.20241212030209-7e3ff8601a2a // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20260219190905-9b9281fa8d6d // indirect
 	github.com/pingcap/tipb v0.0.0-20220825135535-d6f1aebebabd // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/dtls/v3 v3.0.8 // indirect
@@ -2294,7 +2294,7 @@ require (
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/streadway/handy v0.0.0-20200128134331-0f66f006fb2e // indirect
 	github.com/streadway/quantile v0.0.0-20220407130108-4246515d968d // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/stvp/tempredis v0.0.0-20181119212430-b82af8480203 // indirect
 	github.com/subeshb1/wasm-go-image-to-ascii v0.0.0-20200725121413-d828986df340 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
@@ -2384,6 +2384,8 @@ require (
 	github.com/vultr/govultr v1.1.1 // indirect
 	github.com/vultr/govultr/v2 v2.17.2 // indirect
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad // indirect
+	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07 // indirect
+	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0 // indirect
