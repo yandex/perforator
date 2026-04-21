@@ -4,21 +4,21 @@
     "pr": {
       "id": 13030780,
       "author": "zaverden",
-      "summary": "fix(builder): ignore symlinks on copy"
+      "summary": "release #69 https://a.yandex-team.ru/services/frontend_build_platform/ci/releases/flow?camera-state=-260%3B-40%3B1&dir=devtools%2Ffrontend_build_platform%2Fnots%2Fbuilder&id=release-nots-builder&launchDetailsTab=output&launchNumber=1&selected-jobs=build&selectedJob=build&version=69"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11797714623"
+      "uri": "sbr:11806886601"
     },
     "darwin-arm64": {
-      "uri": "sbr:11797710665"
+      "uri": "sbr:11806885621"
     },
     "linux": {
-      "uri": "sbr:11797720977"
+      "uri": "sbr:11806888775"
     },
     "linux-aarch64": {
-      "uri": "sbr:11797717562"
+      "uri": "sbr:11806887837"
     }
   }
 }
