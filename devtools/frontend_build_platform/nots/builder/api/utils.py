@@ -180,6 +180,11 @@ def copy_files_with_exclusions(src_dir: str, dst_dir: str, exclude_globs: list[s
 
         # Copy files that are not excluded
         for file_name in files:
+            src_path = os.path.join(root, file_name)
+
+            if os.path.islink(src_path):
+                continue
+
             rel_file_path = os.path.join(rel_root, file_name) if rel_root else file_name
 
             # Check if file matches any exclusion pattern
@@ -187,7 +192,6 @@ def copy_files_with_exclusions(src_dir: str, dst_dir: str, exclude_globs: list[s
                 continue
 
             # Copy file to dst_dir maintaining directory structure
-            src_path = os.path.join(root, file_name)
             dst_path = os.path.join(dst_dir, rel_file_path)
             if not os.path.exists(dst_path):
                 shutil.copy(src_path, dst_path)

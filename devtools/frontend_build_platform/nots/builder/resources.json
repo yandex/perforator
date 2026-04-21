@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-07T06:37:40.838Z",
+    "created": "2026-04-21T09:21:21.034Z",
     "pr": {
-      "id": 12818450,
+      "id": 13030780,
       "author": "zaverden",
-      "summary": "fix(builder): _make_bins_executable for ts_library_builder"
+      "summary": "fix(builder): ignore symlinks on copy"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11637686362"
+      "uri": "sbr:11797714623"
     },
     "darwin-arm64": {
-      "uri": "sbr:11637685519"
+      "uri": "sbr:11797710665"
     },
     "linux": {
-      "uri": "sbr:11637688526"
+      "uri": "sbr:11797720977"
     },
     "linux-aarch64": {
-      "uri": "sbr:11637687247"
+      "uri": "sbr:11797717562"
     }
   }
 }
