@@ -138,6 +138,7 @@ require (
 	cloud.google.com/go/websecurityscanner v1.7.7
 	cloud.google.com/go/workflows v1.14.3
 	connectrpc.com/connect v1.16.2
+	connectrpc.com/vanguard v0.3.0
 	cuelang.org/go v0.4.3
 	firebase.google.com/go v3.13.0+incompatible
 	git.apache.org/thrift.git v0.13.0
@@ -286,6 +287,7 @@ require (
 	github.com/bradfitz/gomemcache v0.0.0-20230611145640-acc696258285
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/bufbuild/buf v1.30.0
+	github.com/bufbuild/protocompile v0.14.1
 	github.com/buger/goterm v1.0.4
 	github.com/buger/jsonparser v1.1.1
 	github.com/c2h5oh/datasize v0.0.0-20220606134207-859f65c6625b
@@ -869,8 +871,9 @@ require (
 	github.com/weppos/publicsuffix-go v0.50.0
 	github.com/wk8/go-win-iscsidsc v0.0.0-20190724224204-4e4ffe953c77
 	github.com/wneessen/go-mail v0.5.2
-	github.com/wundergraph/astjson v0.0.0-20250106123708-be463c97e083
-	github.com/wundergraph/graphql-go-tools/v2 v2.0.0-rc.220
+	github.com/wundergraph/astjson v1.1.0
+	github.com/wundergraph/go-arena v1.1.0
+	github.com/wundergraph/graphql-go-tools/v2 v2.0.0-rc.267
 	github.com/xanzy/go-gitlab v0.73.1
 	github.com/xdg-go/scram v1.1.2
 	github.com/xdg-go/stringprep v1.0.4
@@ -1111,6 +1114,9 @@ require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
 	bitbucket.org/creachadair/stringset v0.0.14 // indirect
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250612022732-297b8109523d.1 // indirect
+	buf.build/gen/go/connectrpc/eliza/connectrpc/go v1.13.0-20230913231627-233fca715f49.1 // indirect
+	buf.build/gen/go/connectrpc/eliza/grpc/go v1.4.0-20230727061922-edc8ae343b96.2 // indirect
+	buf.build/gen/go/connectrpc/eliza/protocolbuffers/go v1.35.2-20230913231627-233fca715f49.1 // indirect
 	buf.build/go/protoyaml v0.6.0 // indirect
 	cel.dev/expr v0.25.1 // indirect
 	code.cloudfoundry.org/clock v1.1.0 // indirect
@@ -1120,6 +1126,7 @@ require (
 	codeberg.org/go-latex/latex v0.2.0 // indirect
 	codeberg.org/go-pdf/fpdf v0.11.1 // indirect
 	collectd.org v0.6.0 // indirect
+	connectrpc.com/grpcreflect v1.2.0 // indirect
 	connectrpc.com/otelconnect v0.7.0 // indirect
 	contrib.go.opencensus.io/exporter/aws v0.0.0-20200617204711-c478e41e60e9 // indirect
 	contrib.go.opencensus.io/exporter/ocagent v0.7.0 // indirect
@@ -1343,6 +1350,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
+	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/bitly/go-hostpool v0.1.0 // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/bkaradzic/go-lz4 v1.0.0 // indirect
@@ -1360,7 +1368,6 @@ require (
 	github.com/bsm/gomega v1.27.10 // indirect
 	github.com/bsm/sarama-cluster v2.1.15+incompatible // indirect
 	github.com/bsphere/le_go v0.0.0-20200109081728-fc06dab2caa8 // indirect
-	github.com/bufbuild/protocompile v0.14.1 // indirect
 	github.com/bufbuild/protovalidate-go v0.9.2 // indirect
 	github.com/bufbuild/protoyaml-go v0.1.8 // indirect
 	github.com/bugsnag/bugsnag-go v1.0.5-0.20150529004307-13fd6b8acda0 // indirect
@@ -1537,6 +1544,7 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/djherbis/atime v1.1.0 // indirect
 	github.com/dlclark/regexp2cg v0.2.0 // indirect
+	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/dnsimple/dnsimple-go v1.0.0 // indirect
 	github.com/docker/buildx v0.29.1 // indirect
 	github.com/docker/cli v28.5.1+incompatible // indirect
@@ -2406,7 +2414,7 @@ require (
 	github.com/xitongsys/parquet-go-source v0.0.0-20220315005136-aec0fe3e777c // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
-	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/nfp v0.0.1 // indirect
 	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2 // indirect
@@ -2526,6 +2534,7 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
+	gotest.tools/gotestsum v1.13.0 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 	howett.net/plist v1.0.1 // indirect
 	k8s.io/cloud-provider v0.26.1 // indirect

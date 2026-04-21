@@ -24,6 +24,15 @@ bitbucket.org/creachadair/stringset
 # buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250612022732-297b8109523d.1 => buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.4-20250130201111-63bb56e20495.1
 ## explicit; go 1.21
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate
+# buf.build/gen/go/connectrpc/eliza/connectrpc/go v1.13.0-20230913231627-233fca715f49.1
+## explicit; go 1.19
+buf.build/gen/go/connectrpc/eliza/connectrpc/go/connectrpc/eliza/v1/elizav1connect
+# buf.build/gen/go/connectrpc/eliza/grpc/go v1.4.0-20230727061922-edc8ae343b96.2
+## explicit; go 1.19
+buf.build/gen/go/connectrpc/eliza/grpc/go/connectrpc/eliza/v1/elizav1grpc
+# buf.build/gen/go/connectrpc/eliza/protocolbuffers/go v1.35.2-20230913231627-233fca715f49.1
+## explicit; go 1.21
+buf.build/gen/go/connectrpc/eliza/protocolbuffers/go/connectrpc/eliza/v1
 # buf.build/go/protovalidate v0.13.0
 ## explicit; go 1.23.0
 buf.build/go/protovalidate
@@ -1230,11 +1239,32 @@ connectrpc.com/connect/internal/gen/connect/ping/v1/pingv1connect
 connectrpc.com/connect/internal/gen/connectext/grpc/status/v1
 connectrpc.com/connect/internal/memhttp
 connectrpc.com/connect/internal/memhttp/memhttptest
+# connectrpc.com/grpcreflect v1.2.0
+## explicit; go 1.19
+connectrpc.com/grpcreflect
+connectrpc.com/grpcreflect/internal/gen/go/connect/reflecttest/v1
+connectrpc.com/grpcreflect/internal/gen/go/connectext/grpc/reflection/v1
 # connectrpc.com/otelconnect v0.7.0
 ## explicit; go 1.19
 connectrpc.com/otelconnect
 connectrpc.com/otelconnect/internal/gen/observability/ping/v1
 connectrpc.com/otelconnect/internal/gen/observability/ping/v1/pingv1connect
+# connectrpc.com/vanguard v0.3.0
+## explicit; go 1.21
+connectrpc.com/vanguard
+connectrpc.com/vanguard/internal/examples/connect-grpc/cmd/client
+connectrpc.com/vanguard/internal/examples/connect-grpc/cmd/server
+connectrpc.com/vanguard/internal/examples/fileserver
+connectrpc.com/vanguard/internal/examples/pets/cmd/pets-be
+connectrpc.com/vanguard/internal/examples/pets/cmd/pets-fe
+connectrpc.com/vanguard/internal/examples/pets/internal
+connectrpc.com/vanguard/internal/examples/pets/internal/gen/io/swagger/petstore/v2
+connectrpc.com/vanguard/internal/examples/pets/internal/gen/io/swagger/petstore/v2/petstorev2connect
+connectrpc.com/vanguard/internal/gen/io/swagger/petstore/v2
+connectrpc.com/vanguard/internal/gen/io/swagger/petstore/v2/petstorev2connect
+connectrpc.com/vanguard/internal/gen/vanguard/test/v1
+connectrpc.com/vanguard/internal/gen/vanguard/test/v1/testv1connect
+connectrpc.com/vanguard/vanguardgrpc
 # contrib.go.opencensus.io/exporter/aws v0.0.0-20200617204711-c478e41e60e9
 ## explicit
 # contrib.go.opencensus.io/exporter/ocagent v0.7.0
@@ -5258,6 +5288,8 @@ github.com/bgp/stayrtr/lib
 github.com/bgp/stayrtr/ossec
 github.com/bgp/stayrtr/prefixfile
 github.com/bgp/stayrtr/utils
+# github.com/bitfield/gotestdox v0.2.2
+## explicit; go 1.18
 # github.com/bitly/go-hostpool v0.1.0
 ## explicit; go 1.13
 github.com/bitly/go-hostpool
@@ -5651,13 +5683,17 @@ github.com/bufbuild/protocompile/internal
 github.com/bufbuild/protocompile/internal/editions
 github.com/bufbuild/protocompile/internal/featuresext
 github.com/bufbuild/protocompile/internal/messageset
+github.com/bufbuild/protocompile/internal/protoc
+github.com/bufbuild/protocompile/internal/prototest
 github.com/bufbuild/protocompile/linker
 github.com/bufbuild/protocompile/options
 github.com/bufbuild/protocompile/parser
+github.com/bufbuild/protocompile/parser/fastscan
 github.com/bufbuild/protocompile/protoutil
 github.com/bufbuild/protocompile/reporter
 github.com/bufbuild/protocompile/sourceinfo
 github.com/bufbuild/protocompile/walk
+github.com/bufbuild/protocompile/wellknownimports
 # github.com/bufbuild/protovalidate-go v0.9.2
 ## explicit; go 1.21.1
 github.com/bufbuild/protovalidate-go
@@ -7023,6 +7059,8 @@ github.com/dlclark/regexp2/syntax
 ## explicit; go 1.15
 github.com/dnaeon/go-vcr/cassette
 github.com/dnaeon/go-vcr/recorder
+# github.com/dnephin/pflag v1.0.7
+## explicit; go 1.12
 # github.com/dnsimple/dnsimple-go v1.0.0
 ## explicit; go 1.18
 # github.com/dnstap/golang-dnstap v0.4.0
@@ -16956,12 +16994,15 @@ github.com/wneessen/go-mail/smtp
 # github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0
 ## explicit
 github.com/wsxiaoys/terminal/color
-# github.com/wundergraph/astjson v0.0.0-20250106123708-be463c97e083
-## explicit; go 1.21
+# github.com/wundergraph/astjson v1.1.0
+## explicit; go 1.25
 github.com/wundergraph/astjson
 github.com/wundergraph/astjson/fastfloat
-# github.com/wundergraph/graphql-go-tools/v2 v2.0.0-rc.220
-## explicit; go 1.23.0
+# github.com/wundergraph/go-arena v1.1.0
+## explicit; go 1.25
+github.com/wundergraph/go-arena
+# github.com/wundergraph/graphql-go-tools/v2 v2.0.0-rc.267
+## explicit; go 1.25
 github.com/wundergraph/graphql-go-tools/v2
 github.com/wundergraph/graphql-go-tools/v2/pkg/apollocompatibility
 github.com/wundergraph/graphql-go-tools/v2/pkg/ast
@@ -16981,7 +17022,6 @@ github.com/wundergraph/graphql-go-tools/v2/pkg/engine/datasource/graphql_datasou
 github.com/wundergraph/graphql-go-tools/v2/pkg/engine/datasource/grpc_datasource
 github.com/wundergraph/graphql-go-tools/v2/pkg/engine/datasource/httpclient
 github.com/wundergraph/graphql-go-tools/v2/pkg/engine/datasource/introspection_datasource
-github.com/wundergraph/graphql-go-tools/v2/pkg/engine/datasource/pubsub_datasource
 github.com/wundergraph/graphql-go-tools/v2/pkg/engine/datasource/staticdatasource
 github.com/wundergraph/graphql-go-tools/v2/pkg/engine/datasourcetesting
 github.com/wundergraph/graphql-go-tools/v2/pkg/engine/jsonschema
@@ -16996,6 +17036,7 @@ github.com/wundergraph/graphql-go-tools/v2/pkg/graphqlerrors
 github.com/wundergraph/graphql-go-tools/v2/pkg/graphqljsonschema
 github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest
 github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/cmd
+github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/cmd/mapping_helper
 github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/mapping
 github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/plugin
 github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/productv1
@@ -17103,7 +17144,7 @@ github.com/xlab/treeprint
 github.com/xo/terminfo
 # github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77
 ## explicit
-# github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1
+# github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342
 ## explicit; go 1.15
 github.com/xrash/smetrics
 # github.com/xuri/efp v0.0.1
@@ -21486,6 +21527,8 @@ gorm.io/gorm/utils/tests
 gorm.io/plugin/dbresolver
 # gotest.tools v2.2.0+incompatible
 ## explicit
+# gotest.tools/gotestsum v1.13.0
+## explicit; go 1.24.0
 # gotest.tools/v3 v3.5.2
 ## explicit; go 1.17
 gotest.tools/v3/assert
