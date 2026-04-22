@@ -1091,6 +1091,7 @@ require (
 	k8s.io/client-go v0.32.3
 	k8s.io/cri-api v0.32.3
 	k8s.io/klog/v2 v2.130.1
+	k8s.io/kube-aggregator v0.31.6
 	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7
 	k8s.io/kubelet v0.32.3
 	k8s.io/kubernetes v1.26.1
@@ -2548,7 +2549,6 @@ require (
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kms v0.32.3 // indirect
-	k8s.io/kube-aggregator v0.27.0-alpha.0 // indirect
 	k8s.io/kube-controller-manager v0.26.1 // indirect
 	k8s.io/kube-proxy v0.26.1 // indirect
 	k8s.io/kube-scheduler v0.26.1 // indirect
@@ -2685,6 +2685,8 @@ replace k8s.io/cri-api => k8s.io/cri-api v0.23.5
 replace k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.26.1
 
 replace k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.26.1
+
+replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.31.6
 
 replace k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.26.1
 
