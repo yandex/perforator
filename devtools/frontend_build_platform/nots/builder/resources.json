@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-21T09:21:21.034Z",
+    "created": "2026-04-22T13:16:37Z",
     "pr": {
-      "id": 13030780,
-      "author": "zaverden",
-      "summary": "release #69 https://a.yandex-team.ru/services/frontend_build_platform/ci/releases/flow?camera-state=-260%3B-40%3B1&dir=devtools%2Ffrontend_build_platform%2Fnots%2Fbuilder&id=release-nots-builder&launchDetailsTab=output&launchNumber=1&selected-jobs=build&selectedJob=build&version=69"
+      "id": 13055046,
+      "author": "baymer",
+      "summary": "TRIVIAL-19: ignore resources.json"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11806886601"
+      "uri": "sbr:11813465752"
     },
     "darwin-arm64": {
-      "uri": "sbr:11806885621"
+      "uri": "sbr:11813462991"
     },
     "linux": {
-      "uri": "sbr:11806888775"
+      "uri": "sbr:11813470865"
     },
     "linux-aarch64": {
-      "uri": "sbr:11806887837"
+      "uri": "sbr:11813468004"
     }
   }
 }
