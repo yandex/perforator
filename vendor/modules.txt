@@ -8509,7 +8509,7 @@ github.com/go-faster/city/internal/citygen
 ## explicit; go 1.20
 github.com/go-faster/errors
 github.com/go-faster/errors/cmd/gowrapper
-# github.com/go-faster/jx v1.1.0
+# github.com/go-faster/jx v1.2.0
 ## explicit; go 1.18
 github.com/go-faster/jx
 github.com/go-faster/jx/internal/byteseq
@@ -13223,9 +13223,13 @@ github.com/oasdiff/yaml
 # github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90
 ## explicit; go 1.22.5
 github.com/oasdiff/yaml3
-# github.com/ogen-go/ogen v1.14.0
-## explicit; go 1.23.0
+# github.com/ogen-go/ogen v1.20.1
+## explicit; go 1.25.0
 github.com/ogen-go/ogen
+github.com/ogen-go/ogen/_testdata/testtypes
+github.com/ogen-go/ogen/_testdata/testtypes/bar/decimal
+github.com/ogen-go/ogen/_testdata/testtypes/baz/v2
+github.com/ogen-go/ogen/_testdata/testtypes/foo/decimal
 github.com/ogen-go/ogen/cmd/jschemagen
 github.com/ogen-go/ogen/cmd/ogen
 github.com/ogen-go/ogen/conv
@@ -13246,22 +13250,46 @@ github.com/ogen-go/ogen/internal/integration/sample_api_nsnc
 github.com/ogen-go/ogen/internal/integration/sample_err
 github.com/ogen-go/ogen/internal/integration/security_reentrant
 github.com/ogen-go/ogen/internal/integration/techempower
+github.com/ogen-go/ogen/internal/integration/test_additional_operations
 github.com/ogen-go/ogen/internal/integration/test_additionalpropertiespatternproperties
 github.com/ogen-go/ogen/internal/integration/test_allof
+github.com/ogen-go/ogen/internal/integration/test_any_parameters
 github.com/ogen-go/ogen/internal/integration/test_anyof
+github.com/ogen-go/ogen/internal/integration/test_array_object_type_discrimination
 github.com/ogen-go/ogen/internal/integration/test_client_options
+github.com/ogen-go/ogen/internal/integration/test_complex_uniqueitems/generated
+github.com/ogen-go/ogen/internal/integration/test_complex_uniqueitems/generated-deep
+github.com/ogen-go/ogen/internal/integration/test_complex_uniqueitems/generated-depth-limit
+github.com/ogen-go/ogen/internal/integration/test_complex_uniqueitems/generated-golden
+github.com/ogen-go/ogen/internal/integration/test_complex_uniqueitems/generated-integration
+github.com/ogen-go/ogen/internal/integration/test_complex_uniqueitems/generated-jira
+github.com/ogen-go/ogen/internal/integration/test_cors
+github.com/ogen-go/ogen/internal/integration/test_deep_object_additional_properties
 github.com/ogen-go/ogen/internal/integration/test_discriminator_mapping
+github.com/ogen-go/ogen/internal/integration/test_duplicate_response_types
 github.com/ogen-go/ogen/internal/integration/test_enum_naming
 github.com/ogen-go/ogen/internal/integration/test_form
 github.com/ogen-go/ogen/internal/integration/test_http_requests
 github.com/ogen-go/ogen/internal/integration/test_http_responses
 github.com/ogen-go/ogen/internal/integration/test_issue1161
+github.com/ogen-go/ogen/internal/integration/test_issue1495
+github.com/ogen-go/ogen/internal/integration/test_mixed_discrimination
 github.com/ogen-go/ogen/internal/integration/test_naming_extensions
+github.com/ogen-go/ogen/internal/integration/test_nested_type_discrimination
+github.com/ogen-go/ogen/internal/integration/test_non_primitive_enum
+github.com/ogen-go/ogen/internal/integration/test_nullable_type_discrimination
+github.com/ogen-go/ogen/internal/integration/test_ogen_validate
+github.com/ogen-go/ogen/internal/integration/test_optional_type_discrimination
+github.com/ogen-go/ogen/internal/integration/test_param_naming_extensions
 github.com/ogen-go/ogen/internal/integration/test_parameters
+github.com/ogen-go/ogen/internal/integration/test_raw_response
 github.com/ogen-go/ogen/internal/integration/test_security
 github.com/ogen-go/ogen/internal/integration/test_servers
 github.com/ogen-go/ogen/internal/integration/test_single_endpoint
 github.com/ogen-go/ogen/internal/integration/test_time_extension
+github.com/ogen-go/ogen/internal/integration/test_type_extension
+github.com/ogen-go/ogen/internal/integration/test_type_extension_name
+github.com/ogen-go/ogen/internal/integration/test_value_based_discrimination
 github.com/ogen-go/ogen/internal/integration/test_webhooks
 github.com/ogen-go/ogen/internal/naming
 github.com/ogen-go/ogen/internal/ogenversion
@@ -15269,7 +15297,7 @@ github.com/secure-systems-lab/go-securesystemslib/dsse
 github.com/secure-systems-lab/go-securesystemslib/signerverifier
 # github.com/securego/gosec v0.0.0-20200203094520-d13bb6d2420c
 ## explicit; go 1.13
-# github.com/segmentio/asm v1.2.0
+# github.com/segmentio/asm v1.2.1
 ## explicit; go 1.18
 github.com/segmentio/asm/base64
 github.com/segmentio/asm/bswap
@@ -16820,8 +16848,8 @@ github.com/valkey-io/valkey-go/valkeyotel
 # github.com/valyala/bytebufferpool v1.0.0
 ## explicit
 github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v1.62.0
-## explicit; go 1.23.0
+# github.com/valyala/fasthttp v1.69.0
+## explicit; go 1.24.0
 github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/reuseport
