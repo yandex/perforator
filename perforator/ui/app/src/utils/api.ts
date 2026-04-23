@@ -27,7 +27,7 @@ import type {
 type RequestData = any;
 type RequestSender = () => Promise<AxiosResponse>;
 
-type AllowedOptions = Partial<Pick<AxiosRequestConfig, 'cancelToken' | 'signal'>>
+type AllowedOptions = Partial<Pick<AxiosRequestConfig, 'cancelToken' | 'signal'>>;
 
 class PerforatorApiClient {
     protected httpClient: AxiosInstance;
@@ -58,8 +58,8 @@ class PerforatorApiClient {
         return this.get('/api/v0/top/service', params);
     }
 
-    getProfiles(params: ListProfilesRequest): Promise<AxiosResponse<ListProfilesResponse>> {
-        return this.get('/api/v0/profiles', params);
+    getProfiles(params: ListProfilesRequest, options?: AllowedOptions): Promise<AxiosResponse<ListProfilesResponse>> {
+        return this.get('/api/v0/profiles', params, options);
     }
 
     getTask(taskId: string): Promise<AxiosResponse<GetTaskResponse>> {

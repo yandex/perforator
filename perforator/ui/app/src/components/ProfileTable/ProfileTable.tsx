@@ -162,6 +162,8 @@ export function ProfileTable({ query, compact }: ProfileTableProps) {
     const columns = useMemo(() => (prepareProfileColumns({ compact })), [compact]);
 
     useEffect(() => {
+        const controller = new AbortController();
+
         const fetchData = async () => {
             setData([]);
             setError(null);
@@ -202,7 +204,7 @@ export function ProfileTable({ query, compact }: ProfileTableProps) {
 
             try {
                 setLoading(true);
-                const response = await apiClient.getProfiles(params);
+                const response = await apiClient.getProfiles(params, { signal: controller.signal });
 
                 const profiles = response?.data?.Profiles?.map((profile) => {
                     const timestamp = formatDate(profile.Timestamp ?? '', 'YYYY-MM-DD HH:mm:ss');
@@ -213,6 +215,9 @@ export function ProfileTable({ query, compact }: ProfileTableProps) {
                 const more = Boolean(response?.data?.HasMore);
                 setHasMore(more);
             } catch (e: unknown) {
+                if (e instanceof AxiosError && e.code === 'ERR_CANCELED') {
+                    return;
+                }
                 setError(e instanceof AxiosError ? e?.response?.data?.message : String(e));
             } finally {
                 setLoading(false);
@@ -221,6 +226,8 @@ export function ProfileTable({ query, compact }: ProfileTableProps) {
         };
 
         fetchData();
+
+        return () => controller.abort();
     }, [query, sortState, paginationState, columns]);
 
     const SortedTable = useMemo(() => compact ? withTableSorting(Table<Profile>) : withTableCopy(withTableSorting(Table<Profile>)), [compact]);
