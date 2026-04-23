@@ -5,6 +5,10 @@
     flex-direction: column;
 }
 
+.task-report_iframe {
+    overflow-y: auto;
+}
+
 .task-report_fullscreen {
     overflow: hidden;
 }

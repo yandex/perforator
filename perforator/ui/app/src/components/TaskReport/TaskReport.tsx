@@ -15,6 +15,7 @@ import { useFullscreen } from '../Fullscreen/FullscreenContext';
 import { navigateToLineNumbers } from '../TaskCard/navigateToLineNumbers';
 
 import { TaskFlamegraph } from './TaskFlamegraph/TaskFlamegraph';
+import { useFetchResult } from './TaskFlamegraph/useFetchResult';
 import { TextProfile } from './TextProfile/TextProfile';
 
 import './TaskReport.scss';
@@ -122,20 +123,33 @@ export interface IFrameReportProps {
 }
 
 export const IFrameReport: React.FC<IFrameReportProps> = ({ url }) => {
-    const [loaded, setLoaded] = React.useState(false);
 
+
+    const extractData = React.useMemo(() => {
+        return async (req: Response) => {
+            return req.text().then((data) => {
+                const blob = new Blob([data], { type: 'text/html' });
+                const blobUrl = URL.createObjectURL(blob);
+                return blobUrl;
+            });
+        };
+    }, []);
+
+
+    const { data: data, error, loading } = useFetchResult<string>({ url: url, extractData: extractData,
+    });
     return (
-        <div className="task-report">
-            {!loaded ? <Loader /> : null}
+        <div className={b({ iframe: true })}>
+            {loading ? <Loader /> : null}
+            {error ? <ErrorPanel message={error?.message} /> : null}
             <iframe
                 id='profile'
-                src={url}
+                src={data}
                 style={{
                     width: '100%',
                     height: '4200px',
                     border: 0,
                 }}
-                onLoad={() => setLoaded(true)}
             />
         </div>
     );
