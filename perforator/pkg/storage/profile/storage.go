@@ -1,6 +1,8 @@
 package profile
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/klauspost/compress/zstd"
 	"golang.org/x/sync/semaphore"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
@@ -17,6 +20,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	profileproto "github.com/yandex/perforator/perforator/proto/profile"
 )
 
 var _ storage.Storage = (*ProfileStorage)(nil)
@@ -97,7 +101,7 @@ func (s *ProfileStorage) ListSuggestions(
 	return s.MetaStorage.ListSuggestions(ctx, query)
 }
 
-func (s *ProfileStorage) uncompressZstd(byteString []byte, compression string) ([]byte, error) {
+func (s *ProfileStorage) uncompressZstd(byteString []byte) ([]byte, error) {
 	result, err := s.decompressor.DecodeAll(byteString, []byte{})
 
 	if err != nil {
@@ -108,7 +112,7 @@ func (s *ProfileStorage) uncompressZstd(byteString []byte, compression string) (
 
 func (s *ProfileStorage) uncompressIfNeeded(bytes []byte, compression string) ([]byte, error) {
 	if strings.HasPrefix(compression, "zstd") {
-		return s.uncompressZstd(bytes, compression)
+		return s.uncompressZstd(bytes)
 	}
 
 	return bytes, nil
@@ -168,6 +172,13 @@ func (s *ProfileStorage) FetchProfile(ctx context.Context, meta *meta.ProfileMet
 		return nil, fmt.Errorf("failed to fetch profile %q blob: %w", meta.ID, err)
 	}
 
+	container := &profileproto.ProfileContainer{}
+	if err := proto.Unmarshal(data, container); err == nil &&
+		isValidContainer(container) {
+		return s.uncompressFromContainer(container, meta.ID)
+	}
+
+	// TODO: remove this fallback once the old format (raw bytes with compression info from ClickHouse) is fully deprecated
 	codec := meta.Attributes[CompressionLabel]
 	data, err = s.uncompressIfNeeded(data, codec)
 	if err != nil {
@@ -175,6 +186,75 @@ func (s *ProfileStorage) FetchProfile(ctx context.Context, meta *meta.ProfileMet
 	}
 
 	return data, nil
+}
+
+func (s *ProfileStorage) uncompressFromContainer(container *profileproto.ProfileContainer, profileID meta.ProfileID) (ProfileData, error) {
+	if container.Pprof != nil {
+		return s.uncompressPayload(container.Pprof, profileID, "pprof")
+	}
+
+	if container.Yaprof != nil {
+		return s.uncompressPayload(container.Yaprof, profileID, "yaprof")
+	}
+
+	return nil, fmt.Errorf("profile container %s has no payload", profileID)
+}
+
+func (s *ProfileStorage) uncompressPayload(payload *profileproto.ProfileContainer_Payload, profileID meta.ProfileID, payloadType string) (ProfileData, error) {
+	switch payload.CompressionMethod {
+	case profileproto.ProfileContainer_None:
+		return payload.Data, nil
+	case profileproto.ProfileContainer_Zstd:
+		return s.uncompressZstd(payload.Data)
+	case profileproto.ProfileContainer_Gzip:
+		return s.uncompressGzip(payload.Data)
+	default:
+		return nil, fmt.Errorf("profile %s (%s): unsupported compression method %v", profileID, payloadType, payload.CompressionMethod)
+	}
+}
+
+func (s *ProfileStorage) uncompressGzip(byteString []byte) ([]byte, error) {
+	r, err := gzip.NewReader(bytes.NewReader(byteString))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(r); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func isValidContainer(c *profileproto.ProfileContainer) bool {
+	// TODO: remove GetUnknown check once all stored blobs use the container format
+	if len(c.ProtoReflect().GetUnknown()) > 0 {
+		return false
+	}
+
+	pprofValid := c.Pprof != nil && isValidPayload(c.Pprof)
+	yaprofValid := c.Yaprof != nil && isValidPayload(c.Yaprof)
+
+	return pprofValid || yaprofValid
+}
+
+var zstdMagic = []byte{0x28, 0xb5, 0x2f, 0xfd}
+
+var gzipMagic = []byte{0x1f, 0x8b}
+
+func isValidPayload(p *profileproto.ProfileContainer_Payload) bool {
+	switch p.CompressionMethod {
+	case profileproto.ProfileContainer_None:
+		return true
+	case profileproto.ProfileContainer_Zstd:
+		return bytes.HasPrefix(p.Data, zstdMagic)
+	case profileproto.ProfileContainer_Gzip:
+		return bytes.HasPrefix(p.Data, gzipMagic)
+	default:
+		return false
+	}
 }
 
 // implements profilestorage.Storage
