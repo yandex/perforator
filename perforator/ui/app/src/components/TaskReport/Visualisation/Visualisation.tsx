@@ -178,7 +178,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
 
         const res = profileData ? { rows: rowsRef.current, meta: profileData?.meta, stringTable: profileData?.stringTable } as ProfileData : null;
         return res;
-    }, [getQuery, profileData, isLeftHeavy, setQuery]);
+    }, [profileData, isLeftHeavy, props.loading]);
 
 
     React.useEffect(() => {
