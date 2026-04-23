@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-22T13:16:37Z",
+    "created": "2026-04-23T16:48:54.858Z",
     "pr": {
-      "id": 13055046,
+      "id": 13079911,
       "author": "baymer",
-      "summary": "TRIVIAL-19: ignore resources.json"
+      "summary": "DEVTOOLSSUPPORT-84317: ERR_PNPM_OUTDATED_LOCKFILE на актуальном локфайле в CI"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11813465752"
+      "uri": "sbr:11831480780"
     },
     "darwin-arm64": {
-      "uri": "sbr:11813462991"
+      "uri": "sbr:11831478333"
     },
     "linux": {
-      "uri": "sbr:11813470865"
+      "uri": "sbr:11831485441"
     },
     "linux-aarch64": {
-      "uri": "sbr:11813468004"
+      "uri": "sbr:11831483114"
     }
   }
 }

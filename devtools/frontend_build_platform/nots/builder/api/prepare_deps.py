@@ -27,6 +27,7 @@ def prepare_deps(args: PrepareDepsOptions):
         sources_path=args.curdir,
         nodejs_bin_path=args.nodejs_bin,
         script_path=args.pm_script,
+        inject_peers=args.inject_peers,
     )
 
     if args.ts_proto_auto_deps_path:
