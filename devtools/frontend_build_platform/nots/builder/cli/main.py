@@ -46,7 +46,7 @@ def _postprocess_output(args: AllOptions, outputs: list[str]) -> None:
 
     if output_file and os.path.isfile(output_file):
         if output_file != args.node_modules_bundle:
-            __add_uuid_for_output(args.bindir, output_file, outputs)
+            __add_uuid_for_output(args.bindir, output_file, [os.path.normpath(p) for p in outputs])
 
 
 def _get_ouput_large_dirs(args: AllOptions) -> list[str]:
