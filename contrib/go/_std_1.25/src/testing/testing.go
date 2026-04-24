@@ -404,6 +404,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"internal/goexperiment"
 	"internal/race"
 	"io"
 	"math/rand"
@@ -708,7 +709,10 @@ func Testing() bool {
 // values are "set", "count", or "atomic". The return value will be
 // empty if test coverage is not enabled.
 func CoverMode() string {
-	return cover.mode
+	if goexperiment.CoverageRedesign {
+		return cover2.mode
+	}
+	return cover.Mode
 }
 
 // Verbose reports whether the -test.v flag is set.
@@ -2211,7 +2215,7 @@ type testDeps interface {
 // It is not meant to be called directly and is not subject to the Go 1 compatibility document.
 // It may change signature from release to release.
 func MainStart(deps testDeps, tests []InternalTest, benchmarks []InternalBenchmark, fuzzTargets []InternalFuzzTarget, examples []InternalExample) *M {
-	registerCover(deps.InitRuntimeCoverage())
+	registerCover2(deps.InitRuntimeCoverage())
 	Init()
 	return &M{
 		deps:        deps,
