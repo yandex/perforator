@@ -2,6 +2,7 @@ import json
 import os
 import stat
 import textwrap
+import sys
 from abc import ABCMeta, abstractmethod
 from six import add_metaclass
 
@@ -191,8 +192,11 @@ class BaseBuilder(object):
         pj = PackageJson.load(pm_utils.build_pj_path(self.options.bindir))
         for bin_tool in pj.bins_iter():
             bin_path = os.path.join(self.options.bindir, bin_tool)
-            bin_stat = os.stat(bin_path)
-            os.chmod(bin_path, bin_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            try:
+                bin_stat = os.stat(bin_path)
+                os.chmod(bin_path, bin_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            except FileNotFoundError:
+                sys.stderr.write(f"Bin file does not exist: {click.style(bin_tool, fg='red')}\n")
 
 
 @add_metaclass(ABCMeta)

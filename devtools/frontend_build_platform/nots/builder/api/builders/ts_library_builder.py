@@ -13,22 +13,25 @@ from ..create_node_modules import create_node_modules
 
 
 @dataclass
-class TsLibraryBuilderOptions(BaseBuildersOptions):
+class BaseTsLibraryBuilderOptions(BaseBuildersOptions):
     outputs: list[str]
     """output directories for the bundler"""
-
-    build_script: str
-    """name of a script from package.json#scripts"""
 
     exclude_globs: list[str]
     """globs to exclude files when copy from CURDIR to BINDIR"""
 
 
+@dataclass
+class TsLibraryBuilderOptions(BaseTsLibraryBuilderOptions):
+    build_script: str
+    """name of a script from package.json#scripts"""
+
+
 class TsLibraryBuilder(BaseBuilder):
-    def build(self, args: TsLibraryBuilderOptions):
+    def build(self):
         self._prepare_bindir()
 
-        create_node_modules(args)
+        create_node_modules(self.options)
 
         self._build()
 

@@ -1,14 +1,14 @@
 from dataclasses import dataclass
+import sys
 
-from .base_builder import BaseLegacyBuilder
-from ..models import CommonBuildersOptions
+from .ts_library_builder import BaseTsLibraryBuilderOptions, TsLibraryBuilder
 
 
 @dataclass
-class PackageBuilderOptions(CommonBuildersOptions):
+class PackageBuilderOptions(BaseTsLibraryBuilderOptions):
     pass
 
 
-class PackageBuilder(BaseLegacyBuilder):
-    def _build(self):
-        pass
+class PackageBuilder(TsLibraryBuilder):
+    def _run_build_script(self):
+        sys.stderr.write("\nTS_PACKAGE does not have build script\n")

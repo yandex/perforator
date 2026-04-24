@@ -195,6 +195,8 @@ def test_build_package_args():
         after_build_js=None,
         after_build_args=None,
         after_build_outdir=None,
+        exclude_globs=[],
+        outputs=[],
     )
 
 
@@ -242,6 +244,8 @@ def test_build_package_nm_args():
         after_build_js=None,
         after_build_args=None,
         after_build_outdir=None,
+        exclude_globs=[],
+        outputs=[],
     )
 
 
@@ -738,4 +742,6 @@ def test_build_verbose_args():
         after_build_js=None,
         after_build_args=None,
         after_build_outdir=None,
+        exclude_globs=[],
+        outputs=[],
     )

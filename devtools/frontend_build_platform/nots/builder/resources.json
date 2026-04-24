@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-23T16:48:54.858Z",
+    "created": "2026-04-24T04:30:48.141Z",
     "pr": {
-      "id": 13079911,
-      "author": "baymer",
-      "summary": "DEVTOOLSSUPPORT-84317: ERR_PNPM_OUTDATED_LOCKFILE на актуальном локфайле в CI"
+      "id": 13049260,
+      "author": "zaverden",
+      "summary": "feat(conf,builder): migrate TS_PACKAGE to TS_LIBRARY conf and builder code"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11831480780"
+      "uri": "sbr:11835849081"
     },
     "darwin-arm64": {
-      "uri": "sbr:11831478333"
+      "uri": "sbr:11835848263"
     },
     "linux": {
-      "uri": "sbr:11831485441"
+      "uri": "sbr:11835850921"
     },
     "linux-aarch64": {
-      "uri": "sbr:11831483114"
+      "uri": "sbr:11835849719"
     }
   }
 }
