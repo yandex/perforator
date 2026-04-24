@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-24T06:18:21Z",
+    "created": "2026-04-24T18:23:00Z",
     "pr": {
-      "id": 13049260,
-      "author": "zaverden",
-      "summary": "feat(conf,builder): migrate TS_PACKAGE to TS_LIBRARY conf and builder code"
+      "id": 13078218,
+      "author": "baymer",
+      "summary": "FBP-3102: Нормализовать пути аутпутов в output.tar.uuid"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11836300507"
+      "uri": "sbr:11846473065"
     },
     "darwin-arm64": {
-      "uri": "sbr:11836299606"
+      "uri": "sbr:11846471165"
     },
     "linux": {
-      "uri": "sbr:11836302881"
+      "uri": "sbr:11846476470"
     },
     "linux-aarch64": {
-      "uri": "sbr:11836301690"
+      "uri": "sbr:11846474587"
     }
   }
 }
