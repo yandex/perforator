@@ -74,10 +74,10 @@ class TsProtoGenerator:
             "devDependencies": deps_pj.data.get("devDependencies", {}),
             "exports": {
                 "./*": {
-                    "import": os.path.join(".", "build", "esm", "generated", self.options.moddir, "*.js"),
-                    "require": os.path.join(".", "build", "cjs", "generated", self.options.moddir, "*.js"),
-                    "types": os.path.join(".", "build", "types", "generated", self.options.moddir, "*.d.ts"),
-                    "default": os.path.join(".", "build", "esm", "generated", self.options.moddir, "*.js"),
+                    "import": os.path.join(".", "build", "esm", "generated", "*.js"),
+                    "require": os.path.join(".", "build", "cjs", "generated", "*.js"),
+                    "types": os.path.join(".", "build", "types", "generated", "*.d.ts"),
+                    "default": os.path.join(".", "build", "esm", "generated", "*.js"),
                 }
             },
         }

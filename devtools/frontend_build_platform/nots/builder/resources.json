@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-24T18:23:00Z",
+    "created": "2026-04-24T19:49:02.279Z",
     "pr": {
-      "id": 13078218,
+      "id": 13097728,
       "author": "baymer",
-      "summary": "FBP-3102: Нормализовать пути аутпутов в output.tar.uuid"
+      "summary": "FBP-3108: nots/builder: изменить экспорты в автогенерации"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11846473065"
+      "uri": "sbr:11847015492"
     },
     "darwin-arm64": {
-      "uri": "sbr:11846471165"
+      "uri": "sbr:11847014312"
     },
     "linux": {
-      "uri": "sbr:11846476470"
+      "uri": "sbr:11847018264"
     },
     "linux-aarch64": {
-      "uri": "sbr:11846474587"
+      "uri": "sbr:11847016960"
     }
   }
 }
