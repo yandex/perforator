@@ -87,6 +87,42 @@ carvel.dev/ytt/test/filetests
 # cel.dev/expr v0.25.1
 ## explicit; go 1.23.0
 cel.dev/expr
+# charm.land/bubbles/v2 v2.1.0
+## explicit; go 1.25.0
+charm.land/bubbles/v2
+charm.land/bubbles/v2/cursor
+charm.land/bubbles/v2/filepicker
+charm.land/bubbles/v2/help
+charm.land/bubbles/v2/internal/memoization
+charm.land/bubbles/v2/internal/runeutil
+charm.land/bubbles/v2/key
+charm.land/bubbles/v2/list
+charm.land/bubbles/v2/paginator
+charm.land/bubbles/v2/progress
+charm.land/bubbles/v2/spinner
+charm.land/bubbles/v2/stopwatch
+charm.land/bubbles/v2/table
+charm.land/bubbles/v2/textarea
+charm.land/bubbles/v2/textinput
+charm.land/bubbles/v2/timer
+charm.land/bubbles/v2/viewport
+# charm.land/bubbletea/v2 v2.0.6
+## explicit; go 1.25.0
+charm.land/bubbletea/v2
+# charm.land/glamour/v2 v2.0.0
+## explicit; go 1.25.8
+charm.land/glamour/v2
+charm.land/glamour/v2/ansi
+charm.land/glamour/v2/internal/autolink
+charm.land/glamour/v2/internal/generate-style-json
+charm.land/glamour/v2/styles
+# charm.land/lipgloss/v2 v2.0.3
+## explicit; go 1.25.0
+charm.land/lipgloss/v2
+charm.land/lipgloss/v2/compat
+charm.land/lipgloss/v2/list
+charm.land/lipgloss/v2/table
+charm.land/lipgloss/v2/tree
 # cloud.google.com/go v0.123.0
 ## explicit; go 1.24.0
 cloud.google.com/go
@@ -5221,8 +5257,8 @@ github.com/awsdocs/aws-doc-sdk-examples/gov2/testtools
 # github.com/aymanbagabas/go-osc52/v2 v2.0.1
 ## explicit; go 1.16
 github.com/aymanbagabas/go-osc52/v2
-# github.com/aymanbagabas/go-udiff v0.2.0
-## explicit; go 1.18
+# github.com/aymanbagabas/go-udiff v0.4.1
+## explicit; go 1.24
 github.com/aymanbagabas/go-udiff
 github.com/aymanbagabas/go-udiff/lcs
 # github.com/aymerick/douceur v0.2.0
@@ -5296,7 +5332,7 @@ github.com/bitly/go-hostpool
 # github.com/bitly/go-simplejson v0.5.0
 ## explicit
 github.com/bitly/go-simplejson
-# github.com/bits-and-blooms/bitset v1.24.2
+# github.com/bits-and-blooms/bitset v1.24.4
 ## explicit; go 1.16
 github.com/bits-and-blooms/bitset
 github.com/bits-and-blooms/bitset/cmd/pextgen
@@ -5879,6 +5915,9 @@ github.com/charmbracelet/bubbles/viewport
 # github.com/charmbracelet/bubbletea v0.26.4
 ## explicit; go 1.18
 github.com/charmbracelet/bubbletea
+# github.com/charmbracelet/colorprofile v0.4.3
+## explicit; go 1.25.0
+github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/glamour v0.8.0
 ## explicit; go 1.21
 github.com/charmbracelet/glamour
@@ -5899,20 +5938,30 @@ github.com/charmbracelet/lipgloss
 github.com/charmbracelet/lipgloss/internal/tree
 github.com/charmbracelet/lipgloss/list
 github.com/charmbracelet/lipgloss/table
-# github.com/charmbracelet/x/ansi v0.1.4
-## explicit; go 1.18
+# github.com/charmbracelet/ultraviolet v0.0.0-20260416155717-489999b90468
+## explicit; go 1.25.0
+github.com/charmbracelet/ultraviolet
+# github.com/charmbracelet/x/ansi v0.11.7
+## explicit; go 1.24.2
 github.com/charmbracelet/x/ansi
+github.com/charmbracelet/x/ansi/kitty
 github.com/charmbracelet/x/ansi/parser
-# github.com/charmbracelet/x/exp/golden v0.0.0-20240815200342-61de596daa2b
+# github.com/charmbracelet/x/exp/golden v0.0.0-20250806222409-83e3a29d542f
+## explicit; go 1.23.0
+github.com/charmbracelet/x/exp/golden
+# github.com/charmbracelet/x/exp/slice v0.0.0-20250327172914-2fdc97757edf
 ## explicit; go 1.19
+github.com/charmbracelet/x/exp/slice
 # github.com/charmbracelet/x/input v0.1.1
 ## explicit; go 1.18
-github.com/charmbracelet/x/input
-# github.com/charmbracelet/x/term v0.1.1
-## explicit; go 1.18
+# github.com/charmbracelet/x/term v0.2.2
+## explicit; go 1.24.0
 github.com/charmbracelet/x/term
-# github.com/charmbracelet/x/windows v0.1.2
+# github.com/charmbracelet/x/termios v0.1.1
 ## explicit; go 1.18
+github.com/charmbracelet/x/termios
+# github.com/charmbracelet/x/windows v0.2.2
+## explicit; go 1.23.0
 github.com/charmbracelet/x/windows
 # github.com/checkpoint-restore/go-criu/v5 v5.3.0
 ## explicit; go 1.13
@@ -5999,13 +6048,15 @@ github.com/circonus-labs/circonusllhist
 ## explicit
 # github.com/client9/misspell v0.3.4
 ## explicit
+# github.com/clipperhouse/displaywidth v0.11.0
+## explicit; go 1.18
+github.com/clipperhouse/displaywidth
+github.com/clipperhouse/displaywidth/testdata
 # github.com/clipperhouse/stringish v0.1.1
 ## explicit; go 1.18
-github.com/clipperhouse/stringish
-# github.com/clipperhouse/uax29/v2 v2.3.0
+# github.com/clipperhouse/uax29/v2 v2.7.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
-github.com/clipperhouse/uax29/v2/internal/iterators
 github.com/clipperhouse/uax29/v2/testdata
 # github.com/cloudevents/sdk-go/binding/format/protobuf/v2 v2.15.0
 ## explicit; go 1.18
@@ -12375,7 +12426,7 @@ github.com/logrusorgru/aurora/v4
 github.com/lorenzosaino/go-sysctl
 # github.com/lucas-clemente/quic-go v0.13.1
 ## explicit; go 1.13
-# github.com/lucasb-eyer/go-colorful v1.2.0
+# github.com/lucasb-eyer/go-colorful v1.4.0
 ## explicit; go 1.12
 github.com/lucasb-eyer/go-colorful
 # github.com/lufeee/execinquery v1.2.1
@@ -12570,7 +12621,7 @@ github.com/mattn/go-localereader
 # github.com/mattn/go-pointer v0.0.1
 ## explicit
 github.com/mattn/go-pointer
-# github.com/mattn/go-runewidth v0.0.19
+# github.com/mattn/go-runewidth v0.0.23
 ## explicit; go 1.20
 github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.12
@@ -17949,7 +18000,7 @@ github.com/yuin/goldmark/renderer/html
 github.com/yuin/goldmark/testutil
 github.com/yuin/goldmark/text
 github.com/yuin/goldmark/util
-# github.com/yuin/goldmark-emoji v1.0.3
+# github.com/yuin/goldmark-emoji v1.0.5
 ## explicit; go 1.15
 github.com/yuin/goldmark-emoji
 github.com/yuin/goldmark-emoji/ast
