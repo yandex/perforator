@@ -795,6 +795,7 @@ require (
 	github.com/smacker/go-tree-sitter v0.0.0-20230720070738-0d0a9f78d8f8
 	github.com/smallstep/certificates v0.25.2
 	github.com/smallstep/cli v0.25.1
+	github.com/smallstep/nosql v0.6.0
 	github.com/smallstep/pkcs7 v0.1.1
 	github.com/smira/go-statsd v1.3.2
 	github.com/sony/gobreaker v1.0.0
@@ -2284,7 +2285,6 @@ require (
 	github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262 // indirect
 	github.com/smallstep/certinfo v1.12.0 // indirect
 	github.com/smallstep/go-attestation v0.4.4-0.20240109183208-413678f90935 // indirect
-	github.com/smallstep/nosql v0.6.0 // indirect
 	github.com/smallstep/scep v0.0.0-20231024192529-aee96d7ad34d // indirect
 	github.com/smallstep/truststore v0.13.0 // indirect
 	github.com/smallstep/zcrypto v0.0.0-20221001003018-1ab2364d2a91 // indirect
