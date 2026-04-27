@@ -11,4 +11,5 @@ class PackageBuilderOptions(BaseTsLibraryBuilderOptions):
 
 class PackageBuilder(TsLibraryBuilder):
     def _run_build_script(self):
-        sys.stderr.write("\nTS_PACKAGE does not have build script\n")
+        if self.options.verbose:
+            sys.stderr.write("\nTS_PACKAGE does not have build script\n")
