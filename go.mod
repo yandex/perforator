@@ -419,7 +419,7 @@ require (
 	github.com/go-chi/hostrouter v0.3.0
 	github.com/go-chi/render v1.0.3
 	github.com/go-cmd/cmd v1.4.2
-	github.com/go-co-op/gocron/v2 v2.16.2
+	github.com/go-co-op/gocron/v2 v2.21.0
 	github.com/go-critic/go-critic v0.9.0
 	github.com/go-delve/delve v1.25.2
 	github.com/go-faster/city v1.0.1

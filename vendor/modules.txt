@@ -8473,8 +8473,8 @@ github.com/go-chi/render
 github.com/go-cmd/cmd
 github.com/go-cmd/cmd/examples/blocking-buffered
 github.com/go-cmd/cmd/examples/blocking-streaming
-# github.com/go-co-op/gocron/v2 v2.16.2
-## explicit; go 1.23.0
+# github.com/go-co-op/gocron/v2 v2.21.0
+## explicit; go 1.21.4
 github.com/go-co-op/gocron/v2
 github.com/go-co-op/gocron/v2/examples/elector
 # github.com/go-critic/go-critic v0.9.0
