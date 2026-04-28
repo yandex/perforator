@@ -16197,8 +16197,8 @@ github.com/stretchr/testify/suite
 # github.com/stripe/krl v0.0.0-20220202203423-9dc12b164150
 ## explicit
 github.com/stripe/krl
-# github.com/strongswan/govici v0.7.0
-## explicit; go 1.18
+# github.com/strongswan/govici v0.8.2
+## explicit; go 1.24
 github.com/strongswan/govici/vici
 # github.com/stvp/tempredis v0.0.0-20181119212430-b82af8480203
 ## explicit

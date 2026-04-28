@@ -815,7 +815,7 @@ require (
 	github.com/streadway/amqp v1.0.0
 	github.com/stretchr/testify v1.11.1
 	github.com/stripe/krl v0.0.0-20220202203423-9dc12b164150
-	github.com/strongswan/govici v0.7.0
+	github.com/strongswan/govici v0.8.2
 	github.com/swaggo/echo-swagger v1.4.1
 	github.com/swaggo/files/v2 v2.0.0
 	github.com/swaggo/http-swagger/v2 v2.0.1
