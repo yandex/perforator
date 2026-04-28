@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-27T06:42:14Z",
+    "created": "2026-04-28T14:10:50.799Z",
     "pr": {
-      "id": 13114558,
-      "author": "zaverden",
-      "summary": "chore(builder): TS_PACKAGE log only for verbose chore(builder): TS_PACKAGE log only for verbose"
+      "id": 13142903,
+      "author": "baymer",
+      "summary": "FBP-3108: nots/builder: изменить экспорты в автогенерации"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11859932148"
+      "uri": "sbr:11881042826"
     },
     "darwin-arm64": {
-      "uri": "sbr:11859930893"
+      "uri": "sbr:11881037854"
     },
     "linux": {
-      "uri": "sbr:11859935482"
+      "uri": "sbr:11881051508"
     },
     "linux-aarch64": {
-      "uri": "sbr:11859933643"
+      "uri": "sbr:11881047173"
     }
   }
 }
