@@ -21,7 +21,9 @@ PROTO_NAMESPACE(
 
 GRPC()
 
-WITH_KOTLIN_GRPC()
+IF (NOT OPENSOURCE)
+    WITH_KOTLIN_GRPC()
+ENDIF()
 
 SRCS(
     google/api/annotations.proto
