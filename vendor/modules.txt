@@ -17664,7 +17664,7 @@ github.com/ydb-platform/fq-connector-go/tools/ydb/olap_inconsistency
 github.com/ydb-platform/fq-connector-go/tools/ydb/query_service_negative
 # github.com/ydb-platform/ydb-api-protos v0.0.0-20221215182550-667c41254584
 ## explicit
-# github.com/ydb-platform/ydb-go-genproto v0.0.0-20260128080146-c4ed16b24b37
+# github.com/ydb-platform/ydb-go-genproto v0.0.0-20260311095541-ebbf792c1180
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-genproto
 github.com/ydb-platform/ydb-go-genproto/Ydb_Auth_V1
@@ -17687,11 +17687,15 @@ github.com/ydb-platform/ydb-go-genproto/draft/Ydb_FederatedQuery_V1
 github.com/ydb-platform/ydb-go-genproto/draft/Ydb_KeyValue_V1
 github.com/ydb-platform/ydb-go-genproto/draft/Ydb_Maintenance_V1
 github.com/ydb-platform/ydb-go-genproto/draft/Ydb_ObjectStorage_V1
+github.com/ydb-platform/ydb-go-genproto/draft/Ydb_Replication_V1
+github.com/ydb-platform/ydb-go-genproto/draft/Ydb_View_V1
 github.com/ydb-platform/ydb-go-genproto/draft/protos/Ydb_DynamicConfig
 github.com/ydb-platform/ydb-go-genproto/draft/protos/Ydb_FederatedQuery
 github.com/ydb-platform/ydb-go-genproto/draft/protos/Ydb_KeyValue
 github.com/ydb-platform/ydb-go-genproto/draft/protos/Ydb_Maintenance
 github.com/ydb-platform/ydb-go-genproto/draft/protos/Ydb_ObjectStorage
+github.com/ydb-platform/ydb-go-genproto/draft/protos/Ydb_Replication
+github.com/ydb-platform/ydb-go-genproto/draft/protos/Ydb_View
 github.com/ydb-platform/ydb-go-genproto/protos/Ydb
 github.com/ydb-platform/ydb-go-genproto/protos/Ydb_Auth
 github.com/ydb-platform/ydb-go-genproto/protos/Ydb_Cms
@@ -17900,8 +17904,8 @@ github.com/ydb-platform/ydb-go-yc/internal/cmd/connect
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-yc-metadata
 github.com/ydb-platform/ydb-go-yc-metadata/trace
-# github.com/ydb-platform/ydbops v0.0.24
-## explicit; go 1.21
+# github.com/ydb-platform/ydbops v0.0.25
+## explicit; go 1.23.9
 github.com/ydb-platform/ydbops
 github.com/ydb-platform/ydbops/cmd
 github.com/ydb-platform/ydbops/cmd/maintenance

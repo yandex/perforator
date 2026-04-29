@@ -891,7 +891,7 @@ require (
 	github.com/yandex/pandora v0.5.3
 	github.com/ybbus/jsonrpc/v3 v3.1.1
 	github.com/ydb-platform/fq-connector-go v0.9.3-rc.1
-	github.com/ydb-platform/ydb-go-genproto v0.0.0-20260128080146-c4ed16b24b37
+	github.com/ydb-platform/ydb-go-genproto v0.0.0-20260311095541-ebbf792c1180
 	github.com/ydb-platform/ydb-go-sdk-auth-environ v0.2.0
 	github.com/ydb-platform/ydb-go-sdk-metrics v0.18.0
 	github.com/ydb-platform/ydb-go-sdk-opentracing v0.13.0
@@ -903,7 +903,7 @@ require (
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.133.1
 	github.com/ydb-platform/ydb-go-yc v0.12.3
 	github.com/ydb-platform/ydb-go-yc-metadata v0.6.1
-	github.com/ydb-platform/ydbops v0.0.24
+	github.com/ydb-platform/ydbops v0.0.25
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	github.com/ysmood/gson v0.7.3
 	github.com/yuin/goldmark v1.7.13
