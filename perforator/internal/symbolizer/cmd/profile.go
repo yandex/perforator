@@ -22,19 +22,21 @@ func makeFlamegraphCmd() *cobra.Command {
 	var title = "Flamegraph"
 	var sampleType string
 	var useNewRenderer = false
+	var showLineNumbers = false
+	var showFileNames = true
 
 	flamegraphPerfCmd := &cobra.Command{
 		Use:   "perf",
 		Short: "Render flamegraph from perf script",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return buildPerfFlamegraph(inputPath, baselinePath, format, minWeight, maxDepth, title, sampleType)
+			return buildPerfFlamegraph(inputPath, baselinePath, format, minWeight, maxDepth, title, sampleType, showLineNumbers, showFileNames)
 		},
 	}
 	flamegraphPProfCmd := &cobra.Command{
 		Use:   "pprof",
 		Short: "Render flamegraph from pprof profile",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return buildPProfFlamegraph(inputPath, baselinePath, format, minWeight, maxDepth, title, sampleType, useNewRenderer)
+			return buildPProfFlamegraph(inputPath, baselinePath, format, minWeight, maxDepth, title, sampleType, useNewRenderer, showLineNumbers, showFileNames)
 		},
 	}
 	flamegraphPProfCmd.Flags().BoolVar(&useNewRenderer, "use-new-renderer", false, "Use C++ renderer instead of Go")
@@ -42,7 +44,7 @@ func makeFlamegraphCmd() *cobra.Command {
 		Use:   "collapsed",
 		Short: "Render flamegraph from collapsed stacks",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return buildCollapsedFlamegraph(inputPath, baselinePath, format, minWeight, maxDepth, title, sampleType)
+			return buildCollapsedFlamegraph(inputPath, baselinePath, format, minWeight, maxDepth, title, sampleType, showLineNumbers, showFileNames)
 		},
 	}
 
@@ -62,6 +64,8 @@ func makeFlamegraphCmd() *cobra.Command {
 	flamegraphCmd.PersistentFlags().IntVarP(&maxDepth, "max-depth", "d", 0, "Maximum flamegraph height. Use 0 to disable")
 	flamegraphCmd.PersistentFlags().StringVarP(&title, "title", "t", "Flamegraph", "Flamegraph title")
 	flamegraphCmd.PersistentFlags().StringVarP(&sampleType, "sample-type", "T", "", "Sample type: index, type, or type.unit (e.g., 0, cpu, cpu.cycles)")
+	flamegraphCmd.PersistentFlags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "Show line numbers")
+	flamegraphCmd.PersistentFlags().BoolVarP(&showFileNames, "file-names", "n", true, "Show file names")
 	must.Must(flamegraphCmd.MarkPersistentFlagFilename("input"))
 
 	flamegraphCmd.AddCommand(flamegraphPerfCmd)
@@ -142,13 +146,15 @@ func normalizeFormat(format render.Format) render.Format {
 	}
 }
 
-func buildPerfFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string) error {
+func buildPerfFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string, showLineNumbers, showFileNames bool) error {
 	fg := render.NewFlameGraph()
 	fg.SetTitle(title)
 	fg.SetMinWeight(minWeight)
 	fg.SetDepthLimit(maxDepth)
 	fg.SetFormat(format)
 	fg.SetSampleType(sampleType)
+	fg.SetLineNumbers(showLineNumbers)
+	fg.SetFileNames(showFileNames)
 
 	prof, err := loadPerfProfile(inputPath)
 	if err != nil {
@@ -178,7 +184,7 @@ func buildPerfFlamegraph(inputPath, baselinePath string, format render.Format, m
 	return nil
 }
 
-func buildPProfFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string, useNewRenderer bool) error {
+func buildPProfFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string, useNewRenderer bool, showLineNumbers, showFileNames bool) error {
 	var fg render.FlameGraphRenderer
 	if useNewRenderer {
 		fg = render.NewCGOFlameGraph()
@@ -191,6 +197,8 @@ func buildPProfFlamegraph(inputPath, baselinePath string, format render.Format, 
 	fg.SetDepthLimit(maxDepth)
 	fg.SetFormat(format)
 	fg.SetSampleType(sampleType)
+	fg.SetLineNumbers(showLineNumbers)
+	fg.SetFileNames(showFileNames)
 
 	prof, err := loadProfile(inputPath)
 	if err != nil {
@@ -213,13 +221,15 @@ func buildPProfFlamegraph(inputPath, baselinePath string, format render.Format, 
 	return fg.Render(os.Stdout)
 }
 
-func buildCollapsedFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string) error {
+func buildCollapsedFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string, showLineNumbers, showFileNames bool) error {
 	fg := render.NewFlameGraph()
 	fg.SetTitle(title)
 	fg.SetMinWeight(minWeight)
 	fg.SetDepthLimit(maxDepth)
 	fg.SetFormat(format)
 	fg.SetSampleType(sampleType)
+	fg.SetLineNumbers(showLineNumbers)
+	fg.SetFileNames(showFileNames)
 
 	prof, err := loadFoldedProfile(inputPath)
 	if err != nil {
