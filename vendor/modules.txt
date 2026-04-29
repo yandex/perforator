@@ -9847,6 +9847,7 @@ github.com/google/gopacket/tcpassembly
 github.com/google/gopacket/tcpassembly/tcpreader
 # github.com/google/jsonschema-go v0.3.0
 ## explicit; go 1.23.0
+github.com/google/jsonschema-go
 github.com/google/jsonschema-go/jsonschema
 # github.com/google/licensecheck v0.3.1
 ## explicit; go 1.12

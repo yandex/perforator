@@ -494,6 +494,7 @@ require (
 	github.com/google/go-jsonnet v0.21.0
 	github.com/google/go-tpm v0.9.0
 	github.com/google/gopacket v1.1.19
+	github.com/google/jsonschema-go v0.3.0
 	github.com/google/licensecheck v0.3.1
 	github.com/google/nftables v0.3.0
 	github.com/google/osv-scalibr v0.2.0
@@ -1748,7 +1749,6 @@ require (
 	github.com/google/go-tpm-tools v0.4.2 // indirect
 	github.com/google/go-tspi v0.3.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/jsonschema-go v0.3.0 // indirect
 	github.com/google/licenseclassifier v0.0.0-20250213175939-b5d1a3369749 // indirect
 	github.com/google/licenseclassifier/v2 v2.0.0 // indirect
 	github.com/google/martian v2.1.1-0.20190517191504-25dcb96d9e51+incompatible // indirect
