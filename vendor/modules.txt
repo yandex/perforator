@@ -4393,6 +4393,7 @@ github.com/alecthomas/chroma/v2/styles
 github.com/alecthomas/kingpin/v2
 # github.com/alecthomas/kong v1.12.1
 ## explicit; go 1.20
+github.com/alecthomas/kong
 # github.com/alecthomas/participle v0.4.1
 ## explicit; go 1.13
 github.com/alecthomas/participle
@@ -8259,6 +8260,15 @@ github.com/fortytw2/leaktest
 # github.com/frankban/quicktest v1.14.6
 ## explicit; go 1.13
 github.com/frankban/quicktest
+# github.com/frederic-arr/ripedb-go v0.7.0
+## explicit; go 1.22.5
+github.com/frederic-arr/ripedb-go
+github.com/frederic-arr/ripedb-go/cmd/ripedb
+github.com/frederic-arr/ripedb-go/ripedb
+github.com/frederic-arr/ripedb-go/ripedb/models
+# github.com/frederic-arr/rpsl-go v0.3.2
+## explicit; go 1.22.5
+github.com/frederic-arr/rpsl-go
 # github.com/fsnotify/fsevents v0.2.0
 ## explicit; go 1.17
 # github.com/fsnotify/fsnotify v1.9.0

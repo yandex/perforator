@@ -397,6 +397,7 @@ require (
 	github.com/fluent/fluent-bit-go v0.0.0-20230515084116-b93d969da46d
 	github.com/fogleman/gg v1.3.0
 	github.com/forPelevin/gomoji v1.3.0
+	github.com/frederic-arr/ripedb-go v0.7.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/fsouza/go-dockerclient v1.10.1
 	github.com/fullstorydev/grpcurl v1.9.3
@@ -1632,6 +1633,7 @@ require (
 	github.com/franela/goblin v0.0.0-20211003143422-0a4f594942bf // indirect
 	github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8 // indirect
 	github.com/frankban/quicktest v1.14.6 // indirect
+	github.com/frederic-arr/rpsl-go v0.3.2 // indirect
 	github.com/fsnotify/fsevents v0.2.0 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
 	github.com/gavv/httpexpect v2.0.0+incompatible // indirect
