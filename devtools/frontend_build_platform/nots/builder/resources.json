@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-28T22:00:46Z",
+    "created": "2026-04-29T19:32:08Z",
     "pr": {
-      "id": 13142903,
+      "id": 13168651,
       "author": "baymer",
-      "summary": "FBP-3108: nots/builder: изменить экспорты в автогенерации"
+      "summary": "FBP-3129: nots.py: убрать валидацию на declarationDir в tsconfig validation"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11886620967"
+      "uri": "sbr:11900066412"
     },
     "darwin-arm64": {
-      "uri": "sbr:11886619731"
+      "uri": "sbr:11900064910"
     },
     "linux": {
-      "uri": "sbr:11886623106"
+      "uri": "sbr:11900069415"
     },
     "linux-aarch64": {
-      "uri": "sbr:11886621969"
+      "uri": "sbr:11900067869"
     }
   }
 }
