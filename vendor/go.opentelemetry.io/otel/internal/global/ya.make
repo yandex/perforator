@@ -5,7 +5,7 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v1.40.0)
+VERSION(v1.42.0)
 
 SRCS(
     handler.go
@@ -20,7 +20,6 @@ SRCS(
 GO_TEST_SRCS(
     alternate_meter_test.go
     benchmark_test.go
-    handler_test.go
     instruments_test.go
     internal_logging_test.go
     meter_test.go

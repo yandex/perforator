@@ -18788,8 +18788,8 @@ go.opentelemetry.io/contrib/propagators/jaeger
 ## explicit; go 1.22.0
 go.opentelemetry.io/contrib/zpages
 go.opentelemetry.io/contrib/zpages/internal
-# go.opentelemetry.io/otel v1.40.0
-## explicit; go 1.24.0
+# go.opentelemetry.io/otel v1.42.0
+## explicit; go 1.25.0
 go.opentelemetry.io/otel
 go.opentelemetry.io/otel/attribute
 go.opentelemetry.io/otel/attribute/internal
@@ -18797,6 +18797,7 @@ go.opentelemetry.io/otel/attribute/internal/xxhash
 go.opentelemetry.io/otel/baggage
 go.opentelemetry.io/otel/codes
 go.opentelemetry.io/otel/internal/baggage
+go.opentelemetry.io/otel/internal/errorhandler
 go.opentelemetry.io/otel/internal/global
 go.opentelemetry.io/otel/internal/internaltest
 go.opentelemetry.io/otel/propagation
@@ -18984,6 +18985,28 @@ go.opentelemetry.io/otel/semconv/v1.39.0/signalrconv
 go.opentelemetry.io/otel/semconv/v1.39.0/systemconv
 go.opentelemetry.io/otel/semconv/v1.39.0/vcsconv
 go.opentelemetry.io/otel/semconv/v1.4.0
+go.opentelemetry.io/otel/semconv/v1.40.0
+go.opentelemetry.io/otel/semconv/v1.40.0/azureconv
+go.opentelemetry.io/otel/semconv/v1.40.0/cicdconv
+go.opentelemetry.io/otel/semconv/v1.40.0/containerconv
+go.opentelemetry.io/otel/semconv/v1.40.0/dbconv
+go.opentelemetry.io/otel/semconv/v1.40.0/dnsconv
+go.opentelemetry.io/otel/semconv/v1.40.0/faasconv
+go.opentelemetry.io/otel/semconv/v1.40.0/genaiconv
+go.opentelemetry.io/otel/semconv/v1.40.0/goconv
+go.opentelemetry.io/otel/semconv/v1.40.0/httpconv
+go.opentelemetry.io/otel/semconv/v1.40.0/hwconv
+go.opentelemetry.io/otel/semconv/v1.40.0/k8sconv
+go.opentelemetry.io/otel/semconv/v1.40.0/mcpconv
+go.opentelemetry.io/otel/semconv/v1.40.0/messagingconv
+go.opentelemetry.io/otel/semconv/v1.40.0/nfsconv
+go.opentelemetry.io/otel/semconv/v1.40.0/openshiftconv
+go.opentelemetry.io/otel/semconv/v1.40.0/otelconv
+go.opentelemetry.io/otel/semconv/v1.40.0/processconv
+go.opentelemetry.io/otel/semconv/v1.40.0/rpcconv
+go.opentelemetry.io/otel/semconv/v1.40.0/signalrconv
+go.opentelemetry.io/otel/semconv/v1.40.0/systemconv
+go.opentelemetry.io/otel/semconv/v1.40.0/vcsconv
 go.opentelemetry.io/otel/semconv/v1.5.0
 go.opentelemetry.io/otel/semconv/v1.6.1
 go.opentelemetry.io/otel/semconv/v1.7.0
@@ -19092,8 +19115,8 @@ go.opentelemetry.io/otel/log/noop
 # go.opentelemetry.io/otel/log/logtest v0.13.0
 ## explicit; go 1.23.0
 go.opentelemetry.io/otel/log/logtest
-# go.opentelemetry.io/otel/metric v1.40.0
-## explicit; go 1.24.0
+# go.opentelemetry.io/otel/metric v1.42.0
+## explicit; go 1.25.0
 go.opentelemetry.io/otel/metric
 go.opentelemetry.io/otel/metric/embedded
 go.opentelemetry.io/otel/metric/noop
@@ -19125,8 +19148,8 @@ go.opentelemetry.io/otel/sdk/metric/internal/reservoir
 go.opentelemetry.io/otel/sdk/metric/internal/x
 go.opentelemetry.io/otel/sdk/metric/metricdata
 go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest
-# go.opentelemetry.io/otel/trace v1.40.0
-## explicit; go 1.24.0
+# go.opentelemetry.io/otel/trace v1.42.0
+## explicit; go 1.25.0
 go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
