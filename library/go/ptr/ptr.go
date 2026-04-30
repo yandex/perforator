@@ -118,6 +118,17 @@ func EqualVal[T comparable](v *T, w *T) bool {
 	return (v == nil && w == nil) || (v != nil && w != nil && *v == *w)
 }
 
+// Coalesce returns the first non-nil pointer in its arguments.
+// It returns nil if all arguments are nil.
+func Coalesce[T any](vs ...*T) *T {
+	for _, v := range vs {
+		if v != nil {
+			return v
+		}
+	}
+	return nil
+}
+
 // isZero checks if provided value is empty value for the T
 func isZero[T comparable](v T) bool {
 	var t T

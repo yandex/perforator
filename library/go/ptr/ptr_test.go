@@ -307,3 +307,40 @@ func TestEqualVal(t *testing.T) {
 	}
 
 }
+
+func TestCoalesce(t *testing.T) {
+	tests := []struct {
+		name string
+		args []*int
+		want *int
+	}{
+		{
+			name: "empty",
+			args: nil,
+			want: nil,
+		},
+		{
+			name: "only nil",
+			args: []*int{nil, nil, nil},
+			want: nil,
+		},
+		{
+			name: "full",
+			args: []*int{T(1), T(2), T(3)},
+			want: T(1),
+		},
+		{
+			name: "ignore nil",
+			args: []*int{nil, nil, T(1), nil, T(2)},
+			want: T(1),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Coalesce(tt.args...)
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
