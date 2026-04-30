@@ -141,6 +141,7 @@ require (
 	cloud.google.com/go/webrisk v1.11.2
 	cloud.google.com/go/websecurityscanner v1.7.7
 	cloud.google.com/go/workflows v1.14.3
+	codeberg.org/go-pdf/fpdf v0.11.1
 	connectrpc.com/connect v1.16.2
 	connectrpc.com/vanguard v0.3.0
 	cuelang.org/go v0.4.3
@@ -1133,7 +1134,6 @@ require (
 	codeberg.org/go-fonts/dejavu v0.4.0 // indirect
 	codeberg.org/go-fonts/liberation v0.5.0 // indirect
 	codeberg.org/go-latex/latex v0.2.0 // indirect
-	codeberg.org/go-pdf/fpdf v0.11.1 // indirect
 	collectd.org v0.6.0 // indirect
 	connectrpc.com/grpcreflect v1.2.0 // indirect
 	connectrpc.com/otelconnect v0.7.0 // indirect

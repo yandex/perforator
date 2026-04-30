@@ -1257,8 +1257,16 @@ codeberg.org/go-latex/latex/token
 # codeberg.org/go-pdf/fpdf v0.11.1
 ## explicit; go 1.21
 codeberg.org/go-pdf/fpdf
+codeberg.org/go-pdf/fpdf/contrib/barcode
+codeberg.org/go-pdf/fpdf/contrib/ghostscript
+codeberg.org/go-pdf/fpdf/contrib/gofpdi
+codeberg.org/go-pdf/fpdf/contrib/httpimg
+codeberg.org/go-pdf/fpdf/contrib/tiff
 codeberg.org/go-pdf/fpdf/internal/example
 codeberg.org/go-pdf/fpdf/internal/files
+codeberg.org/go-pdf/fpdf/internal/files/bin
+codeberg.org/go-pdf/fpdf/list
+codeberg.org/go-pdf/fpdf/makefont
 # collectd.org v0.6.0
 ## explicit; go 1.19
 # connectrpc.com/connect v1.16.2
