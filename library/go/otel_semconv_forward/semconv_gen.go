@@ -2,7 +2,7 @@
 
 package semconv
 
-import upstream "go.opentelemetry.io/otel/semconv/v1.39.0"
+import upstream "go.opentelemetry.io/otel/semconv/v1.40.0"
 
 const (
 	AWSBedrockGuardrailIDKey                       = upstream.AWSBedrockGuardrailIDKey
@@ -185,7 +185,6 @@ const (
 	ElasticsearchNodeNameKey                       = upstream.ElasticsearchNodeNameKey
 	EnduserIDKey                                   = upstream.EnduserIDKey
 	EnduserPseudoIDKey                             = upstream.EnduserPseudoIDKey
-	ErrorMessageKey                                = upstream.ErrorMessageKey
 	ErrorTypeKey                                   = upstream.ErrorTypeKey
 	ExceptionEventName                             = upstream.ExceptionEventName
 	ExceptionMessageKey                            = upstream.ExceptionMessageKey
@@ -208,6 +207,7 @@ const (
 	FaaSTriggerKey                                 = upstream.FaaSTriggerKey
 	FaaSVersionKey                                 = upstream.FaaSVersionKey
 	FeatureFlagContextIDKey                        = upstream.FeatureFlagContextIDKey
+	FeatureFlagErrorMessageKey                     = upstream.FeatureFlagErrorMessageKey
 	FeatureFlagKeyKey                              = upstream.FeatureFlagKeyKey
 	FeatureFlagProviderNameKey                     = upstream.FeatureFlagProviderNameKey
 	FeatureFlagResultReasonKey                     = upstream.FeatureFlagResultReasonKey
@@ -254,11 +254,15 @@ const (
 	GCPClientServiceKey                            = upstream.GCPClientServiceKey
 	GCPCloudRunJobExecutionKey                     = upstream.GCPCloudRunJobExecutionKey
 	GCPCloudRunJobTaskIndexKey                     = upstream.GCPCloudRunJobTaskIndexKey
+	GCPGCEInstanceGroupManagerNameKey              = upstream.GCPGCEInstanceGroupManagerNameKey
+	GCPGCEInstanceGroupManagerRegionKey            = upstream.GCPGCEInstanceGroupManagerRegionKey
+	GCPGCEInstanceGroupManagerZoneKey              = upstream.GCPGCEInstanceGroupManagerZoneKey
 	GCPGCEInstanceHostnameKey                      = upstream.GCPGCEInstanceHostnameKey
 	GCPGCEInstanceNameKey                          = upstream.GCPGCEInstanceNameKey
 	GenAIAgentDescriptionKey                       = upstream.GenAIAgentDescriptionKey
 	GenAIAgentIDKey                                = upstream.GenAIAgentIDKey
 	GenAIAgentNameKey                              = upstream.GenAIAgentNameKey
+	GenAIAgentVersionKey                           = upstream.GenAIAgentVersionKey
 	GenAIConversationIDKey                         = upstream.GenAIConversationIDKey
 	GenAIDataSourceIDKey                           = upstream.GenAIDataSourceIDKey
 	GenAIEmbeddingsDimensionCountKey               = upstream.GenAIEmbeddingsDimensionCountKey
@@ -286,6 +290,8 @@ const (
 	GenAIResponseFinishReasonsKey                  = upstream.GenAIResponseFinishReasonsKey
 	GenAIResponseIDKey                             = upstream.GenAIResponseIDKey
 	GenAIResponseModelKey                          = upstream.GenAIResponseModelKey
+	GenAIRetrievalDocumentsKey                     = upstream.GenAIRetrievalDocumentsKey
+	GenAIRetrievalQueryTextKey                     = upstream.GenAIRetrievalQueryTextKey
 	GenAISystemInstructionsKey                     = upstream.GenAISystemInstructionsKey
 	GenAITokenTypeKey                              = upstream.GenAITokenTypeKey
 	GenAIToolCallArgumentsKey                      = upstream.GenAIToolCallArgumentsKey
@@ -295,6 +301,8 @@ const (
 	GenAIToolDescriptionKey                        = upstream.GenAIToolDescriptionKey
 	GenAIToolNameKey                               = upstream.GenAIToolNameKey
 	GenAIToolTypeKey                               = upstream.GenAIToolTypeKey
+	GenAIUsageCacheCreationInputTokensKey          = upstream.GenAIUsageCacheCreationInputTokensKey
+	GenAIUsageCacheReadInputTokensKey              = upstream.GenAIUsageCacheReadInputTokensKey
 	GenAIUsageInputTokensKey                       = upstream.GenAIUsageInputTokensKey
 	GenAIUsageOutputTokensKey                      = upstream.GenAIUsageOutputTokensKey
 	GeoContinentCodeKey                            = upstream.GeoContinentCodeKey
@@ -408,6 +416,14 @@ const (
 	K8SResourceQuotaNameKey                        = upstream.K8SResourceQuotaNameKey
 	K8SResourceQuotaResourceNameKey                = upstream.K8SResourceQuotaResourceNameKey
 	K8SResourceQuotaUIDKey                         = upstream.K8SResourceQuotaUIDKey
+	K8SServiceEndpointAddressTypeKey               = upstream.K8SServiceEndpointAddressTypeKey
+	K8SServiceEndpointConditionKey                 = upstream.K8SServiceEndpointConditionKey
+	K8SServiceEndpointZoneKey                      = upstream.K8SServiceEndpointZoneKey
+	K8SServiceNameKey                              = upstream.K8SServiceNameKey
+	K8SServicePublishNotReadyAddressesKey          = upstream.K8SServicePublishNotReadyAddressesKey
+	K8SServiceTrafficDistributionKey               = upstream.K8SServiceTrafficDistributionKey
+	K8SServiceTypeKey                              = upstream.K8SServiceTypeKey
+	K8SServiceUIDKey                               = upstream.K8SServiceUIDKey
 	K8SStatefulSetNameKey                          = upstream.K8SStatefulSetNameKey
 	K8SStatefulSetUIDKey                           = upstream.K8SStatefulSetUIDKey
 	K8SStorageclassNameKey                         = upstream.K8SStorageclassNameKey
@@ -501,12 +517,19 @@ const (
 	OncRPCProcedureNumberKey                       = upstream.OncRPCProcedureNumberKey
 	OncRPCProgramNameKey                           = upstream.OncRPCProgramNameKey
 	OncRPCVersionKey                               = upstream.OncRPCVersionKey
+	OpenAIAPITypeKey                               = upstream.OpenAIAPITypeKey
 	OpenAIRequestServiceTierKey                    = upstream.OpenAIRequestServiceTierKey
 	OpenAIResponseServiceTierKey                   = upstream.OpenAIResponseServiceTierKey
 	OpenAIResponseSystemFingerprintKey             = upstream.OpenAIResponseSystemFingerprintKey
 	OpenShiftClusterquotaNameKey                   = upstream.OpenShiftClusterquotaNameKey
 	OpenShiftClusterquotaUIDKey                    = upstream.OpenShiftClusterquotaUIDKey
 	OpenTracingRefTypeKey                          = upstream.OpenTracingRefTypeKey
+	OracleCloudRealmKey                            = upstream.OracleCloudRealmKey
+	OracleDBDomainKey                              = upstream.OracleDBDomainKey
+	OracleDBInstanceNameKey                        = upstream.OracleDBInstanceNameKey
+	OracleDBNameKey                                = upstream.OracleDBNameKey
+	OracleDBPdbKey                                 = upstream.OracleDBPdbKey
+	OracleDBServiceKey                             = upstream.OracleDBServiceKey
 	PprofLocationIsFoldedKey                       = upstream.PprofLocationIsFoldedKey
 	PprofMappingHasFilenamesKey                    = upstream.PprofMappingHasFilenamesKey
 	PprofMappingHasFunctionsKey                    = upstream.PprofMappingHasFunctionsKey
@@ -516,6 +539,8 @@ const (
 	PprofProfileDocURLKey                          = upstream.PprofProfileDocURLKey
 	PprofProfileDropFramesKey                      = upstream.PprofProfileDropFramesKey
 	PprofProfileKeepFramesKey                      = upstream.PprofProfileKeepFramesKey
+	PprofScopeDefaultSampleTypeKey                 = upstream.PprofScopeDefaultSampleTypeKey
+	PprofScopeSampleTypeOrderKey                   = upstream.PprofScopeSampleTypeOrderKey
 	ProcessArgsCountKey                            = upstream.ProcessArgsCountKey
 	ProcessCommandArgsKey                          = upstream.ProcessCommandArgsKey
 	ProcessCommandKey                              = upstream.ProcessCommandKey
@@ -550,10 +575,6 @@ const (
 	ProcessVpidKey                                 = upstream.ProcessVpidKey
 	ProcessWorkingDirectoryKey                     = upstream.ProcessWorkingDirectoryKey
 	ProfileFrameTypeKey                            = upstream.ProfileFrameTypeKey
-	RPCMessageCompressedSizeKey                    = upstream.RPCMessageCompressedSizeKey
-	RPCMessageIDKey                                = upstream.RPCMessageIDKey
-	RPCMessageTypeKey                              = upstream.RPCMessageTypeKey
-	RPCMessageUncompressedSizeKey                  = upstream.RPCMessageUncompressedSizeKey
 	RPCMethodKey                                   = upstream.RPCMethodKey
 	RPCMethodOriginalKey                           = upstream.RPCMethodOriginalKey
 	RPCResponseStatusCodeKey                       = upstream.RPCResponseStatusCodeKey
@@ -569,6 +590,7 @@ const (
 	SecurityRuleVersionKey                         = upstream.SecurityRuleVersionKey
 	ServerAddressKey                               = upstream.ServerAddressKey
 	ServerPortKey                                  = upstream.ServerPortKey
+	ServiceCriticalityKey                          = upstream.ServiceCriticalityKey
 	ServiceInstanceIDKey                           = upstream.ServiceInstanceIDKey
 	ServiceNameKey                                 = upstream.ServiceNameKey
 	ServiceNamespaceKey                            = upstream.ServiceNamespaceKey
@@ -887,6 +909,7 @@ var (
 	GenAIOperationNameExecuteTool                              = upstream.GenAIOperationNameExecuteTool
 	GenAIOperationNameGenerateContent                          = upstream.GenAIOperationNameGenerateContent
 	GenAIOperationNameInvokeAgent                              = upstream.GenAIOperationNameInvokeAgent
+	GenAIOperationNameRetrieval                                = upstream.GenAIOperationNameRetrieval
 	GenAIOperationNameTextCompletion                           = upstream.GenAIOperationNameTextCompletion
 	GenAIOutputTypeImage                                       = upstream.GenAIOutputTypeImage
 	GenAIOutputTypeJSON                                        = upstream.GenAIOutputTypeJSON
@@ -1018,6 +1041,16 @@ var (
 	K8SPodStatusReasonNodeLost                                 = upstream.K8SPodStatusReasonNodeLost
 	K8SPodStatusReasonShutdown                                 = upstream.K8SPodStatusReasonShutdown
 	K8SPodStatusReasonUnexpectedAdmissionError                 = upstream.K8SPodStatusReasonUnexpectedAdmissionError
+	K8SServiceEndpointAddressTypeFqdn                          = upstream.K8SServiceEndpointAddressTypeFqdn
+	K8SServiceEndpointAddressTypeIPv4                          = upstream.K8SServiceEndpointAddressTypeIPv4
+	K8SServiceEndpointAddressTypeIPv6                          = upstream.K8SServiceEndpointAddressTypeIPv6
+	K8SServiceEndpointConditionReady                           = upstream.K8SServiceEndpointConditionReady
+	K8SServiceEndpointConditionServing                         = upstream.K8SServiceEndpointConditionServing
+	K8SServiceEndpointConditionTerminating                     = upstream.K8SServiceEndpointConditionTerminating
+	K8SServiceTypeClusterIP                                    = upstream.K8SServiceTypeClusterIP
+	K8SServiceTypeExternalName                                 = upstream.K8SServiceTypeExternalName
+	K8SServiceTypeLoadBalancer                                 = upstream.K8SServiceTypeLoadBalancer
+	K8SServiceTypeNodePort                                     = upstream.K8SServiceTypeNodePort
 	K8SVolumeTypeConfigMap                                     = upstream.K8SVolumeTypeConfigMap
 	K8SVolumeTypeDownwardAPI                                   = upstream.K8SVolumeTypeDownwardAPI
 	K8SVolumeTypeEmptyDir                                      = upstream.K8SVolumeTypeEmptyDir
@@ -1159,6 +1192,8 @@ var (
 	OTelSpanSamplingResultRecordOnly                           = upstream.OTelSpanSamplingResultRecordOnly
 	OTelStatusCodeError                                        = upstream.OTelStatusCodeError
 	OTelStatusCodeOk                                           = upstream.OTelStatusCodeOk
+	OpenAIAPITypeChatCompletions                               = upstream.OpenAIAPITypeChatCompletions
+	OpenAIAPITypeResponses                                     = upstream.OpenAIAPITypeResponses
 	OpenAIRequestServiceTierAuto                               = upstream.OpenAIRequestServiceTierAuto
 	OpenAIRequestServiceTierDefault                            = upstream.OpenAIRequestServiceTierDefault
 	OpenTracingRefTypeChildOf                                  = upstream.OpenTracingRefTypeChildOf
@@ -1181,12 +1216,14 @@ var (
 	ProfileFrameTypeRuby                                       = upstream.ProfileFrameTypeRuby
 	ProfileFrameTypeRust                                       = upstream.ProfileFrameTypeRust
 	ProfileFrameTypeV8JS                                       = upstream.ProfileFrameTypeV8JS
-	RPCMessageTypeReceived                                     = upstream.RPCMessageTypeReceived
-	RPCMessageTypeSent                                         = upstream.RPCMessageTypeSent
 	RPCSystemNameConnectrpc                                    = upstream.RPCSystemNameConnectrpc
 	RPCSystemNameDubbo                                         = upstream.RPCSystemNameDubbo
 	RPCSystemNameGRPC                                          = upstream.RPCSystemNameGRPC
 	RPCSystemNameJSONRPC                                       = upstream.RPCSystemNameJSONRPC
+	ServiceCriticalityCritical                                 = upstream.ServiceCriticalityCritical
+	ServiceCriticalityHigh                                     = upstream.ServiceCriticalityHigh
+	ServiceCriticalityLow                                      = upstream.ServiceCriticalityLow
+	ServiceCriticalityMedium                                   = upstream.ServiceCriticalityMedium
 	SignalRConnectionStatusAppShutdown                         = upstream.SignalRConnectionStatusAppShutdown
 	SignalRConnectionStatusNormalClosure                       = upstream.SignalRConnectionStatusNormalClosure
 	SignalRConnectionStatusTimeout                             = upstream.SignalRConnectionStatusTimeout
@@ -1421,7 +1458,6 @@ var (
 	ElasticsearchNodeName                                      = upstream.ElasticsearchNodeName
 	EnduserID                                                  = upstream.EnduserID
 	EnduserPseudoID                                            = upstream.EnduserPseudoID
-	ErrorMessage                                               = upstream.ErrorMessage
 	ErrorType                                                  = upstream.ErrorType
 	ExceptionMessage                                           = upstream.ExceptionMessage
 	ExceptionStacktrace                                        = upstream.ExceptionStacktrace
@@ -1440,6 +1476,7 @@ var (
 	FaaSTime                                                   = upstream.FaaSTime
 	FaaSVersion                                                = upstream.FaaSVersion
 	FeatureFlagContextID                                       = upstream.FeatureFlagContextID
+	FeatureFlagErrorMessage                                    = upstream.FeatureFlagErrorMessage
 	FeatureFlagKey                                             = upstream.FeatureFlagKey
 	FeatureFlagProviderName                                    = upstream.FeatureFlagProviderName
 	FeatureFlagResultVariant                                   = upstream.FeatureFlagResultVariant
@@ -1476,11 +1513,15 @@ var (
 	GCPClientService                                           = upstream.GCPClientService
 	GCPCloudRunJobExecution                                    = upstream.GCPCloudRunJobExecution
 	GCPCloudRunJobTaskIndex                                    = upstream.GCPCloudRunJobTaskIndex
+	GCPGCEInstanceGroupManagerName                             = upstream.GCPGCEInstanceGroupManagerName
+	GCPGCEInstanceGroupManagerRegion                           = upstream.GCPGCEInstanceGroupManagerRegion
+	GCPGCEInstanceGroupManagerZone                             = upstream.GCPGCEInstanceGroupManagerZone
 	GCPGCEInstanceHostname                                     = upstream.GCPGCEInstanceHostname
 	GCPGCEInstanceName                                         = upstream.GCPGCEInstanceName
 	GenAIAgentDescription                                      = upstream.GenAIAgentDescription
 	GenAIAgentID                                               = upstream.GenAIAgentID
 	GenAIAgentName                                             = upstream.GenAIAgentName
+	GenAIAgentVersion                                          = upstream.GenAIAgentVersion
 	GenAIConversationID                                        = upstream.GenAIConversationID
 	GenAIDataSourceID                                          = upstream.GenAIDataSourceID
 	GenAIEmbeddingsDimensionCount                              = upstream.GenAIEmbeddingsDimensionCount
@@ -1503,10 +1544,13 @@ var (
 	GenAIResponseFinishReasons                                 = upstream.GenAIResponseFinishReasons
 	GenAIResponseID                                            = upstream.GenAIResponseID
 	GenAIResponseModel                                         = upstream.GenAIResponseModel
+	GenAIRetrievalQueryText                                    = upstream.GenAIRetrievalQueryText
 	GenAIToolCallID                                            = upstream.GenAIToolCallID
 	GenAIToolDescription                                       = upstream.GenAIToolDescription
 	GenAIToolName                                              = upstream.GenAIToolName
 	GenAIToolType                                              = upstream.GenAIToolType
+	GenAIUsageCacheCreationInputTokens                         = upstream.GenAIUsageCacheCreationInputTokens
+	GenAIUsageCacheReadInputTokens                             = upstream.GenAIUsageCacheReadInputTokens
 	GenAIUsageInputTokens                                      = upstream.GenAIUsageInputTokens
 	GenAIUsageOutputTokens                                     = upstream.GenAIUsageOutputTokens
 	GeoCountryISOCode                                          = upstream.GeoCountryISOCode
@@ -1616,6 +1660,14 @@ var (
 	K8SResourceQuotaName                                       = upstream.K8SResourceQuotaName
 	K8SResourceQuotaResourceName                               = upstream.K8SResourceQuotaResourceName
 	K8SResourceQuotaUID                                        = upstream.K8SResourceQuotaUID
+	K8SServiceAnnotation                                       = upstream.K8SServiceAnnotation
+	K8SServiceEndpointZone                                     = upstream.K8SServiceEndpointZone
+	K8SServiceLabel                                            = upstream.K8SServiceLabel
+	K8SServiceName                                             = upstream.K8SServiceName
+	K8SServicePublishNotReadyAddresses                         = upstream.K8SServicePublishNotReadyAddresses
+	K8SServiceSelector                                         = upstream.K8SServiceSelector
+	K8SServiceTrafficDistribution                              = upstream.K8SServiceTrafficDistribution
+	K8SServiceUID                                              = upstream.K8SServiceUID
 	K8SStatefulSetAnnotation                                   = upstream.K8SStatefulSetAnnotation
 	K8SStatefulSetLabel                                        = upstream.K8SStatefulSetLabel
 	K8SStatefulSetName                                         = upstream.K8SStatefulSetName
@@ -1696,6 +1748,12 @@ var (
 	OpenAIResponseSystemFingerprint                            = upstream.OpenAIResponseSystemFingerprint
 	OpenShiftClusterquotaName                                  = upstream.OpenShiftClusterquotaName
 	OpenShiftClusterquotaUID                                   = upstream.OpenShiftClusterquotaUID
+	OracleCloudRealm                                           = upstream.OracleCloudRealm
+	OracleDBDomain                                             = upstream.OracleDBDomain
+	OracleDBInstanceName                                       = upstream.OracleDBInstanceName
+	OracleDBName                                               = upstream.OracleDBName
+	OracleDBPdb                                                = upstream.OracleDBPdb
+	OracleDBService                                            = upstream.OracleDBService
 	PprofLocationIsFolded                                      = upstream.PprofLocationIsFolded
 	PprofMappingHasFilenames                                   = upstream.PprofMappingHasFilenames
 	PprofMappingHasFunctions                                   = upstream.PprofMappingHasFunctions
@@ -1705,6 +1763,8 @@ var (
 	PprofProfileDocURL                                         = upstream.PprofProfileDocURL
 	PprofProfileDropFrames                                     = upstream.PprofProfileDropFrames
 	PprofProfileKeepFrames                                     = upstream.PprofProfileKeepFrames
+	PprofScopeDefaultSampleType                                = upstream.PprofScopeDefaultSampleType
+	PprofScopeSampleTypeOrder                                  = upstream.PprofScopeSampleTypeOrder
 	ProcessArgsCount                                           = upstream.ProcessArgsCount
 	ProcessCommand                                             = upstream.ProcessCommand
 	ProcessCommandArgs                                         = upstream.ProcessCommandArgs
@@ -1737,9 +1797,6 @@ var (
 	ProcessUserName                                            = upstream.ProcessUserName
 	ProcessVpid                                                = upstream.ProcessVpid
 	ProcessWorkingDirectory                                    = upstream.ProcessWorkingDirectory
-	RPCMessageCompressedSize                                   = upstream.RPCMessageCompressedSize
-	RPCMessageID                                               = upstream.RPCMessageID
-	RPCMessageUncompressedSize                                 = upstream.RPCMessageUncompressedSize
 	RPCMethod                                                  = upstream.RPCMethod
 	RPCMethodOriginal                                          = upstream.RPCMethodOriginal
 	RPCRequestMetadata                                         = upstream.RPCRequestMetadata

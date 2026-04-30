@@ -17,3 +17,29 @@ var RPCSystemGRPC = RPCSystemKey.String("grpc")
 
 func PeerService(val string) attribute.KeyValue { return PeerServiceKey.String(val) }
 func RPCService(val string) attribute.KeyValue  { return RPCServiceKey.String(val) }
+
+// Compatibility shims for symbols removed from upstream semconv in v1.40.0.
+const (
+	ErrorMessageKey               = attribute.Key("error.message")
+	RPCMessageCompressedSizeKey   = attribute.Key("rpc.message.compressed_size")
+	RPCMessageIDKey               = attribute.Key("rpc.message.id")
+	RPCMessageTypeKey             = attribute.Key("rpc.message.type")
+	RPCMessageUncompressedSizeKey = attribute.Key("rpc.message.uncompressed_size")
+)
+
+var (
+	RPCMessageTypeSent     = RPCMessageTypeKey.String("SENT")
+	RPCMessageTypeReceived = RPCMessageTypeKey.String("RECEIVED")
+)
+
+func ErrorMessage(val string) attribute.KeyValue { return ErrorMessageKey.String(val) }
+
+func RPCMessageCompressedSize(val int) attribute.KeyValue {
+	return RPCMessageCompressedSizeKey.Int(val)
+}
+
+func RPCMessageID(val int) attribute.KeyValue { return RPCMessageIDKey.Int(val) }
+
+func RPCMessageUncompressedSize(val int) attribute.KeyValue {
+	return RPCMessageUncompressedSizeKey.Int(val)
+}
