@@ -65,7 +65,21 @@ enum {
     JVM_UNWIND_STATUS_ERROR = 102,
 };
 
-static NOINLINE int jvm_collect_stack(struct unwind_context* regs, struct jvm_binary_config* jc, struct stack* stack, struct jvm_stack* jstack) {
+// Staging context for JVM frame collection (passed as single pointer to
+// stay within BPF's 5-argument limit for function calls).
+struct jvm_staging {
+    struct jvm_lang_entry* entries;
+    u8* count;
+};
+
+// Collect one JVM interpreted frame. Stores the real native IP in stack->ips[]
+// and records (user_stack_index, method_addr) in the JVM staging buffer.
+static NOINLINE int jvm_collect_stack_v2(
+    struct unwind_context* regs,
+    struct jvm_binary_config* jc,
+    struct stack* stack,
+    struct jvm_staging* staging
+) {
     u64 method_addr = 0;
 
     int res = jvm_process_interpreted_frame(jc, regs, stack, &method_addr);
@@ -73,8 +87,10 @@ static NOINLINE int jvm_collect_stack(struct unwind_context* regs, struct jvm_bi
         BPF_TRACE("[jvm] failed to process frame, error=%d\n", -res);
         return -JVM_UNWIND_STATUS_ERROR;
     }
-    BPF_TRACE("[jvm] processed frame, recording at index %d, jvm index %d\n", stack->len, jstack->frames_len);
-    if (jstack->frames_len >= MAX_JVM_FRAMES) {
+
+    u8 jvm_idx = *staging->count;
+    BPF_TRACE("[jvm] processed frame, recording at index %d, jvm index %d\n", stack->len, jvm_idx);
+    if (jvm_idx >= MAX_JVM_FRAMES) {
         BPF_TRACE("[jvm] too many JVM frames, stopping\n");
         return -JVM_UNWIND_STATUS_OVERFLOW;
     }
@@ -83,10 +99,15 @@ static NOINLINE int jvm_collect_stack(struct unwind_context* regs, struct jvm_bi
         return -JVM_UNWIND_STATUS_OVERFLOW;
     }
 
-    struct jvm_frame* jframe = &jstack->frames[jstack->frames_len++];
-    jframe->index = stack->len;
-    stack->ips[stack->len++] = 0xFFFFFFFFDEADF00D;
-    jframe->method_addr = method_addr;
+    // Store JVM placeholder in user stack (actual method resolved via jvm_lang_entry)
+    u32 idx = stack->len;
+    stack->ips[idx] = 0xFFFFFFFFDEADF00D;
+    stack->len++;
+
+    // Store (index, method_addr) in JVM staging
+    staging->entries[jvm_idx].user_stack_index = (u16)idx;
+    staging->entries[jvm_idx].method_addr = method_addr;
+    *staging->count = jvm_idx + 1;
 
     return JVM_UNWIND_STATUS_OK;
 }

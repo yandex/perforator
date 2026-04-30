@@ -1,9 +1,7 @@
 package profiler_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
 	"errors"
 	"sync"
 	"testing"
@@ -48,7 +46,11 @@ func startProfilerAndCollectRawSamples() [][]byte {
 	var storage [][]byte
 	callback := func(sample []byte) {
 		if len(storage) < sampleLimit {
-			storage = append(storage, sample)
+			// The slice is backed by a buffer that is reused by the perf reader
+			// on the next read, so we must copy the bytes before storing it.
+			cp := make([]byte, len(sample))
+			copy(cp, sample)
+			storage = append(storage, cp)
 		}
 	}
 	_, p := setupProfilerWithCallback(&simpleConfig, callback)
@@ -81,66 +83,24 @@ func ensureRawSamples(t testing.TB) [][]byte {
 	return collectedSamples
 }
 
-func TestParseFunctions(t *testing.T) {
+func TestParsePackedSample(t *testing.T) {
 	rawSamples := ensureRawSamples(t)
-	var sampleParse, sampleBinaryRead, sampleUnmarshalUnsafe unwinder.RecordSample
+	parsed := unwinder.NewRecordSampleParsed()
 	for j := 0; j < len(rawSamples); j++ {
-		err := sampleParse.UnmarshalBinary(rawSamples[j])
+		err := unwinder.ParsePackedSample(rawSamples[j], parsed)
 		if err != nil {
-			panic(err)
-		}
-		err = binary.Read(bytes.NewReader(rawSamples[j]), binary.LittleEndian, &sampleBinaryRead)
-		if err != nil {
-			panic(err)
-		}
-		if sampleParse != sampleBinaryRead {
-			panic("Not correct")
-		}
-		err = sampleUnmarshalUnsafe.UnmarshalBinaryUnsafe(rawSamples[j])
-		if err != nil {
-			panic(err)
-		}
-		if sampleParse != sampleUnmarshalUnsafe {
-			panic("field-by-field and unsafe cast parsing produced different results")
+			t.Fatalf("failed to parse packed sample %d: %v", j, err)
 		}
 	}
 }
 
-func BenchmarkParseRawSamplesTrivial(b *testing.B) {
+func BenchmarkParsePackedSample(b *testing.B) {
 	rawSamples := ensureRawSamples(b)
-	var sample unwinder.RecordSample
+	parsed := unwinder.NewRecordSampleParsed()
 	b.ResetTimer()
 	for b.Loop() {
 		for j := 0; j < len(rawSamples); j++ {
-			err := binary.Read(bytes.NewReader(rawSamples[j]), binary.LittleEndian, &sample)
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
-}
-
-func BenchmarkParseRawSamplesOptimized(b *testing.B) {
-	rawSamples := ensureRawSamples(b)
-	var sample unwinder.RecordSample
-	b.ResetTimer()
-	for b.Loop() {
-		for j := 0; j < len(rawSamples); j++ {
-			err := sample.UnmarshalBinary(rawSamples[j])
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
-}
-
-func BenchmarkParseRawSamplesUnsafe(b *testing.B) {
-	rawSamples := ensureRawSamples(b)
-	var sample unwinder.RecordSample
-	b.ResetTimer()
-	for b.Loop() {
-		for j := 0; j < len(rawSamples); j++ {
-			err := sample.UnmarshalBinaryUnsafe(rawSamples[j])
+			err := unwinder.ParsePackedSample(rawSamples[j], parsed)
 			if err != nil {
 				panic(err)
 			}

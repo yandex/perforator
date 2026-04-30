@@ -13,7 +13,7 @@ import (
 )
 
 func TestEnvWhitelist(t *testing.T) {
-	var sample unwinder.RecordSample
+	parsed := unwinder.NewRecordSampleParsed()
 	l := xlog.ForTest(t)
 	clockConverter, _ := clock.NewMonotonicClockConverter(l.Logger(), nop.Registry{})
 	sampleConsumer := newOneShotSampleConsumer(
@@ -27,7 +27,7 @@ func TestEnvWhitelist(t *testing.T) {
 		DefaultSampleConsumerFeatures(),
 		nil,
 		&guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(nil)},
-		&sample,
+		parsed,
 	)
 
 	processEnvs := map[string]string{"secret1": "value1", "key1": "value1"}
@@ -53,7 +53,7 @@ func TestEnvWhitelist(t *testing.T) {
 }
 
 func TestNoEmptySamples(t *testing.T) {
-	var sample unwinder.RecordSample
+	parsed := unwinder.NewRecordSampleParsed()
 	l := xlog.ForTest(t)
 	clockConverter, _ := clock.NewMonotonicClockConverter(l.Logger(), nop.Registry{})
 	sampleConsumer := newOneShotSampleConsumer(
@@ -67,7 +67,7 @@ func TestNoEmptySamples(t *testing.T) {
 		DefaultSampleConsumerFeatures(),
 		nil,
 		&guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(nil)},
-		&sample,
+		parsed,
 	)
 
 	builder := sampleConsumer.initBuilderMinimal("cpu", []profile.SampleType{{Kind: "cpu", Unit: "cycles"}})

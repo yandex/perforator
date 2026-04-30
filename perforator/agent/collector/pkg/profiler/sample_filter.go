@@ -15,15 +15,18 @@ import (
 
 // Returns true if the sample should be consumed
 // Returns false if the sample should be filtered out.
-type SampleFilterFunc func(ctx context.Context, sample *unwinder.RecordSample) bool
+type SampleFilterFunc func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool
 
 func NewUprobeSampleFilter(p *Profiler, allowedUprobes map[uprobe.BinaryInfo]struct{}) SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		if sample.SampleType != unwinder.SampleTypeUprobe {
 			return false
 		}
 
-		topStackIP := sample.Userstack[0]
+		if len(sample.UserStack) == 0 {
+			return false
+		}
+		topStackIP := sample.UserStack[0]
 		if topStackIP == 0 {
 			return false
 		}
@@ -49,19 +52,19 @@ func NewUprobeSampleFilter(p *Profiler, allowedUprobes map[uprobe.BinaryInfo]str
 }
 
 func NewNonUprobeSampleFilter() SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		return sample.SampleType != unwinder.SampleTypeUprobe
 	}
 }
 
 func NewPerfEventSampleFilter() SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		return sample.SampleType == unwinder.SampleTypePerfEvent
 	}
 }
 
 func NewPerfEventIDSampleFilter(events ...*PerfEvent) SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		if sample.SampleType != unwinder.SampleTypePerfEvent {
 			return false
 		}
@@ -80,19 +83,19 @@ func NewPerfEventIDSampleFilter(events ...*PerfEvent) SampleFilterFunc {
 }
 
 func NewOtherSampleTypesFilter() SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		return sample.SampleType != unwinder.SampleTypeUprobe && sample.SampleType != unwinder.SampleTypePerfEvent
 	}
 }
 
 func NewPIDSampleFilter(pid linux.CurrentNamespacePID) SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		return linux.CurrentNamespacePID(sample.Pid) == pid
 	}
 }
 
 func NewTIDSampleFilter(tid linux.CurrentNamespacePID) SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		return linux.CurrentNamespacePID(sample.Tid) == tid
 	}
 }
@@ -102,7 +105,7 @@ func NewPIDOrTIDSampleFilter(pid linux.CurrentNamespacePID) SampleFilterFunc {
 }
 
 func NewTimestampSampleFilter(p *Profiler, startTime *time.Time, endTime *time.Time) SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		sampleTime := p.clockConverter.MonotonicToTime(sample.CollectionTime)
 
 		if startTime != nil && sampleTime.Before(*startTime) {
@@ -117,7 +120,7 @@ func NewTimestampSampleFilter(p *Profiler, startTime *time.Time, endTime *time.T
 }
 
 func NewORSampleFilter(filters ...SampleFilterFunc) SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		for _, filter := range filters {
 			if filter(ctx, sample) {
 				return true
@@ -129,7 +132,7 @@ func NewORSampleFilter(filters ...SampleFilterFunc) SampleFilterFunc {
 }
 
 func NewANDSampleFilter(filters ...SampleFilterFunc) SampleFilterFunc {
-	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		for _, filter := range filters {
 			if !filter(ctx, sample) {
 				return false
@@ -156,7 +159,7 @@ func NewFilterSampleConsumerAdapter(
 	}
 }
 
-func (c *filterSampleConsumerAdapter) Consume(ctx context.Context, sample *unwinder.RecordSample) {
+func (c *filterSampleConsumerAdapter) Consume(ctx context.Context, sample *unwinder.RecordSampleParsed) {
 	if !c.filter(ctx, sample) {
 		return
 	}

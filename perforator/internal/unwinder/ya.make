@@ -3,13 +3,16 @@ GO_LIBRARY()
 PEERDIR(
     perforator/agent/collector/progs
     vendor/github.com/cilium/ebpf
+    ${GOSTD}/encoding/binary
     ${GOSTD}/errors
+    ${GOSTD}/fmt
     ${GOSTD}/unsafe
 )
 
 RUN_PROGRAM(
     perforator/ebpf/tools/btf2go
     --ignore profiler_state
+    --ignore jvm_staging
     --elf unwinder.release.elf
     --elf unwinder.debug.elf
     --elf unwinder.release.php.elf
@@ -50,6 +53,8 @@ RESOURCE(
 
 SRCS(
     loader.go
+    sample_parsed.go
+    sample_parser.go
 )
 
 END()

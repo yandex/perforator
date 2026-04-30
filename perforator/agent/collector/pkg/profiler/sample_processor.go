@@ -21,16 +21,11 @@ import (
 )
 
 type sampleUnmarshaller struct {
-	sample *unwinder.RecordSample
-	bypass bool
+	parsed *unwinder.RecordSampleParsed
 }
 
 func (u *sampleUnmarshaller) UnmarshalBinary(data []byte) error {
-	if u.bypass {
-		return u.sample.UnmarshalBinaryUnsafe(data)
-	}
-
-	return u.sample.UnmarshalBinary(data)
+	return unwinder.ParsePackedSample(data, u.parsed)
 }
 
 type GlobalProcessedWatermark = clock.MonotonicTime
@@ -47,8 +42,7 @@ type sampleProcessor struct {
 	bpf  *machine.BPF
 	conf *config.SampleConsumerConfig
 
-	sampleCallback      machine.RawSampleCallback
-	bypassSampleParsing bool
+	sampleCallback machine.RawSampleCallback
 
 	consumers SampleConsumerRegistry
 
@@ -61,18 +55,6 @@ type sampleProcessor struct {
 	samplesDuration metrics.Counter
 }
 
-type sampleProcessorOptions struct {
-	bypassSampleParsing bool
-}
-
-type sampleProcessorOption func(*sampleProcessorOptions)
-
-func WithSampleParsingBypass(bypass bool) sampleProcessorOption {
-	return func(o *sampleProcessorOptions) {
-		o.bypassSampleParsing = bypass
-	}
-}
-
 func newSampleProcessor(
 	l log.Logger,
 	r metrics.Registry,
@@ -80,19 +62,12 @@ func newSampleProcessor(
 	conf *config.SampleConsumerConfig,
 	sampleCallback machine.RawSampleCallback,
 	consumers SampleConsumerRegistry,
-	opts ...sampleProcessorOption,
 ) *sampleProcessor {
-	options := &sampleProcessorOptions{}
-	for _, opt := range opts {
-		opt(options)
-	}
-
 	return &sampleProcessor{
 		log:                  l,
 		bpf:                  bpf,
 		conf:                 conf,
 		sampleCallback:       sampleCallback,
-		bypassSampleParsing:  options.bypassSampleParsing,
 		consumers:            consumers,
 		shutdownCookie:       graceful.NewShutdownCookie(),
 		collectionTimePubSub: pubsub.NewPubSub[GlobalProcessedWatermark](pubsub.WithNonBlockingPublish()),
@@ -154,8 +129,7 @@ func (sp *sampleProcessor) Run(ctx context.Context) error {
 	defer reader.Close()
 
 	unmarshaller := &sampleUnmarshaller{
-		sample: &unwinder.RecordSample{},
-		bypass: sp.bypassSampleParsing,
+		parsed: unwinder.NewRecordSampleParsed(),
 	}
 
 	for {
@@ -204,16 +178,16 @@ func (sp *sampleProcessor) readSample(ctx context.Context, reader *machine.PerfR
 		return false
 	}
 
-	sample := unmarshaller.sample
-	sp.samplesDuration.Add(int64(sample.Runtime))
+	parsed := unmarshaller.parsed
+	sp.samplesDuration.Add(int64(parsed.Runtime))
 
 	consumers := sp.consumers.Consumers()
 	for _, consumer := range consumers {
-		consumer.Consume(ctx, sample)
+		consumer.Consume(ctx, parsed)
 	}
 
 	if meta.CPU >= 0 && meta.CPU < len(sp.cpuWatermarks) {
-		sp.cpuWatermarks[meta.CPU].Store(sample.CollectionTime)
+		sp.cpuWatermarks[meta.CPU].Store(parsed.CollectionTime)
 	}
 
 	minTime := GlobalProcessedWatermark(math.MaxUint64)

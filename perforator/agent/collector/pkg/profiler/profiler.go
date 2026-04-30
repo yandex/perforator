@@ -604,7 +604,6 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		&p.conf.SampleConsumer,
 		p.sampleCallback,
 		p.sampleConsumerRegistry,
-		WithSampleParsingBypass(p.conf.FeatureFlagsConfig.SampleParsingBypassEnabled()),
 	)
 
 	// Initialize targets

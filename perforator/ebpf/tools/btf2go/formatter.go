@@ -570,6 +570,51 @@ func (f *GoFormatter) generateStructUnmarshalUnsafe(w *strings.Builder, v *btf.S
 	fmt.Fprint(w, "}\n")
 }
 
+// generateSectionAccessors emits a typed enum + indexed accessor for any struct
+// containing `struct section_desc` members. This lets the wire-format parser
+// look up sections by ID without hardcoding offsets, while the layout-check
+// var block above guarantees the BTF-derived offsets match Go at compile time.
+func (f *GoFormatter) generateSectionAccessors(w *strings.Builder, v *btf.Struct, name string) {
+	type sec struct {
+		fieldName string
+		ident     string
+	}
+	var sections []sec
+	for _, m := range v.Members {
+		s, ok := f.unwrap(m.Type).(*btf.Struct)
+		if !ok || s.Name != "section_desc" {
+			continue
+		}
+		sections = append(sections, sec{
+			fieldName: snakeToPascal(m.Name),
+			ident:     name + "Section" + snakeToPascal(m.Name),
+		})
+	}
+	if len(sections) == 0 {
+		return
+	}
+
+	enumName := name + "Section"
+	fmt.Fprintf(w, "\n// Generated section accessors for %s.\n", name)
+	fmt.Fprintf(w, "type %s int\n", enumName)
+	fmt.Fprintf(w, "const (\n")
+	for i, s := range sections {
+		fmt.Fprintf(w, "\t%s %s = %d\n", s.ident, enumName, i)
+	}
+	fmt.Fprintf(w, "\t%sCount = %d\n", enumName, len(sections))
+	fmt.Fprintf(w, ")\n\n")
+
+	fmt.Fprintf(w, "func (v *%s) GetSection(id %s) (offset, size uint16) {\n", name, enumName)
+	fmt.Fprintf(w, "\tswitch id {\n")
+	for _, s := range sections {
+		fmt.Fprintf(w, "\tcase %s:\n", s.ident)
+		fmt.Fprintf(w, "\t\treturn v.%s.Offset, v.%s.Size\n", s.fieldName, s.fieldName)
+	}
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "\treturn 0, 0\n")
+	fmt.Fprintf(w, "}\n")
+}
+
 func (f *GoFormatter) generateStructLayoutCheck(w *strings.Builder, v *btf.Struct, name string) {
 	fmt.Fprintf(w, "// The following var block performs a compile-time check to ensure that the memory layout of the C struct\n")
 	fmt.Fprintf(w, "// matches the memory layout of the corresponding Go struct. This is necessary because UnmarshalBinaryUnsafe\n")
@@ -734,6 +779,8 @@ func (f *GoFormatter) visitStruct(v *btf.Struct) (*typeInfo, error) {
 		fmt.Fprint(w, "\n")
 		f.generateStructLayoutCheck(w, v, name)
 	}
+
+	f.generateSectionAccessors(w, v, name)
 
 	return &typeInfo{
 		SystemName: v.Name,

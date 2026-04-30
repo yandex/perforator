@@ -48,7 +48,7 @@ func DefaultSampleConsumerFeatures() SampleConsumerFeatures {
 
 // SampleConsumer is used for sequential consumption of multiple samples during its lifetime
 type SampleConsumer interface {
-	Consume(ctx context.Context, sample *unwinder.RecordSample)
+	Consume(ctx context.Context, sample *unwinder.RecordSampleParsed)
 	Flush(ctx context.Context) error
 }
 
@@ -68,7 +68,7 @@ func newContinuousProfilingSampleConsumer(p *Profiler) *continuousProfilingSampl
 	}
 }
 
-func (c *continuousProfilingSampleConsumer) tryGetProcessSampleConsumer(sample *unwinder.RecordSample) SampleConsumer {
+func (c *continuousProfilingSampleConsumer) tryGetProcessSampleConsumer(sample *unwinder.RecordSampleParsed) SampleConsumer {
 	c.p.pidsmu.RLock()
 	defer c.p.pidsmu.RUnlock()
 	if trackedProcess := c.p.pids[linux.CurrentNamespacePID(sample.Pid)]; trackedProcess != nil {
@@ -80,7 +80,7 @@ func (c *continuousProfilingSampleConsumer) tryGetProcessSampleConsumer(sample *
 	return nil
 }
 
-func (c *continuousProfilingSampleConsumer) getTargetSampleConsumer(sample *unwinder.RecordSample) SampleConsumer {
+func (c *continuousProfilingSampleConsumer) getTargetSampleConsumer(sample *unwinder.RecordSampleParsed) SampleConsumer {
 	if c.p.wholeSystem != nil {
 		return c.p.wholeSystem
 	}
@@ -96,7 +96,7 @@ func (c *continuousProfilingSampleConsumer) getTargetSampleConsumer(sample *unwi
 	return nil
 }
 
-func (c *continuousProfilingSampleConsumer) Consume(ctx context.Context, sample *unwinder.RecordSample) {
+func (c *continuousProfilingSampleConsumer) Consume(ctx context.Context, sample *unwinder.RecordSampleParsed) {
 	targetConsumer := c.getTargetSampleConsumer(sample)
 	if targetConsumer == nil {
 		c.p.log.Debug(
@@ -190,7 +190,7 @@ func NewSimpleSampleConsumer(
 	return c
 }
 
-func (c *simpleSampleConsumer) Consume(ctx context.Context, sample *unwinder.RecordSample) {
+func (c *simpleSampleConsumer) Consume(ctx context.Context, sample *unwinder.RecordSampleParsed) {
 	oneShotConsumer := newOneShotSampleConsumer(c.p, c.features, c.uprobeResolver, c.profileBuilder, sample)
 	oneShotConsumer.consume(ctx)
 }
@@ -205,7 +205,7 @@ func (c *simpleSampleConsumer) Flush(ctx context.Context) error {
 // oneShotSampleConsumer is a sample consumer which can only consume one sample during its lifetime
 type oneShotSampleConsumer struct {
 	p      *Profiler
-	sample *unwinder.RecordSample
+	sample *unwinder.RecordSampleParsed
 
 	uprobeResolver *uprobe.Resolver
 	profileBuilder *guardedProfileBuilder
@@ -231,7 +231,7 @@ func newOneShotSampleConsumer(
 	features SampleConsumerFeatures,
 	uprobeResolver *uprobe.Resolver,
 	profileBuilder *guardedProfileBuilder,
-	sample *unwinder.RecordSample,
+	sample *unwinder.RecordSampleParsed,
 ) *oneShotSampleConsumer {
 	return &oneShotSampleConsumer{
 		p:               p,
@@ -247,7 +247,7 @@ func newOneShotSampleConsumer(
 }
 
 func (c *oneShotSampleConsumer) countMetrics(ctx context.Context) {
-	for _, ip := range c.sample.Userstack {
+	for _, ip := range c.sample.UserStack {
 		if ip != 0 {
 			c.stacklen++
 
@@ -259,7 +259,7 @@ func (c *oneShotSampleConsumer) countMetrics(ctx context.Context) {
 			}
 		}
 	}
-	for _, ip := range c.sample.Kernstack {
+	for _, ip := range c.sample.KernStack {
 		if ip != 0 {
 			c.stacklen++
 		}
@@ -278,15 +278,13 @@ const (
 )
 
 func (c *oneShotSampleConsumer) resolveWorkloadOnce() {
-	var i int
-	for ; i < len(c.sample.CgroupsHierarchy); i++ {
-		cg := c.sample.CgroupsHierarchy[i]
-		if cg == endOfCgroupList {
-			break
-		}
-	}
-	i--
-	if c.sample.ParentCgroup == endOfCgroupList && i < len(c.sample.CgroupsHierarchy) {
+	// Cgroups slice is already sentinel-free (stripped by the BPF packer).
+	i := len(c.sample.Cgroups) - 1
+	if c.sample.ParentCgroup == endOfCgroupList &&
+		len(c.sample.Cgroups) > 0 &&
+		// If len == PARENT_CGROUP_MAX_LEVELS, truncation happened in BPF and the
+		// sentinel was never appended — do NOT skip the outermost cgroup in that case.
+		len(c.sample.Cgroups) < int(unwinder.ParentCgroupMaxLevels) {
 		// Hierarchy is full (i.e. not truncated) path up to root in this case.
 		// Therefore, the outermost cgroup is either "freezer" (for v1 hierarchy) or "cgroup" (for v2 hierarchy),
 		// let's skip it.
@@ -297,10 +295,7 @@ func (c *oneShotSampleConsumer) resolveWorkloadOnce() {
 
 	var lastCgroupHit bool
 	for ; i >= 0; i-- {
-		cg := c.sample.CgroupsHierarchy[i]
-		if cg == endOfCgroupList {
-			continue
-		}
+		cg := c.sample.Cgroups[i]
 		name := c.p.cgroups.CgroupBaseName(cg)
 		if name == "" {
 			lastCgroupHit = false
@@ -358,11 +353,7 @@ type formattedTLSVariable struct {
 func (c *oneShotSampleConsumer) collectTLS(ctx context.Context) {
 	c.tls = make([]formattedTLSVariable, 0)
 
-	for _, variable := range c.sample.TlsValues.Values {
-		if variable.Offset == 0 {
-			break
-		}
-
+	for _, variable := range c.sample.TLS {
 		var value string
 		switch variable.Type {
 		case unwinder.ThreadLocalUint64Type:
@@ -441,7 +432,7 @@ func (c *oneShotSampleConsumer) collectEnvironmentInto(builder *profile.SampleBu
 }
 
 func (c *oneShotSampleConsumer) collectKernelStackInto(builder *profile.SampleBuilder) {
-	for _, ip := range c.sample.Kernstack {
+	for _, ip := range c.sample.KernStack {
 		if ip == 0 {
 			continue
 		}
@@ -525,7 +516,7 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builder *profile.SampleBuilder) {
 	jvmStack := c.sample.JvmStack
 	jvmStackIdx := 0
-	for locIdx, ip := range c.sample.Userstack {
+	for locIdx, ip := range c.sample.UserStack {
 		if ip == 0 {
 			continue
 		}
@@ -607,8 +598,7 @@ func (c *oneShotSampleConsumer) collectSignalInto(builder *profile.SampleBuilder
 }
 
 func (c *oneShotSampleConsumer) collectLBRStackInto(ctx context.Context, builder *profile.SampleBuilder) {
-	for i := 0; i < int(c.sample.LbrValues.Nr); i++ {
-		lbrEntry := c.sample.LbrValues.Entries[i]
+	for _, lbrEntry := range c.sample.LBR {
 		from := lbrEntry.From
 		to := lbrEntry.To
 		if from == 0 || to == 0 {
@@ -693,7 +683,7 @@ func (c *oneShotSampleConsumer) logSample() {
 				"stacklen":            c.stacklen,
 				"runtime":             c.sample.Runtime,
 				"tlsvars":             len(c.tls),
-				"lbrvals":             c.sample.LbrValues.Nr,
+				"lbrvals":             len(c.sample.LBR),
 				"envvars":             len(c.env),
 			}, nil
 		}),
@@ -781,8 +771,7 @@ func (c *oneShotSampleConsumer) recordSignalSample(ctx context.Context) {
 	c.finishSample(builder)
 }
 
-func (c *oneShotSampleConsumer) resolveUprobes(ctx context.Context) []*uprobe.UprobeInfo {
-	topStackIP := c.sample.Userstack[0]
+func (c *oneShotSampleConsumer) resolveUprobes(ctx context.Context, topStackIP uint64) []*uprobe.UprobeInfo {
 	if topStackIP == 0 {
 		return nil
 	}
@@ -806,9 +795,13 @@ func (c *oneShotSampleConsumer) resolveUprobes(ctx context.Context) []*uprobe.Up
 }
 
 func (c *oneShotSampleConsumer) recordUprobeSample(ctx context.Context) {
-	uprobeInfos := c.resolveUprobes(ctx)
+	var topStackIP uint64
+	if len(c.sample.UserStack) > 0 {
+		topStackIP = c.sample.UserStack[0]
+	}
+	uprobeInfos := c.resolveUprobes(ctx, topStackIP)
 	if len(uprobeInfos) == 0 {
-		c.p.log.Warn("Failed to resolve uprobe info", log.UInt64("top_stack_ip", c.sample.Userstack[0]))
+		c.p.log.Warn("Failed to resolve uprobe info", log.UInt64("top_stack_ip", topStackIP))
 		return
 	}
 

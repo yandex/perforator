@@ -65,6 +65,8 @@ enum {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct profiler_state {
+    struct packed_sample packed;
+
     u64 iteration;
     u64 prog_starttime;
     bool normalize_walltime;
@@ -83,14 +85,18 @@ struct profiler_state {
 
     struct stack kernstack;
     struct stack userstack;
+
+    // JVM scratch: only needed for mixed unwinding (interleaved native/JVM frames).
+    struct jvm_lang_entry jvm_entries[MAX_JVM_FRAMES];
+    u8 jvm_frames_count;
+
     struct python_state python_state;
 #ifdef PERFORATOR_ENABLE_PHP
     struct php_state php_state;
 #endif
 
-    struct record_sample sample;
+    struct last_branch_records lbr;
     struct record_new_process newproc;
-
     struct tls_collect_result tls;
 };
 
@@ -166,68 +172,208 @@ static ALWAYS_INLINE void try_get_stack(void* ctx, struct stack* stack, u64 flag
         stack->len = 0;
         return;
     }
-    stack->len = res;
+    // bpf_get_stack returns bytes; normalize to frame count.
+    stack->len = res / sizeof(u64);
 }
 
-static NOINLINE void fill_stack(struct stack* stack, u64* target) {
-    BPF_TRACE("Filling stack of size %d\n", (int)stack->len);
-    int i = 0;
-    for (i = 0; i < STACK_SIZE; ++i) {
-        if (i < stack->len) {
-            target[i] = stack->ips[i];
-        } else {
-            target[i] = 0;
-        }
+// Copy `bytes` from src into packed->data at offset.
+static NOINLINE u32 pack_copy(struct packed_sample* packed, u32 offset, void* src, u32 bytes) {
+    if (bytes == 0) return 0;
+    BPF_VALUE_BARRIER(bytes);
+    BPF_VALUE_BARRIER(offset);
+    bytes = bytes & (PACKED_SAMPLE_MAX_DATA - 1);
+    offset = offset & (PACKED_SAMPLE_MAX_DATA - 1);
+    if (offset + bytes > PACKED_SAMPLE_MAX_DATA) return 0;
+    bpf_probe_read(packed->data + offset, bytes, src);
+    return bytes;
+}
+
+static ALWAYS_INLINE void set_section(struct section_desc* desc, u32 offset, u32 size) {
+    desc->offset = (u16)offset;
+    desc->size = (u16)size;
+}
+
+// Re-narrow verifier range of `offset` to avoid state-space blowup.
+#define CLAMP_OFFSET(off) do { \
+    BPF_VALUE_BARRIER(off); \
+    (off) &= (PACKED_SAMPLE_MAX_DATA - 1); \
+} while (0)
+
+// Pack kern/user stack, LBR, TLS, cgroups.
+static NOINLINE u32 pack_sample_core(struct packed_sample* packed, struct profiler_state* state) {
+    struct record_sample_header* hdr = &packed->header;
+    u32 offset = 0;
+    u32 written;
+
+    // Zero descriptors: early return must produce a valid empty header.
+    ZERO(hdr->kern_stack);
+    ZERO(hdr->user_stack);
+    ZERO(hdr->lbr);
+    ZERO(hdr->tls);
+    ZERO(hdr->cgroups);
+    ZERO(hdr->language_sections);
+
+    // Kernel stack
+    u32 klen = state->kernstack.len;
+    if (klen > PERF_MAX_STACK_DEPTH) klen = PERF_MAX_STACK_DEPTH;
+    u32 kbytes = klen * sizeof(u64);
+    if (kbytes > sizeof(state->kernstack.ips)) kbytes = sizeof(state->kernstack.ips);
+    written = pack_copy(packed, offset, state->kernstack.ips, kbytes);
+    set_section(&hdr->kern_stack, offset, written);
+    offset += written;
+    CLAMP_OFFSET(offset);
+
+    // User stack
+    u32 ulen = state->userstack.len;
+    if (ulen > STACK_SIZE) ulen = STACK_SIZE;
+    u32 ubytes = ulen * sizeof(u64);
+    if (ubytes > sizeof(state->userstack.ips)) ubytes = sizeof(state->userstack.ips);
+    written = pack_copy(packed, offset, state->userstack.ips, ubytes);
+    set_section(&hdr->user_stack, offset, written);
+    offset += written;
+    CLAMP_OFFSET(offset);
+
+    // LBR
+    u32 lbr_nr = state->lbr.nr;
+    if (lbr_nr > MAX_BRANCH_RECORDS) lbr_nr = MAX_BRANCH_RECORDS;
+    u32 lbr_bytes = lbr_nr * sizeof(struct branch_record);
+    if (lbr_bytes > sizeof(state->lbr.entries)) lbr_bytes = sizeof(state->lbr.entries);
+    written = pack_copy(packed, offset, state->lbr.entries, lbr_bytes);
+    set_section(&hdr->lbr, offset, written);
+    offset += written;
+    CLAMP_OFFSET(offset);
+
+    // TLS: direct stores instead of pack_copy to keep the verifier budget low.
+    u32 tls_start = offset;
+    for (int i = 0; i < MAX_TRACKED_THREAD_LOCALS_PER_BINARY; i++) {
+        if (state->tls.values[i].offset == 0) break;
+        if (offset + sizeof(struct thread_local_variable_collect_result) > PACKED_SAMPLE_MAX_DATA) break;
+        u32 tls_off = offset;
+        CLAMP_OFFSET(tls_off);
+        *(struct thread_local_variable_collect_result*)(packed->data + tls_off) = state->tls.values[i];
+        offset += sizeof(struct thread_local_variable_collect_result);
+        CLAMP_OFFSET(offset);
+    }
+    set_section(&hdr->tls, tls_start, offset - tls_start);
+
+    // Cgroups: see TLS note above.
+    u32 cg_start = offset;
+    for (int i = 0; i < PARENT_CGROUP_MAX_LEVELS; i++) {
+        u64 cg = state->task_cgroups[i];
+        if (cg == END_OF_CGROUP_LIST) break;
+        if (offset + sizeof(u64) > PACKED_SAMPLE_MAX_DATA) break;
+        u32 cg_off = offset;
+        CLAMP_OFFSET(cg_off);
+        *(u64*)(packed->data + cg_off) = cg;
+        offset += sizeof(u64);
+        CLAMP_OFFSET(offset);
+    }
+    set_section(&hdr->cgroups, cg_start, offset - cg_start);
+
+    return offset;
+}
+
+// Descriptor for a single language section to be packed.
+struct lang_section_desc {
+    u8 lang_id;
+    u32 count;
+    u32 max;
+    void* src;
+    u32 src_size;
+    u32 elem_size;
+};
+
+// Pack one language section into the packed sample buffer.
+// Takes section parameters via a descriptor struct to stay within BPF's
+// 5-argument limit for subprograms. CLAMP_OFFSET keeps verifier range narrow.
+static ALWAYS_INLINE void pack_lang_section(
+    struct packed_sample* packed,
+    u32* offset,
+    struct lang_section_desc* desc
+) {
+    if (desc->count == 0) return;
+    u32 fc = desc->count;
+    if (fc > desc->max) fc = desc->max;
+    u32 bytes = fc * desc->elem_size;
+    if (bytes > desc->src_size) bytes = desc->src_size;
+    BPF_VALUE_BARRIER(bytes);
+    bytes &= (PACKED_SAMPLE_MAX_DATA - 1);
+    u32 off = *offset;
+    CLAMP_OFFSET(off);
+    if (off + sizeof(struct language_section_header) + bytes <= PACKED_SAMPLE_MAX_DATA) {
+        struct language_section_header* lsh =
+            (struct language_section_header*)(packed->data + off);
+        lsh->byte_size = bytes;
+        lsh->language = desc->lang_id;
+        __builtin_memset(lsh->_pad, 0, sizeof(lsh->_pad));
+        off += sizeof(struct language_section_header);
+        CLAMP_OFFSET(off);
+        pack_copy(packed, off, desc->src, bytes);
+        off += bytes;
+        CLAMP_OFFSET(off);
+        *offset = off;
     }
 }
 
-static NOINLINE void fill_python_stack(struct python_state* state, struct record_sample* target) {
-    target->python_stack.len = state->frame_count;
-    if (state->frame_count > 0) {
-        for (int i = 0; i < PYTHON_MAX_STACK_DEPTH && i < state->frame_count; i++) {
-            target->python_stack.frames[i] = state->frames[i];
-        }
-    }
-}
+static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profiler_state* state, u32 offset) {
+    u32 lang_start = offset;
+
+    pack_lang_section(packed, &offset, &(struct lang_section_desc){
+        .lang_id   = LANGUAGE_PYTHON,
+        .count     = state->python_state.frame_count,
+        .max       = PYTHON_MAX_STACK_DEPTH,
+        .src       = state->python_state.frames,
+        .src_size  = sizeof(state->python_state.frames),
+        .elem_size = sizeof(struct interpreter_frame),
+    });
 
 #ifdef PERFORATOR_ENABLE_PHP
-static NOINLINE void fill_php_stack(struct php_state* state, struct record_sample* target) {
-    target->php_stack.len = state->frame_count;
-    if (state->frame_count > 0) {
-        for (int i = 0; i < PHP_MAX_STACK_DEPTH && i < state->frame_count; i++) {
-            target->php_stack.frames[i] = state->frames[i];
-        }
-    }
-}
+    pack_lang_section(packed, &offset, &(struct lang_section_desc){
+        .lang_id   = LANGUAGE_PHP,
+        .count     = state->php_state.frame_count,
+        .max       = PHP_MAX_STACK_DEPTH,
+        .src       = state->php_state.frames,
+        .src_size  = sizeof(state->php_state.frames),
+        .elem_size = sizeof(struct interpreter_frame),
+    });
 #endif
+
+    pack_lang_section(packed, &offset, &(struct lang_section_desc){
+        .lang_id   = LANGUAGE_JVM,
+        .count     = state->jvm_frames_count,
+        .max       = MAX_JVM_FRAMES,
+        .src       = state->jvm_entries,
+        .src_size  = sizeof(state->jvm_entries),
+        .elem_size = sizeof(struct jvm_lang_entry),
+    });
+
+    set_section(&packed->header.language_sections, lang_start, offset - lang_start);
+    return offset;
+}
+
+static ALWAYS_INLINE u32 pack_sample(struct packed_sample* packed, struct profiler_state* state) {
+    u32 offset = pack_sample_core(packed, state);
+    offset = pack_sample_lang(packed, state, offset);
+    return sizeof(struct record_sample_header) + offset;
+}
 
 static ALWAYS_INLINE void record_sample(
     void* ctx,
     struct profiler_state* state,
     u64 value
 ) {
-    struct record_sample* sample = &state->sample;
-    sample->parent_cgroup = state->traced_cgroup;
-    _Static_assert(sizeof(sample->cgroups_hierarchy) == sizeof(state->task_cgroups), "Array length mismatch");
-    memcpy(sample->cgroups_hierarchy, state->task_cgroups, sizeof(state->task_cgroups));
-    fill_stack(&state->userstack, sample->userstack);
-    fill_stack(&state->kernstack, sample->kernstack);
-    sample->value = value;
-    sample->cpu = bpf_get_smp_processor_id();
+    struct record_sample_header* hdr = &state->packed.header;
 
-    fill_python_stack(&state->python_state, sample);
-
-#ifdef PERFORATOR_ENABLE_PHP
-    fill_php_stack(&state->php_state, sample);
-#endif
+    hdr->parent_cgroup = state->traced_cgroup;
+    hdr->value = value;
+    hdr->cpu = bpf_get_smp_processor_id();
 
     u64 ktime = bpf_ktime_get_ns();
-    sample->runtime = ktime - state->prog_starttime;
-    sample->collection_time = state->prog_starttime;
+    hdr->runtime = ktime - state->prog_starttime;
+    hdr->collection_time = state->prog_starttime;
 
-    sample->tls_values = state->tls;
-
-    submit_sample(ctx, sample);
+    u32 size = pack_sample(&state->packed, state);
+    submit_packed_sample(ctx, &state->packed, size);
 
     if (value) {
         __sync_fetch_and_add(&state->sum.counter, value);
@@ -239,8 +385,8 @@ static NOINLINE struct process_info* lookup_process(
     void* ctx,
     struct profiler_state* state
 ) {
-    u32 pid = state->sample.pid;
-    u64 starttime = state->sample.starttime;
+    u32 pid = state->packed.header.pid;
+    u64 starttime = state->packed.header.starttime;
 
     struct process_info* info = bpf_map_lookup_elem(&process_info, &pid);
     if (info != 0) {
@@ -359,31 +505,32 @@ static ALWAYS_INLINE void record_thread_walltime(struct profiler_config* config,
         return;
     }
 
+    struct record_sample_header* hdr = &state->packed.header;
     struct thread_key key = {
-        .pid = state->sample.pid,
-        .tid = state->sample.tid,
-        .starttime = state->sample.starttime,
+        .pid = hdr->pid,
+        .tid = hdr->tid,
+        .starttime = hdr->starttime,
     };
 
     u64* last = bpf_map_lookup_elem(&thread_last_sample_time, &key);
     if (last) {
         i64 delta = (i64)state->prog_starttime - (i64)*last;
-        BPF_TRACE("calculated thread %d timedelta: %lld ns\n", state->sample.tid, delta);
+        BPF_TRACE("calculated thread %d timedelta: %lld ns\n", hdr->tid, delta);
         if (delta >= 0) {
-            state->sample.timedelta = (u64)delta;
+            hdr->timedelta = (u64)delta;
         }
     } else {
-        BPF_TRACE("found thread without previous sample time\n", state->sample.tid);
-        state->sample.timedelta = 0;
+        BPF_TRACE("found thread without previous sample time\n", hdr->tid);
+        hdr->timedelta = 0;
     }
 
     if (state->normalize_walltime) {
-        state->sample.timedelta *= config->sched_sample_modulo;
+        hdr->timedelta *= config->sched_sample_modulo;
     }
 
     int err = bpf_map_update_elem(&thread_last_sample_time, &key, &state->prog_starttime, 0);
     if (err != 0) {
-        BPF_TRACE("failed to set thread %d sample time: %d\n", state->sample.tid, err);
+        BPF_TRACE("failed to set thread %d sample time: %d\n", hdr->tid, err);
     }
 }
 
@@ -401,17 +548,19 @@ static NOINLINE int profiler_stage_start(void* ctx, struct profiler_state* state
         return -102;
     }
 
+    struct record_sample_header* hdr = &state->packed.header;
+
     // Collect some basic info about current thread.
     u64 pid_tgid = get_current_pidns_pid_tgid(config->pidns_inode);
-    state->sample.tid = (u32)pid_tgid;
-    state->sample.pid = pid_tgid >> 32;
+    hdr->tid = (u32)pid_tgid;
+    hdr->pid = pid_tgid >> 32;
     struct task_struct* task = get_current_task();
-    state->sample.innermost_pidns_tid = get_task_innermost_pidns_pid(task);
-    state->sample.innermost_pidns_pid = get_task_innermost_pidns_pid(get_task_process(task));
-    state->sample.starttime = get_current_process_start_time();
-    state->sample.kthread = kthread;
+    hdr->innermost_pidns_tid = get_task_innermost_pidns_pid(task);
+    hdr->innermost_pidns_pid = get_task_innermost_pidns_pid(get_task_process(task));
+    hdr->starttime = get_current_process_start_time();
+    hdr->kthread = kthread;
 
-    if (config->pid_filter != 0 && config->pid_filter != state->sample.pid) {
+    if (config->pid_filter != 0 && config->pid_filter != hdr->pid) {
         metric_increment(METRIC_FILTERED_PROCESS_COUNT);
         return -103;
     }
@@ -459,7 +608,7 @@ static NOINLINE int profiler_stage_locate_traceee(struct profiler_state* state, 
         return 0;
     }
 
-    state->should_trace_process = should_trace_process(state->sample.pid, state->sample.tid);
+    state->should_trace_process = should_trace_process(state->packed.header.pid, state->packed.header.tid);
 
     if (state->traced_cgroup == END_OF_CGROUP_LIST && !state->should_trace_process) {
         // Non-traced cgroup & task. Skip it.
@@ -469,14 +618,15 @@ static NOINLINE int profiler_stage_locate_traceee(struct profiler_state* state, 
     return 0;
 }
 
-static ALWAYS_INLINE int mixed_collect_stack(struct user_regs* regs, struct stack* stack, struct process_info* proc, struct record_sample* sample) {
+static ALWAYS_INLINE int mixed_collect_stack(struct user_regs* regs, struct stack* stack, struct process_info* proc, struct profiler_state* state) {
+    u32 pid = state->packed.header.pid;
 #ifndef PERFORATOR_COMPAT_5_4
     struct jvm_binary_config* jvm_bin_config = NULL;
     struct jvm_process_config* jvm_proc_config = NULL;
     if (is_mapped(proc->libjvm_binary)) {
         jvm_bin_config = jvm_get_bin_config(&proc->libjvm_binary);
         if (jvm_bin_config != NULL) {
-            jvm_proc_config = jvm_get_proc_config(sample->pid);
+            jvm_proc_config = jvm_get_proc_config(pid);
         }
     }
 #endif
@@ -486,7 +636,7 @@ static ALWAYS_INLINE int mixed_collect_stack(struct user_regs* regs, struct stac
         DWARF_TRACE("[mixed_unwinder] failed to load DWARF unwinder state from heap\n");
         return 0;
     }
-    if (!dwarf_unwind_init(ctx, regs, sample->pid)) {
+    if (!dwarf_unwind_init(ctx, regs, pid)) {
         DWARF_TRACE("[mixed_unwinder] failed to retrieve userspace registers\n");
         return 0;
     }
@@ -511,7 +661,13 @@ static ALWAYS_INLINE int mixed_collect_stack(struct user_regs* regs, struct stac
         }
         if (is_jvm) {
             BPF_TRACE("[mixed_unwinder] using JVM unwinder for this frame\n");
-            int jvm_res = jvm_collect_stack(&ctx->cfi, jvm_bin_config, stack, &sample->jvm_stack);
+            struct jvm_staging staging = {
+                .entries = state->jvm_entries,
+                .count = &state->jvm_frames_count,
+            };
+            int jvm_res = jvm_collect_stack_v2(
+                &ctx->cfi, jvm_bin_config, stack, &staging
+            );
             if (jvm_res < 0) {
                 BPF_TRACE("[jvm] failed to collect stack, error=%d\n", -jvm_res);
                 res = -1;
@@ -559,13 +715,15 @@ static ALWAYS_INLINE int profiler_stage_collect_stack(void* ctx, struct user_reg
 
     struct process_info* proc = lookup_process(ctx, state);
     if (!proc) {
-        BPF_TRACE("Unknown process %d\n", state->sample.pid);
+        BPF_TRACE("Unknown process %d\n", state->packed.header.pid);
         return -302;
     }
 
+    ZERO(state->kernstack);
     try_get_stack(ctx, &state->kernstack, 0);
 
     ZERO(state->userstack);
+    state->jvm_frames_count = 0;
     switch (proc->unwind_type) {
     case UNWIND_TYPE_FP:
         try_get_stack(ctx, &state->userstack, BPF_F_USER_STACK);
@@ -573,7 +731,7 @@ static ALWAYS_INLINE int profiler_stage_collect_stack(void* ctx, struct user_reg
     case UNWIND_TYPE_DISABLED:
         break;
     case UNWIND_TYPE_MIXED:
-        mixed_collect_stack(regs, &state->userstack, proc, &state->sample);
+        mixed_collect_stack(regs, &state->userstack, proc, state);
         break;
     default:
         BPF_TRACE("Unsupported unwind type %d\n", proc->unwind_type);
@@ -593,7 +751,7 @@ static NOINLINE int profiler_stage_collect_python_stack(void* ctx, struct profil
         return -1;
     }
 
-    state->python_state.pid = state->sample.pid;
+    state->python_state.pid = state->packed.header.pid;
     state->python_state.frame_count = 0;
     state->python_state.py_runtime_address = 0;
     python_collect_stack(info, &state->python_state);
@@ -637,9 +795,10 @@ static NOINLINE int profiler_stage_record_sample(
         return -1;
     }
 
-    ZERO(state->sample.process_comm);
-    get_current_process_comm(state->sample.process_comm);
-    bpf_get_current_comm(state->sample.thread_comm, ARRAY_SIZE(state->sample.thread_comm));
+    struct record_sample_header* hdr = &state->packed.header;
+    ZERO(hdr->process_comm);
+    get_current_process_comm(hdr->process_comm);
+    bpf_get_current_comm(hdr->thread_comm, ARRAY_SIZE(hdr->thread_comm));
 
     record_sample(ctx, state, state->event_count);
     return 0;
@@ -650,7 +809,7 @@ static NOINLINE int profiler_stage_collect_lbr_stack(void* ctx, struct profiler_
         return -1;
     }
 
-    collect_lbr_stack(ctx, &state->sample.lbr_values);
+    collect_lbr_stack(ctx, &state->lbr);
     return 0;
 }
 
@@ -680,12 +839,13 @@ struct profiler_sample_args {
  \
     state->prog_starttime = args->starttime; \
     state->event_count = args->event_count; \
-    state->sample.sample_type = args->sample_type; \
-    state->sample.sample_config = args->sample_config; \
+    state->packed.header.sample_type = args->sample_type; \
+    state->packed.header.sample_config = args->sample_config; \
     state->normalize_walltime = args->normalize_walltime; \
     state->record_walltime = args->record_walltime; \
     state->skip_sample_recording = args->skip_sample_recording; \
-    state->sample.jvm_stack.frames_len = 0; \
+    state->jvm_frames_count = 0; \
+    state->lbr.nr = 0; \
     state->userstack.len = 0; \
 \
     int err = 0; \

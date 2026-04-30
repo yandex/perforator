@@ -563,6 +563,7 @@ func metricName(cname string) string {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// `sample` is borrowed and reused by the perf reader; copy before retaining.
 type RawSampleCallback = func(sample []byte)
 
 type PerfReaderOptions struct {
