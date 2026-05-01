@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-04-29T19:32:08Z",
+    "created": "2026-04-30T19:08:54.535Z",
     "pr": {
-      "id": 13168651,
+      "id": 13187073,
       "author": "baymer",
-      "summary": "FBP-3129: nots.py: убрать валидацию на declarationDir в tsconfig validation"
+      "summary": "FBP-3132: nots/builder: добавить спунер в логи/трейсы"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11900066412"
+      "uri": "sbr:11913941047"
     },
     "darwin-arm64": {
-      "uri": "sbr:11900064910"
+      "uri": "sbr:11913939371"
     },
     "linux": {
-      "uri": "sbr:11900069415"
+      "uri": "sbr:11913943248"
     },
     "linux-aarch64": {
-      "uri": "sbr:11900067869"
+      "uri": "sbr:11913942123"
     }
   }
 }

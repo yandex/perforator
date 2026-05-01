@@ -10,9 +10,13 @@ from typing import Any, Callable, TypeVar
 
 import click
 
+import security.ant_secret.snooper as snooper
+
 start_unix_time_ms = time.time()
 start_time = time.monotonic()
 start_time_ns = time.monotonic_ns()
+
+searcher = snooper.Snooper().searcher(preset=snooper.Preset.ALL)
 
 
 class TraceEvent:
@@ -34,7 +38,9 @@ class TraceEvent:
 
     def __repr_arg(self, a: any):
         # Primitive types
-        if isinstance(a, str) or isinstance(a, int) or isinstance(a, float) or isinstance(a, bool) or a is None:
+        if isinstance(a, str):
+            return searcher.mask(a, valid_only=False)
+        if isinstance(a, int) or isinstance(a, float) or isinstance(a, bool) or a is None:
             return a
 
         # Collections

@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package NPwdGen.NPwd;
+
+option go_package = "github.com/yandex/perforator/security/ant-secret/pwdgen/pkg/pwd";
+
+message Meta {
+    fixed32 ts = 1;
+    bytes notify_id = 2;
+}

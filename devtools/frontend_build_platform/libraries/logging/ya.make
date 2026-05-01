@@ -9,6 +9,7 @@ PY_SRCS(
 
 PEERDIR(
     contrib/python/click
+    security/ant-secret/snooper/py
 )
 
 END()

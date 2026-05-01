@@ -4,6 +4,8 @@ from typing import Any
 
 import click
 
+import security.ant_secret.snooper as snooper
+
 prefixes_map = {
     'build.internal.plugins._lib.': 'BUILD._lib',
     'devtools.frontend_build_platform.libraries.': 'FBP.libs',
@@ -11,6 +13,8 @@ prefixes_map = {
     'devtools.frontend_build_platform.nots.': 'FBP.nots',
     'devtools.frontend_build_platform.quantum_arc.': 'FBP.quantum_arc',
 }
+
+searcher = snooper.Snooper().searcher(preset=snooper.Preset.ALL)
 
 
 def get_logger(name: str):
@@ -49,6 +53,7 @@ def safe_log_dict(locals_dump: dict[str, Any], use_pformat=False, use_colors=Fal
         if k.startswith('_') or k in keys_to_ignore:
             continue
         sanitized_value = repr('***') if is_secret(k) else repr(v)
-        result[k] = sanitized_value
+
+        result[k] = searcher.mask(sanitized_value, valid_only=False)
 
     return pformat(result, compact=True) if use_pformat else __custom_dict_format(result, use_colors)

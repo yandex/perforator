@@ -1,0 +1,10 @@
+PROTO_LIBRARY()
+
+ONLY_TAGS(
+    CPP_PROTO
+    GO_PROTO
+)
+
+SRCS(meta.proto)
+
+END()
