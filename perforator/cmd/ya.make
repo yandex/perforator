@@ -8,7 +8,12 @@ RECURSE(
     offline_processing
     proxy
     quality_monitoring
-    signal_profile_processor
     storage
     web
 )
+
+IF (NOT OPENSOURCE)
+    RECURSE(
+        yandex-specific
+    )
+ENDIF()
