@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.16.0)
+VERSION(v0.19.2)
 
 IF (OS_LINUX)
     SRCS(
@@ -29,6 +29,8 @@ IF (OS_LINUX)
         mdraid.go
         net_class.go
         net_class_aer.go
+        net_class_ecn.go
+        pci_device.go
         system_cpu.go
         vmstat_numa.go
         vulnerability.go
@@ -55,7 +57,9 @@ IF (OS_LINUX)
         fs_test.go
         mdraid_test.go
         net_class_aer_test.go
+        net_class_ecn_test.go
         net_class_test.go
+        pci_device_test.go
         system_cpu_test.go
         vmstat_numa_test.go
         vulnerability_test.go
@@ -87,6 +91,8 @@ IF (OS_ANDROID)
         mdraid.go
         net_class.go
         net_class_aer.go
+        net_class_ecn.go
+        pci_device.go
         system_cpu.go
         vmstat_numa.go
         vulnerability.go
@@ -113,7 +119,9 @@ IF (OS_ANDROID)
         fs_test.go
         mdraid_test.go
         net_class_aer_test.go
+        net_class_ecn_test.go
         net_class_test.go
+        pci_device_test.go
         system_cpu_test.go
         vmstat_numa_test.go
         vulnerability_test.go

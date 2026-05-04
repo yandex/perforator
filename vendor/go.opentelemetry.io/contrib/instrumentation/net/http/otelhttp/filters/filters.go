@@ -7,6 +7,7 @@ package filters // import "go.opentelemetry.io/contrib/instrumentation/net/http/
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -86,12 +87,7 @@ func PathPrefix(p string) otelhttp.Filter {
 // includes a query parameter k with a value equal to v.
 func Query(k, v string) otelhttp.Filter {
 	return func(r *http.Request) bool {
-		for _, qv := range r.URL.Query()[k] {
-			if v == qv {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(r.URL.Query()[k], v)
 	}
 }
 

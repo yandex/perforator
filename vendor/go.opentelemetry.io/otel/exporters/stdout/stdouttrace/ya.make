@@ -1,8 +1,11 @@
 GO_LIBRARY()
 
-LICENSE(Apache-2.0)
+LICENSE(
+    Apache-2.0 AND
+    BSD-3-Clause
+)
 
-VERSION(v1.34.0)
+VERSION(v1.38.0)
 
 GO_SKIP_TESTS(TestExporterExportSpan)
 
@@ -21,4 +24,5 @@ END()
 
 RECURSE(
     gotest
+    internal
 )

@@ -1,4 +1,4 @@
-// Copyright 2019 The Prometheus Authors
+// Copyright The Prometheus Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -208,7 +208,7 @@ func (fs FS) GetRBDMatch(rbdNumber string, poolImage string) (*RBD, error) {
 		}
 		systemImage = strings.TrimSpace(string(bSystemImage))
 
-		if strings.Compare(strconv.FormatInt(int64(systemRbdNumber), 10), rbdNumber) == 0 &&
+		if strconv.FormatInt(int64(systemRbdNumber), 10) == rbdNumber &&
 			matchPoolImage(systemPool, systemImage, poolImage) {
 			rbd.Pool = systemPool
 			rbd.Image = systemImage
@@ -241,5 +241,5 @@ func (fs FS) GetRDMCPPath(rdmcpNumber string, objectName string) (*RDMCP, error)
 
 func matchPoolImage(pool string, image string, matchPoolImage string) (isEqual bool) {
 	var poolImage = fmt.Sprintf("%s-%s", pool, image)
-	return strings.Compare(poolImage, matchPoolImage) == 0
+	return poolImage == matchPoolImage
 }

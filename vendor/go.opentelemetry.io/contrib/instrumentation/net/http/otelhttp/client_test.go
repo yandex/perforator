@@ -13,10 +13,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func TestConvenienceWrappers(t *testing.T) {
@@ -33,7 +33,7 @@ func TestConvenienceWrappers(t *testing.T) {
 
 	content := []byte("Hello, world!")
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if _, err := w.Write(content); err != nil {
 			t.Fatal(err)
 		}
@@ -84,7 +84,7 @@ func TestClientWithTraceContext(t *testing.T) {
 
 	content := []byte("Hello, world!")
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if _, err := w.Write(content); err != nil {
 			t.Fatal(err)
 		}

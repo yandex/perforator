@@ -369,7 +369,7 @@ func TestProtoDecoder(t *testing.T) {
 
 		var all model.Vector
 		for {
-			model.NameValidationScheme = model.LegacyValidation
+			model.NameValidationScheme = model.LegacyValidation //nolint:staticcheck
 			var smpls model.Vector
 			err := dec.Decode(&smpls)
 			if err != nil && errors.Is(err, io.EOF) {
@@ -377,7 +377,7 @@ func TestProtoDecoder(t *testing.T) {
 			}
 			if scenario.legacyNameFail {
 				require.Errorf(t, err, "Expected error when decoding without UTF-8 support enabled but got none")
-				model.NameValidationScheme = model.UTF8Validation
+				model.NameValidationScheme = model.UTF8Validation //nolint:staticcheck
 				dec = &SampleDecoder{
 					Dec: &protoDecoder{r: strings.NewReader(scenario.in)},
 					Opts: &DecodeOptions{

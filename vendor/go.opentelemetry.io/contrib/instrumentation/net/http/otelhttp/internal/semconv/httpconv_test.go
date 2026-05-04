@@ -20,7 +20,7 @@ import (
 )
 
 func TestCurrentHttpServer_MetricAttributes(t *testing.T) {
-	defaultRequest, err := http.NewRequest("GET", "http://example.com/path?query=test", nil)
+	defaultRequest, err := http.NewRequest("GET", "http://example.com/path?query=test", http.NoBody)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -202,9 +202,9 @@ func TestHTTPClientStatus(t *testing.T) {
 }
 
 func TestCurrentHttpClient_MetricAttributes(t *testing.T) {
-	defaultRequest, err := http.NewRequest("GET", "http://example.com/path?query=test", nil)
+	defaultRequest, err := http.NewRequest("GET", "http://example.com/path?query=test", http.NoBody)
 	require.NoError(t, err)
-	httpsRequest, err := http.NewRequest("GET", "https://example.com/path?query=test", nil)
+	httpsRequest, err := http.NewRequest("GET", "https://example.com/path?query=test", http.NoBody)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -302,7 +302,7 @@ func TestRequestTraceAttrs_HTTPRoute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/path/abc123", nil)
+			req := httptest.NewRequest(http.MethodGet, "/path/abc123", http.NoBody)
 			req.Pattern = tt.pattern
 
 			attrs := (CurrentHTTPServer{}).RequestTraceAttrs("", req, RequestTraceAttrsOpts{})
@@ -350,7 +350,7 @@ func TestRequestTraceAttrs_ClientIP(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/example", nil)
+			req := httptest.NewRequest(http.MethodGet, "/example", http.NoBody)
 			req.RemoteAddr = "1.2.3.4:5678"
 
 			if tt.requestModifierFn != nil {

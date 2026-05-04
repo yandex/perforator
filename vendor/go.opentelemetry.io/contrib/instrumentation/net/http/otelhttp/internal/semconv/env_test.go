@@ -35,7 +35,7 @@ func TestHTTPServerDoesNotPanic(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			require.NotPanics(t, func() {
-				req, err := http.NewRequest("GET", "http://example.com", nil)
+				req, err := http.NewRequest("GET", "http://example.com", http.NoBody)
 				require.NoError(t, err)
 
 				_ = tt.server.RequestTraceAttrs("stuff", req, RequestTraceAttrsOpts{})
@@ -53,9 +53,8 @@ func TestHTTPServerDoesNotPanic(t *testing.T) {
 
 func TestServerNetworkTransportAttr(t *testing.T) {
 	for _, tt := range []struct {
-		name     string
-		optinVal string
-		network  string
+		name    string
+		network string
 
 		wantAttributes []attribute.KeyValue
 	}{
@@ -67,29 +66,8 @@ func TestServerNetworkTransportAttr(t *testing.T) {
 				attribute.String("network.transport", "tcp"),
 			},
 		},
-		{
-			name:     "without a dup optin",
-			optinVal: "http/dup",
-			network:  "tcp",
-
-			wantAttributes: []attribute.KeyValue{
-				attribute.String("net.transport", "ip_tcp"),
-				attribute.String("network.transport", "tcp"),
-			},
-		},
-		{
-			name:     "with mixed categories",
-			optinVal: "http/dup,database",
-			network:  "tcp",
-
-			wantAttributes: []attribute.KeyValue{
-				attribute.String("net.transport", "ip_tcp"),
-				attribute.String("network.transport", "tcp"),
-			},
-		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(OTelSemConvStabilityOptIn, tt.optinVal)
 			s := NewHTTPServer(nil)
 
 			assert.Equal(t, tt.wantAttributes, s.NetworkTransportAttr(tt.network))
@@ -114,7 +92,7 @@ func TestHTTPClientDoesNotPanic(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			require.NotPanics(t, func() {
-				req, err := http.NewRequest("GET", "http://example.com", nil)
+				req, err := http.NewRequest("GET", "http://example.com", http.NoBody)
 				require.NoError(t, err)
 
 				_ = tt.client.RequestTraceAttrs(req)
@@ -124,7 +102,6 @@ func TestHTTPClientDoesNotPanic(t *testing.T) {
 					Req:        req,
 					StatusCode: 200,
 				})
-				tt.client.RecordResponseSize(context.Background(), 40, opts)
 				tt.client.RecordMetrics(context.Background(), MetricData{
 					RequestSize: 20,
 					ElapsedTime: 1,
@@ -136,8 +113,7 @@ func TestHTTPClientDoesNotPanic(t *testing.T) {
 
 func TestHTTPClientTraceAttributes(t *testing.T) {
 	for _, tt := range []struct {
-		name     string
-		optinVal string
+		name string
 
 		wantAttributes []attribute.KeyValue
 	}{
@@ -148,28 +124,8 @@ func TestHTTPClientTraceAttributes(t *testing.T) {
 				attribute.String("server.address", "example.com"),
 			},
 		},
-		{
-			name:     "with optin set to duplicate",
-			optinVal: "http/dup",
-
-			wantAttributes: []attribute.KeyValue{
-				attribute.String("server.address", "example.com"),
-				attribute.String("net.host.name", "example.com"),
-			},
-		},
-		{
-			name:     "with mixed categories",
-			optinVal: "http/dup,database",
-
-			wantAttributes: []attribute.KeyValue{
-				attribute.String("server.address", "example.com"),
-				attribute.String("net.host.name", "example.com"),
-			},
-		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(OTelSemConvStabilityOptIn, tt.optinVal)
-
 			c := NewHTTPClient(nil)
 			a := c.TraceAttributes("example.com")
 			assert.Equal(t, tt.wantAttributes, a)
@@ -179,9 +135,8 @@ func TestHTTPClientTraceAttributes(t *testing.T) {
 
 func TestClientTraceAttributes(t *testing.T) {
 	for _, tt := range []struct {
-		name     string
-		optinVal string
-		host     string
+		name string
+		host string
 
 		wantAttributes []attribute.KeyValue
 	}{
@@ -193,29 +148,8 @@ func TestClientTraceAttributes(t *testing.T) {
 				attribute.String("server.address", "example.com"),
 			},
 		},
-		{
-			name:     "without a dup optin",
-			optinVal: "http/dup",
-			host:     "example.com",
-
-			wantAttributes: []attribute.KeyValue{
-				attribute.String("server.address", "example.com"),
-				attribute.String("net.host.name", "example.com"),
-			},
-		},
-		{
-			name:     "with mixed categories",
-			optinVal: "http/dup",
-			host:     "example.com",
-
-			wantAttributes: []attribute.KeyValue{
-				attribute.String("server.address", "example.com"),
-				attribute.String("net.host.name", "example.com"),
-			},
-		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(OTelSemConvStabilityOptIn, tt.optinVal)
 			s := NewHTTPClient(nil)
 
 			assert.Equal(t, tt.wantAttributes, s.TraceAttributes(tt.host))
@@ -244,13 +178,13 @@ func BenchmarkRecordMetrics(b *testing.B) {
 
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
-			req, _ := http.NewRequest("GET", "http://example.com", nil)
+			req, _ := http.NewRequest("GET", "http://example.com", http.NoBody)
 			_ = bm.server.RequestTraceAttrs("stuff", req, RequestTraceAttrsOpts{})
 			_ = bm.server.ResponseTraceAttrs(ResponseTelemetry{StatusCode: 200})
 			ctx := context.Background()
 			b.ReportAllocs()
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				bm.server.RecordMetrics(ctx, ServerMetricData{
 					ServerName: bm.name,
 					MetricAttributes: MetricAttributes{

@@ -28,7 +28,6 @@ import (
 )
 
 func TestNewTraceRequest(t *testing.T) {
-	t.Setenv("OTEL_SEMCONV_STABILITY_OPT_IN", "http/dup")
 	serv := semconv.NewHTTPServer(nil)
 	want := func(req testServerReq) []attribute.KeyValue {
 		return []attribute.KeyValue{
@@ -42,16 +41,6 @@ func TestNewTraceRequest(t *testing.T) {
 			attribute.String("client.address", req.clientIP),
 			attribute.String("network.protocol.version", "1.1"),
 			attribute.String("url.path", "/"),
-			attribute.String("http.method", "GET"),
-			attribute.String("http.scheme", "http"),
-			attribute.String("net.host.name", req.hostname),
-			attribute.Int("net.host.port", req.serverPort),
-			attribute.String("net.sock.peer.addr", req.peerAddr),
-			attribute.Int("net.sock.peer.port", req.peerPort),
-			attribute.String("user_agent.original", "Go-http-client/1.1"),
-			attribute.String("http.client_ip", req.clientIP),
-			attribute.String("net.protocol.version", "1.1"),
-			attribute.String("http.target", "/"),
 		}
 	}
 	testTraceRequest(t, serv, want)
@@ -174,13 +163,11 @@ func TestNewServerRecordMetrics(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		setEnv     bool
 		serverFunc func(metric.MeterProvider) semconv.HTTPServer
 		wantFunc   func(t *testing.T, rm metricdata.ResourceMetrics)
 	}{
 		{
-			name:   "No environment variable set, and no Meter",
-			setEnv: false,
+			name: "No Meter",
 			serverFunc: func(metric.MeterProvider) semconv.HTTPServer {
 				return semconv.NewHTTPServer(nil)
 			},
@@ -189,8 +176,7 @@ func TestNewServerRecordMetrics(t *testing.T) {
 			},
 		},
 		{
-			name:   "No environment variable set, but with Meter",
-			setEnv: false,
+			name: "With Meter",
 			serverFunc: func(mp metric.MeterProvider) semconv.HTTPServer {
 				return semconv.NewHTTPServer(mp.Meter("test"))
 			},
@@ -202,41 +188,15 @@ func TestNewServerRecordMetrics(t *testing.T) {
 				metricdatatest.AssertEqual(t, expectedCurrentScopeMetric, rm.ScopeMetrics[0], metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreValue())
 			},
 		},
-		{
-			name:   "Set environment variable, but no Meter",
-			setEnv: true,
-			serverFunc: func(metric.MeterProvider) semconv.HTTPServer {
-				return semconv.NewHTTPServer(nil)
-			},
-			wantFunc: func(t *testing.T, rm metricdata.ResourceMetrics) {
-				assert.Empty(t, rm.ScopeMetrics)
-			},
-		},
-		{
-			name:   "Set environment variable and Meter",
-			setEnv: true,
-			serverFunc: func(mp metric.MeterProvider) semconv.HTTPServer {
-				return semconv.NewHTTPServer(mp.Meter("test"))
-			},
-			wantFunc: func(t *testing.T, rm metricdata.ResourceMetrics) {
-				require.Len(t, rm.ScopeMetrics, 1)
-				require.Len(t, rm.ScopeMetrics[0].Metrics, 6)
-				metricdatatest.AssertEqual(t, expectedOldScopeMetric, rm.ScopeMetrics[0], metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreValue())
-			},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.setEnv {
-				t.Setenv(semconv.OTelSemConvStabilityOptIn, "http/dup")
-			}
-
 			reader := sdkmetric.NewManualReader()
 			mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 
 			server := tt.serverFunc(mp)
-			req, err := http.NewRequest("POST", "http://example.com", nil)
+			req, err := http.NewRequest("POST", "http://example.com", http.NoBody)
 			assert.NoError(t, err)
 
 			server.RecordMetrics(context.Background(), semconv.ServerMetricData{
@@ -312,7 +272,6 @@ func TestNewTraceResponse(t *testing.T) {
 }
 
 func TestNewTraceRequest_Client(t *testing.T) {
-	t.Setenv("OTEL_SEMCONV_STABILITY_OPT_IN", "http/dup")
 	body := strings.NewReader("Hello, world!")
 	url := "https://example.com:8888/foo/bar?stuff=morestuff"
 	req := httptest.NewRequest("pOST", url, body)
@@ -321,29 +280,22 @@ func TestNewTraceRequest_Client(t *testing.T) {
 	want := []attribute.KeyValue{
 		attribute.String("http.request.method", "POST"),
 		attribute.String("http.request.method_original", "pOST"),
-		attribute.String("http.method", "pOST"),
 		attribute.String("url.full", url),
-		attribute.String("http.url", url),
 		attribute.String("server.address", "example.com"),
 		attribute.Int("server.port", 8888),
 		attribute.String("network.protocol.version", "1.1"),
-		attribute.String("net.peer.name", "example.com"),
-		attribute.Int("net.peer.port", 8888),
-		attribute.String("user_agent.original", "go-test-agent"),
-		attribute.Int("http.request_content_length", 13),
 	}
 	client := semconv.NewHTTPClient(nil)
 	assert.ElementsMatch(t, want, client.RequestTraceAttrs(req))
 }
 
 func TestNewTraceResponse_Client(t *testing.T) {
-	t.Setenv("OTEL_SEMCONV_STABILITY_OPT_IN", "http/dup")
 	testcases := []struct {
 		resp http.Response
 		want []attribute.KeyValue
 	}{
-		{resp: http.Response{StatusCode: 200, ContentLength: 123}, want: []attribute.KeyValue{attribute.Int("http.response.status_code", 200), attribute.Int("http.status_code", 200), attribute.Int("http.response_content_length", 123)}},
-		{resp: http.Response{StatusCode: 404, ContentLength: 0}, want: []attribute.KeyValue{attribute.Int("http.response.status_code", 404), attribute.Int("http.status_code", 404), attribute.String("error.type", "404")}},
+		{resp: http.Response{StatusCode: 200, ContentLength: 123}, want: []attribute.KeyValue{attribute.Int("http.response.status_code", 200)}},
+		{resp: http.Response{StatusCode: 404, ContentLength: 0}, want: []attribute.KeyValue{attribute.Int("http.response.status_code", 404), attribute.String("error.type", "404")}},
 	}
 
 	for _, tt := range testcases {
@@ -401,12 +353,6 @@ func TestRequestErrorType(t *testing.T) {
 }
 
 func TestNewClientRecordMetrics(t *testing.T) {
-	oldAttrs := attribute.NewSet(
-		attribute.String("http.method", "POST"),
-		attribute.Int64("http.status_code", 301),
-		attribute.String("net.peer.name", "example.com"),
-	)
-
 	currAttrs := attribute.NewSet(
 		attribute.String("http.request.method", "POST"),
 		attribute.Int64("http.response.status_code", 301),
@@ -451,47 +397,13 @@ func TestNewClientRecordMetrics(t *testing.T) {
 		},
 	}
 
-	// The OldHTTPClient version
-	expectedOldScopeMetric := expectedCurrentScopeMetric
-	expectedOldScopeMetric.Metrics = append(expectedOldScopeMetric.Metrics, []metricdata.Metrics{
-		{
-			Name:        "http.client.request.size",
-			Description: "Measures the size of HTTP request messages.",
-			Unit:        "By",
-			Data: metricdata.Sum[int64]{
-				Temporality: metricdata.CumulativeTemporality,
-				IsMonotonic: true,
-				DataPoints: []metricdata.DataPoint[int64]{
-					{
-						Attributes: oldAttrs,
-					},
-				},
-			},
-		},
-		{
-			Name:        "http.client.duration",
-			Description: "Measures the duration of outbound HTTP requests.",
-			Unit:        "ms",
-			Data: metricdata.Histogram[float64]{
-				Temporality: metricdata.CumulativeTemporality,
-				DataPoints: []metricdata.HistogramDataPoint[float64]{
-					{
-						Attributes: oldAttrs,
-					},
-				},
-			},
-		},
-	}...)
-
 	tests := []struct {
 		name       string
-		setEnv     bool
 		clientFunc func(metric.MeterProvider) semconv.HTTPClient
 		wantFunc   func(t *testing.T, rm metricdata.ResourceMetrics)
 	}{
 		{
-			name:   "No environment variable set, and no Meter",
-			setEnv: false,
+			name: "No environment variable set, and no Meter",
 			clientFunc: func(metric.MeterProvider) semconv.HTTPClient {
 				return semconv.NewHTTPClient(nil)
 			},
@@ -500,8 +412,7 @@ func TestNewClientRecordMetrics(t *testing.T) {
 			},
 		},
 		{
-			name:   "No environment variable set, but with Meter",
-			setEnv: false,
+			name: "With Meter",
 			clientFunc: func(mp metric.MeterProvider) semconv.HTTPClient {
 				return semconv.NewHTTPClient(mp.Meter("test"))
 			},
@@ -512,152 +423,21 @@ func TestNewClientRecordMetrics(t *testing.T) {
 				metricdatatest.AssertEqual(t, expectedCurrentScopeMetric, rm.ScopeMetrics[0], metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreValue())
 			},
 		},
-		{
-			name:   "Set environment variable, but no Meter",
-			setEnv: true,
-			clientFunc: func(metric.MeterProvider) semconv.HTTPClient {
-				return semconv.NewHTTPClient(nil)
-			},
-			wantFunc: func(t *testing.T, rm metricdata.ResourceMetrics) {
-				assert.Empty(t, rm.ScopeMetrics)
-			},
-		},
-		{
-			name:   "Set environment variable and Meter",
-			setEnv: true,
-			clientFunc: func(mp metric.MeterProvider) semconv.HTTPClient {
-				return semconv.NewHTTPClient(mp.Meter("test"))
-			},
-			wantFunc: func(t *testing.T, rm metricdata.ResourceMetrics) {
-				require.Len(t, rm.ScopeMetrics, 1)
-				require.Len(t, rm.ScopeMetrics[0].Metrics, 4)
-				metricdatatest.AssertEqual(t, expectedOldScopeMetric, rm.ScopeMetrics[0], metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreValue())
-			},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.setEnv {
-				t.Setenv(semconv.OTelSemConvStabilityOptIn, "http/dup")
-			}
-
 			reader := sdkmetric.NewManualReader()
 			mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 
 			client := tt.clientFunc(mp)
-			req, err := http.NewRequest("POST", "http://example.com", nil)
+			req, err := http.NewRequest("POST", "http://example.com", http.NoBody)
 			assert.NoError(t, err)
 
 			client.RecordMetrics(context.Background(), semconv.MetricData{
 				RequestSize: 100,
 				ElapsedTime: 300,
 			}, client.MetricOptions(semconv.MetricAttributes{
-				Req:        req,
-				StatusCode: 301,
-			}))
-
-			rm := metricdata.ResourceMetrics{}
-			require.NoError(t, reader.Collect(context.Background(), &rm))
-			tt.wantFunc(t, rm)
-		})
-	}
-}
-
-func TestClientRecordResponseSize(t *testing.T) {
-	oldAttrs := attribute.NewSet(
-		attribute.String("http.method", "POST"),
-		attribute.Int64("http.status_code", 301),
-		attribute.String("net.peer.name", "example.com"),
-	)
-
-	// The OldHTTPClient version
-	expectedOldScopeMetric := metricdata.ScopeMetrics{
-		Scope: instrumentation.Scope{
-			Name: "test",
-		},
-		Metrics: []metricdata.Metrics{
-			{
-				Name:        "http.client.response.size",
-				Description: "Measures the size of HTTP response messages.",
-				Unit:        "By",
-				Data: metricdata.Sum[int64]{
-					Temporality: metricdata.CumulativeTemporality,
-					IsMonotonic: true,
-					DataPoints: []metricdata.DataPoint[int64]{
-						{
-							Attributes: oldAttrs,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	tests := []struct {
-		name       string
-		setEnv     bool
-		clientFunc func(metric.MeterProvider) semconv.HTTPClient
-		wantFunc   func(t *testing.T, rm metricdata.ResourceMetrics)
-	}{
-		{
-			name:   "No environment variable set, and no Meter",
-			setEnv: false,
-			clientFunc: func(metric.MeterProvider) semconv.HTTPClient {
-				return semconv.NewHTTPClient(nil)
-			},
-			wantFunc: func(t *testing.T, rm metricdata.ResourceMetrics) {
-				assert.Empty(t, rm.ScopeMetrics)
-			},
-		},
-		{
-			name:   "No environment variable set, but with Meter",
-			setEnv: false,
-			clientFunc: func(mp metric.MeterProvider) semconv.HTTPClient {
-				return semconv.NewHTTPClient(mp.Meter("test"))
-			},
-			wantFunc: func(t *testing.T, rm metricdata.ResourceMetrics) {
-				require.Empty(t, rm.ScopeMetrics)
-			},
-		},
-		{
-			name:   "Set environment variable, but no Meter",
-			setEnv: true,
-			clientFunc: func(metric.MeterProvider) semconv.HTTPClient {
-				return semconv.NewHTTPClient(nil)
-			},
-			wantFunc: func(t *testing.T, rm metricdata.ResourceMetrics) {
-				assert.Empty(t, rm.ScopeMetrics)
-			},
-		},
-		{
-			name:   "Set environment variable and Meter",
-			setEnv: true,
-			clientFunc: func(mp metric.MeterProvider) semconv.HTTPClient {
-				return semconv.NewHTTPClient(mp.Meter("test"))
-			},
-			wantFunc: func(t *testing.T, rm metricdata.ResourceMetrics) {
-				require.Len(t, rm.ScopeMetrics, 1)
-				require.Len(t, rm.ScopeMetrics[0].Metrics, 1)
-				metricdatatest.AssertEqual(t, expectedOldScopeMetric, rm.ScopeMetrics[0], metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreValue())
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.setEnv {
-				t.Setenv(semconv.OTelSemConvStabilityOptIn, "http/dup")
-			}
-
-			reader := sdkmetric.NewManualReader()
-			mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
-
-			client := tt.clientFunc(mp)
-			req, err := http.NewRequest("POST", "http://example.com", nil)
-			assert.NoError(t, err)
-
-			client.RecordResponseSize(context.Background(), 100, client.MetricOptions(semconv.MetricAttributes{
 				Req:        req,
 				StatusCode: 301,
 			}))

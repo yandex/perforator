@@ -6,6 +6,7 @@ package filters // import "go.opentelemetry.io/contrib/instrumentation/net/http/
 import (
 	"net/http"
 	"net/textproto"
+	"slices"
 	"strings"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -15,12 +16,7 @@ import (
 // includes a header k with a value equal to v.
 func Header(k, v string) otelhttp.Filter {
 	return func(r *http.Request) bool {
-		for _, hv := range r.Header[textproto.CanonicalMIMEHeaderKey(k)] {
-			if v == hv {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(r.Header[textproto.CanonicalMIMEHeaderKey(k)], v)
 	}
 }
 

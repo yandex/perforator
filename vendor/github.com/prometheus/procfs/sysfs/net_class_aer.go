@@ -1,4 +1,4 @@
-// Copyright 2024 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -143,7 +143,7 @@ func parseCorrectableAerCounters(devicePath string, counters *CorrectableAerCoun
 		return fmt.Errorf("failed to read file %q: %w", path, err)
 	}
 
-	for _, line := range strings.Split(string(value), "\n") {
+	for line := range strings.SplitSeq(string(value), "\n") {
 		if line == "" {
 			continue
 		}
@@ -154,7 +154,7 @@ func parseCorrectableAerCounters(devicePath string, counters *CorrectableAerCoun
 		counterName := fields[0]
 		value, err := strconv.ParseUint(fields[1], 10, 64)
 		if err != nil {
-			return fmt.Errorf("error parsing value for %s: %v", counterName, err)
+			return fmt.Errorf("error parsing value for %s: %w", counterName, err)
 		}
 
 		switch counterName {
@@ -195,7 +195,7 @@ func parseUncorrectableAerCounters(devicePath string, counterType string,
 		return fmt.Errorf("failed to read file %q: %w", path, err)
 	}
 
-	for _, line := range strings.Split(string(value), "\n") {
+	for line := range strings.SplitSeq(string(value), "\n") {
 		if line == "" {
 			continue
 		}
@@ -206,7 +206,7 @@ func parseUncorrectableAerCounters(devicePath string, counterType string,
 		counterName := fields[0]
 		value, err := strconv.ParseUint(fields[1], 10, 64)
 		if err != nil {
-			return fmt.Errorf("error parsing value for %s: %v", counterName, err)
+			return fmt.Errorf("error parsing value for %s: %w", counterName, err)
 		}
 
 		switch counterName {

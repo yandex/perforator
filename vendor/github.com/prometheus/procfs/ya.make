@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.16.0)
+VERSION(v0.19.2)
 
 SRCS(
     arp.go
@@ -33,6 +33,7 @@ SRCS(
     net_wireless.go
     net_xfrm.go
     netstat.go
+    nfnetlink_queue.go
     proc.go
     proc_cgroup.go
     proc_cgroups.go
@@ -47,6 +48,7 @@ SRCS(
     proc_snmp.go
     proc_snmp6.go
     proc_stat.go
+    proc_statm.go
     proc_status.go
     proc_sys.go
     schedstat.go
@@ -84,6 +86,7 @@ GO_TEST_SRCS(
     net_wireless_test.go
     net_xfrm_test.go
     netstat_test.go
+    nfnetlink_queue_test.go
     proc_cgroup_test.go
     proc_cgroups_test.go
     proc_environ_test.go
@@ -97,6 +100,7 @@ GO_TEST_SRCS(
     proc_snmp6_test.go
     proc_snmp_test.go
     proc_stat_test.go
+    proc_statm_test.go
     proc_status_test.go
     proc_sys_test.go
     proc_test.go
@@ -112,6 +116,7 @@ IF (OS_LINUX)
     SRCS(
         cpuinfo.go
         fs_statfs_type.go
+        kernel_hung.go
         kernel_random.go
         proc_maps.go
         proc_smaps.go
@@ -122,6 +127,7 @@ IF (OS_LINUX)
     GO_TEST_SRCS(
         cmdline_test.go
         cpuinfo_test.go
+        kernel_hung_test.go
         kernel_random_test.go
         proc_smaps_test.go
         vm_test.go
@@ -156,6 +162,7 @@ ENDIF()
 IF (OS_DARWIN)
     SRCS(
         fs_statfs_notype.go
+        kernel_hung.go
         kernel_random.go
         proc_maps.go
         proc_smaps.go
@@ -164,6 +171,7 @@ IF (OS_DARWIN)
     )
 
     GO_TEST_SRCS(
+        kernel_hung_test.go
         kernel_random_test.go
         proc_maps64_test.go
         proc_smaps_test.go
@@ -183,6 +191,7 @@ IF (OS_ANDROID)
         cpuinfo.go
         cpuinfo_armx.go
         fs_statfs_type.go
+        kernel_hung.go
         kernel_random.go
         proc_maps.go
         proc_smaps.go
@@ -193,6 +202,7 @@ IF (OS_ANDROID)
     GO_TEST_SRCS(
         cmdline_test.go
         cpuinfo_test.go
+        kernel_hung_test.go
         kernel_random_test.go
         proc_maps64_test.go
         proc_smaps_test.go
@@ -204,6 +214,7 @@ ENDIF()
 IF (OS_EMSCRIPTEN)
     SRCS(
         fs_statfs_notype.go
+        kernel_hung.go
         kernel_random.go
         proc_smaps.go
         vm.go
@@ -211,6 +222,7 @@ IF (OS_EMSCRIPTEN)
     )
 
     GO_TEST_SRCS(
+        kernel_hung_test.go
         kernel_random_test.go
         proc_smaps_test.go
         vm_test.go

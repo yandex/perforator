@@ -1,4 +1,4 @@
-// Copyright 2018 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -236,8 +236,8 @@ func parseClientV4Stats(v []uint64) (ClientV4Stats, error) {
 		Sequence:           v[42],
 		GetLeaseTime:       v[43],
 		ReclaimComplete:    v[44],
-		LayoutGet:          v[45],
-		GetDeviceInfo:      v[46],
+		GetDeviceInfo:      v[45],
+		LayoutGet:          v[46],
 		LayoutCommit:       v[47],
 		LayoutReturn:       v[48],
 		SecinfoNoName:      v[49],

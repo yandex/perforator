@@ -1,15 +1,17 @@
 GO_LIBRARY()
 
-LICENSE(Apache-2.0)
+LICENSE(
+    Apache-2.0 AND
+    BSD-3-Clause
+)
 
-VERSION(v0.62.0)
+VERSION(v0.63.0)
 
 SRCS(
     env.go
     gen.go
     httpconv.go
     util.go
-    v1.20.0.go
 )
 
 GO_TEST_SRCS(

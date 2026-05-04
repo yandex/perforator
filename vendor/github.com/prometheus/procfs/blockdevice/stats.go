@@ -1,4 +1,4 @@
-// Copyright 2018 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -425,8 +425,7 @@ func (fs FS) SysBlockDeviceQueueStats(device string) (BlockQueueStats, error) {
 		return BlockQueueStats{}, err
 	}
 	var schedulers []string
-	xs := strings.Split(scheduler, " ")
-	for _, s := range xs {
+	for s := range strings.SplitSeq(scheduler, " ") {
 		if strings.HasPrefix(s, "[") && strings.HasSuffix(s, "]") {
 			s = s[1 : len(s)-1]
 			stat.SchedulerCurrent = s

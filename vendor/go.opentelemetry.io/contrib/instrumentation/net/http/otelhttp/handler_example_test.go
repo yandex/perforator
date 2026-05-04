@@ -83,7 +83,7 @@ func ExampleNewHandler() {
 		),
 	)
 
-	if err := http.ListenAndServe(":7777", //nolint:gosec // Ignoring G114: Use of net/http serve function that has no support for setting timeouts.
+	if err := http.ListenAndServe(":7777",
 		otelhttp.NewHandler(&mux, "server",
 			otelhttp.WithMessageEvents(otelhttp.ReadEvents, otelhttp.WriteEvents),
 		),

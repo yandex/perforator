@@ -16,7 +16,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
@@ -26,7 +25,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -41,7 +40,7 @@ func TestHandler(t *testing.T) {
 			name: "implements flusher",
 			handler: func(t *testing.T) http.Handler {
 				return NewHandler(
-					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 						assert.Implements(t, (*http.Flusher)(nil), w)
 
 						w.(http.Flusher).Flush()
@@ -55,7 +54,7 @@ func TestHandler(t *testing.T) {
 			name: "succeeds",
 			handler: func(t *testing.T) http.Handler {
 				return NewHandler(
-					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 						assert.NotNil(t, r.Body)
 
 						b, err := io.ReadAll(r.Body)
@@ -71,7 +70,7 @@ func TestHandler(t *testing.T) {
 			name: "succeeds with a nil body",
 			handler: func(t *testing.T) http.Handler {
 				return NewHandler(
-					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 						assert.Nil(t, r.Body)
 					}), "test_handler",
 				)
@@ -82,7 +81,7 @@ func TestHandler(t *testing.T) {
 			name: "succeeds with an http.NoBody",
 			handler: func(t *testing.T) http.Handler {
 				return NewHandler(
-					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 						assert.Equal(t, http.NoBody, r.Body)
 					}), "test_handler",
 				)
@@ -98,7 +97,7 @@ func TestHandler(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 			tc.handler(t).ServeHTTP(rr, r)
-			assert.Equal(t, tc.expectedStatusCode, rr.Result().StatusCode) //nolint:bodyclose // False positive for httptest.ResponseRecorder: https://github.com/timakin/bodyclose/issues/59.
+			assert.Equal(t, tc.expectedStatusCode, rr.Result().StatusCode)
 		})
 	}
 }
@@ -151,7 +150,7 @@ func TestHandlerBasics(t *testing.T) {
 	)
 	assertScopeMetrics(t, rm.ScopeMetrics[0], attrs)
 
-	if got, expected := rr.Result().StatusCode, http.StatusOK; got != expected { //nolint:bodyclose // False positive for httptest.ResponseRecorder: https://github.com/timakin/bodyclose/issues/59.
+	if got, expected := rr.Result().StatusCode, http.StatusOK; got != expected {
 		t.Fatalf("got %d, expected %d", got, expected)
 	}
 
@@ -163,7 +162,7 @@ func TestHandlerBasics(t *testing.T) {
 		t.Fatalf("invalid span created: %#v", spans[0].SpanContext())
 	}
 
-	d, err := io.ReadAll(rr.Result().Body) //nolint:bodyclose // False positive for httptest.ResponseRecorder: https://github.com/timakin/bodyclose/issues/59.
+	d, err := io.ReadAll(rr.Result().Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +241,7 @@ func TestHandlerEmittedAttributes(t *testing.T) {
 	}{
 		{
 			name: "With a success handler",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
 			attributes: []attribute.KeyValue{
@@ -251,7 +250,7 @@ func TestHandlerEmittedAttributes(t *testing.T) {
 		},
 		{
 			name: "With a failing handler",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 			},
 			attributes: []attribute.KeyValue{
@@ -260,7 +259,7 @@ func TestHandlerEmittedAttributes(t *testing.T) {
 		},
 		{
 			name: "With an empty handler",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(http.ResponseWriter, *http.Request) {
 			},
 			attributes: []attribute.KeyValue{
 				attribute.Int("http.response.status_code", http.StatusOK),
@@ -268,7 +267,7 @@ func TestHandlerEmittedAttributes(t *testing.T) {
 		},
 		{
 			name: "With persisting initial failing status in handler with multiple WriteHeader calls",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 				w.WriteHeader(http.StatusOK)
 			},
@@ -287,7 +286,7 @@ func TestHandlerEmittedAttributes(t *testing.T) {
 				WithTracerProvider(provider),
 			)
 
-			h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
+			h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", http.NoBody))
 
 			require.Len(t, sr.Ended(), 1, "should emit a span")
 			attrs := sr.Ended()[0].Attributes()
@@ -324,28 +323,28 @@ func TestHandlerPropagateWriteHeaderCalls(t *testing.T) {
 	}{
 		{
 			name: "With a success handler",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
 			expectHeadersWritten: []int{http.StatusOK},
 		},
 		{
 			name: "With a failing handler",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 			},
 			expectHeadersWritten: []int{http.StatusBadRequest},
 		},
 		{
 			name: "With an empty handler",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(http.ResponseWriter, *http.Request) {
 			},
 
 			expectHeadersWritten: nil,
 		},
 		{
 			name: "With calling WriteHeader twice",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 				w.WriteHeader(http.StatusOK)
 			},
@@ -353,14 +352,14 @@ func TestHandlerPropagateWriteHeaderCalls(t *testing.T) {
 		},
 		{
 			name: "When writing the header indirectly through body write",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				_, _ = w.Write([]byte("hello"))
 			},
 			expectHeadersWritten: []int{http.StatusOK},
 		},
 		{
 			name: "With a header already written when writing the body",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 				_, _ = w.Write([]byte("hello"))
 			},
@@ -368,7 +367,7 @@ func TestHandlerPropagateWriteHeaderCalls(t *testing.T) {
 		},
 		{
 			name: "When writing the header indirectly through flush",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				f := w.(http.Flusher)
 				f.Flush()
 			},
@@ -376,7 +375,7 @@ func TestHandlerPropagateWriteHeaderCalls(t *testing.T) {
 		},
 		{
 			name: "With a header already written when flushing",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 				f := w.(http.Flusher)
 				f.Flush()
@@ -397,7 +396,7 @@ func TestHandlerPropagateWriteHeaderCalls(t *testing.T) {
 
 			recorder := httptest.NewRecorder()
 			rw := &respWriteHeaderCounter{ResponseWriter: recorder}
-			h.ServeHTTP(rw, httptest.NewRequest("GET", "/", nil))
+			h.ServeHTTP(rw, httptest.NewRequest(http.MethodGet, "/", http.NoBody))
 			require.Equal(t, tc.expectHeadersWritten, rw.headersWritten, "should propagate all WriteHeader calls to underlying ResponseWriter")
 		})
 	}
@@ -407,12 +406,12 @@ func TestHandlerRequestWithTraceContext(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	h := NewHandler(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			_, err := w.Write([]byte("hello world"))
 			assert.NoError(t, err)
 		}), "test_handler")
 
-	r, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
+	r, err := http.NewRequest(http.MethodGet, "http://localhost/", http.NoBody)
 	require.NoError(t, err)
 
 	spanRecorder := tracetest.NewSpanRecorder()
@@ -424,7 +423,7 @@ func TestHandlerRequestWithTraceContext(t *testing.T) {
 	r = r.WithContext(ctx)
 
 	h.ServeHTTP(rr, r)
-	assert.Equal(t, http.StatusOK, rr.Result().StatusCode) //nolint:bodyclose // False positive for httptest.ResponseRecorder: https://github.com/timakin/bodyclose/issues/59.
+	assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
 
 	span.End()
 
@@ -450,14 +449,14 @@ func TestWithSpanNameFormatter(t *testing.T) {
 		},
 		{
 			name: "with a custom span name formatter",
-			formatter: func(op string, r *http.Request) string {
+			formatter: func(_ string, r *http.Request) string {
 				return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 			},
 			wantSpanName: "GET /foo/123",
 		},
 		{
 			name: "with a custom span name formatter using the pattern",
-			formatter: func(op string, r *http.Request) string {
+			formatter: func(_ string, r *http.Request) string {
 				return fmt.Sprintf("%s %s", r.Method, r.Pattern)
 			},
 			wantSpanName: "GET /foo/{id}",
@@ -477,12 +476,12 @@ func TestWithSpanNameFormatter(t *testing.T) {
 			}
 
 			mux := http.NewServeMux()
-			mux.Handle("/foo/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			mux.Handle("/foo/{id}", http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 				// Nothing to do here
 			}))
 			h := NewHandler(mux, "test_handler", opts...)
 
-			r, err := http.NewRequest(http.MethodGet, "http://localhost/foo/123", nil)
+			r, err := http.NewRequest(http.MethodGet, "http://localhost/foo/123", http.NoBody)
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
@@ -509,7 +508,7 @@ func TestWithPublicEndpoint(t *testing.T) {
 	}
 	prop := propagation.TraceContext{}
 	h := NewHandler(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 			s := trace.SpanFromContext(r.Context())
 			sc := s.SpanContext()
 
@@ -523,7 +522,7 @@ func TestWithPublicEndpoint(t *testing.T) {
 		WithTracerProvider(provider),
 	)
 
-	r, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
+	r, err := http.NewRequest(http.MethodGet, "http://localhost/", http.NoBody)
 	require.NoError(t, err)
 
 	sc := trace.NewSpanContext(remoteSpan)
@@ -532,7 +531,7 @@ func TestWithPublicEndpoint(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, r)
-	assert.Equal(t, http.StatusOK, rr.Result().StatusCode) //nolint:bodyclose // False positive for httptest.ResponseRecorder: https://github.com/timakin/bodyclose/issues/59.
+	assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
 
 	// Recorded span should be linked with an incoming span context.
 	assert.NoError(t, spanRecorder.ForceFlush(ctx))
@@ -559,7 +558,7 @@ func TestWithPublicEndpointFn(t *testing.T) {
 	}{
 		{
 			name: "with the method returning true",
-			fn: func(r *http.Request) bool {
+			fn: func(*http.Request) bool {
 				return true
 			},
 			handlerAssert: func(t *testing.T, sc trace.SpanContext) {
@@ -576,7 +575,7 @@ func TestWithPublicEndpointFn(t *testing.T) {
 		},
 		{
 			name: "with the method returning false",
-			fn: func(r *http.Request) bool {
+			fn: func(*http.Request) bool {
 				return false
 			},
 			handlerAssert: func(t *testing.T, sc trace.SpanContext) {
@@ -598,7 +597,7 @@ func TestWithPublicEndpointFn(t *testing.T) {
 			)
 
 			h := NewHandler(
-				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 					s := trace.SpanFromContext(r.Context())
 					tt.handlerAssert(t, s.SpanContext())
 				}), "test_handler",
@@ -607,7 +606,7 @@ func TestWithPublicEndpointFn(t *testing.T) {
 				WithTracerProvider(provider),
 			)
 
-			r, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
+			r, err := http.NewRequest(http.MethodGet, "http://localhost/", http.NoBody)
 			require.NoError(t, err)
 
 			sc := trace.NewSpanContext(remoteSpan)
@@ -616,7 +615,7 @@ func TestWithPublicEndpointFn(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 			h.ServeHTTP(rr, r)
-			assert.Equal(t, http.StatusOK, rr.Result().StatusCode) //nolint:bodyclose // False positive for httptest.ResponseRecorder: https://github.com/timakin/bodyclose/issues/59.
+			assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
 
 			// Recorded span should be linked with an incoming span context.
 			assert.NoError(t, spanRecorder.ForceFlush(ctx))
@@ -641,13 +640,13 @@ func TestSpanStatus(t *testing.T) {
 			provider := sdktrace.NewTracerProvider()
 			provider.RegisterSpanProcessor(sr)
 			h := NewHandler(
-				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 					w.WriteHeader(tc.httpStatusCode)
 				}), "test_handler",
 				WithTracerProvider(provider),
 			)
 
-			h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
+			h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", http.NoBody))
 
 			require.Len(t, sr.Ended(), 1, "should emit a span")
 			assert.Equal(t, tc.wantSpanStatus, sr.Ended()[0].Status().Code, "should only set Error status for HTTP statuses >= 500")
@@ -669,7 +668,7 @@ func TestWithRouteTag(t *testing.T) {
 	h := NewHandler(
 		WithRouteTag(
 			route,
-			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusTeapot)
 			}),
 		),
@@ -678,7 +677,7 @@ func TestWithRouteTag(t *testing.T) {
 		WithMeterProvider(meterProvider),
 	)
 
-	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", http.NoBody))
 	want := semconv.HTTPRouteKey.String(route)
 
 	require.Len(t, spanRecorder.Ended(), 1, "should emit a span")
@@ -741,7 +740,7 @@ func TestHandlerWithMetricAttributesFn(t *testing.T) {
 		},
 		{
 			name: "With a function that returns an additional attribute",
-			fn: func(r *http.Request) []attribute.KeyValue {
+			fn: func(*http.Request) []attribute.KeyValue {
 				return []attribute.KeyValue{
 					attribute.String("fooKey", "fooValue"),
 					attribute.String("barKey", "barValue"),
@@ -759,14 +758,14 @@ func TestHandlerWithMetricAttributesFn(t *testing.T) {
 		meterProvider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 
 		h := NewHandler(
-			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			}), "test_handler",
 			WithMeterProvider(meterProvider),
 			WithMetricAttributesFn(tc.fn),
 		)
 
-		r, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
+		r, err := http.NewRequest(http.MethodGet, "http://localhost/", http.NoBody)
 		require.NoError(t, err)
 		rr := httptest.NewRecorder()
 		h.ServeHTTP(rr, r)
@@ -795,165 +794,11 @@ func TestHandlerWithMetricAttributesFn(t *testing.T) {
 	}
 }
 
-func TestHandlerWithSemConvStabilityOptIn(t *testing.T) {
-	newSpanAttrs := []attribute.KeyValue{
-		attribute.String("http.request.method", "GET"),
-		attribute.String("url.scheme", "http"),
-		attribute.String("server.address", "localhost"),
-		attribute.String("network.protocol.version", "1.1"),
-		attribute.String("url.path", "/"),
-		attribute.Int("http.response.status_code", 200),
-	}
-	newMetricAttrs := attribute.NewSet(
-		attribute.String("http.request.method", "GET"),
-		attribute.Int("http.response.status_code", 200),
-		attribute.String("network.protocol.name", "http"),
-		attribute.String("network.protocol.version", "1.1"),
-		attribute.String("server.address", "localhost"),
-		attribute.String("url.scheme", "http"),
-	)
-	newMetrics := []metricdata.Metrics{
-		{
-			Name:        "http.server.request.body.size",
-			Description: "Size of HTTP server request bodies.",
-			Unit:        "By",
-			Data: metricdata.Histogram[int64]{
-				Temporality: metricdata.CumulativeTemporality,
-				DataPoints:  []metricdata.HistogramDataPoint[int64]{{Attributes: newMetricAttrs}},
-			},
-		},
-		{
-			Name:        "http.server.response.body.size",
-			Description: "Size of HTTP server response bodies.",
-			Unit:        "By",
-			Data: metricdata.Histogram[int64]{
-				Temporality: metricdata.CumulativeTemporality,
-				DataPoints:  []metricdata.HistogramDataPoint[int64]{{Attributes: newMetricAttrs}},
-			},
-		},
-		{
-			Name:        "http.server.request.duration",
-			Description: "Duration of HTTP server requests.",
-			Unit:        "s",
-			Data: metricdata.Histogram[float64]{
-				Temporality: metricdata.CumulativeTemporality,
-				DataPoints:  []metricdata.HistogramDataPoint[float64]{{Attributes: newMetricAttrs}},
-			},
-		},
-	}
-	oldSpanAttrs := []attribute.KeyValue{
-		attribute.String("http.method", "GET"),
-		attribute.String("http.scheme", "http"),
-		attribute.String("net.host.name", "localhost"),
-		attribute.String("net.protocol.version", "1.1"),
-		attribute.String("http.target", "/"),
-		attribute.Int("http.status_code", 200),
-	}
-	oldMetricAttrs := attribute.NewSet(
-		attribute.String("http.method", "GET"),
-		attribute.String("http.scheme", "http"),
-		attribute.Int("http.status_code", 200),
-		attribute.String("net.host.name", "localhost"),
-		attribute.String("net.protocol.name", "http"),
-		attribute.String("net.protocol.version", "1.1"),
-	)
-	oldMetrics := []metricdata.Metrics{
-		{
-			Name:        "http.server.request.size",
-			Description: "Measures the size of HTTP request messages.",
-			Unit:        "By",
-			Data: metricdata.Sum[int64]{
-				Temporality: metricdata.CumulativeTemporality,
-				IsMonotonic: true,
-				DataPoints:  []metricdata.DataPoint[int64]{{Attributes: oldMetricAttrs}},
-			},
-		},
-		{
-			Name:        "http.server.response.size",
-			Description: "Measures the size of HTTP response messages.",
-			Unit:        "By",
-			Data: metricdata.Sum[int64]{
-				Temporality: metricdata.CumulativeTemporality,
-				IsMonotonic: true,
-				DataPoints:  []metricdata.DataPoint[int64]{{Attributes: oldMetricAttrs}},
-			},
-		},
-		{
-			Name:        "http.server.duration",
-			Description: "Measures the duration of inbound HTTP requests.",
-			Unit:        "ms",
-			Data: metricdata.Histogram[float64]{
-				Temporality: metricdata.CumulativeTemporality,
-				DataPoints:  []metricdata.HistogramDataPoint[float64]{{Attributes: oldMetricAttrs}},
-			},
-		},
-	}
-	tests := []struct {
-		name                       string
-		semConvStabilityOptInValue string
-		wantSpanAttributes         []attribute.KeyValue
-		wantMetrics                metricdata.ScopeMetrics
-	}{
-		{
-			name:                       "without opt-in",
-			semConvStabilityOptInValue: "",
-			wantSpanAttributes:         newSpanAttrs,
-			wantMetrics: metricdata.ScopeMetrics{
-				Scope: instrumentation.Scope{
-					Name:    ScopeName,
-					Version: Version(),
-				},
-				Metrics: newMetrics,
-			},
-		},
-		{
-			name:                       "with http/dup opt-in",
-			semConvStabilityOptInValue: "http/dup",
-			wantSpanAttributes:         append(newSpanAttrs, oldSpanAttrs...),
-			wantMetrics: metricdata.ScopeMetrics{
-				Scope: instrumentation.Scope{
-					Name:    ScopeName,
-					Version: Version(),
-				},
-				Metrics: append(newMetrics, oldMetrics...),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("OTEL_SEMCONV_STABILITY_OPT_IN", tt.semConvStabilityOptInValue)
-			metricRecorder := sdkmetric.NewManualReader()
-			spanRecorder := tracetest.NewSpanRecorder()
-			meterProvider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(metricRecorder))
-			traceProvider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder))
-			h := NewHandler(
-				http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusOK)
-				}),
-				"test_handler",
-				WithTracerProvider(traceProvider),
-				WithMeterProvider(meterProvider),
-			)
-			r, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
-			require.NoError(t, err)
-			h.ServeHTTP(httptest.NewRecorder(), r)
-			spans := spanRecorder.Ended()
-			require.Len(t, spans, 1)
-			assert.ElementsMatch(t, spans[0].Attributes(), tt.wantSpanAttributes)
-			rm := metricdata.ResourceMetrics{}
-			err = metricRecorder.Collect(context.Background(), &rm)
-			require.NoError(t, err)
-			require.Len(t, rm.ScopeMetrics, 1)
-			metricdatatest.AssertEqual(t, tt.wantMetrics, rm.ScopeMetrics[0], metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreValue(), metricdatatest.IgnoreExemplars())
-		})
-	}
-}
-
 func BenchmarkHandlerServeHTTP(b *testing.B) {
 	tp := sdktrace.NewTracerProvider()
 	mp := sdkmetric.NewMeterProvider()
 
-	r, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
+	r, err := http.NewRequest(http.MethodGet, "http://localhost/", http.NoBody)
 	require.NoError(b, err)
 
 	for _, bb := range []struct {
@@ -962,14 +807,14 @@ func BenchmarkHandlerServeHTTP(b *testing.B) {
 	}{
 		{
 			name: "without the otelhttp handler",
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				fmt.Fprint(w, "Hello World")
 			}),
 		},
 		{
 			name: "with the otelhttp handler",
 			handler: NewHandler(
-				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 					fmt.Fprint(w, "Hello World")
 				}),
 				"test_handler",
@@ -983,7 +828,7 @@ func BenchmarkHandlerServeHTTP(b *testing.B) {
 
 			b.ReportAllocs()
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				bb.handler.ServeHTTP(rr, r)
 			}
 		})
