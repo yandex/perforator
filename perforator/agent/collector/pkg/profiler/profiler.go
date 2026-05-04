@@ -490,7 +490,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		var err error
 		p.jvmRegistry, err = jvmregistry.New(
 			xlog.Wrap(p.log),
-			r,
+			r.WithPrefix("jvm"),
 			p.bpf,
 			unwmanager,
 			jvmregistry.Options{
