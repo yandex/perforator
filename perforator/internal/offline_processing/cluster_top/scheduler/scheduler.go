@@ -20,6 +20,8 @@ import (
 
 const clusterTopSchedulerLeaseName = "cluster_top_scheduler"
 
+const maxServicesInsertBatchSize = 10000
+
 type generationStatus string
 
 const (
@@ -173,12 +175,15 @@ func (s *Scheduler) createGeneration(ctx context.Context, generationID int32, st
 		return fmt.Errorf("failed to insert generation: %w", err)
 	}
 
-	if len(services) > 0 {
+	for i := 0; i < len(services); i += maxServicesInsertBatchSize {
+		end := min(i+maxServicesInsertBatchSize, len(services))
+		batch := services[i:end]
+
 		builder := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Insert("cluster_top_services").
 			Columns("service", "status", "profiles_count", "generation", "heavy")
 
-		for _, svc := range services {
+		for _, svc := range batch {
 			builder = builder.Values(svc.name, "ready", svc.profileCount, generationID, svc.heavy)
 		}
 
