@@ -3376,7 +3376,7 @@
     "title": "Node.js",
     "description": "Интерпретатор JS.\n\nНаравне с pnpm является основополагающими ресурсами.\nИменно он запускается во всех процессах сборки, линтинга и тестирования под капотом у `ya tool nots`.",
     "type": "NODE_JS",
-    "default": "24.14.1",
+    "default": "24.15.0",
     "links": {
       "Home": "https://nodejs.org/",
       "Sources": "https://github.com/nodejs/node",
@@ -3705,6 +3705,31 @@
           },
           {
             "id": 10183573978,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "24.15.0": {
+        "add_date": "2026-05-05T05:32:07",
+        "resources": [
+          {
+            "id": 11943214589,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 11943217312,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 11943219238,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 11943221793,
             "platform": "darwin",
             "arch": "arm64"
           }
