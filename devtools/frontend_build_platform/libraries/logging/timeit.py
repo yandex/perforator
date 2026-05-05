@@ -15,6 +15,39 @@ start_time = time.monotonic()
 start_time_ns = time.monotonic_ns()
 
 
+# Patterns for detecting secret-like environment variable / argument names.
+# Used to obfuscate values in trace dumps so that tokens and credentials
+# do not leak into builder.trace.json files.
+_SECRET_NAME_RE = re.compile(
+    r'(OAUTH|AUTH|TOKEN|SECRET|PASSWORD|PASSWD|API[_-]?KEY|PRIVATE[_-]?KEY|ACCESS[_-]?KEY|CREDENTIAL)',
+    re.IGNORECASE,
+)
+_SECRET_MASK = '***'
+
+# Matches occurrences like `STARTREK_TOKEN=AQAD-xxxx` inside arbitrary strings
+# (e.g. inside argparse `Namespace(...)` reprs where env vars are kept as
+# `KEY=VALUE` items inside a list).
+_SECRET_KV_IN_STRING_RE = re.compile(
+    r"([A-Za-z_][A-Za-z0-9_-]*(?:OAUTH|AUTH|TOKEN|SECRET|PASSWORD|PASSWD|KEY|CREDENTIAL)[A-Za-z0-9_-]*)"
+    r"(\s*[=:]\s*)"
+    r"(['\"]?)"
+    r"([^'\"\s,\]\}]+)"
+    r"\3",
+    re.IGNORECASE,
+)
+
+
+def _is_secret_key(key: Any) -> bool:
+    return isinstance(key, str) and bool(_SECRET_NAME_RE.search(key))
+
+
+def _obfuscate_in_string(s: str) -> str:
+    return _SECRET_KV_IN_STRING_RE.sub(
+        lambda m: f"{m.group(1)}{m.group(2)}{m.group(3)}{_SECRET_MASK}",
+        s,
+    )
+
+
 class TraceEvent:
     name: str
     ph: str  # 'B' (begin) or 'E' (end)
@@ -32,9 +65,19 @@ class TraceEvent:
                 kwargs=self.__repr_arg(kwargs),
             )
 
-    def __repr_arg(self, a: any):
+    def __repr_arg(self, a: any, parent_key: str | None = None):
         # Primitive types
-        if isinstance(a, str) or isinstance(a, int) or isinstance(a, float) or isinstance(a, bool) or a is None:
+        if isinstance(a, str):
+            # If we are a value of a dict whose key looks like a secret name,
+            # mask the entire value.
+            if parent_key is not None and _is_secret_key(parent_key):
+                return _SECRET_MASK
+            # Otherwise look for inline `SECRET_NAME=value` patterns.
+            return _obfuscate_in_string(a)
+
+        if isinstance(a, int) or isinstance(a, float) or isinstance(a, bool) or a is None:
+            if parent_key is not None and _is_secret_key(parent_key):
+                return _SECRET_MASK
             return a
 
         # Collections
@@ -42,10 +85,10 @@ class TraceEvent:
             return [self.__repr_arg(v) for v in a]
 
         if isinstance(a, dict):
-            return {k: self.__repr_arg(v) for k, v in a.items()}
+            return {k: (_SECRET_MASK if _is_secret_key(k) else self.__repr_arg(v, parent_key=k)) for k, v in a.items()}
 
-        # Other
-        return repr(a)
+        # Other — fall back to repr() and still try to scrub it.
+        return _obfuscate_in_string(repr(a))
 
     def to_json(self):
         result = dict(cat='PERF', name=self.name, ph=self.ph, pid=os.getpid(), tid=threading.get_ident(), ts=self.ts)
