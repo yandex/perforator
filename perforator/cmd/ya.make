@@ -7,7 +7,6 @@ RECURSE(
     migrate
     offline_processing
     proxy
-    quality_monitoring
     storage
     web
 )
