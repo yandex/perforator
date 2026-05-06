@@ -851,6 +851,7 @@ func (c *oneShotSampleConsumer) recordSampleConsumeLatency() {
 
 func (c *oneShotSampleConsumer) consume(ctx context.Context) {
 	defer c.recordSampleConsumeLatency()
+	defer c.p.metrics.sampleProcessingCount.Inc()
 	c.p.procs.DiscoverProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
 	c.countMetrics(ctx)
 	c.prepareData(ctx)

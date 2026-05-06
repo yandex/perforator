@@ -849,6 +849,7 @@ func (p *Profiler) registerMetrics(r metrics.Registry) error {
 	p.metrics.cgroupMisses = r.Counter("cgroup.cache.miss.count")
 
 	p.metrics.sampleProcessingLatencySum = r.Counter("samples.processing.total_latency.milliseconds")
+	p.metrics.sampleProcessingCount = r.Counter("samples.processing.count")
 
 	r.FuncGauge("ebpf.memlocked.bytes", func() float64 {
 		if p.bpf == nil {
