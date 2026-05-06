@@ -82,6 +82,10 @@ export const TaskReport: React.FC<TaskReportProps> = props => {
             />;
         }
 
+        if (format === 'HTMLVisualisation') {
+            return <IFrameReport url={url}/>;
+        }
+
         if (format === 'Flamegraph' && !uiFactory().parseLegacyFormat) {
             return <IFrameReport url={url}/>;
         }
