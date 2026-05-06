@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/pkg/certifi"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -27,7 +28,7 @@ const (
 	defaultRegion       = "us-east-1"
 	defaultAccessKeyEnv = "S3_ACCESS_KEY"
 	defaultSecretKeyEnv = "S3_SECRET_KEY"
-	defaultMaxRetries   = 5
+	defaultMaxRetries   = uint32(5)
 )
 
 // dynamicHTTPProxyKind specifies how proxy configuration should be obtained.
@@ -65,7 +66,7 @@ type Config struct {
 
 	TLS certifi.ClientTLSConfig `yaml:"tls"`
 
-	MaxRetries uint32 `yaml:"max_retries"`
+	MaxRetries *uint32 `yaml:"max_retries"`
 
 	InsecureSkipVerify   bool   `yaml:"insecure,omitempty"`
 	CACertPathDeprecated string `yaml:"ca_cert_path,omitempty"`
@@ -82,6 +83,9 @@ func (c *Config) fillDefault() {
 	}
 	if c.SecretKeyEnv == "" && c.SecretKeyPath == "" {
 		c.SecretKeyEnv = defaultSecretKeyEnv
+	}
+	if c.MaxRetries == nil {
+		c.MaxRetries = ptr.T(defaultMaxRetries)
 	}
 
 	// TLS backward compatibility.
@@ -167,7 +171,7 @@ func NewClient(ctx context.Context, refreshCtx context.Context, logger xlog.Logg
 		WithCredentials(credentials.NewStaticCredentials(accessKey, secretKey, "")).
 		WithEndpoint(c.Endpoint).
 		WithRegion(c.Region).
-		WithMaxRetries(int(c.MaxRetries))
+		WithMaxRetries(int(*c.MaxRetries))
 
 	if c.ForcePathStyle != nil {
 		config = config.WithS3ForcePathStyle(*c.ForcePathStyle)

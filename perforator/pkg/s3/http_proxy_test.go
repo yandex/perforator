@@ -187,7 +187,7 @@ func TestE2E(t *testing.T) {
 			Endpoint:     "yandex.net",
 			SecretKeyEnv: "SOMEVAR",
 			AccessKeyEnv: "SOMEVAR",
-			MaxRetries:   0,
+			MaxRetries:   ptr.Uint32(0),
 			DynamicHTTPProxy: &DynamicHTTPProxyConfig{
 				UpdateInterval:        300 * time.Second,
 				Kind:                  dynamicHTTPProxyKindHostname,
