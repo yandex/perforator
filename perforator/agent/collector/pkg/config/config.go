@@ -66,9 +66,8 @@ type SampleConsumerConfig struct {
 	// Byte size of percpu perf buffer to read samples from.
 	PerfBufferPerCPUSize *int `yaml:"perfbuf_percpu_size"`
 
-	// Number of bytes to generate wakeup notifications.
-	// Higher values can lead to lower profiler overhead, but higher number of lost samples.
-	// See man perf_event_open(2) for more info.
+	// Number of bytes to generate wakeup notifications (wakeup_watermark in perf_event_open(2)).
+	// Higher values reduce wakeup frequency (lower overhead) but increase sample processing latency and lost samples quantity.
 	PerfBufferWatermark *int `yaml:"perfbuf_watermark"`
 
 	// Whitelist of environment variables to save in profiles.
@@ -320,7 +319,7 @@ func (c *Config) FillDefault() {
 	}
 
 	defaultPointer(&c.SampleConsumer.PerfBufferPerCPUSize, 16*1024*1024)
-	defaultPointer(&c.SampleConsumer.PerfBufferWatermark, 100*2048)
+	defaultPointer(&c.SampleConsumer.PerfBufferWatermark, 8*1024)
 
 	if c.StorageClientConfigDeprecated != nil {
 		c.StorageClientConfigDeprecated.FillDefault()
