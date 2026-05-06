@@ -1,5 +1,5 @@
-TS_TEST_JEST_FOR(RELATIVE ../)
+TS_TEST_FOR(perforator/ui/app)
 
-    TS_TEST_SRCS(../src)
+    TS_TEST(test)
 
 END()

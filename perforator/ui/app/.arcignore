@@ -1,0 +1,6 @@
+dist
+build
+tsconfig.tsbuildinfo
+blob-report
+playwright-report
+test-results.json

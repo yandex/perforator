@@ -1,0 +1,8 @@
+ya.make
+tests/ya.make
+.swcrc
+jest.config.cjs
+scripts
+**__snapshots__**
+**/*.test.ts
+tsconfig.json

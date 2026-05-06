@@ -1,6 +1,5 @@
-TS_TEST_JEST_FOR(RELATIVE ../)
+TS_TEST_FOR(perforator/ui/packages/flamegraph)
 
-    TS_TEST_SRCS(../lib)
+    TS_TEST(test)
 
-    TS_TEST_CONFIG(../jest.config.cjs)
 END()

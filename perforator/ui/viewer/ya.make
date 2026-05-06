@@ -1,13 +1,8 @@
-TS_VITE()
-
-TS_FILES(index.html)
-
-TS_TYPECHECK()
-
-TS_ESLINT_CONFIG(.eslintrc.cjs)
-
-TS_STYLELINT(.stylelintrc)
+TS_LIBRARY()
+TS_LINT(lint)
+TS_LINT(lint:css)
+TS_LINT(typecheck)
 
 USE_LEGACY_PNPM_VIRTUAL_STORE()
-
+TS_BUILD_OUTPUTS(dist)
 END()

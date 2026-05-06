@@ -1,18 +1,12 @@
-TS_VITE()
+TS_LIBRARY()
 
-SRCS(
-    index.html
-)
-
-TS_TYPECHECK()
-
-TS_ESLINT_CONFIG(.eslintrc.js)
-
-TS_CONFIG(tsconfig.json)
-
-TS_STYLELINT(.stylelintrc)
+TS_LINT(lint)
+TS_LINT(lint:css)
+TS_LINT(typecheck)
 
 USE_LEGACY_PNPM_VIRTUAL_STORE()
+
+TS_BUILD_OUTPUTS(dist)
 
 END()
 

@@ -1,0 +1,13 @@
+{
+    "$schema": "https://swc.rs/schema.json",
+    "isModule": true,
+    "jsc": {
+        "parser": {
+            "syntax": "typescript",
+            "tsx": true
+        }
+    },
+    "module": {
+        "type": "commonjs"
+    }
+}

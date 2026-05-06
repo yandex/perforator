@@ -11,7 +11,7 @@ DECLARE_IN_DIRS(
 )
 
 PEERDIR(
-    build/platform/nodejs/20.18.1
+    build/platform/nodejs/22.22.2
     build/external_resources/pnpm/10.14.0
 )
 
@@ -19,7 +19,7 @@ RUN_PYTHON3(
     ${CURDIR}/build.py
         --curdir ${CURDIR}
         --bindir ${BINDIR}
-        --node-dir $NODEJS_20_18_1_RESOURCE_GLOBAL
+        --node-dir $NODEJS_22_22_2_RESOURCE_GLOBAL
         --pnpm-dir $PNPM_10_14_0_RESOURCE_GLOBAL
     IN
         ${UI_FILES}
