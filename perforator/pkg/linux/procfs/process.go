@@ -15,22 +15,22 @@ import (
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func Process(pid linux.CurrentNamespacePID) *process {
+func Open(pid linux.CurrentNamespacePID) *Process {
 	return FS().Process(pid)
 }
 
-func Self() *process {
+func Self() *Process {
 	return FS().Self()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (f *procfs) Self() *process {
-	return &process{fs: f.fs, self: true}
+func (f *procfs) Self() *Process {
+	return &Process{fs: f.fs, self: true}
 }
 
-func (f *procfs) Process(pid linux.CurrentNamespacePID) *process {
-	return &process{fs: f.fs, pid: pid}
+func (f *procfs) Process(pid linux.CurrentNamespacePID) *Process {
+	return &Process{fs: f.fs, pid: pid}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -90,13 +90,13 @@ const (
 
 ////////////////////////////////////////////////////////////////////////////////
 
-type process struct {
+type Process struct {
 	fs   fs.FS
 	pid  linux.CurrentNamespacePID
 	self bool
 }
 
-func (p *process) child(name string) string {
+func (p *Process) child(name string) string {
 	var pid string
 	if p.self {
 		pid = "self"
@@ -106,7 +106,7 @@ func (p *process) child(name string) string {
 	return fmt.Sprintf("%s/%s", pid, name)
 }
 
-func (p *process) ListMappings(callback func(m *Mapping) error) error {
+func (p *Process) ListMappings(callback func(m *Mapping) error) error {
 	path := p.child("maps")
 
 	f, err := p.fs.Open(path)
@@ -157,7 +157,7 @@ func parseEnvs(r io.Reader) (map[string]string, error) {
 	return res, s.Err()
 }
 
-func (p *process) ListEnvs() (map[string]string, error) {
+func (p *Process) ListEnvs() (map[string]string, error) {
 	path := p.child("environ")
 	f, err := p.fs.Open(path)
 	if err != nil {
@@ -167,8 +167,28 @@ func (p *process) ListEnvs() (map[string]string, error) {
 	return parseEnvs(bufio.NewReader(f))
 }
 
-func (p *process) GetNamespaces() *namespaces {
+func (p *Process) GetNamespaces() *namespaces {
 	return &namespaces{p}
+}
+
+func (p *Process) readStatusField(field string) (string, bool, error) {
+	path := p.child("status")
+	statusF, err := p.fs.Open(path)
+	if err != nil {
+		return "", false, fmt.Errorf("failed to open process status: %w", err)
+	}
+	status, err := io.ReadAll(statusF)
+	if err != nil {
+		return "", false, fmt.Errorf("failed to read process status: %w", err)
+	}
+	prefix := field + ":"
+	for line := range strings.SplitSeq(string(status), "\n") {
+		val, ok := strings.CutPrefix(line, prefix)
+		if ok {
+			return val, true, nil
+		}
+	}
+	return "", false, nil
 }
 
 // GetNamespacedPID resolved process PID in the innermost pid namespace it is member of.
@@ -179,33 +199,45 @@ func (p *process) GetNamespaces() *namespaces {
 // can be deceived into returning wrong result, e.g. if process is named "\nNSpid: 42",
 // this function will return 42. It should not be used for security sensitive checks
 // until this concern is verified.
-func (p *process) GetNamespacedPID() (linux.NamespacedPID, error) {
-	path := p.child("status")
-	statusF, err := p.fs.Open(path)
+func (p *Process) GetNamespacedPID() (linux.NamespacedPID, error) {
+	val, ok, err := p.readStatusField("NSpid")
 	if err != nil {
-		return 0, fmt.Errorf("failed to open process status: %w", err)
+		return 0, err
 	}
-	status, err := io.ReadAll(statusF)
+	if !ok {
+		return 0, fmt.Errorf("failed to find NSpid in process status")
+
+	}
+	parts := strings.Split(val, "\t")
+	innermost := parts[len(parts)-1]
+	num, err := strconv.ParseUint(innermost, 10, 32)
 	if err != nil {
-		return 0, fmt.Errorf("failed to read process status: %w", err)
+		return 0, fmt.Errorf("failed to parse pid %q: %w", innermost, err)
 	}
-	lines := strings.Split(string(status), "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "NSpid:") {
-			parts := strings.Split(line, "\t")
-			innermost := parts[len(parts)-1]
-			num, err := strconv.ParseUint(innermost, 10, 32)
-			if err != nil {
-				return 0, fmt.Errorf("failed to parse pid %q: %w", innermost, err)
-			}
-			return linux.NamespacedPID(num), nil
-		}
+	return linux.NamespacedPID(num), nil
+}
+
+func (p *Process) IsKthread() (bool, error) {
+	val, ok, err := p.readStatusField("Kthread")
+	if err != nil {
+		return false, err
 	}
-	return 0, fmt.Errorf("failed to find NSpid in process status")
+	if !ok {
+		return false, fmt.Errorf("failed to find Kthread in process status")
+	}
+	val = strings.TrimSpace(val)
+	switch val {
+	case "0":
+		return false, nil
+	case "1":
+		return true, nil
+	default:
+		return false, fmt.Errorf("unknown Kthread value %q", val)
+	}
 }
 
 // GetComm returns the command name of the process
-func (p *process) GetComm() (string, error) {
+func (p *Process) GetComm() (string, error) {
 	path := p.child("comm")
 	f, err := p.fs.Open(path)
 	if err != nil {
@@ -220,6 +252,49 @@ func (p *process) GetComm() (string, error) {
 
 	// Remove trailing newline
 	return strings.TrimSuffix(string(data), "\n"), nil
+}
+
+type ProcStat struct {
+	State  byte
+	EnvEnd uint64
+}
+
+// See man 5 proc_pid_stat.
+// Note that we subtract 1 because numbering in man is 1-based.
+const stateFieldNumber = 3 - 1
+const envEndStatFieldNumber = 51 - 1
+
+func (p *Process) Stat() (*ProcStat, error) {
+	path := p.child("stat")
+	statF, err := p.fs.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open %s: %w", path, err)
+	}
+	defer statF.Close()
+
+	data, err := io.ReadAll(statF)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %w", path, err)
+	}
+	fields := strings.Fields(string(data))
+
+	if len(fields) <= max(stateFieldNumber, envEndStatFieldNumber) {
+		return nil, fmt.Errorf("unexpected stat: not enough fields")
+	}
+
+	envEnv, err := strconv.ParseUint(fields[envEndStatFieldNumber], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse env_env: %w", err)
+	}
+
+	if len(fields[stateFieldNumber]) != 1 {
+		return nil, fmt.Errorf("unexpected stat: state field is not a single character")
+	}
+
+	return &ProcStat{
+		State:  fields[stateFieldNumber][0],
+		EnvEnd: envEnv,
+	}, nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////

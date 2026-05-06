@@ -8,7 +8,7 @@ import (
 )
 
 type namespaces struct {
-	p *process
+	p *Process
 }
 
 func (n *namespaces) GetPidInode() (linux.PIDNamespaceInode, error) {

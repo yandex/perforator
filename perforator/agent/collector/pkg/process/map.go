@@ -550,7 +550,7 @@ func (a *processAnalyzer) run(ctx context.Context) error {
 }
 
 func (a *processAnalyzer) loadMaps(ctx context.Context) error {
-	return procfs.Process(a.proc.currentNamespaceID).ListMappings(func(mapping *procfs.Mapping) error {
+	return procfs.Open(a.proc.currentNamespaceID).ListMappings(func(mapping *procfs.Mapping) error {
 		// Skip non-executable mappings.
 		if mapping.Permissions&procfs.MappingPermissionExecutable == 0 {
 			return nil
@@ -921,8 +921,48 @@ func iterateMappingLPMSegments(m Mapping, callback func(address uint64, prefix u
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// tryLoadEnvs returns environment of process `proc` or determines that it is not available yet.
+// `firstIter` is a flag that should be set if tryLoadEnvs was already called successfully for this process.
+// Second return value is true when environment is available.
+func (a *processAnalyzer) tryLoadEnvs(ctx context.Context, proc *procfs.Process, firstIter bool) (map[string]string, bool, error) {
+	envs, err := proc.ListEnvs()
+	if err != nil {
+		return nil, false, err
+	}
+	if len(envs) > 0 {
+		// If we read non-empty data, environment is available.
+		return envs, true, nil
+	}
+
+	stat, err := proc.Stat()
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to read process stat: %w", err)
+	}
+
+	if stat.State == 'Z' {
+		// Process is zombie. We aren't interested in zombies and assume environment is empty.
+		return nil, true, nil
+	}
+
+	if stat.EnvEnd != 0 {
+		// This is a regular process which actually has empty environment.
+		return nil, true, nil
+	}
+	if firstIter {
+		isKthread, err := proc.IsKthread()
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to check whether process is a kthread: %w", err)
+		}
+		if isKthread {
+			// This is a special process directly created by kernelspace. Kthreads have no environment.
+			return nil, true, nil
+		}
+	}
+	return nil, false, nil
+}
+
 func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
-	proc := procfs.Process(a.proc.currentNamespaceID)
+	proc := procfs.Open(a.proc.currentNamespaceID)
 	backoff := backoff.NewExponentialBackOff(
 		backoff.WithInitialInterval(1*time.Millisecond),
 		backoff.WithMultiplier(2),
@@ -936,15 +976,16 @@ func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
 			a.reg.metrics.processEnvironmentWaitDelay.Add(backoff.GetElapsedTime().Milliseconds())
 		}()
 	}
+
 	// TODO(PERFORATOR-1102): loop here is hacky attempt to work around some
 	// race conditions when we fail to observe correct process environment shortly after process creation.
 	for i := 0; ; i++ {
-		envs, err := proc.ListEnvs()
+		envs, ok, err := a.tryLoadEnvs(ctx, proc, i == 0)
 		if err != nil {
 			return err
 		}
 
-		if len(envs) > 0 {
+		if ok {
 			a.log.Debug(
 				ctx,
 				"Put process envs",
@@ -955,14 +996,13 @@ func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
 			break
 		}
 
-		// we read empty environment.
-		// While this is technically possible, it is more likely a race
+		// Environment is not initialized yet. This is a race
 		// with a newly created process.
 		sleepFor := backoff.NextBackOff()
 		if sleepFor == backoff.Stop || !waitOnEmptyEnv {
 			// Level is not DEBUG because it is the only sign of a possible race
 			// and processes with actually empty environment are likely to be rare.
-			a.log.Info(ctx, "Process seems to have empty environment")
+			a.log.Warn(ctx, "Timed out waiting for process environment to initialize")
 			a.reg.metrics.processesWithEmptyEnvironment.Inc()
 			break
 		}
@@ -979,13 +1019,13 @@ func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
 
 // tryRegisterPidNamespaceCorrelation best-effort indexes pid namespace mapping to current namespace pid for a given process.
 func (r *ProcessRegistry) tryRegisterPidNamespaceCorrelation(ctx context.Context, pi *processInfo) {
-	pidnsInode, err := procfs.Process(pi.currentNamespaceID).GetNamespaces().GetPidInode()
+	pidnsInode, err := procfs.Open(pi.currentNamespaceID).GetNamespaces().GetPidInode()
 	if err != nil {
 		r.log.Debug(ctx, "Failed to get pid namespace inode", log.UInt32("pid", uint32(pi.currentNamespaceID)), log.Error(err))
 		return
 	}
 
-	namespacedPid, err := procfs.Process(pi.currentNamespaceID).GetNamespacedPID()
+	namespacedPid, err := procfs.Open(pi.currentNamespaceID).GetNamespacedPID()
 	if err != nil {
 		r.log.Warn(ctx, "Failed to get namespaced pid", log.UInt32("pid", uint32(pi.currentNamespaceID)), log.Error(err))
 		return
