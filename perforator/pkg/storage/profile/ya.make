@@ -1,5 +1,7 @@
 GO_LIBRARY()
 
+PEERDIR(perforator/pkg/cprofile)
+
 SRCS(
     config.go
     models.go

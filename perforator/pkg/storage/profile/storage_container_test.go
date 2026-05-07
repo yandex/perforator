@@ -62,15 +62,15 @@ func TestUncompressFromContainer(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "yaprof with zstd compression",
+			name: "yaprof with zstd compression is converted to pprof",
 			container: &profileproto.ProfileContainer{
 				Yaprof: &profileproto.ProfileContainer_Payload{
 					CompressionMethod: profileproto.ProfileContainer_Zstd,
 					Data:              compressZstd(t, []byte("yaprof data")),
 				},
 			},
-			expected:    []byte("yaprof data"),
-			expectError: false,
+			expected:    nil,
+			expectError: true,
 		},
 		{
 			name: "no payload",
@@ -158,7 +158,7 @@ func TestUncompressPayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := newTestStorage(t)
-			data, err := storage.uncompressPayload(tt.payload, "test-id", "test-type")
+			data, err := storage.uncompressPayload(tt.payload, "test-id")
 
 			if tt.expectError {
 				require.Error(t, err)
