@@ -15,7 +15,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/perforator/pkg/cprofile"
 	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
@@ -191,27 +190,17 @@ func (s *ProfileStorage) FetchProfile(ctx context.Context, meta *meta.ProfileMet
 
 func (s *ProfileStorage) uncompressFromContainer(container *profileproto.ProfileContainer, profileID meta.ProfileID) (ProfileData, error) {
 	if container.Pprof != nil {
-		return s.uncompressPayload(container.Pprof, profileID)
+		return s.uncompressPayload(container.Pprof, profileID, "pprof")
 	}
 
 	if container.Yaprof != nil {
-		yaprofData, err := s.uncompressPayload(container.Yaprof, profileID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to uncompress yaprof payload for profile %s: %w", profileID, err)
-		}
-
-		pprofData, err := cprofile.YaprofToPProf(yaprofData)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert yaprof to pprof for profile %s: %w", profileID, err)
-		}
-
-		return pprofData, nil
+		return s.uncompressPayload(container.Yaprof, profileID, "yaprof")
 	}
 
 	return nil, fmt.Errorf("profile container %s has no payload", profileID)
 }
 
-func (s *ProfileStorage) uncompressPayload(payload *profileproto.ProfileContainer_Payload, profileID meta.ProfileID) (ProfileData, error) {
+func (s *ProfileStorage) uncompressPayload(payload *profileproto.ProfileContainer_Payload, profileID meta.ProfileID, payloadType string) (ProfileData, error) {
 	switch payload.CompressionMethod {
 	case profileproto.ProfileContainer_None:
 		return payload.Data, nil
@@ -220,7 +209,7 @@ func (s *ProfileStorage) uncompressPayload(payload *profileproto.ProfileContaine
 	case profileproto.ProfileContainer_Gzip:
 		return s.uncompressGzip(payload.Data)
 	default:
-		return nil, fmt.Errorf("profile %s: unsupported compression method %v", profileID, payload.CompressionMethod)
+		return nil, fmt.Errorf("profile %s (%s): unsupported compression method %v", profileID, payloadType, payload.CompressionMethod)
 	}
 }
 
