@@ -450,7 +450,8 @@ __Pyx_CyFunction_get_is_coroutine(__pyx_CyFunctionObject *op, void *context) {
         PyList_SET_ITEM(fromlist, 0, marker);
 #else
         if (unlikely(PyList_SetItem(fromlist, 0, marker) < 0)) {
-            Py_DECREF(marker);
+            /* PyList_SetItem steals the reference to marker on both
+               success and failure, so we must not Py_DECREF it here. */
             Py_DECREF(fromlist);
             return NULL;
         }
