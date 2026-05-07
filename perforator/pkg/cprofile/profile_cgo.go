@@ -82,4 +82,14 @@ func (p *Profile) marshalVia(marshaller func(profile C.TPerforatorProfile, resul
 	return res, nil
 }
 
+func YaprofToPProf(data []byte) ([]byte, error) {
+	profile, err := Parse(data)
+	if err != nil {
+		return nil, err
+	}
+	defer profile.Free()
+
+	return profile.MarshalPProf()
+}
+
 ////////////////////////////////////////////////////////////////////////////////
