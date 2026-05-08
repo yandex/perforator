@@ -102,7 +102,7 @@ def __add_write_permissions(path):
 
 def __copy_file_with_write_permissions(src, dst):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
-    shutil.copy(src, dst)
+    shutil.copy(src, dst, follow_symlinks=False)
     __add_write_permissions(dst)
 
 
