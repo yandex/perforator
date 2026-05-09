@@ -1478,14 +1478,10 @@ class GnuCompiler(Compiler):
         self.tc = tc
 
         self.debug_info_flags = [
-            '-g',
+            '-g'
         ]
-
-        if not self.build.is_release:
-            # TAXICOMMON-8548: deal with runtime env issues and enable in all builds
-            self.debug_info_flags.append('-gz=zstd')
         if self.tc.is_clang and self.tc.version_at_least(14):
-            # DTCC-1231: Clang 14 has switched to DWARFv5 by default
+            # DTCC-1231: Clang 14 has switched to DWARFv5 by defaulg
             self.debug_info_flags.append('-fdebug-default-version=4')
         if self.tc.is_clang and self.target.is_linux:
             self.debug_info_flags.append('-ggnu-pubnames')
@@ -1803,9 +1799,6 @@ class LD(Linker):
                 self.llvm_ar_format = "gnu"
 
         self.ld_flags = []
-        if not self.build.is_release:
-            # TAXICOMMON-8548: deal with runtime env issues and enable in all builds
-            self.ld_flags.extend(['-Wl,--compress-debug-sections=zstd'])
 
         if self.musl.value:
             self.ld_flags.extend(['-Wl,--no-as-needed'])
