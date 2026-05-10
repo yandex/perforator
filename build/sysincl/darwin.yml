@@ -61,9 +61,11 @@
   - libkern/version.h
   - libproc.h
   - mach-o/dyld.h
+  - mach-o/fat.h
   - mach-o/fixup-chains.h
   - mach-o/getsect.h
   - mach-o/loader.h
+  - mach-o/nlist.h
   - mach/clock.h
   - mach/clock_types.h
   - mach/error.h
