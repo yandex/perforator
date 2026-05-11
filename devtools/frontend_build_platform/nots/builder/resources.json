@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-05-05T19:49:14Z",
+    "created": "2026-05-08T10:47:47Z",
     "pr": {
-      "id": 13253652,
+      "id": 13301635,
       "author": "baymer",
-      "summary": "fix: jq: 1 compile error"
+      "summary": "FBP-3075: nots/builder: игнорировать симлинки при копировании файлов из source_dir в bin_dir"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11955975196"
+      "uri": "sbr:11991727316"
     },
     "darwin-arm64": {
-      "uri": "sbr:11955973368"
+      "uri": "sbr:11991723935"
     },
     "linux": {
-      "uri": "sbr:11955979643"
+      "uri": "sbr:11991733795"
     },
     "linux-aarch64": {
-      "uri": "sbr:11955977403"
+      "uri": "sbr:11991730389"
     }
   }
 }
