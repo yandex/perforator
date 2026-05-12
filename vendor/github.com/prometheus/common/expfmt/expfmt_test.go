@@ -16,14 +16,12 @@ package expfmt
 import (
 	"testing"
 
-	"github.com/prometheus/common/model"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/prometheus/common/model"
 )
 
-// Test Format to Escapting Scheme conversion
-// Path: expfmt/expfmt_test.go
-// Compare this snippet from expfmt/expfmt.go:
+// Test Format to Escaping Scheme conversion.
 func TestToFormatType(t *testing.T) {
 	tests := []struct {
 		format   Format

@@ -17,12 +17,14 @@ func passing(result string) bool {
 }
 
 func fail(t T, msg string, scripts ...PostScript) {
+	t.Helper()
 	c := assertions.Caller()
 	s := c + msg + "\n" + run(scripts...)
 	errorf(t, "\n"+strings.TrimSpace(s)+"\n")
 }
 
 func invoke(t T, result string, settings ...Setting) {
+	t.Helper()
 	result = strings.TrimSpace(result)
 	if !passing(result) {
 		fail(t, result, scripts(settings...)...)

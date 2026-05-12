@@ -14,11 +14,17 @@
 package model
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	dto "github.com/prometheus/client_model/go"
+	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v2"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -89,9 +95,206 @@ func BenchmarkMetric(b *testing.B) {
 	}
 }
 
-func TestMetricNameIsLegacyValid(t *testing.T) {
+func TestValidationScheme(t *testing.T) {
+	var scheme ValidationScheme
+	require.Equal(t, UnsetValidation, scheme)
+}
+
+func TestValidationScheme_String(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		scheme ValidationScheme
+		want   string
+	}{
+		{
+			name:   "Unset",
+			scheme: UnsetValidation,
+			want:   "unset",
+		},
+		{
+			name:   "Legacy",
+			scheme: LegacyValidation,
+			want:   "legacy",
+		},
+		{
+			name:   "UTF8",
+			scheme: UTF8Validation,
+			want:   "utf8",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, tc.scheme.String())
+		})
+	}
+}
+
+func TestValidationScheme_MarshalYAML(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		scheme ValidationScheme
+		want   string
+	}{
+		{
+			name:   "Unset",
+			scheme: UnsetValidation,
+			want:   `""`,
+		},
+		{
+			name:   "Legacy",
+			scheme: LegacyValidation,
+			want:   "legacy",
+		},
+		{
+			name:   "UTF8",
+			scheme: UTF8Validation,
+			want:   "utf8",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			marshaled, err := yaml.Marshal(tc.scheme)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, strings.TrimSpace(string(marshaled)))
+		})
+	}
+}
+
+func TestValidationScheme_UnmarshalYAML(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		input     string
+		want      ValidationScheme
+		wantError error
+	}{
+		{
+			name:  "Unset empty input",
+			input: "",
+			want:  UnsetValidation,
+		},
+		{
+			name:  "Unset quoted input",
+			input: `""`,
+			want:  UnsetValidation,
+		},
+		{
+			name:  "Legacy",
+			input: "legacy",
+			want:  LegacyValidation,
+		},
+		{
+			name:  "UTF8",
+			input: "utf8",
+			want:  UTF8Validation,
+		},
+		{
+			name:      "Invalid",
+			input:     "invalid",
+			wantError: errors.New(`unrecognized ValidationScheme: "invalid"`),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			scheme := UnsetValidation
+			err := yaml.Unmarshal([]byte(tc.input), &scheme)
+			if tc.wantError == nil {
+				require.NoError(t, err)
+				require.Equal(t, tc.want, scheme)
+			} else {
+				require.EqualError(t, err, tc.wantError.Error())
+			}
+		})
+	}
+}
+
+func TestValidationScheme_UnmarshalJSON(t *testing.T) {
+	testCases := []struct {
+		name    string
+		input   string
+		want    ValidationScheme
+		wantErr bool
+	}{
+		{
+			name:    "invalid",
+			input:   `invalid`,
+			wantErr: true,
+		},
+		{
+			name:  "empty",
+			input: `""`,
+			want:  UnsetValidation,
+		},
+		{
+			name:  "legacy validation",
+			input: `"legacy"`,
+			want:  LegacyValidation,
+		},
+		{
+			name:  "utf8 validation",
+			input: `"utf8"`,
+			want:  UTF8Validation,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var got ValidationScheme
+			err := json.Unmarshal([]byte(tc.input), &got)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+
+			output, err := json.Marshal(got)
+			require.NoError(t, err)
+			require.Equal(t, tc.input, string(output))
+		})
+	}
+}
+
+func TestValidationScheme_Set(t *testing.T) {
+	testCases := []struct {
+		name    string
+		input   string
+		want    ValidationScheme
+		wantErr bool
+	}{
+		{
+			name:    "invalid",
+			input:   `invalid`,
+			wantErr: true,
+		},
+		{
+			name:  "empty",
+			input: ``,
+			want:  UnsetValidation,
+		},
+		{
+			name:  "legacy validation",
+			input: `legacy`,
+			want:  LegacyValidation,
+		},
+		{
+			name:  "utf8 validation",
+			input: `utf8`,
+			want:  UTF8Validation,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var got ValidationScheme
+			err := got.Set(tc.input)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestValidationScheme_IsMetricNameValid(t *testing.T) {
 	scenarios := []struct {
-		mn          LabelValue
+		mn          string
 		legacyValid bool
 		utf8Valid   bool
 	}{
@@ -146,19 +349,35 @@ func TestMetricNameIsLegacyValid(t *testing.T) {
 			utf8Valid:   false,
 		},
 	}
-
 	for _, s := range scenarios {
-		NameValidationScheme = LegacyValidation
-		if IsValidMetricName(s.mn) != s.legacyValid {
-			t.Errorf("Expected %v for %q using legacy IsValidMetricName method", s.legacyValid, s.mn)
-		}
-		if MetricNameRE.MatchString(string(s.mn)) != s.legacyValid {
-			t.Errorf("Expected %v for %q using regexp matching", s.legacyValid, s.mn)
-		}
-		NameValidationScheme = UTF8Validation
-		if IsValidMetricName(s.mn) != s.utf8Valid {
-			t.Errorf("Expected %v for %q using utf-8 IsValidMetricName method", s.legacyValid, s.mn)
-		}
+		t.Run(fmt.Sprintf("%s,%t,%t", s.mn, s.legacyValid, s.utf8Valid), func(t *testing.T) {
+			if LegacyValidation.IsValidMetricName(s.mn) != s.legacyValid {
+				t.Errorf("Expected %v for %q using LegacyValidation.IsValidMetricName", s.legacyValid, s.mn)
+			}
+			if MetricNameRE.MatchString(s.mn) != s.legacyValid {
+				t.Errorf("Expected %v for %q using regexp matching", s.legacyValid, s.mn)
+			}
+			if UTF8Validation.IsValidMetricName(s.mn) != s.utf8Valid {
+				t.Errorf("Expected %v for %q using UTF8Validation.IsValidMetricName", s.utf8Valid, s.mn)
+			}
+
+			// Test deprecated functions.
+			if IsValidLegacyMetricName(s.mn) != s.legacyValid {
+				t.Errorf("Expected %v for %q using IsValidLegacyMetricNames", s.legacyValid, s.mn)
+			}
+			origScheme := NameValidationScheme
+			t.Cleanup(func() {
+				NameValidationScheme = origScheme
+			})
+			NameValidationScheme = LegacyValidation
+			if IsValidMetricName(LabelValue(s.mn)) != s.legacyValid {
+				t.Errorf("Expected %v for %q using legacy IsValidMetricName", s.legacyValid, s.mn)
+			}
+			NameValidationScheme = UTF8Validation
+			if IsValidMetricName(LabelValue(s.mn)) != s.utf8Valid {
+				t.Errorf("Expected %v for %q using utf-8 IsValidMetricName method", s.utf8Valid, s.mn)
+			}
+		})
 	}
 }
 

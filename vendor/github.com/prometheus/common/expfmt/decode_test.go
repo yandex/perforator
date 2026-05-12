@@ -80,7 +80,10 @@ mf2 4
 	)
 
 	dec := &SampleDecoder{
-		Dec: &textDecoder{r: strings.NewReader(in)},
+		Dec: &textDecoder{
+			s: model.UTF8Validation,
+			r: strings.NewReader(in),
+		},
 		Opts: &DecodeOptions{
 			Timestamp: ts,
 		},
@@ -361,7 +364,7 @@ func TestProtoDecoder(t *testing.T) {
 
 	for i, scenario := range scenarios {
 		dec := &SampleDecoder{
-			Dec: &protoDecoder{r: strings.NewReader(scenario.in)},
+			Dec: &protoDecoder{r: strings.NewReader(scenario.in), s: model.LegacyValidation},
 			Opts: &DecodeOptions{
 				Timestamp: testTime,
 			},
@@ -369,7 +372,6 @@ func TestProtoDecoder(t *testing.T) {
 
 		var all model.Vector
 		for {
-			model.NameValidationScheme = model.LegacyValidation //nolint:staticcheck
 			var smpls model.Vector
 			err := dec.Decode(&smpls)
 			if err != nil && errors.Is(err, io.EOF) {
@@ -377,9 +379,8 @@ func TestProtoDecoder(t *testing.T) {
 			}
 			if scenario.legacyNameFail {
 				require.Errorf(t, err, "Expected error when decoding without UTF-8 support enabled but got none")
-				model.NameValidationScheme = model.UTF8Validation //nolint:staticcheck
 				dec = &SampleDecoder{
-					Dec: &protoDecoder{r: strings.NewReader(scenario.in)},
+					Dec: &protoDecoder{r: strings.NewReader(scenario.in), s: model.UTF8Validation},
 					Opts: &DecodeOptions{
 						Timestamp: testTime,
 					},

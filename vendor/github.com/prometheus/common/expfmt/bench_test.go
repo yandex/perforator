@@ -22,13 +22,14 @@ import (
 	"os"
 	"testing"
 
-	"google.golang.org/protobuf/encoding/protodelim"
-
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protodelim"
+
+	"github.com/prometheus/common/model"
 )
 
-var parser TextParser
+var parser = TextParser{scheme: model.UTF8Validation}
 
 // Benchmarks to show how much penalty text format parsing actually inflicts.
 //

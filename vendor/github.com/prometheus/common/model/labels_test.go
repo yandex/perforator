@@ -14,6 +14,7 @@
 package model
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 )
@@ -90,9 +91,9 @@ func BenchmarkLabelValues(b *testing.B) {
 	}
 }
 
-func TestLabelNameIsValid(t *testing.T) {
+func TestValidationScheme_IsLabelNameValid(t *testing.T) {
 	scenarios := []struct {
-		ln          LabelName
+		ln          string
 		legacyValid bool
 		utf8Valid   bool
 	}{
@@ -141,20 +142,39 @@ func TestLabelNameIsValid(t *testing.T) {
 			legacyValid: false,
 			utf8Valid:   false,
 		},
+		{
+			ln:          "",
+			legacyValid: false,
+			utf8Valid:   false,
+		},
 	}
-
 	for _, s := range scenarios {
-		NameValidationScheme = LegacyValidation
-		if s.ln.IsValid() != s.legacyValid {
-			t.Errorf("Expected %v for %q using legacy IsValid method", s.legacyValid, s.ln)
-		}
-		if LabelNameRE.MatchString(string(s.ln)) != s.legacyValid {
-			t.Errorf("Expected %v for %q using legacy regexp match", s.legacyValid, s.ln)
-		}
-		NameValidationScheme = UTF8Validation
-		if s.ln.IsValid() != s.utf8Valid {
-			t.Errorf("Expected %v for %q using UTF-8 IsValid method", s.legacyValid, s.ln)
-		}
+		t.Run(fmt.Sprintf("%s,%t,%t", s.ln, s.legacyValid, s.utf8Valid), func(t *testing.T) {
+			if LegacyValidation.IsValidLabelName(s.ln) != s.legacyValid {
+				t.Errorf("Expected %v for %q using LegacyValidation.IsValidLabelName", s.legacyValid, s.ln)
+			}
+			if LabelNameRE.MatchString(s.ln) != s.legacyValid {
+				t.Errorf("Expected %v for %q using legacy regexp match", s.legacyValid, s.ln)
+			}
+			if UTF8Validation.IsValidLabelName(s.ln) != s.utf8Valid {
+				t.Errorf("Expected %v for %q using UTF8Validation.IsValidLabelName", s.utf8Valid, s.ln)
+			}
+
+			// Test deprecated functions.
+			origScheme := NameValidationScheme
+			t.Cleanup(func() {
+				NameValidationScheme = origScheme
+			})
+			NameValidationScheme = LegacyValidation
+			labelName := LabelName(s.ln)
+			if labelName.IsValid() != s.legacyValid {
+				t.Errorf("Expected %v for %q using legacy IsValid method", s.legacyValid, s.ln)
+			}
+			NameValidationScheme = UTF8Validation
+			if labelName.IsValid() != s.utf8Valid {
+				t.Errorf("Expected %v for %q using UTF-8 IsValid method", s.utf8Valid, s.ln)
+			}
+		})
 	}
 }
 

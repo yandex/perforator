@@ -277,8 +277,8 @@ func createHTTPRequest(c *Client, r *Request) (err error) {
 			}
 		} else {
 			r.RawRequest.GetBody = func() (io.ReadCloser, error) {
-				return nil, nil
-			}
+				return io.NopCloser(bytes.NewBuffer(nil)), nil
+ 			}
 		}
 	}
 

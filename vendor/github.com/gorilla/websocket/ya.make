@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-2-Clause)
 
-VERSION(v1.5.3)
+VERSION(v1.5.4-0.20250319132907-e064f32e3674)
 
 SRCS(
     client.go
@@ -15,12 +15,11 @@ SRCS(
     prepared.go
     proxy.go
     server.go
-    tls_handshake.go
     util.go
-    x_net_proxy.go
 )
 
 GO_TEST_SRCS(
+    client_proxy_server_test.go
     client_server_test.go
     client_test.go
     compression_test.go

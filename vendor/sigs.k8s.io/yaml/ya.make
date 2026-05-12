@@ -6,7 +6,7 @@ LICENSE(
     MIT
 )
 
-VERSION(v1.5.0)
+VERSION(v1.6.0)
 
 SRCS(
     fields.go
@@ -25,4 +25,6 @@ RECURSE(
     gotest
     goyaml.v2
     goyaml.v3
+    kyaml
+    yamlfmt
 )

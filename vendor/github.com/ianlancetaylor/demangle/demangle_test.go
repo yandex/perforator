@@ -521,6 +521,11 @@ func TestFailure(t *testing.T) {
 			"template parameter not in scope",
 			17,
 		},
+		{
+			"_ZZF",
+			"expected unqualified name",
+			4,
+		},
 	}
 
 	for _, test := range tests {
@@ -561,6 +566,26 @@ func TestMaxLength(t *testing.T) {
 		}
 		if got := maxLength(opt); got != 1<<pow {
 			t.Errorf("maxLength(%x) = %v, want %v", opt, got, 1<<pow)
+		}
+	}
+}
+
+// The user's options slice should not change.
+func TestOptionsSlice(t *testing.T) {
+	opts := []Option{NoTemplateParams, NoParams, NoEnclosingParams}
+	saved := append([]Option{}, opts...)
+	input := "_GLOBAL__I__Z2fnv"
+	got, err := ToString(input, opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "global constructors keyed to fn()"
+	if got != want {
+		t.Errorf("ToString(%q) = %q, want %q", input, got, want)
+	}
+	for i, opt := range opts {
+		if opt != saved[i] {
+			t.Errorf("options[%d] = %d, want %d", i, opt, saved[i])
 		}
 	}
 }

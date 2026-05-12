@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.31.6)
+VERSION(v0.33.0)
 
 SRCS(
     buffers.go
@@ -12,11 +12,13 @@ SRCS(
     encode.go
 )
 
-GO_TEST_SRCS(buffers_test.go)
+GO_TEST_SRCS(
+    buffers_test.go
+    custom_test.go
+)
 
 GO_XTEST_SRCS(
     appendixa_test.go
-    custom_test.go
     decode_test.go
     encode_test.go
     modes_test.go

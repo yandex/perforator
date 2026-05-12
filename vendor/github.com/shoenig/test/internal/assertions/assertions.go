@@ -79,6 +79,20 @@ func containsFunc[A, B any](slice []A, item B, eq func(a A, b B) bool) bool {
 	return found
 }
 
+func containsSubsetFunc[A, B any](slice []A, items []B, eq func(a A, b B) bool) (ok bool, missing B) {
+OUTER:
+	for _, target := range items {
+		var item A
+		for _, item = range slice {
+			if eq(item, target) {
+				continue OUTER
+			}
+		}
+		return false, target
+	}
+	return true, missing
+}
+
 func isNil(a any) bool {
 	// comparable check only works for simple types
 	if a == nil {
@@ -128,16 +142,36 @@ func Unreachable() (s string) {
 	return
 }
 
+func Panic(f func()) (s string) {
+	defer func() {
+		if r := recover(); r == nil {
+			s = "expected panic; did not panic"
+		}
+	}()
+	f()
+	return
+}
+
+func NotPanic(f func()) (s string) {
+	defer func() {
+		if r := recover(); r != nil {
+			s = fmt.Sprintf("expected not to panic; panicked: %v", r)
+		}
+	}()
+	f()
+	return
+}
+
 func Error(err error) (s string) {
 	if err == nil {
-		s = "expected non-nil error; is nil\n"
+		s = "expected non-nil error; got nil\n"
 	}
 	return
 }
 
 func EqError(err error, msg string) (s string) {
 	if err == nil {
-		s = "expected error; got nil\n"
+		s = "expected non-nil error; got nil\n"
 		return
 	}
 	e := err.Error()
@@ -150,14 +184,31 @@ func EqError(err error, msg string) (s string) {
 }
 
 func ErrorIs(err error, target error) (s string) {
-	if err == nil {
-		s = "expected error; got nil\n"
+	if err == nil && target != nil {
+		s = "expected non-nil error; got nil\n"
 		return
 	}
 	if !errors.Is(err, target) {
 		s = "expected errors.Is match\n"
-		s += bullet(" error: %v\n", err)
 		s += bullet("target: %v\n", target)
+		s += bullet("   got: %v\n", err)
+	}
+	return
+}
+
+func ErrorAs[E error, Target *E](err error, target Target) (s string) {
+	if err == nil {
+		s = "expected non-nil error; got nil\n"
+		return
+	}
+	if target == nil {
+		s = "expected non-nil target; got nil\n"
+		return
+	}
+	if !errors.As(err, target) {
+		s = "expected errors.As match\n"
+		s += bullet("target: %v\n", target)
+		s += bullet("   got: %v\n", err)
 	}
 	return
 }
@@ -172,7 +223,7 @@ func NoError(err error) (s string) {
 
 func ErrorContains(err error, sub string) (s string) {
 	if err == nil {
-		s = "expected non-nil error\n"
+		s = "expected non-nil error; got nil\n"
 		return
 	}
 	actual := err.Error()
@@ -233,19 +284,19 @@ func EqJSON(exp, val string) (s string) {
 	var expA, expB any
 
 	if err := json.Unmarshal([]byte(exp), &expA); err != nil {
-		s = fmt.Sprintf("failed to unmarshal first argument as json: %v\n", err)
+		s = fmt.Sprintf("failed to unmarshal first argument as JSON: %v\n", err)
 		return
 	}
 
 	if err := json.Unmarshal([]byte(val), &expB); err != nil {
-		s = fmt.Sprintf("failed to unmarshal second argument as json: %v\n", err)
+		s = fmt.Sprintf("failed to unmarshal second argument as JSON: %v\n", err)
 		return
 	}
 
 	if !reflect.DeepEqual(expA, expB) {
 		jsonA, _ := json.Marshal(expA)
 		jsonB, _ := json.Marshal(expB)
-		s = "expected equality via json marshalling\n"
+		s = "expected equality via JSON marshalling\n"
 		s += diff(string(jsonA), string(jsonB), nil)
 		return
 	}
@@ -263,7 +314,7 @@ func ValidJSONBytes(input []byte) (s string) {
 
 func validJSON(input []byte) (s string) {
 	if !json.Valid([]byte(input)) {
-		return "expected input to be valid json\n"
+		return "expected input to be valid JSON\n"
 	}
 	return
 }
@@ -325,6 +376,27 @@ func SliceEqual[E interfaces.EqualFunc[E]](exp, val []E) (s string) {
 	for i := 0; i < lenA; i++ {
 		if !exp[i].Equal(val[i]) {
 			s += "expected slice equality via .Equal method\n"
+			s += diff(exp[i], val[i], nil)
+			return
+		}
+	}
+	return
+}
+
+func SliceEqOp[A comparable, S ~[]A](exp, val S) (s string) {
+	lenA, lenB := len(exp), len(val)
+
+	if lenA != lenB {
+		s = "expected slices of same length\n"
+		s += bullet("len(exp): %d\n", lenA)
+		s += bullet("len(val): %d\n", lenB)
+		s += diff(exp, val, nil)
+		return
+	}
+
+	for i := 0; i < lenA; i++ {
+		if exp[i] != val[i] {
+			s += "expected slice equality via ==\n"
 			s += diff(exp[i], val[i], nil)
 			return
 		}
@@ -418,6 +490,36 @@ func SliceNotContainsFunc[A, B any](slice []A, item B, eq func(a A, b B) bool) (
 	return
 }
 
+func SliceContainsAllOp[C comparable](slice, items []C) (s string) {
+	if len(slice) != len(items) {
+		s = "expected slice and items to contain same number of elements\n"
+		s += bullet("len(slice): %d\n", len(slice))
+		s += bullet("len(items): %d\n", len(items))
+		return s
+	}
+	return SliceContainsSubsetOp(slice, items)
+}
+
+func SliceContainsAllFunc[A, B any](slice []A, items []B, eq func(a A, b B) bool) (s string) {
+	if len(slice) != len(items) {
+		s = "expected slice and items to contain same number of elements\n"
+		s += bullet("len(slice): %d\n", len(slice))
+		s += bullet("len(items): %d\n", len(items))
+		return s
+	}
+	return SliceContainsSubsetFunc(slice, items, eq)
+}
+
+func SliceContainsAllEqual[E interfaces.EqualFunc[E]](slice, items []E) (s string) {
+	if len(slice) != len(items) {
+		s = "expected slice and items to contain same number of elements\n"
+		s += bullet("len(slice): %d\n", len(slice))
+		s += bullet("len(items): %d\n", len(items))
+		return s
+	}
+	return SliceContainsSubsetEqual(slice, items)
+}
+
 func SliceContainsAll[A any](slice, items []A, opts ...cmp.Option) (s string) {
 	if len(slice) != len(items) {
 		s = "expected slice and items to contain same number of elements\n"
@@ -426,6 +528,40 @@ func SliceContainsAll[A any](slice, items []A, opts ...cmp.Option) (s string) {
 		return s
 	}
 	return SliceContainsSubset(slice, items, opts...)
+}
+
+func SliceContainsSubsetOp[C comparable](slice, items []C) (s string) {
+OUTER:
+	for _, target := range items {
+		var item C
+		for _, item = range slice {
+			if target == item {
+				continue OUTER
+			}
+		}
+		s = "expected slice to contain missing item via == operator\n"
+		s += bullet("slice is missing %#v\n", item)
+		return
+	}
+	return
+}
+
+func SliceContainsSubsetFunc[A, B any](slice []A, items []B, eq func(a A, b B) bool) (s string) {
+	ok, missing := containsSubsetFunc(slice, items, eq)
+	if !ok {
+		s = "expected slice to contain missing item via 'eq' function\n"
+		s += bullet("slice is missing %#v\n", missing)
+	}
+	return
+}
+
+func SliceContainsSubsetEqual[E interfaces.EqualFunc[E]](slice, items []E) (s string) {
+	ok, missing := containsSubsetFunc(slice, items, E.Equal)
+	if !ok {
+		s = "expected slice to contain missing item via .Equal method\n"
+		s += bullet("slice is missing %#v\n", missing)
+	}
+	return
 }
 
 func SliceContainsSubset[A any](slice, items []A, opts ...cmp.Option) (s string) {
@@ -792,6 +928,34 @@ func MapEqual[M interfaces.MapEqualFunc[K, V], K comparable, V interfaces.EqualF
 	return
 }
 
+func MapEqOp[M interfaces.Map[K, V], K, V comparable](exp, val M) (s string) {
+	lenA, lenB := len(exp), len(val)
+
+	if lenA != lenB {
+		s = "expected maps of same length\n"
+		s += bullet("len(exp): %d\n", lenA)
+		s += bullet("len(val): %d\n", lenB)
+		return
+	}
+
+	for key, valA := range exp {
+		valB, exists := val[key]
+		if !exists {
+			s = "expected maps of same keys\n"
+			s += diff(exp, val, nil)
+			return
+		}
+
+		if valA != valB {
+			s = "expected maps of same values via ==\n"
+			s += diff(exp, val, nil)
+			return
+		}
+	}
+
+	return
+}
+
 func MapLen[M ~map[K]V, K comparable, V any](n int, m M) (s string) {
 	if l := len(m); l != n {
 		s = "expected map to be different length\n"
@@ -943,6 +1107,61 @@ func MapNotContainsValuesEqual[M ~map[K]V, K comparable, V interfaces.EqualFunc[
 	})
 }
 
+func MapContainsValue[M ~map[K]V, K comparable, V any](m M, val V, opts cmp.Options) (s string) {
+	return mapContains(m, []V{val}, func(a, b V) bool {
+		return equal(a, b, opts)
+	})
+}
+
+func MapNotContainsValue[M ~map[K]V, K comparable, V any](m M, val V, opts cmp.Options) (s string) {
+	return mapNotContains(m, []V{val}, func(a, b V) bool {
+		return equal(a, b, opts)
+	})
+}
+
+func MapContainsValueFunc[M ~map[K]V, K comparable, V any](m M, val V, eq func(V, V) bool) (s string) {
+	return mapContains(m, []V{val}, eq)
+}
+
+func MapNotContainsValueFunc[M ~map[K]V, K comparable, V any](m M, val V, eq func(V, V) bool) (s string) {
+	return mapNotContains(m, []V{val}, eq)
+}
+
+func MapContainsValueEqual[M ~map[K]V, K comparable, V interfaces.EqualFunc[V]](m M, val V) (s string) {
+	return mapContains(m, []V{val}, func(a, b V) bool {
+		return a.Equal(b)
+	})
+}
+
+func MapNotContainsValueEqual[M ~map[K]V, K comparable, V interfaces.EqualFunc[V]](m M, val V) (s string) {
+	return mapNotContains(m, []V{val}, func(a, b V) bool {
+		return a.Equal(b)
+	})
+}
+
+func FileExists(file string) (s string) {
+	info, err := os.Stat(file)
+	if errors.Is(err, fs.ErrNotExist) {
+		s = "expected file to exist\n"
+		s += bullet(" name: %s\n", file)
+		s += bullet("error: %s\n", err)
+		return
+	}
+	if err != nil {
+		s = "got an unexpected error\n"
+		s += bullet("name: %s\n", file)
+		s += bullet("error: %s\n", err)
+		return
+	}
+
+	if info.IsDir() {
+		s = "expected file but is a directory\n"
+		s += bullet("name: %s\n", file)
+		return
+	}
+	return
+}
+
 func FileExistsFS(system fs.FS, file string) (s string) {
 	info, err := fs.Stat(system, file)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -951,11 +1170,31 @@ func FileExistsFS(system fs.FS, file string) (s string) {
 		s += bullet("error: %s\n", err)
 		return
 	}
+	if err != nil {
+		s = "got an unexpected error\n"
+		s += bullet("name: %s\n", file)
+		s += bullet("error: %s\n", err)
+		return
+	}
 
-	// other errors - file probably exists but cannot be read
 	if info.IsDir() {
 		s = "expected file but is a directory\n"
 		s += bullet("name: %s\n", file)
+		return
+	}
+	return
+}
+
+func FileNotExists(file string) (s string) {
+	_, err := os.Stat(file)
+	if err == nil {
+		s = "expected file to not exist\n"
+		s += bullet("name: %s\n", file)
+		return
+	}
+	if !errors.Is(err, fs.ErrNotExist) {
+		s = "expected not existing file but got different error\n"
+		s += bullet("error: %s\n", err)
 		return
 	}
 	return
@@ -976,17 +1215,54 @@ func FileNotExistsFS(system fs.FS, file string) (s string) {
 	return
 }
 
-func DirExistsFS(system fs.FS, directory string) (s string) {
-	info, err := fs.Stat(system, directory)
-	if os.IsNotExist(err) {
+func DirExists(directory string) (s string) {
+	info, err := os.Stat(directory)
+	if errors.Is(err, fs.ErrNotExist) {
 		s = "expected directory to exist\n"
 		s += bullet(" name: %s\n", directory)
 		s += bullet("error: %s\n", err)
 		return
 	}
-	// other errors - directory probably exists but cannot be read
+	if err != nil {
+		s = "got an unexpected error\n"
+		s += bullet("name: %s\n", directory)
+		s += bullet("error: %s\n", err)
+		return
+	}
 	if !info.IsDir() {
 		s = "expected directory but is a file\n"
+		s += bullet("name: %s\n", directory)
+		return
+	}
+	return
+}
+
+func DirExistsFS(system fs.FS, directory string) (s string) {
+	info, err := fs.Stat(system, directory)
+	if errors.Is(err, fs.ErrNotExist) {
+		s = "expected directory to exist\n"
+		s += bullet(" name: %s\n", directory)
+		s += bullet("error: %s\n", err)
+		return
+	}
+	if err != nil {
+		s = "got an unexpected error\n"
+		s += bullet("name: %s\n", directory)
+		s += bullet("error: %s\n", err)
+		return
+	}
+	if !info.IsDir() {
+		s = "expected directory but is a file\n"
+		s += bullet("name: %s\n", directory)
+		return
+	}
+	return
+}
+
+func DirNotExists(directory string) (s string) {
+	_, err := os.Stat(directory)
+	if !errors.Is(err, fs.ErrNotExist) {
+		s = "expected directory to not exist\n"
 		s += bullet("name: %s\n", directory)
 		return
 	}
@@ -999,6 +1275,25 @@ func DirNotExistsFS(system fs.FS, directory string) (s string) {
 		s = "expected directory to not exist\n"
 		s += bullet("name: %s\n", directory)
 		return
+	}
+	return
+}
+
+func FileMode(path string, permissions fs.FileMode) (s string) {
+	info, err := os.Stat(path)
+	if err != nil {
+		s = "expected to stat path\n"
+		s += bullet(" name: %s\n", path)
+		s += bullet("error: %s\n", err)
+		return
+	}
+
+	mode := info.Mode()
+	if permissions != mode {
+		s = "expected different file permissions\n"
+		s += bullet("name: %s\n", path)
+		s += bullet(" exp: %s\n", permissions)
+		s += bullet(" got: %s\n", mode)
 	}
 	return
 }
@@ -1018,6 +1313,71 @@ func FileModeFS(system fs.FS, path string, permissions fs.FileMode) (s string) {
 		s += bullet("name: %s\n", path)
 		s += bullet(" exp: %s\n", permissions)
 		s += bullet(" got: %s\n", mode)
+	}
+	return
+}
+
+func DirMode(path string, permissions fs.FileMode) (s string) {
+	info, err := os.Stat(path)
+	if err != nil {
+		s = "expected to stat path\n"
+		s += bullet(" name: %s\n", path)
+		s += bullet("error: %s\n", err)
+		return
+	}
+	if !info.IsDir() {
+		s = "expected to stat a directory\n"
+		s += bullet("name: %s\n", path)
+		return
+	}
+	mode := info.Mode()
+	if permissions != mode {
+		s = "expected different file permissions\n"
+		s += bullet("name: %s\n", path)
+		s += bullet(" exp: %s\n", permissions)
+		s += bullet(" got: %s\n", mode)
+	}
+	return
+}
+
+func DirModeFS(system fs.FS, path string, permissions fs.FileMode) (s string) {
+	info, err := fs.Stat(system, path)
+	if err != nil {
+		s = "expected to stat path\n"
+		s += bullet(" name: %s\n", path)
+		s += bullet("error: %s\n", err)
+		return
+	}
+	if !info.IsDir() {
+		s = "expected to stat a directory\n"
+		s += bullet("name: %s\n", path)
+		return
+	}
+	mode := info.Mode()
+	if permissions != mode {
+		s = "expected different file permissions\n"
+		s += bullet("name: %s\n", path)
+		s += bullet(" exp: %s\n", permissions)
+		s += bullet(" got: %s\n", mode)
+	}
+	return
+}
+
+func FileContains(file, content string) (s string) {
+	b, err := os.ReadFile(file)
+	if err != nil {
+		s = "expected to read file\n"
+		s += bullet(" name: %s\n", file)
+		s += bullet("error: %s\n", err)
+		return
+	}
+	actual := string(b)
+	if !strings.Contains(string(b), content) {
+		s = "expected file contents\n"
+		s += bullet("  name: %s\n", file)
+		s += bullet("wanted: %s\n", content)
+		s += bullet("actual: %s\n", actual)
+		return
 	}
 	return
 }

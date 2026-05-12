@@ -21,7 +21,26 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/prometheus/common/model"
 )
+
+func TestNewTextParser(t *testing.T) {
+	p := NewTextParser(model.UTF8Validation)
+	if p.scheme != model.UTF8Validation {
+		t.Errorf("expected NewTextParser to return a TextParser with scheme %s - got %s", model.UTF8Validation, p.scheme)
+	}
+
+	p = NewTextParser(model.LegacyValidation)
+	if p.scheme != model.LegacyValidation {
+		t.Errorf("expected NewTextParser to return a TextParser with scheme %s - got %s", model.LegacyValidation, p.scheme)
+	}
+
+	p = NewTextParser(model.UnsetValidation)
+	if p.scheme != model.UnsetValidation {
+		t.Errorf("expected NewTextParser to return a TextParser with scheme %s - got %s", model.UnsetValidation, p.scheme)
+	}
+}
 
 func testTextParse(t testing.TB) {
 	scenarios := []struct {
@@ -191,10 +210,10 @@ my_summary{n1="val3", quantile="0.2"} 4711
   my_summary{n1="val1",n2="val2",quantile="-12.34",} NaN
 # some
 # funny comments
-# HELP 
+# HELP
 # HELP
 # HELP my_summary
-# HELP my_summary 
+# HELP my_summary
 `,
 			out: []*dto.MetricFamily{
 				{
@@ -682,20 +701,22 @@ func BenchmarkTextParse(b *testing.B) {
 
 func testTextParseError(t testing.TB) {
 	scenarios := []struct {
-		in  string
-		err string
+		in      string
+		errUTF8 string
+		// if errLegacy is blank, it is assumed to be the same as errUTF8
+		errLegacy string
 	}{
 		// 0: No new-line at end of input.
 		{
 			in: `
 bla 3.14
 blubber 42`,
-			err: "text format parsing error in line 3: unexpected end of input stream",
+			errUTF8: "text format parsing error in line 3: unexpected end of input stream",
 		},
 		// 1: Invalid escape sequence in label value.
 		{
-			in:  `metric{label="\t"} 3.14`,
-			err: "text format parsing error in line 1: invalid escape sequence",
+			in:      `metric{label="\t"} 3.14`,
+			errUTF8: "text format parsing error in line 1: invalid escape sequence",
 		},
 		// 2: Newline in label value.
 		{
@@ -703,27 +724,27 @@ blubber 42`,
 metric{label="new
 line"} 3.14
 `,
-			err: `text format parsing error in line 2: label value "new" contains unescaped new-line`,
+			errUTF8: `text format parsing error in line 2: label value "new" contains unescaped new-line`,
 		},
 		// 3:
 		{
-			in:  `metric{@="bla"} 3.14`,
-			err: "text format parsing error in line 1: invalid label name for metric",
+			in:      `metric{@="bla"} 3.14`,
+			errUTF8: "text format parsing error in line 1: invalid label name for metric",
 		},
 		// 4:
 		{
-			in:  `metric{__name__="bla"} 3.14`,
-			err: `text format parsing error in line 1: label name "__name__" is reserved`,
+			in:      `metric{__name__="bla"} 3.14`,
+			errUTF8: `text format parsing error in line 1: label name "__name__" is reserved`,
 		},
 		// 5:
 		{
-			in:  `metric{label+="bla"} 3.14`,
-			err: "text format parsing error in line 1: expected '=' after label name",
+			in:      `metric{label+="bla"} 3.14`,
+			errUTF8: "text format parsing error in line 1: expected '=' after label name",
 		},
 		// 6:
 		{
-			in:  `metric{label=bla} 3.14`,
-			err: "text format parsing error in line 1: expected '\"' at start of label value",
+			in:      `metric{label=bla} 3.14`,
+			errUTF8: "text format parsing error in line 1: expected '\"' at start of label value",
 		},
 		// 7:
 		{
@@ -731,30 +752,30 @@ line"} 3.14
 # TYPE metric summary
 metric{quantile="bla"} 3.14
 `,
-			err: "text format parsing error in line 3: expected float as value for 'quantile' label",
+			errUTF8: "text format parsing error in line 3: expected float as value for 'quantile' label",
 		},
 		// 8:
 		{
-			in:  `metric{label="bla"+} 3.14`,
-			err: "text format parsing error in line 1: unexpected end of label value",
+			in:      `metric{label="bla"+} 3.14`,
+			errUTF8: "text format parsing error in line 1: unexpected end of label value",
 		},
 		// 9:
 		{
 			in: `metric{label="bla"} 3.14 2.72
 `,
-			err: "text format parsing error in line 1: expected integer as timestamp",
+			errUTF8: "text format parsing error in line 1: expected integer as timestamp",
 		},
 		// 10:
 		{
 			in: `metric{label="bla"} 3.14 2 3
 `,
-			err: "text format parsing error in line 1: spurious string after timestamp",
+			errUTF8: "text format parsing error in line 1: spurious string after timestamp",
 		},
 		// 11:
 		{
 			in: `metric{label="bla"} blubb
 `,
-			err: "text format parsing error in line 1: expected float as value",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 12:
 		{
@@ -762,7 +783,7 @@ metric{quantile="bla"} 3.14
 # HELP metric one
 # HELP metric two
 `,
-			err: "text format parsing error in line 3: second HELP line for metric name",
+			errUTF8: "text format parsing error in line 3: second HELP line for metric name",
 		},
 		// 13:
 		{
@@ -770,7 +791,7 @@ metric{quantile="bla"} 3.14
 # TYPE metric counter
 # TYPE metric untyped
 `,
-			err: `text format parsing error in line 3: second TYPE line for metric name "metric", or TYPE reported after samples`,
+			errUTF8: `text format parsing error in line 3: second TYPE line for metric name "metric", or TYPE reported after samples`,
 		},
 		// 14:
 		{
@@ -778,31 +799,31 @@ metric{quantile="bla"} 3.14
 metric 4.12
 # TYPE metric counter
 `,
-			err: `text format parsing error in line 3: second TYPE line for metric name "metric", or TYPE reported after samples`,
+			errUTF8: `text format parsing error in line 3: second TYPE line for metric name "metric", or TYPE reported after samples`,
 		},
 		// 14:
 		{
 			in: `
 # TYPE metric bla
 `,
-			err: "text format parsing error in line 2: unknown metric type",
+			errUTF8: "text format parsing error in line 2: unknown metric type",
 		},
 		// 15:
 		{
 			in: `
 # TYPE met-ric
 `,
-			err: "text format parsing error in line 2: invalid metric name in comment",
+			errUTF8: "text format parsing error in line 2: invalid metric name in comment",
 		},
 		// 16:
 		{
-			in:  `@invalidmetric{label="bla"} 3.14 2`,
-			err: "text format parsing error in line 1: invalid metric name",
+			in:      `@invalidmetric{label="bla"} 3.14 2`,
+			errUTF8: "text format parsing error in line 1: invalid metric name",
 		},
 		// 17:
 		{
-			in:  `{label="bla"} 3.14 2`,
-			err: "text format parsing error in line 1: invalid metric name",
+			in:      `{label="bla"} 3.14 2`,
+			errUTF8: "text format parsing error in line 1: invalid metric name",
 		},
 		// 18:
 		{
@@ -810,67 +831,67 @@ metric 4.12
 # TYPE metric histogram
 metric_bucket{le="bla"} 3.14
 `,
-			err: "text format parsing error in line 3: expected float as value for 'le' label",
+			errUTF8: "text format parsing error in line 3: expected float as value for 'le' label",
 		},
 		// 19: Invalid UTF-8 in label value.
 		{
-			in:  "metric{l=\"\xbd\"} 3.14\n",
-			err: "text format parsing error in line 1: invalid label value \"\\xbd\"",
+			in:      "metric{l=\"\xbd\"} 3.14\n",
+			errUTF8: "text format parsing error in line 1: invalid label value \"\\xbd\"",
 		},
 		// 20: Go 1.13 sometimes allows underscores in numbers.
 		{
-			in:  "foo 1_2\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 1_2\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 21: Go 1.13 supports hex floating point.
 		{
-			in:  "foo 0x1p-3\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0x1p-3\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 22: Check for various other literals variants, just in case.
 		{
-			in:  "foo 0x1P-3\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0x1P-3\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 23:
 		{
-			in:  "foo 0B1\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0B1\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 24:
 		{
-			in:  "foo 0O1\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0O1\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 25:
 		{
-			in:  "foo 0X1\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0X1\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 26:
 		{
-			in:  "foo 0x1\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0x1\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 27:
 		{
-			in:  "foo 0b1\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0b1\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 28:
 		{
-			in:  "foo 0o1\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0o1\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 29:
 		{
-			in:  "foo 0x1\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0x1\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 30:
 		{
-			in:  "foo 0x1\n",
-			err: "text format parsing error in line 1: expected float as value",
+			in:      "foo 0x1\n",
+			errUTF8: "text format parsing error in line 1: expected float as value",
 		},
 		// 31: Check histogram label.
 		{
@@ -878,7 +899,7 @@ metric_bucket{le="bla"} 3.14
 # TYPE metric histogram
 metric_bucket{le="0x1p-3"} 3.14
 `,
-			err: "text format parsing error in line 3: expected float as value for 'le' label",
+			errUTF8: "text format parsing error in line 3: expected float as value for 'le' label",
 		},
 		// 32: Check quantile label.
 		{
@@ -886,27 +907,28 @@ metric_bucket{le="0x1p-3"} 3.14
 # TYPE metric summary
 metric{quantile="0x1p-3"} 3.14
 `,
-			err: "text format parsing error in line 3: expected float as value for 'quantile' label",
+			errUTF8: "text format parsing error in line 3: expected float as value for 'quantile' label",
 		},
 		// 33: Check duplicate label.
 		{
-			in:  `metric{label="bla",label="bla"} 3.14`,
-			err: "text format parsing error in line 1: duplicate label names for metric",
+			in:      `metric{label="bla",label="bla"} 3.14`,
+			errUTF8: "text format parsing error in line 1: duplicate label names for metric",
 		},
 		// 34: Multiple quoted metric names.
 		{
-			in:  `{"one.name","another.name"} 3.14`,
-			err: "text format parsing error in line 1: multiple metric names",
+			in:        `{"one.name","another.name"} 3.14`,
+			errUTF8:   "text format parsing error in line 1: multiple metric names",
+			errLegacy: `text format parsing error in line 1: invalid metric name "one.name"`,
 		},
 		// 35: Invalid escape sequence in quoted metric name.
 		{
-			in:  `{"a\xc5z",label="bla"} 3.14`,
-			err: "text format parsing error in line 1: invalid escape sequence",
+			in:      `{"a\xc5z",label="bla"} 3.14`,
+			errUTF8: "text format parsing error in line 1: invalid escape sequence",
 		},
 		// 36: Unexpected end of quoted metric name.
 		{
-			in:  `{"metric.name".label="bla"} 3.14`,
-			err: "text format parsing error in line 1: unexpected end of metric name",
+			in:      `{"metric.name".label="bla"} 3.14`,
+			errUTF8: "text format parsing error in line 1: unexpected end of metric name",
 		},
 		// 37: Invalid escape sequence in quoted metric name.
 		{
@@ -914,7 +936,7 @@ metric{quantile="0x1p-3"} 3.14
 # TYPE "metric.name\t" counter
 {"metric.name\t",label="bla"} 3.14
 `,
-			err: "text format parsing error in line 2: invalid escape sequence",
+			errUTF8: "text format parsing error in line 2: invalid escape sequence",
 		},
 		// 38: Newline in quoted metric name.
 		{
@@ -924,7 +946,7 @@ name" counter
 {"metric
 name",label="bla"} 3.14
 `,
-			err: `text format parsing error in line 2: metric name "metric" contains unescaped new-line`,
+			errUTF8: `text format parsing error in line 2: metric name "metric" contains unescaped new-line`,
 		},
 		// 39: Newline in quoted label name.
 		{
@@ -932,20 +954,54 @@ name",label="bla"} 3.14
 {"metric.name","new
 line"="bla"} 3.14
 `,
-			err: `text format parsing error in line 2: label name "new" contains unescaped new-line`,
+			errUTF8:   `text format parsing error in line 2: label name "new" contains unescaped new-line`,
+			errLegacy: `text format parsing error in line 2: invalid metric name "metric.name"`,
+		},
+		// 40: dotted name fails legacy validation.
+		{
+			in: `{"metric.name",foo="bla"} 3.14
+`,
+			errUTF8:   ``,
+			errLegacy: `text format parsing error in line 1: invalid metric name "metric.name"`,
+		},
+		{
+			in: `metric_name{"foo"="bar", "dotted.label"="bla"} 3.14
+`,
+			errUTF8:   ``,
+			errLegacy: `text format parsing error in line 1: invalid label name "dotted.label"`,
 		},
 	}
 	for i, scenario := range scenarios {
+		parser.scheme = model.UTF8Validation
 		_, err := parser.TextToMetricFamilies(strings.NewReader(scenario.in))
 		if err == nil {
-			t.Errorf("%d. expected error, got nil", i)
-			continue
-		}
-		if expected, got := scenario.err, err.Error(); strings.Index(got, expected) != 0 {
+			if scenario.errUTF8 != "" {
+				t.Errorf("%d. expected error, got nil", i)
+			}
+		} else if expected, got := scenario.errUTF8, err.Error(); strings.Index(got, expected) != 0 {
 			t.Errorf(
 				"%d. expected error starting with %q, got %q",
 				i, expected, got,
 			)
+		}
+
+		parser.scheme = model.LegacyValidation
+		_, err = parser.TextToMetricFamilies(strings.NewReader(scenario.in))
+		if err == nil {
+			if scenario.errLegacy != "" {
+				t.Errorf("%d. expected error, got nil", i)
+			}
+		} else {
+			expected := scenario.errUTF8
+			if scenario.errLegacy != "" {
+				expected = scenario.errLegacy
+			}
+			if got := err.Error(); strings.Index(got, expected) != 0 {
+				t.Errorf(
+					"%d. expected error starting with %q, got %q",
+					i, expected, got,
+				)
+			}
 		}
 	}
 }
@@ -962,7 +1018,7 @@ func BenchmarkParseError(b *testing.B) {
 
 func TestTextParserStartOfLine(t *testing.T) {
 	t.Run("EOF", func(t *testing.T) {
-		p := TextParser{}
+		p := NewTextParser(model.UTF8Validation)
 		in := strings.NewReader("")
 		p.reset(in)
 		fn := p.startOfLine()
@@ -975,7 +1031,7 @@ func TestTextParserStartOfLine(t *testing.T) {
 	})
 
 	t.Run("OtherError", func(t *testing.T) {
-		p := TextParser{}
+		p := NewTextParser(model.UTF8Validation)
 		in := &errReader{err: errors.New("unexpected error")}
 		p.reset(in)
 		fn := p.startOfLine()
@@ -992,6 +1048,6 @@ type errReader struct {
 	err error
 }
 
-func (r *errReader) Read(p []byte) (int, error) {
+func (r *errReader) Read([]byte) (int, error) {
 	return 0, r.err
 }

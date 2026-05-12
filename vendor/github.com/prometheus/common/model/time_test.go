@@ -68,70 +68,171 @@ func TestDuration(t *testing.T) {
 }
 
 func TestParseDuration(t *testing.T) {
-	cases := []struct {
-		in  string
-		out time.Duration
+	type testCase struct {
+		in              string
+		out             time.Duration
+		expectedString  string
+		allowedNegative bool
+	}
 
-		expectedString string
-	}{
+	baseCases := []testCase{
 		{
-			in:             "0",
-			out:            0,
-			expectedString: "0s",
-		}, {
-			in:             "0w",
-			out:            0,
-			expectedString: "0s",
-		}, {
-			in:  "0s",
-			out: 0,
-		}, {
-			in:  "324ms",
-			out: 324 * time.Millisecond,
-		}, {
-			in:  "3s",
-			out: 3 * time.Second,
-		}, {
-			in:  "5m",
-			out: 5 * time.Minute,
-		}, {
-			in:  "1h",
-			out: time.Hour,
-		}, {
-			in:  "4d",
-			out: 4 * 24 * time.Hour,
-		}, {
-			in:  "4d1h",
-			out: 4*24*time.Hour + time.Hour,
-		}, {
-			in:             "14d",
-			out:            14 * 24 * time.Hour,
-			expectedString: "2w",
-		}, {
-			in:  "3w",
-			out: 3 * 7 * 24 * time.Hour,
-		}, {
-			in:             "3w2d1h",
-			out:            3*7*24*time.Hour + 2*24*time.Hour + time.Hour,
-			expectedString: "23d1h",
-		}, {
-			in:  "10y",
-			out: 10 * 365 * 24 * time.Hour,
+			in:              "0",
+			out:             0,
+			expectedString:  "0s",
+			allowedNegative: false,
+		},
+		{
+			in:              "0w",
+			out:             0,
+			expectedString:  "0s",
+			allowedNegative: false,
+		},
+		{
+			in:              "0s",
+			out:             0,
+			expectedString:  "",
+			allowedNegative: false,
+		},
+		{
+			in:              "324ms",
+			out:             324 * time.Millisecond,
+			expectedString:  "",
+			allowedNegative: false,
+		},
+		{
+			in:              "3s",
+			out:             3 * time.Second,
+			expectedString:  "",
+			allowedNegative: false,
+		},
+		{
+			in:              "5m",
+			out:             5 * time.Minute,
+			expectedString:  "",
+			allowedNegative: false,
+		},
+		{
+			in:              "1h",
+			out:             time.Hour,
+			expectedString:  "",
+			allowedNegative: false,
+		},
+		{
+			in:              "4d",
+			out:             4 * 24 * time.Hour,
+			expectedString:  "",
+			allowedNegative: false,
+		},
+		{
+			in:              "4d1h",
+			out:             4*24*time.Hour + time.Hour,
+			expectedString:  "",
+			allowedNegative: false,
+		},
+		{
+			in:              "14d",
+			out:             14 * 24 * time.Hour,
+			expectedString:  "2w",
+			allowedNegative: false,
+		},
+		{
+			in:              "3w",
+			out:             3 * 7 * 24 * time.Hour,
+			expectedString:  "",
+			allowedNegative: false,
+		},
+		{
+			in:              "3w2d1h",
+			out:             3*7*24*time.Hour + 2*24*time.Hour + time.Hour,
+			expectedString:  "23d1h",
+			allowedNegative: false,
+		},
+		{
+			in:              "10y",
+			out:             10 * 365 * 24 * time.Hour,
+			expectedString:  "",
+			allowedNegative: false,
 		},
 	}
 
-	for _, c := range cases {
-		d, err := ParseDuration(c.in)
+	negativeCases := []testCase{
+		{
+			in:              "-3s",
+			out:             -3 * time.Second,
+			expectedString:  "",
+			allowedNegative: true,
+		},
+		{
+			in:              "-5m",
+			out:             -5 * time.Minute,
+			expectedString:  "",
+			allowedNegative: true,
+		},
+		{
+			in:              "-1h",
+			out:             -1 * time.Hour,
+			expectedString:  "",
+			allowedNegative: true,
+		},
+		{
+			in:              "-2d",
+			out:             -2 * 24 * time.Hour,
+			expectedString:  "",
+			allowedNegative: true,
+		},
+		{
+			in:              "-1w",
+			out:             -7 * 24 * time.Hour,
+			expectedString:  "",
+			allowedNegative: true,
+		},
+		{
+			in:              "-3w2d1h",
+			out:             -(3*7*24*time.Hour + 2*24*time.Hour + time.Hour),
+			expectedString:  "-23d1h",
+			allowedNegative: true,
+		},
+		{
+			in:              "-10y",
+			out:             -10 * 365 * 24 * time.Hour,
+			expectedString:  "",
+			allowedNegative: true,
+		},
+	}
+
+	for _, c := range baseCases {
+		c.allowedNegative = true
+		negativeCases = append(negativeCases, c)
+	}
+
+	allCases := append(baseCases, negativeCases...)
+
+	for _, c := range allCases {
+		var (
+			d   Duration
+			err error
+		)
+
+		if c.allowedNegative {
+			d, err = ParseDurationAllowNegative(c.in)
+		} else {
+			d, err = ParseDuration(c.in)
+		}
+
 		if err != nil {
 			t.Errorf("Unexpected error on input %q", c.in)
 		}
+
 		if time.Duration(d) != c.out {
 			t.Errorf("Expected %v but got %v", c.out, d)
 		}
+
 		expectedString := c.expectedString
-		if c.expectedString == "" {
+		if expectedString == "" {
 			expectedString = c.in
 		}
+
 		if d.String() != expectedString {
 			t.Errorf("Expected duration string %q but got %q", c.in, d.String())
 		}
@@ -307,7 +408,6 @@ func TestParseBadDuration(t *testing.T) {
 	cases := []string{
 		"1",
 		"1y1m1d",
-		"-1w",
 		"1.5d",
 		"d",
 		"294y",
@@ -322,7 +422,6 @@ func TestParseBadDuration(t *testing.T) {
 		if err == nil {
 			t.Errorf("Expected error on input %s", c)
 		}
-
 	}
 }
 

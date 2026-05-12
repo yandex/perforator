@@ -11,5 +11,6 @@ type T interface {
 }
 
 func errorf(t T, msg string, args ...any) {
+	t.Helper()
 	t.Fatalf(msg, args...)
 }

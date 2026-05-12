@@ -2,12 +2,12 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.21.0)
+VERSION(v1.23.2)
 
 SRCS(
-    atomic_update.go
     build_info_collector.go
     collector.go
+    collectorfunc.go
     counter.go
     desc.go
     doc.go
@@ -34,9 +34,9 @@ SRCS(
 )
 
 GO_TEST_SRCS(
-    atomic_update_test.go
     benchmark_test.go
     collector_test.go
+    collectorfunc_test.go
     counter_test.go
     desc_test.go
     gauge_test.go
@@ -65,7 +65,7 @@ GO_XTEST_SRCS(
 
 IF (OS_LINUX)
     SRCS(
-        process_collector_other.go
+        process_collector_procfsenabled.go
     )
 
     GO_TEST_SRCS(process_collector_test.go)
@@ -73,14 +73,18 @@ ENDIF()
 
 IF (OS_DARWIN)
     SRCS(
-        CGO_EXPORT
-        process_collector_cgo_darwin.c
         process_collector_darwin.go
     )
-ENDIF()
 
-IF (OS_DARWIN AND CGO_ENABLED)
-    CGO_SRCS(process_collector_cgo_darwin.go)
+    IF(CGO_ENABLED)
+        SRCS(
+            CGO_EXPORT
+            process_collector_mem_cgo_darwin.c
+        )
+        CGO_SRCS(process_collector_mem_cgo_darwin.go)
+    ELSE()
+        SRCS(process_collector_mem_nocgo_darwin.go)
+    ENDIF()
 ENDIF()
 
 IF (OS_WINDOWS)
@@ -93,10 +97,16 @@ ENDIF()
 
 IF (OS_ANDROID)
     SRCS(
-        process_collector_other.go
+        process_collector_procfsenabled.go
     )
 
     GO_TEST_SRCS(process_collector_test.go)
+ENDIF()
+
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        process_collector_not_supported.go
+    )
 ENDIF()
 
 END()

@@ -8,18 +8,18 @@ package must
 import (
 	"io"
 	"io/fs"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/shoenig/test/interfaces"
 	"github.com/shoenig/test/internal/assertions"
-	"github.com/shoenig/test/internal/brokenfs"
 	"github.com/shoenig/test/internal/constraints"
 	"github.com/shoenig/test/internal/util"
 	"github.com/shoenig/test/wait"
 )
+
+// ErrorAssertionFunc allows passing Error and NoError in table driven tests
+type ErrorAssertionFunc func(t T, err error, settings ...Setting)
 
 // Nil asserts a is nil.
 func Nil(t T, a any, settings ...Setting) {
@@ -51,6 +51,18 @@ func Unreachable(t T, settings ...Setting) {
 	invoke(t, assertions.Unreachable(), settings...)
 }
 
+// Panic asserts func f panics.
+func Panic(t T, f func(), settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.Panic(f), settings...)
+}
+
+// NotPanic asserts func f does not panic.
+func NotPanic(t T, f func(), settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.NotPanic(f), settings...)
+}
+
 // Error asserts err is a non-nil error.
 func Error(t T, err error, settings ...Setting) {
 	t.Helper()
@@ -67,6 +79,13 @@ func EqError(t T, err error, msg string, settings ...Setting) {
 func ErrorIs(t T, err error, target error, settings ...Setting) {
 	t.Helper()
 	invoke(t, assertions.ErrorIs(err, target), settings...)
+}
+
+// ErrorAs asserts err's tree contains an error that matches target.
+// If so, it sets target to the error value.
+func ErrorAs[E error, Target *E](t T, err error, target Target, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.ErrorAs(err, target), settings...)
 }
 
 // NoError asserts err is a nil error.
@@ -165,6 +184,12 @@ func SliceEqual[E interfaces.EqualFunc[E]](t T, exp, val []E, settings ...Settin
 	invoke(t, assertions.SliceEqual(exp, val), settings...)
 }
 
+// SliceEqOp asserts exp[n] == val[n] for each element n.
+func SliceEqOp[A comparable, S ~[]A](t T, exp, val S, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.SliceEqOp(exp, val), settings...)
+}
+
 // SliceEmpty asserts slice is empty.
 func SliceEmpty[A any](t T, slice []A, settings ...Setting) {
 	t.Helper()
@@ -223,23 +248,72 @@ func SliceNotContains[A any](t T, slice []A, item A, settings ...Setting) {
 	invoke(t, assertions.SliceNotContains(slice, item), settings...)
 }
 
-// SliceNotContainsFunc asserts item does not exist inslice, using eq to compare
+// SliceNotContainsFunc asserts item does not exist in slice, using eq to compare
 // elements.
 func SliceNotContainsFunc[A, B any](t T, slice []A, item B, eq func(a A, b B) bool, settings ...Setting) {
 	t.Helper()
 	invoke(t, assertions.SliceNotContainsFunc(slice, item, eq), settings...)
 }
 
+// SliceContainsAllOp asserts slice and items contain the same elements, but in
+// no particular order, using the == operator. The number of elements
+// in slice and items must be the same.
+func SliceContainsAllOp[C comparable](t T, slice, items []C, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.SliceContainsAllOp(slice, items), settings...)
+}
+
+// SliceContainsAllFunc asserts slice and items contain the same elements, but in
+// no particular order, using eq to compare elements. The number of elements
+// in slice and items must be the same.
+func SliceContainsAllFunc[A, B any](t T, slice []A, items []B, eq func(a A, b B) bool, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.SliceContainsAllFunc(slice, items, eq), settings...)
+}
+
+// SliceContainsAllEqual asserts slice and items contain the same elements, but in
+// no particular order, using Equal to compare elements. The number of elements
+// in slice and items must be the same.
+func SliceContainsAllEqual[E interfaces.EqualFunc[E]](t T, slice, items []E, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.SliceContainsAllEqual(slice, items), settings...)
+}
+
 // SliceContainsAll asserts slice and items contain the same elements, but in
-// no particular order. The number of elements in slice and items must be the
-// same.
+// no particular order, using cmp.Equal to compare elements. The number of elements
+// in slice and items must be the same.
 func SliceContainsAll[A any](t T, slice, items []A, settings ...Setting) {
 	t.Helper()
 	invoke(t, assertions.SliceContainsAll(slice, items, options(settings...)...), settings...)
 }
 
+// SliceContainsSubsetOp asserts slice contains each item in items, in no particular
+// order, using the == operator. There could be additional elements
+// in slice not in items.
+func SliceContainsSubsetOp[C comparable](t T, slice, items []C, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.SliceContainsSubsetOp(slice, items), settings...)
+}
+
+// SliceContainsSubsetFunc asserts slice contains each item in items, in no particular
+// order, using eq to compare elements. There could be additional elements
+// in slice not in items.
+func SliceContainsSubsetFunc[A, B any](t T, slice []A, items []B, eq func(a A, b B) bool, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.SliceContainsSubsetFunc(slice, items, eq), settings...)
+}
+
+// SliceContainsSubsetEqual asserts slice contains each item in items, in no particular
+// order, using Equal to compare elements. There could be additional elements
+// in slice not in items.
+func SliceContainsSubsetEqual[E interfaces.EqualFunc[E]](t T, slice, items []E, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.SliceContainsSubsetEqual(slice, items), settings...)
+}
+
 // SliceContainsSubset asserts slice contains each item in items, in no particular
-// order. There could be additional elements in slice not in items.
+// order, using cmp.Equal to compare elements. There could be additional elements
+// in slice not in items.
 func SliceContainsSubset[A any](t T, slice, items []A, settings ...Setting) {
 	t.Helper()
 	invoke(t, assertions.SliceContainsSubset(slice, items, options(settings...)...), settings...)
@@ -414,10 +488,17 @@ func MapEqFunc[M1, M2 interfaces.Map[K, V], K comparable, V any](t T, exp M1, va
 }
 
 // MapEqual asserts maps exp and val contain the same key/val pairs, using Equal
-// method to compare vals
+// method to compare val
 func MapEqual[M interfaces.MapEqualFunc[K, V], K comparable, V interfaces.EqualFunc[V]](t T, exp, val M, settings ...Setting) {
 	t.Helper()
 	invoke(t, assertions.MapEqual(exp, val), settings...)
+}
+
+// MapEqOp asserts maps exp and val contain the same key/val pairs, using == to
+// compare vals.
+func MapEqOp[M interfaces.Map[K, V], K, V comparable](t T, exp M, val M, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.MapEqOp(exp, val), settings...)
 }
 
 // MapLen asserts map is of size n.
@@ -498,6 +579,42 @@ func MapNotContainsValuesEqual[M ~map[K]V, K comparable, V interfaces.EqualFunc[
 	invoke(t, assertions.MapNotContainsValuesEqual(m, vals), settings...)
 }
 
+// MapContainsValue asserts m contains val.
+func MapContainsValue[M ~map[K]V, K comparable, V any](t T, m M, val V, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.MapContainsValue(m, val, options(settings...)), settings...)
+}
+
+// MapNotContainsValue asserts m does not contain val.
+func MapNotContainsValue[M ~map[K]V, K comparable, V any](t T, m M, val V, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.MapNotContainsValue(m, val, options(settings...)), settings...)
+}
+
+// MapContainsValueFunc asserts m contains val using the eq function.
+func MapContainsValueFunc[M ~map[K]V, K comparable, V any](t T, m M, val V, eq func(V, V) bool, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.MapContainsValueFunc(m, val, eq), settings...)
+}
+
+// MapNotContainsValueFunc asserts m does not contain val using the eq function.
+func MapNotContainsValueFunc[M ~map[K]V, K comparable, V any](t T, m M, val V, eq func(V, V) bool, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.MapNotContainsValueFunc(m, val, eq), settings...)
+}
+
+// MapContainsValueEqual asserts m contains val using the V.Equal method.
+func MapContainsValueEqual[M ~map[K]V, K comparable, V interfaces.EqualFunc[V]](t T, m M, val V, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.MapContainsValueEqual(m, val), settings...)
+}
+
+// MapNotContainsValueEqual asserts m does not contain val using the V.Equal method.
+func MapNotContainsValueEqual[M ~map[K]V, K comparable, V interfaces.EqualFunc[V]](t T, m M, val V, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.MapNotContainsValueEqual(m, val), settings...)
+}
+
 // FileExistsFS asserts file exists on the fs.FS filesystem.
 //
 // Example,
@@ -510,9 +627,7 @@ func FileExistsFS(t T, system fs.FS, file string, settings ...Setting) {
 // FileExists asserts file exists on the OS filesystem.
 func FileExists(t T, file string, settings ...Setting) {
 	t.Helper()
-	dir := filepath.Dir(file)
-	file = filepath.Base(file)
-	invoke(t, assertions.FileExistsFS(os.DirFS(dir), file), settings...)
+	invoke(t, assertions.FileExists(file), settings...)
 }
 
 // FileNotExistsFS asserts file does not exist on the fs.FS filesystem.
@@ -527,9 +642,7 @@ func FileNotExistsFS(t T, system fs.FS, file string, settings ...Setting) {
 // FileNotExists asserts file does not exist on the OS filesystem.
 func FileNotExists(t T, file string, settings ...Setting) {
 	t.Helper()
-	dir := filepath.Dir(file)
-	file = filepath.Base(file)
-	invoke(t, assertions.FileNotExistsFS(os.DirFS(dir), file), settings...)
+	invoke(t, assertions.FileNotExists(file), settings...)
 }
 
 // DirExistsFS asserts directory exists on the fs.FS filesystem.
@@ -545,8 +658,7 @@ func DirExistsFS(t T, system fs.FS, directory string, settings ...Setting) {
 // DirExists asserts directory exists on the OS filesystem.
 func DirExists(t T, directory string, settings ...Setting) {
 	t.Helper()
-	directory = strings.TrimPrefix(directory, "/")
-	invoke(t, assertions.DirExistsFS(os.DirFS(brokenfs.Root), directory), settings...)
+	invoke(t, assertions.DirExists(directory), settings...)
 }
 
 // DirNotExistsFS asserts directory does not exist on the fs.FS filesystem.
@@ -561,8 +673,7 @@ func DirNotExistsFS(t T, system fs.FS, directory string, settings ...Setting) {
 // DirNotExists asserts directory does not exist on the OS filesystem.
 func DirNotExists(t T, directory string, settings ...Setting) {
 	t.Helper()
-	directory = strings.TrimPrefix(directory, "/")
-	invoke(t, assertions.DirNotExistsFS(os.DirFS(brokenfs.Root), directory), settings...)
+	invoke(t, assertions.DirNotExists(directory), settings...)
 }
 
 // FileModeFS asserts the file or directory at path on fs.FS has exactly the given permission bits.
@@ -577,8 +688,22 @@ func FileModeFS(t T, system fs.FS, path string, permissions fs.FileMode, setting
 // FileMode asserts the file or directory at path on the OS filesystem has exactly the given permission bits.
 func FileMode(t T, path string, permissions fs.FileMode, settings ...Setting) {
 	t.Helper()
-	path = strings.TrimPrefix(path, "/")
-	invoke(t, assertions.FileModeFS(os.DirFS(brokenfs.Root), path, permissions), settings...)
+	invoke(t, assertions.FileMode(path, permissions), settings...)
+}
+
+// DirModeFS asserts the directory at path on fs.FS has exactly the given permission bits.
+//
+// Example,
+// DirModeFS(t, os.DirFS("/"), "bin", 0655)
+func DirModeFS(t T, system fs.FS, path string, permissions fs.FileMode, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.DirModeFS(system, path, permissions), settings...)
+}
+
+// DirMode asserts the directory at path on the OS filesystem has exactly the given permission bits.
+func DirMode(t T, path string, permissions fs.FileMode, settings ...Setting) {
+	t.Helper()
+	invoke(t, assertions.DirMode(path, permissions), settings...)
 }
 
 // FileContainsFS asserts the file on fs.FS contains content as a substring.
@@ -594,8 +719,7 @@ func FileContainsFS(t T, system fs.FS, file, content string, settings ...Setting
 // FileContains asserts the file on the OS filesystem contains content as a substring.
 func FileContains(t T, file, content string, settings ...Setting) {
 	t.Helper()
-	file = strings.TrimPrefix(file, "/")
-	invoke(t, assertions.FileContainsFS(os.DirFS(brokenfs.Root), file, content), settings...)
+	invoke(t, assertions.FileContains(file, content), settings...)
 }
 
 // FilePathValid asserts path is a valid file path.

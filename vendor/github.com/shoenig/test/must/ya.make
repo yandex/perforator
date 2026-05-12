@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MPL-2.0)
 
-VERSION(v1.7.1)
+VERSION(v1.12.2)
 
 SRCS(
     assert.go
@@ -14,6 +14,7 @@ SRCS(
 
 GO_TEST_SRCS(
     assert_test.go
+    examples_test.go
     invocations_test.go
     must_test.go
     scripts_test.go
@@ -25,7 +26,7 @@ IF (OS_LINUX)
         fs_default.go
     )
 
-    GO_TEST_SRCS(examples_test.go)
+    GO_TEST_SRCS(examples_unix_test.go)
 ENDIF()
 
 IF (OS_DARWIN)
@@ -33,7 +34,7 @@ IF (OS_DARWIN)
         fs_default.go
     )
 
-    GO_TEST_SRCS(examples_test.go)
+    GO_TEST_SRCS(examples_unix_test.go)
 ENDIF()
 
 IF (OS_WINDOWS)
@@ -47,7 +48,7 @@ IF (OS_ANDROID)
         fs_default.go
     )
 
-    GO_TEST_SRCS(examples_test.go)
+    GO_TEST_SRCS(examples_unix_test.go)
 ENDIF()
 
 IF (OS_EMSCRIPTEN)
@@ -55,6 +56,8 @@ IF (OS_EMSCRIPTEN)
         fs_default.go
     )
 ENDIF()
+
+GO_TEST_EMBED_PATTERN(testdata/dir1)
 
 END()
 

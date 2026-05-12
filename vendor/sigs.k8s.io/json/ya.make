@@ -5,7 +5,7 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v0.0.0-20241010143419-9aa6b5e7a4b3)
+VERSION(v0.0.0-20241014173422-cfa47c3a1cc8)
 
 SRCS(
     doc.go
