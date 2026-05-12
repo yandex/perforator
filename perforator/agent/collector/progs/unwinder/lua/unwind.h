@@ -48,7 +48,6 @@ static ALWAYS_INLINE void read_value(void *value, u32 size, const void *ptr,
 #define READ_SAFE(variable_name, address, c)                                                 \
   _Pragma("clang diagnostic push");                                                          \
   _Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"");  \
-  _Pragma("clang diagnostic ignored \"-Wdefault-const-init-var-unsafe\"");                   \
   typeof(*(address)) variable_name;                                                          \
   read_value(&variable_name, sizeof(typeof(*(address))), (address), (c));                    \
   _Pragma("clang diagnostic pop")
@@ -117,7 +116,7 @@ static ALWAYS_INLINE void lua_frame_write(struct lua_state *state,
 static bool string_compare(const char *s1, const char *s2, size_t len) {
     for (size_t i = 0; i != 64 && i != len; ++i) {
         if (s1[i] != s2[i]) {
-            LUA_TRACE("%c != %c", s1[i], s2[i]);
+            //LUA_TRACE("%c != %c", s1[i], s2[i]);
             return false;
         }
     }
@@ -545,107 +544,120 @@ static void lua_push_invalid_frame(struct lua_state *state,
 
 /* Get name of a local variable from slot number and PC. */
 // original function - debug_varname, lj_debug.c
+
+static NOINLINE uint64_t read_varname(struct lua_state *state, uint64_t p_value,  int i, BCPos lastpc){
+    uint64_t p = p_value;
+    uint64_t success_flag = 0;
+
+    if(p == 0){
+        goto return_result;
+    }
+    const char *name = (const char*)p;
+    uint8_t vn;
+
+    int status = bpf_probe_read_user(&vn, sizeof(vn), (const void*)p);
+    if(status != 0){
+        goto return_result;
+    }
+
+    BCPos startpc, endpc;
+    if (vn < VARNAME__MAX) {
+        // pre-defined variable, name index is stored as an integer constant
+        // (uint8_t)
+        if (vn == VARNAME_END) {
+            /* End of varinfo. */
+            goto return_result;
+        }
+        p += 1;
+    } else {
+        // an actual variable name stored as string
+        status = bpf_probe_read_user_str(state->buffer, sizeof(state->buffer) , (const void*)p);
+        if (status < 0) {
+            goto return_result;
+        }
+        p += status;
+    }
+    uint64_t result = lj_buf_ruleb128_new(p);
+
+    if (!(result & 0x800000000000000)) {
+        goto return_result;
+    }
+    p += (uint8_t)(result>>32) +1;
+    lastpc = startpc = lastpc + (uint32_t)result;
+
+    result = lj_buf_ruleb128_new(p);
+    if (!(result & 0x800000000000000)) {
+        goto return_result;
+    }
+    p += (uint8_t)(result>>32) +1;
+    endpc = startpc + (uint32_t)result;
+
+    struct lua_variable *variable = bpf_map_lookup_elem(&lua_variables_storage, &i);
+    if (variable) {
+        variable->name = (u64)name;
+        variable->startpc = startpc;
+        variable->endpc = endpc;
+    }
+    success_flag = 0x8000000000000000;
+
+  return_result:
+    return success_flag + ((uint64_t)(p - p_value) <<32) +lastpc;
+}
+
 static ALWAYS_INLINE int bpf_debug_varname(struct lua_state *state, GCproto *pt,
                                            BCPos pc) {
     const char *p = (const char *)proto_varinfo(pt);
     if (!p) {
         return 0;
     }
+    if(state == NULL){
+        return 0;
+    }
     BCPos lastpc = 0;
-
     // original function uses an infinite loop to scan variables block
     // here in BPF program use some reasonable default - 200 local variables
     // (LJ_MAX_LOCVAR)
 
     int i = 0;
     for (; i < 40 /*LJ_MAX_LOCVAR*/; ++i) {
-        const char *name = p;
-        uint8_t vn;
 
-        int status = bpf_probe_read_user(&vn, sizeof(vn), p);
-        if (status != 0) {
+        uint64_t result = read_varname( state, (uint64_t)p, i, lastpc);
+        p += (uint8_t)(result >> 32);
+        if(!(result & 0x8000000000000000)){
             return i;
         }
-
-        BCPos startpc, endpc;
-
-        if (vn < VARNAME__MAX) {
-            // pre-defined variable, name index is stored as an integer constant
-            // (uint8_t)
-            if (vn == VARNAME_END) {
-                /* End of varinfo. */
-                return i;
-            }
-            p++;
-
-        } else {
-            // an actual variable name stored as string
-
-            status = bpf_probe_read_user_str(state->buffer,
-                                             sizeof(state->buffer), p);
-            if (status < 0) {
-                return i;
-            }
-            p += status;
-        }
-        uint32_t value;
-        if (!lj_buf_ruleb128(&p, &value)) {
-            return i;
-        }
-        lastpc = startpc = lastpc + value;
-#if 0
-    if (startpc > pc) {
-      return i;
-    }
-#endif
-        if (!lj_buf_ruleb128(&p, &value)) {
-            return i;
-        }
-        endpc = startpc + value;
-#if 0
-    if (pc < endpc && slot-- == 0) {
-      return name;
-    } else {
-    }
-#endif
-
-        struct lua_variable *variable =
-            bpf_map_lookup_elem(&lua_variables_storage, &i);
-        if (variable) {
-            variable->name = (u64)name;
-            variable->startpc = startpc;
-            variable->endpc = endpc;
-        }
+        lastpc = (uint32_t)result;
     }
     return i + 1;
 }
 
-// original function - lj_debug_uvname, lj_debug.c
-/* Get name of upvalue. */
-static ALWAYS_INLINE int bpf_debug_uvname(struct lua_state *state,
-                                          GCproto *pt) {
+static __always_inline int bpf_debug_uvname(struct lua_state *L, GCproto *pt)
+{
     const uint8_t *p = proto_uvinfo(pt);
-    if (!p) {
+    if (!p)
         return 0;
-    }
+
     int i = 0;
-    for (; i < LJ_MAX_UPVAL; ++i) {
-        const char *name = p;
-        int status =
-            bpf_probe_read_user_str(state->buffer, sizeof(state->buffer), p);
+    int status;
 
-        if (status < 0) {
-            return i;
+    #define READ_UV(n) \
+        { \
+            const char *name_##n = (const char *)p; \
+            status = bpf_probe_read_user_str(L->buffer, sizeof(L->buffer), p); \
+            if (status <= 0) goto done; \
+            p += status; \
+            struct lua_variable *uv = bpf_map_lookup_elem(&lua_upvalues_storage, &i); \
+            if (uv) uv->name = (uint64_t)name_##n; \
+            i++; \
         }
-        p += status;
 
-        struct lua_variable *upvalue =
-            bpf_map_lookup_elem(&lua_upvalues_storage, &i);
-        if (upvalue) {
-            upvalue->name = (u64)name;
-        }
-    }
-    return i + 1;
+    READ_UV(0);  READ_UV(1);  READ_UV(2);  READ_UV(3);  READ_UV(4);
+    READ_UV(5);
+
+#undef READ_UV
+
+done:
+    return i;
 }
 
 // original function - lj_debug_slotname, lj_debug.c
@@ -663,6 +675,7 @@ bpf_debug_slotname(struct lua_state *state, struct symbol_state *symbol,
     // variables array
     int count_variables = bpf_debug_varname(state, pt, pc);
     int count_upvalues = bpf_debug_uvname(state, pt);
+    //int count_upvalues = 0;
     // local variable is only read on "start" and on "restart" (BCmov "ra ==
     // slot" condition)
     bool read_local = true;
@@ -1087,24 +1100,24 @@ static void lua_stack_walk(struct lua_state *state) {
 
     for (int i = 0; i < 10 && frame > bottom; i++) {
         if (!(frame <= max_stack && (!nextframe || nextframe <= max_stack))) {
-            LUA_TRACE("broken frame chain");
+            //LUA_TRACE("broken frame chain");
             return;
         }
 
         if (frame_gc(frame) == obj2gco(L)) {
-            LUA_TRACE("Skip dummy frames.");
+            //LUA_TRACE("Skip dummy frames.");
             should_visit_frame =
                 false; /* Skip dummy frames. See lj_err_optype_call(). */
         }
 
         /* Level found. */
         if (should_visit_frame) {
-            LUA_TRACE("level=%d found frame=%px nextframe=%px", debug_count,
-                      frame, nextframe);
+            //LUA_TRACE("level=%d found frame=%px nextframe=%px", debug_count,
+            //          frame, nextframe);
 
             if (!lua_get_function_info(state, frame, nextframe)) {
-                LUA_TRACE("lua_get_function_info error on level %d",
-                          debug_count);
+                //LUA_TRACE("lua_get_function_info error on level %d",
+                //          debug_count);
                 metric_increment(METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT);
                 return;
             }

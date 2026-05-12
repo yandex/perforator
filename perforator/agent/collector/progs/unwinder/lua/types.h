@@ -6,69 +6,36 @@
 
 /* Read ULEB128 from buffer. */
 // BPF version with loop unrolled and reading process memory via BPF API
-bool ALWAYS_INLINE LJ_FASTCALL lj_buf_ruleb128(const char **pp, uint32_t *out) {
-    const uint8_t *w = (const uint8_t *)*pp;
-    uint32_t value;
-    uint8_t byte;
-    int err = bpf_probe_read_user(&byte, sizeof(byte), w);
-    if (err != 0) {
-        return false;
-    }
-    w += 1;
-    value = byte;
-    if (value < 0x80) {
-        *pp = (const char *)w;
-        *out = value;
-        return true;
-    }
-    value &= 0x7F;
-    uint8_t more = 1;
-    int shift = 7;
-    // byte 2
-    if (more) {
-        int err = bpf_probe_read_user(&byte, sizeof(byte), w);
-        if (err != 0) {
-            return false;
+
+uint64_t LJ_FASTCALL lj_buf_ruleb128_new(uint64_t pp) {
+
+    const uint8_t *p = (const uint8_t *)pp;
+    uint64_t result = 0;
+    uint32_t v = 0;
+    uint8_t offset = 0;
+    bool status = false;
+    uint8_t b;
+    int shift = 0;
+
+    for (int i = 0; i < 5; i++) {
+        if (bpf_probe_read_user(&b, 1, p + i)){
+            break;
         }
-        w += 1;
-        value |= (byte & 0x7F) << shift;
-        more = (byte & 0x80) ? 1 : 0;
+
+        // Not last - add 7 bit
+        v |= (uint32_t)(b & 0x7f) << shift;
         shift += 7;
-    }
-    // byte 3
-    if (more) {
-        int err = bpf_probe_read_user(&byte, sizeof(byte), w);
-        if (err != 0) {
-            return false;
-        }
-        w += 1;
-        value |= (byte & 0x7F) << shift;
-        more = (byte & 0x80) ? 1 : 0;
-        shift += 7;
-    }
-    // byte 4
-    if (more) {
-        int err = bpf_probe_read_user(&byte, sizeof(byte), w);
-        if (err != 0) {
-            return false;
-        }
-        w += 1;
-        value |= (byte & 0x7F) << shift;
-        more = (byte & 0x80) ? 1 : 0;
-        shift += 7;
-    }
-    // byte 5 (final)
-    if (more) {
-        int err = bpf_probe_read_user(&byte, sizeof(byte), w);
-        if (err != 0) {
-            return false;
-        }
-        w += 1;
-        value |= (byte & 0x7F) << shift;
-    }
-    *pp = (const char *)w;
-    *out = value;
-    return true;
+        if (b < 0x80) {
+           offset = i;
+           status = true;
+           break;
+       }
+   }
+
+   result |= status ? 0x800000000000000 : 0;
+   result |= ((uint64_t) offset) << 32;
+   result |= v;
+   return result;
 }
 
 enum {
@@ -149,7 +116,7 @@ union lua_symbol_key_data {
 BTF_EXPORT(enum lua_context_type);
 BTF_EXPORT(enum lua_unwind_error);
 
-_Static_assert(LJ_ARCH_ENDIAN == LUAJIT_LE); // TODO: We currently support little-endian architectures only
+_Static_assert(LJ_ARCH_ENDIAN == LUAJIT_LE, "We currently support little-endian architectures only"); // TODO
 _Static_assert(sizeof(union lua_symbol_key_data) ==
                    sizeof(((struct symbol_key *)0)->object_addr),
                "Union must match the size of struct symbol_key::object_addr");
