@@ -9,26 +9,26 @@ import (
 )
 
 type options struct {
-	mergePython          bool
-	mergePHP             bool
-	prettifyPythonStacks bool
+	mergePython               bool
+	mergePHP                  bool
+	pythonPrettificationLevel python.PrettifyLevel
 }
 
 func defaultOptions() options {
 	return options{
-		mergePython: true,
-		mergePHP:    true,
+		mergePython:               true,
+		mergePHP:                  true,
+		pythonPrettificationLevel: python.PrettifyOff,
 	}
 }
 
 // Option configures the behavior of Postprocess.
 type Option func(*options)
 
-// WithPythonPrettification enables removal of noisy CPython interpreter frames
-// and importlib/trampoline frames from Python stacks.
-func WithPythonPrettification() Option {
+// WithPythonPrettifyLevel sets the Python stack prettification level.
+func WithPythonPrettifyLevel(level python.PrettifyLevel) Option {
 	return func(o *options) {
-		o.prettifyPythonStacks = true
+		o.pythonPrettificationLevel = level
 	}
 }
 
@@ -60,9 +60,18 @@ func OptionsFromProto(pp *proto.PostprocessOptions) []Option {
 	if pp.MergePHPAndNativeStacks != nil && !*pp.MergePHPAndNativeStacks {
 		opts = append(opts, WithoutPHP())
 	}
-	if pp.PrettifyPythonStacksExperimental != nil && *pp.PrettifyPythonStacksExperimental {
-		opts = append(opts, WithPythonPrettification())
+
+	if pp.PrettifyPythonStacksLevel != nil {
+		switch *pp.PrettifyPythonStacksLevel {
+		case proto.PythonStackPrettifyLevel_PYTHON_STACK_PRETTIFY_DEFAULT:
+			opts = append(opts, WithPythonPrettifyLevel(python.PrettifyMixed))
+		case proto.PythonStackPrettifyLevel_PYTHON_STACK_PRETTIFY_STRICT:
+			opts = append(opts, WithPythonPrettifyLevel(python.PrettifyPythonOnly))
+		default:
+			// PYTHON_STACK_PRETTIFY_OFF or unknown: no prettification
+		}
 	}
+
 	return opts
 }
 
@@ -96,8 +105,8 @@ func Postprocess(p *pprof.Profile, opts ...Option) PostProcessResults {
 		php.Postprocess(p)
 	}
 
-	if o.prettifyPythonStacks {
-		python.PrettifyProfile(p)
+	if o.pythonPrettificationLevel != python.PrettifyOff {
+		python.PrettifyProfile(p, o.pythonPrettificationLevel)
 	}
 
 	return res

@@ -5,7 +5,7 @@ import { Settings } from '@gravity-ui/navigation';
 import { Switch, type Theme } from '@gravity-ui/uikit';
 
 import { useUserSettings } from 'src/providers/UserSettingsProvider';
-import type { NumTemplatingFormat, ShortenMode } from 'src/providers/UserSettingsProvider/UserSettings';
+import type { NumTemplatingFormat, PythonPrettifyLevel, ShortenMode } from 'src/providers/UserSettingsProvider/UserSettings';
 
 import { Switcher } from './Switcher/Switcher';
 
@@ -64,10 +64,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = () => {
                     </Settings.Item>
                 </Settings.Section>
                 <Settings.Section title={'Experimental'}>
-                    <Settings.Item description={'Remove native CPython frames'} title={'Prettify python frames'}>
-                        <Switch
-                            checked={userSettings.showPrettyPythonFrames}
-                            onUpdate={checked => setUserSettings({ ...userSettings, showPrettyPythonFrames: checked })}
+                    <Settings.Item
+                        description={'Off: raw stacks. Mixed: remove CPython internals, keep user native (C++ extensions). Python only: leave only Python frames.'}
+                        title={'Python stack prettification'}
+                    >
+                        <Switcher
+                            value={userSettings.pythonPrettifyLevel}
+                            onUpdate={level => setUserSettings({ ...userSettings, pythonPrettifyLevel: level as PythonPrettifyLevel })}
+                            options={[
+                                { value: 'off', title: 'Off' },
+                                { value: 'mixed', title: 'Mixed' },
+                                { value: 'python-only', title: 'Python only' },
+                            ]}
                         />
                     </Settings.Item>
                 </Settings.Section>

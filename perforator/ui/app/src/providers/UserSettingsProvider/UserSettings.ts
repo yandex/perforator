@@ -8,13 +8,15 @@ export type ShortenMode = 'true' | 'false' | 'hover';
 
 export type NumTemplatingFormat = 'exponent' | 'hugenum';
 
+export type PythonPrettifyLevel = 'off' | 'mixed' | 'python-only';
+
 export interface UserSettings {
     monospace: 'default' | 'system';
     numTemplating: NumTemplatingFormat;
     theme: Theme;
     shortenFrameTexts: ShortenMode;
     reverseFlameByDefault: boolean;
-    showPrettyPythonFrames: boolean;
+    pythonPrettifyLevel: PythonPrettifyLevel;
 }
 
 const getUserSettingsFromLocalStorage = (): any => {
@@ -39,7 +41,7 @@ export const initialUserSettings = (): UserSettings => {
         monospace: 'default',
         reverseFlameByDefault: true,
         numTemplating: 'hugenum',
-        showPrettyPythonFrames: false,
+        pythonPrettifyLevel: 'off',
         ...userSettings,
         theme,
     };

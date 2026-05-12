@@ -48,6 +48,13 @@ export enum AddressRenderPolicy {
   UNRECOGNIZED = "UNRECOGNIZED",
 }
 
+export enum PythonStackPrettifyLevel {
+  PYTHON_STACK_PRETTIFY_OFF = "PYTHON_STACK_PRETTIFY_OFF",
+  PYTHON_STACK_PRETTIFY_DEFAULT = "PYTHON_STACK_PRETTIFY_DEFAULT",
+  PYTHON_STACK_PRETTIFY_STRICT = "PYTHON_STACK_PRETTIFY_STRICT",
+  UNRECOGNIZED = "UNRECOGNIZED",
+}
+
 export interface SortOrder {
   Columns: string[];
   Direction: SortOrder_SortDirection;
@@ -559,9 +566,23 @@ export interface PostprocessOptions {
   MergePythonAndNativeStacks?:
     | boolean
     | undefined;
-  /** This is only considered if MergePythonAndNativeStacks is not false */
+  /**
+   * This is only considered if MergePythonAndNativeStacks is not false.
+   * Deprecated: use PrettifyPythonStacksLevel instead.
+   *
+   * @deprecated
+   */
   PrettifyPythonStacksExperimental?: boolean | undefined;
-  MergePHPAndNativeStacks?: boolean | undefined;
+  MergePHPAndNativeStacks?:
+    | boolean
+    | undefined;
+  /**
+   * Controls how aggressively Python stacks are prettified.
+   * Off (default): no prettification.
+   * Default: remove CPython interpreter frames, importlib, trampoline
+   * Strict: Leave only .py frames
+   */
+  PrettifyPythonStacksLevel?: PythonStackPrettifyLevel | undefined;
 }
 
 export interface RenderFormat {
@@ -570,7 +591,11 @@ export interface RenderFormat {
   Postprocessing:
     | PostprocessOptions
     | undefined;
-  /** Build flamegraph. */
+  /**
+   * @deprecated Use JSONFlamegraph or HTMLVisualisation instead.
+   *
+   * @deprecated
+   */
   Flamegraph?:
     | FlamegraphOptions
     | undefined;

@@ -1,6 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
+    common.go
     fetch.go
     list.go
     microscope.go

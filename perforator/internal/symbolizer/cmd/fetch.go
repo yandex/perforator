@@ -43,13 +43,13 @@ var (
 	experimentalOptions proto.MergeExperimentalOptions
 	taskAnnotation      string
 
-	format                                      string
-	pgoFormat                                   string
-	formatOpts                                  client.FormatOptions
-	profileSinkOptions                          sinkOptions
-	enableSymbolization                         bool
-	enableInterpreterStackMerging               bool
-	experimentalEnablePythonStackPrettification bool
+	format                        string
+	pgoFormat                     string
+	formatOpts                    client.FormatOptions
+	profileSinkOptions            sinkOptions
+	enableSymbolization           bool
+	enableInterpreterStackMerging bool
+	pythonPrettifyLevel           string
 
 	selector         string
 	service          string
@@ -61,25 +61,31 @@ var (
 	profilerVersions = []string{}
 )
 
-func fillBaseRenderFormat(enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification bool) *proto.RenderFormat {
+func fillBaseRenderFormat(enableSymbolization, enableStackMerge bool, prettifyLevel proto.PythonStackPrettifyLevel) *proto.RenderFormat {
 	return &proto.RenderFormat{
 		Symbolize: &proto.SymbolizeOptions{
 			Symbolize: ptr.Bool(enableSymbolization),
 		},
 		Postprocessing: &proto.PostprocessOptions{
-			MergePythonAndNativeStacks:       ptr.Bool(enableStackMerge),
-			PrettifyPythonStacksExperimental: ptr.Bool(experimentalEnablePythonStackPrettification),
-			MergePHPAndNativeStacks:          ptr.Bool(enableStackMerge),
+			MergePythonAndNativeStacks: ptr.Bool(enableStackMerge),
+			MergePHPAndNativeStacks:    ptr.Bool(enableStackMerge),
+			PrettifyPythonStacksLevel:  &prettifyLevel,
 		},
 	}
 }
 
-func makeRenderFormat(ctx context.Context, logger xlog.Logger, format string, formatOptions client.FormatOptions, enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification bool) (*proto.RenderFormat, error) {
-	if !enableStackMerge && experimentalEnablePythonStackPrettification {
+func makeRenderFormat(ctx context.Context, logger xlog.Logger, format string, formatOptions client.FormatOptions, enableSymbolization, enableStackMerge bool, pythonPrettifyLevelStr string) (*proto.RenderFormat, error) {
+	level, err := parsePythonPrettifyLevel(pythonPrettifyLevelStr)
+	if err != nil {
+		return nil, err
+	}
+	prettifyLevel := proto.PythonStackPrettifyLevel(level)
+
+	if !enableStackMerge && prettifyLevel != proto.PythonStackPrettifyLevel_PYTHON_STACK_PRETTIFY_OFF {
 		return nil, errors.New("python stack prettification is not supported without stack merging")
 	}
 
-	rf := fillBaseRenderFormat(enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification)
+	rf := fillBaseRenderFormat(enableSymbolization, enableStackMerge, prettifyLevel)
 
 	old := render.Format(format)
 	normalized := normalizeFormat(old)
@@ -250,7 +256,7 @@ func fetchProfile() error {
 		experimentalOptions.SampleProfileStacks = true
 	}
 
-	format, err := makeRenderFormat(cli.Context(), cli.Logger(), format, formatOpts, enableSymbolization, enableInterpreterStackMerging, experimentalEnablePythonStackPrettification)
+	format, err := makeRenderFormat(cli.Context(), cli.Logger(), format, formatOpts, enableSymbolization, enableInterpreterStackMerging, pythonPrettifyLevel)
 	if err != nil {
 		return err
 	}
@@ -337,7 +343,7 @@ func fetchDiffProfile(args []string) error {
 	if strings.Contains(format, string(render.PlainTextFormat)) {
 		return fmt.Errorf("unsupported format for diff profile: %s", format)
 	}
-	format, err := makeRenderFormat(cli.Context(), cli.Logger(), format, formatOpts, enableSymbolization, enableInterpreterStackMerging, experimentalEnablePythonStackPrettification)
+	format, err := makeRenderFormat(cli.Context(), cli.Logger(), format, formatOpts, enableSymbolization, enableInterpreterStackMerging, pythonPrettifyLevel)
 	if err != nil {
 		return err
 	}
@@ -647,11 +653,11 @@ func addCommonRenderOptions(cmd *cobra.Command) {
 		true,
 		"Enable native and interpreter stack merging",
 	)
-	cmd.Flags().BoolVar(
-		&experimentalEnablePythonStackPrettification,
+	cmd.Flags().StringVar(
+		&pythonPrettifyLevel,
 		"experimental-prettify-python-stacks",
-		false,
-		"[Experimental feature] Enable Python stack prettification",
+		"off",
+		"[Experimental] Python stack prettification level: off, mixed (remove CPython frames, keep user native), python-only (remove all non-Python frames)",
 	)
 }
 

@@ -77,17 +77,17 @@ type recordOptions struct {
 	upload    bool
 	uploadURL string
 
-	renderFormat                                string
-	formatOpts                                  symbolizerClient.FormatOptions
-	profileSinkOptions                          sinkOptions
-	enableSymbolization                         bool
-	enableInterpreterStackMerging               bool
-	experimentalEnablePythonStackPrettification bool
-	disablePerfMap                              bool
-	disablePerfMapJVM                           bool
-	enableJVM                                   bool
-	enablePHP                                   bool
-	enableSframe                                bool
+	renderFormat                  string
+	formatOpts                    symbolizerClient.FormatOptions
+	profileSinkOptions            sinkOptions
+	enableSymbolization           bool
+	enableInterpreterStackMerging bool
+	pythonPrettifyLevel           string
+	disablePerfMap                bool
+	disablePerfMapJVM             bool
+	enableJVM                     bool
+	enablePHP                     bool
+	enableSframe                  bool
 
 	jvmHelperBinaryPath string
 }
@@ -121,7 +121,7 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.enableJVM, "experimental-enable-jvm", false, "[Experimental feature] Enable JVM profiling")
 	cmd.Flags().BoolVar(&o.enablePHP, "experimental-enable-php", false, "[Experimental feature] Enable PHP profiling")
 	cmd.Flags().BoolVar(&o.enableSframe, "experimental-enable-sframe-parsing", false, "[Experimental feature] Enable Sframe unwinder")
-	cmd.Flags().BoolVar(&o.experimentalEnablePythonStackPrettification, "experimental-prettify-python-stacks", false, "[Experimental feature] Enable Python stack prettification")
+	cmd.Flags().StringVar(&o.pythonPrettifyLevel, "experimental-prettify-python-stacks", "off", "[Experimental] Python stack prettification level: off, mixed (remove CPython frames, keep user native), python-only (only python frames)")
 
 	cmd.Flags().StringVar(&o.jvmHelperBinaryPath, "jvm-helper-binary-path", "perforator-jvm-helper", "Path to JVM profiling helper")
 
@@ -166,7 +166,7 @@ func record(opts *recordOptions, args []string) error {
 	ctx := app.Context()
 
 	// let's validate the format before we run profiling
-	format, err := makeRenderFormat(ctx, logger, opts.renderFormat, opts.formatOpts, opts.enableSymbolization, opts.enableInterpreterStackMerging, opts.experimentalEnablePythonStackPrettification)
+	format, err := makeRenderFormat(ctx, logger, opts.renderFormat, opts.formatOpts, opts.enableSymbolization, opts.enableInterpreterStackMerging, opts.pythonPrettifyLevel)
 	if err != nil {
 		return fmt.Errorf("failed to build render format: %w", err)
 	}
@@ -183,8 +183,12 @@ func record(opts *recordOptions, args []string) error {
 
 	if opts.enableInterpreterStackMerging {
 		var postprocessOptions []interpreterstack.Option
-		if opts.experimentalEnablePythonStackPrettification {
-			postprocessOptions = append(postprocessOptions, interpreterstack.WithPythonPrettification())
+		if opts.pythonPrettifyLevel != "" && opts.pythonPrettifyLevel != "off" {
+			prettifyLevel, parseErr := parsePythonPrettifyLevel(opts.pythonPrettifyLevel)
+			if parseErr != nil {
+				return parseErr
+			}
+			postprocessOptions = append(postprocessOptions, interpreterstack.WithPythonPrettifyLevel(prettifyLevel))
 		}
 		postProcessResults := interpreterstack.Postprocess(profile, postprocessOptions...)
 		if len(postProcessResults.Python.Errors) > 0 {

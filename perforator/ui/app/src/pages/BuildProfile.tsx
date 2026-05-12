@@ -28,7 +28,7 @@ export interface BuildProfileProps {}
 export const BuildProfile: React.FC<BuildProfileProps> = () => {
     const isMounted = React.useRef(false);
     const [error, setError] = React.useState<string | undefined>(undefined);
-    const { userSettings: { showPrettyPythonFrames } } = useUserSettings();
+    const { userSettings: { pythonPrettifyLevel } } = useUserSettings();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
@@ -36,7 +36,7 @@ export const BuildProfile: React.FC<BuildProfileProps> = () => {
         const query = setupQuery(searchParams);
         try {
 
-            const taskId = await startProfileTask(query, { showPrettyPythonFrames: showPrettyPythonFrames });
+            const taskId = await startProfileTask(query, { pythonPrettifyLevel: pythonPrettifyLevel });
             const q = preserveWellKnownQueryParams(new URLSearchParams(window.location.search));
             navigate(`/task/${taskId}?${q.toString()}`, { replace: true });
         } catch (e) {
@@ -46,7 +46,7 @@ export const BuildProfile: React.FC<BuildProfileProps> = () => {
                 setError((e as any)?.message ?? 'Unknown error');
             }
         }
-    }, [navigate, searchParams, showPrettyPythonFrames]);
+    }, [navigate, searchParams, pythonPrettifyLevel]);
 
     React.useEffect(() => {
         if (!isMounted.current) {

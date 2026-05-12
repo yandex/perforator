@@ -710,7 +710,7 @@ func TestPrettifier_RemoveUnsymbolizedCPythonFrames(t *testing.T) {
 			slices.Reverse(test.sample.Location)
 			slices.Reverse(test.resultSample.Location)
 
-			prettifier := NewPrettifier(test.sample)
+			prettifier := newPrettifier(test.sample, PrettifyOff)
 			prettifier.removeUnsymbolizedCPythonFrames()
 
 			require.Equal(t, len(test.resultSample.Location), len(test.sample.Location), "Sample length should be updated")
@@ -902,8 +902,8 @@ func TestPrettifier_Prettify(t *testing.T) {
 			slices.Reverse(test.sample.Location)
 			slices.Reverse(test.resultSample.Location)
 
-			prettifier := NewPrettifier(test.sample)
-			prettifier.Prettify()
+			prettifier := newPrettifier(test.sample, PrettifyMixed)
+			prettifier.prettify()
 
 			require.Equal(t, len(test.resultSample.Location), len(test.sample.Location), "Sample length should be updated")
 
@@ -911,5 +911,148 @@ func TestPrettifier_Prettify(t *testing.T) {
 				require.Equal(t, test.resultSample.Location[i].Line[0].Function.Name, test.sample.Location[i].Line[0].Function.Name, "Mismatch at index %d", i)
 			}
 		})
+	}
+}
+
+func TestPrettify_Off(t *testing.T) {
+	sample := &pprof.Sample{
+		Location: []*pprof.Location{
+			createSimpleLocationUserspace("_start"),
+			createSimpleLocationUserspace("_PyEval_EvalFrameDefault"),
+			createSimpleLocationPython("python_func"),
+			createSimpleLocationUserspace("Py_RunMain"),
+		},
+	}
+	original := make([]*pprof.Location, len(sample.Location))
+	copy(original, sample.Location)
+
+	newPrettifier(sample, PrettifyOff).prettify()
+
+	require.Equal(t, len(original), len(sample.Location), "Prettify(Off) must not change sample")
+	for i := range original {
+		require.Equal(t, original[i].Line[0].Function.Name, sample.Location[i].Line[0].Function.Name)
+	}
+}
+
+func TestRemoveAllNonPythonLocations(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		sample        *pprof.Sample
+		expectedNames []string
+	}{
+		{
+			name: "keeps_only_python_locations",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationPython("handle_request"),
+					createSimpleLocationUserspace("at::native::add_kernel"),
+					createSimpleLocationPython("forward"),
+					createSimpleLocationUserspace("_PyObject_Vectorcall"),
+					createSimpleLocationKernel("__sys_epoll_wait"),
+				},
+			},
+			expectedNames: []string{"handle_request", "forward"},
+		},
+		{
+			name: "all_native_returns_empty",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("_start"),
+					createSimpleLocationUserspace("main"),
+					createSimpleLocationKernel("__sys_read"),
+				},
+			},
+			expectedNames: []string{},
+		},
+		{
+			name: "all_python_returns_all",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationPython("func_a"),
+					createSimpleLocationPython("func_b"),
+				},
+			},
+			expectedNames: []string{"func_a", "func_b"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			p := newPrettifier(test.sample, PrettifyOff)
+			p.removeAllNonPythonLocations()
+
+			require.Equal(t, len(test.expectedNames), len(test.sample.Location))
+			for i, name := range test.expectedNames {
+				require.Equal(t, name, test.sample.Location[i].Line[0].Function.Name)
+			}
+		})
+	}
+}
+
+func TestPrettify_StrictPython_OnMixedStack(t *testing.T) {
+	// Simulate a stack with Python frames and user native frames (e.g. PyTorch).
+	// Default should keep native; StrictPython should remove them.
+	buildSample := func() *pprof.Sample {
+		return &pprof.Sample{
+			Location: []*pprof.Location{
+				createSimpleLocationPython("model.forward"),
+				createSimpleLocationUserspace("_PyObject_Vectorcall"),   // CPython internal — removed in both
+				createSimpleLocationUserspace("THPFunction_apply"),      // user native (PyTorch) — kept in Default, removed in Strict
+				createSimpleLocationUserspace("at::native::add_kernel"), // user native — kept in Default, removed in Strict
+				createSimpleLocationPython("handle_request"),
+			},
+		}
+	}
+
+	// Mixed: CPython internals removed, user native kept.
+	sampleDefault := buildSample()
+	slices.Reverse(sampleDefault.Location)
+	newPrettifier(sampleDefault, PrettifyMixed).prettify()
+	defaultNames := make([]string, len(sampleDefault.Location))
+	for i, loc := range sampleDefault.Location {
+		defaultNames[i] = loc.Line[0].Function.Name
+	}
+	require.Contains(t, defaultNames, "THPFunction_apply", "Mixed must keep user native frames")
+	require.Contains(t, defaultNames, "at::native::add_kernel", "Mixed must keep user native frames")
+	require.Contains(t, defaultNames, "model.forward")
+	require.Contains(t, defaultNames, "handle_request")
+	require.NotContains(t, defaultNames, "_PyObject_Vectorcall", "Mixed must remove CPython internals")
+
+	// PythonOnly: only python frames
+	sampleStrict := buildSample()
+	slices.Reverse(sampleStrict.Location)
+	newPrettifier(sampleStrict, PrettifyPythonOnly).prettify()
+	for _, loc := range sampleStrict.Location {
+		require.True(t, isPythonLocation(loc), "PythonOnly must leave only Python locations, got: %s", loc.Line[0].Function.Name)
+	}
+	strictNames := make([]string, len(sampleStrict.Location))
+	for i, loc := range sampleStrict.Location {
+		strictNames[i] = loc.Line[0].Function.Name
+	}
+	require.Contains(t, strictNames, "model.forward")
+	require.Contains(t, strictNames, "handle_request")
+	require.NotContains(t, strictNames, "THPFunction_apply", "PythonOnly must remove user native frames")
+	require.NotContains(t, strictNames, "at::native::add_kernel", "PythonOnly must remove user native frames")
+}
+
+func TestPrettifyProfile_NonPythonProfile(t *testing.T) {
+	// A profile with no Python frames must not be modified by PrettifyProfile at any level.
+	buildProfile := func() *pprof.Profile {
+		return &pprof.Profile{
+			Sample: []*pprof.Sample{
+				{
+					Location: []*pprof.Location{
+						createSimpleLocationUserspace("_start"),
+						createSimpleLocationUserspace("main"),
+						createSimpleLocationUserspace("do_work"),
+					},
+				},
+			},
+		}
+	}
+
+	for _, level := range []PrettifyLevel{PrettifyOff, PrettifyMixed, PrettifyPythonOnly} {
+		p := buildProfile()
+		original := p.Sample[0].Location
+		PrettifyProfile(p, level)
+		require.Equal(t, len(original), len(p.Sample[0].Location), "non-Python profile must not be modified at level %d", level)
 	}
 }

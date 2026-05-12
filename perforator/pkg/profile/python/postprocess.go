@@ -412,21 +412,36 @@ type PostProcessResults struct {
 	Errors []error
 }
 
+// PrettifyLevel controls how aggressively Python stacks are prettified.
+type PrettifyLevel int
+
+const (
+	// PrettifyOff disables prettification entirely. This is the default.
+	PrettifyOff PrettifyLevel = iota
+	// PrettifyMixed removes CPython interpreter frames, importlib and trampoline frames,
+	// but keeps user native frames (e.g. PyTorch, NumPy C extensions) for ML workloads.
+	PrettifyMixed
+	// PrettifyPythonOnly applies Mixed and then removes all remaining non-Python frames,
+	// leaving only .py frames.
+	PrettifyPythonOnly
+)
+
 type options struct {
-	prettifyPythonStacks bool
+	prettifyLevel PrettifyLevel
 }
 
 func defaultOptions() options {
 	return options{
-		prettifyPythonStacks: false,
+		prettifyLevel: PrettifyOff,
 	}
 }
 
 type Option func(*options)
 
-func PrettifyPythonStacksOption() Option {
+// WithPrettifyLevel sets the prettification level.
+func WithPrettifyLevel(level PrettifyLevel) Option {
 	return func(o *options) {
-		o.prettifyPythonStacks = true
+		o.prettifyLevel = level
 	}
 }
 
@@ -485,23 +500,24 @@ func Postprocess(p *pprof.Profile, opts ...Option) (res PostProcessResults) {
 			res.UnmergedStacksCount++
 		}
 
-		if o.prettifyPythonStacks {
-			prettifier := NewPrettifier(sample)
-			prettifier.Prettify()
+		if o.prettifyLevel != PrettifyOff {
+			newPrettifier(sample, o.prettifyLevel).prettify()
 		}
 	}
 
 	return
 }
 
-// Prettifier performs inplace prettification of the Python sample.
-type Prettifier struct {
+// prettifier performs inplace prettification of the Python sample.
+type prettifier struct {
 	sample *pprof.Sample
+	level  PrettifyLevel
 }
 
-func NewPrettifier(sample *pprof.Sample) *Prettifier {
-	return &Prettifier{
+func newPrettifier(sample *pprof.Sample, level PrettifyLevel) *prettifier {
+	return &prettifier{
 		sample: sample,
+		level:  level,
 	}
 }
 
@@ -519,7 +535,7 @@ func isCPythonOrPythonLocation(loc *pprof.Location) bool {
 	return isCPythonLocation(loc) || isPythonLocation(loc)
 }
 
-func (p *Prettifier) removeUnsymbolizedCPythonFrames() {
+func (p *prettifier) removeUnsymbolizedCPythonFrames() {
 	// We remove segments of unsymbolized locations if they are surrounded by CPython or Python locations.
 	// First pass: mark segments for removal by setting them to nil
 	unsymSegmentStart := -1
@@ -575,7 +591,7 @@ func isCPythonLocation(loc *pprof.Location) bool {
 // The latest CPython locations are those which are called from interpreted Python code
 // They may contain useful information for user
 // For example it might be PyNumber_InPlaceAdd instead of usual evaluation loop functions
-func (p *Prettifier) removeCPythonInterpreterLocations() {
+func (p *prettifier) removeCPythonInterpreterLocations() {
 	resultIndex := 0
 	seenPythonLocation := false
 
@@ -616,7 +632,18 @@ func isTrampolinePythonLocation(loc *pprof.Location) bool {
 	return false
 }
 
-func (p *Prettifier) Prettify() {
+// removeAllNonPythonLocations removes all locations that are not Python locations,
+func (p *prettifier) removeAllNonPythonLocations() {
+	p.sample.Location = slices.DeleteFunc(p.sample.Location, func(loc *pprof.Location) bool {
+		return !isPythonLocation(loc)
+	})
+}
+
+func (p *prettifier) prettify() {
+	if p.level == PrettifyOff {
+		return
+	}
+
 	// There are a lot of stripped CPython binaries. This can cause <unsymbolized function> frames between CPython interpreter frames.
 	// They can be inlined or not. These <unsymbolized function> frames should be treated as CPython intrepreter frames and be removed.
 	// Step 1: remove <unsymbolized function> frames between CPython interpreter locations.
@@ -630,13 +657,21 @@ func (p *Prettifier) Prettify() {
 	p.sample.Location = slices.DeleteFunc(p.sample.Location, func(loc *pprof.Location) bool {
 		return isImportlibLocation(loc) || isTrampolinePythonLocation(loc)
 	})
+
+	// Step 4 (PythonOnly): remove all remaining non-Python frames,
+	if p.level == PrettifyPythonOnly {
+		p.removeAllNonPythonLocations()
+	}
 }
 
 // PrettifyProfile runs prettification on all samples that contain Python frames.
-func PrettifyProfile(p *pprof.Profile) {
+func PrettifyProfile(p *pprof.Profile, level PrettifyLevel) {
+	if level == PrettifyOff {
+		return
+	}
 	for _, sample := range p.Sample {
 		if containsInterpretedPythonStack(sample) {
-			NewPrettifier(sample).Prettify()
+			newPrettifier(sample, level).prettify()
 		}
 	}
 }

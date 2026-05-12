@@ -595,11 +595,23 @@ message ProtoProfileOptions {
     // Empty
 }
 
+enum PythonStackPrettifyLevel {
+    PYTHON_STACK_PRETTIFY_OFF = 0;
+    PYTHON_STACK_PRETTIFY_DEFAULT = 1;
+    PYTHON_STACK_PRETTIFY_STRICT = 2;
+}
+
 message PostprocessOptions {
     optional bool MergePythonAndNativeStacks = 1;
-    // This is only considered if MergePythonAndNativeStacks is not false
-    optional bool PrettifyPythonStacksExperimental = 2;
+    // This is only considered if MergePythonAndNativeStacks is not false.
+    // Deprecated: use PrettifyPythonStacksLevel instead.
+    optional bool PrettifyPythonStacksExperimental = 2 [deprecated = true];
     optional bool MergePHPAndNativeStacks = 3;
+    // Controls how aggressively Python stacks are prettified.
+    // Off (default): no prettification.
+    // Default: remove CPython interpreter frames, importlib, trampoline
+    // Strict: Leave only .py frames
+    optional PythonStackPrettifyLevel PrettifyPythonStacksLevel = 4;
 }
 
 message RenderFormat {

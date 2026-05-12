@@ -3,7 +3,9 @@ import { createSearchParams } from 'react-router-dom';
 import { LocalStorageKey } from 'src/const/localStorage';
 import { uiFactory } from 'src/factory';
 import type { FlamegraphOptions, PostprocessOptions, RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
+import { PythonStackPrettifyLevel } from 'src/generated/perforator/proto/perforator/perforator';
 import type { ProfileTaskQuery } from 'src/models/Task';
+import type { PythonPrettifyLevel } from 'src/providers/UserSettingsProvider/UserSettings';
 
 import { apiClient } from '../api';
 import { makeSelector } from '../selector';
@@ -35,9 +37,20 @@ function getRenderFlamegraph(query: ProfileTaskQuery, flamegraphOptions: Flamegr
 
 }
 
+function toPythonStackPrettifyLevelProto(level: PythonPrettifyLevel | undefined): PythonStackPrettifyLevel {
+    switch (level) {
+    case 'mixed':
+        return PythonStackPrettifyLevel.PYTHON_STACK_PRETTIFY_DEFAULT;
+    case 'python-only':
+        return PythonStackPrettifyLevel.PYTHON_STACK_PRETTIFY_STRICT;
+    default:
+        return PythonStackPrettifyLevel.PYTHON_STACK_PRETTIFY_OFF;
+    }
+}
+
 export const startProfileTask = async (
     query: ProfileTaskQuery,
-    settings: {showPrettyPythonFrames?: boolean},
+    settings: {pythonPrettifyLevel?: PythonPrettifyLevel},
 ): Promise<string> => {
     const diffSelector = query.diffSelector;
 
@@ -58,7 +71,10 @@ export const startProfileTask = async (
 
     const maxProfiles = query.maxProfiles;
     const flamegraphRender = getRenderFlamegraph(query, flamegraphOptions);
-    const postprocessingOptions: PostprocessOptions = settings.showPrettyPythonFrames ? { MergePythonAndNativeStacks: true, PrettifyPythonStacksExperimental: true, MergePHPAndNativeStacks: true } : {};
+    const prettifyLevel = toPythonStackPrettifyLevelProto(settings.pythonPrettifyLevel);
+    const postprocessingOptions: PostprocessOptions = prettifyLevel !== PythonStackPrettifyLevel.PYTHON_STACK_PRETTIFY_OFF
+        ? { MergePythonAndNativeStacks: true, MergePHPAndNativeStacks: true, PrettifyPythonStacksLevel: prettifyLevel }
+        : {};
 
     const request =
         diffSelector
