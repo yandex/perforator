@@ -29,9 +29,6 @@
 #include "trace.h"
 #include "types.h"
 
-#define NODISCARD __attribute__((warn_unused_result))
-#define MIN(a, b) (a) > (b) ? (b) : (a)
-
 static ALWAYS_INLINE void read_value(void *value, u32 size, const void *ptr,
                                      char c) {
     LUA_TRACE("Trying to read %px (%c)", ptr, c);
@@ -73,12 +70,6 @@ lua_state_config_get(struct lua_state *state,
         return false;
     }
 
-    // Just a sanity check we read lj_bc_mode correctly for go land
-    // if (config->lj_bc_mode[0] != 0x3183) {
-    // metric_increment(METRIC_LUA_WRONG_BC_MODE_COUNT);
-    // return false;
-    // }
-
     state->config = *config;
     return true;
 }
@@ -90,7 +81,7 @@ lua_state_config_get(struct lua_state *state,
  *
  * @param state Lua unwind state.
  * @private
- * @return struct interpreter_frame* Current uncommited frame.
+ * @return struct interpreter_frame* Current uncommitted frame.
  */
 static ALWAYS_INLINE struct interpreter_frame *
 lua_frame_get_current(struct lua_state *state) {
@@ -116,7 +107,7 @@ static ALWAYS_INLINE void lua_frame_write(struct lua_state *state,
 static bool string_compare(const char *s1, const char *s2, size_t len) {
     for (size_t i = 0; i != 64 && i != len; ++i) {
         if (s1[i] != s2[i]) {
-            //LUA_TRACE("%c != %c", s1[i], s2[i]);
+            // LUA_TRACE("%c != %c", s1[i], s2[i]);
             return false;
         }
     }
@@ -545,18 +536,19 @@ static void lua_push_invalid_frame(struct lua_state *state,
 /* Get name of a local variable from slot number and PC. */
 // original function - debug_varname, lj_debug.c
 
-static NOINLINE uint64_t read_varname(struct lua_state *state, uint64_t p_value,  int i, BCPos lastpc){
+static NOINLINE uint64_t read_varname(struct lua_state *state, uint64_t p_value,
+                                      int i, BCPos lastpc) {
     uint64_t p = p_value;
     uint64_t success_flag = 0;
 
-    if(p == 0){
+    if (p == 0) {
         goto return_result;
     }
-    const char *name = (const char*)p;
+    const char *name = (const char *)p;
     uint8_t vn;
 
-    int status = bpf_probe_read_user(&vn, sizeof(vn), (const void*)p);
-    if(status != 0){
+    int status = bpf_probe_read_user(&vn, sizeof(vn), (const void *)p);
+    if (status != 0) {
         goto return_result;
     }
 
@@ -571,7 +563,8 @@ static NOINLINE uint64_t read_varname(struct lua_state *state, uint64_t p_value,
         p += 1;
     } else {
         // an actual variable name stored as string
-        status = bpf_probe_read_user_str(state->buffer, sizeof(state->buffer) , (const void*)p);
+        status = bpf_probe_read_user_str(state->buffer, sizeof(state->buffer),
+                                         (const void *)p);
         if (status < 0) {
             goto return_result;
         }
@@ -582,17 +575,18 @@ static NOINLINE uint64_t read_varname(struct lua_state *state, uint64_t p_value,
     if (!(result & 0x800000000000000)) {
         goto return_result;
     }
-    p += (uint8_t)(result>>32) +1;
+    p += (uint8_t)(result >> 32) + 1;
     lastpc = startpc = lastpc + (uint32_t)result;
 
     result = lj_buf_ruleb128_new(p);
     if (!(result & 0x800000000000000)) {
         goto return_result;
     }
-    p += (uint8_t)(result>>32) +1;
+    p += (uint8_t)(result >> 32) + 1;
     endpc = startpc + (uint32_t)result;
 
-    struct lua_variable *variable = bpf_map_lookup_elem(&lua_variables_storage, &i);
+    struct lua_variable *variable =
+        bpf_map_lookup_elem(&lua_variables_storage, &i);
     if (variable) {
         variable->name = (u64)name;
         variable->startpc = startpc;
@@ -600,8 +594,8 @@ static NOINLINE uint64_t read_varname(struct lua_state *state, uint64_t p_value,
     }
     success_flag = 0x8000000000000000;
 
-  return_result:
-    return success_flag + ((uint64_t)(p - p_value) <<32) +lastpc;
+return_result:
+    return success_flag + ((uint64_t)(p - p_value) << 32) + lastpc;
 }
 
 static ALWAYS_INLINE int bpf_debug_varname(struct lua_state *state, GCproto *pt,
@@ -610,7 +604,7 @@ static ALWAYS_INLINE int bpf_debug_varname(struct lua_state *state, GCproto *pt,
     if (!p) {
         return 0;
     }
-    if(state == NULL){
+    if (state == NULL) {
         return 0;
     }
     BCPos lastpc = 0;
@@ -621,9 +615,9 @@ static ALWAYS_INLINE int bpf_debug_varname(struct lua_state *state, GCproto *pt,
     int i = 0;
     for (; i < 40 /*LJ_MAX_LOCVAR*/; ++i) {
 
-        uint64_t result = read_varname( state, (uint64_t)p, i, lastpc);
+        uint64_t result = read_varname(state, (uint64_t)p, i, lastpc);
         p += (uint8_t)(result >> 32);
-        if(!(result & 0x8000000000000000)){
+        if (!(result & 0x8000000000000000)) {
             return i;
         }
         lastpc = (uint32_t)result;
@@ -631,8 +625,7 @@ static ALWAYS_INLINE int bpf_debug_varname(struct lua_state *state, GCproto *pt,
     return i + 1;
 }
 
-static __always_inline int bpf_debug_uvname(struct lua_state *L, GCproto *pt)
-{
+static __always_inline int bpf_debug_uvname(struct lua_state *L, GCproto *pt) {
     const uint8_t *p = proto_uvinfo(pt);
     if (!p)
         return 0;
@@ -640,18 +633,25 @@ static __always_inline int bpf_debug_uvname(struct lua_state *L, GCproto *pt)
     int i = 0;
     int status;
 
-    #define READ_UV(n) \
-        { \
-            const char *name_##n = (const char *)p; \
-            status = bpf_probe_read_user_str(L->buffer, sizeof(L->buffer), p); \
-            if (status <= 0) goto done; \
-            p += status; \
-            struct lua_variable *uv = bpf_map_lookup_elem(&lua_upvalues_storage, &i); \
-            if (uv) uv->name = (uint64_t)name_##n; \
-            i++; \
-        }
+#define READ_UV(n)                                                             \
+    {                                                                          \
+        const char *name_##n = (const char *)p;                                \
+        status = bpf_probe_read_user_str(L->buffer, sizeof(L->buffer), p);     \
+        if (status <= 0)                                                       \
+            goto done;                                                         \
+        p += status;                                                           \
+        struct lua_variable *uv =                                              \
+            bpf_map_lookup_elem(&lua_upvalues_storage, &i);                    \
+        if (uv)                                                                \
+            uv->name = (uint64_t)name_##n;                                     \
+        i++;                                                                   \
+    }
 
-    READ_UV(0);  READ_UV(1);  READ_UV(2);  READ_UV(3);  READ_UV(4);
+    READ_UV(0);
+    READ_UV(1);
+    READ_UV(2);
+    READ_UV(3);
+    READ_UV(4);
     READ_UV(5);
 
 #undef READ_UV
@@ -675,9 +675,9 @@ bpf_debug_slotname(struct lua_state *state, struct symbol_state *symbol,
     // variables array
     int count_variables = bpf_debug_varname(state, pt, pc);
     int count_upvalues = bpf_debug_uvname(state, pt);
-    //int count_upvalues = 0;
-    // local variable is only read on "start" and on "restart" (BCmov "ra ==
-    // slot" condition)
+    // int count_upvalues = 0;
+    //  local variable is only read on "start" and on "restart" (BCmov "ra ==
+    //  slot" condition)
     bool read_local = true;
 
     for (size_t i = 0; i < 10; ++i) {
@@ -823,9 +823,9 @@ bpf_debug_funcname(struct symbol_state *symbol, struct lua_state *state,
     return NULL;
 }
 
-NODISCARD static bool lua_push_lua_frame(struct lua_state *state,
-                                         GCfunc *function, cTValue *frame,
-                                         cTValue *nextframe) {
+[[nodiscard]] static bool lua_push_lua_frame(struct lua_state *state,
+                                             GCfunc *function, cTValue *frame,
+                                             cTValue *nextframe) {
     GCproto *proto = funcproto(function);
 
     if (!proto) {
@@ -875,8 +875,8 @@ NODISCARD static bool lua_push_lua_frame(struct lua_state *state,
     return true;
 }
 
-NODISCARD static bool lua_push_c_frame(struct lua_state *state,
-                                       GCfunc *function) {
+[[nodiscard]] static bool lua_push_c_frame(struct lua_state *state,
+                                           GCfunc *function) {
     union lua_symbol_key_data data = {
         .lua_data = {
             .ptr = (u64)BPF_PROBE_READ_USER(function, c.f),
@@ -1028,6 +1028,7 @@ static void lua_stack_walk(struct lua_state *state) {
 
     if (L == NULL || g == NULL) {
         metric_increment(METRIC_LUA_NULL_STATE_COUNT);
+        // TODO: invalidate? remove?
         LUA_TRACE("Invalid lua_State or global_State!");
         return;
     }
@@ -1100,24 +1101,24 @@ static void lua_stack_walk(struct lua_state *state) {
 
     for (int i = 0; i < 10 && frame > bottom; i++) {
         if (!(frame <= max_stack && (!nextframe || nextframe <= max_stack))) {
-            //LUA_TRACE("broken frame chain");
+            // LUA_TRACE("broken frame chain");
             return;
         }
 
         if (frame_gc(frame) == obj2gco(L)) {
-            //LUA_TRACE("Skip dummy frames.");
+            // LUA_TRACE("Skip dummy frames.");
             should_visit_frame =
                 false; /* Skip dummy frames. See lj_err_optype_call(). */
         }
 
         /* Level found. */
         if (should_visit_frame) {
-            //LUA_TRACE("level=%d found frame=%px nextframe=%px", debug_count,
-            //          frame, nextframe);
+            // LUA_TRACE("level=%d found frame=%px nextframe=%px", debug_count,
+            //           frame, nextframe);
 
             if (!lua_get_function_info(state, frame, nextframe)) {
-                //LUA_TRACE("lua_get_function_info error on level %d",
-                //          debug_count);
+                // LUA_TRACE("lua_get_function_info error on level %d",
+                //           debug_count);
                 metric_increment(METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT);
                 return;
             }
@@ -1145,6 +1146,7 @@ lua_global_state_get_cur_l(struct lua_state *state, void *global_state) {
     void *cur_L_field = (char *)global_state + state->config.offset_g_to_l;
     void *cur_L;
 
+    // TODO: Replace with generic read
     long err = bpf_probe_read_user(&cur_L, sizeof(void *), cur_L_field);
     if (err != 0) {
         metric_increment(METRIC_LUA_CUR_L_READ_FAIL_COUNT);
@@ -1152,6 +1154,10 @@ lua_global_state_get_cur_l(struct lua_state *state, void *global_state) {
                   "from g=%px (%ld)",
                   cur_L_field, global_state, err);
         return NULL;
+    }
+
+    if (cur_L == NULL) {
+        LUA_TRACE("get_lua_state_from_global_state: cur_L is NULL?");
     }
 
     return (lua_State *)cur_L;
@@ -1233,7 +1239,7 @@ static ALWAYS_INLINE bool find_lua_state(struct process_info *process_info,
     struct lua_global_state_cache *cached_global_state =
         bpf_map_lookup_elem(&lua_global_state_storage, &key);
 
-    if (cached_global_state != NULL && cached_global_state->G != 0) {
+    if (cached_global_state != NULL) {
         // now check, if it's still valid
         if (lua_global_state_is_valid(state, (void *)cached_global_state->G)) {
             metric_increment(METRIC_LUA_VALID_CACHE_COUNT);
@@ -1245,12 +1251,13 @@ static ALWAYS_INLINE bool find_lua_state(struct process_info *process_info,
             return true;
         }
 
-        // state is no longer valid, probably called lua_Close, remove
+        // state is no longer valid, probably called lua_close, remove
         // cached entry
         metric_increment(METRIC_LUA_INVALIDED_CACHE_COUNT);
         LUA_TRACE("find_lua_state: remove invalid global_State=%px from cache",
                   (void *)cached_global_state->G);
 
+        // TODO: Possible data race?
         struct lua_global_state_cache entry = {};
         bpf_map_update_elem(&lua_global_state_storage, &key, &entry, BPF_ANY);
     }
@@ -1274,8 +1281,7 @@ static ALWAYS_INLINE bool find_lua_state(struct process_info *process_info,
         metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
         LUA_TRACE("find_lua_state: found new global_State=%px", global_state);
 
-        struct lua_global_state_cache entry;
-        entry.G = (u64)global_state;
+        struct lua_global_state_cache entry = {.G = (u64)global_state};
         bpf_map_update_elem(&lua_global_state_storage, &key, &entry, BPF_ANY);
 
         state->L = (u64)lua_global_state_get_cur_l(state, global_state);

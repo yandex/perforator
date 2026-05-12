@@ -135,6 +135,8 @@ struct lua_config {
     u64 offset_g_to_dispatch;     // `GG_G2DISP`
     u64 binary_size; // Size of LuaJIT binary. Used to determine if current `ip`
                      // is from this binary.
+    u64 vm_start_pc; // First PC of VM. Not used in BPF directly, but saved for sample consumer.
+    u64 vm_end_pc; // Last PC of VM. Not used in BPF directly, but saved for sample consumer.
 };
 
 /**

@@ -14,7 +14,7 @@ var (
 		"lua_call":   true,
 		"lua_pcall":  true,
 		"lua_cpcall": true,
-		"lua_yeild":  true,
+		"lua_yield":  true,
 		"lua_resume": true,
 	}
 )

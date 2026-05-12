@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
@@ -466,6 +464,8 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 		loc.AddFrame().SetName(out.SymbolName).SetMangledName(out.SymbolName).Finish()
 		loc.SetMapping().SetPath(out.MappingName).Finish()
 		loc.Finish()
+		c.p.log.Error("SPAR: Found JIT frame", log.Any("ip", ip))
+		return
 	}
 	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
 	if err == nil {
@@ -547,44 +547,6 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 	}
 }
 
-func addLuaJITVMIp(ip uint64, builder *profile.SampleBuilder, mapping dso.Mapping) {
-	if mapping.DSO == nil {
-		return
-	}
-
-	vmStartStr, vmStartExists := mapping.DSO.Metadata["luajit_vm_start"]
-
-	if !vmStartExists {
-		return
-	}
-
-	vmEndStr, vmEndExists := mapping.DSO.Metadata["luajit_vm_end"]
-
-	if !vmEndExists {
-		return
-	}
-
-	vmStart, _ := strconv.ParseUint(vmStartStr, 10, 64)
-	vmEnd, _ := strconv.ParseUint(vmEndStr, 10, 64)
-
-	offset := mapping.Offset
-	if mapping.BuildInfo != nil {
-		// This logic is broken for binaries with multiple executable sections (e.g. BOLT-ed binaries),
-		// as the offset seems to always become zero for any but first executable mapping.
-		// TODO : PERFORATOR-560
-		// This only works for binaries with a single executable segment and FirstPhdr.Offset == 0
-		// mapping.Begin - mapping.BaseAddress is ELF vaddr of the mapping.
-		// Conversion from ELF vaddr to ELF offset is done by subtracting corresponding phdr.Vaddr and adding phdr.Off
-		offset = mapping.Begin - mapping.BaseAddress - mapping.BuildInfo.FirstPhdr.Vaddr
-	}
-
-	relativeIp := ip - mapping.Begin + offset
-
-	if vmStartExists && vmEndExists && vmStart <= relativeIp && relativeIp <= vmEnd {
-		builder.AddStringLabel("luajit_vm_ips", strconv.FormatUint(ip, 10))
-	}
-}
-
 func (c *oneShotSampleConsumer) collectInterpreterStackInto(
 	langMtr *languageCollectionMetrics,
 	builder *profile.SampleBuilder,
@@ -617,6 +579,9 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 	}
 
 	if enableLua := c.p.conf.BPF.TraceLua; enableLua != nil && *enableLua {
+		// TODO: `LuaConfig` from `BinaryAnalysis` in BPF contains VM start and end addresses.
+		// Wait for refactor to be able to get config from `DSO->bpf.Allocation` or `Registry->bpf.BPFBinaryManager`
+		// Or modify `unwinder.RecordSample` to append these values with the stack
 		c.p.log.Error("SPAR: sample_consumer::collectStacksInto -> enableLua != nil && *enableLua -> true", log.Any("LuaStack", c.sample.LuaStack), log.Any("luaMetrics", c.p.metrics.luaMetrics))
 		c.collectInterpreterStackInto(
 			&c.p.metrics.luaMetrics,
@@ -754,7 +719,6 @@ func (c *oneShotSampleConsumer) finishSample(builder *profile.SampleBuilder) {
 
 // On CPU / perf event profiling.
 func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
-	println("SPAR: recordCPUSample")
 	hasWallTime := c.p.conf.BPF.TraceWallTime != nil && *c.p.conf.BPF.TraceWallTime
 
 	var resolvedPerfEvent *perfevent.Event

@@ -361,12 +361,6 @@ func PostprocessSymbolizedProfileWithLua(p *pprof.Profile) (res PostProcessResul
 	merger := NewNativeAndLuaStackMerger()
 
 	for _, sample := range p.Sample {
-		println("START")
-
-		for key, value := range sample.Label {
-			fmt.Printf("SPAR: key: %v value: %v\n", key, value)
-		}
-
 		stats, err := merger.MergeStacks(sample)
 		if err != nil {
 			res.Errors = append(res.Errors, err)

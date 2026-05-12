@@ -16,4 +16,6 @@ message LuaConfig {
   uint64 OffsetGtoL = 3;
   uint64 OffsetGtoDispatch = 4;
   uint64 BinarySize = 5;
+  uint64 VmStartPc = 6;
+  uint64 VmEndPc = 7;
 }

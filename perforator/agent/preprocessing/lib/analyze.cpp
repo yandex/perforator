@@ -150,7 +150,7 @@ TMaybe<NPerforator::NBinaryProcessing::NPhp::PhpConfig> BuildPhpConfig(llvm::obj
 namespace NPerforator::NBinaryProcessing::NLua {
 
 TMaybe<NPerforator::NBinaryProcessing::NLua::LuaConfig>
-BuildLuaConfig(llvm::object::ObjectFile *objectFile) {
+BuildLuaConfig(llvm::object::ObjectFile *objectFile, NUnwind::UnwindTable& unwindTable) {
     WORK_IN_PROGRESS_LOG("SPAR: %s\n", __PRETTY_FUNCTION__);
 
     auto analyzer = NPerforator::NLinguist::NLua::TLuaAnalyzer{*objectFile};
@@ -166,17 +166,62 @@ BuildLuaConfig(llvm::object::ObjectFile *objectFile) {
     conf.MutableVersion()->SetMinor(version->Version.MinorVersion);
     conf.MutableVersion()->SetMicro(version->Version.MicroVersion);
 
-    if (auto offsetGtoL = analyzer.ParseOffsetGtoL()) {
-        conf.SetOffsetGtoL(*offsetGtoL);
+    auto offsetGtoL = analyzer.ParseOffsetGtoL();
+
+    if (!offsetGtoL) {
+        return Nothing();
     }
 
-    if (auto offsetGtoDispatch = analyzer.ParseOffsetGtoDispatch()) {
-        conf.SetOffsetGtoDispatch(*offsetGtoDispatch);
+    auto offsetGtoDispatch = analyzer.ParseOffsetGtoDispatch();
+
+    if (!offsetGtoDispatch) {
+        return Nothing();
     }
 
+    conf.SetOffsetGtoL(*offsetGtoL);
+    conf.SetOffsetGtoDispatch(*offsetGtoDispatch);
     conf.SetBinarySize(analyzer.GetBinarySize());
 
-    return conf;
+    for (int i = 0; i != unwindTable.start_pc_size(); ++i) {
+        auto&& start_pc = unwindTable.start_pc(i);
+        auto&& pc_range = unwindTable.pc_range(i);
+
+        std::cerr << "SPAR: UNW: " << i << " start_pc=" << start_pc << " pc_range=" << pc_range << std::endl;
+    }
+
+    const auto& pcRanges = unwindTable.pc_range();
+    auto maxVmPcRangePtr = std::ranges::max_element(pcRanges);
+
+    // emit_asm_debug
+    // TODO: Test what is the minimum possible size
+    // TODO: Explain what we are getting here and why
+    if (maxVmPcRangePtr == pcRanges.end() || *maxVmPcRangePtr < 12000) {
+        WORK_IN_PROGRESS_LOG("SPAR: Can't find VM region in LuaJIT binary\n");
+
+        return Nothing();
+    }
+
+    const auto& pcStarts = unwindTable.start_pc();
+
+    auto max_pc_range_index = std::ranges::distance(pcRanges.begin(), maxVmPcRangePtr);
+    auto vmStartPc = pcStarts[max_pc_range_index];
+    auto ljVmFfiCallPc = std::ranges::find(pcStarts, vmStartPc + *maxVmPcRangePtr);
+
+    if (ljVmFfiCallPc == pcStarts.end()) {
+        WORK_IN_PROGRESS_LOG("SPAR: Can't find VM region in LuaJIT binary. VmPcRange=%ull\n", *maxVmPcRangePtr);
+
+        return Nothing();
+    }
+
+    auto index = std::ranges::distance(pcStarts.begin(), ljVmFfiCallPc);
+    auto lastFunctionRange = pcRanges[index];
+    auto vmEndPc = vmStartPc + *maxVmPcRangePtr + lastFunctionRange;
+
+    conf.SetVmStartPc(vmStartPc);
+    conf.SetVmEndPc(vmEndPc);
+    WORK_IN_PROGRESS_LOG("SPAR: Found VM from %x to %x with size %u (%u) + %u (%u)\n", vmStartPc, vmEndPc, *maxVmPcRangePtr, max_pc_range_index, lastFunctionRange, index);
+
+    return MakeMaybe(conf);
 }
 
 } // namespace NPerforator::NBinaryProcessing::NLua
@@ -237,16 +282,6 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
 
     NPerforator::NBinaryProcessing::BinaryAnalysis result;
 
-    std::cerr << "SPAR: UNW: " << unwtable.DebugString() << std::endl;
-
-    // for (int i = 0; i != unwtable.start_pc_size(); ++i) {
-    //     auto&& start_pc = unwtable.start_pc(i);
-    //     auto&& pc_range = unwtable.pc_range(i);
-
-    //     std::cerr << "SPAR: UNW: " << i << " start_pc=" << start_pc << " pc_range=" << pc_range << std::endl;
-    // }
-
-    *result.MutableUnwindTable() = std::move(unwtable);
     *result.MutableTLSConfig() = std::move(tlsConfig);
     *result.MutablePythonConfig() = std::move(pythonConfig);
 
@@ -255,16 +290,19 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
     }
 
     WORK_IN_PROGRESS_LOG("SPAR: %s -> auto luaConfig\n", __PRETTY_FUNCTION__);
-    if (auto luaConfig = NLua::BuildLuaConfig(objectFile.getBinary())) {
+    if (auto luaConfig = NLua::BuildLuaConfig(objectFile.getBinary(), unwtable)) {
         WORK_IN_PROGRESS_LOG("SPAR: %s -> luaConfig -> true\n",
                              __PRETTY_FUNCTION__);
+
         *result.MutableLuaConfig() = std::move(luaConfig).GetRef();
     }
 
     if (pthreadConfig) {
         *result.MutablePthreadConfig() = std::move(pthreadConfig.GetRef());
     }
+
     *result.mutable_jvm() = std::move(jvm);
+    *result.MutableUnwindTable() = std::move(unwtable);
 
     return result;
 }
