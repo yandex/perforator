@@ -233,6 +233,16 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
     auto jvm = BuildJvmAnalysis(objectFile.getBinary());
 
     NPerforator::NBinaryProcessing::BinaryAnalysis result;
+
+    std::cerr << "SPAR: UNW: " << unwtable.DebugString() << std::endl;
+
+    // for (int i = 0; i != unwtable.start_pc_size(); ++i) {
+    //     auto&& start_pc = unwtable.start_pc(i);
+    //     auto&& pc_range = unwtable.pc_range(i);
+
+    //     std::cerr << "SPAR: UNW: " << i << " start_pc=" << start_pc << " pc_range=" << pc_range << std::endl;
+    // }
+
     *result.MutableUnwindTable() = std::move(unwtable);
     *result.MutableTLSConfig() = std::move(tlsConfig);
     *result.MutablePythonConfig() = std::move(pythonConfig);

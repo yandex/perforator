@@ -3,6 +3,8 @@ package dso
 import (
 	"context"
 	"os"
+	"slices"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,6 +35,8 @@ type DSO struct {
 
 	// Type of the binary if it is special. (e.g. libpthread, python, php interpreter)
 	BinaryClass BinaryClass
+	// SPAR: Additional data about the binary
+	Metadata map[string]string
 
 	// Build info of the binary.
 	buildInfo *xelf.BuildInfo
@@ -221,6 +225,7 @@ func (d *Registry) register(ctx context.Context, buildInfo *xelf.BuildInfo, file
 	item := d.trackingFetch(buildID, 10*time.Minute, func() *DSO {
 		return &DSO{
 			ID:        d.nextid.Add(1) - 1,
+			Metadata:  make(map[string]string),
 			buildInfo: buildInfo,
 		}
 	})
@@ -360,6 +365,30 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 			analysis.LuaConfig = nil
 		} else {
 			d.l.Info(ctx, "SSE4 Lua Version is supported")
+
+			pcRanges := analysis.UnwindTable.GetPcRange()
+
+			for _, rng := range pcRanges {
+				d.l.Fmt().Errorf("SPAR: unwind range: %d", rng)
+			}
+
+			vmPcRange := slices.Max(pcRanges)
+
+			// TODO: Test what is the minimum possible size
+			if vmPcRange > 12000 {
+				pcStarts := analysis.UnwindTable.GetStartPc()
+
+				vmStartPc := pcStarts[slices.Index(pcRanges, vmPcRange)]
+				lastFunctionRange := pcRanges[slices.Index(pcStarts, vmStartPc+vmPcRange)]
+				vmEndPc := vmStartPc + vmPcRange + lastFunctionRange
+
+				dso.Metadata["luajit_vm_start"] = strconv.FormatUint(vmStartPc, 10)
+				dso.Metadata["luajit_vm_end"] = strconv.FormatUint(vmEndPc, 10)
+				d.l.Fmt().Errorf("SPAR: Found VM from %x to %x with size %d", vmStartPc, vmEndPc, vmPcRange)
+			} else {
+				d.l.Info(ctx, "SPAR: Can't find VM region in LuaJIT binary")
+				analysis.LuaConfig = nil
+			}
 		}
 	} else {
 		d.l.Error(ctx, "SPAR: map::populateDSO -> analysis.LuaConfig != nil -> false")

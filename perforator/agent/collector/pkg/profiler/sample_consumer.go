@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
@@ -464,7 +466,6 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 		loc.AddFrame().SetName(out.SymbolName).SetMangledName(out.SymbolName).Finish()
 		loc.SetMapping().SetPath(out.MappingName).Finish()
 		loc.Finish()
-		return
 	}
 	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
 	if err == nil {
@@ -543,6 +544,44 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 			loc = builder.AddNativeLocation(ip)
 		}
 		c.processUserSpaceLocation(ctx, loc, ip, matchingJVMFrame)
+	}
+}
+
+func addLuaJITVMIp(ip uint64, builder *profile.SampleBuilder, mapping dso.Mapping) {
+	if mapping.DSO == nil {
+		return
+	}
+
+	vmStartStr, vmStartExists := mapping.DSO.Metadata["luajit_vm_start"]
+
+	if !vmStartExists {
+		return
+	}
+
+	vmEndStr, vmEndExists := mapping.DSO.Metadata["luajit_vm_end"]
+
+	if !vmEndExists {
+		return
+	}
+
+	vmStart, _ := strconv.ParseUint(vmStartStr, 10, 64)
+	vmEnd, _ := strconv.ParseUint(vmEndStr, 10, 64)
+
+	offset := mapping.Offset
+	if mapping.BuildInfo != nil {
+		// This logic is broken for binaries with multiple executable sections (e.g. BOLT-ed binaries),
+		// as the offset seems to always become zero for any but first executable mapping.
+		// TODO : PERFORATOR-560
+		// This only works for binaries with a single executable segment and FirstPhdr.Offset == 0
+		// mapping.Begin - mapping.BaseAddress is ELF vaddr of the mapping.
+		// Conversion from ELF vaddr to ELF offset is done by subtracting corresponding phdr.Vaddr and adding phdr.Off
+		offset = mapping.Begin - mapping.BaseAddress - mapping.BuildInfo.FirstPhdr.Vaddr
+	}
+
+	relativeIp := ip - mapping.Begin + offset
+
+	if vmStartExists && vmEndExists && vmStart <= relativeIp && relativeIp <= vmEnd {
+		builder.AddStringLabel("luajit_vm_ips", strconv.FormatUint(ip, 10))
 	}
 }
 
