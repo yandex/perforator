@@ -28,6 +28,7 @@
 #include <util/stream/zlib.h>
 #include <util/system/yassert.h>
 
+#include <cstdlib>
 
 namespace NPerforator::NProfile {
 
@@ -35,6 +36,7 @@ namespace NDetail {
 
 static constexpr TStringBuf KernelSpecialMapping{"[kernel]"};
 static constexpr TStringBuf PythonSpecialMapping{"[python]"};
+static constexpr TStringBuf LuaSpecialMapping{"[lua]"};
 
 // Simple helper to prevent lossy implicit conversions.
 // Profiles are represented as a bunch of integers of different bit width,
@@ -950,6 +952,7 @@ class TFromPProfConverterContext {
         Missing,
         Kernel,
         Python,
+        Lua,
     };
 
 public:
@@ -1011,6 +1014,7 @@ private:
 
         TMaybe<ui64> oldKernelMappingId;
         TMaybe<ui64> oldPythonMappingId;
+        TMaybe<ui64> oldLuaMappingId;
         for (auto&& [i, mapping] : Enumerate(OldProfile_.mapping())) {
             Y_ENSURE(mapping.id() != 0, "Mapping id should be nonzero");
 
@@ -1027,10 +1031,19 @@ private:
                 Y_ENSURE(!oldPythonMappingId, "Found more than one python mapping");
                 oldPythonMappingId = mapping.id();
             }
+            if (OldProfile_.string_table(mapping.filename()) == LuaSpecialMapping) {
+                fprintf(stderr, "SPAR: TConverterContext::ConvertBinaries -> oldLuaMappingId = mapping.id();\n"); fflush(stderr);
+
+                Y_ENSURE(!oldLuaMappingId, "Found more than one lua mapping");
+                oldLuaMappingId = mapping.id();
+            }
         }
 
         OldKernelMappingId_ = oldKernelMappingId.GetOrElse(Max<ui64>());
         OldPythonMappingId_ = oldPythonMappingId.GetOrElse(Max<ui64>());
+
+        fprintf(stderr, "SPAR: TConverterContext::ConvertBinaries -> OldLuaMappingId_ = oldLuaMappingId.GetOrElse(Max<ui64>());\n"); fflush(stderr);
+        OldLuaMappingId_ = oldLuaMappingId.GetOrElse(Max<ui64>());
     }
 
     void ConvertFunctions() {
@@ -1069,6 +1082,12 @@ private:
 
             case ESpecialMappingKind::Python:
                 OldPythonLocationIds_.Insert(location.id());
+                break;
+
+            case ESpecialMappingKind::Lua:
+                fprintf(stderr, "SPAR: TConverterContext::ConvertLocations -> case ESpecialMappingKind::Lua\n"); fflush(stderr);
+
+                OldLuaLocationIds_.Insert(location.id());
                 break;
             }
 
@@ -1142,6 +1161,10 @@ private:
             return ESpecialMappingKind::Kernel;
         } else if (mappingId == OldPythonMappingId_) {
             return ESpecialMappingKind::Python;
+        } else if (mappingId == OldLuaMappingId_) {
+            fprintf(stderr, "SPAR: TConverterContext::ClassifySpecialMapping -> mappingId == OldLuaMappingId_\n"); fflush(stderr);
+
+            return ESpecialMappingKind::Lua;
         } else if (mappingId == 0) {
             return ESpecialMappingKind::Missing;
         } else {
@@ -1190,8 +1213,10 @@ private:
     TCompactIntegerSet<ui64> OldMissingLocationIds_;
     TCompactIntegerSet<ui64> OldKernelLocationIds_;
     TCompactIntegerSet<ui64> OldPythonLocationIds_;
+    TCompactIntegerSet<ui64> OldLuaLocationIds_;
     ui64 OldKernelMappingId_ = Max<ui64>();
     ui64 OldPythonMappingId_ = Max<ui64>();
+    ui64 OldLuaMappingId_ = Max<ui64>();
 };
 
 ////////////////////////////////////////////////////////////////////////////////

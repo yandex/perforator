@@ -55,6 +55,8 @@ type Config struct {
 	TraceWallTime *bool `yaml:"trace_walltime"`
 	// Collect python stacks
 	TracePython *bool `yaml:"trace_python"`
+	// Collect lua stacks
+	TraceLua *bool `yaml:"trace_lua"`
 	// Configuration for uprobes tracing (deprecated, this field has moved to profiler config)
 	UprobesDeprecated []uprobe.Config `yaml:"uprobes,omitempty"`
 	// bpffs mount point.
@@ -396,6 +398,7 @@ func (b *BPF) setupProgramsUnsafe() (err error) {
 	if err := b.collspec.LoadAndAssign(b.progs, &ebpf.CollectionOptions{
 		Programs: ebpf.ProgramOptions{
 			LogSizeStart: verifierLogSizeStart,
+			LogLevel:     ebpf.LogLevelBranch | ebpf.LogLevelStats,
 		},
 		MapReplacements: b.mapreplacements,
 	}); err != nil {

@@ -3,6 +3,7 @@ RECURSE(
     jvm
     python
     php
+    lua
     symbolizer
     models
 )

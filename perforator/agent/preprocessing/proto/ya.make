@@ -3,6 +3,7 @@ RECURSE(
     pthread
     python
     php
+    lua
     tls
     unwind
 )

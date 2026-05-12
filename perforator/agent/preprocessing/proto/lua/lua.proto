@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package NPerforator.NBinaryProcessing.NLua;
+
+option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/lua";
+
+message LuaVersion {
+  uint32 Major = 1;
+  uint32 Minor = 2;
+  uint32 Micro = 3;
+}
+
+message LuaConfig {
+  LuaVersion Version = 1;
+  repeated uint32 LjBcMode = 2;
+  uint64 OffsetGtoL = 3;
+  uint64 OffsetGtoDispatch = 4;
+}

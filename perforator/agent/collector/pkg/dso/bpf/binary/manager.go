@@ -8,11 +8,13 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/unwindtable"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/lua"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/php"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/pthread"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/python"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/tls"
+	lua_agent "github.com/yandex/perforator/perforator/internal/linguist/lua/agent"
 	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
 	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
@@ -121,6 +123,25 @@ func (m *BPFBinaryManager) Add(ctx context.Context, buildID string, id uint64, a
 		}()
 	}
 
+	if analysis.LuaConfig != nil {
+		m.l.Error("SPAR: manager::Add -> analysis.LuaConfig != nil -> true")
+		m.l.Error("SSE4: Lua Config is not nil, adding lua config")
+
+		err = m.state.AddLuaConfig(binId, convertToUnwindLuaConfig(analysis.LuaConfig))
+		if err != nil {
+			return nil, err
+		}
+
+		defer func() {
+			if err != nil {
+				m.releaseLua(binId)
+			}
+		}()
+	} else {
+		m.l.Error("SPAR: manager::Add -> analysis.LuaConfig != nil -> false")
+		m.l.Error("SSE4: Lua Config is nil, skip adding lua config")
+	}
+
 	if analysis.PthreadConfig != nil {
 		err = m.state.AddPthreadConfig(binId, convertToUnwindPthreadConfig(analysis.PthreadConfig))
 		if err != nil {
@@ -148,6 +169,10 @@ func (m *BPFBinaryManager) Release(a *Allocation) {
 	m.releasePthread(binId)
 	m.releasePython(binId)
 	m.releasePhp(binId)
+
+	m.l.Error("SPAR: manager::Release -> m.releaseLua(binId)")
+	m.releaseLua(binId)
+
 	m.releaseTLS(binId)
 }
 
@@ -169,6 +194,15 @@ func (m *BPFBinaryManager) releasePhp(id unwinder.BinaryId) {
 	err := m.state.DeletePhpConfig(id)
 	if err != nil {
 		m.l.Error("Failed to delete php config", log.Error(err))
+	}
+}
+
+func (m *BPFBinaryManager) releaseLua(id unwinder.BinaryId) {
+	m.l.Error("SPAR: manager::releaseLua")
+
+	err := m.state.DeleteLuaConfig(id)
+	if err != nil {
+		m.l.Error("Failed to delete lua config", log.Error(err))
 	}
 }
 
@@ -212,6 +246,12 @@ func convertToUnwindPthreadConfig(config *pthread.PthreadConfig) *unwinder.Pthre
 
 func convertToUnwindPhpConfig(config *php.PhpConfig) (*unwinder.PhpConfig, error) {
 	return php_agent.ParsePhpUnwinderConfig(config)
+}
+
+func convertToUnwindLuaConfig(config *lua.LuaConfig) *unwinder.LuaConfig {
+	println("SPAR: manager::convertToUnwindLuaConfig")
+
+	return lua_agent.ParseLuaUnwinderConfig(config)
 }
 
 func (m *BPFBinaryManager) MoveFromCache(a *Allocation) bool {

@@ -104,6 +104,7 @@ type Profiler struct {
 
 	pythonSymbolizer *symbolizer.Symbolizer
 	phpSymbolizer    *symbolizer.Symbolizer
+	luaSymbolizer    *symbolizer.Symbolizer
 
 	jitSymbolizers []profilerext.JITSymbolizer
 
@@ -156,6 +157,7 @@ type profilerMetrics struct {
 
 	pythonMetrics languageCollectionMetrics
 	phpMetrics    languageCollectionMetrics
+	luaMetrics    languageCollectionMetrics
 
 	droppedProfiles metrics.Counter
 
@@ -459,6 +461,21 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		if err != nil {
 			return err
 		}
+	}
+
+	// Create Lua symbolizer
+	if enabled := p.conf.BPF.TraceLua; enabled != nil && *enabled {
+		p.log.Error("SPAR: profiler::initialize -> enabled != nil && *enabled -> true")
+
+		p.log.Info("SSE4: Lua is enabled, creating Lua Symbolizer")
+		p.luaSymbolizer, err = symbolizer.NewLuaSymbolizer(&p.conf.Symbolizer.Lua, p.bpf.State(), r)
+		if err != nil {
+			return err
+		}
+	} else {
+		p.log.Error("SPAR: profiler::initialize -> enabled != nil && *enabled -> false")
+
+		p.log.Info("SSE4: Lua is disabled, skipping creation of Lua Symbolizer")
 	}
 
 	p.enablePerfMaps = true
@@ -836,6 +853,10 @@ func (p *Profiler) registerMetrics(r metrics.Registry) error {
 	p.metrics.phpMetrics = languageCollectionMetrics{
 		unsymbolizedFrameCount: r.Counter("php.frame.unsymbolized.count"),
 		collectedFrameCount:    r.Counter("php.frame.collected.count"),
+	}
+	p.metrics.luaMetrics = languageCollectionMetrics{
+		unsymbolizedFrameCount: r.Counter("lua.frame.unsymbolized.count"),
+		collectedFrameCount:    r.Counter("lua.frame.collected.count"),
 	}
 
 	r.WithTags(Labels{"kind": "tracked"}).FuncIntGauge("cgroup.count", func() int64 {

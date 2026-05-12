@@ -29,4 +29,5 @@ struct process_info {
     struct mapped_binary python_binary;
     struct mapped_binary php_binary;
     struct mapped_binary libjvm_binary;
+    struct mapped_binary lua_binary;
 };

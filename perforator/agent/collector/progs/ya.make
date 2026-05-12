@@ -7,12 +7,11 @@ PEERDIR(
 )
 
 SET(BPF_FLAGS
-    -O2
+    -O3
     --debug
     -mcpu=v3
     -D__KERNEL__
     -Wall
-    -Werror
 )
 
 IF (ARCH_X86_64)

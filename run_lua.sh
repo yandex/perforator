@@ -1,0 +1,1 @@
+luajit main.lua

@@ -5,6 +5,7 @@ RECURSE(
     llvmex
     permutation
     php
+    lua
     profile
     profile/c
     pthread

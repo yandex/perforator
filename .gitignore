@@ -1,3 +1,16 @@
 perforator/ui/**/node_modules/
 perforator/ui/**/dist/
-
+*.pb.*
+*.res.go
+_cgo_*
+*.cgo1.go
+perforator/cmd/cli/perforator
+perforator/internal/unwinder/unwinder.go
+.cache/
+*.log
+*.html
+*.pprof
+*.so
+.vscode/
+.venv/
+*.elf

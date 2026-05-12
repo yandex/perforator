@@ -68,6 +68,41 @@ enum metric : u32 {
     METRIC_FP_ERROR_READ_RETURNADDRESS_COUNT,
     METRIC_FP_ERROR_READ_BASEPOINTER_COUNT,
     METRIC_UPROBE_TRIGGERED_COUNT,
+
+    // Lua metrics
+    METRIC_ERROR_STAGE_COLLECT_LUA_STACK_COUNT, // Amount of errors during setup stage. See `profiler_stage_collect_lua_stack`
+    METRIC_LUA_PROCESSED_STACKS_COUNT, // Amount of stacks processing attempts. We know there is a LuaJIT, we have config, but we haven't found pointer to `lua_State`
+    METRIC_LUA_PROCESSED_FRAMES_COUNT, // Amount of successfully processed frames in this stack
+    METRIC_LUA_NULL_STATE_COUNT, // Amount of NULLs encountered in lua_State / global_State pointers
+    METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT, // Amount of failed reads of frame functions
+    METRIC_LUA_BROKEN_FRAME_COUNT, // Amount of encountered broken frames. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`
+    METRIC_LUA_FRAME_IS_NULL_COUNT, // Amount of NULLs encountered in `frame` in `lua_get_function_info`
+    METRIC_LUA_FUNCTION_IS_NULL_COUNT, // Amount of NULLs encountered in `fn` in `lua_get_function_info`
+    METRIC_LUA_CUR_L_IS_NULL_COUNT, // Amount of NULLs encountered in `cur_L` in `is_valid_global_state`
+    METRIC_LUA_G_EQ_G_MISMATCH_COUNT, // Amount of mismatches of `G(g->cur_L) == g` check
+    METRIC_LUA_L_EQ_L_MISMATCH_COUNT, // Amount of mismatches of `G(G(g->cur_L)->cur_L) == g->cur_L` check. The current difference is that lhs second cur_L is taken from headers, not from binary.
+    METRIC_LUA_VALID_CACHE_COUNT, // Amount of valid cache usage
+    METRIC_LUA_INVALIDED_CACHE_COUNT, // Amount of cache invalidation
+    METRIC_LUA_GLOBAL_STATE_FOUND_COUNT, // Amount of successful global state findings
+    METRIC_LUA_GLOBAL_STATE_NOT_FOUND_COUNT, // Amount of unsuccessful global state findings
+    // METRIC_LUA_READ_ERROR_COUNT,
+    // METRIC_LUA_ERRFUNC_GC_HOOK_COUNT,
+    // METRIC_LUA_FUNC_COUNT,
+    // METRIC_LUA_NUMBERED_BUILTIN_COUNT,
+    // METRIC_LUA_C_FUNCTION_COUNT,
+    // METRIC_LUA_NAME_COUNT,
+    // METRIC_LUA_LINE_COUNT,
+    // METRIC_LUA_FRAME_LESS_THAN_BOT_COUNT,
+    // METRIC_LUA_READ_PROCESS_FRAME_ERROR_COUNT,
+    // METRIC_LUA_READ_WALK_STACK_ERROR_COUNT,
+    // METRIC_LUA_DEBUG_FRAMELINE_COUNT,
+    // METRIC_LUA_DEBUG_FRAMEPC_COUNT,
+    METRIC_LUA_DEREF_ERROR_COUNT, // Amount of failed reads of user space memory from a pointer
+    METRIC_LUA_CUR_L_READ_FAIL_COUNT, // Amount of failed reads of `g->cur_L` in `get_lua_state_from_global_state`
+    // METRIC_LUA_META_METHOD_COUNT,
+    METRIC_LUA_CACHE_MISMATCH_COUNT, // Amount of bpf map symbol cache mismatch. Ideally must be 0
+    // METRIC_LUA_CALL_COUNT,
+
     METRIC_COUNT
 };
 

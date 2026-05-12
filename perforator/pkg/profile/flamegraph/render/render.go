@@ -243,9 +243,17 @@ func guessCollapsedFrameOrigin(name string) FrameOrigin {
 	if strings.HasSuffix(name, ".java") || strings.HasSuffix(name, ".kt") {
 		return FrameOriginJVM
 	}
+
+	if strings.HasSuffix(name, ".lua") {
+		println("SPAR: render::guessCollapsedFrameOrigin -> strings.HasSuffix(name, \".lua\") -> true")
+
+		return FrameOriginLua
+	}
+
 	if strings.HasSuffix(name, ".php") {
 		return FrameOriginPHP
 	}
+
 	if strings.HasSuffix(name, ".py") {
 		return FrameOriginPython
 	}

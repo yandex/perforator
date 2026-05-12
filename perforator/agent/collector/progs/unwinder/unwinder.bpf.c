@@ -25,6 +25,7 @@
 #include "pidns.h"
 #include "python/unwind.h"
 #include "php/unwind.h"
+#include "lua/unwind.h"
 #include "task.h"
 #include "thread_local.h"
 #include "tracepoints.h"
@@ -95,6 +96,8 @@ struct profiler_state {
     struct php_state php_state;
 #endif
 
+    struct lua_state lua_state; // TODO: macro to disable Lua?
+
     struct last_branch_records lbr;
     struct record_new_process newproc;
     struct tls_collect_result tls;
@@ -107,6 +110,7 @@ enum cgroup_engine {
     CGROUP_ENGINE_V1,
     CGROUP_ENGINE_V2
 };
+
 
 BTF_EXPORT(enum cgroup_engine);
 
@@ -122,6 +126,8 @@ struct profiler_config {
 
     // Enable PHP profiling
     bool enable_php;
+
+    // TODO: For Lua?
 
     // Cgroup resolution engine to use
     enum cgroup_engine active_cgroup_engine;
@@ -345,6 +351,15 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
         .src       = state->jvm_entries,
         .src_size  = sizeof(state->jvm_entries),
         .elem_size = sizeof(struct jvm_lang_entry),
+    });
+
+    pack_lang_section(packed, &offset, &(struct lang_section_desc){
+        .lang_id   = LANGUAGE_LUA,
+        .count     = state->lua_state.stack.len,
+        .max       = LUA_MAX_STACK_DEPTH,
+        .src       = state->lua_state.stack.frames,
+        .src_size  = sizeof(state->lua_state.stack.frames),
+        .elem_size = sizeof(struct interpreter_frame),
     });
 
     set_section(&packed->header.language_sections, lang_start, offset - lang_start);
@@ -773,6 +788,53 @@ static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_
 }
 #endif
 
+/**
+ * @brief LuaJIT VM stack unwinder entrypoint.
+ *
+ * @see `lua/unwind.h`
+ * @warning Must be called before `profiler_stage_collect_stack`
+ *
+ * @param context BPF context.
+ * @param user_registers Struct of some of user registers.
+ * @param profiler_state Profiler state. Used as heap storage.
+ * @return int Status code
+ */
+static NOINLINE int profiler_stage_collect_lua_stack(void *context, struct user_regs *user_registers, struct profiler_state *profiler_state) {
+    LUA_TRACE("CALL_LOG: profiler_stage_collect_lua_stack");
+
+    struct process_info *process_info = lookup_process(context, profiler_state);
+    if (!process_info) {
+        return -1;
+    }
+
+    profiler_state->lua_state.pid = profiler_state->packed.header.pid;
+    profiler_state->lua_state.dispatch_register = user_registers->r14;
+    profiler_state->lua_state.base_register = user_registers->rdx;
+    // profiler_state->lua_state.pc_register = user_registers->rbx;
+
+    LUA_TRACE("CURRENT rip: %px", user_registers->rip);
+
+    lua_collect_stack(process_info, &profiler_state->lua_state);
+
+    // Fixing stack info for JIT traces.
+    // TODO: Does this work even if JIT frame is not the top one?
+    if (profiler_state->lua_state.jit) {
+        u64 cframe[2];
+        u64 rsp = user_registers->rsp + CFRAME_SIZE_JIT;
+
+        int err = bpf_probe_read_user(cframe, sizeof(cframe),
+                                      (void *)(rsp - sizeof(cframe)));
+
+        if (err == 0) {
+            user_registers->rsp = rsp;
+            user_registers->rbp = cframe[0];
+            user_registers->rip = cframe[1];
+        }
+    }
+
+    return 0;
+}
+
 static NOINLINE int profiler_stage_collect_tls(void* ctx, struct profiler_state* state, struct profiler_config* config) {
     if (state == NULL || config == NULL) {
         return -1;
@@ -867,6 +929,7 @@ struct profiler_sample_args {
 #define PROFILER_DEFINE_COMMON_STAGES \
     PROFILER_DEFINE_STAGE(profiler_stage_start(ctx, state, config), METRIC_ERROR_STAGE_START_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_locate_traceee(state, config), METRIC_ERROR_STAGE_LOCATETRACEEE_COUNT); \
+    PROFILER_DEFINE_STAGE(profiler_stage_collect_lua_stack(ctx, regs, state), METRIC_ERROR_STAGE_COLLECT_LUA_STACK_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_stack(ctx, regs, state, config), METRIC_ERROR_STAGE_COLLECTSTACK_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_tls(ctx, state, config), METRIC_ERROR_STAGE_TLS_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_python_stack(ctx, state, config), METRIC_ERROR_STAGE_COLLECT_PYTHON_STACK_COUNT); \

@@ -43,6 +43,10 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
 	"github.com/yandex/perforator/perforator/pkg/profile/interpreterstack"
+
+	// "github.com/yandex/perforator/perforator/pkg/profile/python"
+	"github.com/yandex/perforator/perforator/pkg/profile/lua"
+
 	"github.com/yandex/perforator/perforator/pkg/profile/merge"
 	"github.com/yandex/perforator/perforator/pkg/profile/quality"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
@@ -181,6 +185,20 @@ func record(opts *recordOptions, args []string) error {
 		return err
 	}
 
+	// Temp
+	// if opts.enableInterpreterStackMerging {
+	// 	postProcessResults := python.PostprocessSymbolizedProfileWithPython(profile)
+	// 	if len(postProcessResults.Errors) > 0 {
+	// 		logger.Fmt().Debugf("Errors on merge python and native stacks: %v", errors.Join(postProcessResults.Errors...))
+	// 	}
+
+	// 	totalStacksCount := postProcessResults.MergedStacksCount + postProcessResults.UnmergedStacksCount
+	// 	if totalStacksCount > 0 {
+	// 		mergedStacksPercentage := 100 * float64(postProcessResults.MergedStacksCount) / float64(totalStacksCount)
+	// 		logger.Fmt().Debugf("Merged Python stacks percentage %.2f%%", mergedStacksPercentage)
+	// 	}
+	// }
+
 	if opts.enableInterpreterStackMerging {
 		var postprocessOptions []interpreterstack.Option
 		if opts.experimentalEnablePythonStackPrettification {
@@ -193,6 +211,19 @@ func record(opts *recordOptions, args []string) error {
 
 		mergedStacksPercentage := 100 * float64(postProcessResults.Python.MergedStacksCount) / float64(postProcessResults.Python.MergedStacksCount+postProcessResults.Python.UnmergedStacksCount)
 		logger.Fmt().Debugf("Merged stacks percentage %.2f%%", mergedStacksPercentage)
+	}
+
+	if opts.enableInterpreterStackMerging {
+		postProcessResults := lua.PostprocessSymbolizedProfileWithLua(profile)
+		if len(postProcessResults.Errors) > 0 {
+			logger.Fmt().Debugf("Errors on merge lua and native stacks: %v", errors.Join(postProcessResults.Errors...))
+		}
+
+		totalStacksCount := postProcessResults.MergedStacksCount + postProcessResults.UnmergedStacksCount
+		if totalStacksCount > 0 {
+			mergedStacksPercentage := 100 * float64(postProcessResults.MergedStacksCount) / float64(totalStacksCount)
+			logger.Fmt().Debugf("Merged Lua stacks percentage %.2f%%", mergedStacksPercentage)
+		}
 	}
 
 	if opts.upload {

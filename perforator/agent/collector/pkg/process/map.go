@@ -720,6 +720,10 @@ func (a *processAnalyzer) fillMappedBinaryInfo(pi *unwinder.ProcessInfo, mapping
 			pi.PythonBinary = mappedBinaryFromMapping(m)
 		case dso.PhpBinaryClass:
 			pi.PhpBinary = mappedBinaryFromMapping(m)
+		case dso.LuaBinaryClass:
+			println("SPAR: map::fillMappedBinaryInfo -> case dso.LuaBinaryClass:")
+
+			pi.LuaBinary = mappedBinaryFromMapping(m)
 		case dso.PthreadGlibcBinaryClass:
 			pi.PthreadBinary = mappedBinaryFromMapping(m)
 		case dso.JvmBinaryClass:
@@ -735,6 +739,7 @@ func newProcessInfo() *unwinder.ProcessInfo {
 		MainBinaryId: unwinder.BinaryId(math.MaxUint64),
 		PhpBinary:    unwinder.MappedBinary{BaseAddress: math.MaxUint64},
 		PythonBinary: unwinder.MappedBinary{BaseAddress: math.MaxUint64},
+		LuaBinary:    unwinder.MappedBinary{BaseAddress: math.MaxUint64},
 		PthreadBinary: unwinder.MappedBinary{
 			BaseAddress: math.MaxUint64,
 		},

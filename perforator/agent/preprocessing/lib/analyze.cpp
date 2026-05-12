@@ -7,6 +7,7 @@
 #include <perforator/lib/pthread/pthread.h>
 #include <perforator/lib/python/python.h>
 #include <perforator/lib/php/php.h>
+#include <perforator/lib/lua/lua.h>
 
 #include <library/cpp/streams/zstd/zstd.h>
 
@@ -17,6 +18,12 @@
 #include <llvm/Support/TargetSelect.h>
 
 #include <util/generic/maybe.h>
+
+#include <cstdlib>
+
+#define WORK_IN_PROGRESS_LOG(...) \
+  fprintf(stderr, __VA_ARGS__);   \
+  fflush(stderr);
 
 namespace NPerforator::NBinaryProcessing::NTls {
 
@@ -140,6 +147,37 @@ TMaybe<NPerforator::NBinaryProcessing::NPhp::PhpConfig> BuildPhpConfig(llvm::obj
 
 } // namespace NPerforator::NBinaryProcessing::NPhp
 
+namespace NPerforator::NBinaryProcessing::NLua {
+
+TMaybe<NPerforator::NBinaryProcessing::NLua::LuaConfig> BuildLuaConfig(llvm::object::ObjectFile* objectFile) {
+    WORK_IN_PROGRESS_LOG("SPAR: %s\n", __PRETTY_FUNCTION__);
+
+    auto analyzer = NPerforator::NLinguist::NLua::TLuaAnalyzer{*objectFile};
+
+    auto version = analyzer.ParseVersion();
+    if (!version) {
+        return Nothing();
+    }
+
+    NPerforator::NBinaryProcessing::NLua::LuaConfig conf;
+
+    conf.MutableVersion()->SetMajor(version->Version.MajorVersion);
+    conf.MutableVersion()->SetMinor(version->Version.MinorVersion);
+    conf.MutableVersion()->SetMicro(version->Version.MicroVersion);
+
+    if (auto offsetGtoL = analyzer.ParseOffsetGtoL()) {
+        conf.SetOffsetGtoL(*offsetGtoL);
+    }
+
+    if (auto offsetGtoDispatch = analyzer.ParseOffsetGtoDispatch()) {
+        conf.SetOffsetGtoDispatch(*offsetGtoDispatch);
+    }
+
+    return conf;
+}
+
+} // namespace NPerforator::NBinaryProcessing::NPython
+
 namespace NPerforator::NBinaryProcessing {
 
 NPerforator::NBinaryProcessing::NJvm::JvmAnalysis BuildJvmAnalysis(const llvm::object::ObjectFile* binary) {
@@ -201,6 +239,12 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
 
     if (phpConfig) {
         *result.MutablePhpConfig() = std::move(phpConfig.GetRef());
+    }
+
+    WORK_IN_PROGRESS_LOG("SPAR: %s -> auto luaConfig\n", __PRETTY_FUNCTION__);
+    if (auto luaConfig = NLua::BuildLuaConfig(objectFile.getBinary())) {
+        WORK_IN_PROGRESS_LOG("SPAR: %s -> luaConfig -> true\n", __PRETTY_FUNCTION__);
+        *result.MutableLuaConfig() = std::move(luaConfig).GetRef();
     }
 
     if (pthreadConfig) {

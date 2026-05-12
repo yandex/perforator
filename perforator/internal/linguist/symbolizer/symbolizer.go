@@ -56,6 +56,10 @@ func NewPhpSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metric
 	return newSymbolizer(c, state, reg, "php")
 }
 
+func NewLuaSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metrics.Registry) (*Symbolizer, error) {
+	return newSymbolizer(c, state, reg, "lua")
+}
+
 func newSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metrics.Registry, language string) (*Symbolizer, error) {
 	cacheSize := DefaultMaxCacheSize
 	itemTTL := DefaultCacheTTL

@@ -1,0 +1,224 @@
+package agent
+
+import (
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/lua"
+	"github.com/yandex/perforator/perforator/internal/unwinder"
+)
+
+var (
+	minSupportedVersion = encodeVersion(&lua.LuaVersion{
+		Major: 2,
+		Minor: 1,
+		Micro: 0,
+	})
+	maxSupportedVersion = encodeVersion(&lua.LuaVersion{
+		Major: 2,
+		Minor: 2,
+		Micro: 0,
+	})
+)
+
+func IsVersionSupported(version *lua.LuaVersion) bool {
+	println("SPAR: lua::IsVersionSupported")
+
+	if version == nil {
+		println("SPAR: lua::IsVersionSupported -> false")
+
+		return false
+	}
+
+	versionKey := encodeVersion(version)
+	if versionKey < minSupportedVersion || versionKey > maxSupportedVersion {
+		println("SPAR: lua::IsVersionSupported -> false")
+
+		return false
+	}
+
+	println("SPAR: lua::IsVersionSupported -> true")
+
+	return true
+}
+
+func encodeVersion(version *lua.LuaVersion) uint32 {
+	println("SPAR: lua::encodeVersion ", version.Major, version.Minor, version.Micro)
+
+	// version.Micro is not so important right now and doesn't fit uint32 anyway
+	return /*version.Micro + */ (version.Minor << 8) + (version.Major << 16)
+}
+
+// placed here, because cannot allocate large data array in eBPF
+// see lj_bcdef.h for how these values are actually computed
+// TODO: maybe we can get this array from the binary
+var ljBcMode = [154]uint16{
+	0x3183,
+	0x3183,
+	0x3983,
+	0x3983,
+	0x2183,
+	0x2183,
+	0x2503,
+	0x2503,
+	0x2483,
+	0x2483,
+	0x2403,
+	0x2403,
+	0xb181,
+	0xb181,
+	0xb180,
+	0xb180,
+	0xb303,
+	0xb303,
+	0xb181,
+	0xb181,
+	0x8181,
+	0x2981,
+	0x5499,
+	0x5c99,
+	0x6499,
+	0x6c99,
+	0x7499,
+	0x5499,
+	0x5c99,
+	0x6499,
+	0x6c99,
+	0x7499,
+	0x5199,
+	0x5999,
+	0x6199,
+	0x6999,
+	0x7199,
+	0x7999,
+	0x4221,
+	0xb501,
+	0xb701,
+	0xb381,
+	0xb481,
+	0xb401,
+	0xb102,
+	0xb281,
+	0xb185,
+	0xb505,
+	0xb485,
+	0xb405,
+	0xb684,
+	0x1601,
+	0x1301,
+	0x1581,
+	0x501,
+	0xd03,
+	0x199,
+	0x519,
+	0x319,
+	0x199,
+	0x99b,
+	0xd1b,
+	0xb1b,
+	0xc82,
+	0x99b,
+	0x4b32,
+	0x4b32,
+	0x4b02,
+	0x4b02,
+	0x4b32,
+	0x4b32,
+	0xb332,
+	0xb682,
+	0xb302,
+	0xb304,
+	0xb304,
+	0xb304,
+	0xb682,
+	0xb682,
+	0xb682,
+	0xb682,
+	0xb302,
+	0xb682,
+	0xb682,
+	0xb302,
+	0xb684,
+	0xb684,
+	0xb304,
+	0xb684,
+	0xb004,
+	0xb004,
+	0xb304,
+	0xb004,
+	0xb004,
+	0xb304,
+	0xb004,
+	0xb004,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+	0x0,
+}
+
+// Only supported lua version config must be passed here.
+func ParseLuaUnwinderConfig(conf *lua.LuaConfig) *unwinder.LuaConfig {
+	println("SPAR: lua::ParseLuaUnwinderConfig")
+
+	luaConf := &unwinder.LuaConfig{}
+	luaConf.Version = encodeVersion(conf.Version)
+
+	luaConf.OffsetGToL = conf.OffsetGtoL
+	luaConf.OffsetGToDispatch = conf.OffsetGtoDispatch
+
+	for idx, variable := range ljBcMode {
+		luaConf.LjBcMode[idx] = variable
+	}
+
+	return luaConf
+}

@@ -5,6 +5,7 @@ RECURSE(
     merge
     parse
     php
+    lua
     python
     quality
     samplefilter

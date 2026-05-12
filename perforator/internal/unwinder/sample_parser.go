@@ -171,6 +171,8 @@ func parseLangSections(data []byte, base int, off, size uint16, out *RecordSampl
 			decodeInterpreterFrames(frames, &out.PhpStack)
 		case LanguageJvm:
 			decodeJvmEntries(frames, &out.JvmStack)
+		case LanguageLua:
+			decodeInterpreterFrames(frames, &out.LuaStack)
 		}
 		pos += byteSize
 	}

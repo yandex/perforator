@@ -222,6 +222,7 @@ type oneShotSampleConsumer struct {
 
 	pythonProcessor *sampleStackProcessor
 	phpProcessor    *sampleStackProcessor
+	luaProcessor    *sampleStackProcessor
 
 	workloadParts []string
 }
@@ -243,6 +244,7 @@ func newOneShotSampleConsumer(
 		envWhitelist:    p.envWhitelist,
 		pythonProcessor: newPythonSampleStackProcessor(p.pythonSymbolizer),
 		phpProcessor:    newPHPSampleStackProcessor(p.phpSymbolizer),
+		luaProcessor:    newLuaSampleStackProcessor(p.luaSymbolizer),
 	}
 }
 
@@ -575,6 +577,20 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 		)
 	}
 
+	if enableLua := c.p.conf.BPF.TraceLua; enableLua != nil && *enableLua {
+		c.p.log.Error("SPAR: sample_consumer::collectStacksInto -> enableLua != nil && *enableLua -> true", log.Any("LuaStack", c.sample.LuaStack), log.Any("luaMetrics", c.p.metrics.luaMetrics))
+		c.collectInterpreterStackInto(
+			&c.p.metrics.luaMetrics,
+			builder,
+			c.luaProcessor,
+			&c.sample.LuaStack,
+		)
+		c.p.log.Info("SSE4: Lua is enabled, collect Lua Interpreter stack info")
+	} else {
+		c.p.log.Error("SPAR: sample_consumer::collectStacksInto -> enableLua != nil && *enableLua -> false")
+		c.p.log.Info("SSE4: Lua is disabled, skip collecting Lua Interpreter stack info")
+	}
+
 	c.collectKernelStackInto(builder)
 	c.collectUserStackInto(ctx, builder)
 }
@@ -699,6 +715,7 @@ func (c *oneShotSampleConsumer) finishSample(builder *profile.SampleBuilder) {
 
 // On CPU / perf event profiling.
 func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
+	println("SPAR: recordCPUSample")
 	hasWallTime := c.p.conf.BPF.TraceWallTime != nil && *c.p.conf.BPF.TraceWallTime
 
 	var resolvedPerfEvent *perfevent.Event
