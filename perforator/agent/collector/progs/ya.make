@@ -10,6 +10,7 @@ SET(BPF_FLAGS
     -O3
     --debug
     -mcpu=v3
+    -Wno-c23-extensions
     -D__KERNEL__
     -Wall
 )

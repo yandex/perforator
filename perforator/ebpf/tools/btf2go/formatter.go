@@ -355,7 +355,7 @@ func (f *GoFormatter) collectChildren(typ btf.Type) error {
 	case *btf.Typedef:
 		info, err = f.visitTypedef(v)
 	default:
-		return fmt.Errorf("unsupported type: %+T", typ)
+		return fmt.Errorf("unsupported type: %+T (%v)", typ, typ)
 	}
 	if err != nil {
 		return err

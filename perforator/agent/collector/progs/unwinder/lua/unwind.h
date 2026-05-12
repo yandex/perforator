@@ -19,12 +19,17 @@
  * As no CO-RE relocations are emitted, source types can be arbitrary and are
  * not restricted to kernel types only.
  */
-#define BPF_PROBE_READ_USER_POINTER(src)                                       \
-    ({                                                                         \
-        typeof(*(src)) __r;                                                    \
-        bpf_probe_read_user(&__r, sizeof(*(src)), (src));                      \
-        __r;                                                                   \
+// clang-format off
+#define BPF_PROBE_READ_USER_POINTER(src)                                                           \
+    ({                                                                                             \
+        _Pragma("clang diagnostic push");                                                          \
+        _Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"");  \
+        typeof(*(src)) __r;                                                                        \
+        bpf_probe_read_user(&__r, sizeof(*(src)), (src));                                          \
+        _Pragma("clang diagnostic pop");                                                           \
+        __r;                                                                                       \
     })
+// clang-format on
 
 #include "trace.h"
 #include "types.h"
@@ -71,6 +76,7 @@ lua_state_config_get(struct lua_state *state,
     }
 
     state->config = *config;
+
     return true;
 }
 
@@ -182,7 +188,8 @@ static ALWAYS_INLINE void lua_stack_reset(struct lua_state *state) {
  * @param size Size to clamp.
  * @return size_t Clamped size.
  */
-static ALWAYS_INLINE size_t lua_symbol_clamp_size(size_t size) { // maybe unused
+[[maybe_unused]] static ALWAYS_INLINE size_t
+lua_symbol_clamp_size(size_t size) { // TODO: leave until final
     return size & INTERPRETER_SYMBOL_STRING_LENGTH_VERIFIER_MASK;
 }
 
@@ -235,18 +242,6 @@ static ALWAYS_INLINE void lua_symbol_name_commit(struct symbol_state *state) {
 static ALWAYS_INLINE void
 lua_symbol_filename_commit(struct symbol_state *state) {
     state->symbol->filename_length = state->size - state->symbol->name_length;
-}
-
-/**
- * @brief Writes one character to symbol buffer.
- *
- * @param state Symbol state.
- * @param symbol Character to write.
- */
-static ALWAYS_INLINE void lua_symbol_append_char(struct symbol_state *state,
-                                                 char symbol) {
-    state->caret++[0] = symbol;
-    ++state->size;
 }
 
 /**
@@ -316,101 +311,6 @@ lua_symbol_append_user_string(struct symbol_state *state,
     state->caret += status - 1;
     state->size += status - 1;
     return true;
-}
-
-/**
- * @brief Writes BCLine to symbol buffer in base 10.
- *
- * @param state Symbol state.
- * @param line Line to write.
- */
-static void lua_symbol_append_bcline(struct symbol_state *state, BCLine line) {
-    size_t remaining_capacity = lua_symbol_get_remaining_capacity(state);
-
-    uint32_t unsigned_line;
-    bool is_negative;
-
-    if (line < 0) {
-        is_negative = true;
-        unsigned_line = -line;
-    } else {
-        is_negative = false;
-        unsigned_line = line;
-    }
-
-    unsigned int digits = 0;
-
-    // Counting digits
-    {
-        uint32_t copy = unsigned_line;
-
-        do {
-            ++digits;
-            copy /= 10;
-        } while (digits < 10 && copy != 0);
-    }
-
-    if (!(remaining_capacity - is_negative)) {
-        LUA_TRACE("!remaining_capacity");
-        return;
-    }
-
-    // Writing minus
-    if (is_negative) {
-        lua_symbol_append_char(state, '-');
-        --remaining_capacity;
-    }
-
-    int digits_copy = digits;
-    int count = 0;
-
-    // Writing digits
-    while (digits_copy) {
-        unsigned int pos = --digits_copy;
-
-        if (pos < remaining_capacity) {
-            state->caret[pos] = '0' + (unsigned_line % 10);
-            --remaining_capacity;
-            ++count;
-        }
-
-        unsigned_line /= 10;
-    }
-
-    state->caret += count;
-    state->size += count;
-}
-
-// /* Convert a nibble (0..15) to hex char */
-// static ALWAYS_INLINE char nibble_to_hex(uint8_t nibble) {
-//   return ;
-// }
-
-/**
- * @brief Writes address to symbol buffer in format `%#x`.
- *
- * @param state Symbol state.
- * @param address Address to write.
- */
-static void lua_symbol_append_address(struct symbol_state *state,
-                                      void *address) {
-    static const size_t kMaxDigits = sizeof(uintptr_t);
-    // size_t remaining_capacity = lua_symbol_get_remaining_capacity(state);
-    // unsigned int digits = 0;
-
-    LUA_SYMBOL_APPEND_LITERAL(state, "0x");
-
-    uintptr_t address_as_number = (uintptr_t)address;
-
-    for (size_t pos = 0, offset = (kMaxDigits - 1) * 4; pos < kMaxDigits;
-         ++pos, offset -= 4) {
-        uint8_t nibble = (address_as_number >> offset) & 0x0f;
-        state->caret[pos] =
-            (nibble < 10) ? ('0' + nibble) : ('a' + (nibble - 10));
-    }
-
-    state->caret += kMaxDigits;
-    state->size += kMaxDigits;
 }
 
 /* Invalid bytecode position. */
@@ -662,10 +562,11 @@ done:
 
 // original function - lj_debug_slotname, lj_debug.c
 static ALWAYS_INLINE const char *
-bpf_debug_slotname(struct lua_state *state, struct symbol_state *symbol,
-                   GCproto *pt, const BCIns *ip, BCReg slot,
+bpf_debug_slotname(struct lua_state *state,
+                   [[maybe_unused]] struct symbol_state *symbol, GCproto *pt,
+                   const BCIns *ip, BCReg slot,
                    enum lua_context_type *context_type) {
-    const char *lname;
+    [[maybe_unused]] const char *lname; // TODO: unused?
 
     BCPos pc = proto_bcpos(pt, ip);
     BCIns *bc = proto_bc(pt);
@@ -700,7 +601,8 @@ bpf_debug_slotname(struct lua_state *state, struct symbol_state *symbol,
         }
 
         BCIns ins, previous_ins;
-        int status = bpf_probe_read_user(&ins, sizeof(ins), ip);
+        [[maybe_unused]] int status =
+            bpf_probe_read_user(&ins, sizeof(ins), ip); // TODO
 
         BCOp op = bc_op(ins);
         BCReg ra = bc_a(ins);
@@ -710,7 +612,6 @@ bpf_debug_slotname(struct lua_state *state, struct symbol_state *symbol,
             if (slot >= ra && (op != BC_KNIL || slot <= d)) {
                 return NULL;
             }
-
         } else if (mode_a == BCMdst && ra == slot) {
             switch (op) {
             case BC_MOV:
@@ -733,8 +634,9 @@ bpf_debug_slotname(struct lua_state *state, struct symbol_state *symbol,
                 GCstr *gco = gco2str(kgc);
                 const char *s = strdata(gco);
 
-                int status =
-                    bpf_probe_read_user(&previous_ins, sizeof(ins), ip - 1);
+                [[maybe_unused]] int status = bpf_probe_read_user(
+                    &previous_ins, sizeof(ins), ip - 1); // TODO
+
                 if (bc_op(previous_ins) == BC_MOV &&
                     bc_a(previous_ins) == ra + 1 + LJ_FR2 &&
                     bc_d(previous_ins) == bc_b(ins)) {
@@ -769,7 +671,7 @@ bpf_debug_funcname(struct symbol_state *symbol, struct lua_state *state,
     *context_type = LUA_CONTEXT_UNKNOWN;
 
     lua_State *L = (lua_State *)state->L;
-    global_State *g = G(L);
+    global_State *g = (global_State *)state->G;
     cTValue *bot = tvref(BPF_PROBE_READ_USER(L, stack)) + LJ_FR2;
 
     if (frame <= bot) {
@@ -790,7 +692,8 @@ bpf_debug_funcname(struct symbol_state *symbol, struct lua_state *state,
     }
 
     GCproto *pt = funcproto(fn);
-    __auto_type sizebc = BPF_PROBE_READ_USER(pt, sizebc);
+    [[maybe_unused]] __auto_type sizebc =
+        BPF_PROBE_READ_USER(pt, sizebc); // TODO: which one to use?
     // const BCIns *ip = &proto_bc(pt)[check_exp(pc < sizebc, pc)];
     BCIns *bc = proto_bc(pt);
     BCIns *ip = bc + pc;
@@ -976,7 +879,7 @@ static ALWAYS_INLINE TValue *lua_resolve_base_value(struct lua_state *state,
         return base;
     }
 
-    // TODO
+    // TODO implement pc_hint for top frame
     // __auto_type ins =
     // BPF_PROBE_READ_USER_POINTER((BCIns*)state->pc_register); Corner case.
     // During `BC_RET` we move results from a function to caller stack, this
@@ -1022,9 +925,9 @@ static ALWAYS_INLINE TValue *lua_get_jit_base(struct lua_state *state,
  *
  * @param state
  */
-static void lua_stack_walk(struct lua_state *state) {
+NOINLINE static void lua_stack_walk(struct lua_state *state) {
     lua_State *L = (lua_State *)state->L;
-    global_State *g = G(L);
+    global_State *g = (global_State *)state->G;
 
     if (L == NULL || g == NULL) {
         metric_increment(METRIC_LUA_NULL_STATE_COUNT);
@@ -1077,12 +980,7 @@ static void lua_stack_walk(struct lua_state *state) {
     __auto_type bottom = tvref(BPF_PROBE_READ_USER(L, stack)) + LJ_FR2;
     __auto_type max_stack = tvref(BPF_PROBE_READ_USER(L, maxstack));
 
-    // TODO: implement pc_hint for top frame
     if (vmstate == ~LJ_VMST_INTERP) {
-        LUA_TRACE("Used base from register | r14 == G == %d",
-                  g == ((char *)state->dispatch_register -
-                        state->config.offset_g_to_dispatch));
-
         base = lua_resolve_base_value(state, base, max_stack, bottom);
     } else if (vmstate >= 0) {
         base = lua_get_jit_base(state, base, g);
@@ -1090,13 +988,14 @@ static void lua_stack_walk(struct lua_state *state) {
 
     frame = nextframe = base - 1;
 
-    int stack_size = (max_stack - (bottom - LJ_FR2)) >> 3;
-    int free_slots = (max_stack - BPF_PROBE_READ_USER(L, top) - 8) >> 3;
+    // TODO: Is it reliable?
+    // [[maybe_unused]] int stack_size = (max_stack - (bottom - LJ_FR2)) >> 3;
+    // [[maybe_unused]] int free_slots =
+    //     (max_stack - BPF_PROBE_READ_USER(L, top) - 8) >> 3;
 
-    LUA_TRACE("Approximate stack size: %d | L->base=%px",
-              stack_size - free_slots, BPF_PROBE_READ_USER(L, base));
+    // LUA_TRACE("Approximate stack size: %d | L->base=%px | base=%px",
+    //           stack_size - free_slots, BPF_PROBE_READ_USER(L, base), base);
 
-    int debug_count = 0;
     bool should_visit_frame = true;
 
     for (int i = 0; i < 10 && frame > bottom; i++) {
@@ -1123,7 +1022,6 @@ static void lua_stack_walk(struct lua_state *state) {
                 return;
             }
 
-            debug_count++;
             metric_increment(METRIC_LUA_PROCESSED_FRAMES_COUNT);
         }
 
@@ -1144,10 +1042,10 @@ static ALWAYS_INLINE lua_State *
 lua_global_state_get_cur_l(struct lua_state *state, void *global_state) {
     // pointer to L aka lua_State
     void *cur_L_field = (char *)global_state + state->config.offset_g_to_l;
-    void *cur_L;
+    lua_State *cur_L;
 
     // TODO: Replace with generic read
-    long err = bpf_probe_read_user(&cur_L, sizeof(void *), cur_L_field);
+    long err = bpf_probe_read_user(&cur_L, sizeof(lua_State *), cur_L_field);
     if (err != 0) {
         metric_increment(METRIC_LUA_CUR_L_READ_FAIL_COUNT);
         LUA_TRACE("get_lua_state_from_global_state: failed to read g->curL=%px "
@@ -1160,7 +1058,7 @@ lua_global_state_get_cur_l(struct lua_state *state, void *global_state) {
         LUA_TRACE("get_lua_state_from_global_state: cur_L is NULL?");
     }
 
-    return (lua_State *)cur_L;
+    return cur_L;
 }
 
 /**
@@ -1192,17 +1090,6 @@ static ALWAYS_INLINE bool lua_global_state_is_valid(struct lua_state *state,
             global_state);
         return false;
     }
-
-    // Seems to be redunant and also misleading if compiler used different
-    // offsets
-    // lua_State *cur_L = gco2th(gcref(BPF_PROBE_READ_USER(g, cur_L)));
-
-    // if (cur_L != L) {
-    //     metric_increment(METRIC_LUA_L_EQ_L_MISMATCH_COUNT);
-    //     LUA_TRACE("lua_global_state_is_valid: cur_L %px doesn't match L %px",
-    //               cur_L, L);
-    //     return false;
-    // }
 
     LUA_TRACE("lua_global_state_is_valid: global_State=%px is valid",
               global_state);
@@ -1241,6 +1128,8 @@ static ALWAYS_INLINE bool find_lua_state(struct process_info *process_info,
 
     if (cached_global_state != NULL) {
         // now check, if it's still valid
+        // TODO: redunant calls. `lua_global_state_is_valid` calls
+        // `lua_global_state_get_cur_l`
         if (lua_global_state_is_valid(state, (void *)cached_global_state->G)) {
             metric_increment(METRIC_LUA_VALID_CACHE_COUNT);
             LUA_TRACE("find_lua_state: using valid global_State=%px from cache",
@@ -1248,6 +1137,7 @@ static ALWAYS_INLINE bool find_lua_state(struct process_info *process_info,
 
             state->L = (u64)lua_global_state_get_cur_l(
                 state, (void *)cached_global_state->G);
+            state->G = cached_global_state->G;
             return true;
         }
 
@@ -1264,33 +1154,31 @@ static ALWAYS_INLINE bool find_lua_state(struct process_info *process_info,
 
     // Don't try to find the state if we are currently not executing in LuaJIT
     // binary
-    if (state->instruction_pointer < process_info->lua_binary.base_address ||
-        (process_info->lua_binary.base_address + state->config.binary_size) <=
-            state->instruction_pointer) {
-        metric_increment(METRIC_LUA_NOT_IN_LUAJIT_BINARY_COUNT);
-        LUA_TRACE("find_lua_state: not in luajit binary");
-        return false;
-    }
+    // Apparently first pointer in dispatch is start of VM
+    //   dispatch = {
+    // [0] = 0x00006348286db3c0 (luajit-2.1.1748459687`lj_vm_asm_begin)
 
     // G aka global_State
     void *global_state =
         (char *)state->dispatch_register - state->config.offset_g_to_dispatch;
 
-    if (lua_global_state_is_valid(state, global_state)) {
-        // new valid state has been found, cache it
-        metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
-        LUA_TRACE("find_lua_state: found new global_State=%px", global_state);
-
-        struct lua_global_state_cache entry = {.G = (u64)global_state};
-        bpf_map_update_elem(&lua_global_state_storage, &key, &entry, BPF_ANY);
-
-        state->L = (u64)lua_global_state_get_cur_l(state, global_state);
-        return true;
+    if (!lua_global_state_is_valid(state, global_state)) {
+        metric_increment(METRIC_LUA_GLOBAL_STATE_NOT_FOUND_COUNT);
+        LUA_TRACE("find_lua_state: ignore invalid global_State=%px",
+                  global_state);
+        return false;
     }
 
-    metric_increment(METRIC_LUA_GLOBAL_STATE_NOT_FOUND_COUNT);
-    LUA_TRACE("find_lua_state: ignore invalid global_State=%px", global_state);
-    return false;
+    // new valid state has been found, cache it
+    metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
+    LUA_TRACE("find_lua_state: found new global_State=%px", global_state);
+
+    struct lua_global_state_cache entry = {.G = (u64)global_state};
+    bpf_map_update_elem(&lua_global_state_storage, &key, &entry, BPF_ANY);
+
+    state->L = (u64)lua_global_state_get_cur_l(state, global_state);
+    state->G = (u64)global_state;
+    return true;
 #endif
 }
 
