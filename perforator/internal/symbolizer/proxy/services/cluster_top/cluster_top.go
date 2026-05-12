@@ -59,6 +59,19 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 		limit = aggregated.DefaultPageSize
 	}
 
+	var sortOrder aggregated.SortOrder
+
+	switch req.GetOrderBy() {
+	case "self_time":
+		sortOrder = aggregated.SelfTimeSortOrder
+	case "":
+		sortOrder = aggregated.SelfTimeSortOrder
+	case "cumulative_time":
+		sortOrder = aggregated.CumulativeTimeSortOrder
+	default:
+		return nil, status.Errorf(codes.InvalidArgument, "Unknown order by: %s", req.GetOrderBy())
+	}
+
 	offset := req.GetPagination().GetOffset()
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -71,7 +84,7 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 		entries, err = s.clusterTopGenerationStorage.AggregateClusterTop(ctx, generation, filter, groupBy, util.Pagination{
 			Offset: offset,
 			Limit:  limit + 1,
-		})
+		}, sortOrder)
 		return err
 	})
 

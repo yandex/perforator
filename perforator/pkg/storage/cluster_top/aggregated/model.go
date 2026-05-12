@@ -30,9 +30,16 @@ type Filter struct {
 	FunctionFilterMatchMode MatchMode
 }
 
+type SortOrder int32
+
+const (
+	SelfTimeSortOrder SortOrder = iota
+	CumulativeTimeSortOrder
+)
+
 type AggregationStorage interface {
 	SaveClusterTopEntry(ctx context.Context, servicePerfTop *ServicePerfTop) error
-	AggregateClusterTop(ctx context.Context, generation uint32, filter *Filter, aggregationType GroupByMode, pagination util.Pagination) ([]*AggregationValue, error)
+	AggregateClusterTop(ctx context.Context, generation uint32, filter *Filter, aggregationType GroupByMode, pagination util.Pagination, sortOrder SortOrder) ([]*AggregationValue, error)
 	CountTotalCycles(ctx context.Context, generation uint32, funcFilter string) (*TotalCycles, error)
 }
 

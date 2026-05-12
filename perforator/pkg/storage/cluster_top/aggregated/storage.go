@@ -101,8 +101,6 @@ var groupByAggregation = map[GroupByMode]string{
 	GroupByService:  "service",
 }
 
-const orderByCycles = "cpu_cycles DESC"
-
 const DefaultPageSize = 100
 
 func getComparisonOperator(mode MatchMode) string {
@@ -160,7 +158,7 @@ func (s *ClickhouseAggregationStorage) CountTotalCycles(ctx context.Context, gen
 }
 
 // aggregates cluster top based on
-func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, generation uint32, filter *Filter, aggregationType GroupByMode, pagination util.Pagination) ([]*AggregationValue, error) {
+func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, generation uint32, filter *Filter, aggregationType GroupByMode, pagination util.Pagination, sortOrder SortOrder) ([]*AggregationValue, error) {
 	var sql string
 	var err error
 
@@ -171,6 +169,15 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 		limit = DefaultPageSize
 	}
 	offset := pagination.Offset
+	var orderByCycles string
+	switch sortOrder {
+	case SelfTimeSortOrder:
+		orderByCycles = "cpu_cycles DESC"
+	case CumulativeTimeSortOrder:
+		orderByCycles = "sum_cumulative_cycles DESC"
+	default:
+		return nil, fmt.Errorf("unknown sort order")
+	}
 
 	builder := squirrel.
 		Select(fmt.Sprintf("left(%s, 150) AS name, sum(self_cycles) AS cpu_cycles, sum(cumulative_cycles) as sum_cumulative_cycles", groupBy)).
