@@ -808,13 +808,14 @@ static NOINLINE int profiler_stage_collect_lua_stack(void *context, struct user_
     }
 
     profiler_state->lua_state.pid = profiler_state->packed.header.pid;
+    profiler_state->lua_state.instruction_pointer = user_registers->rip;
     profiler_state->lua_state.dispatch_register = user_registers->r14;
     profiler_state->lua_state.base_register = user_registers->rdx;
     // profiler_state->lua_state.pc_register = user_registers->rbx;
 
     LUA_TRACE("CURRENT rip: %px", user_registers->rip);
 
-    lua_collect_stack(process_info, &profiler_state->lua_state);
+    lua_collect_stack(process_info, &profiler_state->lua_state, &profiler_state->packed.header);
 
     // Fixing stack info for JIT traces.
     // TODO: Does this work even if JIT frame is not the top one?

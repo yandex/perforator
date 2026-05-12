@@ -127,6 +127,9 @@ struct record_sample_header {
     u64 value;
     u64 timedelta;
 
+    u64 lua_vm_start_pc;
+    u64 lua_vm_end_pc;
+
     // Section descriptors (offset + size in bytes, relative to start of data)
     struct section_desc kern_stack;
     struct section_desc user_stack;

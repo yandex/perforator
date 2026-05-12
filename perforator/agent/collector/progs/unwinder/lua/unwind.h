@@ -1302,7 +1302,8 @@ static ALWAYS_INLINE bool find_lua_state(struct process_info *process_info,
  * @param state Lua unwind state. Not to be confused with lua_State.
  */
 static ALWAYS_INLINE void lua_collect_stack(struct process_info *process_info,
-                                            struct lua_state *state) {
+                                            struct lua_state *state,
+                                            struct record_sample_header *header) {
     if (process_info == NULL || state == NULL ||
         !is_mapped(process_info->lua_binary)) {
         return;
@@ -1314,6 +1315,11 @@ static ALWAYS_INLINE void lua_collect_stack(struct process_info *process_info,
 
     metric_increment(METRIC_LUA_PROCESSED_STACKS_COUNT);
 
+    header->lua_vm_start_pc =
+        process_info->lua_binary.base_address + state->config.vm_start_pc;
+    header->lua_vm_end_pc =
+        process_info->lua_binary.base_address + state->config.vm_end_pc;
+
     LUA_TRACE("Lua config info: offset_g_to_l=%llu offset_g_to_dispatch=%llu "
               "version=%u",
               state->config.offset_g_to_l, state->config.offset_g_to_dispatch,
@@ -1322,9 +1328,18 @@ static ALWAYS_INLINE void lua_collect_stack(struct process_info *process_info,
     LUA_TRACE("Binary info: base_address=%llu binary_size=%llu",
               process_info->lua_binary.base_address, state->config.binary_size);
 
-    LUA_TRACE("Compiler info: offsetof(global_State, cur_L)=%llu "
-              "offsetof(lua_State, glref)=%llu",
-              offsetof(global_State, cur_L), offsetof(lua_State, glref));
+    _Static_assert(offsetof(lua_State, base) == 32);        // Used
+    _Static_assert(offsetof(lua_State, top) == 40);         // Used
+    _Static_assert(offsetof(lua_State, maxstack) == 48);    // Used
+    _Static_assert(offsetof(lua_State, stack) == 56);       // Used
+    _Static_assert(offsetof(lua_State, cframe) == 80);      // Used
+    _Static_assert(offsetof(lua_State, stacksize) == 88);   // Used
+    _Static_assert(offsetof(global_State, vmstate) == 184); // Used
+    // _Static_assert(offsetof(GG_State, J) == 832); // Used
+    _Static_assert(offsetof(jit_State, sizetrace) == 396); // Used
+    _Static_assert(offsetof(jit_State, trace) == 384);     // Used
+    _Static_assert(offsetof(GCtrace, mcode) == 88);        // Used
+    _Static_assert(offsetof(GCtrace, szmcode) == 84);      // Used
 
     if (!find_lua_state(process_info, state)) {
         return;

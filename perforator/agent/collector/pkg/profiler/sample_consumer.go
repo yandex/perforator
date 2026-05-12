@@ -589,6 +589,7 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 			c.luaProcessor,
 			&c.sample.LuaStack,
 		)
+		c.p.log.Error("SPAR: We got VM range:", log.Any("lua_vm_start_pc", c.sample.LuaVmStartPc), log.Any("lua_vm_end_pc", c.sample.LuaVmEndPc))
 		c.p.log.Info("SSE4: Lua is enabled, collect Lua Interpreter stack info")
 	} else {
 		c.p.log.Error("SPAR: sample_consumer::collectStacksInto -> enableLua != nil && *enableLua -> false")
