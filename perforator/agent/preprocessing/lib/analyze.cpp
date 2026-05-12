@@ -149,7 +149,8 @@ TMaybe<NPerforator::NBinaryProcessing::NPhp::PhpConfig> BuildPhpConfig(llvm::obj
 
 namespace NPerforator::NBinaryProcessing::NLua {
 
-TMaybe<NPerforator::NBinaryProcessing::NLua::LuaConfig> BuildLuaConfig(llvm::object::ObjectFile* objectFile) {
+TMaybe<NPerforator::NBinaryProcessing::NLua::LuaConfig>
+BuildLuaConfig(llvm::object::ObjectFile *objectFile) {
     WORK_IN_PROGRESS_LOG("SPAR: %s\n", __PRETTY_FUNCTION__);
 
     auto analyzer = NPerforator::NLinguist::NLua::TLuaAnalyzer{*objectFile};
@@ -173,10 +174,12 @@ TMaybe<NPerforator::NBinaryProcessing::NLua::LuaConfig> BuildLuaConfig(llvm::obj
         conf.SetOffsetGtoDispatch(*offsetGtoDispatch);
     }
 
+    conf.SetBinarySize(analyzer.GetBinarySize());
+
     return conf;
 }
 
-} // namespace NPerforator::NBinaryProcessing::NPython
+} // namespace NPerforator::NBinaryProcessing::NLua
 
 namespace NPerforator::NBinaryProcessing {
 
@@ -253,7 +256,8 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
 
     WORK_IN_PROGRESS_LOG("SPAR: %s -> auto luaConfig\n", __PRETTY_FUNCTION__);
     if (auto luaConfig = NLua::BuildLuaConfig(objectFile.getBinary())) {
-        WORK_IN_PROGRESS_LOG("SPAR: %s -> luaConfig -> true\n", __PRETTY_FUNCTION__);
+        WORK_IN_PROGRESS_LOG("SPAR: %s -> luaConfig -> true\n",
+                             __PRETTY_FUNCTION__);
         *result.MutableLuaConfig() = std::move(luaConfig).GetRef();
     }
 

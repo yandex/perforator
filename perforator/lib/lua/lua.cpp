@@ -1,7 +1,7 @@
 #include "lua.h"
 
-#include <ranges>
 #include <charconv>
+#include <ranges>
 
 #include <contrib/libs/re2/re2/stringpiece.h>
 
@@ -54,7 +54,7 @@ TMaybe<TParsedLuaVersion> TLuaAnalyzer::ParseVersion() {
     }
 
     // Alternative method.
-    // 1. We need to make sure this is not a library but a interpreter. Binary
+    // 1. We need to make sure this is not a library but an interpreter. Binary
     // must have `lua_close`
     // 2. Then, to make sure this is LuaJIT and not Lua, the binary must have
     // `luaopen_jit` or `luaopen_bit` (in case JIT is disabled)
@@ -154,6 +154,10 @@ TMaybe<ui64> TLuaAnalyzer::ParseOffsetGtoDispatch() {
     return NAsm::NX86::DecodeLjDispatchUpdate(File_.makeTriple(), *bytecode);
 }
 
+ui64 TLuaAnalyzer::GetBinarySize() {
+    return File_.getMemoryBufferRef().getBufferSize();
+}
+
 void TLuaAnalyzer::ParseSymbolLocations() {
     if (Symbols_) {
         return;
@@ -201,8 +205,10 @@ TMaybe<TLuaVersion> TLuaAnalyzer::TryScanVersion(std::string_view input) {
         return Nothing();
     }
 
-    auto from_chars = [](auto&& string, auto&& output) {
-        return std::from_chars(string.data(), string.data() + string.size(), output).ec == std::errc{};
+    auto from_chars = [](auto &&string, auto &&output) {
+        return std::from_chars(string.data(), string.data() + string.size(),
+                               output)
+                   .ec == std::errc{};
     };
 
     TLuaVersion luaVersion;

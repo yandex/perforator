@@ -1255,6 +1255,16 @@ static ALWAYS_INLINE bool find_lua_state(struct process_info *process_info,
         bpf_map_update_elem(&lua_global_state_storage, &key, &entry, BPF_ANY);
     }
 
+    // Don't try to find the state if we are currently not executing in LuaJIT
+    // binary
+    if (state->instruction_pointer < process_info->lua_binary.base_address ||
+        (process_info->lua_binary.base_address + state->config.binary_size) <=
+            state->instruction_pointer) {
+        metric_increment(METRIC_LUA_NOT_IN_LUAJIT_BINARY_COUNT);
+        LUA_TRACE("find_lua_state: not in luajit binary");
+        return false;
+    }
+
     // G aka global_State
     void *global_state =
         (char *)state->dispatch_register - state->config.offset_g_to_dispatch;
@@ -1302,6 +1312,9 @@ static ALWAYS_INLINE void lua_collect_stack(struct process_info *process_info,
               "version=%u",
               state->config.offset_g_to_l, state->config.offset_g_to_dispatch,
               state->config.version);
+
+    LUA_TRACE("Binary info: base_address=%llu binary_size=%llu",
+              process_info->lua_binary.base_address, state->config.binary_size);
 
     LUA_TRACE("Compiler info: offsetof(global_State, cur_L)=%llu "
               "offsetof(lua_State, glref)=%llu",

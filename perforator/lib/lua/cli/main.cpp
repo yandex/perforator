@@ -16,6 +16,8 @@ int main(int argc, const char* argv[]) {
   TMaybe<NPerforator::NLinguist::NLua::TParsedLuaVersion> version =
       analyzer.ParseVersion();
 
+  Cout << "Binary size: " << analyzer.GetBinarySize() << Endl;
+
   if (!version) {
     Cout << "Does not seem like Lua binary" << Endl;
     return 0;

@@ -215,6 +215,7 @@ func ParseLuaUnwinderConfig(conf *lua.LuaConfig) *unwinder.LuaConfig {
 
 	luaConf.OffsetGToL = conf.OffsetGtoL
 	luaConf.OffsetGToDispatch = conf.OffsetGtoDispatch
+	luaConf.BinarySize = conf.BinarySize
 
 	for idx, variable := range ljBcMode {
 		luaConf.LjBcMode[idx] = variable

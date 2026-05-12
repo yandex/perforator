@@ -18,7 +18,7 @@ uint64_t LJ_FASTCALL lj_buf_ruleb128_new(uint64_t pp) {
     int shift = 0;
 
     for (int i = 0; i < 5; i++) {
-        if (bpf_probe_read_user(&b, 1, p + i)){
+        if (bpf_probe_read_user(&b, 1, p + i)) {
             break;
         }
 
@@ -26,16 +26,16 @@ uint64_t LJ_FASTCALL lj_buf_ruleb128_new(uint64_t pp) {
         v |= (uint32_t)(b & 0x7f) << shift;
         shift += 7;
         if (b < 0x80) {
-           offset = i;
-           status = true;
-           break;
-       }
-   }
+            offset = i;
+            status = true;
+            break;
+        }
+    }
 
-   result |= status ? 0x800000000000000 : 0;
-   result |= ((uint64_t) offset) << 32;
-   result |= v;
-   return result;
+    result |= status ? 0x800000000000000 : 0;
+    result |= ((uint64_t)offset) << 32;
+    result |= v;
+    return result;
 }
 
 enum {
@@ -116,7 +116,8 @@ union lua_symbol_key_data {
 BTF_EXPORT(enum lua_context_type);
 BTF_EXPORT(enum lua_unwind_error);
 
-_Static_assert(LJ_ARCH_ENDIAN == LUAJIT_LE, "We currently support little-endian architectures only"); // TODO
+_Static_assert(LJ_ARCH_ENDIAN == LUAJIT_LE,
+               "We currently support little-endian architectures only"); // TODO
 _Static_assert(sizeof(union lua_symbol_key_data) ==
                    sizeof(((struct symbol_key *)0)->object_addr),
                "Union must match the size of struct symbol_key::object_addr");
@@ -132,6 +133,8 @@ struct lua_config {
                                   // ParseLuaUnwinderConfig@lua.go
     u64 offset_g_to_l;            // `offsetof(global_State, cur_L)`
     u64 offset_g_to_dispatch;     // `GG_G2DISP`
+    u64 binary_size; // Size of LuaJIT binary. Used to determine if current `ip`
+                     // is from this binary.
 };
 
 /**
@@ -152,8 +155,10 @@ struct lua_state {
     struct interpreter_stack stack; // Call stack of current `lua_State`.
     struct symbol symbol;           // Temporary buffer for frame information.
 
-    u64 dispatch_register; // Value of `r14`. This register holds pointer to
-                           // GG_State->dispatch.
+    u64 instruction_pointer; // Value of `rip`. Used to determine if we're
+                             // executing in LuaJIT binary.
+    u64 dispatch_register;   // Value of `r14`. This register holds pointer to
+                             // GG_State->dispatch.
     u64 base_register; // Value of `rdx`. This register might have a hint about
                        // the actual L->base value.
     // u64 pc_register;    // Value of `rbx`. This register contains current

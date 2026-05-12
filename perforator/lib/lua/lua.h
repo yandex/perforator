@@ -81,6 +81,9 @@ class TLuaAnalyzer {
     // See `GG_G2DISP` in LuaJIT
     TMaybe<ui64> ParseOffsetGtoDispatch();
 
+    // Size of the binary file. Used with base offset which is already available in BPF
+    ui64 GetBinarySize();
+
   private:
     void ParseSymbolLocations();
     TMaybe<TLuaVersion> TryScanVersion(std::string_view data);

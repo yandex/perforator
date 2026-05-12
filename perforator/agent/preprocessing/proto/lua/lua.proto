@@ -15,4 +15,5 @@ message LuaConfig {
   repeated uint32 LjBcMode = 2;
   uint64 OffsetGtoL = 3;
   uint64 OffsetGtoDispatch = 4;
+  uint64 BinarySize = 5;
 }
