@@ -1,4 +1,4 @@
-jit.off()
+-- jit.off()
 
 local ffi = require("ffi")
 ffi.cdef [[
@@ -6,11 +6,15 @@ ffi.cdef [[
   void call(int n, void (*)(void));
   void loop(int n);
   void func(void);
+  int rand(void);
 ]]
-local callback = ffi.load("/home/spar/dev/perforator/callback.so")
+-- local callback = ffi.load("/home/spar/dev/perforator/callback.so")
 local timeit = require("timeit")
 
 local function lfunc() end
+
+local UPVALUE = 0
+local t = {}
 
 function work()
   while true do
@@ -35,7 +39,7 @@ function work()
     -- end))
 
     print("Lua empty loop", timeit(function(n)
-      for i = 1, n do debug.traceback() end
+      for i = 1, n do UPVALUE = ffi.C.rand() t[n] = UPVALUE end
     end))
   end
 end

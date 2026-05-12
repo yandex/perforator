@@ -174,7 +174,12 @@ struct lua_state {
 
     // buffer to read variable names
     char buffer[1024];
-    bool jit;
+
+    // JIT info for native unwinder
+    bool is_jit;         // Was LuaJIT executing JIT trace code?
+    u64 jit_trace_start; // Start of current trace machine code.
+    u64 jit_trace_end;   // End of current trace machine code.
+    u64 cframe;          // Address of top cframe to unwind
 };
 
 BPF_MAP(lua_storage, BPF_MAP_TYPE_HASH, binary_id, struct lua_config,

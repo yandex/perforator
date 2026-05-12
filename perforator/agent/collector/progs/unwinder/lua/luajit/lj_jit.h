@@ -287,7 +287,7 @@ typedef struct GCtrace {
 
 #define gco2trace(o)	check_exp((o)->gch.gct == ~LJ_TTRACE, (GCtrace *)(o))
 #define traceref(J, n) \
-  check_exp((n)>0 && (MSize)(n)<J->sizetrace, (GCtrace *)gcref(J->trace[(n)]))
+  check_exp((n)>0 && (MSize)(n)<J->sizetrace, (GCtrace *)gcref(BPF_PROBE_READ_USER_POINTER(&BPF_PROBE_READ_USER(J, trace)[(n)])))
 
 LJ_STATIC_ASSERT(offsetof(GChead, gclist) == offsetof(GCtrace, gclist));
 

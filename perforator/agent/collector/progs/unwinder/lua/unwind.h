@@ -7,6 +7,7 @@
 #include "../interpreter/types.h"
 #include "../metrics.h"
 #include "../process.h"
+#include "../unwind_ctx.h"
 
 #define LUAJIT_DISABLE_FFI
 
@@ -903,20 +904,18 @@ static ALWAYS_INLINE TValue *lua_resolve_base_value(struct lua_state *state,
  */
 static ALWAYS_INLINE TValue *lua_get_jit_base(struct lua_state *state,
                                               TValue *base, global_State *g) {
-    __auto_type jit_base = tvref(BPF_PROBE_READ_USER(g, jit_base)) - 1;
-    state->jit = false;
+    // TODO: Is it possible to have different padding? `jit_base` is next field
+    // after `cur_L`.
+    __auto_type jit_base_pointer =
+        (char *)g + state->config.offset_g_to_l + sizeof(void *);
+    __auto_type jit_base =
+        tvref(BPF_PROBE_READ_USER_POINTER((MRef *)(jit_base_pointer)));
 
     if (!jit_base) {
         return base;
     }
 
-    GCfunc *fn = frame_func(jit_base);
-
-    if (!fn) {
-        return base;
-    }
-
-    state->jit = true;
+    state->is_jit = true;
     return jit_base;
 }
 
@@ -967,7 +966,22 @@ NOINLINE static void lua_stack_walk(struct lua_state *state) {
         break;
     default:
         if (vmstate >= 0) {
-            LUA_TRACE("JIT Trace #%d", vmstate);
+            TraceNo tr = (TraceNo)vmstate;
+            jit_State *J =
+                (jit_State *)((char *)g + 736); // TODO: Get from ASM G2J
+            __auto_type T = traceref(J, tr);
+
+            LUA_TRACE("JIT Trace #%d", tr);
+            LUA_TRACE("is in range = %d | mcode = %px | size = %llu",
+                      tr > 0 && tr < BPF_PROBE_READ_USER(J, sizetrace),
+                      BPF_PROBE_READ_USER(T, mcode),
+                      BPF_PROBE_READ_USER(T, szmcode));
+
+            state->jit_trace_start = (u64)BPF_PROBE_READ_USER(T, mcode);
+            state->jit_trace_end =
+                state->jit_trace_start + BPF_PROBE_READ_USER(T, szmcode);
+            state->cframe = (u64)BPF_PROBE_READ_USER(L, cframe);
+
             break;
         }
 
@@ -1240,4 +1254,27 @@ static ALWAYS_INLINE void lua_collect_stack(struct process_info *process_info,
     LUA_TRACE("Stats: frames=%d", state->stack.len);
 
     return;
+}
+
+// Fixing stack info for JIT traces.
+// Invariant: `is_jit = true`, `regs` contains current JIT frame information.
+static NOINLINE int lua_collect_jit_stack(struct unwind_context *regs,
+                                          struct lua_state *state) {
+    u64 cframe[2];
+    u64 rsp = state->cframe + CFRAME_SIZE;
+
+    int err = bpf_probe_read_user(cframe, sizeof(cframe),
+                                  (void *)(rsp - sizeof(cframe)));
+
+    if (err == 0) {
+        __auto_type previous_rip = regs->ip;
+
+        regs->cfa = rsp;
+        regs->fp = cframe[0];
+        regs->ip = cframe[1];
+        LUA_TRACE("Changes registers: rbp=%px rip=%px previous_rip=%px",
+                  cframe[0], cframe[1], previous_rip);
+    }
+
+    return err;
 }

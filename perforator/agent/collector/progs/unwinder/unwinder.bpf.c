@@ -658,23 +658,29 @@ static ALWAYS_INLINE int mixed_collect_stack(struct user_regs* regs, struct stac
 
     int res = -1;
     for (int i = 0; i < DWARF_UNWIND_MAX_STACK_SIZE; ++i) {
-#ifndef PERFORATOR_COMPAT_5_4
-        bool is_jvm = false;
-#endif
-        u64 rip = ctx->cfi.ip;
-#ifdef PERFORATOR_COMPAT_5_4
-        (void) rip;
-#endif
-
         BPF_TRACE("[mixed_unwinder] start iteration %d: processing address %llx\n", i, ctx->cfi.ip);
 #ifndef PERFORATOR_COMPAT_5_4
-        if (jvm_proc_config != NULL) {
-            if (jvm_proc_config->interpreter_begin <= rip && rip < jvm_proc_config->interpreter_end) {
-                BPF_TRACE("[jvm] address 0x%llx is in JVM interpreter\n", rip);
-                is_jvm = true;
+        u64 rip = ctx->cfi.ip;
+
+        if (state->lua_state.is_jit &&
+            rip >= state->lua_state.jit_trace_start &&
+            rip < state->lua_state.jit_trace_end) {
+            BPF_TRACE("[lua] address 0x%llx is in JIT machine code\n", rip);
+            BPF_TRACE("[mixed_unwinder] using Lua unwinder for this frame\n");
+
+            int lua_res = lua_collect_jit_stack(&ctx->cfi, &state->lua_state);
+            if (lua_res < 0) {
+                BPF_TRACE("[lua] failed to collect stack, error=%d\n",
+                          -lua_res);
+                res = -1;
+                goto done;
+            } else if (lua_res == 0) {
+                // Found JIT frame, not searching anymore
+                state->lua_state.is_jit = false;
             }
         }
-        if (is_jvm) {
+        else if (jvm_proc_config != NULL && jvm_proc_config->interpreter_begin <= rip && rip < jvm_proc_config->interpreter_end) {
+            BPF_TRACE("[jvm] address 0x%llx is in JVM interpreter\n", rip);
             BPF_TRACE("[mixed_unwinder] using JVM unwinder for this frame\n");
             struct jvm_staging staging = {
                 .entries = state->jvm_entries,
@@ -815,23 +821,10 @@ static NOINLINE int profiler_stage_collect_lua_stack(void *context, struct user_
 
     LUA_TRACE("CURRENT rip: %px", user_registers->rip);
 
+    profiler_state->lua_state.is_jit = false;
     lua_collect_stack(process_info, &profiler_state->lua_state, &profiler_state->packed.header);
 
-    // Fixing stack info for JIT traces.
-    // TODO: Does this work even if JIT frame is not the top one?
-    if (profiler_state->lua_state.jit) {
-        u64 cframe[2];
-        u64 rsp = user_registers->rsp + CFRAME_SIZE_JIT;
-
-        int err = bpf_probe_read_user(cframe, sizeof(cframe),
-                                      (void *)(rsp - sizeof(cframe)));
-
-        if (err == 0) {
-            user_registers->rsp = rsp;
-            user_registers->rbp = cframe[0];
-            user_registers->rip = cframe[1];
-        }
-    }
+    LUA_TRACE("CALL_LOG: profiler_stage_collect_lua_stack END");
 
     return 0;
 }
