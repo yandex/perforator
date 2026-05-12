@@ -6,6 +6,8 @@ TS_LINT(typecheck)
 
 USE_LEGACY_PNPM_VIRTUAL_STORE()
 
+TS_BUILD_SCRIPT(nots:build)
+
 TS_BUILD_OUTPUTS(dist)
 
 END()

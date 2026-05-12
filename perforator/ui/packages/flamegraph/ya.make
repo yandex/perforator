@@ -4,6 +4,7 @@ TS_LIBRARY()
 # RUN_JAVASCRIPT_AFTER_BUILD(scripts/copy-through.mjs)
 
 USE_LEGACY_PNPM_VIRTUAL_STORE()
+TS_BUILD_SCRIPT(nots:build)
 TS_BUILD_OUTPUTS(dist)
 
 END()
