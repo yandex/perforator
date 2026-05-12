@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-05-08T10:47:47Z",
+    "created": "2026-05-12T06:03:04Z",
     "pr": {
-      "id": 13301635,
-      "author": "baymer",
-      "summary": "FBP-3075: nots/builder: игнорировать симлинки при копировании файлов из source_dir в bin_dir"
+      "id": 13304436,
+      "author": "zaverden",
+      "summary": "feat(tsg): ts-library migrator"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11991727316"
+      "uri": "sbr:12014796806"
     },
     "darwin-arm64": {
-      "uri": "sbr:11991723935"
+      "uri": "sbr:12014795235"
     },
     "linux": {
-      "uri": "sbr:11991733795"
+      "uri": "sbr:12014799223"
     },
     "linux-aarch64": {
-      "uri": "sbr:11991730389"
+      "uri": "sbr:12014798004"
     }
   }
 }
