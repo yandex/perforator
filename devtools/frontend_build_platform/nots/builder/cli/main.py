@@ -1,9 +1,8 @@
+import hashlib
 import os.path
 import re
 import json
 import sys
-import uuid
-from datetime import datetime, UTC
 from pprint import pformat
 
 from build.plugins.lib.nots.package_manager import constants as pm_constants, utils as pm_utils
@@ -23,15 +22,23 @@ def on_crash(exctype, value, traceback):
 sys.excepthook = on_crash
 
 
+FIXED_OUTPUT_TIMESTAMP = '2020-01-01T00:00:00+00:00'
+HASH_CHUNK_SIZE = 1024 * 1024
+
+
 def __add_uuid_for_output(bindir: str, output_file: str, outputs: list[str] | None):
     uuid_file_name = f'{bindir}/{pm_constants.OUTPUT_TAR_UUID_FILENAME}'
 
+    file_hash = hashlib.sha256()
+    with open(output_file, 'rb') as output_f:
+        for chunk in iter(lambda: output_f.read(HASH_CHUNK_SIZE), b''):
+            file_hash.update(chunk)
+        uuid_str = file_hash.hexdigest()
+
     with open(uuid_file_name, 'w') as f:
         output_filename = os.path.basename(output_file)
-        uuid_str = uuid.uuid1().hex
-        timestamp = datetime.now(UTC).isoformat()
 
-        f.write(f"{output_filename}: {uuid_str} - {timestamp}")
+        f.write(f"{output_filename}: {uuid_str} - {FIXED_OUTPUT_TIMESTAMP}")
         f.write("\noutputs: ")
         json.dump(list(set(outputs)), f)
 

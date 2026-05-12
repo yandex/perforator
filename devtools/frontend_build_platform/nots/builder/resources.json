@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-05-12T06:03:04Z",
+    "created": "2026-05-12T09:11:32.910Z",
     "pr": {
-      "id": 13304436,
+      "id": 13336248,
       "author": "zaverden",
-      "summary": "feat(tsg): ts-library migrator"
+      "summary": "feat(builder): binary stable output.tar.uuid"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12014796806"
+      "uri": "sbr:12016763918"
     },
     "darwin-arm64": {
-      "uri": "sbr:12014795235"
+      "uri": "sbr:12016760958"
     },
     "linux": {
-      "uri": "sbr:12014799223"
+      "uri": "sbr:12016769556"
     },
     "linux-aarch64": {
-      "uri": "sbr:12014798004"
+      "uri": "sbr:12016766823"
     }
   }
 }
