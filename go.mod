@@ -469,7 +469,7 @@ require (
 	github.com/goccy/go-json v0.10.5
 	github.com/goccy/go-yaml v1.19.2
 	github.com/gocql/gocql v1.7.0
-	github.com/godbus/dbus/v5 v5.1.1-0.20221223143132-c1a76c14e486
+	github.com/godbus/dbus/v5 v5.2.2
 	github.com/godror/godror v0.44.1
 	github.com/gofrs/flock v0.12.1
 	github.com/gofrs/uuid v4.4.0+incompatible
