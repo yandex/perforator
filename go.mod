@@ -701,7 +701,7 @@ require (
 	github.com/opentracing-contrib/go-stdlib v1.0.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/osrg/gobgp v0.0.0-20211201041502-6248c576b118
-	github.com/osrg/gobgp/v4 v4.3.0
+	github.com/osrg/gobgp/v4 v4.5.0
 	github.com/otiai10/copy v1.14.1
 	github.com/ozontech/allure-go v0.6.32
 	github.com/ozontech/allure-go/pkg/allure v0.6.13
@@ -1666,6 +1666,7 @@ require (
 	github.com/frederic-arr/rpsl-go v0.3.2 // indirect
 	github.com/fsnotify/fsevents v0.2.0 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
+	github.com/gaissmai/bart v0.26.1 // indirect
 	github.com/gavv/httpexpect v2.0.0+incompatible // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gertd/go-pluralize v0.2.1 // indirect
