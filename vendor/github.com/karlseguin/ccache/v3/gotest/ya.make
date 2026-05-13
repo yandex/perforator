@@ -2,6 +2,6 @@ GO_TEST_FOR(vendor/github.com/karlseguin/ccache/v3)
 
 LICENSE(MIT)
 
-VERSION(v3.0.7)
+VERSION(v3.0.8)
 
 END()

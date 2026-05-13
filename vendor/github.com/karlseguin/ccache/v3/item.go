@@ -29,6 +29,7 @@ type Item[T any] struct {
 	value      T
 	next       *Item[T]
 	prev       *Item[T]
+	inList     bool
 }
 
 func newItem[T any](key string, value T, expires int64, track bool) *Item[T] {

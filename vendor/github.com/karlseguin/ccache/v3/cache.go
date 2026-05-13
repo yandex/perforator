@@ -331,7 +331,7 @@ doAllDeletes:
 }
 
 func (c *Cache[T]) doDelete(item *Item[T]) {
-	if item.next == nil && item.prev == nil {
+	if !item.inList {
 		item.promotions = -2
 	} else {
 		c.size -= item.size
@@ -344,12 +344,12 @@ func (c *Cache[T]) doDelete(item *Item[T]) {
 }
 
 func (c *Cache[T]) doPromote(item *Item[T]) bool {
-	//already deleted
+	// already deleted
 	if item.promotions == -2 {
 		return false
 	}
 
-	if item.next != nil || item.prev != nil { // not a new item
+	if item.inList {
 		if item.shouldPromote(c.getsPerPromote) {
 			c.list.MoveToFront(item)
 			item.promotions = 0

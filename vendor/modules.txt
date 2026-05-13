@@ -12037,7 +12037,7 @@ github.com/kardianos/service/example/stopPause
 # github.com/karlseguin/ccache/v2 v2.0.8
 ## explicit; go 1.13
 github.com/karlseguin/ccache/v2
-# github.com/karlseguin/ccache/v3 v3.0.7
+# github.com/karlseguin/ccache/v3 v3.0.8
 ## explicit; go 1.19
 github.com/karlseguin/ccache/v3
 github.com/karlseguin/ccache/v3/assert

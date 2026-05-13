@@ -163,6 +163,41 @@ func Test_LayedCache_OnDeleteCallbackCalled(t *testing.T) {
 	assert.Equal(t, atomic.LoadInt32(&onDeleteFnCalled), 1)
 }
 
+func Test_LayeredCache_SingleItemSizeAccounting(t *testing.T) {
+	cache := Layered(Configure[*SizedItem]().GetsPerPromote(1))
+	defer cache.Stop()
+
+	cache.Set("group", "only", &SizedItem{1, 10}, time.Minute)
+	cache.SyncUpdates()
+	assert.Equal(t, cache.GetSize(), 10)
+
+	cache.Get("group", "only")
+	cache.Get("group", "only")
+	cache.SyncUpdates()
+	assert.Equal(t, cache.GetSize(), 10)
+}
+
+func Test_LayeredCache_SingleItemDelete(t *testing.T) {
+	onDeleteCalled := int32(0)
+	onDeleteFn := func(item *Item[string]) {
+		atomic.AddInt32(&onDeleteCalled, 1)
+	}
+
+	cache := Layered(Configure[string]().OnDelete(onDeleteFn))
+	defer cache.Stop()
+
+	cache.Set("group", "only", "value", time.Minute)
+	cache.SyncUpdates()
+	assert.Equal(t, cache.GetSize(), 1)
+
+	cache.Delete("group", "only")
+	cache.SyncUpdates()
+
+	assert.Equal(t, cache.Get("group", "only"), nil)
+	assert.Equal(t, atomic.LoadInt32(&onDeleteCalled), 1)
+	assert.Equal(t, cache.GetSize(), 0)
+}
+
 func Test_LayedCache_DeletesALayer(t *testing.T) {
 	cache := newLayered[string]()
 	defer cache.Stop()

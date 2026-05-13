@@ -150,6 +150,49 @@ func Test_CacheOnDeleteCallbackCalled(t *testing.T) {
 	assert.Equal(t, atomic.LoadInt32(&onDeleteFnCalled), 1)
 }
 
+func Test_CacheSingleItemSizeAccounting(t *testing.T) {
+	cache := New(Configure[*SizedItem]().GetsPerPromote(1))
+	defer cache.Stop()
+
+	// Add a single item to the cache
+	cache.Set("only", &SizedItem{1, 10}, time.Minute)
+	cache.SyncUpdates()
+	assert.Equal(t, cache.GetSize(), 10)
+
+	// Get the item to trigger promotion
+	// With a single item, next==nil && prev==nil, so it may be
+	// incorrectly treated as a "new" item and size double-counted
+	cache.Get("only")
+	cache.Get("only")
+	cache.SyncUpdates()
+	assert.Equal(t, cache.GetSize(), 10) // Should still be 10, not 20 or 30
+}
+
+func Test_CacheSingleItemDelete(t *testing.T) {
+	onDeleteCalled := int32(0)
+	onDeleteFn := func(item *Item[string]) {
+		atomic.AddInt32(&onDeleteCalled, 1)
+	}
+
+	cache := New(Configure[string]().OnDelete(onDeleteFn))
+	defer cache.Stop()
+
+	// Add a single item
+	cache.Set("only", "value", time.Minute)
+	cache.SyncUpdates()
+	assert.Equal(t, cache.GetSize(), 1)
+
+	// Delete the only item in the cache
+	// With a single item, next==nil && prev==nil, so the delete
+	// path may incorrectly skip size decrement and onDelete callback
+	cache.Delete("only")
+	cache.SyncUpdates()
+
+	assert.Equal(t, cache.Get("only"), nil)
+	assert.Equal(t, atomic.LoadInt32(&onDeleteCalled), 1) // onDelete should be called
+	assert.Equal(t, cache.GetSize(), 0)                   // Size should be 0
+}
+
 func Test_CacheFetchesExpiredItems(t *testing.T) {
 	cache := New(Configure[string]())
 	defer cache.Stop()

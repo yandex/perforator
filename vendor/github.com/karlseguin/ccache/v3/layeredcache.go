@@ -293,7 +293,7 @@ drain:
 }
 
 func (c *LayeredCache[T]) doDelete(item *Item[T]) {
-	if item.prev == nil && item.next == nil {
+	if !item.inList {
 		item.promotions = -2
 	} else {
 		c.size -= item.size
@@ -311,7 +311,7 @@ func (c *LayeredCache[T]) doPromote(item *Item[T]) bool {
 		return false
 	}
 
-	if item.next != nil || item.prev != nil { // not a new item
+	if item.inList {
 		if item.shouldPromote(c.getsPerPromote) {
 			c.list.MoveToFront(item)
 			item.promotions = 0
