@@ -4,6 +4,7 @@ SRCS(
     access.go
     banned_users.go
     config.go
+    debuginfod.go
     llvm_tools.go
     merge.go
     methods.go

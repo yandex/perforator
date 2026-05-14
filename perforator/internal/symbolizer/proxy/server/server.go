@@ -32,6 +32,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/asynctask"
 	bpclient "github.com/yandex/perforator/perforator/internal/binaryprocessor/client"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/auth"
+	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/services"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
@@ -65,6 +66,7 @@ type perforatorServerMetrics struct {
 	mergeProfilesRequests  requestsMetrics
 	diffProfilesRequests   requestsMetrics
 	uploadProfilesRequests requestsMetrics
+	debuginfodRequests     requestsMetrics
 
 	unmergedPythonStacks     metrics.Counter
 	mergedPythonStacks       metrics.Counter
@@ -110,8 +112,9 @@ type PerforatorServer struct {
 	tasks                       asynctask.TaskService
 	tasksemaphore               *semaphore.Weighted
 
-	downloader *downloader.Downloader
-	httpclient *resty.Client
+	downloader       *downloader.Downloader
+	binaryDownloader binaryprovider.BinaryProvider
+	httpclient       *resty.Client
 
 	symbolizer   *symbolize.Symbolizer
 	mergemanager *cprofile.MergeManager
@@ -301,6 +304,7 @@ func NewPerforatorServer(
 		tasksemaphore:               semaphore.NewWeighted(conf.Tasks.ConcurrencyLimit),
 		httpclient:                  resty.New().SetTimeout(time.Hour).SetRetryCount(3),
 		downloader:                  downloaderInstance,
+		binaryDownloader:            binaryDownloader,
 		llvmTools:                   llvmTools,
 		symbolizer:                  symbolizer,
 		mergemanager:                mergemanager,
@@ -311,6 +315,10 @@ func NewPerforatorServer(
 		otelShutdown:                shutdown,
 		additionalGrpcServices:      additionalGrpcServices,
 	}
+
+	// Registered before the grpc-gateway mount so explicit paths take precedence over the "/" mount below.
+	server.httpRouter.Get("/buildid/{buildid}/debuginfo", server.handleDebuginfod)
+	server.httpRouter.Get("/buildid/{buildid}/executable", server.handleDebuginfod)
 
 	mux := runtime.NewServeMux()
 	err = errors.Join(
@@ -368,6 +376,10 @@ func (s *PerforatorServer) registerMetrics() {
 		uploadProfilesRequests: requestsMetrics{
 			successes: s.reg.WithTags(Tags{"status": "success"}).Counter("requests.upload_profile"),
 			fails:     s.reg.WithTags(Tags{"status": "fail"}).Counter("requests.upload_profile"),
+		},
+		debuginfodRequests: requestsMetrics{
+			successes: s.reg.WithTags(Tags{"status": "success"}).Counter("requests.debuginfod"),
+			fails:     s.reg.WithTags(Tags{"status": "fail"}).Counter("requests.debuginfod"),
 		},
 		flamegraphBuildTimer: s.reg.Timer("flamegraph.build"),
 		mergeProfilesTimer:   s.reg.Timer("profile.merge"),

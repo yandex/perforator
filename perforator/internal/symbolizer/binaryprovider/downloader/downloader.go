@@ -275,7 +275,7 @@ func (a *binaryDownloadAdapter) size(ctx context.Context, buildID string) (uint6
 		return 0, err
 	}
 	if len(binaries) == 0 {
-		return 0, fmt.Errorf("no binary %s found", buildID)
+		return 0, fmt.Errorf("no binary %s: %w", buildID, binarystorage.ErrNotFound)
 	}
 	if binaries[0].BlobInfo == nil {
 		return 0, fmt.Errorf("there is no blob for binary %s", buildID)
