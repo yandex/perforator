@@ -757,6 +757,7 @@ require (
 	github.com/pseudomuto/protoc-gen-doc v1.5.1
 	github.com/qdrant/go-client v1.15.2
 	github.com/qmuntal/stateless v1.8.0
+	github.com/quic-go/quic-go v0.59.0
 	github.com/r3labs/diff/v3 v3.0.0
 	github.com/rafaelmartins/usbhid v0.0.0-20240923181811-9aaabf870f67
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
@@ -2242,7 +2243,6 @@ require (
 	github.com/quasilyte/regex/syntax v0.0.0-20210819130434-b3f0c404a727 // indirect
 	github.com/quasilyte/stdinfo v0.0.0-20220114132959-f7386bf02567 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/r3labs/sse v0.0.0-20210224172625-26fe804710bc // indirect
 	github.com/r3labs/sse/v2 v2.10.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.9.0 // indirect

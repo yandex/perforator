@@ -15017,24 +15017,58 @@ github.com/quasilyte/regex/syntax
 github.com/quasilyte/stdinfo
 # github.com/quic-go/qpack v0.6.0
 ## explicit; go 1.24
+github.com/quic-go/qpack
 # github.com/quic-go/quic-go v0.59.0
 ## explicit; go 1.24
 github.com/quic-go/quic-go
+github.com/quic-go/quic-go/example
+github.com/quic-go/quic-go/example/client
+github.com/quic-go/quic-go/example/echo
+github.com/quic-go/quic-go/fuzzing/frames
+github.com/quic-go/quic-go/fuzzing/frames/cmd
+github.com/quic-go/quic-go/fuzzing/handshake
+github.com/quic-go/quic-go/fuzzing/handshake/cmd
+github.com/quic-go/quic-go/fuzzing/header
+github.com/quic-go/quic-go/fuzzing/header/cmd
+github.com/quic-go/quic-go/fuzzing/internal/helper
+github.com/quic-go/quic-go/fuzzing/tokens
+github.com/quic-go/quic-go/fuzzing/transportparameters
+github.com/quic-go/quic-go/fuzzing/transportparameters/cmd
+github.com/quic-go/quic-go/http3
+github.com/quic-go/quic-go/http3/internal/testdata
+github.com/quic-go/quic-go/http3/qlog
+github.com/quic-go/quic-go/integrationtests/self
+github.com/quic-go/quic-go/integrationtests/tools
+github.com/quic-go/quic-go/integrationtests/tools/israce
+github.com/quic-go/quic-go/integrationtests/tools/proxy
+github.com/quic-go/quic-go/integrationtests/versionnegotiation
 github.com/quic-go/quic-go/internal/ackhandler
 github.com/quic-go/quic-go/internal/congestion
 github.com/quic-go/quic-go/internal/flowcontrol
 github.com/quic-go/quic-go/internal/handshake
+github.com/quic-go/quic-go/internal/mocks
+github.com/quic-go/quic-go/internal/mocks/ackhandler
 github.com/quic-go/quic-go/internal/monotime
 github.com/quic-go/quic-go/internal/protocol
 github.com/quic-go/quic-go/internal/qerr
+github.com/quic-go/quic-go/internal/qtls
+github.com/quic-go/quic-go/internal/synctest
+github.com/quic-go/quic-go/internal/testdata
 github.com/quic-go/quic-go/internal/utils
 github.com/quic-go/quic-go/internal/utils/linkedlist
 github.com/quic-go/quic-go/internal/utils/ringbuffer
 github.com/quic-go/quic-go/internal/wire
+github.com/quic-go/quic-go/interop/client
+github.com/quic-go/quic-go/interop/http09
+github.com/quic-go/quic-go/interop/server
+github.com/quic-go/quic-go/interop/utils
 github.com/quic-go/quic-go/qlog
 github.com/quic-go/quic-go/qlogwriter
 github.com/quic-go/quic-go/qlogwriter/jsontext
 github.com/quic-go/quic-go/quicvarint
+github.com/quic-go/quic-go/testutils
+github.com/quic-go/quic-go/testutils/events
+github.com/quic-go/quic-go/testutils/simnet
 # github.com/r3labs/diff/v3 v3.0.0
 ## explicit; go 1.13
 github.com/r3labs/diff/v3
