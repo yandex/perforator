@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@bem-react/classname": "1.8.0",
-    "@gravity-ui/components": "4.19.0",
+    "@gravity-ui/components": "4.19.1",
     "@gravity-ui/icons": "2.18.0",
     "@gravity-ui/uikit": "7.36.1",
     "@perforator/flamegraph": "workspace:../packages/flamegraph",
