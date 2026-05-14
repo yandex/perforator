@@ -31,7 +31,12 @@ CFLAGS(
     -DHAVE_CONFIG_H
 )
 
-IF (OS_WINDOWS)
+IF (OS_IOS)
+    SRCS(
+        lib/random_arc4random.c
+        lib/random_arc4random_buf.c
+    )
+ELSEIF (OS_WINDOWS)
     CFLAGS(
         GLOBAL -DXML_STATIC
     )
