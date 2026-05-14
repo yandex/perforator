@@ -1,8 +1,4 @@
-import _common as common
 import json
-import os
-
-import ymake
 
 
 def extract_macro_calls(unit, macro_value_name):
@@ -54,21 +50,10 @@ def onprocess_docs(unit, *args):
 
 def on_append_docs_dir_flag(unit, *args):
     assert len(args) == 1
-    docs_dir = canonize_docs_dir(unit, args[0])
-    if docs_dir is None:
-        ymake.report_configure_error(f"Can't resolve DOCS_DIR: '{args[0]}'")
+    docs_dir = args[0]
 
     ns = unit.get('_DOCS_DIR_INTERNAL_NAMESPACE')
     if not ns:
         ns = docs_dir
     last = unit.get('_DOCS_DIR_VALUE')
     unit.set(['_DOCS_DIR_VALUE', f'{last} --docs-dir {docs_dir} {ns}'])
-
-
-def canonize_docs_dir(unit, arg):
-    if not arg.startswith('$'):
-        return os.path.join(unit.get('MODDIR'), arg)
-    semi_resolved = common.resolve_common_const(unit.resolve_arc_path(arg))
-    if semi_resolved and semi_resolved.startswith('$S'):
-        return semi_resolved[3:]
-    return None
