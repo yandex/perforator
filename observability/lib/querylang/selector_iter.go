@@ -136,6 +136,16 @@ func (f *Selector) RemoveFieldsMatchers(fields ...string) {
 	f.Matchers = filtered
 }
 
+func (f *Selector) KeepOnlyGivenFields(fields ...string) {
+	pcsMatchers := []*Matcher{}
+	for _, m := range f.Matchers {
+		if slices.Contains(fields, m.Field) {
+			pcsMatchers = append(pcsMatchers, m)
+		}
+	}
+	f.Matchers = pcsMatchers
+}
+
 func (f *Selector) AddMatchers(matchers ...*Matcher) {
 	f.Matchers = append(f.Matchers, matchers...)
 }
