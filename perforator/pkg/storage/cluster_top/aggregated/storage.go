@@ -89,7 +89,7 @@ func MapEntries(total *TotalCycles, entries []*AggregationValue) []*perforator.C
 				Self:          fromCpuCyclesToCpuHours(&row.CpuCycles),
 				Cumulative:    fromCpuCyclesToCpuHours(&row.CumulativeCpuCycles),
 				SelfPct:       fromCpuCyclesToPercent(total.TotalSelfCycles, &row.CpuCycles),
-				CumulativePct: fromCpuCyclesToPercent(total.TotalCumulativeCycles, &row.CumulativeCpuCycles),
+				CumulativePct: fromCpuCyclesToPercent(total.TotalSelfCycles, &row.CumulativeCpuCycles),
 			},
 		}
 	})
@@ -119,12 +119,11 @@ func getComparisonOperator(mode MatchMode) string {
 const clusterTopTable = "cluster_top"
 
 type TotalCycles struct {
-	TotalSelfCycles       *big.Int `ch:"total_self_cycles"`
-	TotalCumulativeCycles *big.Int `ch:"total_cumulative_cycles"`
+	TotalSelfCycles *big.Int `ch:"total_self_cycles"`
 }
 
 func (s *ClickhouseAggregationStorage) CountTotalCycles(ctx context.Context, generation uint32, totalFunctionName string) (*TotalCycles, error) {
-	builder := squirrel.Select("sum(self_cycles) as total_self_cycles, sum(cumulative_cycles) as total_cumulative_cycles").
+	builder := squirrel.Select("sum(self_cycles) as total_self_cycles").
 		From(clusterTopTable).
 		Where("generation = ?", generation)
 
