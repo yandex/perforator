@@ -813,6 +813,7 @@ class Build(object):
         cuda = Cuda(self)
         cuda.print_()
         CuDNN(cuda).print_()
+        CuTENSOR(cuda).print_()
 
         if self.ignore_local_files or host.is_windows or is_positive('NO_SVN_DEPENDS'):
             emit_with_ignore_comment('SVN_DEPENDS_CACHE__NO_UID__')
@@ -2743,6 +2744,26 @@ class CuDNN(object):
     def print_(self):
         if self.cuda.have_cuda.value and self.have_cudnn():
             self.cudnn_version.emit()
+
+
+class CuTENSOR(object):
+    def __init__(self, cuda):
+        """
+        :type cuda: Cuda
+        """
+        self.cuda = cuda
+
+        self.cutensor_version = Setting('CUTENSOR_VERSION', auto=self.auto_cutensor_version)
+
+    def have_cutensor(self):
+        return self.cutensor_version.value in ('2.6.0')
+
+    def auto_cutensor_version(self):
+        return '2.6.0'
+
+    def print_(self):
+        if self.cuda.have_cuda.value and self.have_cutensor():
+            self.cutensor_version.emit()
 
 
 def customization():
