@@ -196,6 +196,8 @@ class Platform(object):
 
         self.is_none = self.os == 'none'
 
+        self.is_freertos = self.os == 'freertos'
+
         self.is_posix = self.is_linux or self.is_apple or self.is_android or self.is_yocto or self.is_freebsd
 
     @staticmethod
@@ -1587,8 +1589,11 @@ class GnuCompiler(Compiler):
             # Arcadia have API 16 for 32-bit Androids.
             self.c_defines.append('-D_FILE_OFFSET_BITS=64')
 
-        if self.target.is_linux or self.target.is_android or self.target.is_none:
+        if self.target.is_linux or self.target.is_android or self.target.is_none or self.target.is_freertos:
             self.c_defines.append('-D_GNU_SOURCE')
+
+        if self.target.is_freertos:
+            self.c_defines.append('-D__FREERTOS__')
 
         if self.tc.is_clang and self.target.is_linux and self.target.is_x86_64:
             self.c_defines.append('-D_YNDX_LIBUNWIND_ENABLE_EXCEPTION_BACKTRACE')
