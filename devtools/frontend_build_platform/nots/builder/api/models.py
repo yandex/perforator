@@ -24,6 +24,8 @@ class BaseOptions:
     # Essential
     nodejs_bin: str
     """path to nodejs bin"""
+    ld_library_path: str | None
+    """path to for extra libraries for env LD_LIBRARY_PATH"""
     pm_script: str
     """path to package manager script to run `install` command"""
     pm_type: str

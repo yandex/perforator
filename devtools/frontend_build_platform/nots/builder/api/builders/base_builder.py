@@ -153,6 +153,9 @@ class BaseBuilder(object):
 
         env['NODE_PATH'] = os.pathsep.join(node_path)
 
+        if self.options.ld_library_path:
+            env['LD_LIBRARY_PATH'] = self.options.ld_library_path
+
         return env
 
     def _get_vcs_info_env(self, vcs_info_file: str) -> dict[str, str]:

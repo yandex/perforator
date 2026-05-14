@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-05-12T12:09:19Z",
+    "created": "2026-05-14T09:45:29.897Z",
     "pr": {
-      "id": 13336248,
+      "id": 13375052,
       "author": "zaverden",
-      "summary": "feat(builder): binary stable output.tar.uuid"
+      "summary": "feat(conf,builder): add libatomic to build for nodejs >=25"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12019703272"
+      "uri": "sbr:12046875279"
     },
     "darwin-arm64": {
-      "uri": "sbr:12019699137"
+      "uri": "sbr:12046870047"
     },
     "linux": {
-      "uri": "sbr:12019710161"
+      "uri": "sbr:12046884021"
     },
     "linux-aarch64": {
-      "uri": "sbr:12019706416"
+      "uri": "sbr:12046879342"
     }
   }
 }
