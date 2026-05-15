@@ -2,18 +2,13 @@ syntax = "proto3";
 
 package NPerforator.NProto.NProfile;
 
+import "perforator/proto/lib/compression/compression.proto";
+
 option go_package = "github.com/yandex/perforator/perforator/proto/profile";
 
 message ProfileContainer {
-    enum CompressionMethod {
-        Unknown = 0;
-        None = 1;
-        Zstd = 2;
-        Gzip = 3;
-    }
-
     message Payload {
-        CompressionMethod compression_method = 1;
+        NPerforator.NProto.NLib.CompressionMethod compression_method = 1;
         bytes data = 2;
     }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
 
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 	profileproto "github.com/yandex/perforator/perforator/proto/profile"
 )
 
@@ -32,7 +33,7 @@ func TestUncompressFromContainer(t *testing.T) {
 			name: "pprof with zstd compression",
 			container: &profileproto.ProfileContainer{
 				Pprof: &profileproto.ProfileContainer_Payload{
-					CompressionMethod: profileproto.ProfileContainer_Zstd,
+					CompressionMethod: compressionpb.CompressionMethod_Zstd,
 					Data:              compressZstd(t, []byte("test profile data")),
 				},
 			},
@@ -43,7 +44,7 @@ func TestUncompressFromContainer(t *testing.T) {
 			name: "pprof with gzip compression",
 			container: &profileproto.ProfileContainer{
 				Pprof: &profileproto.ProfileContainer_Payload{
-					CompressionMethod: profileproto.ProfileContainer_Gzip,
+					CompressionMethod: compressionpb.CompressionMethod_Gzip,
 					Data:              compressGzip(t, []byte("test profile data")),
 				},
 			},
@@ -54,7 +55,7 @@ func TestUncompressFromContainer(t *testing.T) {
 			name: "pprof with no compression",
 			container: &profileproto.ProfileContainer{
 				Pprof: &profileproto.ProfileContainer_Payload{
-					CompressionMethod: profileproto.ProfileContainer_None,
+					CompressionMethod: compressionpb.CompressionMethod_None,
 					Data:              []byte("test profile data"),
 				},
 			},
@@ -65,7 +66,7 @@ func TestUncompressFromContainer(t *testing.T) {
 			name: "yaprof with zstd compression is converted to pprof",
 			container: &profileproto.ProfileContainer{
 				Yaprof: &profileproto.ProfileContainer_Payload{
-					CompressionMethod: profileproto.ProfileContainer_Zstd,
+					CompressionMethod: compressionpb.CompressionMethod_Zstd,
 					Data:              compressZstd(t, []byte("yaprof data")),
 				},
 			},
@@ -85,7 +86,7 @@ func TestUncompressFromContainer(t *testing.T) {
 			name: "unknown compression method",
 			container: &profileproto.ProfileContainer{
 				Pprof: &profileproto.ProfileContainer_Payload{
-					CompressionMethod: profileproto.ProfileContainer_Unknown,
+					CompressionMethod: compressionpb.CompressionMethod_Unknown,
 					Data:              []byte("test data"),
 				},
 			},
@@ -120,7 +121,7 @@ func TestUncompressPayload(t *testing.T) {
 		{
 			name: "zstd compression",
 			payload: &profileproto.ProfileContainer_Payload{
-				CompressionMethod: profileproto.ProfileContainer_Zstd,
+				CompressionMethod: compressionpb.CompressionMethod_Zstd,
 				Data:              compressZstd(t, []byte("test data")),
 			},
 			expected:    []byte("test data"),
@@ -129,7 +130,7 @@ func TestUncompressPayload(t *testing.T) {
 		{
 			name: "gzip compression",
 			payload: &profileproto.ProfileContainer_Payload{
-				CompressionMethod: profileproto.ProfileContainer_Gzip,
+				CompressionMethod: compressionpb.CompressionMethod_Gzip,
 				Data:              compressGzip(t, []byte("test data")),
 			},
 			expected:    []byte("test data"),
@@ -138,7 +139,7 @@ func TestUncompressPayload(t *testing.T) {
 		{
 			name: "no compression",
 			payload: &profileproto.ProfileContainer_Payload{
-				CompressionMethod: profileproto.ProfileContainer_None,
+				CompressionMethod: compressionpb.CompressionMethod_None,
 				Data:              []byte("test data"),
 			},
 			expected:    []byte("test data"),
@@ -147,7 +148,7 @@ func TestUncompressPayload(t *testing.T) {
 		{
 			name: "unknown compression",
 			payload: &profileproto.ProfileContainer_Payload{
-				CompressionMethod: profileproto.ProfileContainer_Unknown,
+				CompressionMethod: compressionpb.CompressionMethod_Unknown,
 				Data:              []byte("test data"),
 			},
 			expected:    nil,

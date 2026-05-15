@@ -21,6 +21,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 	profileproto "github.com/yandex/perforator/perforator/proto/profile"
 )
 
@@ -213,11 +214,11 @@ func (s *ProfileStorage) uncompressFromContainer(container *profileproto.Profile
 
 func (s *ProfileStorage) uncompressPayload(payload *profileproto.ProfileContainer_Payload, profileID meta.ProfileID) (ProfileData, error) {
 	switch payload.CompressionMethod {
-	case profileproto.ProfileContainer_None:
+	case compressionpb.CompressionMethod_None:
 		return payload.Data, nil
-	case profileproto.ProfileContainer_Zstd:
+	case compressionpb.CompressionMethod_Zstd:
 		return s.uncompressZstd(payload.Data)
-	case profileproto.ProfileContainer_Gzip:
+	case compressionpb.CompressionMethod_Gzip:
 		return s.uncompressGzip(payload.Data)
 	default:
 		return nil, fmt.Errorf("profile %s: unsupported compression method %v", profileID, payload.CompressionMethod)
@@ -257,11 +258,11 @@ var gzipMagic = []byte{0x1f, 0x8b}
 
 func isValidPayload(p *profileproto.ProfileContainer_Payload) bool {
 	switch p.CompressionMethod {
-	case profileproto.ProfileContainer_None:
+	case compressionpb.CompressionMethod_None:
 		return true
-	case profileproto.ProfileContainer_Zstd:
+	case compressionpb.CompressionMethod_Zstd:
 		return bytes.HasPrefix(p.Data, zstdMagic)
-	case profileproto.ProfileContainer_Gzip:
+	case compressionpb.CompressionMethod_Gzip:
 		return bytes.HasPrefix(p.Data, gzipMagic)
 	default:
 		return false

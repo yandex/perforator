@@ -1,0 +1,13 @@
+PROTO_LIBRARY()
+
+INCLUDE_TAGS(GO_PROTO)
+
+IF (OPENSOURCE)
+    EXCLUDE_TAGS(JAVA_PROTO)
+ENDIF()
+
+SRCS(
+    compression.proto
+)
+
+END()
