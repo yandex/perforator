@@ -52,10 +52,8 @@
 namespace {
 
 // Kernel caps `bpf_attr.log_size` at `UINT_MAX >> 2` (~1 GiB) all the way
-// back to 5.4 — verified against the source. 512 MiB is plenty for any
-// program here, and Linux's lazy allocation means unused pages aren't
-// committed.
-constexpr size_t kVerifierLogBufSize = 512UL * 1024 * 1024;
+// back to 5.4 — verified against the source.
+constexpr size_t kVerifierLogBufSize = UINT_MAX >> 2;
 
 // Hand-rolled parsers for the two verifier-log line shapes we care about.
 // std::regex took 30+ s on a 40 MB log here (the inner state-machine and
@@ -672,6 +670,8 @@ struct TAnalysisResult {
         ui64 Visits = 0;
     };
     TVector<TSample> Samples;
+    // Per-file per-line visit counts for lcov output
+    THashMap<TString, THashMap<ui32, ui64>> FileLineVisits;
 };
 
 struct TFunctionDecl {
@@ -976,6 +976,11 @@ TAnalysisResult AnalyzeProgram(
         fn.Visits += n;
         fn.InsnCount++;
 
+        // Track per-file per-line visit counts for lcov
+        if (!leafFrames[0].FileName.empty() && leafFrames[0].Line > 0) {
+            r.FileLineVisits[leafFrames[0].FileName][leafFrames[0].Line] += n;
+        }
+
         r.Samples.push_back(std::move(sample));
     }
     return r;
@@ -1096,11 +1101,49 @@ void EmitProfile(IOutputStream& out, const TVector<TAnalysisResult>& results) {
     gz.Finish();
 }
 
+void EmitLcov(IOutputStream &out, TAnalysisResult &result) {
+    // Group functions by file name (SF)
+    THashMap<TString, TVector<const TLogicalFn *>> functionsByFile;
+    for (const auto &[_, fn] : result.Functions) {
+        // We need an absolute path
+        TString filePath = TFsPath(fn.DeclFile);
+        functionsByFile[filePath].push_back(&fn);
+    }
+
+    // Sort functions within each file by line number
+    for (auto &[_, fns] : functionsByFile) {
+        std::sort(fns.begin(), fns.end(), [](const auto *a, const auto *b) {
+            return a->DeclLine < b->DeclLine;
+        });
+    }
+
+    // Write lcov records
+    for (const auto &[filePath, fns] : functionsByFile) {
+        // SF line
+        out << "SF:" << filePath << '\n';
+
+        // DA lines per-file per-function visit counts
+        for (const auto *fn : fns) {
+            out << "DA:" << fn->DeclLine << ',' << fn->Visits << '\n';
+        }
+
+        // DA lines per-file per-line visit counts
+        const auto& lineVisits = result.FileLineVisits[filePath];
+        for (const auto& [line, visits] : lineVisits) {
+            out << "DA:" << line << ',' << visits << '\n';
+        }
+
+        // end_of_record
+        out << "end_of_record\n";
+    }
+}
+
 TAnalysisResult DumpProgram(
     const TLoadedProgram& prog,
     const TDebugInfo& di,
     const TElfInspector& elf,
-    const TSectionAwareDwarf& sectionDwarf
+    const TSectionAwareDwarf& sectionDwarf,
+    const TString& verifierLogOut
 ) {
     Cout << "=== program " << prog.Name
          << " section=" << prog.SectionName
@@ -1113,6 +1156,14 @@ TAnalysisResult DumpProgram(
         TStringBuf logView{prog.Log.data(), ::strnlen(prog.Log.data(), prog.Log.size())};
         if (!logView.empty()) {
             constexpr size_t kTailBytes = 4096;
+
+            if (!verifierLogOut.empty() && !prog.Log.empty()) {
+                TFileOutput out(verifierLogOut);
+
+                out << logView;
+                Cout << "wrote full verifier log to " << verifierLogOut << Endl;
+            }
+
             if (logView.size() > kTailBytes) {
                 logView = logView.SubStr(logView.size() - kTailBytes);
             }
@@ -1139,6 +1190,9 @@ int main(int argc, const char* argv[]) {
     TString path;
     TString programFilter;
     TString profileOut;
+    TString verifierLogOut;
+    TString lcovOut;
+
     opts
         .AddLongOption('p', "path", "Path to the eBPF ELF file")
         .Required()
@@ -1151,6 +1205,14 @@ int main(int argc, const char* argv[]) {
         .AddLongOption("profile-out", "Write a gzipped pprof profile to this path")
         .Optional()
         .StoreResult(&profileOut);
+    opts
+        .AddLongOption("verifier-log-out", "Write full untruncated verifier log to this path on load failure")
+        .Optional()
+        .StoreResult(&verifierLogOut);
+    opts
+        .AddLongOption("lcov-out", "Write lcov data to this path")
+        .Optional()
+        .StoreResult(&lcovOut);
     NLastGetopt::TOptsParseResult res(&opts, argc, argv);
 
     try {
@@ -1166,7 +1228,7 @@ int main(int argc, const char* argv[]) {
         auto progs = LoadAllPrograms(path, programFilter);
         TVector<TAnalysisResult> results;
         for (const auto& prog : progs) {
-            results.push_back(DumpProgram(prog, di, elf, sectionDwarf));
+            results.push_back(DumpProgram(prog, di, elf, sectionDwarf, verifierLogOut));
         }
         if (results.empty()) {
             Cerr << "no programs matched";
@@ -1181,6 +1243,13 @@ int main(int argc, const char* argv[]) {
             TFileOutput out(profileOut);
             EmitProfile(out, results);
             Cerr << "wrote profile to " << profileOut << Endl;
+        }
+
+        if (!lcovOut.empty()) {
+            TFileOutput out(lcovOut);
+            EmitLcov(out, results.front());
+
+            Cerr << "wrote lcov data to " << lcovOut << Endl;
         }
     } catch (const std::exception& e) {
         Cerr << "error: " << e.what() << Endl;
