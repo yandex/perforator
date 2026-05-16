@@ -1430,6 +1430,8 @@ cuelang.org/go/pkg/uuid
 cuelang.org/go/tools/fix
 cuelang.org/go/tools/flow
 cuelang.org/go/tools/trim
+# cyphar.com/go-pathrs v0.2.2
+## explicit; go 1.18
 # dario.cat/mergo v1.0.2
 ## explicit; go 1.13
 dario.cat/mergo
@@ -6785,9 +6787,22 @@ github.com/cucumber/messages-go/v16
 github.com/cucumber/messages/go/v24
 # github.com/cyberdelia/templates v1.0.0
 ## explicit; go 1.16
-# github.com/cyphar/filepath-securejoin v0.4.1
+# github.com/cyphar/filepath-securejoin v0.6.1
 ## explicit; go 1.18
 github.com/cyphar/filepath-securejoin
+github.com/cyphar/filepath-securejoin/internal/consts
+github.com/cyphar/filepath-securejoin/internal/testutils
+github.com/cyphar/filepath-securejoin/pathrs-lite
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/assert
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/fd
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/gocompat
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/gopathrs
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/kernelversion
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/linux
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/procfs
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/testutils
+github.com/cyphar/filepath-securejoin/pathrs-lite/procfs
 # github.com/czerwonk/bird_exporter v0.0.0-20231026083236-f24f1ab36c60
 ## explicit; go 1.20
 github.com/czerwonk/bird_exporter
@@ -13834,7 +13849,7 @@ github.com/opencontainers/runc/libcontainer/user
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
 ## explicit; go 1.19
-# github.com/opencontainers/selinux v1.12.0
+# github.com/opencontainers/selinux v1.13.1
 ## explicit; go 1.19
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
@@ -15565,8 +15580,8 @@ github.com/shirou/gopsutil/internal/common
 github.com/shirou/gopsutil/mem
 github.com/shirou/gopsutil/net
 github.com/shirou/gopsutil/process
-# github.com/shirou/gopsutil/v3 v3.24.2
-## explicit; go 1.15
+# github.com/shirou/gopsutil/v3 v3.24.5
+## explicit; go 1.18
 github.com/shirou/gopsutil/v3
 github.com/shirou/gopsutil/v3/common
 github.com/shirou/gopsutil/v3/cpu
@@ -15673,6 +15688,13 @@ github.com/skeema/knownhosts
 github.com/slackhq/nebula/cert
 github.com/slackhq/nebula/iputil
 github.com/slackhq/nebula/test
+# github.com/slimm609/checksec/v3 v3.1.0
+## explicit; go 1.24.6
+github.com/slimm609/checksec/v3
+github.com/slimm609/checksec/v3/cmd
+github.com/slimm609/checksec/v3/pkg/checksec
+github.com/slimm609/checksec/v3/pkg/output
+github.com/slimm609/checksec/v3/pkg/utils
 # github.com/smacker/go-tree-sitter v0.0.0-20230720070738-0d0a9f78d8f8
 ## explicit; go 1.13
 github.com/smacker/go-tree-sitter
@@ -16809,6 +16831,7 @@ github.com/twmb/murmur3/testdata
 # github.com/u-root/u-root v7.0.0+incompatible
 ## explicit
 github.com/u-root/u-root/pkg/cmdline
+github.com/u-root/u-root/pkg/ldd
 github.com/u-root/u-root/pkg/rand
 github.com/u-root/u-root/pkg/shlex
 github.com/u-root/u-root/pkg/ubinary
@@ -20242,7 +20265,7 @@ golang.org/x/exp/slog/internal/testutil
 golang.org/x/exp/slog/slogtest
 # golang.org/x/exp/shiny v0.0.0-20241009180824-f66d83c29e7c
 ## explicit; go 1.18
-# golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546
+# golang.org/x/exp/typeparams v0.0.0-20251125195548-87e1e737ad39
 ## explicit; go 1.24.0
 golang.org/x/exp/typeparams
 # golang.org/x/image v0.32.0
@@ -23020,7 +23043,7 @@ k8s.io/klog/v2/ktesting/example
 k8s.io/klog/v2/ktesting/init
 k8s.io/klog/v2/test
 k8s.io/klog/v2/textlogger
-# k8s.io/kms v0.33.0
+# k8s.io/kms v0.33.0 => k8s.io/kms v0.33.0
 ## explicit; go 1.24.0
 k8s.io/kms/apis/v1beta1
 k8s.io/kms/apis/v2
@@ -23654,6 +23677,7 @@ www.velocidex.com/golang/regparser
 # k8s.io/cri-api => k8s.io/cri-api v0.23.5
 # k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.26.1
 # k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.26.1
+# k8s.io/kms => k8s.io/kms v0.33.0
 # k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.33.0
 # k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.26.1
 # k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250626183228-af0a60a813f8

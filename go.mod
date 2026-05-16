@@ -791,13 +791,14 @@ require (
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/shakinm/xlsReader v0.9.12
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/shirou/gopsutil/v3 v3.24.2
+	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/shopspring/decimal v1.4.0
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/siddontang/go-mysql v0.0.0-20200622032841-a8c16ae9a9cb
 	github.com/sideshow/apns2 v0.23.0
 	github.com/sijms/go-ora/v2 v2.8.19
 	github.com/sirupsen/logrus v1.9.3
+	github.com/slimm609/checksec/v3 v3.1.0
 	github.com/smacker/go-tree-sitter v0.0.0-20230720070738-0d0a9f78d8f8
 	github.com/smallstep/certificates v0.25.2
 	github.com/smallstep/cli v0.25.1
@@ -1161,6 +1162,7 @@ require (
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.15-0.20230702191903-2de6d2748484 // indirect
 	contrib.go.opencensus.io/integrations/ocsql v0.1.7 // indirect
 	contrib.go.opencensus.io/resource v0.1.2 // indirect
+	cyphar.com/go-pathrs v0.2.2 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	deps.dev/api/v3 v3.0.0-20250307021655-d811e36f9cad // indirect
 	deps.dev/util/maven v0.0.0-20250307021655-d811e36f9cad // indirect
@@ -1528,7 +1530,7 @@ require (
 	github.com/cucumber/gherkin/go/v28 v28.0.0 // indirect
 	github.com/cucumber/messages/go/v24 v24.1.0 // indirect
 	github.com/cyberdelia/templates v1.0.0 // indirect
-	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
+	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c // indirect
 	github.com/d2g/dhcp4client v1.0.0 // indirect
@@ -2154,7 +2156,7 @@ require (
 	github.com/opencontainers/runc v1.2.3 // indirect
 	github.com/opencontainers/runtime-spec v1.2.1 // indirect
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69 // indirect
-	github.com/opencontainers/selinux v1.12.0 // indirect
+	github.com/opencontainers/selinux v1.13.1 // indirect
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.5.0 // indirect
@@ -2526,7 +2528,7 @@ require (
 	go4.org/intern v0.0.0-20220617035311-6925f38cc365 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/exp/shiny v0.0.0-20241009180824-f66d83c29e7c // indirect
-	golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20251125195548-87e1e737ad39 // indirect
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
 	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
@@ -2712,6 +2714,8 @@ replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.0
 replace k8s.io/apimachinery => k8s.io/apimachinery v0.33.0
 
 replace k8s.io/apiserver => k8s.io/apiserver v0.33.0
+
+replace k8s.io/kms => k8s.io/kms v0.33.0
 
 replace k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.6
 
