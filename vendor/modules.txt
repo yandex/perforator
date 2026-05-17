@@ -17890,7 +17890,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.135.14
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.136.2
 ## explicit; go 1.24.0
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
@@ -17948,6 +17948,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/query/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/options
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/result
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/scanner
+github.com/ydb-platform/ydb-go-sdk/v3/internal/query/test
 github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter
 github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter/errors
@@ -17964,6 +17965,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/stats
 github.com/ydb-platform/ydb-go-sdk/v3/internal/table
 github.com/ydb-platform/ydb-go-sdk/v3/internal/table/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/table/scanner
+github.com/ydb-platform/ydb-go-sdk/v3/internal/table/test
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicclientinternal
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topiclistenerinternal
@@ -17988,8 +17990,8 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/xresolver
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xruntime
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/badconn
-github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/bench
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/common
+github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/test
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/xquery
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/xtable
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsync
