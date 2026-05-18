@@ -179,7 +179,11 @@ var (
 				return fmt.Errorf("unknown profile %s", profileID)
 			}
 
-			data, err := bundle.ProfileStorage.FetchProfile(ctx, profiles[0])
+			profileBundle, err := bundle.ProfileStorage.FetchProfile(ctx, profiles[0])
+			if err != nil {
+				return err
+			}
+			data, err := profileBundle.GetOrConvertPprof()
 			if err != nil {
 				return err
 			}

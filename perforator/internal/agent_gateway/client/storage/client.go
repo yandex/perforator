@@ -150,6 +150,7 @@ func NewClient(conf *Config, l xlog.Logger, conn *grpc.ClientConn) (*Client, err
 
 type Profile struct {
 	Raw                        []byte
+	YaprofRaw                  []byte
 	Labels                     map[string]string
 	BuildIDs                   []string
 	Envs                       []string
@@ -167,9 +168,17 @@ func (c *Client) PushProfile(
 ) (uint64, error) {
 	var err error
 	if c.compressionFunc != nil {
-		profile.Raw, err = c.compressionFunc(profile.Raw)
-		if err != nil {
-			return 0, fmt.Errorf("failed to compress profile: %w", err)
+		if len(profile.Raw) > 0 {
+			profile.Raw, err = c.compressionFunc(profile.Raw)
+			if err != nil {
+				return 0, fmt.Errorf("failed to compress pprof profile: %w", err)
+			}
+		}
+		if len(profile.YaprofRaw) > 0 {
+			profile.YaprofRaw, err = c.compressionFunc(profile.YaprofRaw)
+			if err != nil {
+				return 0, fmt.Errorf("failed to compress yaprof profile: %w", err)
+			}
 		}
 		newLabels := make(map[string]string, len(profile.Labels)+1)
 		maps.Copy(newLabels, profile.Labels)
@@ -177,15 +186,13 @@ func (c *Client) PushProfile(
 		profile.Labels = newLabels
 	}
 
-	c.logger.Debug(ctx, "Pushing profile", log.Int("size", len(profile.Raw)))
+	totalSize := len(profile.Raw) + len(profile.YaprofRaw)
+	c.logger.Debug(ctx, "Pushing profile", log.Int("size", totalSize))
 
 	ctx, cancel := context.WithTimeout(ctx, c.conf.RPCTimeouts.PushProfileTimeout)
 	defer cancel()
 
 	req := &perforatorstorage.PushProfileRequest{
-		ProfileRepresentation: &perforatorstorage.PushProfileRequest_ProfileBytes{
-			ProfileBytes: profile.Raw,
-		},
 		Labels:      profile.Labels,
 		BuildIDs:    profile.BuildIDs,
 		Envs:        profile.Envs,
@@ -193,6 +200,16 @@ func (c *Client) PushProfile(
 		SignalTypes: profile.SignalTypes,
 		CPOID:       profile.CustomProfilingOperationID,
 	}
+
+	if len(profile.Raw) > 0 {
+		req.ProfileRepresentation = &perforatorstorage.PushProfileRequest_ProfileBytes{
+			ProfileBytes: profile.Raw,
+		}
+	}
+	if len(profile.YaprofRaw) > 0 {
+		req.YaprofBytes = profile.YaprofRaw
+	}
+
 	if !profile.StartTimestamp.IsZero() {
 		req.StartTimestamp = timestamppb.New(profile.StartTimestamp)
 	}
@@ -207,7 +224,7 @@ func (c *Client) PushProfile(
 	}
 
 	c.logger.Debug(ctx, "Successfully pushed profile", log.String("id", res.ID))
-	return uint64(len(profile.Raw)), err
+	return uint64(totalSize), err
 }
 
 func (c *Client) AnnounceBinaries(ctx context.Context, availableBuildIDs []string) ([]string, error) {

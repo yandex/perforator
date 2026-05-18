@@ -440,8 +440,15 @@ func (s *PerforatorServer) fetchProfile(ctx context.Context, id meta.ProfileID) 
 	}
 	m = profiles[0]
 
-	data, err := s.profileStorage.FetchProfile(ctx, m)
-	if err != nil {
+	profileBundle, fetchErr := s.profileStorage.FetchProfile(ctx, m)
+	if fetchErr != nil {
+		err = fetchErr
+		return
+	}
+
+	data, fetchErr := profileBundle.GetOrConvertPprof()
+	if fetchErr != nil {
+		err = fetchErr
 		return
 	}
 
@@ -879,12 +886,19 @@ func (s *PerforatorServer) fetchProfiles(
 				return nil
 			}
 
-			data, err := s.profileStorage.FetchProfile(ctx, meta)
-			noExistErr := &blob.ErrNoExist{}
-			if err != nil && !errors.As(err, &noExistErr) {
+			profileBundle, err := s.profileStorage.FetchProfile(ctx, meta)
+			if err != nil {
+				noExistErr := &blob.ErrNoExist{}
+				if errors.As(err, &noExistErr) {
+					return nil
+				}
 				return err
 			}
 
+			data, err := profileBundle.GetOrConvertPprof()
+			if err != nil {
+				return err
+			}
 			downloadedSizeApprox.Add(uint64(len(data)))
 			datas[i] = data
 

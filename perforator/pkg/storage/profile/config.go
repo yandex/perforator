@@ -8,4 +8,5 @@ type Config struct {
 	MetaStorage             clickhouse.Config `yaml:"meta"`
 	S3Bucket                string            `yaml:"bucket"`
 	BlobDownloadConcurrency uint32            `yaml:"blob_download_concurrency"`
+	WriteInContainerFormat  bool              `yaml:"write_in_container_format"`
 }

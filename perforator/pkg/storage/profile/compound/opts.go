@@ -3,6 +3,7 @@ package compound
 import (
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
 	"github.com/yandex/perforator/perforator/pkg/s3"
+	storage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	clickhouse_meta "github.com/yandex/perforator/perforator/pkg/storage/profile/meta/clickhouse"
 )
 
@@ -12,6 +13,7 @@ type options struct {
 	s3client                *s3.Client
 	s3bucket                string
 	blobDownloadConcurrency uint32
+	storageOpts             storage.Options
 }
 
 func defaultOpts() *options {
@@ -37,5 +39,11 @@ func WithS3(client *s3.Client, bucket string) Option {
 func WithBlobDownloadConcurrency(concurrency uint32) Option {
 	return func(o *options) {
 		o.blobDownloadConcurrency = concurrency
+	}
+}
+
+func WithContainerFormat(enabled bool) Option {
+	return func(o *options) {
+		o.storageOpts.WriteInContainerFormat = enabled
 	}
 }

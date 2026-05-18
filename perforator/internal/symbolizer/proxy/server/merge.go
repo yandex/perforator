@@ -174,7 +174,11 @@ func (s *PerforatorServer) fetchAndMergeProfilesFast(
 
 	for _, meta := range metas {
 		g.Go(func() error {
-			data, err := s.profileStorage.FetchProfile(ctx, meta)
+			profileBundle, err := s.profileStorage.FetchProfile(ctx, meta)
+			if err != nil {
+				return err
+			}
+			data, err := profileBundle.GetOrConvertPprof()
 			if err != nil {
 				return err
 			}

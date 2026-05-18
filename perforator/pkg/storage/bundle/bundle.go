@@ -85,6 +85,7 @@ func NewStorageBundle(ctx context.Context, bgCtx context.Context, l xlog.Logger,
 			profilecompound.WithClickhouseMetaStorage(res.DBs.ClickhouseConn, &c.ProfileStorage.MetaStorage),
 			profilecompound.WithS3(res.DBs.S3Client, c.ProfileStorage.S3Bucket),
 			profilecompound.WithBlobDownloadConcurrency(c.ProfileStorage.BlobDownloadConcurrency),
+			profilecompound.WithContainerFormat(c.ProfileStorage.WriteInContainerFormat),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init profile storage: %w", err)

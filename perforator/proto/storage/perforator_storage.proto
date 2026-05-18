@@ -23,6 +23,8 @@ message PushProfileRequest {
         bytes ProfileBytes = 2;
     }
 
+    bytes YaprofBytes = 3;
+
     // Arbitrary labels of the profile
     map<string, string> Labels = 10;
 

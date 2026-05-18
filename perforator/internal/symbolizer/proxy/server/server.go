@@ -41,6 +41,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpclog"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpcmetrics"
 	"github.com/yandex/perforator/perforator/pkg/polyheapprof"
+	profilebundle "github.com/yandex/perforator/perforator/pkg/profile/bundle"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob/s3"
@@ -609,7 +610,7 @@ func (s *PerforatorServer) UploadProfile(ctx context.Context, req *perforator.Up
 
 	metas := denormalizeProfileMeta(metadata)
 	var id string
-	id, err = s.profileStorage.StoreProfile(ctx, metas, req.GetProfile())
+	id, err = s.profileStorage.StoreProfile(ctx, metas, profilebundle.NewPprofBundle(req.GetProfile()))
 	if err != nil {
 		s.l.Error(ctx, "Failed to upload profile", log.Error(err))
 		return nil, status.Errorf(codes.Internal, "failed to store profile: %v", err)

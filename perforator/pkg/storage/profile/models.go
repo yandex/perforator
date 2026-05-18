@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/yandex/perforator/perforator/pkg/profile/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
@@ -13,6 +14,12 @@ const (
 	CompressionLabel = "compression"
 	ServiceLabel     = "service"
 	TimestampLabel   = "timestamp"
+	BlobFormatLabel  = "blob_format"
+)
+
+const (
+	BlobFormatLegacyPprof = ""
+	BlobFormatContainer   = "proto_container"
 )
 
 type ProfileData = []byte
@@ -21,7 +28,7 @@ type Storage interface {
 	StoreProfile(
 		ctx context.Context,
 		metas []*meta.ProfileMetadata,
-		body ProfileData,
+		profile *bundle.ProfileBundle,
 		opts ...meta.StoreOption,
 	) (meta.ProfileID, error)
 
@@ -43,7 +50,7 @@ type Storage interface {
 	FetchProfile(
 		ctx context.Context,
 		meta *meta.ProfileMetadata,
-	) (ProfileData, error)
+	) (*bundle.ProfileBundle, error)
 
 	CollectExpired(
 		ctx context.Context,

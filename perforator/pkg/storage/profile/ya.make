@@ -1,6 +1,8 @@
 GO_LIBRARY()
 
-PEERDIR(perforator/pkg/cprofile)
+PEERDIR(
+    perforator/pkg/profile/bundle
+)
 
 SRCS(
     config.go

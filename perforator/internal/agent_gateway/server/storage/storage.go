@@ -20,6 +20,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/kafka/producer"
+	profilebundle "github.com/yandex/perforator/perforator/pkg/profile/bundle"
 	"github.com/yandex/perforator/perforator/pkg/profile_event"
 	"github.com/yandex/perforator/perforator/pkg/profile_event/async_publisher"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
@@ -288,31 +289,43 @@ func (s *Service) getMetadataFromProfile(ctx context.Context, profile *pprofprof
 func (s *Service) extractProfileBytesMeta(
 	ctx context.Context,
 	req *perforatorstorage.PushProfileRequest,
-) (body []byte, meta *profilemeta.ProfileMetadata, err error) {
-	switch req.ProfileRepresentation.(type) {
-	case *perforatorstorage.PushProfileRequest_ProfileBytes:
-		meta, err = s.createProfileMetaFromLabels(ctx, req.GetLabels())
+) (pprofBody []byte, yaprofBody []byte, meta *profilemeta.ProfileMetadata, err error) {
+	// Legacy path: labels are embedded inside the protobuf Profile message.
+	// Deprecated: new agents should send labels via req.GetLabels() and raw bytes via ProfileBytes/YaprofBytes.
+	if legacyProfile := req.GetProfile(); legacyProfile != nil {
+		meta, err = s.getMetadataFromProfile(ctx, legacyProfile)
 		if err != nil {
 			return
 		}
 
-		body = req.GetProfileBytes()
-
-	case *perforatorstorage.PushProfileRequest_Profile:
-		meta, err = s.getMetadataFromProfile(ctx, req.GetProfile())
+		pprofBody, err = proto.Marshal(legacyProfile)
 		if err != nil {
 			return
 		}
 
-		body, err = proto.Marshal(req.GetProfile())
-		if err != nil {
-			return
-		}
-
-	default:
-		return nil, nil, errors.New("request does not contain profile")
+		yaprofBody = req.GetYaprofBytes()
+		s.applyCommonMeta(req, meta)
+		return
 	}
 
+	// Normal path: labels come from req.GetLabels(), profile bytes from dedicated fields.
+	meta, err = s.createProfileMetaFromLabels(ctx, req.GetLabels())
+	if err != nil {
+		return
+	}
+
+	pprofBody = req.GetProfileBytes()
+	yaprofBody = req.GetYaprofBytes()
+
+	if len(pprofBody) == 0 && len(yaprofBody) == 0 {
+		return nil, nil, nil, errors.New("request does not contain profile")
+	}
+
+	s.applyCommonMeta(req, meta)
+	return
+}
+
+func (s *Service) applyCommonMeta(req *perforatorstorage.PushProfileRequest, meta *profilemeta.ProfileMetadata) {
 	if req.StartTimestamp != nil && !req.StartTimestamp.AsTime().IsZero() {
 		meta.Timestamp = req.StartTimestamp.AsTime()
 	}
@@ -320,7 +333,6 @@ func (s *Service) extractProfileBytesMeta(
 	meta.BuildIDs = slices.Clone(req.GetBuildIDs())
 	meta.Envs = slices.Clone(req.GetEnvs())
 	meta.CustomProfilingOperationID = req.GetCPOID()
-	return
 }
 
 func (s *Service) fixupMissingMetadataFields(meta *profilemeta.ProfileMetadata) {
@@ -422,11 +434,11 @@ func (s *Service) PushProfile(ctx context.Context, req *perforatorstorage.PushPr
 		}
 	}()
 
-	if req.GetProfileRepresentation() == nil {
+	if req.GetProfileRepresentation() == nil && len(req.GetYaprofBytes()) == 0 {
 		return nil, errors.New("missing profile field")
 	}
 
-	body, meta, err := s.extractProfileBytesMeta(ctx, req)
+	pprofBody, yaprofBody, meta, err := s.extractProfileBytesMeta(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +474,7 @@ func (s *Service) PushProfile(ctx context.Context, req *perforatorstorage.PushPr
 	profileID, err = s.profileStorage.StoreProfile(
 		storeProfileCtx,
 		metas,
-		body,
+		profilebundle.NewBundle(pprofBody, yaprofBody),
 		profilemeta.WithPersistCallback(func(m *profilemeta.ProfileMetadata) {
 			if !m.Timestamp.IsZero() {
 				s.metrics.timeToDatabaseHist.RecordDuration(time.Since(m.Timestamp))
@@ -479,8 +491,9 @@ func (s *Service) PushProfile(ctx context.Context, req *perforatorstorage.PushPr
 		return nil, err
 	}
 
-	s.metrics.profilesBytesCount.Add(int64(len(body)))
-	s.metrics.profilesBytesSizes.RecordValue(float64(len(body)))
+	totalSize := len(pprofBody) + len(yaprofBody)
+	s.metrics.profilesBytesCount.Add(int64(totalSize))
+	s.metrics.profilesBytesSizes.RecordValue(float64(totalSize))
 
 	l.Info(ctx,
 		"Pushed profile",

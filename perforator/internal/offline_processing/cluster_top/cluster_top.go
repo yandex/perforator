@@ -382,14 +382,20 @@ func (t *ClusterTop) fetchProfiles(
 	g, ctx := errgroup.WithContext(ctx)
 	for i := range profileMetas {
 		g.Go(func() error {
-			noExistErr := &blob.ErrNoExist{}
-
-			data, err := t.profileStorage.FetchProfile(ctx, profileMetas[i])
-			if err != nil && !errors.As(err, &noExistErr) {
+			profileBundle, err := t.profileStorage.FetchProfile(ctx, profileMetas[i])
+			if err != nil {
+				noExistErr := &blob.ErrNoExist{}
+				if errors.As(err, &noExistErr) {
+					return nil
+				}
 				return err
 			}
 
-			profiles[i] = data
+			pprofData, err := profileBundle.GetOrConvertPprof()
+			if err != nil {
+				return err
+			}
+			profiles[i] = pprofData
 
 			return nil
 		})

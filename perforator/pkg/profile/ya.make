@@ -1,4 +1,5 @@
 RECURSE(
+    bundle
     flamegraph
     interpreterstack
     labels

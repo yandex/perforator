@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/perforator/pkg/cprofile"
+	"github.com/yandex/perforator/perforator/pkg/profile/bundle"
 	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
@@ -28,6 +28,10 @@ import (
 var _ storage.Storage = (*ProfileStorage)(nil)
 var _ Storage = (*ProfileStorage)(nil)
 
+type Options struct {
+	WriteInContainerFormat bool
+}
+
 type ProfileStorage struct {
 	MetaStorage meta.Storage
 	BlobStorage blob.Storage
@@ -35,6 +39,8 @@ type ProfileStorage struct {
 	downloadSemaphore *semaphore.Weighted
 
 	decompressor *zstd.Decoder
+
+	opts Options
 
 	log xlog.Logger
 }
@@ -54,7 +60,7 @@ func (s *ProfileStorage) putBlob(ctx context.Context, id string, bytes []byte) e
 }
 
 // implements profilestorage.Storage
-func (s *ProfileStorage) StoreProfile(ctx context.Context, metas []*meta.ProfileMetadata, body []byte, opts ...meta.StoreOption) (meta.ProfileID, error) {
+func (s *ProfileStorage) StoreProfile(ctx context.Context, metas []*meta.ProfileMetadata, profile *bundle.ProfileBundle, opts ...meta.StoreOption) (meta.ProfileID, error) {
 	if len(metas) == 0 {
 		return "", errors.New("no profile metas is specified")
 	}
@@ -70,7 +76,26 @@ func (s *ProfileStorage) StoreProfile(ctx context.Context, metas []*meta.Profile
 
 	s.log.Debug(ctx, "Store profile", log.Array("metas", metas))
 
-	err = s.putBlob(ctx, id.String(), body)
+	var blobData []byte
+	if s.opts.WriteInContainerFormat {
+		blobData, err = s.wrapInContainer(profile.GetPprof(), profile.GetYaprof())
+		if err != nil {
+			return "", fmt.Errorf("failed to wrap profile in container: %w", err)
+		}
+		for _, meta := range metas {
+			if meta.Attributes == nil {
+				meta.Attributes = make(map[string]string)
+			}
+			meta.Attributes[BlobFormatLabel] = BlobFormatContainer
+		}
+	} else {
+		blobData, err = profile.GetOrConvertPprof()
+		if err != nil {
+			return "", fmt.Errorf("failed to get pprof profile: %w", err)
+		}
+	}
+
+	err = s.putBlob(ctx, id.String(), blobData)
 	if err != nil {
 		return "", err
 	}
@@ -168,48 +193,68 @@ func (s *ProfileStorage) SelectProfiles(ctx context.Context, filters *meta.Profi
 }
 
 // implements profilestorage.Storage
-func (s *ProfileStorage) FetchProfile(ctx context.Context, meta *meta.ProfileMetadata) (ProfileData, error) {
+func (s *ProfileStorage) FetchProfile(ctx context.Context, meta *meta.ProfileMetadata) (*bundle.ProfileBundle, error) {
 	data, err := s.getBlob(ctx, meta.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch profile %q blob: %w", meta.ID, err)
 	}
 
-	container := &profileproto.ProfileContainer{}
-	if err := proto.Unmarshal(data, container); err == nil &&
-		isValidContainer(container) {
-		return s.uncompressFromContainer(container, meta.ID)
-	}
+	switch blobFormat := meta.Attributes[BlobFormatLabel]; blobFormat {
+	case BlobFormatContainer:
+		container := &profileproto.ProfileContainer{}
+		if err := proto.Unmarshal(data, container); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal container for profile %s: %w", meta.ID, err)
+		}
+		profileBundle, err := s.bundleFromContainer(container, meta.ID)
+		if err != nil {
+			return nil, err
+		}
+		return profileBundle, nil
+	case BlobFormatLegacyPprof:
+		// Legacy pprof is the default: absent blob_format or blob_format with empty value.
+		codec := meta.Attributes[CompressionLabel]
+		data, err = s.uncompressIfNeeded(data, codec)
+		if err != nil {
+			return nil, fmt.Errorf("failed to uncompress profile %s, compression `%s`: %w", meta.ID, codec, err)
+		}
 
-	// TODO: remove this fallback once the old format (raw bytes with compression info from ClickHouse) is fully deprecated
-	codec := meta.Attributes[CompressionLabel]
-	data, err = s.uncompressIfNeeded(data, codec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to uncompress profile %s, compression `%s`: %w", meta.ID, codec, err)
+		return bundle.NewPprofBundle(data), nil
+	default:
+		return nil, fmt.Errorf("unsupported profile blob format %q for profile %s", blobFormat, meta.ID)
 	}
-
-	return data, nil
 }
 
-func (s *ProfileStorage) uncompressFromContainer(container *profileproto.ProfileContainer, profileID meta.ProfileID) (ProfileData, error) {
+func (s *ProfileStorage) bundleFromContainer(container *profileproto.ProfileContainer, profileID meta.ProfileID) (*bundle.ProfileBundle, error) {
+	var pprofData []byte
+	var yaprofData []byte
+
 	if container.Pprof != nil {
-		return s.uncompressPayload(container.Pprof, profileID)
+		var err error
+		pprofData, err = s.uncompressPayload(container.Pprof, profileID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to uncompress pprof payload for profile %s: %w", profileID, err)
+		}
 	}
 
 	if container.Yaprof != nil {
-		yaprofData, err := s.uncompressPayload(container.Yaprof, profileID)
+		var err error
+		yaprofData, err = s.uncompressPayload(container.Yaprof, profileID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to uncompress yaprof payload for profile %s: %w", profileID, err)
 		}
-
-		pprofData, err := cprofile.YaprofToPProf(yaprofData)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert yaprof to pprof for profile %s: %w", profileID, err)
-		}
-
-		return pprofData, nil
 	}
 
-	return nil, fmt.Errorf("profile container %s has no payload", profileID)
+	if pprofData == nil && yaprofData == nil {
+		return nil, fmt.Errorf("profile container %s has no payload", profileID)
+	}
+
+	if pprofData != nil && yaprofData != nil {
+		return bundle.NewBundle(pprofData, yaprofData), nil
+	}
+	if pprofData != nil {
+		return bundle.NewPprofBundle(pprofData), nil
+	}
+	return bundle.NewYaprofBundle(yaprofData), nil
 }
 
 func (s *ProfileStorage) uncompressPayload(payload *profileproto.ProfileContainer_Payload, profileID meta.ProfileID) (ProfileData, error) {
@@ -240,34 +285,9 @@ func (s *ProfileStorage) uncompressGzip(byteString []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func isValidContainer(c *profileproto.ProfileContainer) bool {
-	// TODO: remove GetUnknown check once all stored blobs use the container format
-	if len(c.ProtoReflect().GetUnknown()) > 0 {
-		return false
-	}
-
-	pprofValid := c.Pprof != nil && isValidPayload(c.Pprof)
-	yaprofValid := c.Yaprof != nil && isValidPayload(c.Yaprof)
-
-	return pprofValid || yaprofValid
-}
-
 var zstdMagic = []byte{0x28, 0xb5, 0x2f, 0xfd}
 
 var gzipMagic = []byte{0x1f, 0x8b}
-
-func isValidPayload(p *profileproto.ProfileContainer_Payload) bool {
-	switch p.CompressionMethod {
-	case compressionpb.CompressionMethod_None:
-		return true
-	case compressionpb.CompressionMethod_Zstd:
-		return bytes.HasPrefix(p.Data, zstdMagic)
-	case compressionpb.CompressionMethod_Gzip:
-		return bytes.HasPrefix(p.Data, gzipMagic)
-	default:
-		return false
-	}
-}
 
 // implements profilestorage.Storage
 func (s *ProfileStorage) CollectExpired(
@@ -317,6 +337,7 @@ func NewStorage(
 	metaStorage meta.Storage,
 	blobStorage blob.Storage,
 	blobDownloadConcurrency uint32,
+	opts Options,
 ) (*ProfileStorage, error) {
 	if blobDownloadConcurrency == 0 {
 		blobDownloadConcurrency = 32
@@ -334,5 +355,36 @@ func NewStorage(
 		downloadSemaphore: semaphore.NewWeighted(int64(blobDownloadConcurrency)),
 		log:               logger,
 		decompressor:      decompressor,
+		opts:              opts,
 	}, nil
+}
+
+func detectCompressionMethod(data []byte) compressionpb.CompressionMethod {
+	if bytes.HasPrefix(data, zstdMagic) {
+		return compressionpb.CompressionMethod_Zstd
+	}
+	if bytes.HasPrefix(data, gzipMagic) {
+		return compressionpb.CompressionMethod_Gzip
+	}
+	return compressionpb.CompressionMethod_None
+}
+
+func (s *ProfileStorage) wrapInContainer(pprofBody []byte, yaprofBody []byte) ([]byte, error) {
+	container := &profileproto.ProfileContainer{}
+
+	if len(pprofBody) > 0 {
+		container.Pprof = &profileproto.ProfileContainer_Payload{
+			CompressionMethod: detectCompressionMethod(pprofBody),
+			Data:              pprofBody,
+		}
+	}
+
+	if len(yaprofBody) > 0 {
+		container.Yaprof = &profileproto.ProfileContainer_Payload{
+			CompressionMethod: detectCompressionMethod(yaprofBody),
+			Data:              yaprofBody,
+		}
+	}
+
+	return proto.Marshal(container)
 }

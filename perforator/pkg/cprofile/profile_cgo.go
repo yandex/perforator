@@ -92,4 +92,12 @@ func YaprofToPProf(data []byte) ([]byte, error) {
 	return profile.MarshalPProf()
 }
 
-////////////////////////////////////////////////////////////////////////////////
+func PprofToYaprof(data []byte) ([]byte, error) {
+	profile, err := ParsePProf(data)
+	if err != nil {
+		return nil, err
+	}
+	defer profile.Free()
+
+	return profile.Marshal()
+}
