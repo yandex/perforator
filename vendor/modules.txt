@@ -16598,8 +16598,8 @@ github.com/temporalio/tchannel-go/typed
 # github.com/temporalio/tctl-kit v0.0.0-20250107205014-58462b03dfb2
 ## explicit; go 1.18
 github.com/temporalio/tctl-kit/pkg/color
-# github.com/temporalio/ui-server/v2 v2.40.0
-## explicit; go 1.23.0
+# github.com/temporalio/ui-server/v2 v2.42.1
+## explicit; go 1.24.0
 github.com/temporalio/ui-server/v2
 github.com/temporalio/ui-server/v2/cmd/server
 github.com/temporalio/ui-server/v2/plugins/fs_config_provider

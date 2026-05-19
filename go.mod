@@ -836,7 +836,7 @@ require (
 	github.com/temporalio/omes v1.0.0
 	github.com/temporalio/omes/workers/go v0.0.0-20240701113332-211647aa9dae
 	github.com/temporalio/sqlparser v0.0.0-20231115171017-f4060bcfa6cb
-	github.com/temporalio/ui-server/v2 v2.40.0
+	github.com/temporalio/ui-server/v2 v2.42.1
 	github.com/terminalstatic/go-xsd-validate v0.1.6
 	github.com/testcontainers/testcontainers-go v0.40.0
 	github.com/tidwall/gjson v1.18.0
