@@ -66,28 +66,7 @@ package NPerforator.NProto.NProfile;
 
 option go_package = "github.com/yandex/perforator/perforator/proto/profile";
 
-import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
-
-extend google.protobuf.EnumValueOptions {
-    optional string label_key = 50123;
-    repeated string deprecated_label_key = 50124;
-}
-
-// WellKnownLabel provides a set of conventional string keys for profile labels.
-// Using these keys allows various tools (e.g., UIs, analysis scripts) to
-// reliably identify and process common metadata.
-//
-// To ensure compatibility, use these keys for the corresponding data in your profile.
-// For example, the process ID should be labeled with the key "pid".
-enum WellKnownLabel {
-    ProcessId = 0       [(label_key) = "pid"];
-    ThreadId = 1        [(label_key) = "tid"];
-    ThreadCommand = 2   [(label_key) = "thread_comm", (deprecated_label_key) = "comm"];
-    ProcessCommand = 3  [(label_key) = "process_comm"];
-    Workload = 4        [(label_key) = "workload"];
-    SignalName = 5      [(label_key) = "signal:name"];
-}
 
 // SampleStacks represents the stack trace information for a sample.
 message SampleStacks {
@@ -148,6 +127,12 @@ message SampleLabels {
 // LabelGroups are used for profile size optimization.
 // We mainly store well-known labels here, as they often tend to be less volatile
 // in their values set.
+//
+// Possible future extension: add `repeated uint32 parent_id` to compose
+// groups along orthogonal axes (e.g., a per-thread group whose parent is a
+// per-process group). The effective label set of a group would be its own
+// labels plus its parent's effective set. Not implemented today; flagged
+// here so the field number is reserved if/when needed.
 message LabelGroups {
     // Index of the first label inside packed_label_ids array.
     repeated uint32 packed_label_ids_offset = 1;

@@ -1,5 +1,7 @@
 #include "profile.h"
 
+#include <util/generic/string.h>
+#include <util/generic/vector.h>
 #include <util/stream/output.h>
 
 #include <array>
@@ -40,16 +42,16 @@ const std::array<TVector<TString>, NProto::NProfile::WellKnownLabel_ARRAYSIZE>& 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-TStringBuf TProfile::GetWellKnownLabelKey(NProto::NProfile::WellKnownLabel label) {
-    const auto& keys = GetWellKnownLabelKeysMap()[label];
+TStringBuf GetWellKnownLabelKey(NProto::NProfile::WellKnownLabel kind) {
+    const auto& keys = GetWellKnownLabelKeysMap()[kind];
     return keys.empty() ? TStringBuf{} : keys[0];
 }
 
-TConstArrayRef<TString> TProfile::GetAllWellKnownLabelKeys(NProto::NProfile::WellKnownLabel label) {
-    return GetWellKnownLabelKeysMap()[label];
+TConstArrayRef<TString> GetAllWellKnownLabelKeys(NProto::NProfile::WellKnownLabel kind) {
+    return GetWellKnownLabelKeysMap()[kind];
 }
 
-TConstArrayRef<NProto::NProfile::WellKnownLabel> TProfile::GetWellKnownLabels() {
+TConstArrayRef<NProto::NProfile::WellKnownLabel> GetWellKnownLabels() {
     static const auto labels = [] {
         TVector<NProto::NProfile::WellKnownLabel> result;
         const auto* descriptor = NProto::NProfile::WellKnownLabel_descriptor();
@@ -83,9 +85,9 @@ const NProto::NProfile::Metadata& TProfile::GetMetadata() const {
 ////////////////////////////////////////////////////////////////////////////////
 
 template <>
-void Out<NPerforator::NProfile::TStringRef>(
+void Out<NPerforator::NProfile::TProfileString>(
     IOutputStream& stream,
-    const NPerforator::NProfile::TStringRef& ref
+    const NPerforator::NProfile::TProfileString& ref
 ) {
     Out<TStringBuf>(stream, ref.View());
 }

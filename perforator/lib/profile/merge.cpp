@@ -302,6 +302,11 @@ private:
     absl::flat_hash_set<TValueTypeId> AllowedValueTypes_;
 };
 
+static i32 LabelIndexSpaceSize(TProfile profile) {
+    auto labels = profile.Labels();
+    return labels.empty() ? 0 : labels.back().GetIndex().GetInternalIndex() + 1;
+}
+
 class TSingleProfileMerger {
 public:
     TSingleProfileMerger(
@@ -315,22 +320,22 @@ public:
         , IsFirstProfile_{profileIndex == 0}
         , Policy_{profile, options}
         , SamplingCounter_(NumericHash(profileIndex) % Policy_.SamplePeriod())
-        , Strings_{*Profile_.Strings().GetPastTheEndIndex()}
-        , ValueTypes_{*Profile_.ValueTypes().GetPastTheEndIndex()}
-        , Samples_{*Profile_.Samples().GetPastTheEndIndex()}
-        , SampleKeys_{*Profile_.SampleKeys().GetPastTheEndIndex()}
-        , Stacks_{*Profile_.Stacks().GetPastTheEndIndex()}
-        , Binaries_{*Profile_.Binaries().GetPastTheEndIndex()}
-        , StackSegments_{*Profile_.StackSegments().GetPastTheEndIndex()}
-        , StackFrames_{*Profile_.StackFrames().GetPastTheEndIndex()}
-        , InlineChains_{*Profile_.InlineChains().GetPastTheEndIndex()}
-        , SourceLines_{*Profile_.SourceLines().GetPastTheEndIndex()}
-        , Functions_{*Profile_.Functions().GetPastTheEndIndex()}
-        , LabelGroups_{*Profile_.LabelGroups().GetPastTheEndIndex()}
-        , Labels_{*Profile_.Labels().GetPastTheEndIndex()}
+        , Strings_{static_cast<i32>(Profile_.Strings().size())}
+        , ValueTypes_{static_cast<i32>(Profile_.ValueTypes().size())}
+        , Samples_{static_cast<i32>(Profile_.Samples().size())}
+        , SampleKeys_{static_cast<i32>(Profile_.SampleKeys().size())}
+        , Stacks_{static_cast<i32>(Profile_.Stacks().size())}
+        , Binaries_{static_cast<i32>(Profile_.Binaries().size())}
+        , StackSegments_{static_cast<i32>(Profile_.StackSegments().size())}
+        , StackFrames_{static_cast<i32>(Profile_.StackFrames().size())}
+        , InlineChains_{static_cast<i32>(Profile_.InlineChains().size())}
+        , SourceLines_{static_cast<i32>(Profile_.SourceLines().size())}
+        , Functions_{static_cast<i32>(Profile_.Functions().size())}
+        , LabelGroups_{static_cast<i32>(Profile_.LabelGroups().size())}
+        , Labels_{LabelIndexSpaceSize(Profile_)}
     {
         if (Policy_.SanitizeThreadNames()) {
-            for (const TString& key : TProfile::GetAllWellKnownLabelKeys(NProto::NProfile::ThreadCommand)) {
+            for (const TString& key : GetAllWellKnownLabelKeys(NProto::NProfile::ThreadCommand)) {
                 ThreadLabelKeyIds_.push_back(Builder_.AddString(key));
             }
         }
@@ -347,7 +352,7 @@ private:
         auto&& prev = Builder_.Metadata().GetProto();
         auto&& curr = Profile_.GetMetadata();
 
-        TStringRef str = Profile_.Strings().Get(curr.default_sample_type());
+        TProfileString str = Profile_.String(TStringId::FromInternalIndex(curr.default_sample_type()));
         TStringId defaultSampleType = MapString(str);
 
         if (IsFirstProfile_) {
@@ -360,8 +365,8 @@ private:
     void MergeBinaries() {
         // Some tools consider first binary/mapping as main.
         // To improve stability we do something similar to how pprof merges profiles - main binary is inferred from first profile.
-        if (IsFirstProfile_ && Profile_.Binaries().Size() > 0) {
-            [[maybe_unused]] auto _ = MapBinary(Profile_.Binaries().Get(0));
+        if (IsFirstProfile_ && Profile_.Binaries().size() > 0) {
+            [[maybe_unused]] auto _ = MapBinary(Profile_.Binary(TBinaryId::Zero()));
         }
     }
 
@@ -384,10 +389,10 @@ private:
 
         builder.SetSampleKey(MapSampleKey(sample.GetKey()));
 
-        for (i32 i = 0; i < sample.GetValueCount(); ++i) {
-            auto valueType = sample.GetValueType(i);
+        for (auto sampleValue : sample.GetValues()) {
+            auto valueType = sampleValue.GetValueType();
             if (Policy_.AllowValueType(valueType)) {
-                builder.AddValue(MapValueType(valueType), sample.GetValue(i));
+                builder.AddValue(MapValueType(valueType), sampleValue.GetValue());
             }
         }
 
@@ -408,7 +413,7 @@ private:
     // Check if a frame is a "garbage root" frame (no mapping, no lines)
     static bool IsGarbageRootFrame(TStackFrame frame) {
         return frame.GetBinary().GetIndex() == TBinaryId::Zero()
-            && frame.GetInlineChain().GetLineCount() == 0;
+            && frame.GetInlineChain().GetLines().empty();
     }
 
     TSampleKeyId MapSampleKey(TSampleKey key) {
@@ -417,15 +422,19 @@ private:
 
             builder.SetLabelGroup(MapLabelGroup(key.GetLabelGroup()));
 
-            if (Policy_.StripGarbageRootFrames() && key.GetStackCount() > 0) {
+            auto stacks = key.GetStacks();
+            const i32 stackCount = static_cast<i32>(stacks.size());
+            if (Policy_.StripGarbageRootFrames() && stackCount > 0) {
                 // Find first non-garbage frame from root side
-                i32 stopStackIdx = key.GetStackCount();
+                i32 stopStackIdx = stackCount;
                 i32 stopFrameIdx = 0;
 
-                for (i32 stackIdx = key.GetStackCount() - 1; stackIdx >= 0 && stopStackIdx == key.GetStackCount(); --stackIdx) {
-                    TStack stack = key.GetStack(stackIdx);
-                    for (i32 frameIdx = stack.GetFrameCount() - 1; frameIdx >= 0; --frameIdx) {
-                        if (!IsGarbageRootFrame(stack.GetFrame(frameIdx))) {
+                for (i32 stackIdx = stackCount - 1; stackIdx >= 0 && stopStackIdx == stackCount; --stackIdx) {
+                    TStack stack = stacks[stackIdx];
+                    auto frames = stack.GetFrames();
+                    const i32 frameCount = static_cast<i32>(frames.size());
+                    for (i32 frameIdx = frameCount - 1; frameIdx >= 0; --frameIdx) {
+                        if (!IsGarbageRootFrame(frames[frameIdx])) {
                             stopStackIdx = stackIdx;
                             stopFrameIdx = frameIdx;
                             break;
@@ -433,17 +442,14 @@ private:
                     }
                 }
 
-                // Only emit if we found at least one non-garbage frame
-                // If all frames are garbage (stopStackIdx == stackCount), emit nothing
-                if (stopStackIdx < key.GetStackCount()) {
-                    // Emit complete stacks before the boundary
-                    for (i32 stackIdx = 0; stackIdx < stopStackIdx; ++stackIdx) {
-                        builder.AddStack(MapStack(key.GetStack(stackIdx)));
+                if (stopStackIdx < stackCount) {
+                    for (TStack stack : stacks | std::views::take(stopStackIdx)) {
+                        builder.AddStack(MapStack(stack));
                     }
 
-                    // Handle boundary stack (partial or full)
-                    TStack stack = key.GetStack(stopStackIdx);
-                    if (stopFrameIdx < stack.GetFrameCount() - 1) {
+                    TStack stack = stacks[stopStackIdx];
+                    auto frames = stack.GetFrames();
+                    if (stopFrameIdx < static_cast<i32>(frames.size()) - 1) {
                         builder.AddStack(MapStackPartial(stack, stopFrameIdx + 1));
                     } else {
                         builder.AddStack(MapStack(stack));
@@ -455,7 +461,7 @@ private:
                 }
             }
 
-            for (TLabel label : key.GetLabels()) {
+            for (TLabel label : key.GetDirectLabels()) {
                 if (Policy_.AllowLabel(label)) {
                     builder.AddLabel(MapLabel(label));
                 }
@@ -479,7 +485,7 @@ private:
         });
     }
 
-    TStringId SanitizeThreadName(TStringRef name) {
+    TStringId SanitizeThreadName(TProfileString name) {
         TStringBuf str = name.View();
 
         // Chop trailing digits.
@@ -533,8 +539,8 @@ private:
 
         auto segmentBuilder = Builder_.AddStackSegment();
         TStackSegment segment = stack.GetStackSegment();
-        for (i32 i = 0; i < frameCount - 1; ++i) {
-            segmentBuilder.AddFrame(MapStackFrame(segment.GetFrame(i)));
+        for (TStackFrame frame : segment.GetFrames() | std::views::take(frameCount - 1)) {
+            segmentBuilder.AddFrame(MapStackFrame(frame));
         }
         builder.SetStackSegment(segmentBuilder.Finish());
 
@@ -611,7 +617,7 @@ private:
         });
     }
 
-    TStringId MapString(TStringRef string) {
+    TStringId MapString(TProfileString string) {
         return Strings_.TryMap(string.GetIndex(), [&, this] {
             return Builder_.AddString(string.View());
         });

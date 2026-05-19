@@ -4,7 +4,6 @@
 #include <perforator/lib/profile/profile.h>
 
 #include <library/cpp/iterator/enumerate.h>
-#include <library/cpp/iterator/zip.h>
 #include <library/cpp/json/json_value.h>
 #include <library/cpp/json/json_writer.h>
 
@@ -49,7 +48,7 @@ public:
         return *this;
     }
 
-    TFlatSampleKeyBuilder& AddLabel(TStringBuf key, const TStringRef& value) {
+    TFlatSampleKeyBuilder& AddLabel(TStringBuf key, const TProfileString& value) {
         return AddLabel(key, value.View());
     }
 
@@ -181,7 +180,7 @@ TFlatDiffableProfile::TFlatDiffableProfile(TProfile profile, TFlatDiffableProfil
 
         auto key = sample.GetKey();
 
-        for (TLabel label : key.GetAllLabels()) {
+        for (TLabel label : key.GetLabels()) {
             std::visit([&](auto&& value) {
                 builder.AddLabel(label.GetKey().View(), value);
             }, label.GetValue());
@@ -190,7 +189,7 @@ TFlatDiffableProfile::TFlatDiffableProfile(TProfile profile, TFlatDiffableProfil
         for (TStack stack : key.GetStacks()) {
             auto visitFrame = [&](TStackFrame frame) {
                 TInlineChain chain = frame.GetInlineChain();
-                if (chain.GetLineCount() == 0) {
+                if (chain.GetLines().empty()) {
                     builder.AddFrame(
                         frame.GetBinary().GetBuildId().View(),
                         frame.GetBinary().GetPath().View(),
@@ -217,9 +216,10 @@ TFlatDiffableProfile::TFlatDiffableProfile(TProfile profile, TFlatDiffableProfil
         }
 
         auto& values = Samples_[builder.Finish()];
-        for (auto [value, type] : Zip(sample.GetValues(), sample.GetValueTypes())) {
+        for (auto sampleValue : sample.GetValues()) {
+            auto type = sampleValue.GetValueType();
             TString key = TString::Join(type.GetType().View(), '.', type.GetUnit().View());
-            values[std::move(key)] += value;
+            values[std::move(key)] += sampleValue.GetValue();
         }
     }
 }

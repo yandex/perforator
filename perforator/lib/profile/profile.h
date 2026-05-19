@@ -3,320 +3,75 @@
 #include "entity_index.h"
 
 #include <perforator/proto/profile/profile.pb.h>
-
-#include <library/cpp/json/json_writer.h>
+#include <perforator/proto/profile/well_known_labels.pb.h>
 
 #include <util/datetime/base.h>
 #include <util/generic/array_ref.h>
 #include <util/generic/function_ref.h>
-#include <util/generic/iterator.h>
 #include <util/generic/maybe.h>
 #include <util/generic/yexception.h>
+
+#include <optional>
+#include <ranges>
 
 
 namespace NPerforator::NProfile {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template <typename Array>
-static std::pair<int, int> GetOffsetRange(Array&& offsets, Array&& values, int rangeId) {
-    if (rangeId >= offsets.size()) {
-        return {0, 0};
-    }
+namespace NDetail {
 
-    int begin = offsets.at(rangeId);
-    int end = 0;
-    if (int nextRangeId = rangeId + 1; nextRangeId < offsets.size()) {
-        end = offsets.at(nextRangeId);
-    } else {
-        end = values.size();
+// Range-returning methods MUST capture only what they use, by value (capture
+// `[p = Profile_]`, never `this`/`*this`), so the returned range stays valid
+// after a temporary reader is destroyed.
+
+// Returns the [from, to) iota of indices into `values` for entry `rangeId` of
+// an offsets + values pair stored as parallel arrays in the proto. `values` is
+// used only for its `.size()`.
+inline std::ranges::iota_view<i32, i32> OffsetRange(
+    const std::ranges::sized_range auto& offsets,
+    const std::ranges::sized_range auto& values,
+    i32 rangeId
+) {
+    if (rangeId >= static_cast<i32>(offsets.size())) {
+        return std::views::iota(0, 0);
     }
-    return {begin, end};
+    i32 begin = offsets.at(rangeId);
+    i32 end = (rangeId + 1 < static_cast<i32>(offsets.size()))
+        ? offsets.at(rangeId + 1)
+        : static_cast<i32>(values.size());
+    return std::views::iota(begin, end);
 }
 
-template <typename Offsets, typename Array, typename F>
-static void IterateRange(Offsets&& offsets, Array&& values, int rangeId, F&& func) {
-    auto [begin, end] = GetOffsetRange(offsets, values, rangeId);
-    for (; begin != end; ++begin) {
-        func(values.at(begin));
-    }
+// Dense [0, count) range of TEntity readers over the profile.
+template <typename TEntity>
+inline auto MakeEntityRange(const NProto::NProfile::Profile* p, i32 count) {
+    return std::views::iota(0, count)
+        | std::views::transform([p](i32 i) {
+            return TEntity{p, TEntity::TIndex::FromInternalIndex(i)};
+        });
 }
 
-////////////////////////////////////////////////////////////////////////////////
+} // namespace NDetail
 
-// Non-owning accessor to a profile string table.
-// Must not outlive the original profile.
-class TStringTable {
-public:
-    explicit TStringTable(const NProto::NProfile::StringTable* strtab)
-        : StringTable_{strtab}
-    {
-        Y_ENSURE(StringTable_ != nullptr);
-        Y_ENSURE(StringTable_->offset_size() == StringTable_->length_size());
-    }
+// Well-known label key lookups. Pure over the WellKnownLabel enum (proto
+// reflection, precomputed), no profile instance involved. Defined in
+// profile.cpp; return views into static storage.
 
-    TStringBuf Get(int index) const {
-        Y_ENSURE(index < StringTable_->offset_size());
+// Canonical key for a well-known label.
+TStringBuf GetWellKnownLabelKey(NProto::NProfile::WellKnownLabel kind);
 
-        ui32 offset = StringTable_->offset(index);
-        ui32 length = StringTable_->length(index);
-        TStringBuf strings = StringTable_->strings();
+// Canonical + deprecated keys for a well-known label.
+TConstArrayRef<TString> GetAllWellKnownLabelKeys(NProto::NProfile::WellKnownLabel kind);
 
-        Y_ENSURE(offset + length <= strings.size());
-        return strings.SubString(offset, length);
-    }
-
-private:
-    const NProto::NProfile::StringTable* StringTable_;
-};
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-template <CStrongIndex Index>
-struct TEntityTraits;
-
-template <CStrongIndex Index>
-struct TCommonDenseIndexTraits {
-    using TIndex = Index;
-
-    static inline constexpr bool HasExactSize = true;
-
-    static TIndex GetPastTheEndIndex(const NProto::NProfile::Profile& profile) {
-        const i32 count = TEntityTraits<Index>::GetEntityCount(profile);
-        return TIndex::FromInternalIndex(count);
-    }
-
-    static bool IsValidIndex(const NProto::NProfile::Profile& profile, Index index) {
-        const TIndex last = GetPastTheEndIndex(profile);
-        return index.GetInternalIndex() < last.GetInternalIndex();
-    }
-
-    static TIndex GetNextIndex(const NProto::NProfile::Profile&, TIndex index) {
-        return TIndex::FromInternalIndex(index.GetInternalIndex() + 1);
-    }
-};
-
-template <>
-struct TEntityTraits<TStringId> : TCommonDenseIndexTraits<TStringId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.strtab().length_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TCommentId> : TCommonDenseIndexTraits<TCommentId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.comments().comment_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TValueTypeId> : TCommonDenseIndexTraits<TValueTypeId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.samples().values_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TFunctionId> : TCommonDenseIndexTraits<TFunctionId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.functions().name_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TBinaryId> : TCommonDenseIndexTraits<TBinaryId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.binaries().build_id_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TSourceLineId> : TCommonDenseIndexTraits<TSourceLineId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.inline_chains().lines().function_id_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TInlineChainId> : TCommonDenseIndexTraits<TInlineChainId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.inline_chains().lines_offset_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TStackFrameId> : TCommonDenseIndexTraits<TStackFrameId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.stack_frames().binary_id_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TStackSegmentId> : TCommonDenseIndexTraits<TStackSegmentId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.stack_segments().frame_ids_offset_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TStackId> : TCommonDenseIndexTraits<TStackId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.stacks().top_frame_id_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TLabelGroupId> : TCommonDenseIndexTraits<TLabelGroupId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.label_groups().packed_label_ids_offset_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TSampleKeyId> : TCommonDenseIndexTraits<TSampleKeyId> {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.sample_keys().stacks().stack_ids_offset_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TSampleId> : TCommonDenseIndexTraits<TSampleId>  {
-    static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.samples().key_size();
-    }
-};
-
-template <>
-struct TEntityTraits<TLabelId> {
-    using TIndex = TLabelId;
-
-    static inline constexpr bool HasExactSize = false;
-
-    static TIndex GetPastTheEndIndex(const NProto::NProfile::Profile& profile) {
-        return TIndex::FromInternalIndex(1 + Max(
-            (profile.labels().strings().key_size() << 1) | 0,
-            (profile.labels().numbers().key_size() << 1) | 1
-        ));
-    }
-
-    static bool IsValidIndex(const NProto::NProfile::Profile& profile, TIndex index) {
-        auto unpacked = GetUnpackedIndex(index);
-
-        switch (GetTypeTag(index)) {
-        case 0:
-            return unpacked < profile.labels().strings().key_size();
-        case 1:
-            return unpacked < profile.labels().numbers().key_size();
-        default:
-            Y_ENSURE(false, "Unsupported label type tag");
-        }
-    }
-
-    static TIndex GetNextIndex(const NProto::NProfile::Profile& profile, TIndex index) {
-        const TIndex last = GetPastTheEndIndex(profile);
-
-        TIndex next = index;
-        do {
-            next = TIndex::FromInternalIndex(next.GetInternalIndex() + 1);
-        } while (!IsValidIndex(profile, next) && next < last);
-
-        return next;
-    }
-
-private:
-    static i32 GetTypeTag(TIndex index) {
-        return index.GetInternalIndex() & 1;
-    }
-
-    static i32 GetUnpackedIndex(TIndex index) {
-        return index.GetInternalIndex() >> 1;
-    }
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
-// I'm sorry.
-template <typename Parent, i32 (Parent::*GetSize)() const, auto (Parent::*GetItem)(i32) const>
-class TArrayField {
-public:
-    TArrayField(const Parent* parent)
-        : Parent_{parent}
-    {}
-
-    i32 Size() const {
-        return std::invoke(GetSize, Parent_);
-    }
-
-    decltype(auto) Get(i32 index) const {
-        return std::invoke(GetItem, Parent_, index);
-    }
-
-public:
-    class TIterator {
-    public:
-        TIterator(const Parent* parent, i32 i)
-            : Parent_{parent}
-            , Index_{i}
-        {}
-
-        TIterator& operator++() {
-            ++Index_;
-            return *this;
-        }
-
-        TIterator operator++(int) {
-            TIterator copy = *this;
-            ++*this;
-            return copy;
-        }
-
-        bool operator==(const TIterator& other) const {
-            return Index_ == other.Index_;
-        }
-
-        bool operator!=(const TIterator& other) const {
-            return !operator==(other);
-        }
-
-        decltype(auto) operator*() const {
-            return Deref();
-        }
-
-        decltype(auto) operator->() const {
-            return Deref();
-        }
-
-        decltype(auto) Deref() const {
-            return std::invoke(GetItem, Parent_, Index_);
-        }
-
-    private:
-        const Parent* Parent_;
-        i32 Index_ = 0;
-    };
-
-    // NOLINTNEXTLINE
-    TIterator begin() const {
-        return TIterator{Parent_, 0};
-    }
-
-    // NOLINTNEXTLINE
-    TIterator end() const {
-        return TIterator{Parent_, Size()};
-    }
-
-private:
-    const Parent* Parent_;
-};
+// All well-known labels that have at least one key defined.
+TConstArrayRef<NProto::NProfile::WellKnownLabel> GetWellKnownLabels();
 
 ////////////////////////////////////////////////////////////////////////////////
 
 template <CStrongIndex Index>
 class TIndexedEntityReader {
 public:
-    using TTraits = TEntityTraits<Index>;
     using TIndex = Index;
     using TBase = TIndexedEntityReader<Index>;
 
@@ -328,7 +83,7 @@ public:
         : Profile_{profile}
         , Index_{id}
     {
-        Y_ENSURE(TTraits::IsValidIndex(*profile, id));
+        Y_ENSURE(id.IsValid());
     }
 
     Index GetIndex() const {
@@ -340,112 +95,22 @@ protected:
     Index Index_;
 };
 
-template <typename TEntity>
-class TEntityArray {
-    using TIndex = typename TEntity::TIndex;
-    using TTraits = typename TEntity::TTraits;
-
-public:
-    class TIterator;
-
-public:
-    TEntityArray(const NProto::NProfile::Profile* profile)
-        : Profile_{profile}
-    {}
-
-    TIndex GetPastTheEndIndex() const {
-        return TTraits::GetPastTheEndIndex(*Profile_);
-    }
-
-    size_t GetApproxSize() const requires(!TTraits::HasExactSize) {
-        return *GetPastTheEndIndex();
-    }
-
-    size_t Size() const requires(TTraits::HasExactSize) {
-        return *GetPastTheEndIndex();
-    }
-
-    TEntity Get(TIndex index) const {
-        return TEntity{Profile_, index};
-    }
-
-    TEntity Get(i32 index) const {
-        return Get(TIndex::FromInternalIndex(index));
-    }
-
-    TIterator begin() const {
-        return TIterator{TIndex::Zero(), this};
-    }
-
-    TIterator end() const {
-        return TIterator{};
-    }
-
-public:
-    class TIterator {
-    public:
-        TIterator() = default;
-
-        TIterator(TIndex index, const TEntityArray* array)
-            : Index_{index}
-            , Array_{array}
-        {}
-
-        bool IsExhausted() const {
-            if (!Array_) {
-                return true;
-            }
-            return !TTraits::IsValidIndex(*Array_->Profile_, Index_);
-        }
-
-        bool operator==(const TIterator& other) const noexcept {
-            if (IsExhausted() || other.IsExhausted()) {
-                return IsExhausted() == other.IsExhausted();
-            }
-
-            return Index_ == other.Index_;
-        }
-
-        bool operator!=(const TIterator& other) const noexcept {
-            return !operator==(other);
-        }
-
-        TIterator operator++(int) {
-            TIterator copy{*this};
-            ++*this;
-            return copy;
-        }
-
-        TIterator& operator++() {
-            Index_ = TTraits::GetNextIndex(*Array_->Profile_, Index_);
-            return *this;
-        }
-
-        TEntity operator*() const {
-            return Array_->Get(Index_);
-        }
-
-        TEntity operator->() const {
-            return operator*();
-        }
-
-    private:
-        TIndex Index_ = TIndex::Invalid();
-        const TEntityArray* Array_ = nullptr;
-    };
-
-private:
-    const NProto::NProfile::Profile* Profile_ = nullptr;
-};
-
 ////////////////////////////////////////////////////////////////////////////////
 
-class TStringRef : public TIndexedEntityReader<TStringId> {
+// Resolves a strtab string to a TStringBuf into proto-owned storage.
+class TProfileString : public TIndexedEntityReader<TStringId> {
 public:
     using TBase::TBase;
 
     TStringBuf View() const {
-        return TStringTable{&Profile_->strtab()}.Get(*Index_);
+        const auto& strtab = Profile_->strtab();
+        Y_ENSURE(strtab.offset_size() == strtab.length_size());
+        Y_ENSURE(*Index_ < strtab.offset_size());
+        ui32 offset = strtab.offset(*Index_);
+        ui32 length = strtab.length(*Index_);
+        TStringBuf strings = strtab.strings();
+        Y_ENSURE(offset + length <= strings.size());
+        return strings.SubString(offset, length);
     }
 
     explicit operator bool() const {
@@ -465,15 +130,15 @@ class TFunction : public TIndexedEntityReader<TFunctionId> {
 public:
     using TBase::TBase;
 
-    TStringRef GetName() const {
+    TProfileString GetName() const {
         return {Profile_, Profile_->functions().name(*Index_)};
     }
 
-    TStringRef GetSystemName() const {
+    TProfileString GetSystemName() const {
         return {Profile_, Profile_->functions().system_name(*Index_)};
     }
 
-    TStringRef GetFileName() const {
+    TProfileString GetFileName() const {
         return {Profile_, Profile_->functions().filename(*Index_)};
     }
 
@@ -481,18 +146,6 @@ public:
         return Profile_->functions().start_line(*Index_);
     }
 
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "function");
-        writer.Write("id", *GetIndex());
-
-        writer.Write("name", GetName().View());
-        writer.Write("system_name", GetSystemName().View());
-        writer.Write("file_name", GetFileName().View());
-        writer.Write("start_line", GetStartLine());
-
-        writer.CloseMap();
-    }
 };
 
 class TSourceLine : public TIndexedEntityReader<TSourceLineId> {
@@ -512,57 +165,20 @@ public:
         return Profile_->inline_chains().lines().column(*Index_);
     }
 
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "source_line");
-        writer.Write("id", *GetIndex());
-
-        writer.WriteKey("function");
-        GetFunction().DumpJson(writer);
-
-        writer.Write("line", GetLine());
-        writer.Write("column", GetColumn());
-
-        writer.CloseMap();
-    }
 };
 
 class TInlineChain : public TIndexedEntityReader<TInlineChainId> {
 public:
     using TBase::TBase;
 
-    i32 GetLineCount() const {
-        auto [from, to] = GetOffsetRange(
-            Profile_->inline_chains().lines_offset(),
-            Profile_->inline_chains().lines().function_id(),
-            *Index_
-        );
-
-        return to - from;
-    }
-
-    TSourceLine GetLine(i32 id) const {
-        i32 offset = Profile_->inline_chains().lines_offset(*Index_);
-        return TSourceLine{Profile_, TSourceLineId::FromInternalIndex(offset + id)};
-    }
-
     auto GetLines() const {
-        return TArrayField<TInlineChain, &TInlineChain::GetLineCount, &TInlineChain::GetLine>(this);
-    }
-
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "inline_chain");
-        writer.Write("id", *GetIndex());
-
-        writer.WriteKey("lines");
-        writer.OpenArray();
-        for (TSourceLine line : GetLines()) {
-            line.DumpJson(writer);
-        }
-        writer.CloseArray();
-
-        writer.CloseMap();
+        return NDetail::OffsetRange(
+                Profile_->inline_chains().lines_offset(),
+                Profile_->inline_chains().lines().function_id(),
+                *Index_)
+            | std::views::transform([p = Profile_](i32 pos) {
+                return TSourceLine{p, TSourceLineId::FromInternalIndex(pos)};
+            });
     }
 };
 
@@ -570,12 +186,12 @@ class TBinary : public TIndexedEntityReader<TBinaryId> {
 public:
     using TBase::TBase;
 
-    TStringRef GetBuildId() const {
+    TProfileString GetBuildId() const {
         ui32 id = Profile_->binaries().build_id(*Index_);
         return {Profile_, id};
     }
 
-    TStringRef GetPath() const {
+    TProfileString GetPath() const {
         ui32 id = Profile_->binaries().path(*Index_);
         return {Profile_, id};
     }
@@ -584,17 +200,6 @@ public:
         return Profile_->binaries().has_skewed_addresses(*Index_);
     }
 
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "binary");
-        writer.Write("id", *GetIndex());
-
-        writer.Write("build_id", GetBuildId().View());
-        writer.Write("path", GetPath().View());
-        writer.Write("has_skewed_addresses", HasSkewedAddresses());
-
-        writer.CloseMap();
-    }
 };
 
 class TStackFrame : public TIndexedEntityReader<TStackFrameId> {
@@ -615,58 +220,21 @@ public:
         return TInlineChain{Profile_, TInlineChainId::FromInternalIndex(index)};
     }
 
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "stack_frame");
-        writer.Write("id", *GetIndex());
-
-        writer.WriteKey("binary");
-        GetBinary().DumpJson(writer);
-
-        writer.Write("address", GetAddress());
-
-        writer.WriteKey("inline_chain");
-        GetInlineChain().DumpJson(writer);
-
-        writer.CloseMap();
-    }
 };
 
 class TStackSegment : public TIndexedEntityReader<TStackSegmentId> {
 public:
     using TBase::TBase;
 
-    i32 GetFrameCount() const {
-        auto [from, to] = GetOffsetRange(
-            Profile_->stack_segments().frame_ids_offset(),
-            Profile_->stack_segments().frame_ids(),
-            *Index_
-        );
-
-        return to - from;
-    }
-
-    TStackFrame GetFrame(i32 id) const {
-        i32 position = id + Profile_->stack_segments().frame_ids_offset(*Index_);
-        i32 index = Profile_->stack_segments().frame_ids(position);
-        return TStackFrame{Profile_, TStackFrameId::FromInternalIndex(index)};
-    }
-
     auto GetFrames() const {
-        return TArrayField<TStackSegment, &TStackSegment::GetFrameCount, &TStackSegment::GetFrame>(this);
-    }
-
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "stack");
-        writer.Write("id", *GetIndex());
-        writer.WriteKey("frames");
-        writer.OpenArray();
-        for (TStackFrame frame : GetFrames()) {
-            frame.DumpJson(writer);
-        }
-        writer.CloseArray();
-        writer.CloseMap();
+        return NDetail::OffsetRange(
+                Profile_->stack_segments().frame_ids_offset(),
+                Profile_->stack_segments().frame_ids(),
+                *Index_)
+            | std::views::transform([p = Profile_](i32 pos) {
+                i32 frameId = p->stack_segments().frame_ids(pos);
+                return TStackFrame{p, TStackFrameId::FromInternalIndex(frameId)};
+            });
     }
 };
 
@@ -684,34 +252,19 @@ public:
         return TStackSegment{Profile_, TStackSegmentId::FromInternalIndex(id)};
     }
 
-    i32 GetFrameCount() const {
-        return 1 + GetStackSegment().GetFrameCount();
-    }
-
-    TStackFrame GetFrame(i32 id) const {
-        if (id == 0) {
-            return GetTopFrame();
-        }
-        return GetStackSegment().GetFrame(id - 1);
-    }
-
     auto GetFrames() const {
-        return TArrayField<TStack, &TStack::GetFrameCount, &TStack::GetFrame>(this);
-    }
-
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "stack");
-        writer.Write("id", *GetIndex());
-
-        writer.WriteKey("top_frame");
-        GetTopFrame().DumpJson(writer);
-
-        writer.WriteKey("rest_frames");
-        GetStackSegment().DumpJson(writer);
-
-        writer.CloseArray();
-        writer.CloseMap();
+        i32 topFrameId = Profile_->stacks().top_frame_id(*Index_);
+        auto segRange = NDetail::OffsetRange(
+            Profile_->stack_segments().frame_ids_offset(),
+            Profile_->stack_segments().frame_ids(),
+            Profile_->stacks().stack_segment_id(*Index_));
+        return std::views::iota(0, 1 + static_cast<i32>(segRange.size()))
+            | std::views::transform([p = Profile_, topFrameId, segRange](i32 i) {
+                i32 frameId = (i == 0)
+                    ? topFrameId
+                    : p->stack_segments().frame_ids(segRange[i - 1]);
+                return TStackFrame{p, TStackFrameId::FromInternalIndex(frameId)};
+            });
     }
 };
 
@@ -727,7 +280,7 @@ public:
         return GetTypeTag() == 1;
     }
 
-    TStringRef GetKey() const {
+    TProfileString GetKey() const {
         ui32 index = 0;
         if (IsNumber()) {
             index = Profile_->labels().numbers().key(GetPosition());
@@ -737,7 +290,7 @@ public:
         return {Profile_, index};
     }
 
-    TStringRef GetString() const {
+    TProfileString GetString() const {
         Y_ENSURE(IsString());
         return GetStringUnsafe();
     }
@@ -747,25 +300,12 @@ public:
         return GetNumberUnsafe();
     }
 
-    std::variant<TStringRef, i64> GetValue() const {
+    std::variant<TProfileString, i64> GetValue() const {
         if (IsString()) {
             return GetStringUnsafe();
         } else {
             return GetNumberUnsafe();
         }
-    }
-
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "label");
-        writer.Write("id", *GetIndex());
-        writer.Write("key", GetKey().View());
-        if (IsNumber()) {
-            writer.Write("value", GetNumberUnsafe());
-        } else {
-            writer.Write("value", GetStringUnsafe().View());
-        }
-        writer.CloseMap();
     }
 
 private:
@@ -777,7 +317,7 @@ private:
         return *Index_ >> 1;
     }
 
-    TStringRef GetStringUnsafe() const {
+    TProfileString GetStringUnsafe() const {
         Y_ASSERT(IsString());
         ui32 index = Profile_->labels().strings().value(GetPosition());
         return {Profile_, index};
@@ -793,37 +333,14 @@ class TLabelGroup : public TIndexedEntityReader<TLabelGroupId> {
 public:
     using TBase::TBase;
 
-    i32 GetLabelCount() const {
-        auto [from, to] = GetOffsetRange(
-            Profile_->label_groups().packed_label_ids_offset(),
-            Profile_->label_groups().packed_label_ids(),
-            *Index_
-        );
-
-        return to - from;
-    }
-
-    TLabel GetLabel(i32 index) const {
-        ui32 offset = Profile_->label_groups().packed_label_ids_offset(*Index_);
-        ui32 labelIndex = Profile_->label_groups().packed_label_ids(offset + index);
-        return TLabel{Profile_, labelIndex};
-    }
-
     auto GetLabels() const {
-        return TArrayField<TLabelGroup, &TLabelGroup::GetLabelCount, &TLabelGroup::GetLabel>(this);
-    }
-
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "label_group");
-        writer.Write("id", *GetIndex());
-        writer.WriteKey("labels");
-        writer.OpenArray();
-        for (TLabel label : GetLabels()) {
-            label.DumpJson(writer);
-        }
-        writer.CloseArray();
-        writer.CloseMap();
+        return NDetail::OffsetRange(
+                Profile_->label_groups().packed_label_ids_offset(),
+                Profile_->label_groups().packed_label_ids(),
+                *Index_)
+            | std::views::transform([p = Profile_](i32 pos) {
+                return TLabel{p, p->label_groups().packed_label_ids(pos)};
+            });
     }
 };
 
@@ -831,24 +348,14 @@ class TSampleKey : public TIndexedEntityReader<TSampleKeyId> {
 public:
     using TBase::TBase;
 
-    i32 GetStackCount() const {
-        auto [from, to] = GetOffsetRange(
-            Profile_->sample_keys().stacks().stack_ids_offset(),
-            Profile_->sample_keys().stacks().stack_ids(),
-            *Index_
-        );
-
-        return to - from;
-    }
-
-    TStack GetStack(i32 index) const {
-        ui32 offset = Profile_->sample_keys().stacks().stack_ids_offset(*Index_);
-        ui32 stackIndex = Profile_->sample_keys().stacks().stack_ids(offset + index);
-        return TStack{Profile_, stackIndex};
-    }
-
     auto GetStacks() const {
-        return TArrayField<TSampleKey, &TSampleKey::GetStackCount, &TSampleKey::GetStack>(this);
+        return NDetail::OffsetRange(
+                Profile_->sample_keys().stacks().stack_ids_offset(),
+                Profile_->sample_keys().stacks().stack_ids(),
+                *Index_)
+            | std::views::transform([p = Profile_](i32 pos) {
+                return TStack{p, p->sample_keys().stacks().stack_ids(pos)};
+            });
     }
 
     TLabelGroup GetLabelGroup() const {
@@ -856,62 +363,56 @@ public:
         return TLabelGroup{Profile_, TLabelGroupId::FromInternalIndex(id)};
     }
 
-    i32 GetLabelCount() const {
-        auto [from, to] = GetOffsetRange(
+    // Labels attached directly to this sample key (not via the shared label group).
+    auto GetDirectLabels() const {
+        return NDetail::OffsetRange(
+                Profile_->sample_keys().labels().packed_label_ids_offset(),
+                Profile_->sample_keys().labels().packed_label_ids(),
+                *Index_)
+            | std::views::transform([p = Profile_](i32 pos) {
+                return TLabel{p, p->sample_keys().labels().packed_label_ids(pos)};
+            });
+    }
+
+    // Labels from the shared group followed by direct labels of this key.
+    auto GetLabels() const {
+        auto groupRange = NDetail::OffsetRange(
+            Profile_->label_groups().packed_label_ids_offset(),
+            Profile_->label_groups().packed_label_ids(),
+            Profile_->sample_keys().label_group_id(*Index_));
+        auto directRange = NDetail::OffsetRange(
             Profile_->sample_keys().labels().packed_label_ids_offset(),
             Profile_->sample_keys().labels().packed_label_ids(),
-            *Index_
-        );
+            *Index_);
 
-        return to - from;
+        i32 total = static_cast<i32>(groupRange.size() + directRange.size());
+
+        return std::views::iota(0, total)
+            | std::views::transform([p = Profile_, groupRange, directRange](i32 i) {
+                i32 groupCount = static_cast<i32>(groupRange.size());
+                ui32 labelIndex = (i < groupCount)
+                    ? p->label_groups().packed_label_ids(groupRange[i])
+                    : p->sample_keys().labels().packed_label_ids(directRange[i - groupCount]);
+                return TLabel{p, labelIndex};
+            });
     }
 
-    TLabel GetLabel(i32 index) const {
-        ui32 offset = Profile_->sample_keys().labels().packed_label_ids_offset(*Index_);
-        ui32 labelIndex = Profile_->sample_keys().labels().packed_label_ids(offset + index);
-        return TLabel{Profile_, labelIndex};
-    }
-
-    auto GetLabels() const {
-        return TArrayField<TSampleKey, &TSampleKey::GetLabelCount, &TSampleKey::GetLabel>(this);
-    }
-
-    i32 GetTotalLabelCount() const {
-        return GetLabelCount() + GetLabelGroup().GetLabelCount();
-    }
-
-    TLabel GetLabelSimple(i32 index) const {
-        auto group = GetLabelGroup();
-        return index < group.GetLabelCount() ? group.GetLabel(index) : GetLabel(index - group.GetLabelCount());
-    }
-
-    auto GetAllLabels() const {
-        return TArrayField<TSampleKey, &TSampleKey::GetTotalLabelCount, &TSampleKey::GetLabelSimple>(this);
-    }
-
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "sample_key");
-        writer.Write("id", *GetIndex());
-
-        writer.WriteKey("label_group");
-        GetLabelGroup().DumpJson(writer);
-
-        writer.WriteKey("stacks");
-        writer.OpenArray();
-        for (TStack stack : GetStacks()) {
-            stack.DumpJson(writer);
-        }
-        writer.CloseArray();
-
-        writer.WriteKey("labels");
-        writer.OpenArray();
-        for (TLabel label : GetLabels()) {
-            label.DumpJson(writer);
-        }
-        writer.CloseArray();
-
-        writer.CloseMap();
+    // Labels of this key matching a well-known kind (canonical name or any
+    // deprecated alias). Group labels come first, since well-known labels
+    // usually live in the shared group. Returns a filtered range so the
+    // caller decides whether to take the first match or iterate all (e.g.
+    // multi-valued "workload").
+    auto GetWellKnownLabel(NProto::NProfile::WellKnownLabel kind) const {
+        return GetLabels()
+            | std::views::filter([keys = GetAllWellKnownLabelKeys(kind)](TLabel label) {
+                TStringBuf key = label.GetKey().View();
+                for (const TString& wellKnown : keys) {
+                    if (key == wellKnown) {
+                        return true;
+                    }
+                }
+                return false;
+            });
     }
 };
 
@@ -952,11 +453,11 @@ class TValueType : public TIndexedEntityReader<TValueTypeId> {
 public:
     using TBase::TBase;
 
-    TStringRef GetType() const {
+    TProfileString GetType() const {
         return {Profile_, GetTypeProto().type()};
     }
 
-    TStringRef GetUnit() const {
+    TProfileString GetUnit() const {
         return {Profile_, GetTypeProto().unit()};
     }
 
@@ -970,9 +471,34 @@ class TComment : public TIndexedEntityReader<TCommentId> {
 public:
     using TBase::TBase;
 
-    TStringRef GetString() const {
+    TProfileString GetString() const {
         return {Profile_, static_cast<ui32>(*Index_)};
     }
+};
+
+// Paired (value, value type) accessor for sample values. The proto is
+// columnar: the per-sample value array is co-indexed with the profile's
+// value types, so ValueIndex_ is also the value type's id.
+class TSampleValue {
+public:
+    TSampleValue(const NProto::NProfile::Profile* profile, TSampleId sampleId, i32 valueIndex)
+        : Profile_{profile}
+        , SampleId_{sampleId}
+        , ValueIndex_{valueIndex}
+    {}
+
+    TValueType GetValueType() const {
+        return TValueType{Profile_, TValueTypeId::FromInternalIndex(ValueIndex_)};
+    }
+
+    ui64 GetValue() const {
+        return Profile_->samples().values(ValueIndex_).value(*SampleId_);
+    }
+
+private:
+    const NProto::NProfile::Profile* Profile_;
+    TSampleId SampleId_;
+    i32 ValueIndex_;
 };
 
 class TSample : public TIndexedEntityReader<TSampleId> {
@@ -984,26 +510,11 @@ public:
         return TSampleKey{Profile_, TSampleKeyId::FromInternalIndex(keyIndex)};
     }
 
-    i32 GetValueCount() const {
-        return Profile_->samples().values_size();
-    }
-
-    ui64 GetValue(i32 index) const {
-        Y_ASSERT(index < GetValueCount());
-        return Profile_->samples().values(index).value(*Index_);
-    }
-
     auto GetValues() const {
-        return TArrayField<TSample, &TSample::GetValueCount, &TSample::GetValue>(this);
-    }
-
-    auto GetValueTypes() const {
-        return TArrayField<TSample, &TSample::GetValueCount, &TSample::GetValueType>(this);
-    }
-
-    TValueType GetValueType(i32 index) const {
-        Y_ASSERT(index < GetValueCount());
-        return TValueType{Profile_, TValueTypeId::FromInternalIndex(index)};
+        return std::views::iota(0, Profile_->samples().values_size())
+            | std::views::transform([p = Profile_, sampleId = Index_](i32 i) {
+                return TSampleValue{p, sampleId, i};
+            });
     }
 
     TMaybe<google::protobuf::Timestamp> GetProtoTimestamp() const {
@@ -1048,41 +559,6 @@ public:
         return TInstant::MicroSeconds(micros);
     }
 
-    void DumpJson(NJson::TJsonWriter& writer) const {
-        writer.OpenMap();
-        writer.Write("type", "sample");
-        writer.Write("id", *GetIndex());
-
-        writer.WriteKey("key");
-        GetKey().DumpJson(writer);
-
-        writer.WriteKey("timestamp");
-        if (auto ts = GetInstantTimestamp()) {
-            writer.OpenMap();
-            writer.Write("microseconds", ts->MicroSeconds());
-            writer.CloseMap();
-        } else {
-            writer.WriteNull();
-        }
-
-        writer.WriteKey("values");
-        writer.OpenArray();
-        for (i32 i = 0; i < GetValueCount(); ++i) {
-            writer.OpenMap();
-            writer.Write("value", GetValue(i));
-
-            writer.WriteKey("type");
-            writer.OpenMap();
-            writer.Write("type", GetValueType(i).GetType().View());
-            writer.Write("unit", GetValueType(i).GetUnit().View());
-            writer.CloseMap();
-
-            writer.CloseMap();
-        }
-        writer.CloseArray();
-
-        writer.CloseMap();
-    }
 };
 
 // Read-only representation of the profile.
@@ -1092,78 +568,94 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////////
 
-    // Returns the main label key for a well-known label.
-    // Pre-computed from proto reflection, returns view into static data.
-    static TStringBuf GetWellKnownLabelKey(NProto::NProfile::WellKnownLabel label);
-
-    // Returns all label keys (current + deprecated) for a well-known label.
-    // Pre-computed from proto reflection, returns view into static data.
-    static TConstArrayRef<TString> GetAllWellKnownLabelKeys(NProto::NProfile::WellKnownLabel label);
-
-    // Returns all well-known labels that have at least one label key defined.
-    // Pre-computed from proto reflection, returns view into static data.
-    static TConstArrayRef<NProto::NProfile::WellKnownLabel> GetWellKnownLabels();
-
-    ////////////////////////////////////////////////////////////////////////////////
-
     const NProto::NProfile::Metadata& GetMetadata() const;
 
     ////////////////////////////////////////////////////////////////////////////////
+    // Single-entity accessors.
 
-    TEntityArray<TStringRef> Strings() const {
-        return {Profile_};
+    TProfileString String(TStringId id) const { return {Profile_, id}; }
+    TComment Comment(TCommentId id) const { return {Profile_, id}; }
+    TValueType ValueType(TValueTypeId id) const { return {Profile_, id}; }
+    TSample Sample(TSampleId id) const { return {Profile_, id}; }
+    TSampleKey SampleKey(TSampleKeyId id) const { return {Profile_, id}; }
+    TStack Stack(TStackId id) const { return {Profile_, id}; }
+    TStackFrame StackFrame(TStackFrameId id) const { return {Profile_, id}; }
+    TStackSegment StackSegment(TStackSegmentId id) const { return {Profile_, id}; }
+    TInlineChain InlineChain(TInlineChainId id) const { return {Profile_, id}; }
+    TSourceLine SourceLine(TSourceLineId id) const { return {Profile_, id}; }
+    TFunction Function(TFunctionId id) const { return {Profile_, id}; }
+    TBinary Binary(TBinaryId id) const { return {Profile_, id}; }
+    TLabelGroup LabelGroup(TLabelGroupId id) const { return {Profile_, id}; }
+    TLabel Label(TLabelId id) const { return {Profile_, id}; }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // Entity ranges.
+
+    auto Strings() const {
+        return NDetail::MakeEntityRange<TProfileString>(Profile_, Profile_->strtab().length_size());
     }
 
-    TEntityArray<TComment> Comments() const {
-        return {Profile_};
+    auto Comments() const {
+        return NDetail::MakeEntityRange<TComment>(Profile_, Profile_->comments().comment_size());
     }
 
-    TEntityArray<TValueType> ValueTypes() const {
-        return {Profile_};
+    auto ValueTypes() const {
+        return NDetail::MakeEntityRange<TValueType>(Profile_, Profile_->samples().values_size());
     }
 
-    TEntityArray<TSample> Samples() const {
-        return {Profile_};
+    auto Samples() const {
+        return NDetail::MakeEntityRange<TSample>(Profile_, Profile_->samples().key_size());
     }
 
-    TEntityArray<TSampleKey> SampleKeys() const {
-        return {Profile_};
+    auto SampleKeys() const {
+        return NDetail::MakeEntityRange<TSampleKey>(Profile_, Profile_->sample_keys().stacks().stack_ids_offset_size());
     }
 
-    TEntityArray<TStack> Stacks() const {
-        return {Profile_};
+    auto Stacks() const {
+        return NDetail::MakeEntityRange<TStack>(Profile_, Profile_->stacks().top_frame_id_size());
     }
 
-    TEntityArray<TStackFrame> StackFrames() const {
-        return {Profile_};
+    auto StackFrames() const {
+        return NDetail::MakeEntityRange<TStackFrame>(Profile_, Profile_->stack_frames().binary_id_size());
     }
 
-    TEntityArray<TStackSegment> StackSegments() const {
-        return {Profile_};
+    auto StackSegments() const {
+        return NDetail::MakeEntityRange<TStackSegment>(Profile_, Profile_->stack_segments().frame_ids_offset_size());
     }
 
-    TEntityArray<TInlineChain> InlineChains() const {
-        return {Profile_};
+    auto InlineChains() const {
+        return NDetail::MakeEntityRange<TInlineChain>(Profile_, Profile_->inline_chains().lines_offset_size());
     }
 
-    TEntityArray<TSourceLine> SourceLines() const {
-        return {Profile_};
+    auto SourceLines() const {
+        return NDetail::MakeEntityRange<TSourceLine>(Profile_, Profile_->inline_chains().lines().function_id_size());
     }
 
-    TEntityArray<TFunction> Functions() const {
-        return {Profile_};
+    auto Functions() const {
+        return NDetail::MakeEntityRange<TFunction>(Profile_, Profile_->functions().name_size());
     }
 
-    TEntityArray<TBinary> Binaries() const {
-        return {Profile_};
+    auto Binaries() const {
+        return NDetail::MakeEntityRange<TBinary>(Profile_, Profile_->binaries().build_id_size());
     }
 
-    TEntityArray<TLabelGroup> LabelGroups() const {
-        return {Profile_};
+    auto LabelGroups() const {
+        return NDetail::MakeEntityRange<TLabelGroup>(Profile_, Profile_->label_groups().packed_label_ids_offset_size());
     }
 
-    TEntityArray<TLabel> Labels() const {
-        return {Profile_};
+    // Labels are iterated in ascending packed-index order. Packed index has
+    // bit 0 = type tag (0 = string, 1 = number) and bits 1+ = position, so the
+    // valid set interleaves up to `2*Min(sc, nc+1) - 1`, then continues on the
+    // longer side with stride 2.
+    auto Labels() const {
+        i32 sc = Profile_->labels().strings().key_size();
+        i32 nc = Profile_->labels().numbers().key_size();
+        i32 cap = Min(sc * 2, nc * 2 + 1) - 1;
+        return std::views::iota(0, sc + nc)
+            | std::views::transform([p = Profile_, cap](i32 index) {
+                i32 packed = index < cap ? index : 2 * index - cap;
+                return TLabel{p, TLabelId::FromInternalIndex(packed)};
+            });
     }
 
     ////////////////////////////////////////////////////////////////////////////////

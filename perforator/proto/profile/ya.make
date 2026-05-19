@@ -16,6 +16,7 @@ SRCS(
     merge_options.proto
     profile.proto
     render_options.proto
+    well_known_labels.proto
 )
 
 END()

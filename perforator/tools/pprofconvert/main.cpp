@@ -434,24 +434,21 @@ int main(int argc, const char* argv[]) {
 
         NPerforator::NProfile::TProfile profile{&proto};
 
-        /*
-        writer.OpenMap();
-        writer.WriteKey("samples");
-        writer.OpenArray();
-        */
-
+        // Brief per-sample text dump. A richer human-readable dumper for the
+        // profile format would belong in its own library, not in lib/profile
+        // (which is consumed from wasm and must stay free of json deps).
         for (auto sample : profile.Samples()) {
-            NJson::TJsonWriter writer{&Cout, NJson::TJsonWriterConfig{
-                .FormatOutput = false,
-                .Unbuffered = true,
-            }};
-            sample.DumpJson(writer);
+            Cout << "sample id=" << *sample.GetIndex()
+                 << " key=" << *sample.GetKey().GetIndex();
+            for (auto sv : sample.GetValues()) {
+                Cout << ' '
+                     << sv.GetValueType().GetType().View()
+                     << '.'
+                     << sv.GetValueType().GetUnit().View()
+                     << '=' << sv.GetValue();
+            }
+            Cout << Endl;
         }
-
-        /*
-        writer.CloseArray();
-        writer.CloseMap();
-        */
     }
 
     if (argv[1] == "stats"sv) {
@@ -462,7 +459,7 @@ int main(int argc, const char* argv[]) {
 
         NPerforator::NProfile::TProfile profile{&proto};
 
-        Cerr << "Profile has " << profile.Stacks().Size() << " stacks" << Endl;
+        Cerr << "Profile has " << profile.Stacks().size() << " stacks" << Endl;
     }
 
     if (argv[1] == "dump-stacks"sv) {
@@ -473,7 +470,7 @@ int main(int argc, const char* argv[]) {
 
         NPerforator::NProfile::TProfile profile{&proto};
 
-        Cerr << "Profile has " << profile.Stacks().Size() << " stacks" << Endl;
+        Cerr << "Profile has " << profile.Stacks().size() << " stacks" << Endl;
 
         for (auto stack : profile.Stacks()) {
             TString key = DebugDump(stack);
@@ -498,8 +495,8 @@ int main(int argc, const char* argv[]) {
             for (auto sample : profile.Samples()) {
                 auto key = sample.GetKey();
                 for (auto stack : key.GetStacks()) {
-                    for (auto value : sample.GetValues()) {
-                        consumer(stack, value);
+                    for (auto sampleValue : sample.GetValues()) {
+                        consumer(stack, sampleValue.GetValue());
                     }
                 }
             }

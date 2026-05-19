@@ -1,0 +1,41 @@
+// Copyright 2026 Yandex LLC. All Rights Reserved.
+// Licensed under the Apache 2.0 License.
+//
+// WellKnownLabel is a stable identifier registry for the set of profile labels
+// that tooling is expected to understand. It is intentionally a convention
+// layer over generic labels rather than a structural schema change — every
+// well-known label is stored as a regular key-value label in the profile, so
+// tools that don't know about the enum still see the data.
+//
+// The canonical key string for each well-known label is declared via the
+// `label_key` extension; historical aliases used by older producers are
+// declared via `deprecated_label_key`. Consumers should accept any of those
+// keys when matching a well-known label.
+
+syntax = "proto3";
+
+package NPerforator.NProto.NProfile;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/profile";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.EnumValueOptions {
+    optional string label_key = 50123;
+    repeated string deprecated_label_key = 50124;
+}
+
+// WellKnownLabel provides a set of conventional string keys for profile labels.
+// Using these keys allows various tools (e.g., UIs, analysis scripts) to
+// reliably identify and process common metadata.
+//
+// To ensure compatibility, use these keys for the corresponding data in your profile.
+// For example, the process ID should be labeled with the key "pid".
+enum WellKnownLabel {
+    ProcessId = 0       [(label_key) = "pid"];
+    ThreadId = 1        [(label_key) = "tid"];
+    ThreadCommand = 2   [(label_key) = "thread_comm", (deprecated_label_key) = "comm"];
+    ProcessCommand = 3  [(label_key) = "process_comm"];
+    Workload = 4        [(label_key) = "workload"];
+    SignalName = 5      [(label_key) = "signal:name"];
+}

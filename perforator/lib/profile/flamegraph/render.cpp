@@ -11,7 +11,9 @@
 
 #include <library/cpp/iterator/enumerate.h>
 
+#include <util/generic/hash.h>
 #include <util/memory/pool.h>
+#include <util/string/cast.h>
 
 #include <algorithm>
 #include <limits>
@@ -78,13 +80,13 @@ public:
         TLabelKeyIds ids;
 
         THashMap<TStringBuf, NProto::NProfile::WellKnownLabel> keyToLabel;
-        for (auto label : TProfile::GetWellKnownLabels()) {
-            for (const TString& key : TProfile::GetAllWellKnownLabelKeys(label)) {
+        for (auto label : GetWellKnownLabels()) {
+            for (const TString& key : GetAllWellKnownLabelKeys(label)) {
                 keyToLabel.emplace(key, label);
             }
         }
 
-        for (TStringRef str : profile.Strings()) {
+        for (TProfileString str : profile.Strings()) {
             if (auto it = keyToLabel.find(str.View()); it != keyToLabel.end()) {
                 ids.KeyToLabel_.emplace(str.GetIndex(), it->second);
             }
@@ -122,13 +124,13 @@ TStringBuf SanitizeFileName(TStringBuf name) {
 // Resolve sample type index from default_sample_type metadata.
 // Uses pprof behavior: match DefaultSampleType by Type string, or fall back to last sample type.
 ui32 ResolveSampleTypeIndex(TProfile& profile) {
-    Y_ENSURE(profile.ValueTypes().Size() > 0, "profile has no sample types");
+    Y_ENSURE(profile.ValueTypes().size() > 0, "profile has no sample types");
 
     const auto& metadata = profile.GetMetadata();
 
     // If default_sample_type is set, find matching value type by string comparison (like pprof does)
     if (metadata.default_sample_type() > 0) {
-        TStringBuf defaultType = profile.Strings().Get(metadata.default_sample_type()).View();
+        TStringBuf defaultType = profile.String(TStringId::FromInternalIndex(metadata.default_sample_type())).View();
         for (auto [index, valueType] : Enumerate(profile.ValueTypes())) {
             if (valueType.GetType().View() == defaultType) {
                 return index;
@@ -137,7 +139,7 @@ ui32 ResolveSampleTypeIndex(TProfile& profile) {
     }
 
     // Fall back to last sample type (pprof default behavior)
-    return profile.ValueTypes().Size() - 1;
+    return profile.ValueTypes().size() - 1;
 }
 
 TFlameTrie BuildFlameTrie(
@@ -148,11 +150,11 @@ TFlameTrie BuildFlameTrie(
 ) {
     TFlameTrie trie;
 
-    TVector<TFlameValue> keyValues(profile.SampleKeys().Size());
+    TVector<TFlameValue> keyValues(profile.SampleKeys().size());
     for (auto sample : profile.Samples()) {
         ui32 keyIndex = sample.GetKey().GetIndex().GetInternalIndex();
         keyValues[keyIndex].SampleCount += 1;
-        keyValues[keyIndex].EventCount += sample.GetValue(sampleTypeIndex);
+        keyValues[keyIndex].EventCount += sample.GetValues()[sampleTypeIndex].GetValue();
     }
 
     // Process each sample key (unique stack)
@@ -185,7 +187,7 @@ TFlameTrie BuildFlameTrie(
             TLabelId::Invalid(),  // SignalName
         }};
 
-        for (auto label : sampleKey.GetAllLabels()) {
+        for (auto label : sampleKey.GetLabels()) {
             TStringId keyId = label.GetKey().GetIndex();
             auto labelType = keyIds.GetLabel(keyId);
 
@@ -240,10 +242,14 @@ TFlameTrie BuildFlameTrie(
 
         // Process stacks (reverse order - TProfile stores leaf-to-root, we need root-to-leaf)
         bool truncated = false;
-        for (i32 stackIdx = sampleKey.GetStackCount() - 1; stackIdx >= 0 && !truncated; --stackIdx) {
-            TStack stack = sampleKey.GetStack(stackIdx);
-            for (i32 frameIdx = stack.GetFrameCount() - 1; frameIdx >= 0 && !truncated; --frameIdx) {
-                TStackFrame frame = stack.GetFrame(frameIdx);
+        for (TStack stack : sampleKey.GetStacks() | std::views::reverse) {
+            if (truncated) {
+                break;
+            }
+            for (TStackFrame frame : stack.GetFrames() | std::views::reverse) {
+                if (truncated) {
+                    break;
+                }
                 TBinaryId binaryId = frame.GetBinary().GetIndex();
                 TStringId binaryPathId = binaryId != TBinaryId::Zero()
                     ? frame.GetBinary().GetPath().GetIndex()
@@ -253,7 +259,7 @@ TFlameTrie BuildFlameTrie(
                 const bool showFiles = options.show_file_names();
                 const bool showLines = options.show_line_numbers();
 
-                if (chain.GetLineCount() == 0) {
+                if (chain.GetLines().empty()) {
                     if (options.max_depth() > 0 && depth >= options.max_depth()) {
                         truncated = true;
                         break;
@@ -271,14 +277,13 @@ TFlameTrie BuildFlameTrie(
                     // and our pprof converters copy this order directly into TProfile without reversing.
                     // For correct flamegraph rendering (root-to-leaf), we should either:
                     //   1. Fix pprof converters to reverse inline chains when building TProfile
-                    //   2. Fix this loop to iterate in reverse: for (i32 lineIdx = chain.GetLineCount() - 1; lineIdx >= 0; --lineIdx)
+                    //   2. Fix this loop to iterate in reverse via `chain.GetLines() | std::views::reverse`
                     // Currently this renders inline chains in the wrong order (leaf-to-root instead of root-to-leaf).
-                    for (i32 lineIdx = 0; lineIdx < chain.GetLineCount(); ++lineIdx) {
+                    for (TSourceLine line : chain.GetLines()) {
                         if (options.max_depth() > 0 && depth >= options.max_depth()) {
                             truncated = true;
                             break;
                         }
-                        TSourceLine line = chain.GetLine(lineIdx);
                         TFunction func = line.GetFunction();
                         TStringId fileId = func.GetFileName().GetIndex();
                         if (IsInvalidFilename(func.GetFileName().View())) {
@@ -445,7 +450,7 @@ public:
         auto [it, inserted] = StringIdCache_.try_emplace(stringId, 0);
         if (inserted) {
             // First time seeing this string - intern it (stable, no copy needed)
-            it->second = StringTable_.InternStable(Profile_.Strings().Get(stringId).View());
+            it->second = StringTable_.InternStable(Profile_.String(stringId).View());
         }
         return it->second;
     }
@@ -487,7 +492,7 @@ private:
             .KindId = Common_.Empty,
         };
 
-        TLabel label = Profile_.Labels().Get(labelId);
+        TLabel label = Profile_.Label(labelId);
         TStringId keyId = label.GetKey().GetIndex();
         auto labelType = KeyIds_.GetLabel(keyId);
 
@@ -542,18 +547,18 @@ private:
         }
 
         TStringBuf binaryPath = frame.BinaryId != TBinaryId::Zero()
-            ? Profile_.Binaries().Get(frame.BinaryId).GetPath().View()
+            ? Profile_.Binary(frame.BinaryId).GetPath().View()
             : TStringBuf{};
 
         if (frame.NameId.IsValid()) {
-            TStringBuf name = Profile_.Strings().Get(frame.NameId).View();
+            TStringBuf name = Profile_.String(frame.NameId).View();
             if (!IsInvalidFunctionName(name)) {
                 result.NameId = InternProfileString(frame.NameId, name);
             }
         }
 
         if (Options_.show_file_names() && frame.FileId.IsValid()) {
-            TStringBuf file = SanitizeFileName(Profile_.Strings().Get(frame.FileId).View());
+            TStringBuf file = SanitizeFileName(Profile_.String(frame.FileId).View());
             if (!IsInvalidFilename(file)) {
                 FileBuffer_.clear();
                 FileBuffer_ += Options_.file_path_prefix();
@@ -768,7 +773,7 @@ void RenderTrieToJson(
     writer.EndArray();
 
     // Intern eventType BEFORE writing stringTable (so it's included in the output)
-    TValueType valueType = profile.ValueTypes().Get(sampleTypeIndex);
+    TValueType valueType = profile.ValueType(TValueTypeId::FromInternalIndex(sampleTypeIndex));
     TString eventType = TString{valueType.GetType().View()} + "." + valueType.GetUnit().View();
     ui32 eventTypeId = stringTable.Intern(eventType);
 

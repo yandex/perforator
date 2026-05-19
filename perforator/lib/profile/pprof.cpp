@@ -873,7 +873,7 @@ public:
 
             auto key = sample.GetKey();
             auto visitLabels = [&](auto&& visitor) {
-                for (auto&& label : key.GetAllLabels()) {
+                for (auto&& label : key.GetLabels()) {
                     if (label.IsString()) {
                         visitor(strLabelFields(*label.GetKey().GetIndex(), *label.GetString().GetIndex()));
                     } else {
@@ -890,8 +890,8 @@ public:
             }
 
             size_t valuesSize = 0;
-            for (auto&& value : sample.GetValues()) {
-                valuesSize += TValueTraits<Sample::kValueFieldNumber, WireFormatLite::TYPE_INT64>::SizeNoTag(value);
+            for (auto&& sampleValue : sample.GetValues()) {
+                valuesSize += TValueTraits<Sample::kValueFieldNumber, WireFormatLite::TYPE_INT64>::SizeNoTag(sampleValue.GetValue());
             }
 
             size_t size = WireFormatLite::TagSize(Sample::kLocationIdFieldNumber, WireFormatLite::TYPE_UINT64) + WireFormatLite::LengthDelimitedSize(locationIdsSize) +
@@ -916,8 +916,8 @@ public:
             WireFormatLite::WriteTag(Sample::kValueFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
             Out_->WriteVarint64(valuesSize);
 
-            for (auto&& value : sample.GetValues()) {
-                TValueTraits<Sample::kValueFieldNumber, WireFormatLite::TYPE_INT64>::WriteNoTag(value, Out_);
+            for (auto&& sampleValue : sample.GetValues()) {
+                TValueTraits<Sample::kValueFieldNumber, WireFormatLite::TYPE_INT64>::WriteNoTag(sampleValue.GetValue(), Out_);
             }
 
             visitLabels([&](auto&& fields) {
@@ -1275,7 +1275,7 @@ private:
     void ConvertMappings() {
         auto binaries = SourceProfile_.Binaries();
 
-        OldProfile_.mutable_mapping()->Reserve(binaries.Size());
+        OldProfile_.mutable_mapping()->Reserve(binaries.size());
         for (auto [i, binary] : Enumerate(binaries)) {
             if (i == 0) {
                 // First binary is empty ant should not be present in pprof.
@@ -1299,7 +1299,7 @@ private:
     void ConvertFunctions() {
         auto functions = SourceProfile_.Functions();
 
-        OldProfile_.mutable_function()->Reserve(functions.Size());
+        OldProfile_.mutable_function()->Reserve(functions.size());
         for (auto [i, func] : Enumerate(functions)) {
             // Skip first function which must be empty.
             if (i == 0) {
@@ -1320,7 +1320,7 @@ private:
 
         // We add first null location as the "unknown" location and shift location ids by one.
         // pprof expects that Profile.sample.location_id are non-zero.
-        OldProfile_.mutable_location()->Reserve(frames.Size());
+        OldProfile_.mutable_location()->Reserve(frames.size());
         for (auto [i, frame] : Enumerate(frames)) {
             NProto::NPProf::Location* location = OldProfile_.add_location();
             location->set_id(i + 1);
@@ -1357,8 +1357,8 @@ private:
             NProto::NPProf::Sample* oldSample = OldProfile_.add_sample();
 
             // Fill Sample.value
-            for (auto&& value : newSample.GetValues()) {
-                oldSample->add_value(value);
+            for (auto&& sampleValue : newSample.GetValues()) {
+                oldSample->add_value(sampleValue.GetValue());
             }
 
             // Fill Sample.stack
@@ -1380,7 +1380,7 @@ private:
     }
 
     void ConvertSampleLabels(NProto::NPProf::Sample* sample, TSampleKey key) {
-        for (auto&& newLabel : key.GetAllLabels()) {
+        for (auto&& newLabel : key.GetLabels()) {
             auto* label = sample->add_label();
             if (newLabel.IsNumber()) {
                 label->set_key(*newLabel.GetKey().GetIndex());
@@ -1402,7 +1402,7 @@ private:
         AddLabel(sample, key)->set_num(value);
     }
 
-    void AddStringIdxLabel(NProto::NPProf::Sample* sample, TStringBuf key, TStringRef valueIdx) {
+    void AddStringIdxLabel(NProto::NPProf::Sample* sample, TStringBuf key, TProfileString valueIdx) {
         AddLabel(sample, key)->set_str(*valueIdx.GetIndex());
     }
 
