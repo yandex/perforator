@@ -288,6 +288,8 @@ require (
 	github.com/bluenviron/gortsplib/v4 v4.10.6
 	github.com/bluenviron/mediacommon v1.12.4
 	github.com/bmatcuk/doublestar/v4 v4.9.1
+	github.com/bogdanfinn/fhttp v0.6.8
+	github.com/bogdanfinn/tls-client v1.14.0
 	github.com/bombsimon/wsl/v4 v4.0.1-0.20230528151643-09f4c06378eb
 	github.com/boombuler/barcode v1.0.1
 	github.com/bradfitz/gomemcache v0.0.0-20230611145640-acc696258285
@@ -1381,6 +1383,8 @@ require (
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df // indirect
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3 // indirect
+	github.com/bdandy/go-errors v1.2.2 // indirect
+	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/beanstalkd/go-beanstalk v0.1.0 // indirect
 	github.com/beltran/gohive v1.8.1 // indirect
 	github.com/beltran/gosasl v1.0.0 // indirect
@@ -1400,6 +1404,9 @@ require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b // indirect
+	github.com/bogdanfinn/quic-go-utls v1.0.9-utls // indirect
+	github.com/bogdanfinn/utls v1.7.7-barnius // indirect
+	github.com/bogdanfinn/websocket v1.5.5-barnius // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/bombsimon/wsl v1.2.8 // indirect
 	github.com/bombsimon/wsl/v3 v3.4.0 // indirect
@@ -2359,6 +2366,7 @@ require (
 	github.com/sunfish-shogi/bufseekio v0.0.0-20210207115823-a4185644b365 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tadglines/go-pkgs v0.0.0-20210623144937-b983b20f54f9 // indirect
+	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.2 // indirect
 	github.com/tdewolff/parse/v2 v2.6.8 // indirect
 	github.com/tdewolff/test v1.0.9 // indirect

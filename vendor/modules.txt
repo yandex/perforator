@@ -5323,6 +5323,12 @@ github.com/barkimedes/go-deepcopy
 # github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3
 ## explicit; go 1.20
 github.com/bboreham/go-loser
+# github.com/bdandy/go-errors v1.2.2
+## explicit; go 1.13
+github.com/bdandy/go-errors
+# github.com/bdandy/go-socks4 v1.2.3
+## explicit; go 1.13
+github.com/bdandy/go-socks4
 # github.com/beanstalkd/go-beanstalk v0.1.0
 ## explicit; go 1.14
 github.com/beanstalkd/go-beanstalk
@@ -5463,6 +5469,71 @@ github.com/bmizerany/pat
 # github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b
 ## explicit
 github.com/bmizerany/perks/quantile
+# github.com/bogdanfinn/fhttp v0.6.8
+## explicit; go 1.24.1
+github.com/bogdanfinn/fhttp
+github.com/bogdanfinn/fhttp/cgi
+github.com/bogdanfinn/fhttp/cookiejar
+github.com/bogdanfinn/fhttp/fcgi
+github.com/bogdanfinn/fhttp/http2
+github.com/bogdanfinn/fhttp/http2/h2c
+github.com/bogdanfinn/fhttp/http2/h2i
+github.com/bogdanfinn/fhttp/http2/hpack
+github.com/bogdanfinn/fhttp/httptest
+github.com/bogdanfinn/fhttp/httptrace
+github.com/bogdanfinn/fhttp/httputil
+github.com/bogdanfinn/fhttp/internal
+github.com/bogdanfinn/fhttp/internal/cfg
+github.com/bogdanfinn/fhttp/internal/nettrace
+github.com/bogdanfinn/fhttp/internal/profile
+github.com/bogdanfinn/fhttp/internal/race
+github.com/bogdanfinn/fhttp/internal/testenv
+github.com/bogdanfinn/fhttp/pprof
+# github.com/bogdanfinn/quic-go-utls v1.0.9-utls
+## explicit; go 1.24.1
+github.com/bogdanfinn/quic-go-utls
+github.com/bogdanfinn/quic-go-utls/http3
+github.com/bogdanfinn/quic-go-utls/http3/qlog
+github.com/bogdanfinn/quic-go-utls/internal/ackhandler
+github.com/bogdanfinn/quic-go-utls/internal/congestion
+github.com/bogdanfinn/quic-go-utls/internal/flowcontrol
+github.com/bogdanfinn/quic-go-utls/internal/handshake
+github.com/bogdanfinn/quic-go-utls/internal/monotime
+github.com/bogdanfinn/quic-go-utls/internal/protocol
+github.com/bogdanfinn/quic-go-utls/internal/qerr
+github.com/bogdanfinn/quic-go-utls/internal/utils
+github.com/bogdanfinn/quic-go-utls/internal/utils/linkedlist
+github.com/bogdanfinn/quic-go-utls/internal/utils/ringbuffer
+github.com/bogdanfinn/quic-go-utls/internal/wire
+github.com/bogdanfinn/quic-go-utls/qlog
+github.com/bogdanfinn/quic-go-utls/qlogwriter
+github.com/bogdanfinn/quic-go-utls/qlogwriter/jsontext
+github.com/bogdanfinn/quic-go-utls/quicvarint
+# github.com/bogdanfinn/tls-client v1.14.0
+## explicit; go 1.24.1
+github.com/bogdanfinn/tls-client
+github.com/bogdanfinn/tls-client/bandwidth
+github.com/bogdanfinn/tls-client/cffi_src
+github.com/bogdanfinn/tls-client/example
+github.com/bogdanfinn/tls-client/profiles
+github.com/bogdanfinn/tls-client/tests
+# github.com/bogdanfinn/utls v1.7.7-barnius
+## explicit; go 1.24
+github.com/bogdanfinn/utls
+github.com/bogdanfinn/utls/dicttls
+github.com/bogdanfinn/utls/internal/boring
+github.com/bogdanfinn/utls/internal/byteorder
+github.com/bogdanfinn/utls/internal/fips140tls
+github.com/bogdanfinn/utls/internal/helper
+github.com/bogdanfinn/utls/internal/hkdf
+github.com/bogdanfinn/utls/internal/hpke
+github.com/bogdanfinn/utls/internal/quicvarint
+github.com/bogdanfinn/utls/internal/quicvarint/protocol
+github.com/bogdanfinn/utls/internal/tls12
+github.com/bogdanfinn/utls/internal/tls13
+# github.com/bogdanfinn/websocket v1.5.5-barnius
+## explicit; go 1.24.1
+github.com/bogdanfinn/websocket
 # github.com/boltdb/bolt v1.3.1
 ## explicit
 # github.com/bombsimon/wsl v1.2.8
@@ -16395,6 +16466,9 @@ github.com/swaggo/swag/gen
 # github.com/tadglines/go-pkgs v0.0.0-20210623144937-b983b20f54f9
 ## explicit
 github.com/tadglines/go-pkgs/crypto/srp
+# github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5
+## explicit
+github.com/tam7t/hpkp
 # github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 ## explicit
 github.com/tarm/serial
