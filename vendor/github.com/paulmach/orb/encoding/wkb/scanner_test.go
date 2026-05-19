@@ -993,7 +993,7 @@ func TestScanBound_errors(t *testing.T) {
 }
 
 func TestValue(t *testing.T) {
-	t.Run("marshalls geometry", func(t *testing.T) {
+	t.Run("marshals geometry", func(t *testing.T) {
 		val, err := Value(testPoint).Value()
 		if err != nil {
 			t.Errorf("value error: %v", err)

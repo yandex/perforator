@@ -227,12 +227,12 @@ func TestQuadtreeRemoveAndAdd_sameLoc(t *testing.T) {
 		t.Error("didn't find/remove point")
 	}
 
-	// 5 is a tail point, so its not does not actually get removed
+	// 5 is a tail point, so it does not actually get removed
 	if c := countNodes(qt.root); c != 2 {
 		t.Errorf("incorrect number of nodes: %v != 2", c)
 	}
 
-	// add a 3th point again
+	// add a 3rd point again
 	err = qt.Add(p3)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -407,7 +407,7 @@ func TestQuadtreeMatching(t *testing.T) {
 		expected orb.Pointer
 	}{
 		{
-			name:     "no filtred",
+			name:     "no filters",
 			point:    orb.Point{0.1, 0.1},
 			expected: orb.Point{0, 0},
 		},

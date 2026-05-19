@@ -1,20 +1,3 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package main
 
 import (
@@ -43,12 +26,20 @@ func main() {
 		return
 	}
 
-	releaseURL := getLatestDraftReleaseURL()
+	releaseURL, err := getLatestDraftReleaseURL()
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
 
 	log.Println("Latest draft release URL:")
 	log.Println(releaseURL)
 
-	r := getRelease(releaseURL)
+	r, err := getRelease(releaseURL)
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
 
 	log.Println("Release tag:")
 	log.Println(r.TagName)
@@ -67,7 +58,10 @@ func main() {
 	}
 
 	changelogPath := changelogFilePath()
-	prependReleaseToChangelog(changelogPath, r)
+	if err := prependReleaseToChangelog(changelogPath, r); err != nil {
+		log.Fatalln(err)
+		return
+	}
 
 	if err := updateClientInfo(major, minor, patch); err != nil {
 		log.Fatalln(err)
@@ -77,35 +71,34 @@ func main() {
 	runGoGenerate()
 	runGoFmt()
 
-	gitHubOutputReleaseURLIfAvailable(releaseURL)
+	if err := gitHubOutputReleaseURLIfAvailable(releaseURL); err != nil {
+		log.Fatalln(err)
+		return
+	}
 }
 
-func gitHubOutputReleaseURLIfAvailable(url string) {
+func gitHubOutputReleaseURLIfAvailable(url string) error {
 	if len(url) == 0 {
-		return
+		return nil
 	}
 
 	gitHubOutputFile, exists := os.LookupEnv("GITHUB_OUTPUT")
 	if !exists {
-		return
+		return nil
 	}
 
 	f, err := os.OpenFile(gitHubOutputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatalln(err)
-		return
+		return err
 	}
 
-	defer func() {
-		if err := f.Close(); err != nil {
-			log.Fatalln(err)
-		}
-	}()
+	defer f.Close()
 
-	if _, err := f.WriteString(fmt.Sprintf("RELEASE_URL=%s\n", url)); err != nil {
-		log.Fatalln(err)
-		return
+	if _, err := fmt.Fprintf(f, "RELEASE_URL=%s\n", url); err != nil {
+		return err
 	}
+
+	return nil
 }
 
 func runGoFmt() {
@@ -172,24 +165,25 @@ func parseSemVer(version string) (major, minor, patch int, err error) {
 	return
 }
 
-func prependReleaseToChangelog(changelogPath string, r release) {
+func prependReleaseToChangelog(changelogPath string, r release) error {
 	f, err := os.OpenFile(changelogPath, os.O_RDWR, 0666)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 	defer f.Close()
 
 	content, err := io.ReadAll(f)
 	if err != nil {
-		log.Fatalln(err)
-		return
+		return err
 	}
 
 	f.Seek(0, io.SeekStart)
-	f.WriteString(fmt.Sprintf("# %s, %s ", r.TagName, time.Now().Format("2006-01-02")))
+	fmt.Fprintf(f, "# %s, %s ", r.TagName, time.Now().Format("2006-01-02"))
 	f.WriteString(r.Body)
 	f.WriteString("\n\n")
 	f.Write(content)
+
+	return nil
 }
 
 func changelogFilePath() string {
@@ -204,24 +198,24 @@ func getRootPath() string {
 	return rootPath
 }
 
-func getRelease(releaseURL string) release {
+func getRelease(releaseURL string) (release, error) {
 	req, err := http.NewRequest(http.MethodGet, releaseURL, nil)
 	if err != nil {
-		log.Fatalln(err)
+		return release{}, err
 	}
 	req.Header.Set("Authorization", "token "+os.Getenv("GITHUB_TOKEN"))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatalln(err)
+		return release{}, err
 	}
 	defer res.Body.Close()
 
-	var release release
-	if err := json.NewDecoder(res.Body).Decode(&release); err != nil {
-		log.Fatalln(err)
+	var rel release
+	if err := json.NewDecoder(res.Body).Decode(&rel); err != nil {
+		return release{}, err
 	}
 
-	return release
+	return rel, nil
 }
 
 type release struct {
@@ -230,17 +224,17 @@ type release struct {
 	TagName string `json:"tag_name"`
 }
 
-func getLatestDraftReleaseURL() string {
+func getLatestDraftReleaseURL() (string, error) {
 	// Fetch the latest release from GitHub repository using GitHub API
 	req, err := http.NewRequest(http.MethodGet, "https://api.github.com/repos/clickhouse/clickhouse-go/releases?per_page=100", nil)
 	if err != nil {
-		log.Fatalln(err)
+		return "", err
 	}
 
 	req.Header.Set("Authorization", "token "+os.Getenv("GITHUB_TOKEN"))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatalln(err)
+		return "", err
 	}
 	defer res.Body.Close()
 
@@ -249,18 +243,17 @@ func getLatestDraftReleaseURL() string {
 		Draft bool   `json:"draft"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&releases); err != nil {
-		log.Fatalln(err)
+		return "", err
 	}
 
 	// filter out releases that are not drafts
-	for i := 0; i < len(releases); {
+	for i := 0; i < len(releases); i++ {
 		if releases[i].Draft {
-			return releases[i].URL
+			return releases[i].URL, nil
 		}
 	}
 
-	log.Fatalln("No draft releases found")
-	return ""
+	return "", fmt.Errorf("no draft releases found")
 }
 
 func updateClientInfo(major, minor, patch int) error {
@@ -290,11 +283,12 @@ func updateClientInfo(major, minor, patch int) error {
 	var newContent string
 	for scanner.Scan() {
 		line := scanner.Text()
-		if reMajor.MatchString(line) {
+		switch {
+		case reMajor.MatchString(line):
 			line = newLines[0]
-		} else if reMinor.MatchString(line) {
+		case reMinor.MatchString(line):
 			line = newLines[1]
-		} else if rePatch.MatchString(line) {
+		case rePatch.MatchString(line):
 			line = newLines[2]
 		}
 		newContent += line + "\n"

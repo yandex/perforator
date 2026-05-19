@@ -4,7 +4,7 @@ package project
 
 import "github.com/paulmach/orb"
 
-// Geometry is a helper to project any geomtry.
+// Geometry is a helper to project any geometry.
 func Geometry(g orb.Geometry, proj orb.Projection) orb.Geometry {
 	if g == nil {
 		return nil
@@ -34,7 +34,7 @@ func Geometry(g orb.Geometry, proj orb.Projection) orb.Geometry {
 	panic("geometry type not supported")
 }
 
-// Point is a helper to project an a point
+// Point is a helper to project a point
 func Point(p orb.Point, proj orb.Projection) orb.Point {
 	return proj(p)
 }

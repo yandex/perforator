@@ -9,7 +9,7 @@ import (
 var _ orb.Simplifier = &VisvalingamSimplifier{}
 
 // A VisvalingamSimplifier is a reducer that
-// performs the vivalingham algorithm.
+// performs the visvalingham algorithm.
 type VisvalingamSimplifier struct {
 	Threshold float64
 

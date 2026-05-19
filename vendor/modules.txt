@@ -3725,14 +3725,15 @@ github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlbuilder
 github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlele
 github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlnode
 github.com/ChrisTrenkamp/goxpath/xconst
-# github.com/ClickHouse/ch-go v0.65.1
-## explicit; go 1.22.0
+# github.com/ClickHouse/ch-go v0.71.0
+## explicit; go 1.24.1
 github.com/ClickHouse/ch-go
 github.com/ClickHouse/ch-go/chpool
 github.com/ClickHouse/ch-go/cht
 github.com/ClickHouse/ch-go/cht/tls
 github.com/ClickHouse/ch-go/compress
 github.com/ClickHouse/ch-go/examples/insert
+github.com/ClickHouse/ch-go/examples/ssh_auth
 github.com/ClickHouse/ch-go/internal/cmd/app
 github.com/ClickHouse/ch-go/internal/cmd/ch-bench-numbers
 github.com/ClickHouse/ch-go/internal/cmd/ch-bench-numbers-concurrent
@@ -3753,6 +3754,7 @@ github.com/ClickHouse/ch-go/internal/ztest
 github.com/ClickHouse/ch-go/otelch
 github.com/ClickHouse/ch-go/proto
 github.com/ClickHouse/ch-go/proto/cmd/ch-gen-col
+github.com/ClickHouse/ch-go/ssh
 # github.com/ClickHouse/clickhouse-go v1.5.4
 ## explicit; go 1.12
 github.com/ClickHouse/clickhouse-go
@@ -3765,12 +3767,10 @@ github.com/ClickHouse/clickhouse-go/lib/data
 github.com/ClickHouse/clickhouse-go/lib/lz4
 github.com/ClickHouse/clickhouse-go/lib/protocol
 github.com/ClickHouse/clickhouse-go/lib/types
-# github.com/ClickHouse/clickhouse-go/v2 v2.33.1
-## explicit; go 1.22.0
+# github.com/ClickHouse/clickhouse-go/v2 v2.46.0
+## explicit; go 1.24.1
 github.com/ClickHouse/clickhouse-go/v2
 github.com/ClickHouse/clickhouse-go/v2/benchmark
-github.com/ClickHouse/clickhouse-go/v2/benchmark/v1/read
-github.com/ClickHouse/clickhouse-go/v2/benchmark/v1/write
 github.com/ClickHouse/clickhouse-go/v2/benchmark/v2/read
 github.com/ClickHouse/clickhouse-go/v2/benchmark/v2/read-native
 github.com/ClickHouse/clickhouse-go/v2/benchmark/v2/write
@@ -3784,9 +3784,11 @@ github.com/ClickHouse/clickhouse-go/v2/contributors
 github.com/ClickHouse/clickhouse-go/v2/examples/clickhouse_api
 github.com/ClickHouse/clickhouse-go/v2/examples/std
 github.com/ClickHouse/clickhouse-go/v2/ext
+github.com/ClickHouse/clickhouse-go/v2/internal/circular
 github.com/ClickHouse/clickhouse-go/v2/internal/cmd/release
 github.com/ClickHouse/clickhouse-go/v2/lib/binary
 github.com/ClickHouse/clickhouse-go/v2/lib/chcol
+github.com/ClickHouse/clickhouse-go/v2/lib/churl
 github.com/ClickHouse/clickhouse-go/v2/lib/cityhash102
 github.com/ClickHouse/clickhouse-go/v2/lib/column
 github.com/ClickHouse/clickhouse-go/v2/lib/column/codegen
@@ -14219,7 +14221,7 @@ github.com/parquet-go/parquet-go/sparse
 ## explicit
 # github.com/paulbellamy/ratecounter v0.2.0
 ## explicit
-# github.com/paulmach/orb v0.11.1
+# github.com/paulmach/orb v0.12.0
 ## explicit; go 1.15
 github.com/paulmach/orb
 github.com/paulmach/orb/clip

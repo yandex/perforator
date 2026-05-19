@@ -29,7 +29,7 @@ func TestInternalLine(t *testing.T) {
 			},
 		},
 		{
-			name:  "clips line crossign many times",
+			name:  "clips line crossing many times",
 			bound: orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{20, 20}},
 			input: orb.LineString{
 				{10, -10}, {10, 30}, {20, 30}, {20, -10},
@@ -175,7 +175,7 @@ func TestLineString(t *testing.T) {
 		output orb.MultiLineString
 	}{
 		{
-			name:  "clips line crossign many times",
+			name:  "clips line crossing many times",
 			bound: orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{20, 20}},
 			input: orb.LineString{
 				{10, -10}, {10, 30}, {20, 30}, {20, -10},
@@ -233,7 +233,7 @@ func TestLineString_OpenBound(t *testing.T) {
 		output orb.MultiLineString
 	}{
 		{
-			name:  "clips line crossign many times",
+			name:  "clips line crossing many times",
 			bound: orb.Bound{Min: orb.Point{0, 0}, Max: orb.Point{20, 20}},
 			input: orb.LineString{
 				{10, -10}, {10, 30}, {20, 30}, {20, -10},

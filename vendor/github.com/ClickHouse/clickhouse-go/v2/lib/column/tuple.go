@@ -1,20 +1,3 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package column
 
 import (
@@ -54,7 +37,7 @@ type namedCol struct {
 	colType Type
 }
 
-func (col *Tuple) parse(t Type, tz *time.Location) (_ Interface, err error) {
+func (col *Tuple) parse(t Type, sc *ServerContext) (_ Interface, err error) {
 	col.chType = t
 	var (
 		element       []rune
@@ -99,7 +82,7 @@ func (col *Tuple) parse(t Type, tz *time.Location) (_ Interface, err error) {
 		if ct.name == "" {
 			isNamed = false
 		}
-		column, err := ct.colType.Column(ct.name, tz)
+		column, err := ct.colType.Column(ct.name, sc)
 		if err != nil {
 			return nil, err
 		}
@@ -366,7 +349,13 @@ func (col *Tuple) scanStruct(targetStruct reflect.Value, row int) error {
 			}
 			sField.Set(subSlice)
 		default:
-			value := reflect.ValueOf(c.Row(row, false))
+			v := c.Row(row, false)
+			if v == nil {
+				continue
+			}
+
+			value := reflect.ValueOf(v)
+
 			if err := setJSONFieldValue(sField, value); err != nil {
 				return err
 			}
@@ -448,7 +437,7 @@ func (col *Tuple) scan(targetType reflect.Type, row int) (reflect.Value, error) 
 		if !col.isNamed {
 			return reflect.Value{}, &ColumnConverterError{
 				Op:   "ScanRow",
-				To:   fmt.Sprintf("%s", targetType),
+				To:   targetType.String(),
 				From: string(col.chType),
 				Hint: "cannot use interface for unnamed tuples, use slice",
 			}
@@ -682,3 +671,33 @@ var (
 	_ Interface           = (*Tuple)(nil)
 	_ CustomSerialization = (*Tuple)(nil)
 )
+
+func getStructFieldName(field reflect.StructField) (string, bool) {
+	name := field.Name
+	tag := field.Tag.Get("json")
+	// not a standard but we allow - to omit fields
+	if tag == "-" {
+		return name, true
+	}
+	if tag != "" {
+		// Some JSON tags contain omitempty after a comma but we don't want those in our field name.
+		return strings.Split(tag, ",")[0], false
+	}
+	// support ch tag as well as this is used elsewhere
+	tag = field.Tag.Get("ch")
+	if tag == "-" {
+		return name, true
+	}
+	if tag != "" {
+		return tag, false
+	}
+	return name, false
+}
+
+// ensures numeric keys and ` are escaped properly
+func getMapFieldName(name string) string {
+	if !escapeColRegex.MatchString(name) {
+		return fmt.Sprintf("`%s`", colEscape.Replace(name))
+	}
+	return colEscape.Replace(name)
+}

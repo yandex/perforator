@@ -1,29 +1,15 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package column
 
 import (
+	"database/sql"
 	"fmt"
-	"github.com/ClickHouse/ch-go/proto"
 	"reflect"
 	"strings"
-	"time"
+
+	"github.com/ClickHouse/ch-go/proto"
 )
+
+var scanTypeAny = reflect.TypeOf((*any)(nil)).Elem()
 
 type offset struct {
 	values   UInt64
@@ -50,7 +36,7 @@ func (col *Array) Name() string {
 	return col.name
 }
 
-func (col *Array) parse(t Type, tz *time.Location) (_ *Array, err error) {
+func (col *Array) parse(t Type, sc *ServerContext) (_ *Array, err error) {
 	col.chType = t
 	var typeStr = string(t)
 
@@ -66,7 +52,7 @@ parse:
 		}
 	}
 	if col.depth != 0 {
-		if col.values, err = Type(typeStr).Column(col.name, tz); err != nil {
+		if col.values, err = Type(typeStr).Column(col.name, sc); err != nil {
 			return nil, err
 		}
 		offsetScanTypes := make([]reflect.Type, 0, col.depth)
@@ -268,6 +254,13 @@ func (col *Array) WriteStatePrefix(buffer *proto.Buffer) error {
 }
 
 func (col *Array) ScanRow(dest any, row int) error {
+	if scanner, ok := dest.(sql.Scanner); ok {
+		value, err := col.scan(scanTypeAny, row)
+		if err != nil {
+			return err
+		}
+		return scanner.Scan(value.Interface())
+	}
 	elem := reflect.Indirect(reflect.ValueOf(dest))
 	value, err := col.scan(elem.Type(), row)
 	if err != nil {

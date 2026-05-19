@@ -1,37 +1,26 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package proto
 
 import (
 	"errors"
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/ClickHouse/ch-go/proto"
+
 	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
 )
 
 type Block struct {
-	names    []string
-	Packet   byte
-	Columns  []column.Interface
-	Timezone *time.Location
+	names         []string
+	Packet        byte
+	Columns       []column.Interface
+	ServerContext *column.ServerContext
+}
+
+func NewBlock() *Block {
+	return &Block{
+		ServerContext: &column.ServerContext{},
+	}
 }
 
 func (b *Block) Rows() int {
@@ -42,11 +31,11 @@ func (b *Block) Rows() int {
 }
 
 func (b *Block) AddColumn(name string, ct column.Type) error {
-	column, err := ct.Column(name, b.Timezone)
+	col, err := ct.Column(name, b.ServerContext)
 	if err != nil {
 		return err
 	}
-	b.names, b.Columns = append(b.names, name), append(b.Columns, column)
+	b.names, b.Columns = append(b.names, name), append(b.Columns, col)
 	return nil
 }
 
@@ -198,11 +187,11 @@ func (b *Block) Decode(reader *proto.Reader, revision uint64) (err error) {
 	if numRows > 1_000_000_000 {
 		return &BlockError{
 			Op:  "Decode",
-			Err: errors.New("more then 1 billion rows in block - suspiciously big - preventing OOM"),
+			Err: errors.New("more than 1 billion rows in block - suspiciously big - preventing OOM"),
 		}
 	}
-	b.Columns = make([]column.Interface, numCols, numCols)
-	b.names = make([]string, numCols, numCols)
+	b.Columns = make([]column.Interface, numCols)
+	b.names = make([]string, numCols)
 	for i := 0; i < int(numCols); i++ {
 		var (
 			columnName string
@@ -214,7 +203,7 @@ func (b *Block) Decode(reader *proto.Reader, revision uint64) (err error) {
 		if columnType, err = reader.Str(); err != nil {
 			return err
 		}
-		c, err := column.Type(columnType).Column(columnName, b.Timezone)
+		c, err := column.Type(columnType).Column(columnName, b.ServerContext)
 		if err != nil {
 			return err
 		}
@@ -227,7 +216,7 @@ func (b *Block) Decode(reader *proto.Reader, revision uint64) (err error) {
 			if hasCustom {
 				return &BlockError{
 					Op:  "Decode",
-					Err: errors.New(fmt.Sprintf("custom serialization for column %s. not supported by clickhouse-go driver", columnName)),
+					Err: fmt.Errorf("custom serialization for column %s. not supported by clickhouse-go driver", columnName),
 				}
 			}
 		}
@@ -303,4 +292,8 @@ func (e *BlockError) Error() string {
 		return fmt.Sprintf("clickhouse [%s]: (%s %s) %s", e.Op, e.ColumnName, err.ColumnType, err.Err)
 	}
 	return fmt.Sprintf("clickhouse [%s]: %s %s", e.Op, e.ColumnName, e.Err)
+}
+
+func (e *BlockError) Unwrap() error {
+	return e.Err
 }

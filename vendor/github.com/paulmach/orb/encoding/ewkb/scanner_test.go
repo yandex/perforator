@@ -1184,7 +1184,7 @@ func TestScanBound_errors(t *testing.T) {
 }
 
 func TestValue(t *testing.T) {
-	t.Run("marshalls geometry", func(t *testing.T) {
+	t.Run("marshals geometry", func(t *testing.T) {
 		testPoint := orb.Point{1, 2}
 		testPointData := MustMarshal(testPoint, 4326)
 		val, err := Value(testPoint, 4326).Value()

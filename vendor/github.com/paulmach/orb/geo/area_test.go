@@ -60,7 +60,7 @@ func TestSignedArea(t *testing.T) {
 				t.Errorf("wrong area: %v != %v", val, tc.result)
 			}
 
-			// should work without redudant last point.
+			// should work without redundant last point.
 			if tc.ring[0] == tc.ring[len(tc.ring)-1] {
 				tc.ring = tc.ring[:len(tc.ring)-1]
 				val = SignedArea(tc.ring)

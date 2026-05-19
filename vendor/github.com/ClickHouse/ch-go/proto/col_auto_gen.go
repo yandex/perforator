@@ -16,6 +16,10 @@ func inferGenerated(t ColumnType) Column {
 		return new(ColDate)
 	case ColumnTypeDate32:
 		return new(ColDate32)
+	case ColumnTypeTime32:
+		return new(ColTime32)
+	case ColumnTypeTime64:
+		return new(ColTime64)
 	case ColumnTypeInt8:
 		return new(ColInt8)
 	case ColumnTypeUInt8:

@@ -5,7 +5,7 @@ import (
 	"github.com/paulmach/orb/planar"
 )
 
-// Simplify will run all the geometry of all the layers through the provided simplifer.
+// Simplify will run all the geometry of all the layers through the provided simplifier.
 func (ls Layers) Simplify(s orb.Simplifier) {
 	for _, l := range ls {
 		l.Simplify(s)

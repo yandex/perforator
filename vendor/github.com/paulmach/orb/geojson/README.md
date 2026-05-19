@@ -47,7 +47,7 @@ rawJSON, _ := fc.MarshalJSON()
 blob, _ := json.Marshal(fc)
 ```
 
-## Foreign/extra members in a feature collection
+## Foreign/extra members in feature and feature collection
 
 ```go
 rawJSON := []byte(`
@@ -81,17 +81,18 @@ This can be enabled with something like this:
 ```go
 import (
   jsoniter "github.com/json-iterator/go"
-  "github.com/paulmach/orb"
+  "github.com/paulmach/orb/geojson"
 )
 
-var c = jsoniter.Config{
+// in an init() or main(), etc.
+c := jsoniter.Config{
   EscapeHTML:              true,
   SortMapKeys:             false,
   MarshalFloatWith6Digits: true,
 }.Froze()
 
-CustomJSONMarshaler = c
-CustomJSONUnmarshaler = c
+geojson.CustomJSONMarshaler = c
+geojson.CustomJSONUnmarshaler = c
 ```
 
 The above change can have dramatic performance implications, see the benchmarks below

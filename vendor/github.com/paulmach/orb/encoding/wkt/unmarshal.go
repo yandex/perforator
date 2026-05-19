@@ -51,7 +51,7 @@ func unmarshalPoint(s string) (orb.Point, error) {
 	return tp, nil
 }
 
-// parsePoint pase point by (x y)
+// parsePoint parse point by (x y)
 func parsePoint(s string) (p orb.Point, err error) {
 	one, two, ok := cut(s, " ")
 	if !ok {
@@ -493,7 +493,7 @@ func splitByRegexpYield(s string, re *regexp.Regexp, set func(int), yield func(s
 // We use a yield function because it was faster/used less memory than
 // allocating an array of the results.
 func splitOnComma(s string, yield func(s string) error) error {
-	// in WKT points are separtated by commas, coordinates in points are separted by spaces
+	// in WKT points are separated by commas, coordinates in points are separated by spaces
 	// e.g. 1 2,3 4,5 6,7 81 2,5 4
 	// we want to split this and find each point.
 
@@ -587,7 +587,7 @@ func trimSpace(s string) string {
 }
 
 // gets the ToUpper case of the first 20 chars.
-// This is to determin the type without doing a full strings.ToUpper
+// This is to determine the type without doing a full strings.ToUpper
 func upperPrefix(s string) []byte {
 	prefix := make([]byte, 20)
 	for i := 0; i < 20 && i < len(s); i++ {
@@ -601,7 +601,7 @@ func upperPrefix(s string) []byte {
 	return prefix
 }
 
-// coppied here from strings.Cut so we don't require go1.18
+// copied here from strings.Cut so we don't require go1.18
 func cut(s, sep string) (before, after string, found bool) {
 	if i := strings.Index(s, sep); i >= 0 {
 		return s[:i], s[i+len(sep):], true

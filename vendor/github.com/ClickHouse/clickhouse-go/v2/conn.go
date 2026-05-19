@@ -1,47 +1,31 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package clickhouse
 
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
-	"os"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
+
 	"github.com/ClickHouse/clickhouse-go/v2/resources"
-	"github.com/pkg/errors"
 
 	"github.com/ClickHouse/ch-go/compress"
 	chproto "github.com/ClickHouse/ch-go/proto"
+
 	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 )
 
 func dial(ctx context.Context, addr string, num int, opt *Options) (*connect, error) {
 	var (
-		err    error
-		conn   net.Conn
-		debugf = func(format string, v ...any) {}
+		err  error
+		conn net.Conn
 	)
 
 	switch {
@@ -60,18 +44,9 @@ func dial(ctx context.Context, addr string, num int, opt *Options) (*connect, er
 		return nil, err
 	}
 
-	if opt.Debug {
-		if opt.Debugf != nil {
-			debugf = func(format string, v ...any) {
-				opt.Debugf(
-					"[clickhouse][conn=%d][%s] "+format,
-					append([]interface{}{num, conn.RemoteAddr()}, v...)...,
-				)
-			}
-		} else {
-			debugf = log.New(os.Stdout, fmt.Sprintf("[clickhouse][conn=%d][%s]", num, conn.RemoteAddr()), 0).Printf
-		}
-	}
+	// Get base logger and enrich with connection-specific context
+	baseLogger := opt.logger()
+	logger := prepareConnLogger(baseLogger, num, conn.RemoteAddr().String(), "native")
 
 	var (
 		compression CompressionMethod
@@ -96,7 +71,7 @@ func dial(ctx context.Context, addr string, num int, opt *Options) (*connect, er
 			id:                   num,
 			opt:                  opt,
 			conn:                 conn,
-			debugf:               debugf,
+			logger:               logger,
 			buffer:               new(chproto.Buffer),
 			reader:               chproto.NewReader(conn),
 			revision:             ClientTCPProtocolVersion,
@@ -110,7 +85,18 @@ func dial(ctx context.Context, addr string, num int, opt *Options) (*connect, er
 		}
 	)
 
-	if err := connect.handshake(opt.Auth.Database, opt.Auth.Username, opt.Auth.Password); err != nil {
+	auth := opt.Auth
+	if useJWTAuth(opt) {
+		jwt, err := opt.GetJWT(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get JWT: %w", err)
+		}
+
+		auth.Username = jwtAuthMarker
+		auth.Password = jwt
+	}
+
+	if err := connect.handshake(auth); err != nil {
 		return nil, err
 	}
 
@@ -122,7 +108,9 @@ func dial(ctx context.Context, addr string, num int, opt *Options) (*connect, er
 
 	// warn only on the first connection in the pool
 	if num == 1 && !resources.ClientMeta.IsSupportedClickHouseVersion(connect.server.Version) {
-		debugf("[handshake] WARNING: version %v of ClickHouse is not supported by this client - client supports %v", connect.server.Version, resources.ClientMeta.SupportedVersions())
+		connect.logger.Warn("unsupported clickhouse version",
+			slog.String("version", connect.server.Version.String()),
+			slog.String("supported_versions", resources.ClientMeta.SupportedVersions()))
 	}
 
 	return connect, nil
@@ -133,7 +121,7 @@ type connect struct {
 	id                   int
 	opt                  *Options
 	conn                 net.Conn
-	debugf               func(format string, v ...any)
+	logger               *slog.Logger
 	server               ServerVersion
 	closed               bool
 	buffer               *chproto.Buffer
@@ -149,6 +137,22 @@ type connect struct {
 	maxCompressionBuffer int
 	readerMutex          sync.Mutex
 	closeMutex           sync.Mutex
+}
+
+func (c *connect) connID() int {
+	return c.id
+}
+
+func (c *connect) getLogger() *slog.Logger {
+	return c.logger
+}
+
+func (c *connect) connectedAtTime() time.Time {
+	return c.connectedAt
+}
+
+func (c *connect) serverVersion() (*ServerVersion, error) {
+	return &c.server, nil
 }
 
 func (c *connect) settings(querySettings Settings) []proto.Setting {
@@ -195,6 +199,14 @@ func (c *connect) isBad() bool {
 	return false
 }
 
+func (c *connect) isReleased() bool {
+	return c.released
+}
+
+func (c *connect) setReleased(released bool) {
+	c.released = released
+}
+
 func (c *connect) isClosed() bool {
 	c.closeMutex.Lock()
 	defer c.closeMutex.Unlock()
@@ -238,7 +250,10 @@ func (c *connect) progress() (*Progress, error) {
 		return nil, err
 	}
 
-	c.debugf("[progress] %s", &progress)
+	c.logger.Debug("query progress",
+		slog.Uint64("rows", progress.Rows),
+		slog.Uint64("bytes", progress.Bytes),
+		slog.Uint64("total_rows", progress.TotalRows))
 	return &progress, nil
 }
 
@@ -248,7 +263,9 @@ func (c *connect) exception() error {
 		return err
 	}
 
-	c.debugf("[exception] %s", e.Error())
+	c.logger.Warn("server exception received",
+		slog.String("error", e.Error()),
+		slog.Int("code", int(e.Code)))
 	return &e
 }
 
@@ -256,7 +273,7 @@ func (c *connect) compressBuffer(start int) error {
 	if c.compression != CompressionNone && len(c.buffer.Buf) > 0 {
 		data := c.buffer.Buf[start:]
 		if err := c.compressor.Compress(data); err != nil {
-			return errors.Wrap(err, "compress")
+			return fmt.Errorf("compress: %w", err)
 		}
 		c.buffer.Buf = append(c.buffer.Buf[:start], c.compressor.Data...)
 	}
@@ -266,31 +283,35 @@ func (c *connect) compressBuffer(start int) error {
 func (c *connect) sendData(block *proto.Block, name string) error {
 	if c.isClosed() {
 		err := errors.New("attempted sending on closed connection")
-		c.debugf("[send data] err: %v", err)
+		c.logger.Error("send data failed: connection closed", slog.Any("error", err))
 		return err
 	}
 
-	c.debugf("[send data] compression=%q", c.compression)
+	c.logger.Debug("sending data block",
+		slog.String("compression", c.compression.String()),
+		slog.Int("columns", len(block.Columns)),
+		slog.Int("rows", block.Rows()))
 	c.buffer.PutByte(proto.ClientData)
 	c.buffer.PutString(name)
 
 	compressionOffset := len(c.buffer.Buf)
 
 	if err := block.EncodeHeader(c.buffer, c.revision); err != nil {
-		return err
+		return fmt.Errorf("send data: failed to encode block header (conn_id=%d): %w", c.id, err)
 	}
 
 	for i := range block.Columns {
 		if err := block.EncodeColumn(c.buffer, c.revision, i); err != nil {
-			return err
+			return fmt.Errorf("send data: failed to encode column %d (conn_id=%d): %w", i, c.id, err)
 		}
 		if len(c.buffer.Buf) >= c.maxCompressionBuffer {
 			if err := c.compressBuffer(compressionOffset); err != nil {
 				return err
 			}
-			c.debugf("[buff compress] buffer size: %d", len(c.buffer.Buf))
+			c.logger.Debug("buffer compressed",
+				slog.Int("buffer_bytes", len(c.buffer.Buf)))
 			if err := c.flush(); err != nil {
-				return err
+				return fmt.Errorf("send data: failed to flush partial block (conn_id=%d, col=%d): %w", c.id, i, err)
 			}
 			compressionOffset = 0
 		}
@@ -303,15 +324,29 @@ func (c *connect) sendData(block *proto.Block, name string) error {
 	if err := c.flush(); err != nil {
 		switch {
 		case errors.Is(err, syscall.EPIPE):
-			c.debugf("[send data] pipe is broken, closing connection")
+			c.logger.Error("connection broken: pipe error",
+				slog.Any("error", err),
+				slog.Int("block_columns", len(block.Columns)),
+				slog.Int("block_rows", block.Rows()))
 			c.setClosed()
+			return fmt.Errorf("send data: connection broken (EPIPE) to %s (conn_id=%d, block_cols=%d, block_rows=%d): %w",
+				c.conn.RemoteAddr(), c.id, len(block.Columns), block.Rows(), err)
 		case errors.Is(err, io.EOF):
-			c.debugf("[send data] unexpected EOF, closing connection")
+			c.logger.Error("connection closed unexpectedly",
+				slog.Any("error", err),
+				slog.Int("block_columns", len(block.Columns)),
+				slog.Int("block_rows", block.Rows()))
 			c.setClosed()
+			return fmt.Errorf("send data: unexpected EOF to %s (conn_id=%d, block_cols=%d, block_rows=%d): %w",
+				c.conn.RemoteAddr(), c.id, len(block.Columns), block.Rows(), err)
 		default:
-			c.debugf("[send data] unexpected error: %v", err)
+			c.logger.Error("send data failed",
+				slog.Any("error", err),
+				slog.Int("block_columns", len(block.Columns)),
+				slog.Int("block_rows", block.Rows()))
+			return fmt.Errorf("send data: write error to %s (conn_id=%d, block_cols=%d, block_rows=%d): %w",
+				c.conn.RemoteAddr(), c.id, len(block.Columns), block.Rows(), err)
 		}
-		return err
 	}
 
 	defer func() {
@@ -321,22 +356,33 @@ func (c *connect) sendData(block *proto.Block, name string) error {
 	return nil
 }
 
+func serverVersionToContext(v ServerVersion) column.ServerContext {
+	return column.ServerContext{
+		Revision:     v.Revision,
+		VersionMajor: v.Version.Major,
+		VersionMinor: v.Version.Minor,
+		VersionPatch: v.Version.Patch,
+		Timezone:     v.Timezone,
+	}
+}
+
 func (c *connect) readData(ctx context.Context, packet byte, compressible bool) (*proto.Block, error) {
 	if c.isClosed() {
 		err := errors.New("attempted reading on closed connection")
-		c.debugf("[read data] err: %v", err)
+		c.logger.Error("read data failed: connection closed", slog.Any("error", err))
 		return nil, err
 	}
 
 	if c.reader == nil {
 		err := errors.New("attempted reading on nil reader")
-		c.debugf("[read data] err: %v", err)
+		c.logger.Error("read data failed: nil reader", slog.Any("error", err))
 		return nil, err
 	}
 
 	if _, err := c.reader.Str(); err != nil {
-		c.debugf("[read data] str error: %v", err)
-		return nil, err
+		c.logger.Error("read data failed: cannot read block name", slog.Any("error", err))
+		return nil, fmt.Errorf("read data: failed to read block name from %s (conn_id=%d): %w",
+			c.conn.RemoteAddr(), c.id, err)
 	}
 
 	if compressible && c.compression != CompressionNone {
@@ -350,15 +396,28 @@ func (c *connect) readData(ctx context.Context, packet byte, compressible bool) 
 		location = userLocation
 	}
 
-	block := proto.Block{Timezone: location}
+	serverContext := serverVersionToContext(c.server)
+	serverContext.Timezone = location
+	block := proto.Block{ServerContext: &serverContext}
 	if err := block.Decode(c.reader, c.revision); err != nil {
-		c.debugf("[read data] decode error: %v", err)
-		return nil, err
+		c.logger.Error("read data failed: decode error",
+			slog.Any("error", err),
+			slog.String("compression", c.compression.String()))
+		return nil, fmt.Errorf("read data: failed to decode block from %s (conn_id=%d, compression=%s): %w",
+			c.conn.RemoteAddr(), c.id, c.compression, err)
 	}
 
 	block.Packet = packet
-	c.debugf("[read data] compression=%q. block: columns=%d, rows=%d", c.compression, len(block.Columns), block.Rows())
+	c.logger.Debug("data block received",
+		slog.String("compression", c.compression.String()),
+		slog.Int("columns", len(block.Columns)),
+		slog.Int("rows", block.Rows()))
 	return &block, nil
+}
+
+func (c *connect) freeBuffer() {
+	c.buffer = new(chproto.Buffer)
+	c.compressor.Data = nil
 }
 
 func (c *connect) flush() error {
@@ -369,7 +428,7 @@ func (c *connect) flush() error {
 
 	n, err := c.conn.Write(c.buffer.Buf)
 	if err != nil {
-		return errors.Wrap(err, "write")
+		return fmt.Errorf("write: %w", err)
 	}
 
 	if n != len(c.buffer.Buf) {
@@ -377,5 +436,38 @@ func (c *connect) flush() error {
 	}
 
 	c.buffer.Reset()
+	return nil
+}
+
+// startReadWriteTimeout applies the configured read timeout to conn.
+// If a context deadline is provided, a read and write deadline is set.
+// This should be matched with a deferred call to clearReadWriteTimeout.
+func (c *connect) startReadWriteTimeout(ctx context.Context) error {
+	err := c.conn.SetReadDeadline(time.Now().Add(c.readTimeout))
+	if err != nil {
+		return err
+	}
+
+	// context level deadlines override configured read timeout
+	if deadline, ok := ctx.Deadline(); ok {
+		return c.conn.SetDeadline(deadline)
+	}
+
+	return nil
+}
+
+// clearReadWriteTimeout removes the read timeout from conn.
+// If a context deadline is provided, the read and write timeout is cleared too.
+func (c *connect) clearReadWriteTimeout(ctx context.Context) error {
+	err := c.conn.SetReadDeadline(time.Time{})
+	if err != nil {
+		return err
+	}
+
+	// context level deadlines should clear read + write deadlines.
+	if _, ok := ctx.Deadline(); ok {
+		return c.conn.SetDeadline(time.Time{})
+	}
+
 	return nil
 }

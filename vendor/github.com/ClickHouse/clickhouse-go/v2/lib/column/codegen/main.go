@@ -1,20 +1,3 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package main
 
 import (
@@ -41,6 +24,10 @@ var (
 	types            []_type
 	supportedGoTypes []string
 	dynamicTypes     []_type
+)
+
+const (
+	typeBFloat16 = "BFloat16"
 )
 
 type _type struct {
@@ -71,11 +58,22 @@ func init() {
 			GoType: fmt.Sprintf("float%d", size),
 		})
 	}
+	// BFloat16 - Brain Floating Point 16
+	types = append(types, _type{
+		Size:      16,
+		ChType:    typeBFloat16,
+		GoType:    "float32", // BFloat16 uses float32 in user-facing apis.
+		SkipArray: true,
+	})
 	sort.Slice(types, func(i, j int) bool {
 		return sequenceKey(types[i].ChType) < sequenceKey(types[j].ChType)
 	})
 
 	for _, typ := range types {
+		// Skip BFloat16 from supportedGoTypes to avoid conflict with float32
+		if typ.ChType == typeBFloat16 {
+			continue
+		}
 		supportedGoTypes = append(supportedGoTypes, typ.GoType)
 	}
 
@@ -86,6 +84,7 @@ func init() {
 		"time.Time", "sql.NullTime",
 		"uuid.UUID",
 		"netip.Addr", "net.IP", "proto.IPv6", "[16]byte",
+		"orb.LineString", "orb.MultiLineString",
 		"orb.MultiPolygon", "orb.Point", "orb.Polygon", "orb.Ring",
 	)
 
@@ -96,6 +95,12 @@ func init() {
 			// Prevent conflict with []byte and []uint8
 			typ.SkipArray = true
 			dynamicTypes = append(dynamicTypes, typ)
+			continue
+		}
+
+		if typ.ChType == typeBFloat16 {
+			// Skip BFloat16 from dynamic types to prevent conflict with Float32.
+			// Both Float32 and BFloat16 uses float32 Go type.
 			continue
 		}
 
@@ -113,6 +118,8 @@ func init() {
 		{ChType: "DateTime64(3)", GoType: "sql.NullTime"},
 		{ChType: "UUID", GoType: "uuid.UUID"},
 		{ChType: "IPv6", GoType: "proto.IPv6"},
+		{ChType: "LineString", GoType: "orb.LineString"},
+		{ChType: "MultiLineString", GoType: "orb.MultiLineString"},
 		{ChType: "MultiPolygon", GoType: "orb.MultiPolygon"},
 		{ChType: "Point", GoType: "orb.Point"},
 		{ChType: "Polygon", GoType: "orb.Polygon"},

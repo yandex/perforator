@@ -7,17 +7,28 @@ import (
 	"strings"
 )
 
-const _ClientCodeName = "HelloQueryDataCancelPingClientTablesStatusRequest"
+const (
+	_ClientCodeName_0      = "HelloQueryDataCancelPingClientTablesStatusRequest"
+	_ClientCodeLowerName_0 = "helloquerydatacancelpingclienttablesstatusrequest"
+	_ClientCodeName_1      = "SSHChallengeRequestSSHChallengeResponse"
+	_ClientCodeLowerName_1 = "sshchallengerequestsshchallengeresponse"
+)
 
-var _ClientCodeIndex = [...]uint8{0, 5, 10, 14, 20, 24, 49}
-
-const _ClientCodeLowerName = "helloquerydatacancelpingclienttablesstatusrequest"
+var (
+	_ClientCodeIndex_0 = [...]uint8{0, 5, 10, 14, 20, 24, 49}
+	_ClientCodeIndex_1 = [...]uint8{0, 19, 39}
+)
 
 func (i ClientCode) String() string {
-	if i >= ClientCode(len(_ClientCodeIndex)-1) {
+	switch {
+	case 0 <= i && i <= 5:
+		return _ClientCodeName_0[_ClientCodeIndex_0[i]:_ClientCodeIndex_0[i+1]]
+	case 11 <= i && i <= 12:
+		i -= 11
+		return _ClientCodeName_1[_ClientCodeIndex_1[i]:_ClientCodeIndex_1[i+1]]
+	default:
 		return fmt.Sprintf("ClientCode(%d)", i)
 	}
-	return _ClientCodeName[_ClientCodeIndex[i]:_ClientCodeIndex[i+1]]
 }
 
 // An "invalid array index" compiler error signifies that the constant values have changed.
@@ -30,32 +41,40 @@ func _ClientCodeNoOp() {
 	_ = x[ClientCodeCancel-(3)]
 	_ = x[ClientCodePing-(4)]
 	_ = x[ClientTablesStatusRequest-(5)]
+	_ = x[ClientCodeSSHChallengeRequest-(11)]
+	_ = x[ClientCodeSSHChallengeResponse-(12)]
 }
 
-var _ClientCodeValues = []ClientCode{ClientCodeHello, ClientCodeQuery, ClientCodeData, ClientCodeCancel, ClientCodePing, ClientTablesStatusRequest}
+var _ClientCodeValues = []ClientCode{ClientCodeHello, ClientCodeQuery, ClientCodeData, ClientCodeCancel, ClientCodePing, ClientTablesStatusRequest, ClientCodeSSHChallengeRequest, ClientCodeSSHChallengeResponse}
 
 var _ClientCodeNameToValueMap = map[string]ClientCode{
-	_ClientCodeName[0:5]:        ClientCodeHello,
-	_ClientCodeLowerName[0:5]:   ClientCodeHello,
-	_ClientCodeName[5:10]:       ClientCodeQuery,
-	_ClientCodeLowerName[5:10]:  ClientCodeQuery,
-	_ClientCodeName[10:14]:      ClientCodeData,
-	_ClientCodeLowerName[10:14]: ClientCodeData,
-	_ClientCodeName[14:20]:      ClientCodeCancel,
-	_ClientCodeLowerName[14:20]: ClientCodeCancel,
-	_ClientCodeName[20:24]:      ClientCodePing,
-	_ClientCodeLowerName[20:24]: ClientCodePing,
-	_ClientCodeName[24:49]:      ClientTablesStatusRequest,
-	_ClientCodeLowerName[24:49]: ClientTablesStatusRequest,
+	_ClientCodeName_0[0:5]:        ClientCodeHello,
+	_ClientCodeLowerName_0[0:5]:   ClientCodeHello,
+	_ClientCodeName_0[5:10]:       ClientCodeQuery,
+	_ClientCodeLowerName_0[5:10]:  ClientCodeQuery,
+	_ClientCodeName_0[10:14]:      ClientCodeData,
+	_ClientCodeLowerName_0[10:14]: ClientCodeData,
+	_ClientCodeName_0[14:20]:      ClientCodeCancel,
+	_ClientCodeLowerName_0[14:20]: ClientCodeCancel,
+	_ClientCodeName_0[20:24]:      ClientCodePing,
+	_ClientCodeLowerName_0[20:24]: ClientCodePing,
+	_ClientCodeName_0[24:49]:      ClientTablesStatusRequest,
+	_ClientCodeLowerName_0[24:49]: ClientTablesStatusRequest,
+	_ClientCodeName_1[0:19]:       ClientCodeSSHChallengeRequest,
+	_ClientCodeLowerName_1[0:19]:  ClientCodeSSHChallengeRequest,
+	_ClientCodeName_1[19:39]:      ClientCodeSSHChallengeResponse,
+	_ClientCodeLowerName_1[19:39]: ClientCodeSSHChallengeResponse,
 }
 
 var _ClientCodeNames = []string{
-	_ClientCodeName[0:5],
-	_ClientCodeName[5:10],
-	_ClientCodeName[10:14],
-	_ClientCodeName[14:20],
-	_ClientCodeName[20:24],
-	_ClientCodeName[24:49],
+	_ClientCodeName_0[0:5],
+	_ClientCodeName_0[5:10],
+	_ClientCodeName_0[10:14],
+	_ClientCodeName_0[14:20],
+	_ClientCodeName_0[20:24],
+	_ClientCodeName_0[24:49],
+	_ClientCodeName_1[0:19],
+	_ClientCodeName_1[19:39],
 }
 
 // ClientCodeString retrieves an enum value from the enum constants string name.

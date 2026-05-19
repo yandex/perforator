@@ -362,7 +362,7 @@ func TestHelperTypes(t *testing.T) {
 			}
 
 			// not the correct type should return error.
-			// non of they types directly supported are geometry collections.
+			// none of the types directly supported are geometry collections.
 			data, err = json.Marshal(NewGeometry(orb.Collection{orb.Point{}}))
 			if err != nil {
 				t.Errorf("unmarshal error: %v", err)
@@ -417,7 +417,7 @@ func TestHelperTypes(t *testing.T) {
 			}
 
 			// not the correct type should return error.
-			// non of they types directly supported are geometry collections.
+			// none of the types directly supported are geometry collections.
 			data, err = bson.Marshal(NewGeometry(orb.Collection{orb.Point{}}))
 			if err != nil {
 				t.Errorf("unmarshal error: %v", err)

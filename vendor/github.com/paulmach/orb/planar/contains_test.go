@@ -103,7 +103,7 @@ func TestRingContains(t *testing.T) {
 		}
 	}
 
-	// colinear with segments but outside
+	// collinear with segments but outside
 	for i := 1; i < len(ring); i++ {
 		p := interpolate(ring[i], ring[i-1], 5)
 		if RingContains(ring, p) {

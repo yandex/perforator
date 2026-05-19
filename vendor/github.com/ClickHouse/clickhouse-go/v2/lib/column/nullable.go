@@ -1,28 +1,13 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package column
 
 import (
 	"database/sql"
 	"database/sql/driver"
-	"github.com/ClickHouse/ch-go/proto"
+	"fmt"
 	"reflect"
 	"time"
+
+	"github.com/ClickHouse/ch-go/proto"
 )
 
 type Nullable struct {
@@ -42,9 +27,9 @@ func (col *Nullable) Name() string {
 	return col.name
 }
 
-func (col *Nullable) parse(t Type, tz *time.Location) (_ *Nullable, err error) {
+func (col *Nullable) parse(t Type, sc *ServerContext) (_ *Nullable, err error) {
 	col.enable = true
-	if col.base, err = Type(t.params()).Column(col.name, tz); err != nil {
+	if col.base, err = Type(t.params()).Column(col.name, sc); err != nil {
 		return nil, err
 	}
 	switch base := col.base.ScanType(); {
@@ -145,7 +130,7 @@ func (col *Nullable) AppendRow(v any) error {
 		rv = reflect.ValueOf(v)
 	}
 
-	if v == nil || (rv.Kind() == reflect.Pointer && rv.IsNil()) {
+	if v == nil || ((rv.Kind() == reflect.Pointer || rv.Kind() == reflect.Map) && rv.IsNil()) {
 		col.nulls.Append(1)
 		// used to detect sql.Null* types
 	} else if val, ok := v.(driver.Valuer); ok {
@@ -181,6 +166,26 @@ func (col *Nullable) Encode(buffer *proto.Buffer) {
 		col.nulls.EncodeColumn(buffer)
 	}
 	col.base.Encode(buffer)
+}
+
+func (col *Nullable) ReadStatePrefix(reader *proto.Reader) error {
+	if serialize, ok := col.base.(CustomSerialization); ok {
+		if err := serialize.ReadStatePrefix(reader); err != nil {
+			return fmt.Errorf("failed to read prefix for Nullable base type %s: %w", col.base.Type(), err)
+		}
+	}
+
+	return nil
+}
+
+func (col *Nullable) WriteStatePrefix(buffer *proto.Buffer) error {
+	if serialize, ok := col.base.(CustomSerialization); ok {
+		if err := serialize.WriteStatePrefix(buffer); err != nil {
+			return fmt.Errorf("failed to write prefix for Nullable base type %s: %w", col.base.Type(), err)
+		}
+	}
+
+	return nil
 }
 
 var _ Interface = (*Nullable)(nil)

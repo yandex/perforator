@@ -135,12 +135,17 @@ func (r *Reader) StrBytes() ([]byte, error) {
 
 // Str decodes string.
 func (r *Reader) Str() (string, error) {
-	s, err := r.StrBytes()
+	defer r.b.Reset()
+
+	// call StrRaw instead of StrBytes and converting
+	// so we can avoid a second allocation and copy of
+	// the str/[]byte data
+	str, err := r.StrRaw()
 	if err != nil {
-		return "", errors.Wrap(err, "bytes")
+		return "", errors.Wrap(err, "raw")
 	}
 
-	return string(s), err
+	return string(str), err
 }
 
 // Int decodes uvarint as int.

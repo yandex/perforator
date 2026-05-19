@@ -17,6 +17,11 @@ func (ls LineString) Dimensions() int {
 // This is done inplace, ie. it modifies the original data.
 func (ls LineString) Reverse() {
 	l := len(ls) - 1
+
+	if l < 1 {
+		return
+	}
+
 	for i := 0; i <= l/2; i++ {
 		ls[i], ls[l-i] = ls[l-i], ls[i]
 	}

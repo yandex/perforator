@@ -158,7 +158,7 @@ func (q *Quadtree) Remove(p orb.Pointer, eq FilterFunc) bool {
 }
 
 // removeNode is the recursive fixing up of the tree when we remove a node.
-// It will pull up a child value into it's place. It will try to remove leaf nodes
+// It will pull up a child value into its place. It will try to remove leaf nodes
 // that are now empty, since their values got pulled up.
 func removeNode(n *node) bool {
 	i := -1

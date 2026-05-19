@@ -131,7 +131,7 @@ func TestMarshalUnmarshalForGeometryCollection(t *testing.T) {
 	// compare geometry
 	xe, ye := tileEpsilon(tile)
 	if len(results) == len(expected) {
-		t.Errorf("result geometry count must be splited polygon: %v (but result is %v)", len(results), len(expected))
+		t.Errorf("result geometry count must be split polygon: %v (but result is %v)", len(results), len(expected))
 	}
 	for i, result := range results {
 		compareOrbGeometry(t, result.Geometry, expected[i], xe, ye)

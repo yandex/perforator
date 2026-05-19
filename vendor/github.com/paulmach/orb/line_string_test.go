@@ -21,6 +21,16 @@ func TestLineStringReverse(t *testing.T) {
 		output LineString
 	}{
 		{
+			name:   "0 point line",
+			input:  LineString{},
+			output: LineString{},
+		},
+		{
+			name:   "1 point line",
+			input:  LineString{{1, 2}},
+			output: LineString{{1, 2}},
+		},
+		{
 			name:   "2 point line",
 			input:  LineString{{1, 2}, {3, 4}},
 			output: LineString{{3, 4}, {1, 2}},

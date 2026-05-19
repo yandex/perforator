@@ -12,7 +12,7 @@ func DistanceFromSegment(a, b, point orb.Point) float64 {
 	return math.Sqrt(DistanceFromSegmentSquared(a, b, point))
 }
 
-// DistanceFromSegmentSquared returns point's squared distance from the segement [a, b].
+// DistanceFromSegmentSquared returns point's squared distance from the segment [a, b].
 func DistanceFromSegmentSquared(a, b, point orb.Point) float64 {
 	x := a[0]
 	y := a[1]

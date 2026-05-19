@@ -1,20 +1,3 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package clickhouse
 
 import (
@@ -33,6 +16,7 @@ type rows struct {
 	stream    chan *proto.Block
 	columns   []string
 	structMap *structMap
+	closed    bool
 }
 
 func (r *rows) Next() (result bool) {
@@ -98,6 +82,7 @@ func (r *rows) Columns() []string {
 }
 
 func (r *rows) Close() error {
+	r.closed = true
 	if r.errors == nil && r.stream == nil {
 		return r.err
 	}
@@ -140,6 +125,37 @@ func (r *rows) Close() error {
 
 func (r *rows) Err() error {
 	return r.err
+}
+
+func (r *rows) HasData() bool {
+	if r.closed {
+		return false
+	}
+	for {
+		if r.block != nil && r.row < r.block.Rows() {
+			return true
+		}
+		if r.stream == nil {
+			return false
+		}
+		select {
+		case block := <-r.stream:
+			if block == nil {
+				return false
+			}
+			if block.Packet == proto.ServerTotals {
+				r.totals = block
+				continue
+			}
+			r.row = 0
+			r.block = block
+		case err := <-r.errors:
+			if err != nil {
+				r.err = err
+				return false
+			}
+		}
+	}
 }
 
 type row struct {

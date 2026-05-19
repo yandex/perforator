@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v0.11.1)
+VERSION(v0.12.0)
 
 SRCS(
     clip.go

@@ -2,15 +2,17 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.33.1)
+VERSION(v2.46.0)
 
 SRCS(
     append_struct.go
     array.go
-    async.go
+    async_http.go
+    async_native.go
     auth.go
     batch.go
     batch_release_connection.go
+    bfloat16.go
     big_int.go
     bind.go
     bind_special.go
@@ -24,6 +26,8 @@ SRCS(
     decimal.go
     dynamic.go
     dynamic_scan_types.go
+    ephemeral_http.go
+    ephemeral_native.go
     exec.go
     external_data.go
     geo.go
@@ -37,6 +41,8 @@ SRCS(
     nullable.go
     open_telemetry.go
     progress.go
+    qbit.go
+    qbit_subcolumns.go
     query_parameters.go
     query_row.go
     query_rows.go

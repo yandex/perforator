@@ -1,26 +1,11 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package clickhouse
 
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -29,7 +14,8 @@ import (
 	"time"
 
 	"github.com/ClickHouse/ch-go/compress"
-	"github.com/pkg/errors"
+
+	"github.com/ClickHouse/clickhouse-go/v2/lib/churl"
 )
 
 type CompressionMethod byte
@@ -77,6 +63,7 @@ var compressionMap = map[string]CompressionMethod{
 
 type Auth struct { // has_control_character
 	Database string
+
 	Username string
 	Password string
 }
@@ -123,7 +110,7 @@ func ParseDSN(dsn string) (*Options, error) {
 
 type Dial func(ctx context.Context, addr string, opt *Options) (DialResult, error)
 type DialResult struct {
-	conn *connect
+	conn nativeTransport
 }
 
 type HTTPProxy func(*http.Request) (*url.URL, error)
@@ -132,13 +119,36 @@ type Options struct {
 	Protocol   Protocol
 	ClientInfo ClientInfo
 
-	TLS                  *tls.Config
-	Addr                 []string
-	Auth                 Auth
-	DialContext          func(ctx context.Context, addr string) (net.Conn, error)
-	DialStrategy         func(ctx context.Context, connID int, options *Options, dial Dial) (DialResult, error)
-	Debug                bool
-	Debugf               func(format string, v ...any) // only works when Debug is true
+	TLS          *tls.Config
+	Addr         []string
+	Auth         Auth
+	DialContext  func(ctx context.Context, addr string) (net.Conn, error)
+	DialStrategy func(ctx context.Context, connID int, options *Options, dial Dial) (DialResult, error)
+
+	// Deprecated: Use Logger instead. Debug enables legacy debug logging to stdout.
+	// For structured logging with levels, use the Logger field.
+	Debug bool
+
+	// Deprecated: Use Logger instead. Debugf provides a custom debug logging function.
+	// For structured logging with levels and custom handlers, use the Logger field with
+	// a custom slog.Handler.
+	Debugf func(format string, v ...any)
+
+	// Logger provides structured logging using Go's standard log/slog package.
+	// If nil, no logging occurs (default). To enable logging, provide a configured
+	// slog.Logger:
+	//
+	//   logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	//       Level: slog.LevelDebug,
+	//   }))
+	//   opts := &clickhouse.Options{
+	//       Logger: logger,
+	//   }
+	//
+	// For backward compatibility, if Debug=true and Debugf is set, those will be used
+	// instead of Logger.
+	Logger *slog.Logger
+
 	Settings             Settings
 	Compression          *Compression
 	DialTimeout          time.Duration // default 30 second
@@ -156,12 +166,25 @@ type Options struct {
 	// HTTPProxy specifies an HTTP proxy URL to use for requests made by the client.
 	HTTPProxyURL *url.URL
 
-	scheme      string
+	// GetJWT should return a JWT for authentication with ClickHouse Cloud.
+	// This is called per connection/request, so you may cache the token in your app if needed.
+	// Use this instead of Auth.Username and Auth.Password if you're using JWT auth.
+	GetJWT GetJWTFunc
+
+	scheme string
+
+	// ReadTimeout is the maximum duration the client will wait for ClickHouse
+	// to respond to a single Read call for bytes over the connection.
+	// Can be overridden with context.WithDeadline.
 	ReadTimeout time.Duration
+
+	// Set a custom transport for the http client.
+	// The default transport configured by the library is passed in as an argument.
+	TransportFunc func(*http.Transport) (http.RoundTripper, error)
 }
 
 func (o *Options) fromDSN(in string) error {
-	dsn, err := url.Parse(in)
+	dsn, err := churl.Parse(in)
 	if err != nil {
 		return err
 	}
@@ -179,9 +202,10 @@ func (o *Options) fromDSN(in string) error {
 	}
 	o.Addr = append(o.Addr, strings.Split(dsn.Host, ",")...)
 	var (
-		secure     bool
-		params     = dsn.Query()
-		skipVerify bool
+		secure        bool
+		params        = dsn.Query()
+		skipVerify    bool
+		tlsServerName string
 	)
 	o.Auth.Database = strings.TrimPrefix(dsn.Path, "/")
 
@@ -211,7 +235,7 @@ func (o *Options) fromDSN(in string) error {
 		case "compress_level":
 			level, err := strconv.ParseInt(params.Get(v), 10, 8)
 			if err != nil {
-				return errors.Wrap(err, "compress_level invalid value")
+				return fmt.Errorf("compress_level invalid value: %w", err)
 			}
 
 			if o.Compression == nil {
@@ -227,7 +251,7 @@ func (o *Options) fromDSN(in string) error {
 		case "max_compression_buffer":
 			max, err := strconv.Atoi(params.Get(v))
 			if err != nil {
-				return errors.Wrap(err, "max_compression_buffer invalid value")
+				return fmt.Errorf("max_compression_buffer invalid value: %w", err)
 			}
 			o.MaxCompressionBuffer = max
 		case "dial_timeout":
@@ -271,6 +295,11 @@ func (o *Options) fromDSN(in string) error {
 					return fmt.Errorf("clickhouse [dsn parse]:verify: %s", err)
 				}
 			}
+		case "tls_server_name":
+			tlsServerName = strings.TrimSpace(params.Get(v))
+			if tlsServerName == "" {
+				return fmt.Errorf("clickhouse [dsn parse]: tls_server_name must not be empty")
+			}
 		case "connection_open_strategy":
 			switch params.Get(v) {
 			case "in_order":
@@ -283,25 +312,27 @@ func (o *Options) fromDSN(in string) error {
 		case "max_open_conns":
 			maxOpenConns, err := strconv.Atoi(params.Get(v))
 			if err != nil {
-				return errors.Wrap(err, "max_open_conns invalid value")
+				return fmt.Errorf("max_open_conns invalid value: %w", err)
 			}
 			o.MaxOpenConns = maxOpenConns
 		case "max_idle_conns":
 			maxIdleConns, err := strconv.Atoi(params.Get(v))
 			if err != nil {
-				return errors.Wrap(err, "max_idle_conns invalid value")
+				return fmt.Errorf("max_idle_conns invalid value: %w", err)
 			}
 			o.MaxIdleConns = maxIdleConns
 		case "conn_max_lifetime":
 			connMaxLifetime, err := time.ParseDuration(params.Get(v))
 			if err != nil {
-				return errors.Wrap(err, "conn_max_lifetime invalid value")
+				return fmt.Errorf("conn_max_lifetime invalid value: %w", err)
 			}
 			o.ConnMaxLifetime = connMaxLifetime
 		case "username":
 			o.Auth.Username = params.Get(v)
 		case "password":
 			o.Auth.Password = params.Get(v)
+		case "database":
+			o.Auth.Database = params.Get(v)
 		case "client_info_product":
 			chunks := strings.Split(params.Get(v), ",")
 
@@ -319,6 +350,12 @@ func (o *Options) fromDSN(in string) error {
 				return fmt.Errorf("clickhouse [dsn parse]: http_proxy: %s", err)
 			}
 			o.HTTPProxyURL = proxyURL
+		case "http_path":
+			path := params.Get(v)
+			if path != "" && !strings.HasPrefix(path, "/") {
+				path = "/" + path
+			}
+			o.HttpUrlPath = path
 		default:
 			switch p := strings.ToLower(params.Get(v)); p {
 			case "true":
@@ -334,9 +371,13 @@ func (o *Options) fromDSN(in string) error {
 			}
 		}
 	}
+	if tlsServerName != "" && !secure {
+		return fmt.Errorf("clickhouse [dsn parse]: tls_server_name requires secure=true")
+	}
 	if secure {
 		o.TLS = &tls.Config{
 			InsecureSkipVerify: skipVerify,
+			ServerName:         tlsServerName,
 		}
 	}
 	o.scheme = dsn.Scheme
@@ -383,7 +424,7 @@ func (o Options) setDefaults() *Options {
 	if o.MaxCompressionBuffer <= 0 {
 		o.MaxCompressionBuffer = 10485760
 	}
-	if o.Addr == nil || len(o.Addr) == 0 {
+	if len(o.Addr) == 0 {
 		switch o.Protocol {
 		case Native:
 			o.Addr = []string{"localhost:9000"}
@@ -392,4 +433,24 @@ func (o Options) setDefaults() *Options {
 		}
 	}
 	return &o
+}
+
+// logger returns the appropriate logger based on the Options configuration.
+// Priority order:
+// 1. If Debug=true and Debugf is set, use legacy Debugf (backward compatibility)
+// 2. If Logger is set, use the provided logger
+// 3. Otherwise, use a noop logger (no logging)
+func (o *Options) logger() *slog.Logger {
+	// Backward compatibility: if legacy Debug/Debugf is set, use it
+	if o.Debug && o.Debugf != nil {
+		return newDebugfLogger(o.Debugf)
+	}
+
+	// If user provided a custom logger, use it
+	if o.Logger != nil {
+		return o.Logger
+	}
+
+	// Default: no logging
+	return newNoopLogger()
 }

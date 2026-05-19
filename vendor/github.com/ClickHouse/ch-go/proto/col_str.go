@@ -68,9 +68,14 @@ func (c *ColStr) Reset() {
 
 // EncodeColumn encodes String rows to *Buffer.
 func (c ColStr) EncodeColumn(b *Buffer) {
-	buf := make([]byte, binary.MaxVarintLen64)
+	var buf [binary.MaxVarintLen64]byte
 	for _, p := range c.Pos {
-		n := binary.PutUvarint(buf, uint64(p.End-p.Start))
+		length := uint64(p.End - p.Start)
+
+		// Encode to temp buffer first
+		n := binary.PutUvarint(buf[:], length)
+
+		// Append only the bytes we need
 		b.Buf = append(b.Buf, buf[:n]...)
 		b.Buf = append(b.Buf, c.Buf[p.Start:p.End]...)
 	}
@@ -78,12 +83,12 @@ func (c ColStr) EncodeColumn(b *Buffer) {
 
 // WriteColumn writes String rows to *Writer.
 func (c ColStr) WriteColumn(w *Writer) {
-	buf := make([]byte, binary.MaxVarintLen64)
+	var buf [binary.MaxVarintLen64]byte
 	// Writing values from c.Buf directly might improve performance if [ColStr] contains a few rows of very long strings.
 	// However, most of the time it is quite opposite, so we copy data.
 	w.ChainBuffer(func(b *Buffer) {
 		for _, p := range c.Pos {
-			n := binary.PutUvarint(buf, uint64(p.End-p.Start))
+			n := binary.PutUvarint(buf[:], uint64(p.End-p.Start))
 			b.PutRaw(buf[:n])
 			b.PutRaw(c.Buf[p.Start:p.End])
 		}

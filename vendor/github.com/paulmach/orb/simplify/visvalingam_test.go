@@ -209,7 +209,7 @@ func TestVisvalingam(t *testing.T) {
 			indexMap:  []int{0, 2, 4},
 		},
 		{
-			name:      "removes colinear points",
+			name:      "removes collinear points",
 			threshold: 0.1,
 			keep:      0,
 			ls:        orb.LineString{{0, 0}, {0, 1}, {0, 2}},

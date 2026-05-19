@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// Equal returns if the two geometrires are equal.
+// Equal returns if the two geometries are equal.
 func Equal(g1, g2 Geometry) bool {
 	if g1 == nil || g2 == nil {
 		return g1 == g2

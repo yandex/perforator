@@ -1,20 +1,3 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package driver
 
 import (
@@ -57,6 +40,8 @@ type (
 		QueryRow(ctx context.Context, query string, args ...any) Row
 		PrepareBatch(ctx context.Context, query string, opts ...PrepareBatchOption) (Batch, error)
 		Exec(ctx context.Context, query string, args ...any) error
+
+		// Deprecated: use context aware `WithAsync()` for any async operations
 		AsyncInsert(ctx context.Context, query string, wait bool, args ...any) error
 		Ping(context.Context) error
 		Stats() Stats
@@ -76,20 +61,58 @@ type (
 		Columns() []string
 		Close() error
 		Err() error
+		HasData() bool
 	}
+
+	// Batch represents a prepared INSERT that buffers rows client-side and sends them to ClickHouse.
+	//
+	// Typical usage:
+	//
+	//	batch, err := conn.PrepareBatch(ctx, "INSERT INTO t")
+	//	if err != nil { ... }
+	//	defer batch.Close() // cleanup if Send is not reached
+	//
+	//	for ... {
+	//		_ = batch.Append(...)
+	//		// Optionally flush periodically for native protocol.
+	//		// _ = batch.Flush()
+	//	}
+	//	_ = batch.Send()
+	//
+	// Notes:
+	// - After Send(), the batch is considered finalized (IsSent() becomes true). Create a new batch to send more rows.
+	// - For HTTP protocol, Flush() is currently a no-op. Use Send() to transmit buffered rows.
 	Batch interface {
 		Abort() error
 		Append(v ...any) error
 		AppendStruct(v any) error
 		Column(int) BatchColumn
+
+		// Flush sends the currently buffered rows but keeps the batch usable.
+		//
+		// For native protocol this transmits the buffered block to the server and clears the local buffer.
+		// For HTTP protocol this is currently a no-op.
 		Flush() error
+
+		// Send flushes any buffered rows and finalizes the INSERT.
+		// After Send() the batch is considered sent and should not be reused.
 		Send() error
+
+		// IsSent reports whether the batch has been finalized via Send(), Abort(), or Close().
 		IsSent() bool
 		Rows() int
 		Columns() []column.Interface
+
+		// Close ends the current INSERT and releases resources.
+		//
+		// It is safe (and recommended) to call Close via defer immediately after PrepareBatch.
+		// Close does not guarantee that buffered rows are sent; call Send() to finalize the INSERT.
+		Close() error
 	}
 	BatchColumn interface {
+		// Append appends a value to the underlying column buffer.
 		Append(any) error
+		// AppendRow appends a row-oriented value to the underlying column buffer.
 		AppendRow(any) error
 	}
 	ColumnType interface {

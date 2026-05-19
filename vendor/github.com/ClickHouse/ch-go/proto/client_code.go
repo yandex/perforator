@@ -7,12 +7,14 @@ type ClientCode byte
 
 // Possible client codes.
 const (
-	ClientCodeHello           ClientCode = 0 // client part of "handshake"
-	ClientCodeQuery           ClientCode = 1 // query start
-	ClientCodeData            ClientCode = 2 // data block (can be compressed)
-	ClientCodeCancel          ClientCode = 3 // query cancel
-	ClientCodePing            ClientCode = 4 // ping request to server
-	ClientTablesStatusRequest ClientCode = 5 // tables status request
+	ClientCodeHello                ClientCode = 0  // client part of "handshake"
+	ClientCodeQuery                ClientCode = 1  // query start
+	ClientCodeData                 ClientCode = 2  // data block (can be compressed)
+	ClientCodeCancel               ClientCode = 3  // query cancel
+	ClientCodePing                 ClientCode = 4  // ping request to server
+	ClientTablesStatusRequest      ClientCode = 5  // tables status request
+	ClientCodeSSHChallengeRequest  ClientCode = 11 // request for SSH signature challenge
+	ClientCodeSSHChallengeResponse ClientCode = 12 // response with SSH signature
 )
 
 // Encode to buffer.

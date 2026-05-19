@@ -1,25 +1,9 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package clickhouse_api
 
 import (
 	"context"
 	"fmt"
+
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/paulmach/orb"
 )
@@ -38,9 +22,11 @@ func GeoInsertRead() error {
 		CREATE TABLE example (
 				point Point,
 				ring Ring,
+				lineString LineString,
 				polygon Polygon,
-				mPolygon MultiPolygon
-			) 
+				mPolygon MultiPolygon,
+				mLineString MultiLineString
+			)
 			Engine Memory
 		`); err != nil {
 		return err
@@ -56,6 +42,11 @@ func GeoInsertRead() error {
 		orb.Ring{
 			orb.Point{1, 2},
 			orb.Point{1, 2},
+		},
+		orb.LineString{
+			orb.Point{1, 2},
+			orb.Point{3, 4},
+			orb.Point{5, 6},
 		},
 		orb.Polygon{
 			orb.Ring{
@@ -89,6 +80,16 @@ func GeoInsertRead() error {
 				},
 			},
 		},
+		orb.MultiLineString{
+			orb.LineString{
+				orb.Point{1, 2},
+				orb.Point{3, 4},
+			},
+			orb.LineString{
+				orb.Point{5, 6},
+				orb.Point{7, 8},
+			},
+		},
 	); err != nil {
 		return err
 	}
@@ -98,15 +99,17 @@ func GeoInsertRead() error {
 	}
 
 	var (
-		point    orb.Point
-		ring     orb.Ring
-		polygon  orb.Polygon
-		mPolygon orb.MultiPolygon
+		point       orb.Point
+		ring        orb.Ring
+		lineString  orb.LineString
+		polygon     orb.Polygon
+		mPolygon    orb.MultiPolygon
+		mLineString orb.MultiLineString
 	)
 
-	if err = conn.QueryRow(ctx, "SELECT * FROM example").Scan(&point, &ring, &polygon, &mPolygon); err != nil {
+	if err = conn.QueryRow(ctx, "SELECT * FROM example").Scan(&point, &ring, &lineString, &polygon, &mPolygon, &mLineString); err != nil {
 		return err
 	}
-	fmt.Printf("point=%v, ring=%v, polygon=%v, mPoilygon=%v\n", point, ring, polygon, mPolygon)
+	fmt.Printf("point=%v, ring=%v, lineString=%v, polygon=%v, mPolygon=%v, mLineString=%v\n", point, ring, lineString, polygon, mPolygon, mLineString)
 	return nil
 }

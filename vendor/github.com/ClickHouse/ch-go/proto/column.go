@@ -225,6 +225,7 @@ const (
 	ColumnTypeUInt256        ColumnType = "UInt256"
 	ColumnTypeFloat32        ColumnType = "Float32"
 	ColumnTypeFloat64        ColumnType = "Float64"
+	ColumnTypeBFloat16       ColumnType = "BFloat16"
 	ColumnTypeString         ColumnType = "String"
 	ColumnTypeFixedString    ColumnType = "FixedString"
 	ColumnTypeArray          ColumnType = "Array"
@@ -232,6 +233,8 @@ const (
 	ColumnTypeIPv6           ColumnType = "IPv6"
 	ColumnTypeDateTime       ColumnType = "DateTime"
 	ColumnTypeDateTime64     ColumnType = "DateTime64"
+	ColumnTypeTime32         ColumnType = "Time32"
+	ColumnTypeTime64         ColumnType = "Time64"
 	ColumnTypeDate           ColumnType = "Date"
 	ColumnTypeDate32         ColumnType = "Date32"
 	ColumnTypeUUID           ColumnType = "UUID"
@@ -251,6 +254,7 @@ const (
 	ColumnTypeInterval       ColumnType = "Interval"
 	ColumnTypeNothing        ColumnType = "Nothing"
 	ColumnTypeJSON           ColumnType = "JSON"
+	ColumnTypeQBit           ColumnType = "QBit"
 )
 
 // colWrap wraps Column with type t.

@@ -1,27 +1,11 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package column
 
 import (
-	"github.com/ClickHouse/ch-go/proto"
+	"fmt"
 	"reflect"
 	"strings"
-	"time"
+
+	"github.com/ClickHouse/ch-go/proto"
 )
 
 type SimpleAggregateFunction struct {
@@ -38,10 +22,10 @@ func (col *SimpleAggregateFunction) Name() string {
 	return col.name
 }
 
-func (col *SimpleAggregateFunction) parse(t Type, tz *time.Location) (_ Interface, err error) {
+func (col *SimpleAggregateFunction) parse(t Type, sc *ServerContext) (_ Interface, err error) {
 	col.chType = t
 	base := strings.TrimSpace(strings.SplitN(t.params(), ",", 2)[1])
-	if col.base, err = Type(base).Column(col.name, tz); err == nil {
+	if col.base, err = Type(base).Column(col.name, sc); err == nil {
 		return col, nil
 	}
 	return nil, &UnsupportedColumnTypeError{
@@ -77,4 +61,25 @@ func (col *SimpleAggregateFunction) Encode(buffer *proto.Buffer) {
 	col.base.Encode(buffer)
 }
 
+func (col *SimpleAggregateFunction) ReadStatePrefix(reader *proto.Reader) error {
+	if serialize, ok := col.base.(CustomSerialization); ok {
+		if err := serialize.ReadStatePrefix(reader); err != nil {
+			return fmt.Errorf("failed to read prefix for SimpleAggregateFunction base type %s: %w", col.base.Type(), err)
+		}
+	}
+
+	return nil
+}
+
+func (col *SimpleAggregateFunction) WriteStatePrefix(buffer *proto.Buffer) error {
+	if serialize, ok := col.base.(CustomSerialization); ok {
+		if err := serialize.WriteStatePrefix(buffer); err != nil {
+			return fmt.Errorf("failed to write prefix for SimpleAggregateFunction base type %s: %w", col.base.Type(), err)
+		}
+	}
+
+	return nil
+}
+
 var _ Interface = (*SimpleAggregateFunction)(nil)
+var _ CustomSerialization = (*SimpleAggregateFunction)(nil)

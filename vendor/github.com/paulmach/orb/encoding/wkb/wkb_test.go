@@ -69,7 +69,7 @@ func compare(t testing.TB, e orb.Geometry, b []byte) {
 		t.Errorf("decoder: incorrect geometry: %v != %v", g, e)
 	}
 
-	// Umarshal
+	// Unmarshal
 	g, err = Unmarshal(b)
 	if err != nil {
 		t.Fatalf("unmarshal: read error: %v", err)
@@ -92,7 +92,7 @@ func compare(t testing.TB, e orb.Geometry, b []byte) {
 	if !bytes.Equal(data, b) {
 		t.Logf("%v", data)
 		t.Logf("%v", b)
-		t.Errorf("marshal: incorrent encoding")
+		t.Errorf("marshal: incorrect encoding")
 	}
 
 	// preallocation

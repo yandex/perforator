@@ -59,7 +59,7 @@ func ExampleFeatureCollection_foreignMembers() {
 	// {"features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[102,0.5]},"properties":{"prop0":"value0"}}],"title":"Title as Foreign Member","type":"FeatureCollection"}
 }
 
-// MyFeatureCollection is a depricated/no longer supported way to extract
+// MyFeatureCollection is a deprecated/no longer supported way to extract
 // foreign/extra members from a feature collection. Now an UnmarshalJSON
 // method, like below, is required for it to work.
 type MyFeatureCollection struct {

@@ -76,7 +76,7 @@ func TestRing_Orientation(t *testing.T) {
 				t.Errorf("wrong orientation: %v != %v", val, tc.result)
 			}
 
-			// should work without redudant last point.
+			// should work without redundant last point.
 			ring := tc.ring[:len(tc.ring)-1]
 			val = ring.Orientation()
 			if val != tc.result {

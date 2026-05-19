@@ -23,7 +23,7 @@ type staticAware struct {
 }
 
 func (s staticAware) Decode(r *Reader) error {
-	return s.AwareDecoder.DecodeAware(r, Version)
+	return s.DecodeAware(r, Version)
 }
 
 func aware(v AwareDecoder) Decoder {
@@ -49,7 +49,7 @@ func colAware(v Column, rows int) Decoder {
 func requireNoShortRead(t testing.TB, buf []byte, v Decoder) {
 	t.Helper()
 
-	for i := 0; i < len(buf); i++ {
+	for i := range buf {
 		b := buf[:i]
 		r := NewReader(bytes.NewReader(b))
 		require.Error(t, v.Decode(r), "decode on short buffer should fail")

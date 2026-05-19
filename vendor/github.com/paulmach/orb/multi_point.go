@@ -1,6 +1,6 @@
 package orb
 
-// A MultiPoint represents a set of points in the 2D Eucledian or Cartesian plane.
+// A MultiPoint represents a set of points in the 2D Euclidean or Cartesian plane.
 type MultiPoint []Point
 
 // GeoJSONType returns the GeoJSON type for the object.

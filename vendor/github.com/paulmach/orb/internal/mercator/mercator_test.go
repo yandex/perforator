@@ -7,14 +7,14 @@ import (
 
 func TestScalarMercator(t *testing.T) {
 	x, y := ToPlanar(0, 0, 31)
-	lat, lng := ToGeo(x, y, 31)
-
-	if lat != 0.0 {
-		t.Errorf("Scalar Mercator, latitude should be 0: %f", lat)
-	}
+	lng, lat := ToGeo(x, y, 31)
 
 	if lng != 0.0 {
 		t.Errorf("Scalar Mercator, longitude should be 0: %f", lng)
+	}
+
+	if lat != 0.0 {
+		t.Errorf("Scalar Mercator, latitude should be 0: %f", lat)
 	}
 
 	// specific case
@@ -39,13 +39,14 @@ func TestScalarMercator(t *testing.T) {
 			t.Error("Scalar Mercator, lat is NaN")
 		}
 
+		if math.Abs(lng-city[1]) > Epsilon {
+			t.Errorf("Scalar Mercator, longitude miss match: %f != %f", lng, city[1])
+		}
+
 		if math.Abs(lat-city[0]) > Epsilon {
 			t.Errorf("Scalar Mercator, latitude miss match: %f != %f", lat, city[0])
 		}
 
-		if math.Abs(lng-city[1]) > Epsilon {
-			t.Errorf("Scalar Mercator, longitude miss match: %f != %f", lng, city[1])
-		}
 	}
 
 	// test polar regions
@@ -55,5 +56,20 @@ func TestScalarMercator(t *testing.T) {
 
 	if _, y := ToPlanar(0, -89.9, 32); y != 0 {
 		t.Errorf("Scalar Mercator, bottom of the world error, got %v", y)
+	}
+}
+
+func TestToGeoPrecision(t *testing.T) {
+	for level := float64(1); level < 35; level++ {
+		n := math.Pow(2, level-1)
+		// tile with north west coordinate of (0, 0) at each zoom level
+		lng, lat := ToGeo(n, n, uint32(level))
+		if lng != 0.0 {
+			t.Errorf("ToGeo, longitude on level %2.0f should be 0: %f", level, lng)
+		}
+
+		if lat != 0.0 {
+			t.Errorf("ToGeo, latitude on level %2.0f should be 0: %f", level, lat)
+		}
 	}
 }

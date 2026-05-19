@@ -88,7 +88,7 @@ func BenchmarkRadial(b *testing.B) {
 	}
 }
 
-func BenchmarkRadial_DisanceSquared(b *testing.B) {
+func BenchmarkRadial_DistanceSquared(b *testing.B) {
 	ls := benchmarkData()
 
 	var data []orb.LineString

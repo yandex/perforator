@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-// ErrInvalidGeometry will be returned if a the json of the geometry is invalid.
+// ErrInvalidGeometry will be returned if the json of the geometry is invalid.
 var ErrInvalidGeometry = errors.New("geojson: invalid geometry")
 
 // A Geometry matches the structure of a GeoJSON Geometry.
@@ -19,7 +19,7 @@ type Geometry struct {
 }
 
 // NewGeometry will create a Geometry object but will convert
-// the input into a GoeJSON geometry. For example, it will convert
+// the input into a GeoJSON geometry. For example, it will convert
 // Rings and Bounds into Polygons.
 func NewGeometry(g orb.Geometry) *Geometry {
 	jg := &Geometry{}
@@ -44,7 +44,7 @@ func NewGeometry(g orb.Geometry) *Geometry {
 }
 
 // Geometry returns the orb.Geometry for the geojson Geometry.
-// This will convert the "Geometries" into a orb.Collection if applicable.
+// This will convert the "Geometries" into an orb.Collection if applicable.
 func (g *Geometry) Geometry() orb.Geometry {
 	if g.Coordinates != nil {
 		return g.Coordinates

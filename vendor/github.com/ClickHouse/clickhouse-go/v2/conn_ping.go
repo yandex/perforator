@@ -1,20 +1,3 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package clickhouse
 
 import (
@@ -36,16 +19,18 @@ func (c *connect) ping(ctx context.Context) (err error) {
 		c.conn.SetDeadline(deadline)
 		defer c.conn.SetDeadline(time.Time{})
 	}
-	c.debugf("[ping] -> ping")
+	c.logger.Debug("ping: sending")
 	c.buffer.PutByte(proto.ClientPing)
 	if err := c.flush(); err != nil {
-		return err
+		return fmt.Errorf("ping: failed to send ping to %s (conn_id=%d): %w",
+			c.conn.RemoteAddr(), c.id, err)
 	}
 
 	var packet byte
 	for {
 		if packet, err = c.reader.ReadByte(); err != nil {
-			return err
+			return fmt.Errorf("ping: failed to read packet from %s (conn_id=%d, age=%s): %w",
+				c.conn.RemoteAddr(), c.id, time.Since(c.connectedAt).Round(time.Second), err)
 		}
 		switch packet {
 		case proto.ServerException:
@@ -55,7 +40,7 @@ func (c *connect) ping(ctx context.Context) (err error) {
 				return err
 			}
 		case proto.ServerPong:
-			c.debugf("[ping] <- pong")
+			c.logger.Debug("ping: received pong")
 			return nil
 		default:
 			return fmt.Errorf("unexpected packet %d", packet)

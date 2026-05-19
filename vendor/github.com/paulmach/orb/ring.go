@@ -31,7 +31,7 @@ func (r Ring) Bound() Bound {
 	return MultiPoint(r).Bound()
 }
 
-// Orientation returns 1 if the the ring is in couter-clockwise order,
+// Orientation returns 1 if the ring is in counter-clockwise order,
 // return -1 if the ring is the clockwise order and 0 if the ring is
 // degenerate and had no area.
 func (r Ring) Orientation() Orientation {

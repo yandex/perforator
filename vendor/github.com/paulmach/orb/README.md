@@ -10,7 +10,7 @@ They each provide their own README with extra info.
 -   **GeoJSON** - support as part of the [`geojson`](geojson) sub-package.
 -   **Mapbox Vector Tile** - encoding and decoding as part of the [`encoding/mvt`](encoding/mvt) sub-package.
 -   **Direct to type from DB query results** - by scanning WKB data directly into types.
--   **Rich set of sub-packages** - including [`clipping`](clip), [`simplifing`](simplify), [`quadtree`](quadtree) and more.
+-   **Rich set of sub-packages** - including [`clipping`](clip), [`simplifying`](simplify), [`quadtree`](quadtree) and more.
 
 ## Type definitions
 
@@ -142,7 +142,7 @@ layers.RemoveEmpty(1.0, 2.0)
 // encoding using the Mapbox Vector Tile protobuf encoding.
 data, err := mvt.Marshal(layers) // this data is NOT gzipped.
 
-// Sometimes MVT data is stored and transfered gzip compressed. In that case:
+// Sometimes MVT data is stored and transferred gzip compressed. In that case:
 data, err := mvt.MarshalGzipped(layers)
 ```
 

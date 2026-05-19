@@ -1,35 +1,18 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package column
 
 import (
 	"database/sql/driver"
 	"fmt"
-	"github.com/ClickHouse/clickhouse-go/v2/lib/chcol"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/ClickHouse/ch-go/proto"
+
+	"github.com/ClickHouse/clickhouse-go/v2/lib/chcol"
 )
 
 const SupportedVariantSerializationVersion = 0
-const NullVariantDiscriminator uint8 = 255
+const VariantNullDiscriminator uint8 = 255
 
 type Variant struct {
 	chType Type
@@ -42,7 +25,7 @@ type Variant struct {
 	columnTypeIndex map[string]uint8
 }
 
-func (c *Variant) parse(t Type, tz *time.Location) (_ *Variant, err error) {
+func (c *Variant) parse(t Type, sc *ServerContext) (_ *Variant, err error) {
 	c.chType = t
 	var (
 		element       []rune
@@ -82,7 +65,7 @@ func (c *Variant) parse(t Type, tz *time.Location) (_ *Variant, err error) {
 
 	c.columnTypeIndex = make(map[string]uint8, len(elements))
 	for _, columnType := range elements {
-		column, err := columnType.Column("", tz)
+		column, err := columnType.Column("", sc)
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +92,7 @@ func (c *Variant) appendDiscriminatorRow(d uint8) {
 }
 
 func (c *Variant) appendNullRow() {
-	c.appendDiscriminatorRow(NullVariantDiscriminator)
+	c.appendDiscriminatorRow(VariantNullDiscriminator)
 }
 
 func (c *Variant) Name() string {
@@ -129,7 +112,7 @@ func (c *Variant) Row(i int, ptr bool) any {
 	offsetIndex := c.offsets[i]
 	var value any
 	var chType string
-	if typeIndex != NullVariantDiscriminator {
+	if typeIndex != VariantNullDiscriminator {
 		value = c.columns[typeIndex].Row(offsetIndex, ptr)
 		chType = string(c.columns[typeIndex].Type())
 	}
@@ -147,7 +130,7 @@ func (c *Variant) ScanRow(dest any, row int) error {
 	offsetIndex := c.offsets[row]
 	var value any
 	var chType string
-	if typeIndex != NullVariantDiscriminator {
+	if typeIndex != VariantNullDiscriminator {
 		value = c.columns[typeIndex].Row(offsetIndex, false)
 		chType = string(c.columns[typeIndex].Type())
 	}
@@ -160,7 +143,7 @@ func (c *Variant) ScanRow(dest any, row int) error {
 		vt := chcol.NewVariantWithType(value, chType)
 		**v = vt
 	default:
-		if typeIndex == NullVariantDiscriminator {
+		if typeIndex == VariantNullDiscriminator {
 			return nil
 		}
 
@@ -263,26 +246,26 @@ func (c *Variant) AppendRow(v any) error {
 	return fmt.Errorf("value \"%v\" cannot be stored in variant column: no compatible types", v)
 }
 
-func (c *Variant) encodeHeader(buffer *proto.Buffer) {
+func (c *Variant) WriteStatePrefix(buffer *proto.Buffer) error {
 	buffer.PutUInt64(SupportedVariantSerializationVersion)
-}
-
-func (c *Variant) encodeData(buffer *proto.Buffer) {
-	buffer.PutRaw(c.discriminators)
 
 	for _, col := range c.columns {
-		col.Encode(buffer)
+		if serialize, ok := col.(CustomSerialization); ok {
+			if err := serialize.WriteStatePrefix(buffer); err != nil {
+				return fmt.Errorf("failed to write prefix for type %s in variant: %w", col.Type(), err)
+			}
+		}
 	}
-}
-
-func (c *Variant) WriteStatePrefix(buffer *proto.Buffer) error {
-	c.encodeHeader(buffer)
 
 	return nil
 }
 
 func (c *Variant) Encode(buffer *proto.Buffer) {
-	c.encodeData(buffer)
+	buffer.PutRaw(c.discriminators)
+
+	for _, col := range c.columns {
+		col.Encode(buffer)
+	}
 }
 
 func (c *Variant) ScanType() reflect.Type {
@@ -297,7 +280,7 @@ func (c *Variant) Reset() {
 	}
 }
 
-func (c *Variant) decodeHeader(reader *proto.Reader) error {
+func (c *Variant) ReadStatePrefix(reader *proto.Reader) error {
 	variantSerializationVersion, err := reader.UInt64()
 	if err != nil {
 		return fmt.Errorf("failed to read variant discriminator version: %w", err)
@@ -318,7 +301,7 @@ func (c *Variant) decodeHeader(reader *proto.Reader) error {
 	return nil
 }
 
-func (c *Variant) decodeData(reader *proto.Reader, rows int) error {
+func (c *Variant) Decode(reader *proto.Reader, rows int) error {
 	c.discriminators = make([]uint8, rows)
 	c.offsets = make([]int, rows)
 	rowCountByType := make(map[uint8]int, len(c.columns))
@@ -344,24 +327,6 @@ func (c *Variant) decodeData(reader *proto.Reader, rows int) error {
 		if err := col.Decode(reader, cRows); err != nil {
 			return fmt.Errorf("failed to decode variant column with %s type: %w", col.Type(), err)
 		}
-	}
-
-	return nil
-}
-
-func (c *Variant) ReadStatePrefix(reader *proto.Reader) error {
-	err := c.decodeHeader(reader)
-	if err != nil {
-		return fmt.Errorf("failed to decode variant header: %w", err)
-	}
-
-	return nil
-}
-
-func (c *Variant) Decode(reader *proto.Reader, rows int) error {
-	err := c.decodeData(reader, rows)
-	if err != nil {
-		return fmt.Errorf("failed to decode variant data: %w", err)
 	}
 
 	return nil

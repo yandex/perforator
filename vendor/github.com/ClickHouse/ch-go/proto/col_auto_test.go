@@ -34,7 +34,7 @@ func TestColAuto_Infer(t *testing.T) {
 		ColumnTypeLowCardinality.Sub(ColumnTypeString),
 		ColumnTypeDateTime.Sub("Europe/Berlin"),
 		ColumnTypeDateTime64.Sub("9"),
-		"Map(String,String)",
+		"Map(String, String)",
 		"Enum8('hello'=1,'world'=2)",
 		"Enum16('hello'=-1,'world'=10)",
 		"IntervalSecond",

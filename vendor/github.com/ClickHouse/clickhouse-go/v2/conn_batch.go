@@ -1,42 +1,25 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package clickhouse
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"regexp"
 	"slices"
 	"syscall"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 )
 
-var insertMatch = regexp.MustCompile(`(?i)(INSERT\s+INTO\s+[^( ]+(?:\s*\([^()]*(?:\([^()]*\)[^()]*)*\))?)(?:\s*VALUES)?`)
+var insertMatch = regexp.MustCompile(`(?i)(?:(?:--[^\n]*|#![^\n]*|#\s[^\n]*)\n\s*)*(INSERT\s+INTO\s+[^( ]+(?:\s*\([^()]*(?:\([^()]*\)[^()]*)*\))?)(?:\s*VALUES)?`)
 var columnMatch = regexp.MustCompile(`INSERT INTO .+\s\((?P<Columns>.+)\)$`)
 
-func (c *connect) prepareBatch(ctx context.Context, query string, opts driver.PrepareBatchOptions, release func(*connect, error), acquire func(context.Context) (*connect, error)) (driver.Batch, error) {
+func (c *connect) prepareBatch(ctx context.Context, release nativeTransportRelease, acquire nativeTransportAcquire, query string, opts driver.PrepareBatchOptions) (driver.Batch, error) {
 	query, _, queryColumns, verr := extractNormalizedInsertQueryAndColumns(query)
 	if verr != nil {
 		return nil, verr
@@ -61,7 +44,19 @@ func (c *connect) prepareBatch(ctx context.Context, query string, opts driver.Pr
 	}
 	// resort batch to specified columns
 	if err = block.SortColumns(queryColumns); err != nil {
+		release(c, err)
 		return nil, err
+	}
+
+	connRelease := func(conn *connect, err error) {
+		release(conn, err)
+	}
+	connAcquire := func(ctx context.Context) (*connect, error) {
+		conn, err := acquire(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return conn.(*connect), nil
 	}
 
 	b := &batch{
@@ -70,8 +65,8 @@ func (c *connect) prepareBatch(ctx context.Context, query string, opts driver.Pr
 		conn:         c,
 		block:        block,
 		released:     false,
-		connRelease:  release,
-		connAcquire:  acquire,
+		connRelease:  connRelease,
+		connAcquire:  connAcquire,
 		onProcess:    onProcess,
 		closeOnFlush: opts.CloseOnFlush,
 	}
@@ -130,7 +125,7 @@ func (b *batch) Append(v ...any) error {
 	}
 
 	if err := b.block.Append(v...); err != nil {
-		b.err = errors.Wrap(ErrBatchInvalid, err.Error())
+		b.err = fmt.Errorf("%w: %w", ErrBatchInvalid, err)
 		b.release(err)
 		return err
 	}
@@ -146,7 +141,7 @@ func (b *batch) appendRowsBlocks(r *rows) error {
 
 	for r.Next() {
 		if lastReadLock == nil { // make sure the first block is logged
-			b.conn.debugf("[batch.appendRowsBlocks] blockNum = %d", blockNum)
+			b.conn.logger.Debug("batch: appending rows block", slog.Int("block_num", blockNum))
 		}
 
 		// rows.Next() will read the next block from the server only if the current block is empty
@@ -157,7 +152,7 @@ func (b *batch) appendRowsBlocks(r *rows) error {
 				return err
 			}
 			blockNum++
-			b.conn.debugf("[batch.appendRowsBlocks] blockNum = %d", blockNum)
+			b.conn.logger.Debug("batch: appending rows block", slog.Int("block_num", blockNum))
 		}
 
 		b.block = r.block
@@ -310,7 +305,7 @@ func (b *batch) Columns() []column.Interface {
 }
 
 func (b *batch) closeQuery() error {
-	if err := b.conn.sendData(&proto.Block{}, ""); err != nil {
+	if err := b.conn.sendData(proto.NewBlock(), ""); err != nil {
 		return err
 	}
 
@@ -319,6 +314,23 @@ func (b *batch) closeQuery() error {
 	}
 
 	return nil
+}
+
+// Close will end the current INSERT without sending the currently buffered rows, and release the connection.
+// This may result in zero row inserts if no rows were appended.
+// If a batch was already sent this does nothing.
+// This should be called via defer after a batch is opened to prevent
+// batches from falling out of scope and timing out.
+func (b *batch) Close() error {
+	if b.sent || b.released {
+		return nil
+	}
+
+	err := b.closeQuery()
+	b.sent = true
+	b.release(err)
+
+	return err
 }
 
 type batchColumn struct {

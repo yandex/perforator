@@ -18,7 +18,7 @@ func ExampleDouglasPeuckerSimplifier() {
 	//  +-----+
 	original := orb.LineString{{0, 0}, {2, 0}, {1, 1}, {0, 2}}
 
-	// low threshold just removes the colinear point
+	// low threshold just removes the collinear point
 	reduced := simplify.DouglasPeucker(0.0).Simplify(original.Clone())
 	fmt.Println(reduced)
 

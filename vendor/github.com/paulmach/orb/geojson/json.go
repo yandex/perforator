@@ -9,17 +9,18 @@ import "encoding/json"
 //
 //	import (
 //	  jsoniter "github.com/json-iterator/go"
-//	  "github.com/paulmach/orb"
+//	  "github.com/paulmach/orb/geojson"
 //	)
 //
+//	// in an init() or main(), etc.
 //	var c = jsoniter.Config{
 //	  EscapeHTML:              true,
 //	  SortMapKeys:             false,
 //	  MarshalFloatWith6Digits: true,
 //	}.Froze()
 //
-//	orb.CustomJSONMarshaler = c
-//	orb.CustomJSONUnmarshaler = c
+//	geojson.CustomJSONMarshaler = c
+//	geojson.CustomJSONUnmarshaler = c
 //
 // Note that any errors encountered during marshaling will be different.
 var CustomJSONMarshaler interface {
@@ -33,17 +34,18 @@ var CustomJSONMarshaler interface {
 //
 //	import (
 //	  jsoniter "github.com/json-iterator/go"
-//	  "github.com/paulmach/orb"
+//	  "github.com/paulmach/orb/geojson"
 //	)
 //
-//	var c = jsoniter.Config{
+//	// in an init() or main(), etc.
+//	c := jsoniter.Config{
 //	  EscapeHTML:              true,
 //	  SortMapKeys:             false,
 //	  MarshalFloatWith6Digits: true,
 //	}.Froze()
 //
-//	orb.CustomJSONMarshaler = c
-//	orb.CustomJSONUnmarshaler = c
+//	geojson.CustomJSONMarshaler = c
+//	geojson.CustomJSONUnmarshaler = c
 //
 // Note that any errors encountered during unmarshaling will be different.
 var CustomJSONUnmarshaler interface {

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.33.1)
+VERSION(v2.46.0)
 
 SRCS(
     batch.go
@@ -26,12 +26,15 @@ SRCS(
     conn_http_query.go
     conn_logs.go
     conn_ping.go
+    conn_pool.go
     conn_process.go
     conn_profile_events.go
     conn_query.go
     conn_send_query.go
     context.go
     context_watchdog.go
+    jwt.go
+    logger.go
     query_parameters.go
     scan.go
     struct_map.go

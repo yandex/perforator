@@ -287,7 +287,7 @@ func smartWrap(box orb.Bound, input []orb.LineString, o orb.Orientation) orb.Mul
 
 	// this operation is O(n^2). Technically we could use a linked list
 	// and remove points instead of marking them as "used".
-	// However since n is 2x the number of segements I think we're okay.
+	// However since n is 2x the number of segments I think we're okay.
 	for i := 0; i < 2*len(points); i++ {
 		ep := points[i%len(points)]
 		if ep.Used {

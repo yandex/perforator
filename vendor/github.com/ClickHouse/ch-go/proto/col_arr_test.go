@@ -74,7 +74,9 @@ func TestColArrOfStr(t *testing.T) {
 		require.Equal(t, col.Rows(), dec.Rows())
 		require.Equal(t, ColumnType("Array(String)"), dec.Type())
 		require.Equal(t, []string{"foo", "bar", "foo", "foo", "baz"}, dec.Row(0))
+		require.Equal(t, 5, dec.RowLen(0))
 		require.Equal(t, []string{"foo", "baz"}, dec.Row(1))
+		require.Equal(t, 2, dec.RowLen(1))
 	})
 	t.Run("EOF", func(t *testing.T) {
 		r := NewReader(bytes.NewReader(nil))
@@ -109,7 +111,9 @@ func TestArrOfLowCordStr(t *testing.T) {
 		require.Equal(t, col.Rows(), dec.Rows())
 		require.Equal(t, ColumnType("Array(LowCardinality(String))"), dec.Type())
 		require.Equal(t, []string{"foo", "bar", "foo", "foo", "baz"}, dec.Row(0))
+		require.Equal(t, 5, dec.RowLen(0))
 		require.Equal(t, []string{"foo", "baz"}, dec.Row(1))
+		require.Equal(t, 2, dec.RowLen(1))
 	})
 	t.Run("EOF", func(t *testing.T) {
 		r := NewReader(bytes.NewReader(nil))

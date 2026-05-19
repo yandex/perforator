@@ -137,7 +137,7 @@ func TestRing(t *testing.T) {
 					t.Logf("%v", expected)
 				}
 
-				// should give same result if mulipolygon
+				// should give same result if multipolygon
 				result = MultiPolygon(bound, orb.MultiPolygon{{input}}, o)
 				if !deepEqualMultiPolygon(result, expected) {
 					t.Errorf("incorrect multipolygon")
@@ -159,7 +159,7 @@ func TestPolygon(t *testing.T) {
 		expected orb.MultiPolygon
 	}{
 		{
-			name:  "with innner ring",
+			name:  "with inner ring",
 			bound: oneSix,
 			input: orb.Polygon{
 				{{0, 2}, {5, 2}, {5, 5}, {0, 5}, {0, 2}},
@@ -171,7 +171,7 @@ func TestPolygon(t *testing.T) {
 			}},
 		},
 		{
-			name:  "with innner ring that will share a side with the outer ring",
+			name:  "with inner ring that will share a side with the outer ring",
 			bound: oneSix,
 			input: orb.Polygon{
 				{{0, 2}, {3, 2}, {3, 5}, {0, 5}},
@@ -321,7 +321,7 @@ func TestPolygon(t *testing.T) {
 					t.Logf("%v", expected)
 				}
 
-				// should give same result if inputed as multi polygon
+				// should give same result if inputted as multi polygon
 				result = MultiPolygon(bound, orb.MultiPolygon{input}, o)
 				if !deepEqualMultiPolygon(result, expected) {
 					t.Errorf("incorrect multipolygon")
@@ -378,7 +378,7 @@ func TestClipMultiPolygon(t *testing.T) {
 			},
 		},
 		{
-			name:  "polygon with innner ring and single ring polygon",
+			name:  "polygon with inner ring and single ring polygon",
 			bound: orb.Bound{Min: orb.Point{1, 1}, Max: orb.Point{9, 9}},
 			input: orb.MultiPolygon{
 				{

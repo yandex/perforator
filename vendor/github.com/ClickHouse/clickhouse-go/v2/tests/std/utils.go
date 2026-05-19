@@ -1,20 +1,3 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package std
 
 import (
@@ -22,13 +5,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
-	clickhouse_tests "github.com/ClickHouse/clickhouse-go/v2/tests"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	clickhouse_tests "github.com/ClickHouse/clickhouse-go/v2/tests"
 )
 
 func GetStdTestEnvironment() (clickhouse_tests.ClickHouseTestEnvironment, error) {
@@ -202,6 +186,7 @@ func GetOpenDBConnection(environment string, protocol clickhouse.Protocol, setti
 	if err != nil {
 		return nil, err
 	}
+
 	return clickhouse.OpenDB(&clickhouse.Options{
 		Addr: []string{fmt.Sprintf("%s:%d", env.Host, port)},
 		Auth: clickhouse.Auth{
@@ -212,6 +197,58 @@ func GetOpenDBConnection(environment string, protocol clickhouse.Protocol, setti
 		Settings:    settings,
 		DialTimeout: 5 * time.Second,
 		Compression: compression,
+		TLS:         tlsConfig,
+		Protocol:    protocol,
+	}), nil
+}
+
+func GetOpenDBConnectionJWT(environment string, protocol clickhouse.Protocol, settings clickhouse.Settings, tlsConfig *tls.Config, jwtFunc clickhouse.GetJWTFunc) (*sql.DB, error) {
+	env, err := clickhouse_tests.GetTestEnvironment(environment)
+	if err != nil {
+		return nil, err
+	}
+	var port int
+	switch protocol {
+	case clickhouse.HTTP:
+		port = env.HttpPort
+		if tlsConfig != nil {
+			port = env.HttpsPort
+		}
+	case clickhouse.Native:
+		port = env.Port
+		if tlsConfig != nil {
+			port = env.SslPort
+		}
+	}
+	if settings == nil {
+		settings = clickhouse.Settings{}
+	}
+	if protocol == clickhouse.HTTP {
+		settings["wait_end_of_query"] = 1
+	}
+	settings["insert_quorum"], err = strconv.Atoi(clickhouse_tests.GetEnv("CLICKHOUSE_QUORUM_INSERT", "1"))
+	settings["insert_quorum_parallel"] = 0
+	settings["select_sequential_consistency"] = 1
+	if proto.CheckMinVersion(proto.Version{
+		Major: 22,
+		Minor: 8,
+		Patch: 0,
+	}, env.Version) {
+		settings["database_replicated_enforce_synchronous_settings"] = "1"
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return clickhouse.OpenDB(&clickhouse.Options{
+		Addr: []string{fmt.Sprintf("%s:%d", env.Host, port)},
+		Auth: clickhouse.Auth{
+			Database: env.Database,
+		},
+		GetJWT:      jwtFunc,
+		Settings:    settings,
+		DialTimeout: 5 * time.Second,
+		Compression: nil,
 		TLS:         tlsConfig,
 		Protocol:    protocol,
 	}), nil

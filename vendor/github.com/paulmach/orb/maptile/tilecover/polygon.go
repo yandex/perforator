@@ -58,7 +58,7 @@ func polygon(set maptile.Set, p orb.Polygon, zoom maptile.Zoom) error {
 			ni := (i + 1) % len(ring)
 			y := ring[i][1]
 
-			// add interesction if it's not local extremum or duplicate
+			// add intersection if it's not local extremum or duplicate
 			if (ring[pi][1] < y || ring[ni][1] < y) && // not local minimum
 				(y < ring[pi][1] || y < ring[ni][1]) && // not local maximum
 				y != ring[ni][1] {

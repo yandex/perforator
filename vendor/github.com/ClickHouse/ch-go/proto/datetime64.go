@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Precision of DateTime64.
+// Precision of DateTime64 and Time64.
 //
 // Tick size (precision): 10^(-precision) seconds.
 // Valid range: [0:9].

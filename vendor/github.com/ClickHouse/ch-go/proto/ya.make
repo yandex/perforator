@@ -2,9 +2,10 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.65.1)
+VERSION(v0.71.0)
 
 SRCS(
+    bfloat16.go
     block.go
     bool.go
     buffer.go
@@ -19,6 +20,8 @@ SRCS(
     col_arr_go123.go
     col_auto.go
     col_auto_gen.go
+    col_bfloat16.go
+    col_bfloat16_safe.go
     col_bool.go
     col_date.go
     col_date32.go
@@ -61,8 +64,11 @@ SRCS(
     col_nothing.go
     col_nullable.go
     col_point.go
+    col_qbit.go
     col_raw.go
     col_str.go
+    col_time.go
+    col_time64.go
     col_tuple.go
     col_uint128_gen.go
     col_uint16_gen.go
@@ -110,10 +116,12 @@ SRCS(
     stage.go
     stage_enum.go
     table_columns.go
+    time.go
     writer.go
 )
 
 GO_TEST_SRCS(
+    bfloat16_test.go
     block_test.go
     buffer_test.go
     client_data_test.go
@@ -122,6 +130,7 @@ GO_TEST_SRCS(
     col_arr_go123_test.go
     col_arr_test.go
     col_auto_test.go
+    col_bfloat16_test.go
     col_bool_test.go
     col_date32_gen_test.go
     col_date_gen_test.go
@@ -160,6 +169,7 @@ GO_TEST_SRCS(
     col_nothing_test.go
     col_nullable_test.go
     col_point_test.go
+    col_qbit_test.go
     col_raw_test.go
     col_str_test.go
     col_tuple_test.go
@@ -191,6 +201,7 @@ GO_TEST_SRCS(
     reader_test.go
     server_hello_test.go
     table_columns_test.go
+    time_test.go
 )
 
 GO_XTEST_SRCS(

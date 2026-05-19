@@ -2,8 +2,9 @@ package orderedmap
 
 import (
 	"cmp"
-	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
 	"slices"
+
+	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
 )
 
 // Map is a simple implementation of [column.IterableOrderedMap] interface.

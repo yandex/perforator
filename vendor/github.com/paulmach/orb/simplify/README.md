@@ -1,6 +1,6 @@
 # orb/simplify [![Godoc Reference](https://pkg.go.dev/badge/github.com/paulmach/orb)](https://pkg.go.dev/github.com/paulmach/orb/simplify)
 
-This package implements several reducing/simplifing function for `orb.Geometry` types.
+This package implements several reducing/simplifying function for `orb.Geometry` types.
 
 Currently implemented:
 

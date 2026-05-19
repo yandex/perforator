@@ -236,6 +236,33 @@ func TestFeatureMarshalJSON_null(t *testing.T) {
 	})
 }
 
+func TestFeatureMarshalJSON_extraMembers(t *testing.T) {
+	rawJSON := `
+	  { "type": "Feature",
+		"geometry": {"type": "Point", "coordinates": [102.0, 0.5]},
+		"properties": {"prop0": "value0"},
+		"foo": "bar"
+	  }`
+
+	f, err := UnmarshalFeature([]byte(rawJSON))
+	if err != nil {
+		t.Fatalf("should unmarshal feature collection without issue, err %v", err)
+	}
+
+	if v := f.ExtraMembers.MustString("foo", ""); v != "bar" {
+		t.Errorf("missing extra: foo: %v", v)
+	}
+
+	data, err := f.MarshalJSON()
+	if err != nil {
+		t.Fatalf("unable to marshal: %v", err)
+	}
+
+	if !bytes.Contains(data, []byte(`"foo":"bar"`)) {
+		t.Fatalf("extras not in marshalled data")
+	}
+}
+
 func TestUnmarshalBSON_missingGeometry(t *testing.T) {
 	t.Run("missing geometry", func(t *testing.T) {
 		f := NewFeature(nil)
@@ -352,6 +379,34 @@ func TestMarshalRing(t *testing.T) {
 	if !bytes.Equal(data, []byte(`{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[0,0],[1,1],[2,1],[0,0]]]},"properties":null}`)) {
 		t.Errorf("data not correct")
 		t.Logf("%v", string(data))
+	}
+}
+
+func TestFeature_MarshalBSON_extraMembers(t *testing.T) {
+	f := NewFeature(orb.Point{1, 2})
+
+	f.ExtraMembers = map[string]interface{}{
+		"a": 1.0,
+		"b": 2.0,
+	}
+
+	data, err := bson.Marshal(f)
+	if err != nil {
+		t.Fatalf("unable to marshal feature collection: %v", err)
+	}
+
+	nf := &Feature{}
+	err = bson.Unmarshal(data, &nf)
+	if err != nil {
+		t.Fatalf("unable to unmarshal feature collection: %v", err)
+	}
+
+	if v := nf.ExtraMembers["a"]; v != 1.0 {
+		t.Errorf("incorrect extra member: %v != %v", v, 1.0)
+	}
+
+	if v := nf.ExtraMembers["b"]; v != 2.0 {
+		t.Errorf("incorrect extra member: %v != %v", v, 2.0)
 	}
 }
 

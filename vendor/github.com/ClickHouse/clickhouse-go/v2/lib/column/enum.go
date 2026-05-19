@@ -1,20 +1,3 @@
-// Licensed to ClickHouse, Inc. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. ClickHouse, Inc. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package column
 
 import (
@@ -108,23 +91,19 @@ func extractEnumNamedValues(chType Type) (typ string, values []string, indexes [
 			}
 
 			bracketOpen = true
-			break
 		// when inside a bracket, we can start capture value inside single quotes
 		case bracketOpen && token == '\'' && !stringOpen:
 			foundValueOffset = c + 1
 			stringOpen = true
-			break
 		// close the string and capture the value
 		case token == '\'' && stringOpen:
 			stringOpen = false
 			foundValueLen = c - foundValueOffset
 			valueFound = true
-			break
 		// escape character, skip the next character
 		case token == '\\' && stringOpen:
 			skippedValueTokens = append(skippedValueTokens, c-foundValueOffset)
 			c++
-			break
 		// capture optional index. `=` token is followed with an integer index
 		case token == '=' && !stringOpen:
 			if !valueFound {
@@ -145,7 +124,6 @@ func extractEnumNamedValues(chType Type) (typ string, values []string, indexes [
 			}
 			valueIndex = idx
 			indexFound = true
-			break
 		// capture the value and index when a comma or closing bracket is found
 		case (token == ',' || token == ')') && !stringOpen:
 			if !valueFound {
@@ -174,7 +152,6 @@ func extractEnumNamedValues(chType Type) (typ string, values []string, indexes [
 			values = append(values, string(foundName))
 			indexFound = false
 			valueFound = false
-			break
 		}
 	}
 

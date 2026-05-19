@@ -156,12 +156,12 @@ func (b Bound) IsEmpty() bool {
 	return b.Min[0] > b.Max[0] || b.Min[1] > b.Max[1]
 }
 
-// IsZero return true if the bound just includes just null island.
+// IsZero return true if the bound includes just null island.
 func (b Bound) IsZero() bool {
 	return b.Max == Point{} && b.Min == Point{}
 }
 
-// Bound returns the the same bound.
+// Bound returns the same bound.
 func (b Bound) Bound() Bound {
 	return b
 }

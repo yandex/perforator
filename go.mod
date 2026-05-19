@@ -183,9 +183,9 @@ require (
 	github.com/Azure/go-autorest/autorest/to v0.4.1
 	github.com/Azure/go-autorest/autorest/validation v0.3.1
 	github.com/BurntSushi/toml v1.6.0
-	github.com/ClickHouse/ch-go v0.65.1
+	github.com/ClickHouse/ch-go v0.71.0
 	github.com/ClickHouse/clickhouse-go v1.5.4
-	github.com/ClickHouse/clickhouse-go/v2 v2.33.1
+	github.com/ClickHouse/clickhouse-go/v2 v2.46.0
 	github.com/CycloneDX/cyclonedx-go v0.9.2
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/DATA-DOG/godog v0.7.13
@@ -712,7 +712,7 @@ require (
 	github.com/pandatix/go-cvss v0.6.2
 	github.com/pariz/gountries v0.1.6
 	github.com/parquet-go/parquet-go v0.24.0
-	github.com/paulmach/orb v0.11.1
+	github.com/paulmach/orb v0.12.0
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pborman/uuid v1.2.1
 	github.com/pdfcpu/pdfcpu v0.11.1

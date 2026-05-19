@@ -19,7 +19,11 @@ func (b *Buffer) Reader() *Reader {
 
 // Ensure Buf length.
 func (b *Buffer) Ensure(n int) {
-	b.Buf = append(b.Buf[:0], make([]byte, n)...)
+	if cap(b.Buf) < n {
+		b.Buf = make([]byte, n)
+	} else {
+		b.Buf = b.Buf[:n] // Set length to n (zeros not guaranteed)
+	}
 }
 
 // Encoder implements encoding to Buffer.
@@ -67,8 +71,8 @@ func (b *Buffer) PutRaw(v []byte) {
 
 // PutUVarInt encodes x as uvarint.
 func (b *Buffer) PutUVarInt(x uint64) {
-	buf := make([]byte, binary.MaxVarintLen64)
-	n := binary.PutUvarint(buf, x)
+	buf := [binary.MaxVarintLen64]byte{}
+	n := binary.PutUvarint(buf[:], x)
 	b.Buf = append(b.Buf, buf[:n]...)
 }
 
@@ -98,27 +102,27 @@ func (b *Buffer) PutUInt8(x uint8) {
 }
 
 func (b *Buffer) PutUInt16(x uint16) {
-	buf := make([]byte, 16/8)
-	binary.LittleEndian.PutUint16(buf, x)
-	b.Buf = append(b.Buf, buf...)
+	buf := [16 / 8]byte{}
+	binary.LittleEndian.PutUint16(buf[:], x)
+	b.Buf = append(b.Buf, buf[:]...)
 }
 
 func (b *Buffer) PutUInt32(x uint32) {
-	buf := make([]byte, 32/8)
-	binary.LittleEndian.PutUint32(buf, x)
-	b.Buf = append(b.Buf, buf...)
+	buf := [32 / 8]byte{}
+	binary.LittleEndian.PutUint32(buf[:], x)
+	b.Buf = append(b.Buf, buf[:]...)
 }
 
 func (b *Buffer) PutUInt64(x uint64) {
-	buf := make([]byte, 64/8)
-	binary.LittleEndian.PutUint64(buf, x)
-	b.Buf = append(b.Buf, buf...)
+	buf := [64 / 8]byte{}
+	binary.LittleEndian.PutUint64(buf[:], x)
+	b.Buf = append(b.Buf, buf[:]...)
 }
 
 func (b *Buffer) PutUInt128(x UInt128) {
-	buf := make([]byte, 128/8)
-	binPutUInt128(buf, x)
-	b.Buf = append(b.Buf, buf...)
+	buf := [128 / 8]byte{}
+	binPutUInt128(buf[:], x)
+	b.Buf = append(b.Buf, buf[:]...)
 }
 
 func (b *Buffer) PutInt8(v int8) {

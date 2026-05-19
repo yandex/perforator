@@ -117,7 +117,7 @@ func TestCentroid_Ring(t *testing.T) {
 			result: orb.Point{0.5, 0.5},
 		},
 		{
-			name:   "redudent points",
+			name:   "redundant points",
 			ring:   orb.Ring{{0, 0}, {1, 0}, {2, 0}, {1, 3}, {0, 0}},
 			result: orb.Point{1, 1},
 		},
@@ -205,7 +205,7 @@ func TestArea_Ring(t *testing.T) {
 				t.Errorf("wrong area: %v != %v", val, tc.result)
 			}
 
-			// check that are rendant last point is implicit
+			// check that are redundant last point is implicit
 			tc.ring = tc.ring[:len(tc.ring)-1]
 			_, val = CentroidArea(tc.ring)
 			if val != tc.result {

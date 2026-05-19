@@ -22,6 +22,7 @@ const (
 	ServerPartUUIDs        ServerCode = 12 // list of unique parts ids.
 	ServerReadTaskRequest  ServerCode = 13 // String (UUID) describes a request for which next task is needed
 	ServerProfileEvents    ServerCode = 14 // Packet with profile events from server
+	ServerCodeSSHChallenge ServerCode = 18 // return challenge for SSH signature signing
 )
 
 // Encode to buffer.

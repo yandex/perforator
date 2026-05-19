@@ -46,7 +46,7 @@ func (c *ColAuto) Infer(t ColumnType) error {
 		c.Data = new(ColDateTime)
 	case ColumnTypeDate:
 		c.Data = new(ColDate)
-	case "Map(String,String)":
+	case "Map(String, String)":
 		c.Data = NewMap[string, string](new(ColStr), new(ColStr))
 	case ColumnTypeUUID:
 		c.Data = new(ColUUID)

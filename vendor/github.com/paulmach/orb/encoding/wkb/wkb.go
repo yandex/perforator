@@ -1,5 +1,5 @@
 // Package wkb is for decoding ESRI's Well Known Binary (WKB) format
-// sepcification at https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry#Well-known_binary
+// specification at https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry#Well-known_binary
 package wkb
 
 import (

@@ -1,6 +1,7 @@
 RECURSE(
     binary
     chcol
+    churl
     cityhash102
     column
     driver
