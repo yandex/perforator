@@ -2,12 +2,13 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v0.0.0-20230629203738-36ef4d8c0dbb)
+VERSION(v0.0.0-20240424095704-91a3fc46842c)
 
 SRCS(
     diff.go
     diff_containerd.go
     diskwriter.go
+    filter.go
     followlinks.go
     fs.go
     hardlinks.go
@@ -16,17 +17,17 @@ SRCS(
     stat.go
     tarwriter.go
     validator.go
-    walker.go
 )
 
 GO_TEST_SRCS(
-    # diskwriter_test.go
+    diskwriter_test.go
+    filter_test.go
     followlinks_test.go
+    fs_test.go
     hardlinks_test.go
     # receive_test.go
     # stat_test.go
     validator_test.go
-    walker_test.go
 )
 
 IF (OS_LINUX)
@@ -37,6 +38,8 @@ IF (OS_LINUX)
         followlinks_unix.go
         stat_unix.go
     )
+
+    GO_TEST_SRCS(diskwriter_unix_test.go)
 ENDIF()
 
 IF (OS_DARWIN)
@@ -47,6 +50,8 @@ IF (OS_DARWIN)
         followlinks_unix.go
         stat_unix.go
     )
+
+    GO_TEST_SRCS(diskwriter_unix_test.go)
 ENDIF()
 
 IF (OS_WINDOWS)
@@ -66,6 +71,8 @@ IF (OS_ANDROID)
         followlinks_unix.go
         stat_unix.go
     )
+
+    GO_TEST_SRCS(diskwriter_unix_test.go)
 ENDIF()
 
 IF (OS_EMSCRIPTEN)
@@ -76,6 +83,8 @@ IF (OS_EMSCRIPTEN)
         followlinks_unix.go
         stat_unix.go
     )
+
+    GO_TEST_SRCS(diskwriter_unix_test.go)
 ENDIF()
 
 END()

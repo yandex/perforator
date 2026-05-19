@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	contentapi "github.com/containerd/containerd/api/services/content/v1"
 	"github.com/containerd/containerd/defaults"
@@ -58,9 +59,6 @@ func New(ctx context.Context, address string, opts ...ClientOpt) (*Client, error
 	var creds *withCredentials
 
 	for _, o := range opts {
-		if _, ok := o.(*withFailFast); ok {
-			gopts = append(gopts, grpc.FailOnNonTempDialError(true))
-		}
 		if credInfo, ok := o.(*withCredentials); ok {
 			if creds == nil {
 				creds = &withCredentials{}
@@ -104,8 +102,8 @@ func New(ctx context.Context, address string, opts ...ClientOpt) (*Client, error
 
 	if tracerProvider != nil {
 		var propagators = propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
-		unary = append(unary, filterInterceptor(otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tracerProvider), otelgrpc.WithPropagators(propagators))))
-		stream = append(stream, otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tracerProvider), otelgrpc.WithPropagators(propagators)))
+		unary = append(unary, filterInterceptor(otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tracerProvider), otelgrpc.WithPropagators(propagators)))) //nolint:staticcheck // TODO(thaJeztah): ignore SA1019 for deprecated options: see https://github.com/moby/buildkit/issues/4681
+		stream = append(stream, otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tracerProvider), otelgrpc.WithPropagators(propagators)))                 //nolint:staticcheck // TODO(thaJeztah): ignore SA1019 for deprecated options: see https://github.com/moby/buildkit/issues/4681
 	}
 
 	if needDialer {
@@ -186,28 +184,33 @@ func (c *Client) Dialer() session.Dialer {
 }
 
 func (c *Client) Wait(ctx context.Context) error {
-	opts := []grpc.CallOption{grpc.WaitForReady(true)}
-	_, err := c.ControlClient().Info(ctx, &controlapi.InfoRequest{}, opts...)
-	if err != nil {
-		if code := grpcerrors.Code(err); code == codes.Unimplemented {
+	for {
+		_, err := c.ControlClient().Info(ctx, &controlapi.InfoRequest{})
+		if err == nil {
+			return nil
+		}
+
+		switch code := grpcerrors.Code(err); code {
+		case codes.Unavailable:
+		case codes.Unimplemented:
 			// only buildkit v0.11+ supports the info api, but an unimplemented
 			// response error is still a response so we can ignore it
 			return nil
+		default:
+			return err
 		}
+
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-time.After(time.Second):
+		}
+		c.conn.ResetConnectBackoff()
 	}
-	return err
 }
 
 func (c *Client) Close() error {
 	return c.conn.Close()
-}
-
-type withFailFast struct{}
-
-func (*withFailFast) isClientOpt() {}
-
-func WithFailFast() ClientOpt {
-	return &withFailFast{}
 }
 
 type withDialer struct {

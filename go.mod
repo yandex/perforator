@@ -2786,8 +2786,8 @@ replace github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.2
 
 replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
 
-// https://st.yandex-team.ru/CONTRIB-3687￼
-replace github.com/docker/docker => github.com/docker/docker v25.0.6+incompatible
+// https://st.yandex-team.ru/CONTRIB-3687
+replace github.com/docker/docker => github.com/docker/docker v26.1.5+incompatible
 
 replace github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
 
@@ -2809,9 +2809,9 @@ replace github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
 
 replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 
-replace github.com/moby/buildkit => github.com/moby/buildkit v0.12.2
+replace github.com/moby/buildkit => github.com/moby/buildkit v0.13.2
 
-replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20230629203738-36ef4d8c0dbb
+replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20240424095704-91a3fc46842c
 
 replace github.com/google/go-tpm-tools => github.com/google/go-tpm-tools v0.4.2
 

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.12.2)
+VERSION(v0.13.2)
 
 SRCS(
     build.go
@@ -22,6 +22,7 @@ GO_TEST_SRCS(
     build_test.go
     client_test.go
     mergediff_test.go
+    validation_test.go
 )
 
 IF (OS_LINUX)

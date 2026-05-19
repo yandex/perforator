@@ -7290,7 +7290,7 @@ github.com/docker/distribution/registry/storage/cache/cachecheck
 github.com/docker/distribution/registry/storage/cache/memory
 github.com/docker/distribution/testutil
 github.com/docker/distribution/uuid
-# github.com/docker/docker v28.5.2+incompatible => github.com/docker/docker v25.0.6+incompatible
+# github.com/docker/docker v28.5.2+incompatible => github.com/docker/docker v26.1.5+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -7310,13 +7310,10 @@ github.com/docker/docker/api/types/swarm/runtime
 github.com/docker/docker/api/types/system
 github.com/docker/docker/api/types/time
 github.com/docker/docker/api/types/versions
-github.com/docker/docker/api/types/versions/v1p19
-github.com/docker/docker/api/types/versions/v1p20
 github.com/docker/docker/api/types/volume
 github.com/docker/docker/client
 github.com/docker/docker/client/buildkit
 github.com/docker/docker/errdefs
-github.com/docker/docker/image/spec/specs-go/v1
 github.com/docker/docker/internal/multierror
 github.com/docker/docker/pkg/archive
 github.com/docker/docker/pkg/homedir
@@ -13008,14 +13005,15 @@ github.com/mkevac/debugcharts/bindata
 # github.com/mkrautz/goar v0.0.0-20150919110319-282caa8bd9da
 ## explicit
 github.com/mkrautz/goar
-# github.com/moby/buildkit v0.25.1 => github.com/moby/buildkit v0.12.2
-## explicit; go 1.20
+# github.com/moby/buildkit v0.25.1 => github.com/moby/buildkit v0.13.2
+## explicit; go 1.21
 github.com/moby/buildkit/api/services/control
 github.com/moby/buildkit/api/types
 github.com/moby/buildkit/client
 github.com/moby/buildkit/client/buildid
 github.com/moby/buildkit/client/connhelper
 github.com/moby/buildkit/client/llb
+github.com/moby/buildkit/client/llb/sourceresolver
 github.com/moby/buildkit/client/ociindex
 github.com/moby/buildkit/cmd/buildctl/build
 github.com/moby/buildkit/cmd/buildkitd/config
@@ -13026,6 +13024,8 @@ github.com/moby/buildkit/frontend/gateway/grpcclient
 github.com/moby/buildkit/frontend/gateway/pb
 github.com/moby/buildkit/identity
 github.com/moby/buildkit/session
+github.com/moby/buildkit/session/auth
+github.com/moby/buildkit/session/auth/authprovider
 github.com/moby/buildkit/session/content
 github.com/moby/buildkit/session/filesync
 github.com/moby/buildkit/session/grpchijack
@@ -13037,6 +13037,7 @@ github.com/moby/buildkit/session/testutil
 github.com/moby/buildkit/solver/errdefs
 github.com/moby/buildkit/solver/pb
 github.com/moby/buildkit/solver/result
+github.com/moby/buildkit/source/types
 github.com/moby/buildkit/sourcepolicy
 github.com/moby/buildkit/sourcepolicy/pb
 github.com/moby/buildkit/util/apicaps
@@ -13050,7 +13051,11 @@ github.com/moby/buildkit/util/entitlements
 github.com/moby/buildkit/util/flightcontrol
 github.com/moby/buildkit/util/gitutil
 github.com/moby/buildkit/util/grpcerrors
+github.com/moby/buildkit/util/imageutil
+github.com/moby/buildkit/util/leaseutil
 github.com/moby/buildkit/util/progress
+github.com/moby/buildkit/util/progress/progressui
+github.com/moby/buildkit/util/progress/progresswriter
 github.com/moby/buildkit/util/resolver/config
 github.com/moby/buildkit/util/resolver/limited
 github.com/moby/buildkit/util/resolver/retryhandler
@@ -13061,13 +13066,16 @@ github.com/moby/buildkit/util/testutil
 github.com/moby/buildkit/util/testutil/containerd
 github.com/moby/buildkit/util/testutil/dockerd
 github.com/moby/buildkit/util/testutil/echoserver
+github.com/moby/buildkit/util/testutil/helpers
 github.com/moby/buildkit/util/testutil/httpserver
 github.com/moby/buildkit/util/testutil/integration
+github.com/moby/buildkit/util/testutil/workers
 github.com/moby/buildkit/util/tracing/otlptracegrpc
 github.com/moby/buildkit/util/wildcard
 github.com/moby/buildkit/version
 # github.com/moby/docker-image-spec v1.3.1
 ## explicit; go 1.18
+github.com/moby/docker-image-spec/specs-go/v1
 # github.com/moby/go-archive v0.2.0
 ## explicit; go 1.23.0
 # github.com/moby/locker v1.0.1
@@ -16836,8 +16844,8 @@ github.com/tommy-muehle/go-mnd/v2/examples/good
 github.com/tommy-muehle/go-mnd/v2/tools/printer
 # github.com/tonistiigi/dchapes-mode v0.0.0-20250318174251-73d941a28323
 ## explicit; go 1.21
-# github.com/tonistiigi/fsutil v0.0.0-20250605211040-586307ad452f => github.com/tonistiigi/fsutil v0.0.0-20230629203738-36ef4d8c0dbb
-## explicit; go 1.19
+# github.com/tonistiigi/fsutil v0.0.0-20250605211040-586307ad452f => github.com/tonistiigi/fsutil v0.0.0-20240424095704-91a3fc46842c
+## explicit; go 1.20
 github.com/tonistiigi/fsutil
 github.com/tonistiigi/fsutil/types
 # github.com/tonistiigi/go-csvvalue v0.0.0-20240814133006-030d3b2625d0
@@ -16849,6 +16857,7 @@ github.com/tonistiigi/fsutil/types
 github.com/tonistiigi/units
 # github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab
 ## explicit; go 1.12
+github.com/tonistiigi/vt100
 # github.com/toqueteos/webbrowser v1.2.0
 ## explicit; go 1.12
 github.com/toqueteos/webbrowser
@@ -23711,7 +23720,7 @@ www.velocidex.com/golang/regparser
 # github.com/confluentinc/confluent-kafka-go/v2 => github.com/confluentinc/confluent-kafka-go/v2 v2.1.1
 # github.com/distribution/reference => github.com/distribution/reference v0.5.0
 # github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
-# github.com/docker/docker => github.com/docker/docker v25.0.6+incompatible
+# github.com/docker/docker => github.com/docker/docker v26.1.5+incompatible
 # github.com/getsentry/sentry-go => github.com/getsentry/sentry-go v0.13.0
 # github.com/go-resty/resty/v2 => github.com/go-resty/resty/v2 v2.16.3
 # github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.9
@@ -23723,7 +23732,7 @@ www.velocidex.com/golang/regparser
 # github.com/jackc/pgtype => github.com/jackc/pgtype v1.12.0
 # github.com/jarcoal/httpmock => github.com/jarcoal/httpmock v1.3.1
 # github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
-# github.com/moby/buildkit => github.com/moby/buildkit v0.12.2
+# github.com/moby/buildkit => github.com/moby/buildkit v0.13.2
 # github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.23.2
 # github.com/prometheus/client_model => github.com/prometheus/client_model v0.6.1
 # github.com/prometheus/common => github.com/prometheus/common v0.66.1
@@ -23733,7 +23742,7 @@ www.velocidex.com/golang/regparser
 # github.com/temporalio/features/harness/go => github.com/temporalio/features/harness/go v0.0.0-20231218231852-27c681667dae
 # github.com/temporalio/omes => github.com/temporalio/omes v0.0.0-20240701113332-211647aa9dae
 # github.com/testcontainers/testcontainers-go => github.com/testcontainers/testcontainers-go v0.31.0
-# github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20230629203738-36ef4d8c0dbb
+# github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20240424095704-91a3fc46842c
 # github.com/uber-go/tally/v4 => github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
 # github.com/vertica/vertica-sql-go => github.com/vertica/vertica-sql-go v1.2.2
 # go.opentelemetry.io/collector/config/configtls => go.opentelemetry.io/collector/config/configtls v1.31.0
