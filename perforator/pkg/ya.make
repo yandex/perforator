@@ -34,6 +34,7 @@ RECURSE(
     validateconfig
     weightedlru
     xelf
+    xio
     xlog
     xpflag
 )
