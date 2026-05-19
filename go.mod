@@ -235,7 +235,7 @@ require (
 	github.com/anatol/luks.go v0.0.0-20211210165108-5d9a15b4f614
 	github.com/andybalholm/brotli v1.2.0
 	github.com/andybalholm/cascadia v1.3.3
-	github.com/annetutil/gnetcli v1.2.20
+	github.com/annetutil/gnetcli v1.2.26
 	github.com/antchfx/htmlquery v1.3.2
 	github.com/antchfx/xpath v1.3.1
 	github.com/antham/ghokin/v3 v3.7.0
