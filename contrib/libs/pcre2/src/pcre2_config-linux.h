@@ -284,7 +284,7 @@ sure both macros are undefined; an emulation function will then be used. */
 /* Define to any non-zero number to enable support for SELinux compatible
    executable memory allocator in JIT. Note that this will have no effect
    unless SUPPORT_JIT is also defined. */
-#define SLJIT_PROT_EXECUTABLE_ALLOCATOR 1
+/* #undef SLJIT_PROT_EXECUTABLE_ALLOCATOR */
 
 /* Define to 1 if all of the C89 standard headers exist (not just the ones
    required in a freestanding environment). This macro is provided for
