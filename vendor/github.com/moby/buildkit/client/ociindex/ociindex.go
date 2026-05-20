@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"syscall"
 
 	"github.com/gofrs/flock"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -36,15 +37,18 @@ func (s StoreIndex) Read() (*ocispecs.Index, error) {
 	lock := flock.New(s.lockPath)
 	locked, err := lock.TryRLock()
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not lock %s", s.lockPath)
+		if !errors.Is(err, syscall.EPERM) && !errors.Is(err, syscall.EROFS) {
+			return nil, errors.Wrapf(err, "could not lock %s", s.lockPath)
+		}
+	} else {
+		if !locked {
+			return nil, errors.Errorf("could not lock %s", s.lockPath)
+		}
+		defer func() {
+			lock.Unlock()
+			os.RemoveAll(s.lockPath)
+		}()
 	}
-	if !locked {
-		return nil, errors.Errorf("could not lock %s", s.lockPath)
-	}
-	defer func() {
-		lock.Unlock()
-		os.RemoveAll(s.lockPath)
-	}()
 
 	b, err := os.ReadFile(s.indexPath)
 	if err != nil {
@@ -102,6 +106,7 @@ func (s StoreIndex) Put(tag string, desc ocispecs.Descriptor) error {
 		}
 	}
 
+	setOCIIndexDefaults(&idx)
 	if err = insertDesc(&idx, desc, tag); err != nil {
 		return err
 	}
@@ -145,6 +150,19 @@ func (s StoreIndex) GetSingle() (*ocispecs.Descriptor, error) {
 	return nil, nil
 }
 
+// setOCIIndexDefaults updates zero values in index to their default values.
+func setOCIIndexDefaults(index *ocispecs.Index) {
+	if index == nil {
+		return
+	}
+	if index.SchemaVersion == 0 {
+		index.SchemaVersion = 2
+	}
+	if index.MediaType == "" {
+		index.MediaType = ocispecs.MediaTypeImageIndex
+	}
+}
+
 // insertDesc puts desc to index with tag.
 // Existing manifests with the same tag will be removed from the index.
 func insertDesc(index *ocispecs.Index, desc ocispecs.Descriptor, tag string) error {
@@ -152,9 +170,6 @@ func insertDesc(index *ocispecs.Index, desc ocispecs.Descriptor, tag string) err
 		return nil
 	}
 
-	if index.SchemaVersion == 0 {
-		index.SchemaVersion = 2
-	}
 	if tag != "" {
 		if desc.Annotations == nil {
 			desc.Annotations = make(map[string]string)

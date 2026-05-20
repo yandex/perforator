@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v0.31.0)
+VERSION(v0.32.0)
 
 SRCS(
     config.go
@@ -51,7 +51,6 @@ GO_TEST_SRCS(
 )
 
 GO_XTEST_SRCS(
-    # config_test.go
     # container_test.go
     # docker_files_test.go
     # mounts_test.go

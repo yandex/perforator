@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v0.31.0)
+VERSION(v0.32.0)
 
 SRCS(
     network.go

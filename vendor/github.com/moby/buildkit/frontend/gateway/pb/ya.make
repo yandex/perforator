@@ -2,13 +2,14 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.13.2)
+VERSION(v0.18.2)
 
 SRCS(
     caps.go
     exit.go
     gateway.pb.go
-    generate.go
+    gateway_grpc.pb.go
+    gateway_vtproto.pb.go
 )
 
 END()

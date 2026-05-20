@@ -1,0 +1,11 @@
+GO_LIBRARY()
+
+LICENSE(BSD-3-Clause)
+
+VERSION(v0.6.1-0.20240319094008-0393e58bdf10)
+
+SRCS(
+    timestamp_vtproto.pb.go
+)
+
+END()

@@ -2,15 +2,16 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.13.2)
+VERSION(v0.18.2)
 
 SRCS(
     attr.go
     caps.go
     const.go
-    generate.go
     json.go
+    ops.go
     ops.pb.go
+    ops_vtproto.pb.go
     platform.go
 )
 

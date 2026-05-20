@@ -2,11 +2,10 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v26.1.5+incompatible)
+VERSION(v27.5.1+incompatible)
 
 SRCS(
     client.go
-    configs.go
     error_response.go
     error_response_ext.go
     graph_driver_data.go
@@ -18,7 +17,6 @@ SRCS(
     plugin_mount.go
     plugin_responses.go
     port.go
-    stats.go
     types.go
     types_deprecated.go
 )
@@ -26,6 +24,7 @@ SRCS(
 END()
 
 RECURSE(
+    auxprogress
     blkiodev
     checkpoint
     container

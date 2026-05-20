@@ -294,7 +294,7 @@ require (
 	github.com/boombuler/barcode v1.0.1
 	github.com/bradfitz/gomemcache v0.0.0-20230611145640-acc696258285
 	github.com/brianvoe/gofakeit/v6 v6.28.0
-	github.com/bufbuild/buf v1.30.0
+	github.com/bufbuild/buf v1.31.0
 	github.com/bufbuild/protocompile v0.14.1
 	github.com/buger/goterm v1.0.4
 	github.com/buger/jsonparser v1.1.1
@@ -1417,7 +1417,7 @@ require (
 	github.com/bsm/sarama-cluster v2.1.15+incompatible // indirect
 	github.com/bsphere/le_go v0.0.0-20200109081728-fc06dab2caa8 // indirect
 	github.com/bufbuild/protovalidate-go v0.9.2 // indirect
-	github.com/bufbuild/protoyaml-go v0.1.8 // indirect
+	github.com/bufbuild/protoyaml-go v0.1.9 // indirect
 	github.com/bugsnag/bugsnag-go v1.0.5-0.20150529004307-13fd6b8acda0 // indirect
 	github.com/bugsnag/osext v0.0.0-20130617224835-0dd3f918b21b // indirect
 	github.com/bugsnag/panicwrap v1.3.4 // indirect
@@ -2688,6 +2688,7 @@ exclude (
 	github.com/docker/docker/api v1.54.0-rc.1
 	github.com/docker/docker/api v1.54.0
 	github.com/docker/docker/api v1.54.1
+	github.com/docker/docker/api v1.54.2
 )
 
 replace github.com/insomniacslk/dhcp => github.com/insomniacslk/dhcp v0.0.0-20210120172423-cc9239ac6294
@@ -2787,11 +2788,11 @@ replace github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.2
 replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
 
 // https://st.yandex-team.ru/CONTRIB-3687
-replace github.com/docker/docker => github.com/docker/docker v26.1.5+incompatible
+replace github.com/docker/docker => github.com/docker/docker v27.5.1+incompatible
 
 replace github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
 
-replace github.com/testcontainers/testcontainers-go => github.com/testcontainers/testcontainers-go v0.31.0
+replace github.com/testcontainers/testcontainers-go => github.com/testcontainers/testcontainers-go v0.32.0
 
 replace github.com/grpc-ecosystem/go-grpc-middleware/v2 => github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
 
@@ -2809,9 +2810,9 @@ replace github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
 
 replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 
-replace github.com/moby/buildkit => github.com/moby/buildkit v0.13.2
+replace github.com/moby/buildkit => github.com/moby/buildkit v0.18.2
 
-replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20240424095704-91a3fc46842c
+replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 
 replace github.com/google/go-tpm-tools => github.com/google/go-tpm-tools v0.4.2
 

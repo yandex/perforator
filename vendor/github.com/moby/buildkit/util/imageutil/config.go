@@ -10,10 +10,10 @@ import (
 	"github.com/containerd/containerd/content"
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/leases"
-	"github.com/containerd/containerd/platforms"
 	"github.com/containerd/containerd/reference"
 	"github.com/containerd/containerd/remotes"
 	"github.com/containerd/containerd/remotes/docker"
+	"github.com/containerd/platforms"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	srctypes "github.com/moby/buildkit/source/types"
 	"github.com/moby/buildkit/util/contentutil"
@@ -115,7 +115,7 @@ func Config(ctx context.Context, str string, resolver remotes.Resolver, cache Co
 	}
 
 	if desc.MediaType == images.MediaTypeDockerSchema1Manifest {
-		dgst, dt, err := readSchema1Config(ctx, ref.String(), desc, fetcher, cache)
+		dgst, dt, err := readSchema1Config(ctx, desc, fetcher)
 		return dgst, dt, err
 	}
 
