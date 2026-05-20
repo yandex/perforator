@@ -44,9 +44,9 @@ func parseCompileCommands(ccJsonPath string) (jdkInfo, error) {
 
 	var sourceRoot string
 	for _, cc := range compileCommands {
-		if strings.Contains(cc.File, "share/oops/method.cpp") {
+		if strings.Contains(cc.File, "share/runtime/abstract_vm_version.cpp") {
 			if cmd != "" {
-				return jdkInfo{}, fmt.Errorf("found more than file matching share/oops/method.cpp")
+				return jdkInfo{}, fmt.Errorf("found more than file matching share/runtime/abstract_vm_version.cpp")
 			}
 			cmd = cc.Command
 			sourceRoot = path.Join(cc.Directory, "../..")
@@ -112,6 +112,7 @@ var headers = []string{
 	"src/hotspot/share/runtime/frame.hpp",
 	"src/hotspot/share/code/codeCache.hpp",
 	"src/hotspot/share/runtime/vmStructs.hpp",
+	"src/hotspot/share/runtime/abstract_vm_version.hpp",
 }
 
 func writeHeader(w io.Writer, jdkInfo jdkInfo) error {

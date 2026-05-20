@@ -36,7 +36,7 @@ TMaybe<TAccessTSSInfo> ParseAccessTSSInfoImpl(
         symbolLocation.Size = pthreadGetspecific.Size;
     }
 
-    auto bytecode = NPerforator::NELF::RetrieveContentFromTextSection(elf, symbolLocation);
+    auto bytecode = NPerforator::NELF::RetrieveContentFromSection(elf, symbolLocation, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }

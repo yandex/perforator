@@ -189,14 +189,9 @@ func (r *Registry) OnBinaryDiscovery(ctx context.Context, binaryID uint64, build
 	}
 	switch analysis.Jvm.Status {
 	case jvm.JvmAnalysis_STATUS_OK:
-		jdkVersion := "25"
+		jdkVersion := analysis.Jvm.Version
 		var cheatSheetResourceName string
-		isMinimal := true
-		if isMinimal {
-			cheatSheetResourceName = fmt.Sprintf("jvm-cheatsheets/min/jdk%s.txtpb", jdkVersion)
-		} else {
-			cheatSheetResourceName = fmt.Sprintf("jvm-cheatsheets/normal/jdk%s.txtpb", jdkVersion)
-		}
+		cheatSheetResourceName = fmt.Sprintf("jvm-cheatsheets/jdk%d.txtpb", jdkVersion)
 
 		rawStaticData := resource.Get(cheatSheetResourceName)
 		if rawStaticData == nil {
@@ -215,7 +210,7 @@ func (r *Registry) OnBinaryDiscovery(ctx context.Context, binaryID uint64, build
 		r.cheatsheets[binaryID] = cheatSheet
 		r.cheatsheetsMu.Unlock()
 
-		r.l.Info(ctx, "Assigning jvm config", log.String("binary_id", buildID), log.Any("config", cheatSheet))
+		r.l.Info(ctx, "Assigning jvm config", log.String("binary_id", buildID), log.Any("config", cheatSheet), log.String("cheatsheet", cheatSheetResourceName))
 		err = r.installBinaryConfig(binaryID, cheatSheet)
 		if err != nil {
 			// TODO: improve error handling

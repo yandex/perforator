@@ -7,6 +7,8 @@
 
 #include <contrib/libs/protobuf/src/google/protobuf/text_format.h>
 
+#include <util/stream/file.h>
+
 #include <dlfcn.h>
 
 #include <string>
@@ -32,7 +34,7 @@ NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath) {
     std::unique_ptr<void, TDeleter> handle(rawHandle);
 
     auto GetSym = [&](const std::string& sym) {
-        void* addr = dlsym(handle.get(), sym.c_str());
+        const void* addr = dlsym(handle.get(), sym.c_str());
         if (addr == nullptr) {
             char* msg = dlerror();
             throw yexception() << "failed to load symbol " << sym << ": " << msg;
@@ -47,6 +49,14 @@ NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath) {
     return NPerforator::NLinguist::NJvm::ProcessDynamicLinkedJVM(addresses);
 }
 
+void Write(NPerforator::NBinaryProcessing::NJvm::Cheatsheet cheatsheet, const TString& path) {
+    TProtoStringType repr;
+    google::protobuf::TextFormat::PrintToString(cheatsheet, &repr);
+    TUnbufferedFileOutput out{path};
+    out << repr << Endl;
+    out.Finish();
+}
+
 }
 
 int main(int argc, char** argv) {
@@ -54,25 +64,25 @@ int main(int argc, char** argv) {
     using namespace NPerforator::NLinguist::NJvm;
 
     NLastGetopt::TOpts opts;
-    opts.AddLongOption("mode").Required().Choices({"for-normal", "for-minimal"});
-    opts.AddLongOption("jvm-path").Help("Path to libjvm.so");
+    opts.AddLongOption("jvm-path").Required().Help("Path to libjvm.so");
+    opts.AddLongOption("out-dir").DefaultValue("..").Help("output directory");
 
 
     NLastGetopt::TOptsParseResult parsed{&opts, argc, argv};
 
+    TString out = parsed.Get("out-dir");
+    TString libjvmPath = parsed.Get("jvm-path");
+
     TJvmAnalysis spec = NPerforator::NLinguist::NJvm::ProcessJVMHeaders();
-    if ("for-minimal"s == parsed.Get("mode")) {
-        const char* path = parsed.Get("jvm-path");
-        if (path == nullptr) {
-            throw yexception() << "--jvm-path is required when using for-minimal mode";
-        }
-        spec.Cheatsheet.MergeFrom(DumpDynamic(path).Cheatsheet);
-    } else if ("for-normal"s != parsed.Get("mode")) {
-        Y_ABORT();
-    }
 
-    TProtoStringType repr;
-    google::protobuf::TextFormat::PrintToString(spec.Cheatsheet, &repr);
+    int version = spec.Version;
 
-    Cout << repr << Endl;
+    TJvmAnalysis dynamic = DumpDynamic(libjvmPath);
+
+    Cout << "Writing cheatsheets for JDK " << version << Endl;
+
+    Write(spec.Cheatsheet, out + std::format("/jdk{}.txtpb", version));
+
+    spec.Cheatsheet.MergeFrom(dynamic.Cheatsheet);
+    Write(spec.Cheatsheet, out + std::format("/jdk{}-min.txtpb", version));
 }

@@ -21,10 +21,10 @@ struct TLocation {
 
 namespace NSections {
 
-constexpr TStringBuf kTextSectionName = ".text";
-constexpr TStringBuf kDataSectionName = ".data";
-constexpr TStringBuf kBssSectionName = ".bss";
-constexpr TStringBuf kRoDataSectionName = ".rodata";
+constexpr TStringBuf kText = ".text";
+constexpr TStringBuf kData = ".data";
+constexpr TStringBuf kBss = ".bss";
+constexpr TStringBuf kRoData = ".rodata";
 
 } // namespace NPerforator::NELF::NSections
 
@@ -122,16 +122,6 @@ TMaybe<TConstArrayRef<ui8>> RetrieveContentFromSection(
     const llvm::object::ObjectFile& file,
     const TLocation& location,
     TStringBuf sectionName
-);
-
-TMaybe<TConstArrayRef<ui8>> RetrieveContentFromTextSection(
-    const llvm::object::ObjectFile& file,
-    const TLocation& location
-);
-
-TMaybe<TConstArrayRef<ui8>> RetrieveContentFromRodataSection(
-    const llvm::object::ObjectFile& file,
-    const TLocation& location
 );
 
 bool IsElfFile(const llvm::object::ObjectFile& file);

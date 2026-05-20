@@ -8,6 +8,8 @@ namespace NPerforator::NLinguist::NJvm {
 
 struct TJvmAnalysis {
     NPerforator::NBinaryProcessing::NJvm::Cheatsheet Cheatsheet;
+
+    ui32 Version = 0;
 };
 
 }

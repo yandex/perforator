@@ -152,6 +152,7 @@ NPerforator::NBinaryProcessing::NJvm::JvmAnalysis BuildJvmAnalysis(const llvm::o
             return proto;
         }
         *proto.mutable_cheatsheet() = std::move(output->Cheatsheet);
+        proto.set_version(output->Version);
         proto.set_status(NJvm::JvmAnalysis::STATUS_OK);
     } catch (const std::exception& e) {
         proto.set_error_message(e.what());

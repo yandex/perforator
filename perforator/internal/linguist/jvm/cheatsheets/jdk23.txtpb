@@ -1,10 +1,13 @@
 code_blob_code_offset: 36
 code_blob_data_offset: 40
-code_blob_name: 8
+code_blob_name: 16
 code_blob_frame_size: 44
+code_blob_kind: 52
+code_blob_kind_nmethod: 1
 code_heap_log2_segment_size: 248
 code_heap_memory: 0
 code_heap_segmap: 112
+code_heap_next_segment: 256
 heap_block_header_length: 0
 heap_block_header_used: 4
 heap_block_header: 0
@@ -14,7 +17,7 @@ constant_pool_base_offset: 72
 const_method_constants: 8
 const_method_name_index: 36
 method_const_method: 8
-nmethod_method: 80
+nmethod_method: 72
 growable_array_data: 8
 growable_array_length: 0
 klass_name: 24
@@ -24,9 +27,6 @@ symbol_body: 6
 symbol_length: 4
 virtual_space_low: 16
 virtual_space_high: 24
-code_blob_kind: 56
-code_blob_kind_nmethod: 1
-code_heap_next_segment: 256
 frame_return_addr_offset: 1
 frame_interpreter_frame_method_offset: -3
 

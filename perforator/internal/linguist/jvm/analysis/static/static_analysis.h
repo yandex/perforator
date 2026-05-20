@@ -12,9 +12,9 @@ namespace NPerforator::NLinguist::NJvm {
 // See https://github.com/openjdk/jdk/blob/89f9268ed7c2cb86891f23a10482cd459454bd32/src/hotspot/share/runtime/vmStructs.hpp#L34
 struct TVMStructsAddresses {
     constexpr static std::string_view StructsAddressSym = "gHotSpotVMStructs";
-    void* StructsAddress;
+    const void* StructsAddress;
     constexpr static std::string_view TypesAddressSym = "gHotSpotVMTypes";
-    void* TypesAddress;
+    const void* TypesAddress;
 };
 
 TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses);

@@ -128,8 +128,8 @@ TMaybe<TPhpVersion> TryExtractPhpVersion(const llvm::object::ObjectFile& file, u
     NPerforator::NELF::TLocation phpVersionLocation{.Address = versionAddress,
                                                     .Size = kPhpMaxVersionLength};
 
-    auto phpVersionContent = NPerforator::NELF::RetrieveContentFromRodataSection(
-        file, phpVersionLocation);
+    auto phpVersionContent = NPerforator::NELF::RetrieveContentFromSection(
+        file, phpVersionLocation, NELF::NSections::kRoData);
     if (!phpVersionContent) {
         return Nothing();
     }
@@ -148,7 +148,7 @@ TryParsePhpVersion(const llvm::object::ObjectFile& file,
     }
 
     TMaybe<TConstArrayRef<ui8>> bytecode =
-        NPerforator::NELF::RetrieveContentFromTextSection(file, symbol);
+        NPerforator::NELF::RetrieveContentFromSection(file, symbol, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }
@@ -169,7 +169,7 @@ TryParseZmInfoPhpCore(const llvm::object::ObjectFile& file,
     }
 
     TMaybe<TConstArrayRef<ui8>> bytecode =
-        NPerforator::NELF::RetrieveContentFromTextSection(file, symbol);
+        NPerforator::NELF::RetrieveContentFromSection(file, symbol, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }
@@ -184,7 +184,7 @@ TryParseZmInfoPhpCore(const llvm::object::ObjectFile& file,
 
 TMaybe<TPhpVersion>
 TryFindVersionInRodata(const llvm::object::ObjectFile& file) {
-    TMaybe<llvm::object::SectionRef> rodataSection = NELF::GetSection(file, NPerforator::NELF::NSections::kRoDataSectionName);
+    TMaybe<llvm::object::SectionRef> rodataSection = NELF::GetSection(file, NPerforator::NELF::NSections::kRoData);
     if (!rodataSection) {
         return Nothing();
     }
@@ -255,7 +255,7 @@ TMaybe<EZendVmKind> TZendPhpAnalyzer::ParseZendVmKind() {
         zendVmKindSymbol.Size = 32;
     }
 
-    auto bytecode = NPerforator::NELF::RetrieveContentFromTextSection(File_, zendVmKindSymbol);
+    auto bytecode = NPerforator::NELF::RetrieveContentFromSection(File_, zendVmKindSymbol, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }

@@ -8,8 +8,11 @@ namespace NPerforator::NLinguist::NJvm {
 
 struct TOffsets {
     size_t CodeHeapNextSegmentOffset;
+
     size_t CodeBlobKindOffset;
     unsigned char CodeBlobKindNmethod;
+
+    int Version;
 
     // following two fields are offsets within actual stack frames, not within frame class
     ssize_t StackFrameReturnAddressOffset;

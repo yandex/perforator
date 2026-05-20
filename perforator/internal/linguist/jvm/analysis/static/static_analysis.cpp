@@ -44,12 +44,14 @@ TJvmAnalysis ProcessJVMHeaders() {
     analysis.Cheatsheet.set_frame_return_addr_offset(offsets.StackFrameReturnAddressOffset);
     analysis.Cheatsheet.set_frame_interpreter_frame_method_offset(offsets.InterpreterStackFrameMethodOffset);
 
+    analysis.Version = static_cast<ui32>(offsets.Version);
+
     return analysis;
 }
 
 TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses) {
-    auto* structs = *reinterpret_cast<const THotSpotStructEntry**>(addresses.StructsAddress);
-    auto* types = *reinterpret_cast<const THotSpotTypeEntry**>(addresses.TypesAddress);
+    const auto* structs = *reinterpret_cast<THotSpotStructEntry const* const*>(addresses.StructsAddress);
+    const auto* types = *reinterpret_cast<THotSpotTypeEntry const* const*>(addresses.TypesAddress);
     size_t structsLength = StructsLength(structs);
     size_t typesLength = TypesLength(types);
     TJvmMetadata metadata{
@@ -57,6 +59,7 @@ TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses) {
         std::span<const THotSpotTypeEntry>(types, typesLength)
     };
     TJvmAnalysis analysis = ProcessOffsetRegistry(metadata, TOffsetRegistryAnalysisOptions{});
+    analysis.Version = -1;
     return analysis;
 }
 

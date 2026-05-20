@@ -56,6 +56,9 @@ message Cheatsheet {
 message JvmAnalysis {
     Cheatsheet cheatsheet = 1;
 
+    uint32 version = 4;
+    string version_string = 5;
+
     enum Status {
         STATUS_NOT_JVM = 0;
         STATUS_OK = 1;

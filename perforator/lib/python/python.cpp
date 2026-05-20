@@ -71,7 +71,7 @@ TMaybe<TPythonVersion> TryParseVersionFromPyVersionSymbol(
         return Nothing();
     }
 
-    auto content = NPerforator::NELF::RetrieveContentFromRodataSection(file, pyVersion);
+    auto content = NPerforator::NELF::RetrieveContentFromSection(file, pyVersion, NELF::NSections::kRoData);
     if (!content) {
         return Nothing();
     }
@@ -132,7 +132,7 @@ TMaybe<TPythonVersion> TryParsePyGetVersion(
         symbol.Size = 64;
     }
 
-    auto bytecode = NPerforator::NELF::RetrieveContentFromTextSection(file, symbol);
+    auto bytecode = NPerforator::NELF::RetrieveContentFromSection(file, symbol, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }
@@ -146,7 +146,7 @@ TMaybe<TPythonVersion> TryParsePyGetVersion(
         .Address = *versionAddress,
         .Size = 10
     };
-    auto pyVersionContent = NPerforator::NELF::RetrieveContentFromRodataSection(file, pyVersionLocation);
+    auto pyVersionContent = NPerforator::NELF::RetrieveContentFromSection(file, pyVersionLocation, NELF::NSections::kRoData);
     if (!pyVersionContent) {
         return Nothing();
     }
@@ -235,7 +235,7 @@ TMaybe<NAsm::ThreadImageOffsetType> TPythonAnalyzer::ParseTLSPyThreadState() {
         getter.Size = 100;
     }
 
-    auto bytecode = NPerforator::NELF::RetrieveContentFromTextSection(File_, getter);
+    auto bytecode = NPerforator::NELF::RetrieveContentFromSection(File_, getter, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }
@@ -286,7 +286,7 @@ TMaybe<ui64> TPythonAnalyzer::ParseAutoTSSKeyAddress() {
         pyGILStateEnsureSymbol.Size = 100;
     }
 
-    auto bytecode = NPerforator::NELF::RetrieveContentFromTextSection(File_, pyGILStateEnsureSymbol);
+    auto bytecode = NPerforator::NELF::RetrieveContentFromSection(File_, pyGILStateEnsureSymbol, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }
@@ -318,7 +318,7 @@ TMaybe<ui64> TPythonAnalyzer::ParseInterpHeadAddress() {
         pyInterpreterStateHeadSymbol.Size = 30;
     }
 
-    auto bytecode = NPerforator::NELF::RetrieveContentFromTextSection(File_, pyInterpreterStateHeadSymbol);
+    auto bytecode = NPerforator::NELF::RetrieveContentFromSection(File_, pyInterpreterStateHeadSymbol, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }

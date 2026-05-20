@@ -101,20 +101,6 @@ TMaybe<TConstArrayRef<ui8>> RetrieveContentFromSection(
     ));
 }
 
-TMaybe<TConstArrayRef<ui8>> RetrieveContentFromTextSection(
-    const llvm::object::ObjectFile& file,
-    const TLocation& location
-) {
-    return RetrieveContentFromSection(file, location, NSections::kTextSectionName);
-}
-
-TMaybe<TConstArrayRef<ui8>> RetrieveContentFromRodataSection(
-    const llvm::object::ObjectFile& file,
-    const TLocation& location
-) {
-    return RetrieveContentFromSection(file, location, NSections::kRoDataSectionName);
-}
-
 bool IsElfFile(const llvm::object::ObjectFile &file) {
 #define TRY_ELF_TYPE(ELFT)                 \
 if (NPrivate::IsElfFileImpl<ELFT>(file)) { \
