@@ -48,6 +48,7 @@ func NewCore(enc zapcore.Encoder, ws zapcore.WriteSyncer, enab zapcore.LevelEnab
 		LevelEnabler: enab,
 		enc:          enc,
 		w:            w,
+		options:      options,
 	}
 }
 
