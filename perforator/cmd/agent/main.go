@@ -42,6 +42,7 @@ var (
 
 	dumpElf          bool
 	debug            bool
+	excludeSelf      bool
 	configPath       string
 	cgroupConfigPath string
 	cgroups          []string
@@ -54,6 +55,7 @@ var (
 func init() {
 	rootCmd.Flags().BoolVarP(&dumpElf, "dumpelf", "d", false, "dump eBPF ELF to stdout and exit")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "D", false, "force debug mode")
+	rootCmd.Flags().BoolVar(&excludeSelf, "exclude-self", false, "do not collect profiles for the agent itself")
 	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", "path to profiler config")
 	rootCmd.Flags().StringVar(&cgroupConfigPath, "cgroups", "", "path to cgroups config")
 	rootCmd.Flags().StringSliceVarP(&cgroups, "cgroup", "G", nil, "name of cgroup to trace")
@@ -176,10 +178,12 @@ func run() error {
 	}
 
 	profilerOpts := []profiler.Option{}
-	profilerOpts = append(profilerOpts, profiler.WithSelfTarget(map[string]string{
-		"service": "perforator",
-		"host":    hostname,
-	}))
+	if !excludeSelf {
+		profilerOpts = append(profilerOpts, profiler.WithSelfTarget(map[string]string{
+			"service": "perforator",
+			"host":    hostname,
+		}))
+	}
 
 	for _, cgroupConfig := range cgroupsConfig.Cgroups {
 		profilerOpts = append(profilerOpts, profiler.WithCgroupTarget(cgroupConfig))
