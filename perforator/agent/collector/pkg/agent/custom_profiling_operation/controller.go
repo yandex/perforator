@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"golang.org/x/exp/maps"
@@ -17,6 +18,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
+	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
 )
@@ -82,6 +84,97 @@ func buildIDString(id models.OperationID) string {
 	return fmt.Sprintf("cpo_%s", string(id))
 }
 
+func checkSymbols(path string, symbolNames ...string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to open %s: %w", path, err)
+	}
+	defer file.Close()
+
+	offsets, err := xelf.GetSymbolFileOffsets(file, symbolNames...)
+	if err != nil {
+		return fmt.Errorf("failed to get symbol offsets for %s: %w", path, err)
+	}
+
+	for _, name := range symbolNames {
+		if _, ok := offsets[name]; !ok {
+			return fmt.Errorf("symbol %s not found in %s", name, path)
+		}
+	}
+	return nil
+}
+
+func procRoot(pid linux.CurrentNamespacePID) string {
+	return fmt.Sprintf("/proc/%d/root", pid)
+}
+
+func resolveUprobeBinaryPaths(pid linux.CurrentNamespacePID, binaryLocation *cpo_proto.BinaryLocation) ([]string, error) {
+	switch loc := binaryLocation.Location.(type) {
+	case *cpo_proto.BinaryLocation_Path:
+		return []string{loc.Path}, nil
+	case *cpo_proto.BinaryLocation_ChrootPath:
+		return []string{filepath.Join(procRoot(pid), loc.ChrootPath)}, nil
+	case *cpo_proto.BinaryLocation_Detector:
+		return resolveDetectorBinaryPaths(pid, loc.Detector)
+	default:
+		return nil, fmt.Errorf("unsupported binary location type: %T", loc)
+	}
+}
+
+func resolveDetectorBinaryPaths(pid linux.CurrentNamespacePID, detector *cpo_proto.BinaryDetector) ([]string, error) {
+	switch d := detector.Detector.(type) {
+	case *cpo_proto.BinaryDetector_Mapped:
+		nsPaths, err := findLibrariesByName(pid, d.Mapped.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find libraries: %w", err)
+		}
+		if len(nsPaths) == 0 {
+			return nil, fmt.Errorf("library %q not found in process mappings", d.Mapped.Name)
+		}
+
+		root := procRoot(pid)
+		paths := make([]string, 0, len(nsPaths))
+		for _, nsPath := range nsPaths {
+			paths = append(paths, filepath.Join(root, nsPath))
+		}
+		return paths, nil
+	default:
+		return nil, fmt.Errorf("unsupported binary detector type: %T", detector.Detector)
+	}
+}
+
+func symbolFromELFFileLocation(loc *cpo_proto.ELFFileLocation) (string, error) {
+	if loc == nil || loc.Location == nil {
+		return "", errors.New("elf file location is not set")
+	}
+
+	switch l := loc.Location.(type) {
+	case *cpo_proto.ELFFileLocation_Symbol:
+		return l.Symbol, nil
+	default:
+		return "", fmt.Errorf("unsupported elf file location type: %T", loc.Location)
+	}
+}
+
+func (o *operationController) attachUprobe(ctx context.Context, cfg uprobe.Config) error {
+	uprobeInstance := o.profiler.UprobeManager().Create(cfg)
+	err := uprobeInstance.Attach()
+	if err != nil {
+		closeErr := uprobeInstance.Close()
+		if closeErr != nil {
+			o.l.Error(ctx, "Failed to close uprobe", log.Error(closeErr))
+		}
+		return err
+	}
+
+	o.l.Info(ctx, "Attached uprobe",
+		log.String("path", cfg.Path),
+		log.String("symbol", cfg.Symbol),
+	)
+	o.uprobes = append(o.uprobes, uprobeInstance)
+	return nil
+}
+
 func (o *operationController) createUprobesForEvent(ctx context.Context, eventSettings *cpo_proto.EventSettings_Uprobe, target *cpo_proto.Target) error {
 	baseUprobeConfig := uprobe.Config{
 		OutputProfileName: buildIDString(o.id),
@@ -97,35 +190,37 @@ func (o *operationController) createUprobesForEvent(ctx context.Context, eventSe
 		baseUprobeConfig.Pid = currentNamespacePID
 	}
 
-	switch location := eventSettings.Uprobe.BinaryLocation.Location.(type) {
-	case *cpo_proto.BinaryLocation_Path:
-		baseUprobeConfig.Path = location.Path
-	case *cpo_proto.BinaryLocation_ChrootPath:
-		baseUprobeConfig.Path = filepath.Join(fmt.Sprintf("/proc/%d/root", baseUprobeConfig.Pid), location.ChrootPath)
+	paths, err := resolveUprobeBinaryPaths(baseUprobeConfig.Pid, eventSettings.Uprobe.BinaryLocation)
+	if err != nil {
+		return err
 	}
 
-	uprobeConfigs := []uprobe.Config{}
+	symbolNames := make([]string, 0, len(eventSettings.Uprobe.ELFTarget))
 	for _, elfTarget := range eventSettings.Uprobe.ELFTarget {
-		uprobeConfig := baseUprobeConfig
-		switch loc := elfTarget.ELFFileLocation.Location.(type) {
-		case *cpo_proto.ELFFileLocation_Symbol:
-			uprobeConfig.Symbol = loc.Symbol
+		symbolName, err := symbolFromELFFileLocation(elfTarget.ELFFileLocation)
+		if err != nil {
+			return err
 		}
-		uprobeConfigs = append(uprobeConfigs, uprobeConfig)
+		symbolNames = append(symbolNames, symbolName)
 	}
 
-	for _, uprobeConfig := range uprobeConfigs {
-		uprobe := o.profiler.UprobeManager().Create(uprobeConfig)
-		err := uprobe.Attach()
+	for _, path := range paths {
+		err := checkSymbols(path, symbolNames...)
 		if err != nil {
-			closeErr := uprobe.Close()
-			if closeErr != nil {
-				o.l.Error(ctx, "Failed to close uprobe", log.Error(closeErr))
-			}
-			return fmt.Errorf("failed to attach uprobe: %w", err)
+			return err
 		}
-		o.l.Info(ctx, "Attached uprobe", log.Error(err))
-		o.uprobes = append(o.uprobes, uprobe)
+
+		// TODO: replace with multi uprobe
+		for _, symbolName := range symbolNames {
+			uprobeConfig := baseUprobeConfig
+			uprobeConfig.Path = path
+			uprobeConfig.Symbol = symbolName
+
+			err = o.attachUprobe(ctx, uprobeConfig)
+			if err != nil {
+				return fmt.Errorf("failed to attach uprobe to %s:%s: %w", path, symbolName, err)
+			}
+		}
 	}
 
 	return nil

@@ -31,8 +31,18 @@ func validateUprobeSettings(uprobeSettings *cpo_proto.UprobeSettings) error {
 			return errors.New("binary location namespaced path is not set")
 		}
 	case *cpo_proto.BinaryLocation_Detector:
-		// this requires scanning some binaries to find the necessary one
-		return errors.New("binary detector is not supported yet")
+		detector := uprobeSettings.BinaryLocation.GetDetector()
+		if detector == nil || detector.Detector == nil {
+			return errors.New("binary detector is not set")
+		}
+		switch d := detector.Detector.(type) {
+		case *cpo_proto.BinaryDetector_Mapped:
+			if d.Mapped.GetName() == "" {
+				return errors.New("binary name is not set")
+			}
+		default:
+			return fmt.Errorf("unsupported binary detector type: %T", detector.Detector)
+		}
 	}
 
 	for _, elfTarget := range uprobeSettings.ELFTarget {
