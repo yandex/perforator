@@ -14451,6 +14451,17 @@ github.com/pion/dtls/v2/pkg/protocol/recordlayer
 # github.com/pion/dtls/v3 v3.0.8
 ## explicit; go 1.21
 github.com/pion/dtls/v3
+github.com/pion/dtls/v3/e2e
+github.com/pion/dtls/v3/examples/dial/cid
+github.com/pion/dtls/v3/examples/dial/psk
+github.com/pion/dtls/v3/examples/dial/selfsign
+github.com/pion/dtls/v3/examples/dial/verify
+github.com/pion/dtls/v3/examples/listen/cid
+github.com/pion/dtls/v3/examples/listen/psk
+github.com/pion/dtls/v3/examples/listen/selfsign
+github.com/pion/dtls/v3/examples/listen/verify
+github.com/pion/dtls/v3/examples/listen/verify-brute-force-protection
+github.com/pion/dtls/v3/examples/util
 github.com/pion/dtls/v3/internal/ciphersuite
 github.com/pion/dtls/v3/internal/ciphersuite/types
 github.com/pion/dtls/v3/internal/closer

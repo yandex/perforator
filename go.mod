@@ -724,6 +724,7 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee
 	github.com/pingcap/parser v0.0.0-20210415081931-48e7f467fd74
 	github.com/pion/datachannel v1.5.10
+	github.com/pion/dtls/v3 v3.0.8
 	github.com/pion/ice/v4 v4.0.13
 	github.com/pion/interceptor v0.1.42
 	github.com/pion/logging v0.2.4
@@ -2215,7 +2216,6 @@ require (
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20260219190905-9b9281fa8d6d // indirect
 	github.com/pingcap/tipb v0.0.0-20220825135535-d6f1aebebabd // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
-	github.com/pion/dtls/v3 v3.0.8 // indirect
 	github.com/pion/ice/v2 v2.3.35 // indirect
 	github.com/pion/mdns v0.0.12 // indirect
 	github.com/pion/mdns/v2 v2.1.0 // indirect
