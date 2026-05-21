@@ -179,7 +179,7 @@ export class FlamegraphOffseter {
     }
 
     calcTopOffset(h: number) {
-        return this.reverse ? h * this.levelHeight : (this.maxVerticalRow * this.levelHeight) - (h + 1) * this.levelHeight;
+        return this.reverse ? h * this.levelHeight : (this.maxVerticalRow * this.levelHeight) - (h + 0) * this.levelHeight;
     }
 
     backpropagateOmittedEventCount(omittedOffsetCoordinates: Coordinate[]) {
@@ -517,7 +517,7 @@ export class FlamegraphOffseter {
 
 
     getTopOffset(offset: number) {
-        return this.reverse ? offset : ((this.maxVerticalRow * this.levelHeight) - offset);
+        return this.reverse ? offset : (((this.maxVerticalRow + 1) * this.levelHeight) - offset);
     }
 
     getCoordsByPosition: (x: number, y: number) => null | { h: number; i: number } = (x, y) => {
