@@ -845,7 +845,7 @@ require (
 	github.com/tidwall/sjson v1.2.5
 	github.com/tiktoken-go/tokenizer v0.7.0
 	github.com/timakin/bodyclose v0.0.0-20230421092635-574207250966
-	github.com/tink-crypto/tink-go/v2 v2.2.0
+	github.com/tink-crypto/tink-go/v2 v2.6.0
 	github.com/tinylib/msgp v1.5.0
 	github.com/tmccombs/hcl2json v0.5.0
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1
