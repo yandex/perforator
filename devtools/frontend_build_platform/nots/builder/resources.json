@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-05-14T17:01:24Z",
+    "created": "2026-05-21T12:14:20Z",
     "pr": {
-      "id": 13375052,
+      "id": 13487419,
       "author": "zaverden",
-      "summary": "feat(conf,builder): add libatomic to build for nodejs >=25"
+      "summary": "fix: do not add RECURSE if dir is present in RECURSE_FOR_TESTS"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12054220881"
+      "uri": "sbr:12133591356"
     },
     "darwin-arm64": {
-      "uri": "sbr:12054218197"
+      "uri": "sbr:12133587004"
     },
     "linux": {
-      "uri": "sbr:12054225366"
+      "uri": "sbr:12133599463"
     },
     "linux-aarch64": {
-      "uri": "sbr:12054223041"
+      "uri": "sbr:12133595415"
     }
   }
 }
