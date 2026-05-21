@@ -15,6 +15,7 @@ import { cutIdFromSelector, cutSpaceFromSelector, cutTimeFromSelector, parseTime
 
 import { areIntervalsEqual, type TimeInterval } from '../../TimeIntervalInput/TimeInterval';
 import { TimeIntervalInput as TimeIntervalInputRaw } from '../../TimeIntervalInput/TimeIntervalInput';
+import { MinimalHeader } from '../TaskHeader';
 
 import './EditableTaskQuery.scss';
 
@@ -27,6 +28,7 @@ interface EditableTaskQueryProps {
 }
 
 const TimeIntervalInput = React.memo(TimeIntervalInputRaw);
+
 
 export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, additionalHeaderItems, header, embed }) => {
     const spec = task?.Spec?.MergeProfiles;
@@ -139,7 +141,7 @@ export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, addi
     ), [handleCancel, handleSave, hasChanges]);
 
     if (!task || !time) {
-        return header;
+        return <MinimalHeader header={header} additionalHeaderItems={additionalHeaderItems}/>;
     }
 
     return (

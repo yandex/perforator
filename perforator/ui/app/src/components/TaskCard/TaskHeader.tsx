@@ -42,19 +42,10 @@ export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, embed, header }) =
         [handleInfoDialog, task, embed],
     );
     if (isDiff) {
-        return <div className={b('header')}>
-            {header}
-            <div className={b('additional-items')}>
-                <ShareButton className={b('header-button')} size="m" view={'full'} getUrl={() => location.href} />
-                <Button view="flat" className={b('header-button')} onClick={()=> {
-                    handleInfoDialog();
-                }}>
-                    <Icon data={CircleInfo}/>
-                Info
-                </Button>
-            </div>
+        return <>
+            <MinimalHeader header={header} additionalHeaderItems={additionalHeaderItems}/>
             <MetadataDialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} task={task}/>
-        </div>;
+        </>;
     }
 
     return <>
@@ -62,6 +53,20 @@ export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, embed, header }) =
         <MetadataDialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} task={task}/>
     </>;
 };
+
+interface MinimalHeaderProps {
+    header: React.ReactElement;
+    additionalHeaderItems?: React.ReactElement;
+}
+
+export const MinimalHeader: React.FC<MinimalHeaderProps> = ({ additionalHeaderItems, header }) => (
+    <div className={b('header')}>
+        {header}
+        <div className={b('additional-items')}>
+            {additionalHeaderItems}
+        </div>
+    </div>
+);
 
 type AdditionalHeaderItemsProps = {
     task: TaskResult | null;
@@ -72,14 +77,14 @@ type AdditionalHeaderItemsProps = {
 const isRawProfile = (task: TaskResult) => getFormat(task.Spec?.MergeProfiles?.Format) === 'RawProfile';
 
 const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onOpenInfoDialog, compact }) => {
+    const isMergeTask = 'MergeProfiles' in (task?.Spec ?? {});
     const spec = task?.Spec?.MergeProfiles;
     const query = spec?.Query;
-    const isDiff = isDiffTaskResult(task);
     const navigate = useNavigate();
     const items = [];
 
     if (task) {
-        if (!isDiff && !isRawProfile(task)) {
+        if (isMergeTask && !isRawProfile(task)) {
             items.push(
                 {
                     text: 'Get pprof',
@@ -91,7 +96,7 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
                 },
             );
         }
-        if (!isDiff) {
+        if (isMergeTask) {
             items.push({
                 text: 'Compare with',
                 action: () => {
@@ -109,7 +114,6 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
             <Icon data={CircleInfo}/>
                 Info
         </Button>
-        <DropdownMenu items={items}
-        />
+        {items.length > 0 ? <DropdownMenu items={items}/> : null}
     </>;
 };
