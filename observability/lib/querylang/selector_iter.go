@@ -2,6 +2,7 @@ package querylang
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -168,12 +169,23 @@ func (f *Selector) AddStringFieldInMatcher(field string, values ...string) {
 	})
 }
 
+type SupersetValues map[string][]Value
+
+func (v SupersetValues) AllFields() []string {
+	return slices.Collect(maps.Keys(v))
+}
+
+func (v SupersetValues) SupersetIsDefinedFor(field string) bool {
+	vals, ok := v[field]
+	return ok && vals != nil
+}
+
 // CandidateValues returns a superset of values for each field in Selector.
 // If result[field] is nil then the function failed to find a superset of
 // values.
 // If result[field] is empty slice, then the answer is empty set.
 // If result[field] not exists, then there's no such field in Selector.
-func (f *Selector) CandidateValues() map[string][]Value {
+func (f *Selector) CandidateValues() SupersetValues {
 	result := make(map[string][]Value)
 
 	// Find starting set
