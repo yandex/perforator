@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -67,7 +68,7 @@ func NewProcessCaches() *DefaultMap[uint32, ProcessCache] {
 func NewBuilder() *Builder {
 	ids := &ids{}
 	return &Builder{
-		profile: &profile.Profile{},
+		profile: NewProfile(),
 		caches: NewDefaultMap(func(k uint32) *ProcessCache {
 			return NewProcessCache(k, ids)
 		}, nil),
@@ -77,7 +78,7 @@ func NewBuilder() *Builder {
 
 func NewBuilderWithCaches(caches *DefaultMap[uint32, ProcessCache]) *Builder {
 	return &Builder{
-		profile:    &profile.Profile{},
+		profile:    NewProfile(),
 		caches:     caches,
 		ownsCaches: false,
 	}
@@ -120,7 +121,7 @@ func (b *Builder) resetMinMaxTimestamps() {
 	b.maxTimestamp = time.Time{}
 }
 
-func (b *Builder) Finish() *Profile {
+func (b *Builder) finishBase() *Profile {
 	defer b.resetMinMaxTimestamps()
 	finishedProfile := b.profile
 
@@ -136,19 +137,80 @@ func (b *Builder) Finish() *Profile {
 			Unit: st.Unit,
 		})
 	}
-	b.profile = &Profile{SampleType: sampleTypeCopy}
-
-	finishedProfile.PeriodType = &profile.ValueType{}
-	finishedCompactedProfile, err := merge.Merge([]*profile.Profile{finishedProfile})
-	if err != nil {
-		panic(err)
-	}
+	b.profile = &Profile{Profile: &profile.Profile{SampleType: sampleTypeCopy}}
 
 	if b.ownsCaches {
 		b.caches.Clear()
 	}
 
-	return finishedCompactedProfile
+	return finishedProfile
+}
+
+// FinishRaw finalizes the profile for yaprof format.
+func (b *Builder) FinishRaw() *Profile {
+	finishedProfile := b.finishBase()
+	populateProfileTables(finishedProfile)
+	return finishedProfile
+}
+
+func populateProfileTables(p *Profile) {
+	locations := make(map[uint64]*profile.Location)
+	mappings := make(map[uint64]*profile.Mapping)
+	functions := make(map[uint64]*profile.Function)
+
+	for _, sample := range p.Sample {
+		for _, location := range sample.Location {
+			if location == nil {
+				continue
+			}
+			locations[location.ID] = location
+			if location.Mapping != nil {
+				mappings[location.Mapping.ID] = location.Mapping
+			}
+			for _, line := range location.Line {
+				if line.Function != nil {
+					functions[line.Function.ID] = line.Function
+				}
+			}
+		}
+	}
+
+	p.Location = make([]*profile.Location, 0, len(locations))
+	for _, location := range locations {
+		p.Location = append(p.Location, location)
+	}
+	sort.Slice(p.Location, func(i, j int) bool {
+		return p.Location[i].ID < p.Location[j].ID
+	})
+
+	p.Mapping = make([]*profile.Mapping, 0, len(mappings))
+	for _, mapping := range mappings {
+		p.Mapping = append(p.Mapping, mapping)
+	}
+	sort.Slice(p.Mapping, func(i, j int) bool {
+		return p.Mapping[i].ID < p.Mapping[j].ID
+	})
+
+	p.Function = make([]*profile.Function, 0, len(functions))
+	for _, function := range functions {
+		p.Function = append(p.Function, function)
+	}
+	sort.Slice(p.Function, func(i, j int) bool {
+		return p.Function[i].ID < p.Function[j].ID
+	})
+}
+
+// Finish finalizes the profile for pprof format.
+func (b *Builder) Finish() *Profile {
+	finishedProfile := b.finishBase()
+	finishedProfile.PeriodType = &profile.ValueType{}
+
+	finishedCompactedProfile, err := merge.Merge([]*profile.Profile{finishedProfile.Profile})
+	if err != nil {
+		panic(err)
+	}
+
+	return &Profile{Profile: finishedCompactedProfile}
 }
 
 // Add should not be called if AddTimestampedSample was called.

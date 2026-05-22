@@ -134,7 +134,11 @@ func loadPerfProfile(path string) (*profile.Profile, error) {
 	}
 	defer done()
 
-	return perf.ParsePerfScript(input)
+	prof, err := perf.ParsePerfScript(input)
+	if err != nil {
+		return nil, err
+	}
+	return prof.Profile, nil
 }
 
 func normalizeFormat(format render.Format) render.Format {

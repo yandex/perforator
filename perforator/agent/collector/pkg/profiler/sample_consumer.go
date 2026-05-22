@@ -15,6 +15,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
@@ -181,9 +182,14 @@ func NewSimpleSampleConsumer(
 	labels map[string]string,
 	uprobeResolver *uprobe.Resolver,
 ) *simpleSampleConsumer {
+	pf := profileformat.Pprof
+	if p != nil && p.conf != nil {
+		pf = p.conf.FeatureFlagsConfig.GetProfileFormat()
+	}
+
 	c := &simpleSampleConsumer{
 		features:       features,
-		profileBuilder: &guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(labels)},
+		profileBuilder: &guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(labels, pf)},
 		p:              p,
 		uprobeResolver: uprobeResolver,
 	}

@@ -549,7 +549,7 @@ func symbolizeProfile(ctx context.Context, logger xlog.Logger, storage *binarySt
 		}
 
 		profile.Profile.PeriodType = &pprof.ValueType{}
-		profiles = append(profiles, profile.Profile)
+		profiles = append(profiles, profile.Profile.Profile)
 		logger.Debug(ctx, "Collected profile",
 			log.Int("index", i),
 			log.Any("labels", profile.Labels),

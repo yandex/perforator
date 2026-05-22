@@ -3,9 +3,8 @@ package client
 import (
 	"context"
 
-	"github.com/google/pprof/profile"
-
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 )
 
 type BinaryStorage interface {

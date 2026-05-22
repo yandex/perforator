@@ -99,7 +99,7 @@ func NewPerforatorAgent(
 	}
 
 	if agent.agentGatewayClient != nil {
-		remoteStorage := client.NewRemoteStorage(xLogger, r, agent.agentGatewayClient.StorageClient)
+		remoteStorage := client.NewRemoteStorage(xLogger, r, agent.agentGatewayClient.StorageClient, profilerConfig.FeatureFlagsConfig.GetProfileFormat())
 		options.profilerOpts = append(options.profilerOpts, profiler.WithStorage(remoteStorage))
 	}
 	options.profilerOpts = append(options.profilerOpts, profiler.WithIdentity("agent"))

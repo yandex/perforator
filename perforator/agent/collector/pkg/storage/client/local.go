@@ -100,8 +100,6 @@ func sampleTypesToString(sampleTypes []*pprof.ValueType) string {
 }
 
 func (s *LocalStorage) StoreProfile(ctx context.Context, profile LabeledProfile) error {
-	addProfileComments(profile.Profile, profile.Labels)
-
 	err := profile.Profile.CheckValid()
 	if err != nil {
 		return err

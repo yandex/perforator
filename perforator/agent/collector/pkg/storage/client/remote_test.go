@@ -4,13 +4,15 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/google/pprof/profile"
+	pprof "github.com/google/pprof/profile"
 	"github.com/stretchr/testify/require"
+
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 )
 
 func TestGetProfileEnvs(t *testing.T) {
-	profile := &profile.Profile{
-		Sample: []*profile.Sample{
+	pprofProfile := &pprof.Profile{
+		Sample: []*pprof.Sample{
 			{
 				Label: map[string][]string{
 					"env:key1": {"value1"},
@@ -29,6 +31,7 @@ func TestGetProfileEnvs(t *testing.T) {
 			},
 		},
 	}
+	profile := &profile.Profile{Profile: pprofProfile}
 	envs := getProfileEnvs(profile)
 	slices.Sort(envs)
 	expected := []string{"key1=value1", "key2=value2", "key1=value3", "key2=value4"}

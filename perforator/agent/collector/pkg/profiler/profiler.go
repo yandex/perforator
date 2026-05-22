@@ -351,7 +351,7 @@ func (p *Profiler) initializeStorage(r metrics.Registry) (err error) {
 			return fmt.Errorf("failed to create agent gateway client: %w", err)
 		}
 
-		p.storage = client.NewRemoteStorage(l, r, agentGatewayClient.StorageClient)
+		p.storage = client.NewRemoteStorage(l, r, agentGatewayClient.StorageClient, p.conf.FeatureFlagsConfig.GetProfileFormat())
 	} else if p.conf.LocalStorageConfig != nil {
 		// Create local storage
 		p.storage, err = client.NewLocalStorage(p.conf.LocalStorageConfig, p.log)

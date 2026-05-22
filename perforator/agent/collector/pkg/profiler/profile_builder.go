@@ -1,12 +1,18 @@
 package profiler
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
 	"time"
 
+	pprof "github.com/google/pprof/profile"
 	"golang.org/x/exp/maps"
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
+	"github.com/yandex/perforator/perforator/pkg/cprofile"
+	"github.com/yandex/perforator/perforator/pkg/profile/bundle"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -24,13 +30,19 @@ type multiProfileBuilder struct {
 	caches           *profile.DefaultMap[uint32, profile.ProcessCache]
 	builders         map[string]*profile.Builder
 	profileStartTime time.Time
+	profileFormat    profileformat.ProfileFormat
 }
 
-func newMultiProfileBuilder(labels map[string]string) *multiProfileBuilder {
+func newMultiProfileBuilder(labels map[string]string, pf profileformat.ProfileFormat) *multiProfileBuilder {
+	if pf == "" {
+		pf = profileformat.Pprof
+	}
+
 	builder := multiProfileBuilder{
-		labels:   labels,
-		caches:   profile.NewProcessCaches(),
-		builders: make(map[string]*profile.Builder),
+		labels:        labels,
+		caches:        profile.NewProcessCaches(),
+		builders:      make(map[string]*profile.Builder),
+		profileFormat: pf,
 	}
 	builder.startNewProfiles()
 
@@ -47,7 +59,12 @@ func (b *multiProfileBuilder) RestartProfiles() labeledAgentProfiles {
 
 	profiles := make([]*profile.Profile, 0, len(b.builders))
 	for _, builder := range b.builders {
-		profiles = append(profiles, builder.Finish())
+		switch b.profileFormat {
+		case profileformat.Yaprof:
+			profiles = append(profiles, buildYaprofAgentProfile(builder.FinishRaw(), b.labels))
+		default:
+			profiles = append(profiles, buildPprofAgentProfile(builder.Finish(), b.labels))
+		}
 	}
 	b.caches.Clear()
 	b.startNewProfiles()
@@ -59,6 +76,42 @@ func (b *multiProfileBuilder) RestartProfiles() labeledAgentProfiles {
 	maps.Copy(result.Labels, b.labels)
 
 	return result
+}
+
+func buildPprofAgentProfile(compactedProfile *profile.Profile, labels map[string]string) *profile.Profile {
+	addProfileComments(compactedProfile, labels)
+
+	profileBytes := bytes.NewBuffer(nil)
+	if err := compactedProfile.WriteUncompressed(profileBytes); err != nil {
+		panic(fmt.Errorf("failed to serialize pprof profile: %w", err))
+	}
+
+	compactedProfile.Bundle = bundle.NewPprofBundle(profileBytes.Bytes())
+	return compactedProfile
+}
+
+func buildYaprofAgentProfile(rawProfile *profile.Profile, labels map[string]string) *profile.Profile {
+	addProfileComments(rawProfile, labels)
+	rawProfile.PeriodType = &pprof.ValueType{}
+
+	profileBytes := bytes.NewBuffer(nil)
+	if err := rawProfile.WriteUncompressed(profileBytes); err != nil {
+		panic(fmt.Errorf("failed to serialize raw pprof profile: %w", err))
+	}
+
+	yaprofBytes, err := cprofile.PprofToYaprof(profileBytes.Bytes())
+	if err != nil {
+		panic(fmt.Errorf("failed to convert pprof to yaprof: %w", err))
+	}
+
+	rawProfile.Bundle = bundle.NewYaprofBundle(yaprofBytes)
+	return rawProfile
+}
+
+func addProfileComments(profile *profile.Profile, labels map[string]string) {
+	for k, v := range labels {
+		profile.Comments = append(profile.Comments, fmt.Sprintf("%s:%s", k, v))
+	}
 }
 
 func (b *multiProfileBuilder) EnsureBuilder(name string, sampleTypes []profile.SampleType) *profile.Builder {

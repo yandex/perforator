@@ -26,7 +26,7 @@ func TestEnvWhitelist(t *testing.T) {
 		},
 		DefaultSampleConsumerFeatures(),
 		nil,
-		&guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(nil)},
+		&guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(nil, "")},
 		parsed,
 	)
 
@@ -44,7 +44,7 @@ func TestEnvWhitelist(t *testing.T) {
 	profile := sampleConsumer.profileBuilder.RestartProfiles()
 	require.NotEmpty(t, profile.Profiles)
 
-	firstProfile := profile.Profiles[0]
+	firstProfile := profile.Profiles[0].Profile
 
 	require.Equal(t, 1, len(firstProfile.Sample))
 	writtenSample := firstProfile.Sample[0]
@@ -66,7 +66,7 @@ func TestNoEmptySamples(t *testing.T) {
 		},
 		DefaultSampleConsumerFeatures(),
 		nil,
-		&guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(nil)},
+		&guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(nil, "")},
 		parsed,
 	)
 
@@ -79,6 +79,6 @@ func TestNoEmptySamples(t *testing.T) {
 	profile := sampleConsumer.profileBuilder.RestartProfiles()
 	require.Equal(t, 1, len(profile.Profiles))
 
-	firstProfile := profile.Profiles[0]
+	firstProfile := profile.Profiles[0].Profile
 	require.Equal(t, 0, len(firstProfile.Sample))
 }

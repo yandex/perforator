@@ -8,18 +8,27 @@ import (
 	"slices"
 	"time"
 
-	"github.com/google/pprof/profile"
-
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/client/storage"
 	"github.com/yandex/perforator/perforator/pkg/env"
+	"github.com/yandex/perforator/perforator/pkg/profile/bundle"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
+
+func profileToBytes(profile *profile.Profile) ([]byte, error) {
+	profileBytes := bytes.NewBuffer(nil)
+	if err := profile.WriteUncompressed(profileBytes); err != nil {
+		return nil, err
+	}
+	return profileBytes.Bytes(), nil
+}
 
 type remoteStorageClientMetrics struct {
 	profilesUploaded         metrics.Counter
@@ -35,15 +44,17 @@ type remoteStorageClientMetrics struct {
 }
 
 type RemoteStorage struct {
-	client  *storage.Client
-	logger  xlog.Logger
-	metrics remoteStorageClientMetrics
+	client        *storage.Client
+	logger        xlog.Logger
+	metrics       remoteStorageClientMetrics
+	profileFormat profileformat.ProfileFormat
 }
 
-func NewRemoteStorage(l xlog.Logger, r metrics.Registry, client *storage.Client) *RemoteStorage {
+func NewRemoteStorage(l xlog.Logger, r metrics.Registry, client *storage.Client, profileFormat profileformat.ProfileFormat) *RemoteStorage {
 	return &RemoteStorage{
-		client: client,
-		logger: l,
+		client:        client,
+		logger:        l,
+		profileFormat: profileFormat,
 		metrics: remoteStorageClientMetrics{
 			profilesUploaded: r.WithTags(map[string]string{"kind": "uploaded"}).Counter("profiles.count"),
 			profilesUploadedSizeHist: r.Histogram(
@@ -59,12 +70,6 @@ func NewRemoteStorage(l xlog.Logger, r metrics.Registry, client *storage.Client)
 			binariesUploadedBytes:     r.Counter("binaries.uploaded_bytes"),
 			binariesUploadsInProgress: r.IntGauge("binaries.uploads_in_progress"),
 		},
-	}
-}
-
-func addProfileComments(profile *profile.Profile, labels map[string]string) {
-	for k, v := range labels {
-		profile.Comments = append(profile.Comments, fmt.Sprintf("%s:%s", k, v))
 	}
 }
 
@@ -144,7 +149,7 @@ func getProfileSignalTypes(profile *profile.Profile) []string {
 	return result
 }
 
-func getTimeInteval(profile *profile.Profile) (time.Time, time.Duration) {
+func getTimeInterval(profile *profile.Profile) (time.Time, time.Duration) {
 	if profile.TimeNanos == 0 {
 		return time.Time{}, time.Duration(0)
 	}
@@ -153,17 +158,9 @@ func getTimeInteval(profile *profile.Profile) (time.Time, time.Duration) {
 }
 
 func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile) error {
-	addProfileComments(profile.Profile, profile.Labels)
-
 	err := profile.Profile.CheckValid()
 	if err != nil {
 		return err
-	}
-
-	profileBytes := bytes.NewBuffer([]byte{})
-	err = profile.Profile.WriteUncompressed(profileBytes)
-	if err != nil {
-		return nil
 	}
 
 	cpoID := profile.Labels[profilequerylang.CPOIDLabel]
@@ -176,22 +173,44 @@ func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile
 
 	signalTypes := getProfileSignalTypes(profile.Profile)
 
-	startTimestamp, duration := getTimeInteval(profile.Profile)
+	startTimestamp, duration := getTimeInterval(profile.Profile)
 
-	sz, err := s.client.PushProfile(
-		ctx,
-		&storage.Profile{
-			Raw:                        profileBytes.Bytes(),
-			Labels:                     profile.Labels,
-			BuildIDs:                   buildIDs,
-			Envs:                       envs,
-			EventTypes:                 eventTypes,
-			SignalTypes:                signalTypes,
-			CustomProfilingOperationID: cpoID,
-			StartTimestamp:             startTimestamp,
-			Duration:                   duration,
-		},
-	)
+	pushProfile := &storage.Profile{
+		Labels:                     profile.Labels,
+		BuildIDs:                   buildIDs,
+		Envs:                       envs,
+		EventTypes:                 eventTypes,
+		SignalTypes:                signalTypes,
+		CustomProfilingOperationID: cpoID,
+		StartTimestamp:             startTimestamp,
+		Duration:                   duration,
+	}
+
+	profileBundle := profile.Profile.Bundle
+	if profileBundle == nil {
+		profileBytes, err := profileToBytes(profile.Profile)
+		if err != nil {
+			return err
+		}
+		profileBundle = bundle.NewPprofBundle(profileBytes)
+	}
+
+	if s.profileFormat == profileformat.Pprof {
+		pprofBytes, err := profileBundle.GetOrConvertPprof()
+		if err != nil {
+			return fmt.Errorf("failed to get pprof profile: %w", err)
+		}
+		pushProfile.Raw = pprofBytes
+	}
+	if s.profileFormat == profileformat.Yaprof {
+		yaprofBytes, err := profileBundle.GetOrConvertYaprof()
+		if err != nil {
+			return fmt.Errorf("failed to get yaprof profile: %w", err)
+		}
+		pushProfile.YaprofRaw = yaprofBytes
+	}
+
+	sz, err := s.client.PushProfile(ctx, pushProfile)
 	if err != nil {
 		return err
 	}

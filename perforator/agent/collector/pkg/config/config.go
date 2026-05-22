@@ -9,6 +9,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
 	storage "github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/upload"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
@@ -124,6 +125,10 @@ type FeatureFlagsConfig struct {
 	// EnableSampleParsingBypass governs new, faster parser for recorded samples, relying on underspecified Go guarantees.
 	// In the worst case (i.e. when using other Go implementation with weaker guarantees) this may cause crashes or corrupt samples.
 	EnableSampleParsingBypass *bool `yaml:"enable_sample_parsing_bypass"`
+
+	// ProfileFormat controls which profile format the agent sends to storage.
+	// Possible values: "pprof" (default), "yaprof".
+	ProfileFormat string `yaml:"profile_format"`
 }
 
 func (f *FeatureFlagsConfig) JVMEnabled() bool {
@@ -152,6 +157,13 @@ func (f *FeatureFlagsConfig) SampleParsingBypassEnabled() bool {
 		return true
 	}
 	return *f.EnableSampleParsingBypass
+}
+
+func (f *FeatureFlagsConfig) GetProfileFormat() profileformat.ProfileFormat {
+	if f.ProfileFormat != "" {
+		return profileformat.ProfileFormat(f.ProfileFormat)
+	}
+	return profileformat.Pprof
 }
 
 type JVM struct {

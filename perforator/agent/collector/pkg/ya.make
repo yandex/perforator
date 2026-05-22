@@ -10,6 +10,7 @@ RECURSE(
     perfmap
     process
     profile
+    profileformat
     profiler
     profilerext
     storage
