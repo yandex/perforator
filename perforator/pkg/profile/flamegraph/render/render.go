@@ -270,7 +270,12 @@ func (f *FlameGraph) addCollapsedProfile(profile *collapsed.Profile, baseline bo
 
 func getLocationFrames(loc *pprof.Location, options LocationFrameOptions) []locationData {
 	frames := make([]locationData, 0, len(loc.Line))
-	for i, line := range loc.Line {
+	// loc.Line is innermost-first (pprof / profile.proto InlineChains
+	// convention): the last entry is the physically-present, non-inlined
+	// function; the rest are its inlined callees. Emit outermost-first so the
+	// caller stays the flamegraph ancestor.
+	for i := len(loc.Line) - 1; i >= 0; i-- {
+		line := loc.Line[i]
 		funcname := "??"
 		if line.Function != nil {
 			if line.Function.Name != "" {
@@ -307,7 +312,7 @@ func getLocationFrames(loc *pprof.Location, options LocationFrameOptions) []loca
 			filename = "??"
 		}
 
-		inlined := i > 0
+		inlined := i != len(loc.Line)-1
 
 		filepos := ""
 		if options.FileNames {

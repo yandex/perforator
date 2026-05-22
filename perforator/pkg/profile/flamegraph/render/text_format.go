@@ -353,7 +353,8 @@ func (t *TextFormatRenderer) renderToPlainText(p *pprof.Profile, w io.Writer) er
 func (t *TextFormatRenderer) getLocationFrames(loc *pprof.Location) []locationData {
 	frames := getLocationFrames(loc, t.locationFrameOptions)
 
-	// because inlined functions are reversed.
+	// getLocationFrames returns frames outermost-first; the text format prints
+	// "most recent call first", so flip to innermost-first for display.
 	slices.Reverse(frames)
 
 	return frames

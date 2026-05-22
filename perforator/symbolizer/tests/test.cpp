@@ -11,7 +11,8 @@ TEST(Symbolization, ElfObjectFile) {
         {0x1345, TVector<TString>{"main"}},
         {0x1294, TVector<TString>{"foo(int)"}},
         {0x127a, TVector<TString>{"bar(int)"}},
-        {0x1366, TVector<TString>{"main", "boo(int)"}}
+        // Inline chain is innermost-first: boo(int) is inlined into main.
+        {0x1366, TVector<TString>{"boo(int)", "main"}}
     };
 
     TString moduleName = ArcadiaSourceRoot() + "/perforator/symbolizer/tests/sample_program.elf";
@@ -67,12 +68,12 @@ TEST(Symbolization, ProfileProto) {
     TVector<TVector<TVector<TString>>> answers = {
         {
             {
-                "std::basic_ostream<char, std::char_traits<char> >& std::operator<<<std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*)",
-                "bar(int)"
+                "bar(int)",
+                "std::basic_ostream<char, std::char_traits<char> >& std::operator<<<std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*)"
             },
             {
-                "boo(int)",
-                "main"
+                "main",
+                "boo(int)"
             }
         },
         {

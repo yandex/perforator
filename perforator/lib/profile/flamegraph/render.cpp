@@ -272,14 +272,11 @@ TFlameTrie BuildFlameTrie(
                         .Column = 0,
                     }});
                 } else {
-                    // TODO: Inline chains are stored in WRONG ORDER in TProfile.
-                    // The pprof format stores inline chains in leaf-to-root order (innermost function first),
-                    // and our pprof converters copy this order directly into TProfile without reversing.
-                    // For correct flamegraph rendering (root-to-leaf), we should either:
-                    //   1. Fix pprof converters to reverse inline chains when building TProfile
-                    //   2. Fix this loop to iterate in reverse via `chain.GetLines() | std::views::reverse`
-                    // Currently this renders inline chains in the wrong order (leaf-to-root instead of root-to-leaf).
-                    for (TSourceLine line : chain.GetLines()) {
+                    // Inline chains are stored innermost-first (leaf-to-root)
+                    // per perforator/proto/profile/profile.proto (InlineChains).
+                    // Flamegraph rendering needs root-to-leaf, so iterate the
+                    // chain in reverse: outermost caller descends first.
+                    for (TSourceLine line : chain.GetLines() | std::views::reverse) {
                         if (options.max_depth() > 0 && depth >= options.max_depth()) {
                             truncated = true;
                             break;

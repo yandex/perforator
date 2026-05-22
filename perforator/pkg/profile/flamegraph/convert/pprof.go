@@ -25,15 +25,16 @@ func PProfToCollapsed(prof *profile.Profile) (*collapsed.Profile, error) {
 		sample.Value = prof.Sample[i].Value[sampleTypeIdx]
 		sample.Stack = make([]string, 0, len(prof.Sample[i].Location))
 		for _, loc := range prof.Sample[i].Location {
-			for j := len(loc.Line) - 1; j >= 0; j-- {
-				line := loc.Line[j]
+			// loc.Line is innermost-first; last entry is the non-inlined function
+			// (see profile.proto InlineChains).
+			for j, line := range loc.Line {
 				name := ""
 				if line.Function.Name != "" {
 					name = line.Function.Name
 				} else if line.Function.SystemName != "" {
 					name = line.Function.SystemName
 				}
-				if j != 0 {
+				if j != len(loc.Line)-1 {
 					name += " (inlined)"
 				}
 				sample.Stack = append(sample.Stack, name)

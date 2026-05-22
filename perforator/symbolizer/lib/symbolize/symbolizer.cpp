@@ -108,7 +108,10 @@ TSmallVector<llvm::DILineInfo> TCodeSymbolizer::Symbolize(TStringBuf moduleName,
     TSmallVector<llvm::DILineInfo> result;
     result.reserve(inliningInfo.getNumberOfFrames());
 
-    for (size_t i = static_cast<size_t>(inliningInfo.getNumberOfFrames()) - 1; ~i; --i) {
+    // Keep LLVM's natural order: frame 0 is the innermost (physically-present)
+    // function, the last frame is the outermost caller. This is the order pprof
+    // and perforator/proto/profile/profile.proto (InlineChains) expect.
+    for (size_t i = 0; i < static_cast<size_t>(inliningInfo.getNumberOfFrames()); ++i) {
         result.push_back(std::move(*inliningInfo.getMutableFrame(i)));
     }
 

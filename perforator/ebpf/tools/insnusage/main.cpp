@@ -1052,18 +1052,14 @@ void EmitProfile(IOutputStream& out, const TVector<TAnalysisResult>& results) {
         for (const auto& chain : r.ChainPool) {
             TInlineChainInfo chainInfo;
             chainInfo.Lines.reserve(chain.size());
-            // Inline chains stored root-first (outer subprog first, leaf
-            // inline last). pprof spec says leaf-first, but perforator's
-            // flamegraph renderer iterates inline chains forward when
-            // descending root→leaf (see TODO in
-            // perforator/lib/profile/flamegraph/render.cpp). Until that's
-            // fixed we ship root-first to render correctly in perforator's
-            // UI; `go tool pprof` sees them reversed within each frame.
-            for (auto it = chain.rbegin(); it != chain.rend(); ++it) {
+            // `chain` is already innermost-first (see Lookup), which is the
+            // order perforator/proto/profile/profile.proto (InlineChains)
+            // and the pprof spec want — copy it as-is.
+            for (const auto& frame : chain) {
                 chainInfo.Lines.push_back({
-                    .Function = getFn(*it),
-                    .Line = it->Line,
-                    .Column = it->Column,
+                    .Function = getFn(frame),
+                    .Line = frame.Line,
+                    .Column = frame.Column,
                 });
             }
             TStackFrameInfo frameInfo;

@@ -65,8 +65,10 @@ TSmallVector<llvm::DILineInfo> TSymbolizer::Symbolize(ui64 addr) {
         }
     }
 
+    // Symbolize() returns the chain innermost-first (physically-present
+    // function first, outermost caller last); pass it through as-is — that
+    // matches pprof and perforator/proto/profile/profile.proto (InlineChains).
     auto stack = Symbolize(function, addr);
-    std::reverse(stack.begin(), stack.end());
 
     TSmallVector<llvm::DILineInfo> result(stack.size());
     for (std::size_t i = 0; i < stack.size(); ++i) {
