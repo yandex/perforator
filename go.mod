@@ -640,6 +640,7 @@ require (
 	github.com/max-messenger/max-bot-api-client-go v1.6.4
 	github.com/maxence-charriere/go-app/v9 v9.8.0
 	github.com/mdlayher/netlink v1.7.3-0.20250113171957-fbb4dce95f42
+	github.com/mdlayher/vsock v1.2.1
 	github.com/mennanov/fieldmask-utils v1.1.4
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.1.0
@@ -2053,7 +2054,6 @@ require (
 	github.com/mdlayher/ethernet v0.0.0-20220221185849-529eae5b6118 // indirect
 	github.com/mdlayher/raw v0.0.0-20191009151244-50f2db8cc065 // indirect
 	github.com/mdlayher/socket v0.5.1 // indirect
-	github.com/mdlayher/vsock v1.2.1 // indirect
 	github.com/mediocregopher/mediocre-go-lib v0.0.0-20190730033908-c20f884d6844 // indirect
 	github.com/mediocregopher/radix/v3 v3.8.1 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
