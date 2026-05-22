@@ -3,7 +3,6 @@ import React from 'react';
 import { ArrowShapeTurnUpRight, ChevronDown } from '@gravity-ui/icons';
 import { Button, DropdownMenu, Icon } from '@gravity-ui/uikit';
 
-import { LocalStorageKey } from 'src/const/localStorage';
 import { uiFactory } from 'src/factory';
 import { cn } from 'src/utils/cn';
 import { createErrorToast, createSuccessToast } from 'src/utils/toaster';
@@ -20,15 +19,6 @@ const DEFAULT_SHARE_FORMAT = {
     name: 'Link',
 };
 
-const listShareFormats = (formats: ShareFormat[], selected: ShareFormat) => {
-    const selectedIndex = formats.indexOf(selected);
-    if (selectedIndex !== -1) {
-        formats.splice(selectedIndex, 1);
-        formats.unshift(selected);
-    }
-    return formats;
-};
-
 export interface ShareButtonProps {
     getUrl: () => string;
     view?: 'compact' | 'full';
@@ -39,24 +29,10 @@ export interface ShareButtonProps {
 const b = cn('share-button');
 
 export const ShareButton: React.FC<ShareButtonProps> = props => {
-    const [shareFormat, setShareFormat] = React.useState<ShareFormat>(
-        localStorage.getItem(LocalStorageKey.ShareFormat) || DEFAULT_SHARE_FORMAT.name,
-    );
-
     const shareFormats = React.useMemo(() => uiFactory().shareFormats(), []);
-    const formats = React.useMemo(
-        () => shareFormats.map(([name, _]) => name),
-        [shareFormats],
-    );
-    const builders = React.useMemo(
-        () => Object.fromEntries(shareFormats),
-        [shareFormats],
-    );
+    const builders = Object.fromEntries(shareFormats);
 
     const copyShareString = (format: ShareFormat) => {
-        setShareFormat(format);
-        localStorage.setItem(LocalStorageKey.ShareFormat, format);
-
         const builder = builders[format] || DEFAULT_SHARE_FORMAT.builder;
         const shared = builder(props.getUrl());
         navigator.clipboard.writeText(shared)
@@ -67,7 +43,8 @@ export const ShareButton: React.FC<ShareButtonProps> = props => {
             .catch(e => createErrorToast(e, { name: 'share-copy' }));
     };
 
-    const items = listShareFormats(formats, shareFormat).map(format => ({
+    const formats = shareFormats.map(([name, _]) => name);
+    const items = formats.map(format => ({
         text: format,
         action: () => copyShareString(format),
     }));
@@ -77,7 +54,7 @@ export const ShareButton: React.FC<ShareButtonProps> = props => {
             <Button
                 className={b('text')}
                 pin="round-clear"
-                onClick={() => copyShareString(shareFormat)}
+                onClick={() => copyShareString(DEFAULT_SHARE_FORMAT.name)}
                 size={props.size}
             >
                 <Icon size={SHARE_ICON_SIZE} data={ArrowShapeTurnUpRight} />
