@@ -2,15 +2,9 @@
 
 namespace NPerforator::NLinguist::NJvm {
 
-TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistryAnalysisOptions options) {
+TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistryAnalysisOptions options, ui32 version) {
     TJvmAnalysis offsets;
     NPerforator::NBinaryProcessing::NJvm::Cheatsheet& s = offsets.Cheatsheet;
-    s.set_code_blob_code_offset(
-        metadata.FindFieldOffset("CodeBlob", "_code_offset")
-    );
-    s.set_code_blob_data_offset(
-        metadata.FindFieldOffset("CodeBlob", "_data_offset")
-    );
     s.set_code_blob_name(metadata.FindFieldOffset("CodeBlob", "_name"));
     s.set_code_blob_frame_size(
         metadata.FindFieldOffset("CodeBlob", "_frame_size")
@@ -47,7 +41,11 @@ TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistry
         metadata.FindFieldOffset("Method", "_constMethod")
     );
 
-    s.set_nmethod_method(metadata.FindFieldOffset("nmethod", "_method"));
+    if (version >= 22) {
+        s.set_nmethod_method(metadata.FindFieldOffset("nmethod", "_method"));
+    } else {
+        s.set_nmethod_method(metadata.FindFieldOffset("CompiledMethod", "_method"));
+    }
 
     s.set_growable_array_data(
         metadata.FindFieldOffset("GrowableArray<int>", "_data")

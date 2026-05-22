@@ -58,6 +58,9 @@ message InitProcessRequest {
 
     uint64 libjvm_binary_id = 2;
 
+    // JVM major version
+    uint32 version = 5;
+
     // not sent if there were successful calls with the same binary_id.
     optional NPerforator.NBinaryProcessing.NJvm.Cheatsheet cheatsheet = 3;
 

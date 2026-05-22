@@ -145,7 +145,10 @@ func (s *Service) InitProcess(ctx context.Context, req *jvmsupp.InitProcessReque
 			return nil, status.Errorf(codes.FailedPrecondition, "cheatsheet is unavailable for binary id %d", req.LibjvmBinaryId)
 		}
 	}
-	state, bpfInfo, err := s.scanner.InitProcess(linux.CurrentNamespacePID(req.Pid), cheatsheet, req.BaseAddress)
+	if req.Version == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "version is required")
+	}
+	state, bpfInfo, err := s.scanner.InitProcess(linux.CurrentNamespacePID(req.Pid), cheatsheet, req.Version, req.BaseAddress)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to initialize process: %v", err)
 	}

@@ -10,6 +10,6 @@ struct TOffsetRegistryAnalysisOptions {
     bool IncludeAddresses = false;
 };
 
-TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistryAnalysisOptions options);
+TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistryAnalysisOptions options, ui32 version);
 
 }

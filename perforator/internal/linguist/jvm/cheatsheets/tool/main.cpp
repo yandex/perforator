@@ -24,7 +24,7 @@ struct TDeleter {
     }
 };
 
-NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath) {
+NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath, ui32 version) {
     using namespace NPerforator::NLinguist::NJvm;
     void* rawHandle = dlopen(libjvmPath.c_str(), RTLD_LAZY | RTLD_LOCAL);
     if (rawHandle == nullptr) {
@@ -46,7 +46,7 @@ NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath) {
     addresses.StructsAddress = GetSym(std::string{TVMStructsAddresses::StructsAddressSym});
     addresses.TypesAddress = GetSym(std::string{TVMStructsAddresses::TypesAddressSym});
 
-    return NPerforator::NLinguist::NJvm::ProcessDynamicLinkedJVM(addresses);
+    return NPerforator::NLinguist::NJvm::ProcessDynamicLinkedJVM(addresses, version);
 }
 
 void Write(NPerforator::NBinaryProcessing::NJvm::Cheatsheet cheatsheet, const TString& path) {
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
 
     int version = spec.Version;
 
-    TJvmAnalysis dynamic = DumpDynamic(libjvmPath);
+    TJvmAnalysis dynamic = DumpDynamic(libjvmPath, version);
 
     Cout << "Writing cheatsheets for JDK " << version << Endl;
 

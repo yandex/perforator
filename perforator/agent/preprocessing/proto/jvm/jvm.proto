@@ -2,15 +2,15 @@ syntax = "proto3";
 
 package NPerforator.NBinaryProcessing.NJvm;
 
+import "perforator/agent/preprocessing/proto/jvm/meta.proto";
+
 option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm";
 
 message Cheatsheet {
-    optional int64 code_blob_code_offset = 1;
-    optional int64 code_blob_data_offset = 2;
     optional int64 code_blob_name = 3;
     optional int64 code_blob_frame_size = 4;
-    optional int64 code_blob_kind = 5;
-    optional int64 code_blob_kind_nmethod = 6;
+    optional int64 code_blob_kind = 5 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 22];
+    optional int64 code_blob_kind_nmethod = 6 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 22];
 
     optional int64 code_heap_log2_segment_size = 7;
     optional int64 code_heap_memory = 8;

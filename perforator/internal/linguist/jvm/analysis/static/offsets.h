@@ -2,15 +2,23 @@
 
 #include <cstddef>
 #include <cstdlib>
+
+#include <optional>
+
 #include <sys/types.h>
 
 namespace NPerforator::NLinguist::NJvm {
 
+struct TKindInfo {
+    size_t CodeBlobKindOffset;
+    unsigned char CodeBlobKindNmethod;
+
+};
+
 struct TOffsets {
     size_t CodeHeapNextSegmentOffset;
 
-    size_t CodeBlobKindOffset;
-    unsigned char CodeBlobKindNmethod;
+    std::optional<TKindInfo> KindInfo;
 
     int Version;
 

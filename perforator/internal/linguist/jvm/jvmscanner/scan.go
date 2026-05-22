@@ -38,9 +38,10 @@ type CodeHeap struct {
 }
 
 type ProcessState struct {
-	pid   linux.CurrentNamespacePID
-	heaps []CodeHeap
-	conf  *jvmproto.Cheatsheet
+	pid     linux.CurrentNamespacePID
+	heaps   []CodeHeap
+	conf    *jvmproto.Cheatsheet
+	version uint32
 }
 
 type ProcessInfoForBPF struct {
@@ -119,8 +120,8 @@ func (s *Scanner) initJIT(j *jvmbindings.JVM, baseAddr uint64, state *ProcessSta
 	return nil
 }
 
-func (s *Scanner) InitProcess(pid linux.CurrentNamespacePID, cs *jvmproto.Cheatsheet, baseAddress uint64) (*ProcessState, ProcessInfoForBPF, error) {
-	err := validateProto(cs)
+func (s *Scanner) InitProcess(pid linux.CurrentNamespacePID, cs *jvmproto.Cheatsheet, version uint32, baseAddress uint64) (*ProcessState, ProcessInfoForBPF, error) {
+	err := validateProto(cs, version)
 	if err != nil {
 		return nil, ProcessInfoForBPF{}, fmt.Errorf("invalid config: %w", err)
 	}
@@ -132,6 +133,7 @@ func (s *Scanner) InitProcess(pid linux.CurrentNamespacePID, cs *jvmproto.Cheats
 	var procState ProcessState
 	procState.pid = pid
 	procState.conf = cs
+	procState.version = version
 	err = s.initJIT(j, baseAddress, &procState)
 	if err != nil {
 		return nil, ProcessInfoForBPF{}, fmt.Errorf("failed to discover JIT state: %w", err)
@@ -173,6 +175,7 @@ func (s *Scanner) scanStep(
 	jvm *jvmbindings.JVM,
 	curHeap *heapInfo,
 	blockIndex uint32,
+	version uint32,
 ) (MethodInfo, bool, uint32, error) {
 	heapBlock := jvmbindings.HeapBlock(jvm.MakeObjPointer(uintptr(curHeap.begin) + (uintptr(blockIndex) << curHeap.segmentSizeLog2)))
 	s.l.Trace(ctx, "Processing heap block", log.UInt32("block", blockIndex))
@@ -193,14 +196,29 @@ func (s *Scanner) scanStep(
 	}
 	s.l.Trace(ctx, "This block heads used segment, scanning it", log.UInt32("segment_length", segmentLength))
 	codeBlob := heapBlock.AllocatedSpace()
-	kind, err := codeBlob.Kind()
-	if err != nil {
-		return MethodInfo{}, false, 0, fmt.Errorf("failed to get kind of code blob: %w", err)
+	var blobName []byte
+	var isJIT bool
+	if version >= 22 {
+		kind, err := codeBlob.Kind()
+		if err != nil {
+			return MethodInfo{}, false, 0, fmt.Errorf("failed to get kind of code blob: %w", err)
+		}
+		isJIT = (int64(kind) == *jvm.Cheatsheet().CodeBlobKindNmethod)
+	} else {
+		namePtr, err := codeBlob.Name()
+		if err != nil {
+			return MethodInfo{}, false, 0, fmt.Errorf("failed to get name pointer from code blob %d: %w", blockIndex, err)
+		}
+		blobName, err = jvm.ReadString(namePtr, 128)
+		if err != nil {
+			return MethodInfo{}, false, 0, fmt.Errorf("failed to read code blob name: %w", err)
+		}
+		name := string(blobName)
+		isJIT = (name == "native nmethod" || name == "nmethod")
 	}
 	var name []byte
-	var isJIT bool
 	var frameSize int32 = -1
-	if int64(kind) == *jvm.Cheatsheet().CodeBlobKindNmethod {
+	if isJIT {
 		s.l.Debug(ctx, "Code blob classified as nmethod")
 		isJIT = true
 		frameSize, err = codeBlob.FrameSize()
@@ -223,15 +241,19 @@ func (s *Scanner) scanStep(
 
 		s.l.Debug(ctx, "Parsed nmethod", log.String("name", string(name)), log.Int32("frame_size", frameSize))
 	} else {
-		s.l.Debug(ctx, "Code blob classified as non-nmethod", log.UInt8("kind", kind))
-		namePtr, err := codeBlob.Name()
-		if err != nil {
-			return MethodInfo{}, false, 0, fmt.Errorf("failed to get name pointer from code blob %d: %w", blockIndex, err)
+		s.l.Debug(ctx, "Code blob classified as non-nmethod")
+		// don't read blob name second time for old JDKs
+		if blobName == nil {
+			namePtr, err := codeBlob.Name()
+			if err != nil {
+				return MethodInfo{}, false, 0, fmt.Errorf("failed to get name pointer from code blob %d: %w", blockIndex, err)
+			}
+			blobName, err = jvm.ReadString(namePtr, 128)
+			if err != nil {
+				return MethodInfo{}, false, 0, fmt.Errorf("failed to read code blob name: %w", err)
+			}
 		}
-		name, err = jvm.ReadString(namePtr, 128)
-		if err != nil {
-			return MethodInfo{}, false, 0, fmt.Errorf("failed to read code blob name: %w", err)
-		}
+		name = blobName
 		s.l.Debug(ctx, "Parsed non-nmethod", log.String("name", string(name)))
 	}
 	return MethodInfo{
@@ -282,7 +304,7 @@ func (s *Scanner) ScanProcess(ctx context.Context, state *ProcessState) ([]Metho
 			segmentSizeLog2: uint8(heap.segmentSizeLog2),
 		}
 		for blockIndex < blockCount {
-			minfo, ok, len, err := s.scanStep(ctx, jvm, &curHeap, uint32(blockIndex))
+			minfo, ok, len, err := s.scanStep(ctx, jvm, &curHeap, uint32(blockIndex), state.version)
 			if err != nil {
 				return nil, fmt.Errorf("failed to execute scan step: %w", err)
 			}

@@ -65,6 +65,11 @@ type interpretedSymbolCacheValue struct {
 	// TODO: add some unique process id as a measure against pid reuse
 }
 
+type binaryData struct {
+	cheatsheet *jvm.Cheatsheet
+	version    uint32
+}
+
 type Registry struct {
 	l      xlog.Logger
 	bpf    *programstate.State
@@ -83,7 +88,9 @@ type Registry struct {
 	helper     jvmsupp.JvmSupportServiceClient
 
 	cheatsheetsMu sync.Mutex
-	cheatsheets   map[uint64]*jvm.Cheatsheet
+	// TODO: remove version field from InitProcess rpc and change this field back to
+	// map[uint64]*jvm.Cheatsheet
+	cheatsheets map[uint64]*binaryData
 
 	trackedMu sync.Mutex
 	tracked   map[linux.CurrentNamespacePID]*trackedProcess
@@ -143,7 +150,7 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		grpcClient: client,
 		helper:     jvmsupp.NewJvmSupportServiceClient(client),
 
-		cheatsheets: make(map[uint64]*jvm.Cheatsheet),
+		cheatsheets: make(map[uint64]*binaryData),
 
 		trackedProcessCount: reg.IntGauge("tracked_processes.count"),
 		compiledMethodCount: reg.IntGauge("compiled_methods.cache.size"),
@@ -195,19 +202,22 @@ func (r *Registry) OnBinaryDiscovery(ctx context.Context, binaryID uint64, build
 
 		rawStaticData := resource.Get(cheatSheetResourceName)
 		if rawStaticData == nil {
-			r.l.Error(ctx, "Failed to find JVM cheatsheet", log.String("resource_name", cheatSheetResourceName))
+			r.l.Error(ctx, "Failed to find JVM cheatsheet", log.String("cheatsheet", cheatSheetResourceName))
 			return
 		}
 		cheatSheet := new(jvm.Cheatsheet)
 		err := prototext.Unmarshal(rawStaticData, cheatSheet)
 		if err != nil {
-			r.l.Error(ctx, "Failed to parse builtin JVM cheatsheet", log.Error(err))
+			r.l.Error(ctx, "Failed to parse builtin JVM cheatsheet", log.Error(err), log.String("cheatsheet", cheatSheetResourceName))
 			return
 		}
 		proto.Merge(cheatSheet, analysis.Jvm.Cheatsheet)
 
 		r.cheatsheetsMu.Lock()
-		r.cheatsheets[binaryID] = cheatSheet
+		r.cheatsheets[binaryID] = &binaryData{
+			version:    jdkVersion,
+			cheatsheet: cheatSheet,
+		}
 		r.cheatsheetsMu.Unlock()
 
 		r.l.Info(ctx, "Assigning jvm config", log.String("binary_id", buildID), log.Any("config", cheatSheet), log.String("cheatsheet", cheatSheetResourceName))
@@ -479,15 +489,16 @@ func (r *Registry) ensureRegistered(ctx context.Context, pid linux.CurrentNamesp
 		r.l.Debug(ctx, "Process is already registered and initialized", logfield.CurrentNamespacePID(pid))
 		return
 	}
-	var cheatsheet *jvm.Cheatsheet
+	var data *binaryData
 	r.cheatsheetsMu.Lock()
-	cheatsheet = r.cheatsheets[binaryID]
+	data = r.cheatsheets[binaryID]
 	r.cheatsheetsMu.Unlock()
 
 	res, err := r.helper.InitProcess(ctx, &jvmsupp.InitProcessRequest{
 		Pid:            uint32(pid),
 		LibjvmBinaryId: uint64(binaryID),
-		Cheatsheet:     cheatsheet,
+		Version:        data.version,
+		Cheatsheet:     data.cheatsheet,
 		BaseAddress:    baseAddress,
 	})
 	if err != nil {
