@@ -290,12 +290,6 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             ]}
             onSelectTab={(newTab: Tab) => {
                 setQuery({ tab: newTab });
-                if (newTab === 'sbs') {
-                    setEnabled(true);
-                }
-                else {
-                    setEnabled(false);
-                }
             }}
         />
         {content}
