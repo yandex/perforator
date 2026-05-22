@@ -208,6 +208,7 @@ function topColumns (
     return [
         {
             id: 'name',
+            name: 'Name',
             meta: { copy: true },
             template: itemTemplate,
         },
