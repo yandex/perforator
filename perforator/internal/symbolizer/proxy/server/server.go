@@ -318,8 +318,8 @@ func NewPerforatorServer(
 	}
 
 	// Registered before the grpc-gateway mount so explicit paths take precedence over the "/" mount below.
-	server.httpRouter.Get("/buildid/{buildid}/debuginfo", server.handleDebuginfod)
-	server.httpRouter.Get("/buildid/{buildid}/executable", server.handleDebuginfod)
+	server.httpRouter.Get("/api/debuginfod/buildid/{buildid}/debuginfo", server.handleDebuginfod)
+	server.httpRouter.Get("/api/debuginfod/buildid/{buildid}/executable", server.handleDebuginfod)
 
 	mux := runtime.NewServeMux()
 	err = errors.Join(
