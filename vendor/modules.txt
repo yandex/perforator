@@ -18018,8 +18018,8 @@ github.com/ydb-platform/ydb-go-genproto/protos/Ydb_Scripting
 github.com/ydb-platform/ydb-go-genproto/protos/Ydb_Table
 github.com/ydb-platform/ydb-go-genproto/protos/Ydb_TableStats
 github.com/ydb-platform/ydb-go-genproto/protos/Ydb_Topic
-# github.com/ydb-platform/ydb-go-sdk-auth-environ v0.2.0
-## explicit; go 1.16
+# github.com/ydb-platform/ydb-go-sdk-auth-environ v0.5.2
+## explicit; go 1.20
 github.com/ydb-platform/ydb-go-sdk-auth-environ
 # github.com/ydb-platform/ydb-go-sdk-metrics v0.18.0
 ## explicit; go 1.21
