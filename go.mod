@@ -911,7 +911,7 @@ require (
 	github.com/ydb-platform/ydb-go-sdk-otel v0.10.1
 	github.com/ydb-platform/ydb-go-sdk-prometheus v0.12.1
 	github.com/ydb-platform/ydb-go-sdk-prometheus/v2 v2.0.1
-	github.com/ydb-platform/ydb-go-sdk-zap v0.16.0
+	github.com/ydb-platform/ydb-go-sdk-zap v0.16.2
 	github.com/ydb-platform/ydb-go-sdk-zerolog v0.14.0
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.138.0
 	github.com/ydb-platform/ydb-go-yc v0.12.3
