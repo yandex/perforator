@@ -907,7 +907,7 @@ require (
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20260311095541-ebbf792c1180
 	github.com/ydb-platform/ydb-go-sdk-auth-environ v0.2.0
 	github.com/ydb-platform/ydb-go-sdk-metrics v0.18.0
-	github.com/ydb-platform/ydb-go-sdk-opentracing v0.13.0
+	github.com/ydb-platform/ydb-go-sdk-opentracing v0.15.2
 	github.com/ydb-platform/ydb-go-sdk-otel v0.10.3
 	github.com/ydb-platform/ydb-go-sdk-prometheus v0.12.1
 	github.com/ydb-platform/ydb-go-sdk-prometheus/v2 v2.0.1

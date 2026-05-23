@@ -18030,13 +18030,11 @@ github.com/ydb-platform/ydb-go-sdk-metrics/internal/scope/config
 github.com/ydb-platform/ydb-go-sdk-metrics/internal/str
 github.com/ydb-platform/ydb-go-sdk-metrics/internal/trace
 github.com/ydb-platform/ydb-go-sdk-metrics/registry
-# github.com/ydb-platform/ydb-go-sdk-opentracing v0.13.0
+# github.com/ydb-platform/ydb-go-sdk-opentracing v0.15.2
 ## explicit; go 1.21
 github.com/ydb-platform/ydb-go-sdk-opentracing
-github.com/ydb-platform/ydb-go-sdk-opentracing/internal/cmd/bench/database/sql
-github.com/ydb-platform/ydb-go-sdk-opentracing/internal/cmd/bench/native
-github.com/ydb-platform/ydb-go-sdk-opentracing/internal/safe
-github.com/ydb-platform/ydb-go-sdk-opentracing/internal/str
+github.com/ydb-platform/ydb-go-sdk-opentracing/internal/cmd/database/sql
+github.com/ydb-platform/ydb-go-sdk-opentracing/internal/cmd/native
 # github.com/ydb-platform/ydb-go-sdk-otel v0.10.3
 ## explicit; go 1.22.5
 github.com/ydb-platform/ydb-go-sdk-otel
