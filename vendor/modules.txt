@@ -18037,8 +18037,8 @@ github.com/ydb-platform/ydb-go-sdk-opentracing/internal/cmd/bench/database/sql
 github.com/ydb-platform/ydb-go-sdk-opentracing/internal/cmd/bench/native
 github.com/ydb-platform/ydb-go-sdk-opentracing/internal/safe
 github.com/ydb-platform/ydb-go-sdk-opentracing/internal/str
-# github.com/ydb-platform/ydb-go-sdk-otel v0.10.1
-## explicit; go 1.21
+# github.com/ydb-platform/ydb-go-sdk-otel v0.10.3
+## explicit; go 1.22.5
 github.com/ydb-platform/ydb-go-sdk-otel
 github.com/ydb-platform/ydb-go-sdk-otel/internal/cmd/database/sql
 github.com/ydb-platform/ydb-go-sdk-otel/internal/cmd/native/query
