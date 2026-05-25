@@ -304,6 +304,8 @@ private:
 
         builder.SetPath(path);
         builder.SetBuildId(buildId);
+        // TODO: Make this flag optional when conversion with correct addresses is implemented
+        builder.SetHasSkewedAddresses(true);
 
         Y_ENSURE(!parser.IsCorrupted());
 
@@ -1017,6 +1019,8 @@ private:
             auto builder = Builder_.AddBinary();
             builder.SetBuildId(ConvertString(mapping.build_id()));
             builder.SetPath(ConvertString(mapping.filename()));
+            // TODO: Make this flag optional when conversion with correct addresses is implemented
+            builder.SetHasSkewedAddresses(true);
             BinaryMapping_.Add(mapping.id(), IntegerCast<ui32>(i), builder.Finish());
 
             if (OldProfile_.string_table(mapping.filename()) == KernelSpecialMapping) {
