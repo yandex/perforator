@@ -47,7 +47,7 @@ func NewStorage(
 
 type BinaryStorageWriter struct {
 	written    atomic.Uint64
-	binaryMeta *binarymeta.BinaryMeta
+	buildID    string
 	storage    *BinaryStorage
 	commiter   binarymeta.Commiter
 	blobWriter blob.Writer
@@ -56,18 +56,18 @@ type BinaryStorageWriter struct {
 }
 
 func NewBinaryStorageWriter(
-	binaryMeta *binarymeta.BinaryMeta,
+	buildID string,
 	commiter binarymeta.Commiter,
 	storage *BinaryStorage,
 	writer blob.Writer,
 ) (*BinaryStorageWriter, error) {
 	return &BinaryStorageWriter{
-		binaryMeta: binaryMeta,
+		buildID:    buildID,
 		storage:    storage,
 		commiter:   commiter,
 		blobWriter: writer,
 		lastPing:   time.Now(),
-		logger:     storage.logger.With(log.String("build_id", binaryMeta.BuildID)),
+		logger:     storage.logger.With(log.String("build_id", buildID)),
 	}, nil
 }
 
@@ -79,7 +79,6 @@ func (w *BinaryStorageWriter) maybePing() {
 		if err != nil {
 			w.logger.Warn(ctx,
 				"Failed ping for binary in upload progress",
-				log.String("build_id", w.binaryMeta.BuildID),
 				log.Error(err),
 			)
 		} else {
@@ -106,10 +105,7 @@ func (w *BinaryStorageWriter) Commit(ctx context.Context) error {
 		return err
 	}
 
-	w.logger.Debug(ctx,
-		"Uploaded binary blob",
-		log.String("blob_id", blobID),
-	)
+	w.logger.Debug(ctx, "Uploaded binary blob")
 
 	err = w.commiter.Commit(ctx, &storage.BlobInfo{ID: blobID, Size: w.written.Load()})
 	if err != nil {
@@ -117,7 +113,6 @@ func (w *BinaryStorageWriter) Commit(ctx context.Context) error {
 		if deleteErr != nil {
 			w.logger.Error(ctx,
 				"Failed to delete blob after unsuccessful commit attempt",
-				log.String("build_id", w.binaryMeta.BuildID),
 				log.Error(deleteErr),
 			)
 		}
@@ -131,9 +126,11 @@ func (w *BinaryStorageWriter) Commit(ctx context.Context) error {
 
 func (s *BinaryStorage) StoreBinary(
 	ctx context.Context,
-	binaryMeta *binarymeta.BinaryMeta,
+	buildID string,
+	timestamp time.Time,
+	opts ...binarymeta.Option,
 ) (TransactionalWriter, error) {
-	commiter, err := s.metaStorage.StoreBinary(ctx, binaryMeta)
+	commiter, err := s.metaStorage.StoreBinary(ctx, buildID, timestamp, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -144,12 +141,12 @@ func (s *BinaryStorage) StoreBinary(
 		}
 	}()
 
-	writer, err := s.blobStorage.Put(ctx, binaryMeta.BuildID)
+	writer, err := s.blobStorage.Put(ctx, buildID)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewBinaryStorageWriter(binaryMeta, commiter, s, writer)
+	return NewBinaryStorageWriter(buildID, commiter, s, writer)
 }
 
 func (s *BinaryStorage) loadBinaryMeta(

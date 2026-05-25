@@ -30,9 +30,11 @@ func NewCombinedStorage(
 
 func (s *CombinedStorage) StoreBinary(
 	ctx context.Context,
-	binaryMeta *binarymeta.BinaryMeta,
+	buildID string,
+	timestamp time.Time,
+	opts ...binarymeta.Option,
 ) (binarymeta.Commiter, error) {
-	return s.writeStorage.StoreBinary(ctx, binaryMeta)
+	return s.writeStorage.StoreBinary(ctx, buildID, timestamp, opts...)
 }
 
 func removeDuplicates(metas []*binarymeta.BinaryMeta) []*binarymeta.BinaryMeta {

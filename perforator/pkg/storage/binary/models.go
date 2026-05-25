@@ -24,7 +24,9 @@ type TransactionalWriter interface {
 type Storage interface {
 	StoreBinary(
 		ctx context.Context,
-		binaryMeta *binarymeta.BinaryMeta,
+		buildID string,
+		timestamp time.Time,
+		opts ...binarymeta.Option,
 	) (TransactionalWriter, error)
 
 	LoadBinary(

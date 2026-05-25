@@ -16,6 +16,7 @@ import (
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
 
 type storageMetrics struct {
@@ -61,46 +62,69 @@ func NewPostgresBinaryStorage(l xlog.Logger, reg metrics.Registry, cluster *hasq
 	}
 }
 
-func (s *Storage) updateInactiveUpload(ctx context.Context, tx *sqlx.Tx, binaryMeta *binarymeta.BinaryMeta) error {
-	newRow := BinaryMetaToRow(binaryMeta)
-	newRow.UploadStatus = string(binarymeta.InProgress)
+func (s *Storage) updateInactiveUpload(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	buildID string,
+	timestamp time.Time,
+	uncompressedSize uint64,
+	compression compressionpb.CompressionMethod,
+	attributes map[string]string,
+) error {
+	compressionStr, err := compressionMethodToString(ctx, compression)
+	if err != nil {
+		return err
+	}
 
-	_, err := tx.ExecContext(
+	_, err = tx.ExecContext(
 		ctx,
 		`UPDATE binaries
-			SET blob_size = $1,
+			SET uncompressed_size = $1,
+				blob_size = 0,
 				ts = $2,
-				attributes = $3,
-				upload_status = $4,
-				last_used_timestamp = NOW()
-			WHERE build_id = $5`,
-		newRow.BlobSize,
-		newRow.Timestamp,
-		newRow.Attributes,
-		newRow.UploadStatus,
-		newRow.BuildID,
+				upload_status = $3,
+				last_used_timestamp = NOW(),
+				compression = $4,
+				attributes = $5
+			WHERE build_id = $6`,
+		uncompressedSize,
+		timestamp,
+		binarymeta.InProgress,
+		compressionStr,
+		attributes,
+		buildID,
 	)
 
 	return err
 }
 
-func (s *Storage) storeBinary(ctx context.Context, tx *sqlx.Tx, binaryMeta *binarymeta.BinaryMeta) error {
-	newRow := BinaryMetaToRow(binaryMeta)
-	newRow.UploadStatus = string(binarymeta.InProgress)
+func (s *Storage) storeBinary(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	buildID string,
+	timestamp time.Time,
+	uncompressedSize uint64,
+	compression compressionpb.CompressionMethod,
+	attributes map[string]string,
+) error {
+	compressionStr, err := compressionMethodToString(ctx, compression)
+	if err != nil {
+		return err
+	}
 
-	_, err := tx.ExecContext(
+	_, err = tx.ExecContext(
 		ctx,
-		`INSERT INTO binaries(build_id, blob_size, ts, attributes, upload_status, last_used_timestamp)
-			VALUES ($1, $2, $3, $4, $5, NOW())`,
-		newRow.BuildID,
-		newRow.BlobSize,
-		newRow.Timestamp,
-		newRow.Attributes,
-		newRow.UploadStatus,
+		`INSERT INTO binaries(build_id, blob_size, uncompressed_size, ts, attributes, upload_status, last_used_timestamp, compression)
+			VALUES ($1, 0, $2, $3, $4, $5, NOW(), $6)`,
+		buildID,
+		uncompressedSize,
+		timestamp,
+		attributes,
+		binarymeta.InProgress,
+		compressionStr,
 	)
 
 	var pgErr *pgconn.PgError
-	// if duplicate key violation consider it as ErrUploadInProgress
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "binaries_pkey" {
 		return binarymeta.ErrUploadInProgress
 	}
@@ -110,7 +134,9 @@ func (s *Storage) storeBinary(ctx context.Context, tx *sqlx.Tx, binaryMeta *bina
 
 func (s *Storage) StoreBinary(
 	ctx context.Context,
-	binaryMeta *binarymeta.BinaryMeta,
+	buildID string,
+	timestamp time.Time,
+	opts ...binarymeta.Option,
 ) (binarymeta.Commiter, error) {
 	primary, err := s.cluster.WaitForPrimary(ctx)
 	if err != nil {
@@ -129,14 +155,26 @@ func (s *Storage) StoreBinary(
 	err = tx.GetContext(
 		ctx,
 		&row,
-		`SELECT build_id, blob_size, ts, attributes, upload_status, last_used_timestamp 
-			FROM binaries 
+		`SELECT build_id, blob_size, ts, attributes, upload_status, last_used_timestamp, compression, uncompressed_size
+			FROM binaries
 			WHERE build_id = $1
 			FOR UPDATE`,
-		binaryMeta.BuildID,
+		buildID,
 	)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
+	}
+
+	options := binarymeta.DefaultBinaryMetaOptions()
+	for _, opt := range opts {
+		opt.Apply(options)
+	}
+
+	uncompressedSize := options.Compression.UnverifiedUncompressedSize
+	compression := options.Compression.Method
+
+	if compression != compressionpb.CompressionMethod_None && uncompressedSize == 0 {
+		return nil, fmt.Errorf("uncompressed size is required when compression is set: %s", compression.String())
 	}
 
 	if err == nil {
@@ -149,12 +187,12 @@ func (s *Storage) StoreBinary(
 			return nil, binarymeta.ErrUploadInProgress
 		}
 
-		err = s.updateInactiveUpload(ctx, tx, binaryMeta)
+		err = s.updateInactiveUpload(ctx, tx, buildID, timestamp, uncompressedSize, compression, options.Attributes.Attributes)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update inactive previous upload: %w", err)
 		}
 	} else {
-		err = s.storeBinary(ctx, tx, binaryMeta)
+		err = s.storeBinary(ctx, tx, buildID, timestamp, uncompressedSize, compression, options.Attributes.Attributes)
 		if err != nil {
 			return nil, fmt.Errorf("failed to store binary: %w", err)
 		}
@@ -162,16 +200,17 @@ func (s *Storage) StoreBinary(
 
 	err = tx.Commit()
 	if err != nil {
-		s.l.Error(ctx, "Failed to commit tx to store binary", log.String("build_id", binaryMeta.BuildID), log.Error(err))
+		s.l.Error(ctx, "Failed to commit tx to store binary", log.String("build_id", buildID), log.Error(err))
 		return nil, err
 	}
 
-	s.l.Info(ctx, "Saved binary meta", log.String("build_id", binaryMeta.BuildID))
+	s.l.Info(ctx, "Saved binary meta", log.String("build_id", buildID))
 
 	return &committer{
-		l:       s.l,
-		buildID: binaryMeta.BuildID,
-		cluster: s.cluster,
+		l:           s.l,
+		buildID:     buildID,
+		cluster:     s.cluster,
+		compression: compression,
 	}, nil
 }
 
@@ -245,14 +284,16 @@ func (s *Storage) GetBinaries(
 	err = alive.DBx().SelectContext(
 		ctx,
 		&rows,
-		`SELECT 
+		`SELECT
 			b.build_id,
 			b.blob_size,
 			COALESCE(g.uncompressed_size, 0) gsym_blob_size,
 			b.ts,
 			b.attributes,
 			b.upload_status,
-			b.last_used_timestamp
+			b.last_used_timestamp,
+			b.compression,
+			b.uncompressed_size
 		FROM binaries b LEFT OUTER JOIN gsym g on b.build_id = g.build_id
 			WHERE b.build_id = ANY($1)
 			ORDER BY b.build_id ASC`,
@@ -266,7 +307,11 @@ func (s *Storage) GetBinaries(
 
 	res := make([]*binarymeta.BinaryMeta, 0, len(rows))
 	for _, row := range rows {
-		res = append(res, RowToBinaryMeta(&row))
+		meta, err := RowToBinaryMeta(&row)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, meta)
 	}
 
 	return res, nil
@@ -295,7 +340,7 @@ func (s *Storage) CollectExpiredBinaries(
 	err = alive.DBx().SelectContext(
 		ctx,
 		&rows,
-		`SELECT build_id, blob_size, ts, attributes, upload_status, last_used_timestamp
+		`SELECT build_id, blob_size, ts, attributes, upload_status, last_used_timestamp, compression, uncompressed_size
 			FROM binaries
 			WHERE last_used_timestamp <= $1
 			ORDER BY build_id ASC LIMIT $2 OFFSET $3`,
@@ -309,7 +354,11 @@ func (s *Storage) CollectExpiredBinaries(
 
 	res := make([]*binarymeta.BinaryMeta, 0, len(rows))
 	for _, row := range rows {
-		res = append(res, RowToBinaryMeta(&row))
+		meta, err := RowToBinaryMeta(&row)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, meta)
 	}
 
 	return res, nil

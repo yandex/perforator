@@ -4,6 +4,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 import "perforator/proto/pprofprofile/profile.proto";
+import "perforator/proto/lib/compression/compression.proto";
 
 package NPerforator.NProto;
 
@@ -64,6 +65,11 @@ message AnnounceBinariesResponse {
 
 message PushBinaryRequestHead {
     string BuildID = 1;
+    // Compression codec used to compress the binary blob.
+    NPerforator.NProto.NLib.CompressionMethod Compression = 2;
+    // UncompressedSize is the original size of the binary before compression.
+    // Must be set when Compression != COMPRESSION_METHOD_NONE.
+    uint64 UncompressedSize = 3;
 }
 
 message PushBinaryRequestBody {

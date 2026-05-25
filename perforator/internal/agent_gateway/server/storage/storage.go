@@ -32,6 +32,7 @@ import (
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	profilemeta "github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 	"github.com/yandex/perforator/perforator/proto/pprofprofile"
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 	"github.com/yandex/perforator/perforator/util/go/tsformat"
@@ -646,21 +647,43 @@ func (s *Service) AnnounceBinaries(
 	}, nil
 }
 
-func (s *Service) pushBinaryPreamble(reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (buildID string, err error) {
+type binaryPreamble struct {
+	buildID          string
+	compression      compressionpb.CompressionMethod
+	uncompressedSize uint64
+}
+
+func validatePushBinaryHeader(preamble binaryPreamble) error {
+	switch preamble.compression {
+	case compressionpb.CompressionMethod_Unknown, compressionpb.CompressionMethod_None:
+		return nil
+	default:
+		if preamble.uncompressedSize == 0 {
+			return fmt.Errorf("uncompressed size is required when compression is set: %s", preamble.compression.String())
+		}
+		return nil
+	}
+}
+
+func (s *Service) pushBinaryPreamble(reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (binaryPreamble, error) {
 	firstChunk, err := reqStream.Recv()
 	if err != nil {
-		return "", err
+		return binaryPreamble{}, err
 	}
 
 	reqHead, ok := firstChunk.Chunk.(*perforatorstorage.PushBinaryRequest_HeadChunk)
 	if !ok {
-		return "", errors.New("first chunk must be head chunk")
+		return binaryPreamble{}, errors.New("first chunk must be head chunk")
 	}
 	if reqHead.HeadChunk.BuildID == "" {
-		return "", errors.New("build id is missing")
+		return binaryPreamble{}, errors.New("build id is missing")
 	}
 
-	return reqHead.HeadChunk.BuildID, nil
+	return binaryPreamble{
+		buildID:          reqHead.HeadChunk.BuildID,
+		compression:      reqHead.HeadChunk.Compression,
+		uncompressedSize: reqHead.HeadChunk.UncompressedSize,
+	}, nil
 }
 
 func (s *Service) pushBinaryProcessStream(writer binarystorage.TransactionalWriter, reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (bytesTransmitted uint64, err error) {
@@ -693,15 +716,19 @@ func (s *Service) pushBinaryProcessStream(writer binarystorage.TransactionalWrit
 	return bytesTransmitted, nil
 }
 
-func (s *Service) pushBinaryPerformUpload(buildID string, reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) error {
+func (s *Service) pushBinaryPerformUpload(preamble binaryPreamble, reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) error {
 	start := time.Now()
+
+	var opts []binarymeta.Option
+	if preamble.compression != compressionpb.CompressionMethod_None && preamble.compression != compressionpb.CompressionMethod_Unknown {
+		opts = append(opts, binarymeta.WithCompression(preamble.compression, preamble.uncompressedSize))
+	}
 
 	writer, err := s.binaryStorage.StoreBinary(
 		reqStream.Context(),
-		&binarymeta.BinaryMeta{
-			BuildID:   buildID,
-			Timestamp: start,
-		},
+		preamble.buildID,
+		start,
+		opts...,
 	)
 	if err != nil {
 		if !errors.Is(err, binarymeta.ErrAlreadyUploaded) &&
@@ -738,9 +765,12 @@ func (s *Service) pushBinaryPerformUpload(buildID string, reqStream perforatorst
 	s.metrics.storedBinaries.Inc()
 	s.metrics.binariesUploadTimer.RecordDuration(time.Since(start))
 	s.metrics.binariesBytesCount.Add(int64(bytesTransmitted))
-	s.buildIDCache.Set(buildID, true, cacheItemTTL)
+	s.buildIDCache.Set(preamble.buildID, true, cacheItemTTL)
 
-	s.logger.Info(reqStream.Context(), "Uploaded binary", log.String("build_id", buildID))
+	s.logger.Info(reqStream.Context(), "Uploaded binary",
+		log.String("build_id", preamble.buildID),
+		log.String("compression", preamble.compression.String()),
+	)
 
 	return nil
 }
@@ -751,22 +781,26 @@ func (s *Service) pushBinaryImpl(reqStream perforatorstorage.PerforatorStorage_P
 	}
 	defer s.binaryUploadLimiter.Release(1)
 
-	buildID, err = s.pushBinaryPreamble(reqStream)
+	preamble, err := s.pushBinaryPreamble(reqStream)
 	if err != nil {
-		return buildID, fmt.Errorf("failed preambule: %w", err)
+		return "", fmt.Errorf("failed preamble: %w", err)
 	}
 
-	err = s.pushBinaryPerformUpload(buildID, reqStream)
+	if err := validatePushBinaryHeader(preamble); err != nil {
+		return preamble.buildID, err
+	}
+
+	err = s.pushBinaryPerformUpload(preamble, reqStream)
 	if err != nil {
-		return buildID, fmt.Errorf("failed to perform upload: %w", err)
+		return preamble.buildID, fmt.Errorf("failed to perform upload: %w", err)
 	}
 
 	err = reqStream.SendAndClose(&perforatorstorage.PushBinaryResponse{})
 	if err != nil {
-		return buildID, fmt.Errorf("failed to send and close: %w", err)
+		return preamble.buildID, fmt.Errorf("failed to send and close: %w", err)
 	}
 
-	return buildID, nil
+	return preamble.buildID, nil
 }
 
 // implements PerforatorStorage/PushBinary
