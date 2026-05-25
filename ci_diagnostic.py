@@ -1,5 +1,6 @@
-# CI Environment Diagnostics
+# CI Environment Check v2
 import datetime
-print(f'Diagnostic run at: {datetime.datetime.now()}')
-print('CI environment check completed.')
+import platform
+print(f'Check v2 at: {datetime.datetime.now()}')
+print(f'Platform: {platform.platform()}')
 
