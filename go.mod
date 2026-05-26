@@ -199,7 +199,9 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/MicahParks/jwkset v0.11.0
 	github.com/MicahParks/keyfunc/v2 v2.1.0
+	github.com/MicahParks/keyfunc/v3 v3.6.2
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/NVIDIA/go-dcgm v0.0.0-20250401195952-7c92211ba301
 	github.com/NVIDIA/go-nvlib v0.7.0
@@ -316,7 +318,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.15.0
 	github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 	github.com/cloudflare/cloudflare-go v0.80.0
-	github.com/coder/websocket v1.8.13
+	github.com/coder/websocket v1.8.14
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
 	github.com/container-storage-interface/spec v1.10.0
 	github.com/containerd/cgroups/v3 v3.0.5
@@ -498,7 +500,7 @@ require (
 	github.com/google/go-jsonnet v0.21.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/gopacket v1.1.19
-	github.com/google/jsonschema-go v0.3.0
+	github.com/google/jsonschema-go v0.4.2
 	github.com/google/licensecheck v0.3.1
 	github.com/google/nftables v0.3.0
 	github.com/google/osv-scalibr v0.2.0
@@ -659,7 +661,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/mkrautz/goar v0.0.0-20150919110319-282caa8bd9da
-	github.com/modelcontextprotocol/go-sdk v1.2.0
+	github.com/modelcontextprotocol/go-sdk v1.4.1
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee
 	github.com/montanaflynn/stats v0.7.1
 	github.com/mrknow-all/go-oae v0.0.0-20221221002406-36600e4f6b43
@@ -754,6 +756,7 @@ require (
 	github.com/prometheus/common v0.67.4
 	github.com/prometheus/common/assets v0.2.0
 	github.com/prometheus/common/sigv4 v0.1.0
+	github.com/prometheus/otlptranslator v1.0.0
 	github.com/prometheus/procfs v0.19.2
 	github.com/prometheus/prometheus v0.307.0
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20240116145035-ef3ab179eed6
@@ -891,7 +894,7 @@ require (
 	github.com/wneessen/go-mail v0.5.2
 	github.com/wundergraph/astjson v1.1.0
 	github.com/wundergraph/go-arena v1.1.0
-	github.com/wundergraph/graphql-go-tools/v2 v2.0.0-rc.267
+	github.com/wundergraph/graphql-go-tools/v2 v2.3.0
 	github.com/xanzy/go-gitlab v0.73.1
 	github.com/xdg-go/scram v1.1.2
 	github.com/xdg-go/stringprep v1.0.4
@@ -1926,7 +1929,7 @@ require (
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jdx/go-netrc v1.0.0 // indirect
 	github.com/jedib0t/go-pretty/v6 v6.6.0 // indirect
-	github.com/jensneuse/byte-template v0.0.0-20200214152254-4f3cf06e5c68 // indirect
+	github.com/jensneuse/byte-template v0.0.0-20231025215717-69252eb3ed56 // indirect
 	github.com/jensneuse/diffview v1.0.0 // indirect
 	github.com/jhump/gopoet v0.1.0 // indirect
 	github.com/jhump/goprotoc v0.5.0 // indirect
@@ -2240,7 +2243,6 @@ require (
 	github.com/pressly/goose/v3 v3.24.2 // indirect
 	github.com/prometheus/alertmanager v0.28.1 // indirect
 	github.com/prometheus/exporter-toolkit v0.14.1 // indirect
-	github.com/prometheus/otlptranslator v1.0.0 // indirect
 	github.com/prometheus/sigv4 v0.2.1 // indirect
 	github.com/prometheus/statsd_exporter v0.22.7 // indirect
 	github.com/prometheus/tsdb v0.10.0 // indirect
@@ -2308,7 +2310,7 @@ require (
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0 // indirect
 	github.com/securego/gosec v0.0.0-20200203094520-d13bb6d2420c // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
-	github.com/segmentio/encoding v0.3.6 // indirect
+	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/segmentio/fasthash v1.0.3 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sethgrid/pester v1.2.0 // indirect
