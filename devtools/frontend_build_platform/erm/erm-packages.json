@@ -3465,6 +3465,31 @@
       "Release schedule": "https://github.com/nodejs/Release#release-schedule"
     },
     "versions": {
+      "26.1.0": {
+        "add_date": "2026-05-26T05:33:30",
+        "resources": [
+          {
+            "id": 12184423726,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 12184427349,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 12184430449,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 12184433688,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "25.9.0": {
         "add_date": "2026-04-14T05:32:55",
         "resources": [
