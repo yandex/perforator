@@ -18035,7 +18035,7 @@ github.com/ydb-platform/ydb-go-sdk-metrics/registry
 github.com/ydb-platform/ydb-go-sdk-opentracing
 github.com/ydb-platform/ydb-go-sdk-opentracing/internal/cmd/database/sql
 github.com/ydb-platform/ydb-go-sdk-opentracing/internal/cmd/native
-# github.com/ydb-platform/ydb-go-sdk-otel v0.10.3
+# github.com/ydb-platform/ydb-go-sdk-otel v0.11.0
 ## explicit; go 1.22.5
 github.com/ydb-platform/ydb-go-sdk-otel
 github.com/ydb-platform/ydb-go-sdk-otel/internal/cmd/database/sql
