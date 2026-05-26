@@ -6371,7 +6371,7 @@
     "title": "npm CLI",
     "description": "Стандартный пакетный менеджер Node.js\n\nВ erm является внутренним инструментом: используется в `pnpm` при публикации пакетов.",
     "type": "NPM_PACKAGE",
-    "default": "11.13.0",
+    "default": "11.14.1",
     "links": {
       "Home": "https://www.npmjs.com/",
       "Sources": "https://github.com/npm/cli",
@@ -6381,6 +6381,16 @@
     "specifier": ">=10.1.0",
     "internal": true,
     "versions": {
+      "11.14.1": {
+        "add_date": "2026-05-26T05:38:15",
+        "resources": [
+          {
+            "id": 12184438591,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
       "11.13.0": {
         "add_date": "2026-05-12T05:31:25",
         "resources": [
