@@ -16,6 +16,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
@@ -55,20 +56,46 @@ func compressionFunctionFromString(compression string) (CompressionFunction, err
 	return nil, fmt.Errorf("unrecognized compression codec %s", compression)
 }
 
-type BinaryGRPCClientWriter struct {
-	io.WriteCloser
-	client perforatorstorage.PerforatorStorage_PushBinaryClient
+type pushBinaryParams struct {
+	compression      compressionpb.CompressionMethod
+	uncompressedSize uint64
 }
 
-func NewBinaryGRPCClientWriter(
-	client perforatorstorage.PerforatorStorage_PushBinaryClient,
-) *BinaryGRPCClientWriter {
-	return &BinaryGRPCClientWriter{
-		client: client,
+func defaultPushBinaryParams() *pushBinaryParams {
+	return &pushBinaryParams{
+		compression:      compressionpb.CompressionMethod_None,
+		uncompressedSize: 0,
 	}
 }
 
-func (w *BinaryGRPCClientWriter) Write(p []byte) (int, error) {
+type PushBinaryOption func(*pushBinaryParams)
+
+func WithCompression(codec compressionpb.CompressionMethod, size uint64) PushBinaryOption {
+	return func(p *pushBinaryParams) {
+		if codec != compressionpb.CompressionMethod_None {
+			p.compression = codec
+			p.uncompressedSize = size
+		}
+	}
+}
+
+type binaryGRPCClientWriter struct {
+	io.WriteCloser
+	client   perforatorstorage.PerforatorStorage_PushBinaryClient
+	cancelFn func()
+}
+
+func newBinaryGRPCClientWriter(
+	client perforatorstorage.PerforatorStorage_PushBinaryClient,
+	cancelFn func(),
+) *binaryGRPCClientWriter {
+	return &binaryGRPCClientWriter{
+		client:   client,
+		cancelFn: cancelFn,
+	}
+}
+
+func (w *binaryGRPCClientWriter) Write(p []byte) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
@@ -89,7 +116,10 @@ func (w *BinaryGRPCClientWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (w *BinaryGRPCClientWriter) Close() error {
+func (w *binaryGRPCClientWriter) Close() error {
+	if w.cancelFn != nil {
+		w.cancelFn()
+	}
 	_, err := w.client.CloseAndRecv()
 	return err
 }
@@ -249,9 +279,22 @@ func (c *Client) AnnounceBinaries(ctx context.Context, availableBuildIDs []strin
 	return resp.UnknownBuildIDs, nil
 }
 
-func (c *Client) PushBinary(ctx context.Context, buildID string) (io.WriteCloser, context.CancelFunc, error) {
+func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBinaryOption) (io.WriteCloser, error) {
 	l := c.logger.With(log.String("build_id", buildID))
 	l.Debug(ctx, "Pushing binary")
+
+	params := defaultPushBinaryParams()
+	for _, opt := range opts {
+		opt(params)
+	}
+
+	if params.compression != compressionpb.CompressionMethod_None && params.uncompressedSize == 0 {
+		return nil, fmt.Errorf("uncompressed_size is required when compression is set")
+	}
+
+	if params.compression != compressionpb.CompressionMethod_None && params.compression != compressionpb.CompressionMethod_Zstd {
+		return nil, fmt.Errorf("unsupported compression codec %s", params.compression.String())
+	}
 
 	var err error
 	ctx, cancel := context.WithTimeout(ctx, c.conf.RPCTimeouts.PushBinaryTimeout)
@@ -265,24 +308,48 @@ func (c *Client) PushBinary(ctx context.Context, buildID string) (io.WriteCloser
 	pushBinaryClient, err = c.client.PushBinary(ctx)
 	if err != nil {
 		l.Error(ctx, "Failed to initialize binary upload")
-		return nil, nil, err
+		return nil, err
 	}
 
 	err = pushBinaryClient.Send(
 		&perforatorstorage.PushBinaryRequest{
 			Chunk: &perforatorstorage.PushBinaryRequest_HeadChunk{
 				HeadChunk: &perforatorstorage.PushBinaryRequestHead{
-					BuildID: buildID,
+					BuildID:          buildID,
+					Compression:      params.compression,
+					UncompressedSize: params.uncompressedSize,
 				},
 			},
 		},
 	)
 	if err != nil {
 		l.Error(ctx, "Failed to send binary upload header", log.Error(err))
-		return nil, nil, err
+		return nil, err
 	}
 
-	writer := NewBinaryGRPCClientWriter(pushBinaryClient)
+	var writer io.WriteCloser = newBinaryGRPCClientWriter(pushBinaryClient, cancel)
+	defer func() {
+		if err != nil {
+			closeErr := writer.Close()
+			if closeErr != nil {
+				l.Error(ctx, "Failed to close push binary writer on initialization error", log.Error(closeErr))
+			}
+		}
+	}()
+
+	switch params.compression {
+	case compressionpb.CompressionMethod_None:
+		break
+	case compressionpb.CompressionMethod_Zstd:
+		writer, err = zstd.NewWriter(writer, zstd.WithEncoderConcurrency(1))
+		if err != nil {
+			l.Error(ctx, "Failed to create compression writer", log.Error(err))
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported compression codec %s", params.compression.String())
+	}
+
 	l.Debug(ctx, "Successfully created push binary writer")
-	return writer, cancel, nil
+	return writer, nil
 }

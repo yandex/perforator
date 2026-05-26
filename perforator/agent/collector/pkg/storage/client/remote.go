@@ -20,6 +20,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
 
 func profileToBytes(profile *profile.Profile) ([]byte, error) {
@@ -28,6 +29,18 @@ func profileToBytes(profile *profile.Profile) ([]byte, error) {
 		return nil, err
 	}
 	return profileBytes.Bytes(), nil
+}
+
+type binaryStorageParams struct {
+	compression compressionpb.CompressionMethod
+}
+
+type BinaryStorageOption func(*binaryStorageParams)
+
+func WithBinaryCompression(codec compressionpb.CompressionMethod) BinaryStorageOption {
+	return func(p *binaryStorageParams) {
+		p.compression = codec
+	}
 }
 
 type remoteStorageClientMetrics struct {
@@ -44,17 +57,26 @@ type remoteStorageClientMetrics struct {
 }
 
 type RemoteStorage struct {
-	client        *storage.Client
-	logger        xlog.Logger
-	metrics       remoteStorageClientMetrics
-	profileFormat profileformat.ProfileFormat
+	client            *storage.Client
+	logger            xlog.Logger
+	metrics           remoteStorageClientMetrics
+	profileFormat     profileformat.ProfileFormat
+	binaryCompression compressionpb.CompressionMethod
 }
 
-func NewRemoteStorage(l xlog.Logger, r metrics.Registry, client *storage.Client, profileFormat profileformat.ProfileFormat) *RemoteStorage {
+func NewRemoteStorage(l xlog.Logger, r metrics.Registry, client *storage.Client, profileFormat profileformat.ProfileFormat, opts ...BinaryStorageOption) *RemoteStorage {
+	params := &binaryStorageParams{
+		compression: compressionpb.CompressionMethod_None,
+	}
+	for _, opt := range opts {
+		opt(params)
+	}
+
 	return &RemoteStorage{
-		client:        client,
-		logger:        l,
-		profileFormat: profileFormat,
+		client:            client,
+		logger:            l,
+		profileFormat:     profileFormat,
+		binaryCompression: params.compression,
 		metrics: remoteStorageClientMetrics{
 			profilesUploaded: r.WithTags(map[string]string{"kind": "uploaded"}).Counter("profiles.count"),
 			profilesUploadedSizeHist: r.Histogram(
@@ -261,10 +283,19 @@ func (s *RemoteStorage) StoreBinary(ctx context.Context, buildID string, binary 
 	}
 	defer file.Close()
 
-	w, cancel, err := s.client.PushBinary(ctx, buildID)
-	if cancel != nil {
-		defer cancel()
+	fi, err := file.GetFile().Stat()
+	if err != nil {
+		l.Debug("Failed to stat file", log.String("buildID", buildID), log.Error(err))
+		s.metrics.binariesFailedUnseal.Inc()
+		return err
 	}
+
+	var pushOpts []storage.PushBinaryOption
+	if s.binaryCompression != compressionpb.CompressionMethod_None {
+		pushOpts = append(pushOpts, storage.WithCompression(s.binaryCompression, uint64(fi.Size())))
+	}
+
+	w, err := s.client.PushBinary(ctx, buildID, pushOpts...)
 	if err != nil {
 		l.Error("Failed to start binary writer", log.String("build_id", buildID), log.Error(err))
 		return err
