@@ -9,8 +9,8 @@ export interface DefinitionListProps {
     items: DefinitionListItem[];
 }
 
-export const DefinitionList: React.FC<DefinitionListProps> = props => {
-    const elements = props.items
+export const DefinitionList: React.FC<DefinitionListProps> = ({ items }) => {
+    const elements = items
         .filter(([_, value]) => Boolean(value))
         .map(([key, value]) => (
             <div className="definition-list__row" key={key}>

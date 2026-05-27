@@ -1,12 +1,9 @@
 import React from 'react';
 
-import { ClipboardButton } from '@gravity-ui/uikit';
+import { Card, ClipboardButton, DefinitionList, DefinitionListItem, Disclosure } from '@gravity-ui/uikit';
 
 import type { TaskResult } from 'src/models/Task';
 import { setPageTitle } from 'src/utils/title';
-
-import type { DefinitionListItem } from '../DefinitionList/DefinitionList';
-import { DefinitionList } from '../DefinitionList/DefinitionList';
 
 import './TaskCard.scss';
 
@@ -18,7 +15,7 @@ export interface TaskCardProps {
 }
 
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task } )=> {
+export const TaskCard: React.FC<TaskCardProps> = ({ task, taskId } )=> {
     const spec = task?.Spec?.MergeProfiles;
     const diffSpec = task?.Spec?.DiffProfiles;
     const baselineQuery = diffSpec?.BaselineQuery;
@@ -42,26 +39,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task } )=> {
     ) : null;
 
 
-    const properties: DefinitionListItem[] = [
-        // ['Selector', querySelector],
+    const properties = [
         ['Baseline Selector', baselineSelector],
         ['Diff Selector', diffSelector],
-        ['Service', query?.Service],
-        [
-            'Time interval',
-            (
-                query?.TimeInterval?.From && query?.TimeInterval?.To
-                    ? `from ${query?.TimeInterval?.From ?? '-inf'} to ${query?.TimeInterval?.To ?? 'inf'}`
-                    : null
-            ),
-        ],
-    ];
+    ].filter(([_, value]) => Boolean(value));
 
-    return (
-        <div>
-            <DefinitionList items={properties} />
-        </div>
-    );
+    return properties.length > 0 ? (
+        <Card className="task-card">
+            <Disclosure defaultExpanded summary={<h2 className="task-card__title"> Task {taskId}</h2>}>
+                <DefinitionList>
+                    {properties.map(item => <DefinitionListItem name={item[0]}>{item[1]}</DefinitionListItem>)}
+                </DefinitionList>
+            </Disclosure>
+        </Card>
+    ) : null;
 };
 
 const Selector: React.FC<{ selector: string }> = ({ selector }) => (

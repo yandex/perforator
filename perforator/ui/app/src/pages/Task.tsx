@@ -6,7 +6,7 @@ import { Loader } from '@gravity-ui/uikit';
 
 import { Fullscreen } from 'src/components/Fullscreen/Fullscreen';
 import { FullscreenProvider } from 'src/components/Fullscreen/FullscreenProvider';
-import { TaskCard as RawTaskCard } from 'src/components/TaskCard/TaskCard';
+import { TaskCard } from 'src/components/TaskCard/TaskCard';
 import { TaskHeader } from 'src/components/TaskCard/TaskHeader';
 import { TaskReport } from 'src/components/TaskReport/TaskReport';
 import type { TaskResult } from 'src/models/Task';
@@ -18,7 +18,6 @@ import type { Page } from './Page';
 
 const POLLING_PERIOD = 1000;  // 1s
 
-const TaskCard = React.memo(RawTaskCard);
 
 export const Task: Page = props => {
     const pollingInterval = React.useRef<number | undefined>(undefined);
