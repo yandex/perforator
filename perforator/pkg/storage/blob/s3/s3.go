@@ -183,9 +183,10 @@ func (s *S3Storage) Size(ctx context.Context, key string) (uint64, error) {
 	if err != nil {
 		if isNoExistError(err) {
 			err = &models.ErrNoExist{Err: err, Key: key}
+		} else {
+			l.Warn(ctx, "Failed to get value size", log.Error(err))
 		}
 
-		l.Info(ctx, "Failed to get value size", log.Error(err))
 		return 0, err
 	}
 
