@@ -183,6 +183,7 @@ require (
 	github.com/Azure/go-autorest/autorest/to v0.4.1
 	github.com/Azure/go-autorest/autorest/validation v0.3.1
 	github.com/BurntSushi/toml v1.6.0
+	github.com/CalebQ42/squashfs v1.4.1
 	github.com/ClickHouse/ch-go v0.71.0
 	github.com/ClickHouse/clickhouse-go v1.5.4
 	github.com/ClickHouse/clickhouse-go/v2 v2.46.0
@@ -2073,6 +2074,7 @@ require (
 	github.com/mholt/certmagic v0.8.3 // indirect
 	github.com/michaelkedar/xml v0.0.0-20250501021638-021a7b1a061e // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
+	github.com/mikelolasagasti/xz v1.0.1 // indirect
 	github.com/milvus-io/milvus-proto/go-api/v2 v2.4.10-0.20240819025435-512e3b98866a // indirect
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect

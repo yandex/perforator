@@ -3709,6 +3709,18 @@ github.com/BurntSushi/toml/internal/toml-test
 github.com/BurntSushi/toml/ossfuzz
 # github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc
 ## explicit
+# github.com/CalebQ42/squashfs v1.4.1
+## explicit; go 1.24.0
+github.com/CalebQ42/squashfs
+github.com/CalebQ42/squashfs/cmd/go-unsquashfs
+github.com/CalebQ42/squashfs/internal/decompress
+github.com/CalebQ42/squashfs/internal/metadata
+github.com/CalebQ42/squashfs/internal/routinemanager
+github.com/CalebQ42/squashfs/internal/toreader
+github.com/CalebQ42/squashfs/low
+github.com/CalebQ42/squashfs/low/data
+github.com/CalebQ42/squashfs/low/directory
+github.com/CalebQ42/squashfs/low/inode
 # github.com/ChrisTrenkamp/goxpath v0.0.0-20210404020558-97928f7e12b6
 ## explicit
 github.com/ChrisTrenkamp/goxpath
@@ -12906,6 +12918,9 @@ github.com/miekg/dns/dnsutil
 ## explicit; go 1.12
 github.com/miekg/pkcs11
 github.com/miekg/pkcs11/p11
+# github.com/mikelolasagasti/xz v1.0.1
+## explicit; go 1.15
+github.com/mikelolasagasti/xz
 # github.com/mikespook/gorbac v2.3.0+incompatible
 ## explicit
 github.com/mikespook/gorbac
