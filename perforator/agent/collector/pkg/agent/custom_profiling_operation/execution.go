@@ -29,7 +29,7 @@ var (
 
 const (
 	defaultStatusOutputChannelSize = 10
-	defaultFinishOperationTimeout  = time.Minute
+	defaultFinishOperationTimeout  = 2 * time.Minute
 
 	MetricPrefix        = "custom_profiling_operation"
 	MetricPreparedCount = "prepared.count"
