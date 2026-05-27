@@ -80,18 +80,8 @@ struct php_state {
     u32 pid;
 };
 
-#ifdef PERFORATOR_ENABLE_PHP
-
 enum {
     MAX_PHP_BINARIES = MAX_BINARIES,
 };
-
-#else
-
-enum {
-    MAX_PHP_BINARIES = 1,
-};
-
-#endif
 
 BPF_MAP(php_storage, BPF_MAP_TYPE_HASH, binary_id, struct php_config, MAX_PHP_BINARIES);

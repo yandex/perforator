@@ -91,9 +91,7 @@ struct profiler_state {
     u8 jvm_frames_count;
 
     struct python_state python_state;
-#ifdef PERFORATOR_ENABLE_PHP
     struct php_state php_state;
-#endif
 
     struct last_branch_records lbr;
     struct record_new_process newproc;
@@ -327,7 +325,6 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
         .elem_size = sizeof(struct interpreter_frame),
     });
 
-#ifdef PERFORATOR_ENABLE_PHP
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_PHP,
         .count     = state->php_state.frame_count,
@@ -336,7 +333,6 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
         .src_size  = sizeof(state->php_state.frames),
         .elem_size = sizeof(struct interpreter_frame),
     });
-#endif
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_JVM,
@@ -758,7 +754,6 @@ static NOINLINE int profiler_stage_collect_python_stack(void* ctx, struct profil
     return 0;
 }
 
-#ifdef PERFORATOR_ENABLE_PHP
 static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_state* state, struct profiler_config* config) {
     if (state == NULL || config == NULL || !config->enable_php) {
         return -1;
@@ -771,7 +766,6 @@ static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_
     php_collect_stack(info, &state->php_state);
     return 0;
 }
-#endif
 
 static NOINLINE int profiler_stage_collect_tls(void* ctx, struct profiler_state* state, struct profiler_config* config) {
     if (state == NULL || config == NULL) {
@@ -875,9 +869,7 @@ static NOINLINE int profiler_do_sample_impl_perfevent(void* ctx, struct user_reg
     PROFILER_DO_SAMPLE_COMMON_PROLOGUE;
 
     PROFILER_DEFINE_COMMON_STAGES;
-#ifdef PERFORATOR_ENABLE_PHP
     PROFILER_DEFINE_STAGE(profiler_stage_collect_php_stack(ctx, state, config), METRIC_ERROR_STAGE_COLLECT_PHP_STACK_COUNT)
-#endif
     PROFILER_DEFINE_STAGE(profiler_stage_collect_lbr_stack(ctx, state), METRIC_ERROR_STAGE_LBR_STACK_COUNT);
 
     PROFILER_DO_SAMPLE_COMMON_EPILOGUE;

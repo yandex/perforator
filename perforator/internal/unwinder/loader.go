@@ -15,7 +15,6 @@ const (
 
 type ProgramRequirements struct {
 	Debug               bool
-	PHP                 bool
 	KernelCompatibility KernelCompatibilityLevel
 }
 
@@ -30,10 +29,6 @@ func LoadProg(reqs ProgramRequirements) ([]byte, error) {
 
 	if reqs.KernelCompatibility == KernelCompatibilityLevel5_4 {
 		name += ".k54"
-	}
-
-	if reqs.PHP {
-		name += ".php"
 	}
 
 	name = fmt.Sprintf("ebpf/unwinder.%s.elf", name)

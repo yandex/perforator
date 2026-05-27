@@ -384,7 +384,6 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		r,
 		machine.Options{
 			EnableJVM: p.conf.FeatureFlagsConfig.JVMEnabled(),
-			EnablePHP: p.conf.FeatureFlagsConfig.PhpEnabled(),
 		},
 	)
 	if err != nil {

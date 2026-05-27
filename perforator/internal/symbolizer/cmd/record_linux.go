@@ -119,7 +119,7 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.disablePerfMap, "disable-perf-maps", false, "Disable perf map")
 	cmd.Flags().BoolVar(&o.disablePerfMapJVM, "disable-perf-maps-jvm", false, "Disable perf map for JVM")
 	cmd.Flags().BoolVar(&o.enableJVM, "experimental-enable-jvm", false, "[Experimental feature] Enable JVM profiling")
-	cmd.Flags().BoolVar(&o.enablePHP, "experimental-enable-php", false, "[Experimental feature] Enable PHP profiling")
+	cmd.Flags().BoolVar(&o.enablePHP, "experimental-enable-php", true, "[Experimental feature] Enable PHP profiling")
 	cmd.Flags().BoolVar(&o.enableSframe, "experimental-enable-sframe-parsing", false, "[Experimental feature] Enable Sframe unwinder")
 	cmd.Flags().StringVar(&o.pythonPrettifyLevel, "experimental-prettify-python-stacks", "off", "[Experimental] Python stack prettification level: off, mixed (remove CPython frames, keep user native), python-only (only python frames)")
 

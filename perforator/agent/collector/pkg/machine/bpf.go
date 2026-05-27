@@ -68,7 +68,6 @@ type Config struct {
 
 type Options struct {
 	EnableJVM bool
-	EnablePHP bool
 }
 
 type BPF struct {
@@ -126,7 +125,6 @@ func NewBPF(conf *Config, log log.Logger, metrics metrics.Registry, opts Options
 func (b *BPF) currentProgramRequirements() unwinder.ProgramRequirements {
 	return unwinder.ProgramRequirements{
 		Debug:               b.progdebug,
-		PHP:                 b.opts.EnablePHP,
 		KernelCompatibility: b.progkernelcompat,
 	}
 }

@@ -44,10 +44,4 @@ func TestStackUsage(t *testing.T) {
 	t.Run("ReleaseKernel5_4", func(t *testing.T) {
 		testProg(t, unwinder.ProgramRequirements{KernelCompatibility: unwinder.KernelCompatibilityLevel5_4})
 	})
-	t.Run("DebugPHP", func(t *testing.T) {
-		testProg(t, unwinder.ProgramRequirements{Debug: true, PHP: true})
-	})
-	t.Run("ReleasePHP", func(t *testing.T) {
-		testProg(t, unwinder.ProgramRequirements{PHP: true})
-	})
 }

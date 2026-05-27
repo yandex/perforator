@@ -4,8 +4,6 @@
 #include "types.h"
 #include "trace.h"
 
-#ifdef PERFORATOR_ENABLE_PHP
-
 static ALWAYS_INLINE bool php_retrieve_configs(
     struct process_info* proc_info,
     struct php_state* state
@@ -318,5 +316,3 @@ static ALWAYS_INLINE void php_collect_stack(
 
     return;
 }
-
-#endif
