@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-05-21T12:14:20Z",
+    "created": "2026-05-27T14:33:10Z",
     "pr": {
-      "id": 13487419,
-      "author": "zaverden",
-      "summary": "fix: do not add RECURSE if dir is present in RECURSE_FOR_TESTS"
+      "id": 13557937,
+      "author": "baymer",
+      "summary": "FBP-3208: nots/cli: поправить параметры сборки"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12133591356"
+      "uri": "sbr:12209970660"
     },
     "darwin-arm64": {
-      "uri": "sbr:12133587004"
+      "uri": "sbr:12209966452"
     },
     "linux": {
-      "uri": "sbr:12133599463"
+      "uri": "sbr:12209978503"
     },
     "linux-aarch64": {
-      "uri": "sbr:12133595415"
+      "uri": "sbr:12209974101"
     }
   }
 }
