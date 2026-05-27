@@ -68,7 +68,7 @@ class TsProtoGenerator:
             "name": self.options.auto_package_name.replace("*", gen_name),
             "version": "0.0.0",
             "type": "module",
-            "files": ["build/"],
+            "files": ["build", "pnpm-lock.yaml"],
             "repository": {"type": "arc", "directory": self.options.moddir},
             "dependencies": deps_pj.data.get("dependencies", {}),
             "devDependencies": deps_pj.data.get("devDependencies", {}),
