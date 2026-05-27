@@ -18648,6 +18648,7 @@ go.etcd.io/etcd/server/v3/storage/datadir
 go.etcd.io/etcd/server/v3/storage/mvcc
 go.etcd.io/etcd/server/v3/storage/schema
 go.etcd.io/etcd/server/v3/storage/wal
+go.etcd.io/etcd/server/v3/storage/wal/testing
 go.etcd.io/etcd/server/v3/storage/wal/walpb
 go.etcd.io/etcd/server/v3/verify
 # go.etcd.io/etcd/tests/v3 v3.5.8

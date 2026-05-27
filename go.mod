@@ -933,7 +933,11 @@ require (
 	go.einride.tech/aip v0.73.0
 	go.etcd.io/bbolt v1.4.3
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20240613141046-5cd1d285d744
+	go.etcd.io/etcd/api/v3 v3.6.5
+	go.etcd.io/etcd/client/pkg/v3 v3.6.5
 	go.etcd.io/etcd/raft/v3 v3.5.21
+	go.etcd.io/etcd/server/v3 v3.6.5
+	go.etcd.io/raft/v3 v3.6.0
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0
 	go.lsp.dev/uri v0.3.0
@@ -2505,18 +2509,14 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20230310154051-c8b263fd8300 // indirect
 	github.com/zmap/zlint/v3 v3.6.0-rc1 // indirect
 	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20230209143738-95328d8c4438 // indirect
-	go.etcd.io/etcd/api/v3 v3.6.5 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.6.5 // indirect
 	go.etcd.io/etcd/client/v2 v2.305.21 // indirect
 	go.etcd.io/etcd/client/v3 v3.6.5 // indirect
 	go.etcd.io/etcd/etcdctl/v3 v3.5.8 // indirect
 	go.etcd.io/etcd/etcdutl/v3 v3.5.8 // indirect
 	go.etcd.io/etcd/pkg/v3 v3.6.5 // indirect
-	go.etcd.io/etcd/server/v3 v3.6.5 // indirect
 	go.etcd.io/etcd/tests/v3 v3.5.8 // indirect
 	go.etcd.io/etcd/v3 v3.5.8 // indirect
 	go.etcd.io/gofail v0.2.0 // indirect
-	go.etcd.io/raft/v3 v3.6.0 // indirect
 	go.lsp.dev/pkg v0.0.0-20210717090340-384b27a52fb2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
