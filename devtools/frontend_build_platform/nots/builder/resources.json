@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-05-27T14:33:10Z",
+    "created": "2026-05-28T12:58:59.943Z",
     "pr": {
-      "id": 13557937,
+      "id": 13591971,
       "author": "baymer",
-      "summary": "FBP-3208: nots/cli: поправить параметры сборки"
+      "summary": "FBP-3211: nots/cli: вернуть .pnpm внутрь node_modules"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12209970660"
+      "uri": "sbr:12222863642"
     },
     "darwin-arm64": {
-      "uri": "sbr:12209966452"
+      "uri": "sbr:12222861760"
     },
     "linux": {
-      "uri": "sbr:12209978503"
+      "uri": "sbr:12222868088"
     },
     "linux-aarch64": {
-      "uri": "sbr:12209974101"
+      "uri": "sbr:12222865952"
     }
   }
 }
