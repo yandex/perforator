@@ -10,6 +10,7 @@ END()
 
 RECURSE(
     compound
+    decompressing
     meta
     mock
 )

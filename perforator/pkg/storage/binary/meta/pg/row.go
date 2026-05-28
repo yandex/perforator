@@ -17,14 +17,14 @@ const (
 
 type BinaryRow struct {
 	BuildID                    string    `db:"build_id"`
-	UnverifiedUncompressedSize uint64    `db:"blob_size"`
+	Size                       uint64    `db:"blob_size"`
 	GSYMBlobSize               uint64    `db:"gsym_blob_size"`
 	Timestamp                  time.Time `db:"ts"`
 	Attributes                 []byte    `db:"attributes"`
 	UploadStatus               string    `db:"upload_status"`
 	LastUsedTimestamp          time.Time `db:"last_used_timestamp"`
 	Compression                string    `db:"compression"`
-	UncompressedSize           uint64    `db:"uncompressed_size"`
+	UnverifiedUncompressedSize uint64    `db:"uncompressed_size"`
 }
 
 func compressionMethodToString(ctx context.Context, c compressionpb.CompressionMethod) (string, error) {
@@ -59,9 +59,9 @@ func RowToBinaryMeta(row *BinaryRow) (*binarymeta.BinaryMeta, error) {
 		return nil, err
 	}
 
-	uncompressedSize := row.UncompressedSize
-	if row.UncompressedSize == 0 && row.Compression == "" {
-		uncompressedSize = row.UnverifiedUncompressedSize
+	uncompressedSize := row.UnverifiedUncompressedSize
+	if row.UnverifiedUncompressedSize == 0 && row.Compression == "" {
+		uncompressedSize = row.Size
 	}
 
 	res := &binarymeta.BinaryMeta{
@@ -77,7 +77,7 @@ func RowToBinaryMeta(row *BinaryRow) (*binarymeta.BinaryMeta, error) {
 	if row.UploadStatus == string(binarymeta.Uploaded) {
 		res.BlobInfo = &storage.BlobInfo{
 			ID:   row.BuildID,
-			Size: row.UnverifiedUncompressedSize,
+			Size: row.Size,
 		}
 
 		if row.GSYMBlobSize != 0 {
@@ -102,16 +102,16 @@ func BinaryMetaToRow(ctx context.Context, meta *binarymeta.BinaryMeta) (*BinaryR
 	}
 
 	row := &BinaryRow{
-		BuildID:           meta.BuildID,
-		Timestamp:         meta.Timestamp,
-		LastUsedTimestamp: meta.LastUsedTimestamp,
-		UploadStatus:      string(meta.Status),
-		Compression:       compression,
-		UncompressedSize:  meta.UncompressedSize,
+		BuildID:                    meta.BuildID,
+		Timestamp:                  meta.Timestamp,
+		LastUsedTimestamp:          meta.LastUsedTimestamp,
+		UploadStatus:               string(meta.Status),
+		Compression:                compression,
+		UnverifiedUncompressedSize: meta.UncompressedSize,
 	}
 
 	if meta.BlobInfo != nil {
-		row.UnverifiedUncompressedSize = meta.BlobInfo.Size
+		row.Size = meta.BlobInfo.Size
 	}
 
 	if len(meta.Attributes) > 0 {

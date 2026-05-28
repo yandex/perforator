@@ -24,7 +24,7 @@ func NewStorage(logger xlog.Logger, reg metrics.Registry, opts ...Option) (gsyms
 		return nil, errors.New("no blob storage is specified")
 	}
 
-	blobStorage, err := blob.NewStorage(logger, reg.WithPrefix("gsym_storage"), blob.WithS3(options.s3client, options.s3bucket))
+	blobHandle, err := blob.NewStorage(logger, reg.WithPrefix("gsym_storage"), blob.WithS3(options.s3client, options.s3bucket))
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func NewStorage(logger xlog.Logger, reg metrics.Registry, opts ...Option) (gsyms
 	switch {
 	case options.postgresCluster != nil:
 		gsymMetaStorage := gsympg.NewPostgresGSYMStorage(logger, reg, options.postgresCluster, gsympg.Options{})
-		return gsymstorage.NewStorage(gsymMetaStorage, blobStorage, logger), nil
+		return gsymstorage.NewStorage(gsymMetaStorage, blobHandle.Storage, logger), nil
 	default:
 		return nil, errUnspecifiedMetaStorage
 	}

@@ -28,7 +28,7 @@ func NewStorage(
 		return nil, errors.New("no blob storage is specified")
 	}
 
-	blobStorage, err := blob.NewStorage(logger, reg.WithPrefix("profile_storage"), blob.WithS3(options.s3client, options.s3bucket))
+	blobHandle, err := blob.NewStorage(logger, reg.WithPrefix("profile_storage"), blob.WithS3(options.s3client, options.s3bucket))
 	if err != nil {
 		return nil, err
 	}
@@ -38,5 +38,5 @@ func NewStorage(
 		return nil, err
 	}
 
-	return storage.NewStorage(logger, metaStorage, blobStorage, options.blobDownloadConcurrency, options.storageOpts)
+	return storage.NewStorage(logger, metaStorage, blobHandle.Storage, options.blobDownloadConcurrency, options.storageOpts)
 }

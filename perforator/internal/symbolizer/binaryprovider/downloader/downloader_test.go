@@ -21,6 +21,7 @@ import (
 	mock_binary "github.com/yandex/perforator/perforator/pkg/storage/binary/mock"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
 
 func newTestObjects(
@@ -234,6 +235,7 @@ func TestCachedDownloader_ErrorHandling(t *testing.T) {
 				BlobInfo: &storage.BlobInfo{
 					Size: 2,
 				},
+				Compression: compressionpb.CompressionMethod_None,
 			},
 		},
 		nil,
@@ -400,4 +402,135 @@ func TestCachedDownloader_Concurrent(t *testing.T) {
 	require.Greater(t, successfulRequests.Load(), uint32(0))
 
 	l.Logger().Infof("%d successfull requests out of %d", successfulRequests.Load(), requestsCount)
+}
+
+func TestDownloader_ZstdAcquireSize(t *testing.T) {
+	const uncompressedSize = 1024 * 1024
+	const compressedSize = 4096
+
+	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
+		t,
+		&asyncfilecache.Config{
+			MaxSize:  "100G",
+			MaxItems: 100000,
+			RootPath: "./binaries",
+		},
+		&Config{
+			MaxSimultaneousDownloads: 1,
+			MaxQueueSize:             100000,
+		},
+	)
+	defer cancel()
+
+	buildID := "zstd-bin"
+	mockStorage.EXPECT().GetBinaries(gomock.Any(), []string{buildID}).Return(
+		[]*binarymeta.BinaryMeta{
+			{
+				BuildID:          buildID,
+				Compression:      compressionpb.CompressionMethod_Zstd,
+				UncompressedSize: uncompressedSize,
+				BlobInfo: &storage.BlobInfo{
+					Size: compressedSize,
+				},
+			},
+		},
+		nil,
+	).AnyTimes()
+
+	var writer *asyncfilecache.WriterAt
+	mockStorage.EXPECT().
+		LoadBinary(gomock.Any(), buildID, gomock.AssignableToTypeOf(writer)).
+		DoAndReturn(func(_ any, _ string, writer *asyncfilecache.WriterAt) (*binarymeta.BinaryMeta, error) {
+			_, err := writer.WriteAt(make([]byte, uncompressedSize), 0)
+			if err != nil {
+				return nil, err
+			}
+			return &binarymeta.BinaryMeta{BuildID: buildID}, nil
+		})
+
+	acquiredBinary, err := downloader.Acquire(ctx, buildID)
+	require.NoError(t, err)
+
+	fileRef := acquiredBinary.(*asyncfilecache.AcquiredFileReference)
+	require.Equal(t, uint64(uncompressedSize), fileRef.Size())
+
+	err = acquiredBinary.WaitStored(ctx)
+	require.NoError(t, err)
+
+	acquiredBinary.Close()
+}
+
+func TestDownloader_LegacyNoneSizeFallback(t *testing.T) {
+	const blobSize = 500
+
+	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
+		t,
+		&asyncfilecache.Config{
+			MaxSize:  "100G",
+			MaxItems: 100000,
+			RootPath: "./binaries",
+		},
+		&Config{
+			MaxSimultaneousDownloads: 1,
+			MaxQueueSize:             100000,
+		},
+	)
+	defer cancel()
+
+	buildID := "legacy-bin"
+	mockStorage.EXPECT().GetBinaries(gomock.Any(), []string{buildID}).Return(
+		[]*binarymeta.BinaryMeta{
+			{
+				BuildID:     buildID,
+				Compression: compressionpb.CompressionMethod_None,
+				BlobInfo: &storage.BlobInfo{
+					Size: blobSize,
+				},
+			},
+		},
+		nil,
+	).AnyTimes()
+
+	var writer *asyncfilecache.WriterAt
+	mockStorage.EXPECT().
+		LoadBinary(gomock.Any(), buildID, gomock.AssignableToTypeOf(writer)).
+		DoAndReturn(func(_ any, _ string, writer *asyncfilecache.WriterAt) (*binarymeta.BinaryMeta, error) {
+			_, err := writer.WriteAt(make([]byte, blobSize), 0)
+			if err != nil {
+				return nil, err
+			}
+			return &binarymeta.BinaryMeta{BuildID: buildID}, nil
+		})
+
+	acquiredBinary, err := downloader.Acquire(ctx, buildID)
+	require.NoError(t, err)
+
+	fileRef := acquiredBinary.(*asyncfilecache.AcquiredFileReference)
+	require.Equal(t, uint64(blobSize), fileRef.Size())
+
+	err = acquiredBinary.WaitStored(ctx)
+	require.NoError(t, err)
+
+	acquiredBinary.Close()
+}
+
+func TestEffectiveBinarySize(t *testing.T) {
+	t.Run("zstd uses uncompressed size", func(t *testing.T) {
+		size := effectiveBinarySize(&binarymeta.BinaryMeta{
+			BuildID:          "a",
+			Compression:      compressionpb.CompressionMethod_Zstd,
+			UncompressedSize: 1024,
+			BlobInfo:         &storage.BlobInfo{Size: 100},
+		})
+		require.Equal(t, uint64(1024), size)
+	})
+
+	t.Run("legacy none falls back to blob size", func(t *testing.T) {
+		size := effectiveBinarySize(&binarymeta.BinaryMeta{
+			BuildID:     "a",
+			Compression: compressionpb.CompressionMethod_None,
+			BlobInfo:    &storage.BlobInfo{Size: 500},
+		})
+		require.Equal(t, uint64(500), size)
+	})
 }

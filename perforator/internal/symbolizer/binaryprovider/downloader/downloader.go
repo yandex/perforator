@@ -21,8 +21,10 @@ import (
 	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
+	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	gsymstorage "github.com/yandex/perforator/perforator/pkg/storage/gsym"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
 
 const (
@@ -277,10 +279,20 @@ func (a *binaryDownloadAdapter) size(ctx context.Context, buildID string) (uint6
 	if len(binaries) == 0 {
 		return 0, fmt.Errorf("no binary %s: %w", buildID, binarystorage.ErrNotFound)
 	}
-	if binaries[0].BlobInfo == nil {
+	binary := binaries[0]
+	if binary.BlobInfo == nil {
 		return 0, fmt.Errorf("there is no blob for binary %s", buildID)
 	}
-	return binaries[0].BlobInfo.Size, nil
+
+	return effectiveBinarySize(binary), nil
+}
+
+func effectiveBinarySize(meta *binarymeta.BinaryMeta) uint64 {
+	if meta.Compression == compressionpb.CompressionMethod_None {
+		return meta.BlobInfo.Size
+	}
+
+	return meta.UncompressedSize
 }
 
 func (a *binaryDownloadAdapter) download(ctx context.Context, buildID string, writer io.WriterAt) error {

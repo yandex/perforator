@@ -24,9 +24,8 @@ import (
 )
 
 const (
-	MaximumShards       = 256
-	UploadConcurrency   = 20
-	DownloadConcurrency = 20
+	MaximumShards     = 256
+	UploadConcurrency = 20
 
 	AwsNotFoundCode = "NotFound"
 )
@@ -53,6 +52,7 @@ type S3Storage struct {
 type WriteAtBuffer = aws.WriteAtBuffer
 
 func NewS3Storage(l xlog.Logger, reg metrics.Registry, client *s3client.Client, bucket string) (*S3Storage, error) {
+	downloadCfg := defaultParallelDownloadConfig()
 	return &S3Storage{
 		bucket: bucket,
 		l:      l.WithName("s3storage"),
@@ -61,7 +61,8 @@ func NewS3Storage(l xlog.Logger, reg metrics.Registry, client *s3client.Client, 
 			d.Concurrency = UploadConcurrency
 		}),
 		downloader: s3manager.NewDownloaderWithClient(client, func(d *s3manager.Downloader) {
-			d.Concurrency = DownloadConcurrency
+			d.Concurrency = downloadCfg.Concurrency
+			d.PartSize = downloadCfg.PartSize
 		}),
 		deleter: s3manager.NewBatchDeleteWithClient(client, func(d *s3manager.BatchDelete) {
 			d.BatchSize = s3manager.DefaultBatchSize

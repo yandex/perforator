@@ -5,6 +5,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
+	"github.com/yandex/perforator/perforator/pkg/storage/binary/decompressing"
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/binary/meta/pg"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob"
@@ -26,7 +27,7 @@ func NewStorage(logger xlog.Logger, reg metrics.Registry, opts ...Option) (binar
 		return nil, errors.New("no blob storage is specified")
 	}
 
-	blobStorage, err := blob.NewStorage(logger, reg.WithPrefix("binary_storage"), blob.WithS3(options.s3client, options.s3bucket))
+	blobHandle, err := blob.NewStorage(logger, reg.WithPrefix("binary_storage"), blob.WithS3(options.s3client, options.s3bucket))
 	if err != nil {
 		return nil, err
 	}
@@ -39,5 +40,6 @@ func NewStorage(logger xlog.Logger, reg metrics.Registry, opts ...Option) (binar
 		return nil, ErrUnspecifiedMetaStorage
 	}
 
-	return binarystorage.NewStorage(metaStorage, blobStorage, logger, reg), nil
+	inner := binarystorage.NewStorage(metaStorage, blobHandle.Storage, logger, reg)
+	return decompressing.New(inner, blobHandle.Download)
 }
