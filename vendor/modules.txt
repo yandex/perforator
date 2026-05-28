@@ -18105,7 +18105,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.22.5
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.138.1
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.137.0
 ## explicit; go 1.24.0
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
@@ -18128,16 +18128,13 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/cmd/gstack/utils
 github.com/ydb-platform/ydb-go-sdk/v3/internal/cmd/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/conn
-github.com/ydb-platform/ydb-go-sdk/v3/internal/conn/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/conn/state
 github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination
 github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination/conversation
-github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/credentials
 github.com/ydb-platform/ydb-go-sdk/v3/internal/discovery
 github.com/ydb-platform/ydb-go-sdk/v3/internal/discovery/config
-github.com/ydb-platform/ydb-go-sdk/v3/internal/discovery/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/dsn
 github.com/ydb-platform/ydb-go-sdk/v3/internal/empty
 github.com/ydb-platform/ydb-go-sdk/v3/internal/endpoint
@@ -18163,7 +18160,6 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/pool
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/arrow
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/config
-github.com/ydb-platform/ydb-go-sdk/v3/internal/query/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/options
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/result
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/scanner
@@ -18171,27 +18167,21 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/query/test
 github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter
 github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter/errors
-github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/repeater
-github.com/ydb-platform/ydb-go-sdk/v3/internal/retry/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/scanner
 github.com/ydb-platform/ydb-go-sdk/v3/internal/scheme
 github.com/ydb-platform/ydb-go-sdk/v3/internal/scheme/config
-github.com/ydb-platform/ydb-go-sdk/v3/internal/scheme/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/scheme/helpers
 github.com/ydb-platform/ydb-go-sdk/v3/internal/scripting
 github.com/ydb-platform/ydb-go-sdk/v3/internal/scripting/config
-github.com/ydb-platform/ydb-go-sdk/v3/internal/scripting/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/secret
 github.com/ydb-platform/ydb-go-sdk/v3/internal/stack
 github.com/ydb-platform/ydb-go-sdk/v3/internal/stats
 github.com/ydb-platform/ydb-go-sdk/v3/internal/table
 github.com/ydb-platform/ydb-go-sdk/v3/internal/table/config
-github.com/ydb-platform/ydb-go-sdk/v3/internal/table/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/table/scanner
 github.com/ydb-platform/ydb-go-sdk/v3/internal/table/test
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic
-github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicclientinternal
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topiclistenerinternal
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicmock
@@ -18216,7 +18206,6 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/xruntime
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/badconn
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/common
-github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/gtrace
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/test
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/xquery
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xsql/xtable
