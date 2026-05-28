@@ -496,7 +496,7 @@ require (
 	github.com/google/gnostic v0.7.0
 	github.com/google/go-attestation v0.5.1
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-containerregistry v0.20.1
+	github.com/google/go-containerregistry v0.20.4
 	github.com/google/go-github/v35 v35.3.0
 	github.com/google/go-jsonnet v0.21.0
 	github.com/google/go-tpm v0.9.8
@@ -2173,6 +2173,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.136.0 // indirect
 	github.com/openconfig/gribi v1.0.0 // indirect
 	github.com/openconfig/grpctunnel v0.0.0-20220819142823-6f5422b8ca70 // indirect
+	github.com/opencontainers/cgroups v0.0.6 // indirect
 	github.com/opencontainers/runc v1.2.3 // indirect
 	github.com/opencontainers/runtime-spec v1.2.1 // indirect
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69 // indirect
@@ -2794,7 +2795,9 @@ replace github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.2
 replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
 
 // https://st.yandex-team.ru/CONTRIB-3687
-replace github.com/docker/docker => github.com/docker/docker v27.5.1+incompatible
+replace github.com/docker/docker => github.com/docker/docker v28.0.4+incompatible
+
+replace github.com/containerd/containerd/v2 => github.com/containerd/containerd/v2 v2.1.5
 
 replace github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
 
@@ -2816,9 +2819,9 @@ replace github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
 
 replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 
-replace github.com/moby/buildkit => github.com/moby/buildkit v0.18.2
+replace github.com/moby/buildkit => github.com/moby/buildkit v0.20.2
 
-replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
+replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20250113203817-b14e27f4135a
 
 replace github.com/google/go-tpm-tools => github.com/google/go-tpm-tools v0.4.2
 

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v27.5.1+incompatible)
+VERSION(v28.0.4+incompatible)
 
 SRCS(
     idtools.go
@@ -11,39 +11,30 @@ SRCS(
 IF (OS_LINUX)
     SRCS(
         idtools_unix.go
-        usergroupadd_linux.go
-        utils_unix.go
     )
 ENDIF()
 
 IF (OS_DARWIN)
     SRCS(
         idtools_unix.go
-        usergroupadd_unsupported.go
-        utils_unix.go
     )
 ENDIF()
 
 IF (OS_WINDOWS)
     SRCS(
         idtools_windows.go
-        usergroupadd_unsupported.go
     )
 ENDIF()
 
 IF (OS_ANDROID)
     SRCS(
         idtools_unix.go
-        usergroupadd_linux.go
-        utils_unix.go
     )
 ENDIF()
 
 IF (OS_EMSCRIPTEN)
     SRCS(
         idtools_unix.go
-        usergroupadd_unsupported.go
-        utils_unix.go
     )
 ENDIF()
 

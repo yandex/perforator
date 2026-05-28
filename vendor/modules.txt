@@ -1604,6 +1604,7 @@ github.com/99designs/gqlgen/plugin/servergen
 github.com/99designs/gqlgen/plugin/stubgen
 # github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
 ## explicit; go 1.20
+github.com/AdaLogics/go-fuzz-headers
 # github.com/AdamKorcz/go-118-fuzz-build v0.0.0-20231105174938-2b5cbb29f3e2
 ## explicit; go 1.18
 # github.com/AlecAivazis/survey/v2 v2.3.7
@@ -6480,7 +6481,6 @@ github.com/containerd/containerd/runtime/linux/runctypes
 github.com/containerd/containerd/sandbox
 github.com/containerd/containerd/sandbox/proxy
 github.com/containerd/containerd/services
-github.com/containerd/containerd/services/content/contentserver
 github.com/containerd/containerd/services/introspection
 github.com/containerd/containerd/services/warning
 github.com/containerd/containerd/snapshots
@@ -6513,8 +6513,75 @@ github.com/containerd/containerd/api/types
 github.com/containerd/containerd/api/types/runc/options
 github.com/containerd/containerd/api/types/task
 github.com/containerd/containerd/api/types/transfer
-# github.com/containerd/containerd/v2 v2.1.5
+# github.com/containerd/containerd/v2 v2.1.5 => github.com/containerd/containerd/v2 v2.1.5
 ## explicit; go 1.23.0
+github.com/containerd/containerd/v2/client
+github.com/containerd/containerd/v2/core/containers
+github.com/containerd/containerd/v2/core/content
+github.com/containerd/containerd/v2/core/content/proxy
+github.com/containerd/containerd/v2/core/content/testsuite
+github.com/containerd/containerd/v2/core/diff
+github.com/containerd/containerd/v2/core/diff/proxy
+github.com/containerd/containerd/v2/core/events
+github.com/containerd/containerd/v2/core/events/proxy
+github.com/containerd/containerd/v2/core/images
+github.com/containerd/containerd/v2/core/images/archive
+github.com/containerd/containerd/v2/core/images/imagetest
+github.com/containerd/containerd/v2/core/images/usage
+github.com/containerd/containerd/v2/core/introspection
+github.com/containerd/containerd/v2/core/introspection/proxy
+github.com/containerd/containerd/v2/core/leases
+github.com/containerd/containerd/v2/core/leases/proxy
+github.com/containerd/containerd/v2/core/mount
+github.com/containerd/containerd/v2/core/remotes
+github.com/containerd/containerd/v2/core/remotes/docker
+github.com/containerd/containerd/v2/core/remotes/docker/auth
+github.com/containerd/containerd/v2/core/remotes/errors
+github.com/containerd/containerd/v2/core/sandbox
+github.com/containerd/containerd/v2/core/sandbox/proxy
+github.com/containerd/containerd/v2/core/snapshots
+github.com/containerd/containerd/v2/core/snapshots/proxy
+github.com/containerd/containerd/v2/core/streaming
+github.com/containerd/containerd/v2/core/streaming/proxy
+github.com/containerd/containerd/v2/core/transfer
+github.com/containerd/containerd/v2/core/transfer/proxy
+github.com/containerd/containerd/v2/core/transfer/streaming
+github.com/containerd/containerd/v2/core/unpack
+github.com/containerd/containerd/v2/defaults
+github.com/containerd/containerd/v2/internal/cleanup
+github.com/containerd/containerd/v2/internal/fsverity
+github.com/containerd/containerd/v2/internal/kmutex
+github.com/containerd/containerd/v2/internal/lazyregexp
+github.com/containerd/containerd/v2/internal/randutil
+github.com/containerd/containerd/v2/internal/userns
+github.com/containerd/containerd/v2/pkg/archive
+github.com/containerd/containerd/v2/pkg/archive/compression
+github.com/containerd/containerd/v2/pkg/archive/tarheader
+github.com/containerd/containerd/v2/pkg/archive/tartest
+github.com/containerd/containerd/v2/pkg/cap
+github.com/containerd/containerd/v2/pkg/cio
+github.com/containerd/containerd/v2/pkg/dialer
+github.com/containerd/containerd/v2/pkg/epoch
+github.com/containerd/containerd/v2/pkg/filters
+github.com/containerd/containerd/v2/pkg/identifiers
+github.com/containerd/containerd/v2/pkg/kernelversion
+github.com/containerd/containerd/v2/pkg/labels
+github.com/containerd/containerd/v2/pkg/namespaces
+github.com/containerd/containerd/v2/pkg/oci
+github.com/containerd/containerd/v2/pkg/protobuf
+github.com/containerd/containerd/v2/pkg/protobuf/proto
+github.com/containerd/containerd/v2/pkg/protobuf/types
+github.com/containerd/containerd/v2/pkg/reference
+github.com/containerd/containerd/v2/pkg/rootfs
+github.com/containerd/containerd/v2/pkg/sys
+github.com/containerd/containerd/v2/pkg/testutil
+github.com/containerd/containerd/v2/pkg/tracing
+github.com/containerd/containerd/v2/plugins
+github.com/containerd/containerd/v2/plugins/content/local
+github.com/containerd/containerd/v2/plugins/services
+github.com/containerd/containerd/v2/plugins/services/content/contentserver
+github.com/containerd/containerd/v2/plugins/snapshots/overlay/overlayutils
+github.com/containerd/containerd/v2/version
 # github.com/containerd/continuity v0.4.5
 ## explicit; go 1.21
 github.com/containerd/continuity
@@ -6557,6 +6624,7 @@ github.com/containerd/log/logtest
 github.com/containerd/platforms
 # github.com/containerd/plugin v1.1.0
 ## explicit; go 1.22
+github.com/containerd/plugin
 # github.com/containerd/stargz-snapshotter/estargz v0.16.3
 ## explicit; go 1.22.0
 github.com/containerd/stargz-snapshotter/estargz
@@ -7323,13 +7391,14 @@ github.com/docker/distribution/registry/storage/cache/cachecheck
 github.com/docker/distribution/registry/storage/cache/memory
 github.com/docker/distribution/testutil
 github.com/docker/distribution/uuid
-# github.com/docker/docker v28.5.2+incompatible => github.com/docker/docker v27.5.1+incompatible
+# github.com/docker/docker v28.5.2+incompatible => github.com/docker/docker v28.0.4+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/auxprogress
 github.com/docker/docker/api/types/blkiodev
 github.com/docker/docker/api/types/checkpoint
+github.com/docker/docker/api/types/common
 github.com/docker/docker/api/types/container
 github.com/docker/docker/api/types/events
 github.com/docker/docker/api/types/filters
@@ -7338,6 +7407,7 @@ github.com/docker/docker/api/types/mount
 github.com/docker/docker/api/types/network
 github.com/docker/docker/api/types/plugins/logdriver
 github.com/docker/docker/api/types/registry
+github.com/docker/docker/api/types/storage
 github.com/docker/docker/api/types/strslice
 github.com/docker/docker/api/types/swarm
 github.com/docker/docker/api/types/swarm/runtime
@@ -7348,16 +7418,14 @@ github.com/docker/docker/api/types/volume
 github.com/docker/docker/client
 github.com/docker/docker/client/buildkit
 github.com/docker/docker/errdefs
+github.com/docker/docker/internal/lazyregexp
 github.com/docker/docker/internal/multierror
 github.com/docker/docker/pkg/archive
 github.com/docker/docker/pkg/homedir
 github.com/docker/docker/pkg/idtools
-github.com/docker/docker/pkg/ioutils
 github.com/docker/docker/pkg/jsonmessage
-github.com/docker/docker/pkg/pools
 github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/pkg/stringid
-github.com/docker/docker/pkg/system
 github.com/docker/docker/registry
 # github.com/docker/docker-credential-helpers v0.9.3
 ## explicit; go 1.21
@@ -9844,10 +9912,9 @@ github.com/google/go-cmp/cmp/internal/teststructs
 github.com/google/go-cmp/cmp/internal/teststructs/foo1
 github.com/google/go-cmp/cmp/internal/teststructs/foo2
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.20.1
-## explicit; go 1.18
+# github.com/google/go-containerregistry v0.20.4
+## explicit; go 1.24.0
 github.com/google/go-containerregistry/internal/and
-github.com/google/go-containerregistry/internal/compare
 github.com/google/go-containerregistry/internal/compression
 github.com/google/go-containerregistry/internal/depcheck
 github.com/google/go-containerregistry/internal/estargz
@@ -9871,6 +9938,7 @@ github.com/google/go-containerregistry/pkg/name
 github.com/google/go-containerregistry/pkg/registry
 github.com/google/go-containerregistry/pkg/v1
 github.com/google/go-containerregistry/pkg/v1/cache
+github.com/google/go-containerregistry/pkg/v1/compare
 github.com/google/go-containerregistry/pkg/v1/daemon
 github.com/google/go-containerregistry/pkg/v1/empty
 github.com/google/go-containerregistry/pkg/v1/fake
@@ -13041,7 +13109,7 @@ github.com/mkevac/debugcharts/bindata
 # github.com/mkrautz/goar v0.0.0-20150919110319-282caa8bd9da
 ## explicit
 github.com/mkrautz/goar
-# github.com/moby/buildkit v0.25.1 => github.com/moby/buildkit v0.18.2
+# github.com/moby/buildkit v0.25.1 => github.com/moby/buildkit v0.20.2
 ## explicit; go 1.22.0
 github.com/moby/buildkit/api/services/control
 github.com/moby/buildkit/api/types
@@ -13963,6 +14031,8 @@ github.com/openconfig/ygot/ypathgen
 github.com/openconfig/ygot/ypathgen/path_tests
 github.com/openconfig/ygot/ytypes
 github.com/openconfig/ygot/ytypes/schema_tests
+# github.com/opencontainers/cgroups v0.0.6
+## explicit; go 1.23.0
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
@@ -13978,6 +14048,7 @@ github.com/opencontainers/runc/libcontainer/user
 # github.com/opencontainers/runtime-spec v1.2.1
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
+github.com/opencontainers/runtime-spec/specs-go/features
 # github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
 ## explicit; go 1.19
 # github.com/opencontainers/selinux v1.13.1
@@ -16970,7 +17041,7 @@ github.com/tommy-muehle/go-mnd/v2/examples/good
 github.com/tommy-muehle/go-mnd/v2/tools/printer
 # github.com/tonistiigi/dchapes-mode v0.0.0-20250318174251-73d941a28323
 ## explicit; go 1.21
-# github.com/tonistiigi/fsutil v0.0.0-20250605211040-586307ad452f => github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
+# github.com/tonistiigi/fsutil v0.0.0-20250605211040-586307ad452f => github.com/tonistiigi/fsutil v0.0.0-20250113203817-b14e27f4135a
 ## explicit; go 1.21
 github.com/tonistiigi/fsutil
 github.com/tonistiigi/fsutil/types
@@ -23847,9 +23918,10 @@ www.velocidex.com/golang/regparser
 # github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.46.7
 # github.com/bufbuild/protoyaml-go => buf.build/go/protoyaml v0.3.2
 # github.com/confluentinc/confluent-kafka-go/v2 => github.com/confluentinc/confluent-kafka-go/v2 v2.1.1
+# github.com/containerd/containerd/v2 => github.com/containerd/containerd/v2 v2.1.5
 # github.com/distribution/reference => github.com/distribution/reference v0.5.0
 # github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
-# github.com/docker/docker => github.com/docker/docker v27.5.1+incompatible
+# github.com/docker/docker => github.com/docker/docker v28.0.4+incompatible
 # github.com/getsentry/sentry-go => github.com/getsentry/sentry-go v0.13.0
 # github.com/go-resty/resty/v2 => github.com/go-resty/resty/v2 v2.16.3
 # github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.9
@@ -23861,7 +23933,7 @@ www.velocidex.com/golang/regparser
 # github.com/jackc/pgtype => github.com/jackc/pgtype v1.12.0
 # github.com/jarcoal/httpmock => github.com/jarcoal/httpmock v1.3.1
 # github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
-# github.com/moby/buildkit => github.com/moby/buildkit v0.18.2
+# github.com/moby/buildkit => github.com/moby/buildkit v0.20.2
 # github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.23.2
 # github.com/prometheus/client_model => github.com/prometheus/client_model v0.6.1
 # github.com/prometheus/common => github.com/prometheus/common v0.66.1
@@ -23871,7 +23943,7 @@ www.velocidex.com/golang/regparser
 # github.com/temporalio/features/harness/go => github.com/temporalio/features/harness/go v0.0.0-20231218231852-27c681667dae
 # github.com/temporalio/omes => github.com/temporalio/omes v0.0.0-20240701113332-211647aa9dae
 # github.com/testcontainers/testcontainers-go => github.com/testcontainers/testcontainers-go v0.32.0
-# github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
+# github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20250113203817-b14e27f4135a
 # github.com/uber-go/tally/v4 => github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
 # github.com/vertica/vertica-sql-go => github.com/vertica/vertica-sql-go v1.2.2
 # go.opentelemetry.io/collector/config/configtls => go.opentelemetry.io/collector/config/configtls v1.31.0

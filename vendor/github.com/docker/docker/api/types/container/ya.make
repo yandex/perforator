@@ -2,23 +2,27 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v27.5.1+incompatible)
+VERSION(v28.0.4+incompatible)
 
 SRCS(
     change_type.go
     change_types.go
+    commit.go
     config.go
     container.go
-    container_top.go
-    container_update.go
     create_request.go
     create_response.go
     errors.go
     exec.go
     filesystem_change.go
+    health.go
     hostconfig.go
+    network_settings.go
     options.go
+    port.go
     stats.go
+    top_response.go
+    update_response.go
     wait_exit_error.go
     wait_response.go
     waitcondition.go

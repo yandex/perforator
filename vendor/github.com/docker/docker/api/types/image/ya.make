@@ -2,12 +2,13 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v27.5.1+incompatible)
+VERSION(v28.0.4+incompatible)
 
 SRCS(
     delete_response.go
     image.go
     image_history.go
+    image_inspect.go
     manifest.go
     opts.go
     summary.go
