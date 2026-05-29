@@ -7,6 +7,7 @@ SRCS(
 )
 
 GO_TEST_SRCS(
+    cli_test.go
     kv_test.go
     tskv_test.go
 )

@@ -12,7 +12,7 @@ const (
 	EncoderNameCli = "cli"
 )
 
-var cliPool = sync.Pool{New: func() interface{} {
+var cliPool = sync.Pool{New: func() any {
 	return &cliEncoder{}
 }}
 
@@ -56,6 +56,12 @@ func (enc *cliEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*
 
 	// Direct write because we do not want to quote message in cli mode
 	final.buf.AppendString(ent.Message)
+
+	// Add existing buffer
+	if enc.buf.Len() > 0 {
+		final.addElementSeparator()
+		_, _ = final.buf.Write(enc.buf.Bytes())
+	}
 
 	// Add any structured context.
 	for _, f := range fields {
