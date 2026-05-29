@@ -43,6 +43,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
 	"github.com/yandex/perforator/perforator/pkg/linux/uname"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
 
 const (
@@ -351,7 +352,17 @@ func (p *Profiler) initializeStorage(r metrics.Registry) (err error) {
 			return fmt.Errorf("failed to create agent gateway client: %w", err)
 		}
 
-		p.storage = client.NewRemoteStorage(l, r, agentGatewayClient.StorageClient, p.conf.FeatureFlagsConfig.GetProfileFormat())
+		opts := []client.BinaryStorageOption{}
+		if conf.StorageClient.IsBinaryCompressionEnabled() {
+			opts = append(opts, client.WithBinaryCompression(compressionpb.CompressionMethod_Zstd))
+		}
+		p.storage = client.NewRemoteStorage(
+			l,
+			r,
+			agentGatewayClient.StorageClient,
+			p.conf.FeatureFlagsConfig.GetProfileFormat(),
+			opts...,
+		)
 	} else if p.conf.LocalStorageConfig != nil {
 		// Create local storage
 		p.storage, err = client.NewLocalStorage(p.conf.LocalStorageConfig, p.log)

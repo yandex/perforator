@@ -14,6 +14,7 @@ import (
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
 
 type agentOptions struct {
@@ -99,7 +100,17 @@ func NewPerforatorAgent(
 	}
 
 	if agent.agentGatewayClient != nil {
-		remoteStorage := client.NewRemoteStorage(xLogger, r, agent.agentGatewayClient.StorageClient, profilerConfig.FeatureFlagsConfig.GetProfileFormat())
+		opts := []client.BinaryStorageOption{}
+		if clientConfig.StorageClient.IsBinaryCompressionEnabled() {
+			opts = append(opts, client.WithBinaryCompression(compressionpb.CompressionMethod_Zstd))
+		}
+		remoteStorage := client.NewRemoteStorage(
+			xLogger,
+			r,
+			agent.agentGatewayClient.StorageClient,
+			profilerConfig.FeatureFlagsConfig.GetProfileFormat(),
+			opts...,
+		)
 		options.profilerOpts = append(options.profilerOpts, profiler.WithStorage(remoteStorage))
 	}
 	options.profilerOpts = append(options.profilerOpts, profiler.WithIdentity("agent"))

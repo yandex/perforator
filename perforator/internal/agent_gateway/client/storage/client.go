@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	"github.com/yandex/perforator/library/go/ptr"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
@@ -144,12 +145,20 @@ func (t *Timeouts) fillDefault() {
 }
 
 type Config struct {
-	ProfileCompression string   `yaml:"profile_compression,omitempty"`
-	RPCTimeouts        Timeouts `yaml:"timeouts"`
+	ProfileCompression      string   `yaml:"profile_compression,omitempty"`
+	EnableBinaryCompression *bool    `yaml:"enable_binary_compression,omitempty"`
+	RPCTimeouts             Timeouts `yaml:"timeouts"`
+}
+
+func (c *Config) IsBinaryCompressionEnabled() bool {
+	return c.EnableBinaryCompression != nil && *c.EnableBinaryCompression
 }
 
 func (c *Config) fillDefault() {
 	c.RPCTimeouts.fillDefault()
+	if c.EnableBinaryCompression == nil {
+		c.EnableBinaryCompression = ptr.Bool(false)
+	}
 }
 
 type Client struct {
