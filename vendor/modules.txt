@@ -9246,6 +9246,13 @@ github.com/go-rod/rod/lib/utils/rename
 github.com/go-rod/rod/lib/utils/setup
 github.com/go-rod/rod/lib/utils/shell
 github.com/go-rod/rod/lib/utils/simple-check
+# github.com/go-routeros/routeros/v3 v3.0.1
+## explicit; go 1.21
+github.com/go-routeros/routeros/v3
+github.com/go-routeros/routeros/v3/examples/listen
+github.com/go-routeros/routeros/v3/examples/run
+github.com/go-routeros/routeros/v3/examples/tab
+github.com/go-routeros/routeros/v3/proto
 # github.com/go-shiori/dom v0.0.0-20210627111528-4e4722cd0d65
 ## explicit; go 1.12
 github.com/go-shiori/dom

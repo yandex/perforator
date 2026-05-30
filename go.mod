@@ -462,6 +462,7 @@ require (
 	github.com/go-redsync/redsync/v4 v4.8.1
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/go-rod/rod v0.116.2
+	github.com/go-routeros/routeros/v3 v3.0.1
 	github.com/go-shiori/go-readability v0.0.0-20230421032831-c66949dfc0ad
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/go-stomp/stomp v2.1.4+incompatible
