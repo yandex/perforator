@@ -12697,6 +12697,9 @@ github.com/lukasjarosch/go-docx
 github.com/lukasjarosch/go-docx/examples/benchmark
 github.com/lukasjarosch/go-docx/examples/complex
 github.com/lukasjarosch/go-docx/examples/simple
+# github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40
+## explicit; go 1.12
+github.com/lunixbochs/struc
 # github.com/lyft/protoc-gen-star v0.6.1
 ## explicit; go 1.14
 # github.com/lyft/protoc-gen-star/v2 v2.0.4-0.20230330145011-496ad1ac90a4
@@ -12843,6 +12846,11 @@ github.com/maruel/natural
 ## explicit; go 1.23.0
 github.com/maruel/panicparse/v2/internal/internaltest
 github.com/maruel/panicparse/v2/stack
+# github.com/masahiro331/go-ext4-filesystem v0.0.0-20260423010602-fe51f5b5e52b
+## explicit; go 1.18
+github.com/masahiro331/go-ext4-filesystem
+github.com/masahiro331/go-ext4-filesystem/ext4
+github.com/masahiro331/go-ext4-filesystem/log
 # github.com/mastercard/oauth1-signer-go v1.1.0
 ## explicit; go 1.12
 github.com/mastercard/oauth1-signer-go
