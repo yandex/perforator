@@ -1,5 +1,25 @@
+.cluster-top-table {
+    font-variant-numeric: tabular-nums;
+    --left-indent: 40px;
+}
+
+/* Compact paddings to match packages/flamegraph TopTable.
+ * Chained `.gt-styled-table` raises specificity above `.gt-styled-table_size_m`,
+ * which would otherwise set 11px / 8px / 10px. */
+.cluster-top-table.gt-styled-table {
+    --_--cell-padding-bottom: var(--g-spacing-1);
+    --_--cell-padding-inline: var(--g-spacing-1);
+    --_--cell-padding: calc(var(--g-spacing-1) + 1px) var(--g-spacing-1) var(--g-spacing-1);
+}
+
 .cluster-top-table__header {
     word-break: keep-all;
+}
+
+.cluster-top-table__progress-text {
+    text-align: right;
+    display: block;
+    font-variant: tabular-nums;
 }
 
 .cluster-top-table__empty {
@@ -9,8 +29,19 @@
     justify-content: center;
 }
 
+.cluster-top-table__icon_flamegraph {
+    color: var(--perforator-red);
+}
+
 .cluster-top-table__service-name {
-    padding-left: 40px;
+    padding-left: var(--left-indent);
+}
+
+.cluster-top-table__name {
+    font-size: var(--g-text-body-1-font-size);
+    font-family: var(--g-font-family-monospace);
+    text-wrap: wrap;
+    overflow-wrap: anywhere;
 }
 
 .cluster-top-table__filter__form {
@@ -22,17 +53,35 @@
 }
 
 .cluster-top-table__search-button {
-    margin-left: 8px;
+    margin-left: var(--g-spacing-2);
 }
 
 .cluster-top-table__load-more {
     display: flex;
     justify-content: center;
-    margin-top: 16px;
+    margin-top: var(--g-spacing-4);
+}
+
+.cluster-top-table__cell.gt-styled-table__cell_no-border:not(:first-of-type) {
+    --indent: 0;
+}
+
+.cluster-top-table__cell.gt-styled-table__cell_no-border:first-of-type {
+    --indent: var(--left-indent);
+}
+
+.cluster-top-table__cell.gt-styled-table__cell_no-border {
+    border-block-start: 1px solid transparent;
+    background-image: linear-gradient(to right, transparent var(--indent), var(--g-color-line-generic) var(--indent));
+    background-size: 100% 1px;
+    background-position: top;
+    background-repeat: no-repeat;
 }
 
 .cluster-top-table__cell_count {
-   text-align: right; 
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    vertical-align: baseline;
 }
 
 .cluster-top-table__header_count {

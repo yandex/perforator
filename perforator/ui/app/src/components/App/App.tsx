@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import { ToasterComponent, ToasterProvider, useThemeType } from '@gravity-ui/uikit';
 import { toaster } from '@gravity-ui/uikit/toaster-singleton';
 
@@ -13,6 +15,15 @@ import type { PagePublicProps } from '../Page/Page';
 
 import './App.scss';
 
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: 1,
+            refetchOnWindowFocus: false,
+        },
+    },
+});
 
 const AppImpl: React.FC<{}> = () => {
     const theme = useThemeType();
@@ -30,13 +41,15 @@ const AppImpl: React.FC<{}> = () => {
 
 export const App: React.FC<{}> = () => {
     return (
-        <UserSettingsProvider>
-            <ThemeProvider>
-                <ToasterProvider toaster={toaster}>
-                    <AppImpl />
-                    <ToasterComponent/>
-                </ToasterProvider>
-            </ThemeProvider>
-        </UserSettingsProvider>
+        <QueryClientProvider client={queryClient}>
+            <UserSettingsProvider>
+                <ThemeProvider>
+                    <ToasterProvider toaster={toaster}>
+                        <AppImpl />
+                        <ToasterComponent/>
+                    </ToasterProvider>
+                </ThemeProvider>
+            </UserSettingsProvider>
+        </QueryClientProvider>
     );
 };

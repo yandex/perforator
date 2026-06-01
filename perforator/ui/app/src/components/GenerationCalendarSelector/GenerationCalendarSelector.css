@@ -1,0 +1,9 @@
+.generation-calendar {
+    display: flex;
+    gap: var(--g-spacing-3);
+    align-items: center;
+}
+
+.generation-calendar__calendar {
+    padding: var(--g-spacing-2);
+}

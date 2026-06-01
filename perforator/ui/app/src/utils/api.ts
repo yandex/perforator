@@ -50,11 +50,11 @@ class PerforatorApiClient {
         return this.get('/api/v0/top/generations', params, options);
     }
 
-    getFunctionTop(params: Pick<ClusterTopRequest, 'Generation' | 'Pagination' | 'FunctionPattern'>): Promise<AxiosResponse<ClusterTopResponse>> {
+    getFunctionTop(params: Pick<ClusterTopRequest, 'Generation' | 'Pagination' | 'FunctionPattern' | 'OrderBy'>): Promise<AxiosResponse<ClusterTopResponse>> {
         return this.get('/api/v0/top/functions', params);
     }
 
-    getServiceTop(params: Pick<ClusterTopRequest, 'Generation' | 'FunctionPattern'>): Promise<AxiosResponse<ClusterTopResponse>> {
+    getServiceTop(params: Pick<ClusterTopRequest, 'Generation' | 'FunctionPattern' | 'OrderBy'>): Promise<AxiosResponse<ClusterTopResponse>> {
         return this.get('/api/v0/top/service', params);
     }
 
