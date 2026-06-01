@@ -1040,11 +1040,11 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.15.0
 	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.39.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.38.0
-	go.opentelemetry.io/otel/log v0.15.0
+	go.opentelemetry.io/otel/log v0.19.0
 	go.opentelemetry.io/otel/log/logtest v0.15.0
 	go.opentelemetry.io/otel/metric v1.43.0
 	go.opentelemetry.io/otel/sdk v1.43.0
-	go.opentelemetry.io/otel/sdk/log v0.14.0
+	go.opentelemetry.io/otel/sdk/log v0.19.0
 	go.opentelemetry.io/otel/sdk/log/logtest v0.14.0
 	go.opentelemetry.io/otel/sdk/metric v1.43.0
 	go.opentelemetry.io/otel/trace v1.43.0
@@ -2532,6 +2532,7 @@ require (
 	go.opentelemetry.io/contrib/detectors/aws/ec2 v1.37.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.39.0 // indirect
 	go.opentelemetry.io/contrib/otelconf v0.18.0 // indirect
+	go.opentelemetry.io/contrib/processors/baggagecopy v0.16.0 // indirect
 	go.opentelemetry.io/contrib/propagators/aws v1.37.0 // indirect
 	go.opentelemetry.io/contrib/zpages v0.63.0 // indirect
 	go.opentelemetry.io/proto/slim/otlp v1.9.0 // indirect
@@ -2701,6 +2702,8 @@ exclude (
 	github.com/docker/docker/api v1.54.2
 )
 
+exclude go.opentelemetry.io/contrib/processors/baggagecopy v0.16.1
+
 replace github.com/insomniacslk/dhcp => github.com/insomniacslk/dhcp v0.0.0-20210120172423-cc9239ac6294
 
 // yo: update cloud.google.com/go/pubsub v1.30.0 => v1.32.0
@@ -2798,7 +2801,23 @@ replace github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.2
 replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
 
 // https://st.yandex-team.ru/CONTRIB-3687
-replace github.com/docker/docker => github.com/docker/docker v28.0.4+incompatible
+replace github.com/docker/docker => github.com/docker/docker v28.1.1+incompatible
+
+replace go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.43.0
+
+replace go.opentelemetry.io/otel/log => go.opentelemetry.io/otel/log v0.15.0
+
+replace go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.43.0
+
+replace go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.43.0
+
+replace go.opentelemetry.io/otel/sdk/log => go.opentelemetry.io/otel/sdk/log v0.14.0
+
+replace go.opentelemetry.io/otel/sdk/metric => go.opentelemetry.io/otel/sdk/metric v1.43.0
+
+replace go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.43.0
+
+replace golang.org/x/sys => golang.org/x/sys v0.43.0
 
 replace github.com/containerd/containerd/v2 => github.com/containerd/containerd/v2 v2.1.5
 
