@@ -15372,6 +15372,16 @@ github.com/redis/go-redis/v9/maintnotifications
 github.com/redis/go-redis/v9/maintnotifications/e2e
 github.com/redis/go-redis/v9/maintnotifications/e2e/cmd/proxy-fi-server
 github.com/redis/go-redis/v9/push
+# github.com/reinaldoborges/cmac v0.0.0-20250904213048-591cd8546fab
+## explicit; go 1.25.0
+github.com/reinaldoborges/cmac
+# github.com/reinaldoborges/yubihsm-go v0.1.0
+## explicit; go 1.25.0
+github.com/reinaldoborges/yubihsm-go
+github.com/reinaldoborges/yubihsm-go/authkey
+github.com/reinaldoborges/yubihsm-go/commands
+github.com/reinaldoborges/yubihsm-go/connector
+github.com/reinaldoborges/yubihsm-go/securechannel
 # github.com/rekby/fixenv v0.7.0
 ## explicit; go 1.18
 github.com/rekby/fixenv

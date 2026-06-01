@@ -373,7 +373,6 @@ require (
 	github.com/dongri/phonenumber v0.1.12
 	github.com/doug-martin/goqu/v9 v9.19.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/eapache/channels v1.1.0
 	github.com/ebml-go/webm v0.0.0-20221117133942-84fa5245cf70
 	github.com/eclipse/paho.golang v0.22.0
 	github.com/eclipse/paho.mqtt.golang v1.5.1
@@ -467,7 +466,6 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/go-swagger/go-swagger v0.30.5
-	github.com/go-test/deep v1.1.1
 	github.com/go-testfixtures/testfixtures/v3 v3.6.1
 	github.com/go-zookeeper/zk v1.0.4
 	github.com/gobwas/ws v1.4.0
@@ -603,7 +601,6 @@ require (
 	github.com/jonboulle/clockwork v0.5.0
 	github.com/json-iterator/go v1.1.12
 	github.com/jszwec/csvutil v1.6.0
-	github.com/k-sone/critbitgo v1.4.0
 	github.com/kardianos/service v1.2.2
 	github.com/karlseguin/ccache/v2 v2.0.8
 	github.com/karlseguin/ccache/v3 v3.0.8
@@ -775,6 +772,7 @@ require (
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.18.0
 	github.com/redis/go-redis/extra/redisotel/v9 v9.18.0
 	github.com/redis/go-redis/v9 v9.18.0
+	github.com/reinaldoborges/yubihsm-go v0.1.0
 	github.com/rekby/fixenv v0.7.0
 	github.com/riverqueue/river v0.26.0
 	github.com/riverqueue/river/riverdriver v0.26.0
@@ -1631,6 +1629,7 @@ require (
 	github.com/dustin/go-nma v0.0.0-20140531070111-73c9989a8efc // indirect
 	github.com/dustin/httputil v0.0.0-20231015075826-29cd04646b69 // indirect
 	github.com/dvyukov/go-fuzz v0.0.0-20240924070022-e577bee5275c // indirect
+	github.com/eapache/channels v1.1.0 // indirect
 	github.com/eapache/go-resiliency v1.6.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
@@ -1743,6 +1742,7 @@ require (
 	github.com/go-swagger/scan-repo-boundary v0.0.0-20180623220736-973b3573c013 // indirect
 	github.com/go-task/slim-sprig v2.20.0+incompatible // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
+	github.com/go-test/deep v1.1.1 // indirect
 	github.com/go-testfixtures/testfixtures v2.5.1+incompatible // indirect
 	github.com/go-text/typesetting v0.2.1 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
@@ -1962,6 +1962,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/jung-kurt/gofpdf v1.16.2 // indirect
 	github.com/jwilder/encoding v0.0.0-20170811194829-b4e1701a28ef // indirect
+	github.com/k-sone/critbitgo v1.4.0 // indirect
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/k0kubun/pp/v3 v3.5.0 // indirect
 	github.com/k14s/difflib v0.0.0-20201117154628-0c031775bf57 // indirect
@@ -2272,6 +2273,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.9.0 // indirect
 	github.com/raff/goble v0.0.0-20190909174656-72afc67d6a99 // indirect
 	github.com/rainycape/memcache v0.0.0-20150622160815-1031fa0ce2f2 // indirect
+	github.com/reinaldoborges/cmac v0.0.0-20250904213048-591cd8546fab // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/retailnext/hllpp v1.0.0 // indirect
 	github.com/revel/revel v1.1.0 // indirect
