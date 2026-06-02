@@ -118,10 +118,11 @@ func (w *binaryGRPCClientWriter) Write(p []byte) (int, error) {
 }
 
 func (w *binaryGRPCClientWriter) Close() error {
+	_, err := w.client.CloseAndRecv()
 	if w.cancelFn != nil {
 		w.cancelFn()
+		w.cancelFn = nil
 	}
-	_, err := w.client.CloseAndRecv()
 	return err
 }
 
