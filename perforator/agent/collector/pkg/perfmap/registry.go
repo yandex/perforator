@@ -191,7 +191,7 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) process
 			return processStateTerminalSkip
 		}
 	}
-	if perfMapConf.jvmVerifyMethod == jvmVerifyMethodMapping && !tp.hasJVMLikeMapping.Load() {
+	if perfMapConf.java && perfMapConf.jvmVerifyMethod == jvmVerifyMethodMapping && !tp.hasJVMLikeMapping.Load() {
 		r.logger.Info(
 			ctx,
 			"Process does not have mapping with file named libjvm.so, skipping process",
