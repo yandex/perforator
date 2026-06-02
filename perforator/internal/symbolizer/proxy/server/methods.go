@@ -939,25 +939,33 @@ func (s *PerforatorServer) DiffProfiles(
 
 	fgm := sync.Mutex{}
 	fg := render.NewFlameGraph()
+
+	var renderFormat *perforator.RenderFormat
+	if req.GetRenderFormat() != nil {
+		renderFormat = req.GetRenderFormat()
+	} else {
+		renderFormat = &perforator.RenderFormat{
+			Symbolize: req.GetSymbolizeOptions(),
+			Format: &perforator.RenderFormat_Flamegraph{
+				Flamegraph: req.GetFlamegraphOptions(),
+			},
+		}
+	}
+
 	var fgOptions *perforator.FlamegraphOptions
 	var fgFormat render.Format
-	if req.RenderFormat == nil {
-		fgOptions = req.GetFlamegraphOptions()
+	switch v := (renderFormat.Format).(type) {
+	case *perforator.RenderFormat_Flamegraph:
+		fgOptions = v.Flamegraph
 		fgFormat = render.HTMLFormat
-	} else {
-		switch v := (req.RenderFormat.Format).(type) {
-		case *perforator.RenderFormat_Flamegraph:
-			fgOptions = v.Flamegraph
-			fgFormat = render.HTMLFormat
-		case *perforator.RenderFormat_HTMLVisualisation:
-			fgOptions = v.HTMLVisualisation
-			fgFormat = render.HTMLFormat
-		case *perforator.RenderFormat_JSONFlamegraph:
-			fgOptions = v.JSONFlamegraph
-			fgFormat = render.JSONFormat
-		default:
-			return nil, status.Errorf(codes.Unimplemented, "unsupported diff render format %T", v)
-		}
+	case *perforator.RenderFormat_HTMLVisualisation:
+		fgOptions = v.HTMLVisualisation
+		fgFormat = render.HTMLFormat
+	case *perforator.RenderFormat_JSONFlamegraph:
+		fgOptions = v.JSONFlamegraph
+		fgFormat = render.JSONFormat
+	default:
+		return nil, status.Errorf(codes.Unimplemented, "unsupported diff render format %T", v)
 	}
 
 	err = fillFlamegraphOptions(fg, fgOptions)
@@ -1040,17 +1048,6 @@ func (s *PerforatorServer) DiffProfiles(
 		return nil, status.Errorf(codes.Internal, "failed to render flamegraph: %v", err)
 	}
 
-	var renderFormat *perforator.RenderFormat
-	if req.GetRenderFormat() != nil {
-		renderFormat = req.GetRenderFormat()
-	} else {
-		renderFormat = &perforator.RenderFormat{
-			Symbolize: req.GetSymbolizeOptions(),
-			Format: &perforator.RenderFormat_JSONFlamegraph{
-				JSONFlamegraph: &perforator.FlamegraphOptions{},
-			},
-		}
-	}
 	var url string
 	url, err = s.maybeUploadProfile(ctx, buf, renderFormat)
 	if err != nil {
