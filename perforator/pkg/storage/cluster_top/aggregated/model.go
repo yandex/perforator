@@ -37,10 +37,23 @@ const (
 	CumulativeTimeSortOrder
 )
 
+type totalSelfCyclesOptions struct {
+	function string
+}
+
+type CountTotalSelfCyclesOption func(*totalSelfCyclesOptions)
+
+func WithFunctionFilter(function string) CountTotalSelfCyclesOption {
+	return func(options *totalSelfCyclesOptions) {
+		options.function = function
+	}
+}
+
 type AggregationStorage interface {
 	SaveClusterTopEntry(ctx context.Context, servicePerfTop *ServicePerfTop) error
 	AggregateClusterTop(ctx context.Context, generation uint32, filter *Filter, aggregationType GroupByMode, pagination util.Pagination, sortOrder SortOrder) ([]*AggregationValue, error)
-	CountTotalCycles(ctx context.Context, generation uint32, funcFilter string) (*TotalCycles, error)
+	CountTotalSelfCycles(ctx context.Context, generation uint32, options ...CountTotalSelfCyclesOption) (*big.Int, error)
+	CountTotalCumulativeCycles(ctx context.Context, generation uint32, funcFilter string) (*big.Int, error)
 }
 
 type Function struct {

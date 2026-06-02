@@ -2,6 +2,7 @@ package cluster_top
 
 import (
 	"context"
+	"math/big"
 	_ "net/http/pprof"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -11,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/services"
+	"github.com/yandex/perforator/perforator/pkg/foreach"
 	clickhouse "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
 	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/aggregated"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
@@ -47,6 +49,39 @@ func (s *APIService) GetClusterTopAggregatedByFunction(ctx context.Context, req 
 	return s.getClusterTop(ctx, req, aggregated.GroupByFunction, filter)
 }
 
+const estimatedCpuFreq = 2.6 * 1_000_000_000
+const perforatorSamplingModulo = 30
+const intervalSec = 3600
+
+func fromCpuCyclesToCpuHours(cpuCycles *big.Int) float64 {
+	nonSampledCycles := big.NewInt(perforatorSamplingModulo)
+	nonSampledCycles = nonSampledCycles.Mul(cpuCycles, nonSampledCycles)
+	cpuSeconds := nonSampledCycles.Div(nonSampledCycles, big.NewInt(estimatedCpuFreq))
+	hours, _ := cpuSeconds.Div(cpuSeconds, big.NewInt(intervalSec)).Float64()
+	return hours
+}
+
+func fromCpuCyclesToPercent(total *big.Int, current *big.Int) float64 {
+	curr, _ := current.Float64()
+	t, _ := total.Float64()
+	return curr * 100 / t
+}
+
+func MapEntries(totalCumulativeDenominator *big.Int, totalSelfDenominator *big.Int, entries []*aggregated.AggregationValue) []*perforator.ClusterTopEntry {
+	res := foreach.Map(entries, func(row *aggregated.AggregationValue) *perforator.ClusterTopEntry {
+		return &perforator.ClusterTopEntry{
+			Name: row.Name,
+			Count: &perforator.ClusterTopCount{
+				Self:          fromCpuCyclesToCpuHours(&row.CpuCycles),
+				Cumulative:    fromCpuCyclesToCpuHours(&row.CumulativeCpuCycles),
+				SelfPct:       fromCpuCyclesToPercent(totalSelfDenominator, &row.CpuCycles),
+				CumulativePct: fromCpuCyclesToPercent(totalCumulativeDenominator, &row.CumulativeCpuCycles),
+			},
+		}
+	})
+	return res
+}
+
 func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterTopRequest, groupBy aggregated.GroupByMode, filter *aggregated.Filter) (*perforator.ClusterTopResponse, error) {
 	generation := req.GetGeneration()
 	if generation == 0 {
@@ -77,7 +112,7 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 	g, ctx := errgroup.WithContext(ctx)
 
 	var entries []*aggregated.AggregationValue
-	var total *aggregated.TotalCycles
+	var totalSelfCycles, totalCumulativeCycles *big.Int
 
 	g.Go(func() error {
 		var err error
@@ -89,15 +124,29 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 	})
 
 	g.Go(func() error {
-		totalFunctionFilter := ""
-		if filter != nil && filter.FunctionFilterMatchMode == aggregated.ExactMatch && filter.FunctionFilter != "" && groupBy == aggregated.GroupByService {
-			totalFunctionFilter = filter.FunctionFilter
+		options := []aggregated.CountTotalSelfCyclesOption{}
+		if filter != nil && filter.FunctionFilterMatchMode == aggregated.ExactMatch && filter.FunctionFilter != "" {
+			options = append(options, aggregated.WithFunctionFilter(filter.FunctionFilter))
 		}
 
 		var err error
-		total, err = s.clusterTopGenerationStorage.CountTotalCycles(ctx, generation, totalFunctionFilter)
+		totalSelfCycles, err = s.clusterTopGenerationStorage.CountTotalSelfCycles(ctx, generation, options...)
 		return err
 	})
+
+	if groupBy == aggregated.GroupByService {
+		g.Go(func() error {
+
+			totalFunctionFilter := ""
+			if filter != nil && filter.FunctionFilterMatchMode == aggregated.ExactMatch && filter.FunctionFilter != "" {
+				totalFunctionFilter = filter.FunctionFilter
+			}
+
+			var err error
+			totalCumulativeCycles, err = s.clusterTopGenerationStorage.CountTotalCumulativeCycles(ctx, generation, totalFunctionFilter)
+			return err
+		})
+	}
 
 	err := g.Wait()
 
@@ -111,7 +160,17 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 		entries = entries[0 : len(entries)-1]
 	}
 
-	res := aggregated.MapEntries(total, entries)
+	// is used as denominator for cumulative cycles
+	// is total self cycles when we are not filtering and grouping by funcitons
+	// and we use total cumulative for services when searching by function
+	// because we already have cumulative count for function, so percents should be relative to it
+	var totalCycles *big.Int
+	if groupBy == aggregated.GroupByService {
+		totalCycles = totalCumulativeCycles
+	} else {
+		totalCycles = totalSelfCycles
+	}
+	res := MapEntries(totalCycles, totalSelfCycles, entries)
 
 	return &perforator.ClusterTopResponse{
 		Instances: res,

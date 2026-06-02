@@ -11,10 +11,8 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
-	"github.com/yandex/perforator/perforator/pkg/foreach"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
-	"github.com/yandex/perforator/perforator/proto/perforator"
 )
 
 type clusterTopRow struct {
@@ -54,18 +52,6 @@ type AggregationValue struct {
 	CumulativeCpuCycles big.Int `ch:"sum_cumulative_cycles"`
 }
 
-const ESTIMATED_CPU_FREQ = 2.6 * 1_000_000_000
-const PERFORATOR_SAMPLING_MODULO = 30
-const INTERVAL_SEC = 3600
-
-func fromCpuCyclesToCpuHours(cpuCycles *big.Int) float64 {
-	nonSampledCycles := big.NewInt(PERFORATOR_SAMPLING_MODULO)
-	nonSampledCycles = nonSampledCycles.Mul(cpuCycles, nonSampledCycles)
-	cpuSeconds := nonSampledCycles.Div(nonSampledCycles, big.NewInt(ESTIMATED_CPU_FREQ))
-	hours, _ := cpuSeconds.Div(cpuSeconds, big.NewInt(INTERVAL_SEC)).Float64()
-	return hours
-}
-
 func scanTopRow(rows driver.Rows) (*AggregationValue, error) {
 	var row AggregationValue
 	if err := rows.ScanStruct(&row); err != nil {
@@ -73,27 +59,6 @@ func scanTopRow(rows driver.Rows) (*AggregationValue, error) {
 
 	}
 	return &row, nil
-}
-
-func fromCpuCyclesToPercent(total *big.Int, current *big.Int) float64 {
-	curr, _ := current.Float64()
-	t, _ := total.Float64()
-	return curr * 100 / t
-}
-
-func MapEntries(total *TotalCycles, entries []*AggregationValue) []*perforator.ClusterTopEntry {
-	res := foreach.Map(entries, func(row *AggregationValue) *perforator.ClusterTopEntry {
-		return &perforator.ClusterTopEntry{
-			Name: row.Name,
-			Count: &perforator.ClusterTopCount{
-				Self:          fromCpuCyclesToCpuHours(&row.CpuCycles),
-				Cumulative:    fromCpuCyclesToCpuHours(&row.CumulativeCpuCycles),
-				SelfPct:       fromCpuCyclesToPercent(total.TotalSelfCycles, &row.CpuCycles),
-				CumulativePct: fromCpuCyclesToPercent(total.TotalSelfCycles, &row.CumulativeCpuCycles),
-			},
-		}
-	})
-	return res
 }
 
 var groupByAggregation = map[GroupByMode]string{
@@ -118,28 +83,47 @@ func getComparisonOperator(mode MatchMode) string {
 
 const clusterTopTable = "cluster_top"
 
-type TotalCycles struct {
-	TotalSelfCycles *big.Int `ch:"total_self_cycles"`
-}
-
-func (s *ClickhouseAggregationStorage) CountTotalCycles(ctx context.Context, generation uint32, totalFunctionName string) (*TotalCycles, error) {
+func (s *ClickhouseAggregationStorage) CountTotalSelfCycles(ctx context.Context, generation uint32, options ...CountTotalSelfCyclesOption) (*big.Int, error) {
 	builder := squirrel.Select("sum(self_cycles) as total_self_cycles").
 		From(clusterTopTable).
 		Where("generation = ?", generation)
 
-	if totalFunctionName != "" {
-		builder = builder.Where("function = ?", totalFunctionName)
+	optionsObject := &totalSelfCyclesOptions{}
+	for _, option := range options {
+		option(optionsObject)
 	}
 
+	if optionsObject.function != "" {
+		builder = builder.Where("function = ?", optionsObject.function)
+	}
+
+	return s.countTotal(ctx, builder)
+}
+
+func (s *ClickhouseAggregationStorage) CountTotalCumulativeCycles(ctx context.Context, generation uint32, totalFunctionName string) (*big.Int, error) {
+	builder := squirrel.Select("sum(cumulative_cycles) as total_cumulative_cycles").
+		From(clusterTopTable).
+		Where("generation = ?", generation)
+
+	if totalFunctionName == "" {
+		return nil, errors.New("total function name is empty")
+	}
+
+	builder = builder.Where("function = ?", totalFunctionName)
+
+	return s.countTotal(ctx, builder)
+}
+
+func (s *ClickhouseAggregationStorage) countTotal(ctx context.Context, builder squirrel.SelectBuilder) (*big.Int, error) {
 	sql, args, err := builder.ToSql()
 	if err != nil {
 		return nil, err
 	}
 
 	s.l.Debug(ctx, "Counting total cycles in clickhouse", log.String("sql", sql), log.Array("args", args))
-	res, err := clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, func(r driver.Rows) (*TotalCycles, error) {
-		var result TotalCycles
-		if err := r.ScanStruct(&result); err != nil {
+	res, err := clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, func(r driver.Rows) (*big.Int, error) {
+		var result big.Int
+		if err := r.Scan(&result); err != nil {
 			return nil, fmt.Errorf("failed to scan from row: %w", err)
 		}
 
