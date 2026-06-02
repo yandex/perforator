@@ -25,6 +25,7 @@ type ProfileRow struct {
 	Expired                    bool              `ch:"expired"`
 	Envs                       []string          `ch:"envs"`
 	CustomProfilingOperationID string            `ch:"custom_profiling_operation_id"`
+	BlobSize                   uint64            `ch:"blob_size"`
 }
 
 func profileModelFromMeta(p *meta.ProfileMetadata) *ProfileRow {
@@ -42,6 +43,7 @@ func profileModelFromMeta(p *meta.ProfileMetadata) *ProfileRow {
 		Attributes:                 maps.Clone(p.Attributes),
 		Envs:                       p.Envs,
 		CustomProfilingOperationID: p.CustomProfilingOperationID,
+		BlobSize:                   p.BlobSize,
 	}
 }
 
@@ -60,6 +62,7 @@ func profileMetaFromModel(p *ProfileRow) *meta.ProfileMetadata {
 		Attributes:                 maps.Clone(p.Attributes),
 		Envs:                       p.Envs,
 		CustomProfilingOperationID: p.CustomProfilingOperationID,
+		BlobSize:                   p.BlobSize,
 	}
 }
 

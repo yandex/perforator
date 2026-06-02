@@ -469,6 +469,9 @@ func formatFieldForInsert(builder *strings.Builder, field reflect.Value) error {
 			builder.WriteString("false")
 		}
 
+	case reflect.Uint64:
+		builder.WriteString(fmt.Sprintf("%d", field.Uint()))
+
 	case reflect.Slice:
 		switch field.Type().Elem().Kind() {
 		case reflect.String:

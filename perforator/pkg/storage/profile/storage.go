@@ -100,6 +100,11 @@ func (s *ProfileStorage) StoreProfile(ctx context.Context, metas []*meta.Profile
 		return "", err
 	}
 
+	blobSize := uint64(len(blobData))
+	for _, meta := range metas {
+		meta.BlobSize = blobSize
+	}
+
 	s.log.Debug(ctx, "Successfully inserted profile blob",
 		log.String("id", id.String()),
 	)

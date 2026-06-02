@@ -28,6 +28,7 @@ type (
 		LastUsedTimestamp          time.Time
 		Envs                       []string
 		CustomProfilingOperationID string
+		BlobSize                   uint64
 	}
 
 	ProfileQuery struct {
