@@ -81,20 +81,28 @@ func getComparisonOperator(mode MatchMode) string {
 	}
 }
 
-const clusterTopTable = "cluster_top"
+const (
+	clusterTopTable                 = "cluster_top_v2"
+	clusterTopByFunctionTable       = "cluster_top_by_function_v2"
+	clusterTopGenerationTotalsTable = "cluster_top_generation_totals_v2"
+)
 
 func (s *ClickhouseAggregationStorage) CountTotalSelfCycles(ctx context.Context, generation uint32, options ...CountTotalSelfCyclesOption) (*big.Int, error) {
-	builder := squirrel.Select("sum(self_cycles) as total_self_cycles").
-		From(clusterTopTable).
-		Where("generation = ?", generation)
-
 	optionsObject := &totalSelfCyclesOptions{}
 	for _, option := range options {
 		option(optionsObject)
 	}
 
+	var builder squirrel.SelectBuilder
 	if optionsObject.function != "" {
-		builder = builder.Where("function = ?", optionsObject.function)
+		builder = squirrel.Select("sum(self_cycles) as total_self_cycles").
+			From(clusterTopByFunctionTable).
+			Where("generation = ?", generation).
+			Where("function = ?", optionsObject.function)
+	} else {
+		builder = squirrel.Select("sum(total_self_cycles) as total_self_cycles").
+			From(clusterTopGenerationTotalsTable).
+			Where("generation = ?", generation)
 	}
 
 	return s.countTotal(ctx, builder)
@@ -162,9 +170,16 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 		return nil, fmt.Errorf("unknown sort order")
 	}
 
+	fromTable := clusterTopTable
+	if aggregationType == GroupByFunction {
+		fromTable = clusterTopByFunctionTable
+	}
+	// GroupByService with exact function filter reads clusterTopTable;
+	// ClickHouse uses proj_by_function_service projection automatically.
+
 	builder := squirrel.
 		Select(fmt.Sprintf("left(%s, 150) AS name, sum(self_cycles) AS cpu_cycles, sum(cumulative_cycles) as sum_cumulative_cycles", groupBy)).
-		From(clusterTopTable).
+		From(fromTable).
 		Where("generation = ?", generation).
 		OrderBy(orderByCycles).
 		Limit(limit).
@@ -202,7 +217,7 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 
 	batch, err := s.conn.PrepareBatch(
 		ctx,
-		"INSERT INTO cluster_top(generation, service, function, self_cycles, cumulative_cycles)",
+		fmt.Sprintf("INSERT INTO %s(generation, service, function, self_cycles, cumulative_cycles)", clusterTopTable),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to prepare clickhouse batch: %w", err)
