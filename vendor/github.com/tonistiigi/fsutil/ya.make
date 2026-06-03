@@ -2,9 +2,10 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v0.0.0-20250113203817-b14e27f4135a)
+VERSION(v0.0.0-20250605211040-586307ad452f)
 
 SRCS(
+    buffer.go
     diff.go
     diff_containerd.go
     diskwriter.go
@@ -20,6 +21,7 @@ SRCS(
 )
 
 GO_TEST_SRCS(
+    buffer_test.go
     diskwriter_test.go
     filter_test.go
     followlinks_test.go

@@ -322,7 +322,7 @@ require (
 	github.com/coder/websocket v1.8.14
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
 	github.com/container-storage-interface/spec v1.10.0
-	github.com/containerd/cgroups/v3 v3.0.5
+	github.com/containerd/cgroups/v3 v3.1.0
 	github.com/containerd/containerd v1.7.29
 	github.com/containerd/continuity v0.4.5
 	github.com/containerd/go-cni v1.1.12
@@ -1260,7 +1260,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/vcs v1.13.3 // indirect
 	github.com/MichaelTJones/walk v0.0.0-20161122175330-4748e29d5718 // indirect
-	github.com/Microsoft/hcsshim v0.13.0 // indirect
+	github.com/Microsoft/hcsshim v0.14.0-rc.1 // indirect
 	github.com/Microsoft/hcsshim/test v0.0.0-20210227013316-43a75bb4edd3 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
@@ -1502,21 +1502,25 @@ require (
 	github.com/codegangsta/inject v0.0.0-20150114235600-33e0aa1cb7c0 // indirect
 	github.com/colinmarc/hdfs/v2 v2.3.0 // indirect
 	github.com/compose-spec/compose-go/v2 v2.9.0 // indirect
+	github.com/containerd/accelerated-container-image v1.3.0 // indirect
 	github.com/containerd/aufs v1.0.0 // indirect
 	github.com/containerd/btrfs/v2 v2.0.0 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/console v1.0.5 // indirect
-	github.com/containerd/containerd/api v1.9.0 // indirect
-	github.com/containerd/containerd/v2 v2.1.5 // indirect
+	github.com/containerd/containerd/api v1.10.0 // indirect
+	github.com/containerd/containerd/v2 v2.2.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
+	github.com/containerd/fuse-overlayfs-snapshotter/v2 v2.1.7 // indirect
 	github.com/containerd/go-runc v1.1.0 // indirect
 	github.com/containerd/imgcrypt v1.1.9 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/nri v0.8.0 // indirect
-	github.com/containerd/platforms v1.0.0-rc.1 // indirect
+	github.com/containerd/nydus-snapshotter v0.15.10 // indirect
+	github.com/containerd/platforms v1.0.0-rc.2 // indirect
 	github.com/containerd/plugin v1.1.0 // indirect
+	github.com/containerd/stargz-snapshotter v0.16.3 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
 	github.com/containerd/ttrpc v1.2.7 // indirect
 	github.com/containerd/typeurl v1.0.2 // indirect
@@ -1854,6 +1858,7 @@ require (
 	github.com/hashicorp/go-cty v1.5.0 // indirect
 	github.com/hashicorp/go-getter v1.6.2 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
+	github.com/hashicorp/go-immutable-radix/v2 v2.1.0 // indirect
 	github.com/hashicorp/go-memdb v1.3.3 // indirect
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-msgpack/v2 v2.1.2 // indirect
@@ -2107,6 +2112,7 @@ require (
 	github.com/moby/sys/capability v0.4.0 // indirect
 	github.com/moby/sys/mount v0.3.4 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
+	github.com/moby/sys/reexec v0.1.0 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
 	github.com/moby/sys/signal v0.7.1 // indirect
 	github.com/moby/sys/symlink v0.3.0 // indirect
@@ -2417,6 +2423,8 @@ require (
 	github.com/tommy-muehle/go-mnd v1.3.0 // indirect
 	github.com/tonistiigi/dchapes-mode v0.0.0-20250318174251-73d941a28323 // indirect
 	github.com/tonistiigi/fsutil v0.0.0-20250605211040-586307ad452f // indirect
+	github.com/tonistiigi/go-actions-cache v0.0.0-20250626083717-378c5ed1ddd9 // indirect
+	github.com/tonistiigi/go-archvariant v1.0.0 // indirect
 	github.com/tonistiigi/go-csvvalue v0.0.0-20240814133006-030d3b2625d0 // indirect
 	github.com/tonistiigi/go-rosetta v0.0.0-20220804170347-3f4430f2d346 // indirect
 	github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea // indirect
@@ -2624,6 +2632,8 @@ require (
 	k8s.io/mount-utils v0.26.2-rc.0 // indirect
 	k8s.io/pod-security-admission v0.26.1 // indirect
 	k8s.io/sample-apiserver v0.26.1 // indirect
+	kernel.org/pub/linux/libs/security/libcap/cap v1.2.77 // indirect
+	kernel.org/pub/linux/libs/security/libcap/psx v1.2.77 // indirect
 	lukechampine.com/uint128 v1.3.0 // indirect
 	modernc.org/cc v1.0.1 // indirect
 	modernc.org/cc/v3 v3.41.0 // indirect
@@ -2843,9 +2853,7 @@ replace github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
 
 replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 
-replace github.com/moby/buildkit => github.com/moby/buildkit v0.20.2
-
-replace github.com/tonistiigi/fsutil => github.com/tonistiigi/fsutil v0.0.0-20250113203817-b14e27f4135a
+replace github.com/moby/buildkit => github.com/moby/buildkit v0.23.2
 
 replace github.com/google/go-tpm-tools => github.com/google/go-tpm-tools v0.4.2
 
