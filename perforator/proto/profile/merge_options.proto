@@ -64,18 +64,18 @@ message MergeOptions {
     // Allows filtering of value types before merging.
     optional ValueTypeFilter value_type_filter = 202;
 
-    // If true, remove trailing unsymbolized frames from stacks.
+    // If true (default), remove trailing unsymbolized frames from stacks.
     // These "garbage root frames" typically result from stack unwinding failures
     // where the unwinder walks past the real stack into random memory.
     // Such frames have no binary and no inline chain, and their addresses
     // are often garbage values (like ASCII strings read as pointers).
     // Removing them reduces profile size without losing meaningful data.
-    optional bool strip_garbage_root_frames = 300 [default = false];
+    optional bool strip_garbage_root_frames = 300 [default = true];
 
-    // If true, sanitize thread names by removing trailing digits.
+    // If true (default), sanitize thread names by removing trailing digits.
     // This helps merge samples from threads with numbered names (e.g., "Worker1",
     // "Worker2") into a single logical thread group.
-    optional bool sanitize_thread_names = 301 [default = false];
+    optional bool sanitize_thread_names = 301 [default = true];
 }
 
 message LabelFilter {

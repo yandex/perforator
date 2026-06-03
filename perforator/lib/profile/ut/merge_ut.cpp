@@ -31,7 +31,12 @@ TEST(MergeProfilesTest, Golden) {
     const ui32 threadCount = 4;
     NPerforator::NProfile::TMergeManager manager{threadCount};
 
+    // This golden fixture predates the strip/sanitize defaults flipping to true; pin them
+    // off so the test exercises pure merge/dedup against the committed golden. The default-on
+    // behavior is covered by the yandex-specific render/merge tests.
     NPerforator::NProto::NProfile::MergeOptions opts;
+    opts.set_strip_garbage_root_frames(false);
+    opts.set_sanitize_thread_names(false);
     auto session = manager.StartSession(opts);
 
     for (auto&& profileBytes : profilesBytes) {

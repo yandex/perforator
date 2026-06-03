@@ -83,7 +83,7 @@ public:
         return Max<ui64>(Options_.sample_period(), 1);
     }
 
-    bool MergeBinaries() const {
+    bool MergeBySymbolizedNames() const {
         return Options_.merge_by_symbolized_names();
     }
 
@@ -91,11 +91,11 @@ public:
         return Options_.ignore_binary_paths();
     }
 
-    bool MergeTimestamps() const {
+    bool IgnoreTimestamps() const {
         return Options_.ignore_timestamps();
     }
 
-    bool MergeSourceLocations() const {
+    bool IgnoreSourceLocations() const {
         return Options_.ignore_source_locations();
     }
 
@@ -383,7 +383,7 @@ private:
     void MergeSample(TSample sample) {
         auto builder = Builder_.AddSample();
 
-        if (auto ts = sample.GetProtoTimestamp(); ts && !Policy_.MergeTimestamps()) {
+        if (auto ts = sample.GetProtoTimestamp(); ts && !Policy_.IgnoreTimestamps()) {
             builder.SetTimestamp(ts->seconds(), ts->nanos());
         }
 
@@ -563,7 +563,7 @@ private:
         return StackFrames_.TryMap(frame.GetIndex(), [&, this] {
             auto builder = Builder_.AddStackFrame();
 
-            if (!Policy_.MergeBinaries()) {
+            if (!Policy_.MergeBySymbolizedNames()) {
                 builder.SetBinary(MapBinary(frame.GetBinary()));
                 builder.SetAddress(frame.GetAddress());
             }
@@ -592,7 +592,7 @@ private:
 
             for (TSourceLine line : chain.GetLines()) {
                 auto lineBuilder = builder.AddLine();
-                if (!Policy_.MergeSourceLocations()) {
+                if (!Policy_.IgnoreSourceLocations()) {
                     lineBuilder.SetLine(line.GetLine());
                     lineBuilder.SetColumn(line.GetColumn());
                 }
