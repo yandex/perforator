@@ -122,10 +122,6 @@ type FeatureFlagsConfig struct {
 	EnablePHP    *bool `yaml:"enable_php"`
 	EnableSframe *bool `yaml:"enable_sframe"`
 
-	// EnableSampleParsingBypass governs new, faster parser for recorded samples, relying on underspecified Go guarantees.
-	// In the worst case (i.e. when using other Go implementation with weaker guarantees) this may cause crashes or corrupt samples.
-	EnableSampleParsingBypass *bool `yaml:"enable_sample_parsing_bypass"`
-
 	// ProfileFormat controls which profile format the agent sends to storage.
 	// Possible values: "pprof" (default), "yaprof".
 	ProfileFormat string `yaml:"profile_format"`
@@ -150,13 +146,6 @@ func (f *FeatureFlagsConfig) SframeEnabled() bool {
 		return false
 	}
 	return *f.EnableSframe
-}
-
-func (f *FeatureFlagsConfig) SampleParsingBypassEnabled() bool {
-	if f.EnableSampleParsingBypass == nil {
-		return true
-	}
-	return *f.EnableSampleParsingBypass
 }
 
 func (f *FeatureFlagsConfig) GetProfileFormat() profileformat.ProfileFormat {

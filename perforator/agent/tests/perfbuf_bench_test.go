@@ -118,9 +118,6 @@ func runPerfbufBenchmark(b *testing.B, binaryPath string, bc perfbufBenchConfig)
 			TraceWallTime: ptr.Bool(false),
 			TraceSignals:  ptr.Bool(false),
 		},
-		FeatureFlagsConfig: config.FeatureFlagsConfig{
-			EnableSampleParsingBypass: ptr.Bool(true),
-		},
 		PerfEvents: []config.PerfEventConfig{},
 		SampleConsumer: config.SampleConsumerConfig{
 			PerfBufferPerCPUSize: ptr.Int(bc.perfBufferPerCPUSize),
