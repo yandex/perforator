@@ -110,7 +110,7 @@ func (s *ClickhouseAggregationStorage) CountTotalSelfCycles(ctx context.Context,
 
 func (s *ClickhouseAggregationStorage) CountTotalCumulativeCycles(ctx context.Context, generation uint32, totalFunctionName string) (*big.Int, error) {
 	builder := squirrel.Select("sum(cumulative_cycles) as total_cumulative_cycles").
-		From(clusterTopTable).
+		From(clusterTopByFunctionTable).
 		Where("generation = ?", generation)
 
 	if totalFunctionName == "" {
