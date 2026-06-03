@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/docker/go-connections/nat"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -59,6 +60,12 @@ const (
 	ClickHouseNativePort = 9000
 	MinioPort            = 9000
 	ClickHouseKeeperPort = 9181
+
+	postgresContainerImage  = "postgres:latest"
+	postgresStartupTimeout  = 120 * time.Second
+	postgresContainerUser   = "perforator"
+	postgresContainerPass   = "perforator"
+	postgresContainerDBName = "perforator"
 )
 
 type S3Buckets struct {
@@ -329,18 +336,32 @@ func (s *IntegrationTestEnv) startClickHouse(ctx context.Context) error {
 	return err
 }
 
+func postgresSQLURL(host string, port nat.Port) string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		postgresContainerUser,
+		postgresContainerPass,
+		host,
+		port.Port(),
+		postgresContainerDBName,
+	)
+}
+
 func (s *IntegrationTestEnv) startPostgres(ctx context.Context) error {
 	port := fmt.Sprintf("%d/tcp", PostgresPort)
+	natPort := nat.Port(port)
 	req := testcontainers.ContainerRequest{
-		Image:        "postgres:latest",
+		Image:        postgresContainerImage,
 		ExposedPorts: []string{port},
 		Env: map[string]string{
-			"POSTGRES_USER":     "perforator",
-			"POSTGRES_PASSWORD": "perforator",
-			"POSTGRES_DB":       "perforator",
+			"POSTGRES_USER":     postgresContainerUser,
+			"POSTGRES_PASSWORD": postgresContainerPass,
+			"POSTGRES_DB":       postgresContainerDBName,
 		},
-		WaitingFor: wait.ForLog("database system is ready to accept connections"),
-		Networks:   []string{s.testNetwork.Name},
+		WaitingFor: wait.ForSQL(natPort, "pgx", postgresSQLURL).
+			WithStartupTimeout(postgresStartupTimeout).
+			WithPollInterval(500 * time.Millisecond),
+		Networks: []string{s.testNetwork.Name},
 	}
 	var err error
 	s.postgresContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
