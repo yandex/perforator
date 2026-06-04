@@ -6610,7 +6610,7 @@ github.com/containerd/errdefs/pkg/internal/types
 github.com/containerd/fifo
 # github.com/containerd/fuse-overlayfs-snapshotter/v2 v2.1.7
 ## explicit; go 1.24.3
-# github.com/containerd/go-cni v1.1.12
+# github.com/containerd/go-cni v1.1.13
 ## explicit; go 1.21
 github.com/containerd/go-cni
 # github.com/containerd/go-runc v1.1.0
@@ -6621,8 +6621,8 @@ github.com/containerd/go-cni
 ## explicit; go 1.20
 github.com/containerd/log
 github.com/containerd/log/logtest
-# github.com/containerd/nri v0.8.0
-## explicit; go 1.21
+# github.com/containerd/nri v0.10.0
+## explicit; go 1.24.3
 # github.com/containerd/nydus-snapshotter v0.15.10
 ## explicit; go 1.24.0
 # github.com/containerd/platforms v1.0.0-rc.2
@@ -6665,8 +6665,8 @@ github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/pkg/version/legacy_examples
 github.com/containernetworking/cni/pkg/version/testhelpers
 github.com/containernetworking/cni/plugins/test/noop/debug
-# github.com/containernetworking/plugins v1.7.1
-## explicit; go 1.23.0
+# github.com/containernetworking/plugins v1.8.0
+## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ip
 github.com/containernetworking/plugins/pkg/ipam
 github.com/containernetworking/plugins/pkg/netlinksafe
@@ -7655,7 +7655,7 @@ github.com/emiago/sipgo/sip
 ## explicit
 # github.com/emicklei/go-restful-swagger12 v0.0.0-20201014110547-68ccff494617
 ## explicit
-# github.com/emicklei/go-restful/v3 v3.12.2
+# github.com/emicklei/go-restful/v3 v3.13.0
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
@@ -10884,10 +10884,10 @@ github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing
 github.com/grpc-ecosystem/go-grpc-middleware/util/backoffutils
 github.com/grpc-ecosystem/go-grpc-middleware/util/metautils
 github.com/grpc-ecosystem/go-grpc-middleware/validator
-# github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
-## explicit; go 1.19
+# github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
+## explicit; go 1.21
 github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus
-# github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.1 => github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
+# github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2 => github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
 ## explicit; go 1.21
 github.com/grpc-ecosystem/go-grpc-middleware/v2
 github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors
@@ -11640,8 +11640,8 @@ github.com/insomniacslk/dhcp/iana
 github.com/insomniacslk/dhcp/interfaces
 github.com/insomniacslk/dhcp/netboot
 github.com/insomniacslk/dhcp/rfc1035label
-# github.com/intel/goresctrl v0.8.0
-## explicit; go 1.20
+# github.com/intel/goresctrl v0.10.0
+## explicit; go 1.23
 # github.com/intel/govmm v0.0.0-20200602145448-7cc469641b7b
 ## explicit
 github.com/intel/govmm/qemu
@@ -13744,7 +13744,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/ginkgo/v2 v2.23.4
+# github.com/onsi/ginkgo/v2 v2.25.1
 ## explicit; go 1.23.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -13778,8 +13778,8 @@ github.com/onsi/ginkgo/v2/internal/test_helpers
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.37.0
-## explicit; go 1.23.0
+# github.com/onsi/gomega v1.38.1
+## explicit; go 1.24.0
 github.com/onsi/gomega
 github.com/onsi/gomega/format
 github.com/onsi/gomega/gbytes
@@ -14082,8 +14082,8 @@ github.com/opencontainers/runc/libcontainer/user
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/runtime-spec/specs-go/features
-# github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
-## explicit; go 1.19
+# github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2
+## explicit; go 1.21
 # github.com/opencontainers/selinux v1.13.1
 ## explicit; go 1.19
 github.com/opencontainers/selinux/go-selinux
@@ -15615,8 +15615,8 @@ github.com/ryanrolds/sqlclosecheck/pkg/analyzer
 github.com/ryanuber/go-glob
 # github.com/sacloud/libsacloud v1.36.2
 ## explicit; go 1.12
-# github.com/safchain/ethtool v0.5.10
-## explicit; go 1.16
+# github.com/safchain/ethtool v0.6.2
+## explicit; go 1.23.0
 github.com/safchain/ethtool
 github.com/safchain/ethtool/example
 # github.com/saferwall/pe v1.5.7
@@ -16661,7 +16661,7 @@ github.com/tarm/serial
 ## explicit; go 1.16
 github.com/tc-hib/winres
 github.com/tc-hib/winres/version
-# github.com/tchap/go-patricia/v2 v2.3.2
+# github.com/tchap/go-patricia/v2 v2.3.3
 ## explicit; go 1.16
 github.com/tchap/go-patricia/v2/patricia
 # github.com/tdewolff/minify/v2 v2.12.9
@@ -17272,7 +17272,7 @@ github.com/uber/jaeger-lib/metrics/tally
 # github.com/ugorji/go/codec v1.3.0
 ## explicit; go 1.21
 github.com/ugorji/go/codec
-# github.com/ulikunitz/xz v0.5.12
+# github.com/ulikunitz/xz v0.5.15
 ## explicit; go 1.12
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/cmd/gxz
@@ -17283,6 +17283,7 @@ github.com/ulikunitz/xz/internal/randtxt
 github.com/ulikunitz/xz/internal/term
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
+github.com/ulikunitz/xz/xio
 # github.com/uptrace/bun v1.2.17
 ## explicit; go 1.24.0
 github.com/uptrace/bun
@@ -19866,7 +19867,7 @@ go.temporal.io/api/worker/v1
 go.temporal.io/api/workflow/v1
 go.temporal.io/api/workflowservice/v1
 go.temporal.io/api/workflowservicemock/v1
-# go.temporal.io/sdk v1.35.0 => go.temporal.io/sdk v1.35.0
+# go.temporal.io/sdk v1.36.0 => go.temporal.io/sdk v1.36.0
 ## explicit; go 1.23.0
 go.temporal.io/sdk
 go.temporal.io/sdk/activity
@@ -24021,7 +24022,7 @@ www.velocidex.com/golang/regparser
 # go.opentelemetry.io/otel/sdk/metric => go.opentelemetry.io/otel/sdk/metric v1.43.0
 # go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.43.0
 # go.temporal.io/api => go.temporal.io/api v1.53.0
-# go.temporal.io/sdk => go.temporal.io/sdk v1.35.0
+# go.temporal.io/sdk => go.temporal.io/sdk v1.36.0
 # go.temporal.io/server => go.temporal.io/server v1.29.6
 # golang.org/x/sync => golang.org/x/sync v0.15.0
 # golang.org/x/sys => golang.org/x/sys v0.43.0

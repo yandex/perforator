@@ -325,9 +325,9 @@ require (
 	github.com/containerd/cgroups/v3 v3.1.0
 	github.com/containerd/containerd v1.7.29
 	github.com/containerd/continuity v0.4.5
-	github.com/containerd/go-cni v1.1.12
+	github.com/containerd/go-cni v1.1.13
 	github.com/containernetworking/cni v1.3.0
-	github.com/containernetworking/plugins v1.7.1
+	github.com/containernetworking/plugins v1.8.0
 	github.com/corazawaf/coraza/v3 v3.2.1
 	github.com/coredhcp/coredhcp v0.0.0-20220602152301-a2552c5c1b7a
 	github.com/coredns/caddy v1.1.4-0.20250930002214-15135a999495
@@ -380,7 +380,7 @@ require (
 	github.com/elimity-com/scim v0.0.0-20220121082953-15165b1a61c8
 	github.com/emersion/go-imap v1.2.1
 	github.com/emiago/sipgo v1.0.0
-	github.com/emicklei/go-restful/v3 v3.12.2
+	github.com/emicklei/go-restful/v3 v3.13.0
 	github.com/emirpasic/gods/v2 v2.0.0-alpha
 	github.com/envoyproxy/go-control-plane v0.14.0
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0
@@ -528,8 +528,8 @@ require (
 	github.com/graphql-go/graphql v0.8.1
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.1
+	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.4
@@ -688,8 +688,8 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/ginkgo/v2 v2.23.4
-	github.com/onsi/gomega v1.37.0
+	github.com/onsi/ginkgo/v2 v2.25.1
+	github.com/onsi/gomega v1.38.1
 	github.com/open-policy-agent/opa v1.1.0
 	github.com/openai/openai-go v1.12.0
 	github.com/openconfig/gnmi v0.10.0
@@ -787,7 +787,7 @@ require (
 	github.com/rqlite/gorqlite v0.0.0-20240122221808-a8a425b1a6aa
 	github.com/rs/cors v1.11.1
 	github.com/ryanrolds/sqlclosecheck v0.3.0
-	github.com/safchain/ethtool v0.5.10
+	github.com/safchain/ethtool v0.6.2
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1
@@ -867,7 +867,7 @@ require (
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/ugorji/go/codec v1.3.0
-	github.com/ulikunitz/xz v0.5.12
+	github.com/ulikunitz/xz v0.5.15
 	github.com/urfave/cli v1.22.17
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/urfave/cli/v3 v3.6.1
@@ -1051,7 +1051,7 @@ require (
 	go.step.sm/cli-utils v0.8.0
 	go.step.sm/crypto v0.38.0
 	go.temporal.io/api v1.53.0
-	go.temporal.io/sdk v1.35.0
+	go.temporal.io/sdk v1.36.0
 	go.temporal.io/sdk/contrib/envconfig v0.1.0
 	go.temporal.io/sdk/contrib/opentelemetry v0.3.1-0.20231014000700-06c90fb36987
 	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129171107-288a04f72145
@@ -1516,7 +1516,7 @@ require (
 	github.com/containerd/go-runc v1.1.0 // indirect
 	github.com/containerd/imgcrypt v1.1.9 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/nri v0.8.0 // indirect
+	github.com/containerd/nri v0.10.0 // indirect
 	github.com/containerd/nydus-snapshotter v0.15.10 // indirect
 	github.com/containerd/platforms v1.0.0-rc.2 // indirect
 	github.com/containerd/plugin v1.1.0 // indirect
@@ -1912,7 +1912,7 @@ require (
 	github.com/influxdata/usage-client v0.0.0-20160829180054-6d3895376368 // indirect
 	github.com/infobloxopen/go-trees v0.0.0-20200715205103-96a057b8dfb9 // indirect
 	github.com/inhies/go-bytesize v0.0.0-20220417184213-4913239db9cf // indirect
-	github.com/intel/goresctrl v0.8.0 // indirect
+	github.com/intel/goresctrl v0.10.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect
 	github.com/ionos-cloud/sdk-go/v6 v6.3.4 // indirect
 	github.com/iris-contrib/blackfriday v2.0.0+incompatible // indirect
@@ -2186,7 +2186,7 @@ require (
 	github.com/opencontainers/cgroups v0.0.6 // indirect
 	github.com/opencontainers/runc v1.2.3 // indirect
 	github.com/opencontainers/runtime-spec v1.2.1 // indirect
-	github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69 // indirect
+	github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2 // indirect
 	github.com/opencontainers/selinux v1.13.1 // indirect
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
@@ -2389,7 +2389,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tadglines/go-pkgs v0.0.0-20210623144937-b983b20f54f9 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
-	github.com/tchap/go-patricia/v2 v2.3.2 // indirect
+	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
 	github.com/tdewolff/parse/v2 v2.6.8 // indirect
 	github.com/tdewolff/test v1.0.9 // indirect
 	github.com/temporalio/features v0.0.0-20231218231852-27c681667dae // indirect
@@ -2725,7 +2725,7 @@ replace cloud.google.com/go/pubsub => cloud.google.com/go/pubsub v1.30.0
 
 replace go.temporal.io/api => go.temporal.io/api v1.53.0
 
-replace go.temporal.io/sdk => go.temporal.io/sdk v1.35.0
+replace go.temporal.io/sdk => go.temporal.io/sdk v1.36.0
 
 replace go.temporal.io/server => go.temporal.io/server v1.29.6
 
