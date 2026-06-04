@@ -2,6 +2,7 @@ package convert
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/google/pprof/profile"
 
@@ -64,6 +65,20 @@ func CollapsedToPProf(prof *collapsed.Profile) (*profile.Profile, error) {
 		Sample: make([]*profile.Sample, len(prof.Samples)),
 	}
 
+	// Reconstruct frame origins (kernel/jvm/php/python) from the collapsed frame-name
+	// suffix and encode them as special mappings — that's how the renderer detects
+	// origin. Native frames get no mapping. (Collapsed carries origin only in the name.)
+	mappings := make(map[string]*profile.Mapping)
+	specialMapping := func(file string) *profile.Mapping {
+		m, ok := mappings[file]
+		if !ok {
+			m = &profile.Mapping{ID: 1 + uint64(len(res.Mapping)), File: file}
+			res.Mapping = append(res.Mapping, m)
+			mappings[file] = m
+		}
+		return m
+	}
+
 	locations := make(map[string]*profile.Location)
 	for i := range prof.Samples {
 		res.Sample[i] = &profile.Sample{
@@ -82,6 +97,9 @@ func CollapsedToPProf(prof *collapsed.Profile) (*profile.Profile, error) {
 						Function: funcPtr,
 					}},
 				}
+				if marker := originSpecialMapping(function); marker != "" {
+					loc.Mapping = specialMapping(marker)
+				}
 				res.Function = append(res.Function, funcPtr)
 				res.Location = append(res.Location, loc)
 			}
@@ -91,4 +109,23 @@ func CollapsedToPProf(prof *collapsed.Profile) (*profile.Profile, error) {
 	}
 
 	return res, nil
+}
+
+// originSpecialMapping maps a collapsed frame name to the renderer's special mapping
+// file for origin coloring, or "" for native. Mirrors the renderer's former
+// guessCollapsedFrameOrigin (suffix-based); the values match the
+// profile.*SpecialMapping constants and the C++ renderer's origin detection.
+func originSpecialMapping(name string) string {
+	switch {
+	case strings.HasSuffix(name, "[kernel]"):
+		return "[kernel]"
+	case strings.HasSuffix(name, ".java"), strings.HasSuffix(name, ".kt"):
+		return "[jvm]"
+	case strings.HasSuffix(name, ".php"):
+		return "[php]"
+	case strings.HasSuffix(name, ".py"):
+		return "[python]"
+	default:
+		return ""
+	}
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/yandex/perforator/perforator/pkg/must"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/collapsed"
+	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/convert"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
 	"github.com/yandex/perforator/perforator/pkg/profile/parse/perf"
 )
@@ -235,22 +236,28 @@ func buildCollapsedFlamegraph(inputPath, baselinePath string, format render.Form
 	fg.SetLineNumbers(showLineNumbers)
 	fg.SetFileNames(showFileNames)
 
-	prof, err := loadFoldedProfile(inputPath)
+	folded, err := loadFoldedProfile(inputPath)
 	if err != nil {
 		return err
 	}
-	err = fg.AddCollapsedProfile(prof)
+	prof, err := convert.CollapsedToPProf(folded)
 	if err != nil {
+		return err
+	}
+	if err := fg.AddProfile(prof); err != nil {
 		return err
 	}
 
 	if baselinePath != "" {
-		prof, err := loadFoldedProfile(baselinePath)
+		folded, err := loadFoldedProfile(baselinePath)
 		if err != nil {
 			return err
 		}
-		err = fg.AddCollapsedBaselineProfile(prof)
+		prof, err := convert.CollapsedToPProf(folded)
 		if err != nil {
+			return err
+		}
+		if err := fg.AddBaselineProfile(prof); err != nil {
 			return err
 		}
 	}

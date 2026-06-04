@@ -12,7 +12,6 @@ import (
 	pprof "github.com/google/pprof/profile"
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
-	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/collapsed"
 	"github.com/yandex/perforator/perforator/pkg/profile/labels"
 )
 
@@ -172,16 +171,6 @@ func (f *FlameGraph) AddBaselineProfile(profile *pprof.Profile) error {
 	return f.addProfile(profile, true)
 }
 
-func (f *FlameGraph) AddCollapsedProfile(profile *collapsed.Profile) error {
-	f.addCollapsedProfile(profile, false)
-	return nil
-}
-
-func (f *FlameGraph) AddCollapsedBaselineProfile(profile *collapsed.Profile) error {
-	f.addCollapsedProfile(profile, true)
-	return nil
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 // Render implements FlameGraphRenderer.
@@ -210,13 +199,6 @@ func (f *FlameGraph) RenderPProf(profile *pprof.Profile, w io.Writer) error {
 	return f.Render(w)
 }
 
-func (f *FlameGraph) RenderCollapsed(profile *collapsed.Profile, w io.Writer) error {
-	if err := f.AddCollapsedProfile(profile); err != nil {
-		return err
-	}
-	return f.Render(w)
-}
-
 func (f *FlameGraph) newBlocksJSONRenderer(blocks []*block) *BlocksJSONRenderer {
 	return NewBlocksJSONRenderer(blocks, f.sampleType, f.frameType)
 }
@@ -231,40 +213,6 @@ func (f *FlameGraph) renderBlocks(blocks []*block, w io.Writer) error {
 		return RenderJSONAsHTML(f.newBlocksJSONRenderer(blocks), w)
 	default:
 		return fmt.Errorf("unsupported format: %s", f.format)
-	}
-}
-
-// Best-effort attempts to guess origins of collapsed frames.
-func guessCollapsedFrameOrigin(name string) FrameOrigin {
-	if strings.HasSuffix(name, "[kernel]") {
-		return FrameOriginKernel
-	}
-
-	if strings.HasSuffix(name, ".java") || strings.HasSuffix(name, ".kt") {
-		return FrameOriginJVM
-	}
-	if strings.HasSuffix(name, ".php") {
-		return FrameOriginPHP
-	}
-	if strings.HasSuffix(name, ".py") {
-		return FrameOriginPython
-	}
-
-	return FrameOriginNative
-}
-
-func (f *FlameGraph) addCollapsedProfile(profile *collapsed.Profile, baseline bool) {
-	for _, sample := range profile.Samples {
-		iter := f.bb.MakeIterator(float64(sample.Value), baseline)
-		for i, name := range sample.Stack {
-			origin := guessCollapsedFrameOrigin(name)
-
-			if f.maxDepth > 0 && f.maxDepth < len(sample.Stack) && i+1 == f.maxDepth {
-				iter.Advance(truncatedStack, "").SetFrameOrigin(origin)
-				break
-			}
-			iter.Advance(name, "").SetFrameOrigin(origin)
-		}
 	}
 }
 

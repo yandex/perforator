@@ -11,8 +11,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/yandex/perforator/perforator/pkg/cprofile"
-	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/collapsed"
-	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/convert"
 	profilepb "github.com/yandex/perforator/perforator/proto/profile"
 )
 
@@ -76,18 +74,6 @@ func (f *CGOFlameGraph) AddProfile(p *pprof.Profile) error {
 
 func (f *CGOFlameGraph) AddBaselineProfile(p *pprof.Profile) error {
 	return fmt.Errorf("CGO renderer does not support baseline/diff profiles")
-}
-
-func (f *CGOFlameGraph) AddCollapsedProfile(p *collapsed.Profile) error {
-	prof, err := convert.CollapsedToPProf(p)
-	if err != nil {
-		return fmt.Errorf("failed to convert collapsed to pprof: %w", err)
-	}
-	return f.AddProfile(prof)
-}
-
-func (f *CGOFlameGraph) AddCollapsedBaselineProfile(p *collapsed.Profile) error {
-	return fmt.Errorf("CGO renderer does not support collapsed profiles")
 }
 
 func (f *CGOFlameGraph) SetFormat(format Format) {

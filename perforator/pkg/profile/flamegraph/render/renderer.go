@@ -4,19 +4,19 @@ import (
 	"io"
 
 	pprof "github.com/google/pprof/profile"
-
-	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/collapsed"
 )
 
 // FlameGraphRenderer renders flamegraphs from profiles.
 // This interface is implemented by both the Go blocks-based renderer (FlameGraph)
 // and the C++ trie-based renderer (CGOFlameGraph).
+//
+// Input is always pprof. Other representations (e.g. collapsed/folded) are converted
+// to pprof by the `convert` package before rendering, so the renderer has a single
+// input shape.
 type FlameGraphRenderer interface {
 	// Profile input
 	AddProfile(p *pprof.Profile) error
 	AddBaselineProfile(p *pprof.Profile) error
-	AddCollapsedProfile(p *collapsed.Profile) error
-	AddCollapsedBaselineProfile(p *collapsed.Profile) error
 
 	// Display options
 	SetFormat(format Format)
