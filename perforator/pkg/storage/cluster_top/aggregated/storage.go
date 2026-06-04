@@ -178,7 +178,7 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 	// ClickHouse uses proj_by_function_service projection automatically.
 
 	builder := squirrel.
-		Select(fmt.Sprintf("left(%s, 150) AS name, sum(self_cycles) AS cpu_cycles, sum(cumulative_cycles) as sum_cumulative_cycles", groupBy)).
+		Select(fmt.Sprintf("%s AS name, sum(self_cycles) AS cpu_cycles, sum(cumulative_cycles) as sum_cumulative_cycles", groupBy)).
 		From(fromTable).
 		Where("generation = ?", generation).
 		OrderBy(orderByCycles).
