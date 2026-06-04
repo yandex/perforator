@@ -31,6 +31,16 @@ func CastInt[S, D constraints.Integer](src *S) *D {
 	return &dst
 }
 
+// CastString converts given ~string pointer to another ~string pointer
+// e.g. CastString[CustomType, string](&CustomTypeValue)
+func CastString[S, D ~string](src *S) *D {
+	if src == nil {
+		return nil
+	}
+	dst := D(*src)
+	return &dst
+}
+
 // Uint returns pointer to provided value
 func Uint(v uint) *uint { return &v }
 
