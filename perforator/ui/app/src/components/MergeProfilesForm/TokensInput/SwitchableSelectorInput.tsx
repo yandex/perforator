@@ -4,6 +4,7 @@ import { SegmentedRadioGroup } from '@gravity-ui/uikit';
 
 import { QueryLanguageHelpPopover } from 'src/components/QueryLanguageEditor';
 import { QueryLanguageEditorImpl, QueryLanguageFallback } from 'src/components/QueryLanguageEditor/lazy';
+import { LocalStorageKey } from 'src/const/localStorage';
 import { QuerySuggestProvider } from 'src/providers/QuerySuggestProvider/QuerySuggestProvider';
 import { cn } from 'src/utils/cn';
 import { EMPTY_SELECTOR } from 'src/utils/selector';
@@ -28,6 +29,10 @@ export interface SwitchableSelectorInputProps {
     wrapperClassName?: string;
 }
 
+function isKnownInputMode(inputMode: string): inputMode is InputMode {
+    return ['tokens', 'selector'].includes(inputMode);
+}
+
 export const SwitchableSelectorInput: React.FC<SwitchableSelectorInputProps> = ({
     onUpdate,
     onSelectorChange,
@@ -36,7 +41,9 @@ export const SwitchableSelectorInput: React.FC<SwitchableSelectorInputProps> = (
     wrapperClassName,
     className,
 }) => {
-    const [mode, setMode] = React.useState<InputMode>('tokens');
+    const defaultInput = localStorage.getItem(LocalStorageKey.QueryInputKind)?.toLowerCase();
+
+    const [mode, setMode] = React.useState<InputMode>((defaultInput && isKnownInputMode(defaultInput)) ? defaultInput : 'tokens');
 
     const handleTokensUpdate = React.useCallback((tokens: Optional<string>) => {
         const newSelector = makeSelectorFromTokensString(tokens);
