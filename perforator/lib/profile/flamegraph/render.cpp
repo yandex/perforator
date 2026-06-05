@@ -1,7 +1,9 @@
+#include "build.h"
 #include "render.h"
 
 #include <perforator/lib/profile/merge.h>
 #include <perforator/lib/profile/profile.h>
+#include <perforator/lib/profile/well_known.h>
 #include <perforator/lib/profile/trie/trie.h>
 
 #include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
@@ -21,103 +23,7 @@
 
 namespace NPerforator::NProfile {
 
-////////////////////////////////////////////////////////////////////////////////
-
 namespace {
-
-// Frame identity for deduplication
-struct TFrameKey {
-    TStringId NameId = TStringId::Invalid();
-    TStringId FileId = TStringId::Invalid();
-    TBinaryId BinaryId = TBinaryId::Zero();
-    ui32 Line = 0;
-    ui32 Column = 0;
-
-    bool operator==(const TFrameKey& other) const = default;
-
-    template <typename H>
-    friend H AbslHashValue(H h, const TFrameKey& key) {
-        return H::combine(std::move(h), key.NameId, key.FileId, key.BinaryId, key.Line, key.Column);
-    }
-
-    // Special marker for truncated stack
-    static TFrameKey TruncatedStack() {
-        return TFrameKey{
-            .NameId = TStringId::Invalid(),
-            .FileId = TStringId::Invalid(),
-            .BinaryId = TBinaryId::Zero(),
-            .Line = std::numeric_limits<ui32>::max(),
-            .Column = std::numeric_limits<ui32>::max(),
-        };
-    }
-
-    bool IsTruncatedStack() const {
-        return Line == std::numeric_limits<ui32>::max() &&
-               Column == std::numeric_limits<ui32>::max();
-    }
-};
-
-// Flamegraph node identity - root, label, or frame
-using TFlameNodeId = std::variant<std::monostate, TLabelId, TFrameKey>;
-
-struct TFlameValue {
-    i64 SampleCount = 0;
-    i64 EventCount = 0;
-
-    TFlameValue& operator+=(const TFlameValue& other) {
-        SampleCount += other.SampleCount;
-        EventCount += other.EventCount;
-        return *this;
-    }
-};
-
-// The trie is keyed by a dense ui32 node-id (interned TFlameNodeId), not the
-// variant itself. This shrinks the edge-map key to {ui32 key, ui32 parent} = 8 bytes
-// (vs ~28 for the variant), so the probe table is ~3x smaller and far more cache-
-// resident on the memory-latency-bound descend. denseToNode maps id -> identity for
-// rendering.
-using TFlameTrie = TTrie<ui32, TFlameValue>;
-
-// A built flame trie together with the table mapping each dense node id back to its
-// identity (root / label / frame). Rendering needs the table to resolve names; the two
-// are produced together by BuildFlameTrie and consumed together by RenderTrieToJson, so
-// they travel as one value rather than a trie plus an out-parameter.
-struct TFlameTrieResult {
-    TFlameTrie Trie;
-    TVector<TFlameNodeId> DenseToNode;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
-class TLabelKeyIds {
-public:
-    static TLabelKeyIds Build(TProfile& profile) {
-        TLabelKeyIds ids;
-
-        THashMap<TStringBuf, NProto::NProfile::WellKnownLabel> keyToLabel;
-        for (auto label : GetWellKnownLabels()) {
-            for (const TString& key : GetAllWellKnownLabelKeys(label)) {
-                keyToLabel.emplace(key, label);
-            }
-        }
-
-        for (TProfileString str : profile.Strings()) {
-            if (auto it = keyToLabel.find(str.View()); it != keyToLabel.end()) {
-                ids.KeyToLabel_.emplace(str.GetIndex(), it->second);
-            }
-        }
-
-        return ids;
-    }
-
-    std::optional<NProto::NProfile::WellKnownLabel> GetLabel(TStringId keyId) const {
-        auto it = KeyToLabel_.find(keyId);
-        return it != KeyToLabel_.end() ? std::optional{it->second} : std::nullopt;
-    }
-
-private:
-    absl::flat_hash_map<TStringId, NProto::NProfile::WellKnownLabel> KeyToLabel_;
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -132,292 +38,6 @@ bool IsInvalidFilename(TStringBuf name) {
 TStringBuf SanitizeFileName(TStringBuf name) {
     name.SkipPrefix("/-B") || name.SkipPrefix("/-S");
     return name;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Resolve sample type index from default_sample_type metadata.
-// Uses pprof behavior: match DefaultSampleType by Type string, or fall back to last sample type.
-ui32 ResolveSampleTypeIndex(TProfile& profile) {
-    Y_ENSURE(profile.ValueTypes().size() > 0, "profile has no sample types");
-
-    const auto& metadata = profile.GetMetadata();
-
-    // If default_sample_type is set, find matching value type by string comparison (like pprof does)
-    if (metadata.default_sample_type() > 0) {
-        TStringBuf defaultType = profile.String(TStringId::FromInternalIndex(metadata.default_sample_type())).View();
-        for (auto [index, valueType] : Enumerate(profile.ValueTypes())) {
-            if (valueType.GetType().View() == defaultType) {
-                return index;
-            }
-        }
-    }
-
-    // Fall back to last sample type (pprof default behavior)
-    return profile.ValueTypes().size() - 1;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Outcome of descending one root-side stack segment, stored in the segment memo.
-// A trie node sits at a unique depth, so (startNode, segmentId) pins the entry depth — the
-// same pair yields identical frames and identical cap behavior every time, making the
-// outcome deterministic and replayable: Length advances depth on replay, Truncated stops
-// the stack (emitting the "(truncated stack)" marker). Bitfields keep it ui64-sized so it
-// fits the memo value slot without packing.
-struct TSegmentOutcome {
-    ui32 EndNode = 0;
-    ui32 Length : 31 = 0;
-    ui32 Truncated : 1 = 0;
-};
-// Stored by value in the memo: must be a trivially-copyable POD that fits the ui64 slot.
-static_assert(sizeof(TSegmentOutcome) == sizeof(ui64));
-static_assert(std::is_standard_layout_v<TSegmentOutcome>);
-static_assert(std::is_trivially_copyable_v<TSegmentOutcome>);
-
-// Segment-memo key: the (startNode id, segment id) pair the outcome is cached against.
-ui64 SegmentMemoKey(ui32 startNodeId, ui32 segmentId) {
-    return (static_cast<ui64>(startNodeId) << 32) | segmentId;
-}
-
-TFlameTrieResult BuildFlameTrie(
-    TProfile& profile,
-    const TLabelKeyIds& keyIds,
-    const NProto::NProfile::RenderOptions& options,
-    ui32 sampleTypeIndex
-) {
-    TFlameTrieResult result;
-    TFlameTrie& trie = result.Trie;
-    TVector<TFlameNodeId>& denseToNode = result.DenseToNode;
-
-    // Intern each distinct node identity to a dense ui32 (id 0 == root). The trie
-    // is then keyed by ui32 instead of the variant, shrinking the edge-map key from ~28 to
-    // 8 bytes (far more cache-resident). denseToNode maps id -> identity for rendering.
-    absl::flat_hash_map<TFlameNodeId, ui32> nodeIntern;
-    denseToNode.clear();
-    auto intern = [&](const TFlameNodeId& id) -> ui32 {
-        auto [it, inserted] = nodeIntern.try_emplace(id, static_cast<ui32>(denseToNode.size()));
-        if (inserted) {
-            denseToNode.push_back(id);
-        }
-        return it->second;
-    };
-    intern(TFlameNodeId{});  // root identity -> dense 0
-
-    TVector<TFlameValue> keyValues(profile.SampleKeys().size());
-    for (auto sample : profile.Samples()) {
-        ui32 keyIndex = sample.GetKey().GetIndex().GetInternalIndex();
-        keyValues[keyIndex].SampleCount += 1;
-        keyValues[keyIndex].EventCount += sample.GetValues()[sampleTypeIndex].GetValue();
-    }
-
-    // Precompute per-stack-frame flamegraph node keys (as dense ids) once, instead
-    // of rebuilding TFrameKey from profile accessors on every descend. frameFlat[k] for k
-    // in [frameOff[fi], frameOff[fi + 1]) are the dense ids of frame fi's inline chain
-    // (root-to-leaf within the frame).
-    const bool showFiles = options.show_file_names();
-    const bool showLines = options.show_line_numbers();
-    const ui32 frameCount = profile.StackFrames().size();
-    TVector<ui32> frameOff(frameCount + 1, 0);
-    TVector<ui32> frameFlat;
-    for (TStackFrame frame : profile.StackFrames()) {
-        ui32 fi = frame.GetIndex().GetInternalIndex();
-        frameOff[fi] = frameFlat.size();
-        TBinaryId binaryId = frame.GetBinary().GetIndex();
-        TStringId binaryPathId = binaryId != TBinaryId::Zero()
-            ? frame.GetBinary().GetPath().GetIndex()
-            : TStringId::Invalid();
-        TInlineChain chain = frame.GetInlineChain();
-        if (chain.GetLines().empty()) {
-            frameFlat.push_back(intern(TFlameNodeId{TFrameKey{
-                .NameId = TStringId::Invalid(),
-                .FileId = showFiles ? binaryPathId : TStringId::Invalid(),
-                .BinaryId = binaryId,
-                .Line = 0,
-                .Column = 0,
-            }}));
-        } else {
-            // Inline chains are stored innermost-first (leaf-to-root); flamegraph needs
-            // root-to-leaf, so iterate in reverse (outermost caller descends first).
-            for (TSourceLine line : chain.GetLines() | std::views::reverse) {
-                TFunction func = line.GetFunction();
-                TStringId fileId = func.GetFileName().GetIndex();
-                if (IsInvalidFilename(func.GetFileName().View())) {
-                    fileId = binaryPathId;
-                }
-                frameFlat.push_back(intern(TFlameNodeId{TFrameKey{
-                    .NameId = func.GetName().GetIndex(),
-                    .FileId = showFiles ? fileId : TStringId::Invalid(),
-                    .BinaryId = binaryId,
-                    .Line = showLines ? line.GetLine() : 0,
-                    .Column = showLines ? line.GetColumn() : 0,
-                }}));
-            }
-        }
-    }
-    frameOff[frameCount] = frameFlat.size();
-
-    // Effective depth cap; max_depth == 0 means unlimited.
-    const ui32 depthCap = options.max_depth() == 0
-        ? std::numeric_limits<ui32>::max()
-        : options.max_depth();
-    const ui32 truncatedDense = intern(TFlameNodeId{TFrameKey::TruncatedStack()});
-
-    // Memoize shared root-side segments: SegmentMemoKey -> TSegmentOutcome. Many samples
-    // share a root-side path, so this replays the segment instead of re-descending it. With
-    // no cap nothing truncates, so every entry is a full segment.
-    absl::flat_hash_map<ui64, TSegmentOutcome> segMemo;
-
-    for (auto sampleKey : profile.SampleKeys()) {
-        ui32 keyIndex = sampleKey.GetIndex().GetInternalIndex();
-        TFlameValue value = keyValues[keyIndex];
-        if (value.SampleCount == 0) {
-            continue;
-        }
-
-        auto node = trie.Root();
-        ui32 depth = 0;  // labels + frames descended; drives depth-limit truncation
-
-        // descend builds structure only; the value is added once at the leaf below
-        // and propagated up by ReduceToRoot after the whole build.
-        auto descend = [&](ui32 denseId) {
-            node = node.GetOrCreateChild(denseId);
-            ++depth;
-        };
-
-        // Label order: containers, pid, process name, thread name, signal. ThreadId is
-        // intentionally excluded (only ThreadCommand is rendered).
-        bool hasFirstContainer = false;
-        std::array<TLabelId, 4> labelNodes{{
-            TLabelId::Invalid(),  // ProcessId (pid)
-            TLabelId::Invalid(),  // ProcessCommand (process name)
-            TLabelId::Invalid(),  // ThreadCommand (thread name)
-            TLabelId::Invalid(),  // SignalName
-        }};
-        for (auto label : sampleKey.GetLabels()) {
-            auto labelType = keyIds.GetLabel(label.GetKey().GetIndex());
-            if (!labelType) {
-                continue;
-            }
-            switch (*labelType) {
-                case NProto::NProfile::Workload:
-                    if (label.IsString()) {
-                        if (!hasFirstContainer && label.GetString().View().StartsWith("iss_hook_")) {
-                            hasFirstContainer = true;
-                            break;
-                        }
-                        hasFirstContainer = true;
-                        descend(intern(TFlameNodeId{label.GetIndex()}));
-                    }
-                    break;
-                case NProto::NProfile::ProcessId:
-                    if (label.IsNumber()) {
-                        labelNodes[0] = label.GetIndex();
-                    }
-                    break;
-                case NProto::NProfile::ProcessCommand:
-                    if (label.IsString() && label.GetString().GetIndex() != TStringId::Zero()) {
-                        labelNodes[1] = label.GetIndex();
-                    }
-                    break;
-                case NProto::NProfile::ThreadId:
-                    break;  // intentionally skipped
-                case NProto::NProfile::ThreadCommand:
-                    if (label.IsString() && label.GetString().GetIndex() != TStringId::Zero()) {
-                        labelNodes[2] = label.GetIndex();
-                    }
-                    break;
-                case NProto::NProfile::SignalName:
-                    if (label.IsString() && label.GetString().GetIndex() != TStringId::Zero()) {
-                        labelNodes[3] = label.GetIndex();
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-        for (TLabelId labelId : labelNodes) {
-            if (labelId.IsValid()) {
-                descend(intern(TFlameNodeId{labelId}));
-            }
-        }
-
-        // Per stack: replay the shared root-side segment from the memo, or descend it once
-        // and record the outcome. The outcome is deterministic per (startNode, segmentId)
-        // — see segMemo above — so a truncation is cached exactly like a full descent. Frame
-        // order is reverse(GetFrames) = reverse(segment) + TopFrame. On truncation we stop
-        // and emit one "(truncated stack)" node. With no cap the truncated bit is never set,
-        // so this is the plain segment-memo fast path.
-        bool truncated = false;
-        for (TStack stack : sampleKey.GetStacks() | std::views::reverse) {
-            if (truncated) {
-                break;
-            }
-            TStackSegment segment = stack.GetStackSegment();
-            ui64 memoKey = SegmentMemoKey(node.GetId(), segment.GetIndex().GetInternalIndex());
-
-            auto [it, inserted] = segMemo.try_emplace(memoKey);
-            if (!inserted) {
-                // Deterministic replay: jump to the recorded end, advancing depth so later
-                // segments see the right cap, and stop here if this segment was truncated.
-                node = trie.NodeAt(it->second.EndNode);
-                depth += it->second.Length;
-                if (it->second.Truncated) {
-                    truncated = true;
-                    break;
-                }
-            } else {
-                // First time for this (startNode, segmentId): descend frame-by-frame,
-                // truncating on the cap, then record the outcome (full or partial). The
-                // iterator stays valid across the descent — it touches the trie, not segMemo.
-                const ui32 startDepth = depth;
-                for (TStackFrame frame : segment.GetFrames() | std::views::reverse) {
-                    ui32 fi = frame.GetIndex().GetInternalIndex();
-                    for (ui32 k = frameOff[fi]; k < frameOff[fi + 1]; ++k) {
-                        if (depth >= depthCap) {
-                            truncated = true;
-                            break;
-                        }
-                        node = node.GetOrCreateChild(frameFlat[k]);
-                        ++depth;
-                    }
-                    if (truncated) {
-                        break;
-                    }
-                }
-                it->second = TSegmentOutcome{
-                    .EndNode = node.GetId(),
-                    .Length = depth - startDepth,
-                    .Truncated = truncated,
-                };
-                if (truncated) {
-                    break;
-                }
-            }
-
-            TStackFrame top = stack.GetTopFrame();
-            ui32 tfi = top.GetIndex().GetInternalIndex();
-            for (ui32 k = frameOff[tfi]; k < frameOff[tfi + 1]; ++k) {
-                if (depth >= depthCap) {
-                    truncated = true;
-                    break;
-                }
-                node = node.GetOrCreateChild(frameFlat[k]);
-                ++depth;
-            }
-        }
-        if (truncated) {
-            descend(truncatedDense);
-        }
-
-        node.GetValue() += value;  // self-count at the leaf
-    }
-
-    trie.ReduceToRoot([](TFlameValue& parent, const TFlameValue& child) {
-        parent += child;
-    });
-    trie.Finalize();
-    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -536,10 +156,10 @@ struct TRenderedNode {
 class TNodeRenderer {
 public:
     TNodeRenderer(
-        TProfile& profile,
+        const TProfile& profile,
         TStringInterner& stringTable,
         const TCommonStrings& common,
-        const TLabelKeyIds& keyIds,
+        const TWellKnownLabelKeyIds& keyIds,
         const NProto::NProfile::RenderOptions& options
     )
         : Profile_(profile)
@@ -635,7 +255,7 @@ private:
         return result;
     }
 
-    TRenderedNode RenderFrame(const TFrameKey& frame) {
+    TRenderedNode RenderFrame(const TFlameFrameKey& frame) {
         TRenderedNode result{
             .NameId = Common_.Empty,
             .FileId = Common_.Empty,
@@ -662,6 +282,11 @@ private:
 
         if (Options_.show_file_names() && frame.FileId.IsValid()) {
             TStringBuf file = SanitizeFileName(Profile_.String(frame.FileId).View());
+            if (IsInvalidFilename(file)) {
+                file = binaryPath;
+            }
+
+            // File path can still be invalid.
             if (!IsInvalidFilename(file)) {
                 FileBuffer_.clear();
                 FileBuffer_ += Options_.file_path_prefix();
@@ -688,10 +313,10 @@ private:
         return result;
     }
 
-    TProfile& Profile_;
+    const TProfile& Profile_;
     TStringInterner& StringTable_;
     const TCommonStrings& Common_;
-    const TLabelKeyIds& KeyIds_;
+    const TWellKnownLabelKeyIds& KeyIds_;
     const NProto::NProfile::RenderOptions& Options_;
     TString FileBuffer_;
     static constexpr ui32 NotInterned = std::numeric_limits<ui32>::max();
@@ -731,11 +356,11 @@ void WriteNodeJson(
 
 void RenderTrieToJson(
     const TFlameTrieResult& built,
-    TProfile& profile,
-    const TLabelKeyIds& keyIds,
+    const TProfile& profile,
+    const TWellKnownLabelKeyIds& keyIds,
     IOutputStream& out,
     const NProto::NProfile::RenderOptions& options,
-    ui32 sampleTypeIndex
+    TValueTypeId sampleTypeIndex
 ) {
     const TFlameTrie& trie = built.Trie;
     const TVector<TFlameNodeId>& denseToNode = built.DenseToNode;
@@ -890,7 +515,7 @@ void RenderTrieToJson(
     writer.EndArray();
 
     // Intern eventType BEFORE writing stringTable (so it's included in the output)
-    TValueType valueType = profile.ValueType(TValueTypeId::FromInternalIndex(sampleTypeIndex));
+    TValueType valueType = profile.ValueType(sampleTypeIndex);
     TString eventType = TString{valueType.GetType().View()} + "." + valueType.GetUnit().View();
     ui32 eventTypeId = stringTable.Intern(eventType);
 
@@ -920,13 +545,13 @@ void RenderTrieToJson(
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void RenderFlameGraphJson(
+
+// Reshape the input into render form: strip garbage root frames, sanitize thread
+// names, and (unless line numbers are requested) collapse source locations.
+NProto::NProfile::Profile NormalizeProfileForRender(
     const NProto::NProfile::Profile& profile,
-    IOutputStream& out,
     const NProto::NProfile::RenderOptions& options
 ) {
-    // Reshape the input into render form: strip garbage root frames, sanitize thread
-    // names, and (unless line numbers are requested) collapse source locations.
     NProto::NProfile::MergeOptions mergeOptions;
     mergeOptions.set_strip_garbage_root_frames(true);
     mergeOptions.set_sanitize_thread_names(true);
@@ -934,12 +559,21 @@ void RenderFlameGraphJson(
 
     NProto::NProfile::Profile merged;
     MergeProfiles({profile}, &merged, mergeOptions);
+    return merged;
+}
 
-    TProfile mergedProfile{&merged};
-    auto keyIds = TLabelKeyIds::Build(mergedProfile);
-    ui32 sampleTypeIndex = ResolveSampleTypeIndex(mergedProfile);
+void RenderFlameGraphJson(
+    const NProto::NProfile::Profile& profile,
+    IOutputStream& out,
+    const NProto::NProfile::RenderOptions& options
+) {
+    auto merged = NormalizeProfileForRender(profile, options);
+    const TProfile mergedProfile{&merged};
 
-    auto built = BuildFlameTrie(mergedProfile, keyIds, options, sampleTypeIndex);
+    auto keyIds = TWellKnownLabelKeyIds::Build(mergedProfile);
+    TValueTypeId sampleTypeIndex = GuessDefaultSampleType(mergedProfile);
+
+    auto built = BuildFlameTrie(mergedProfile, options, sampleTypeIndex);
     RenderTrieToJson(built, mergedProfile, keyIds, out, options, sampleTypeIndex);
 }
 

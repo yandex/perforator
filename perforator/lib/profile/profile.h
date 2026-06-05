@@ -11,7 +11,6 @@
 #include <util/generic/maybe.h>
 #include <util/generic/yexception.h>
 
-#include <optional>
 #include <ranges>
 
 

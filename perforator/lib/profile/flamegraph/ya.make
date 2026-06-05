@@ -1,6 +1,7 @@
 LIBRARY()
 
 SRCS(
+    build.cpp
     render.cpp
 )
 

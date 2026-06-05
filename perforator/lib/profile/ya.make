@@ -10,6 +10,7 @@ SRCS(
     profile.cpp
     validate.cpp
     visitor.cpp
+    well_known.cpp
 )
 
 PEERDIR(
