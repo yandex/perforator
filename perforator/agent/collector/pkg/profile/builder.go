@@ -452,9 +452,8 @@ func (b *FrameBuilder) Finish() *LocationBuilder {
 	if isnew {
 		f.ID = nf.ID
 		*nf = *f
-	} else {
-		*f = *nf
 	}
+	b.line.Function = nf
 	b.parent.location.Line = append(b.parent.location.Line, b.line)
 
 	return b.parent
