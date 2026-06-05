@@ -1131,7 +1131,7 @@ require (
 	k8s.io/apiserver v0.34.1
 	k8s.io/cli-runtime v0.34.1
 	k8s.io/client-go v0.34.1
-	k8s.io/cri-api v0.32.3
+	k8s.io/cri-api v0.34.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-aggregator v0.34.1
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b
@@ -1464,7 +1464,9 @@ require (
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
+	github.com/checkpoint-restore/checkpointctl v1.4.0 // indirect
 	github.com/checkpoint-restore/go-criu/v5 v5.3.0 // indirect
+	github.com/checkpoint-restore/go-criu/v7 v7.2.0 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/cheekybits/is v0.0.0-20150225183255-68e9c0620927 // indirect
 	github.com/cheggaaa/pb v1.0.29 // indirect
@@ -1515,9 +1517,11 @@ require (
 	github.com/containerd/fuse-overlayfs-snapshotter/v2 v2.1.7 // indirect
 	github.com/containerd/go-runc v1.1.0 // indirect
 	github.com/containerd/imgcrypt v1.1.9 // indirect
+	github.com/containerd/imgcrypt/v2 v2.0.2 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/nri v0.10.0 // indirect
 	github.com/containerd/nydus-snapshotter v0.15.10 // indirect
+	github.com/containerd/otelttrpc v0.1.0 // indirect
 	github.com/containerd/platforms v1.0.0-rc.2 // indirect
 	github.com/containerd/plugin v1.1.0 // indirect
 	github.com/containerd/stargz-snapshotter v0.16.3 // indirect
@@ -1526,6 +1530,7 @@ require (
 	github.com/containerd/typeurl v1.0.2 // indirect
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containerd/zfs v1.1.0 // indirect
+	github.com/containerd/zfs/v2 v2.0.0 // indirect
 	github.com/containers/ocicrypt v1.2.1 // indirect
 	github.com/coocood/freecache v1.2.4 // indirect
 	github.com/corazawaf/libinjection-go v0.2.1 // indirect
@@ -1794,6 +1799,8 @@ require (
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/google/cel-spec v0.6.0 // indirect
 	github.com/google/certificate-transparency-go v1.1.6 // indirect
+	github.com/google/certtostore v1.0.6 // indirect
+	github.com/google/deck v0.0.0-20230104221208-105ad94aa8ae // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220517194345-84eb52633e96 // indirect
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20220516044946-14395f1b4b4e // indirect
@@ -1994,6 +2001,7 @@ require (
 	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
 	github.com/knadh/koanf/v2 v2.3.0 // indirect
+	github.com/knqyf263/go-plugin v0.9.0 // indirect
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/kr/fs v0.1.0 // indirect
@@ -2830,8 +2838,6 @@ replace go.opentelemetry.io/otel/sdk/metric => go.opentelemetry.io/otel/sdk/metr
 replace go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.43.0
 
 replace golang.org/x/sys => golang.org/x/sys v0.43.0
-
-replace github.com/containerd/containerd/v2 => github.com/containerd/containerd/v2 v2.1.5
 
 replace github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
 

@@ -6112,8 +6112,12 @@ github.com/charmbracelet/x/termios
 # github.com/charmbracelet/x/windows v0.2.2
 ## explicit; go 1.23.0
 github.com/charmbracelet/x/windows
+# github.com/checkpoint-restore/checkpointctl v1.4.0
+## explicit; go 1.23.0
 # github.com/checkpoint-restore/go-criu/v5 v5.3.0
 ## explicit; go 1.13
+# github.com/checkpoint-restore/go-criu/v7 v7.2.0
+## explicit; go 1.20
 # github.com/cheekybits/genny v1.0.0
 ## explicit
 # github.com/cheekybits/is v0.0.0-20150225183255-68e9c0620927
@@ -6504,6 +6508,7 @@ github.com/containerd/containerd/api/services/events/v1
 github.com/containerd/containerd/api/services/images/v1
 github.com/containerd/containerd/api/services/introspection/v1
 github.com/containerd/containerd/api/services/leases/v1
+github.com/containerd/containerd/api/services/mounts/v1
 github.com/containerd/containerd/api/services/namespaces/v1
 github.com/containerd/containerd/api/services/sandbox/v1
 github.com/containerd/containerd/api/services/snapshots/v1
@@ -6515,8 +6520,8 @@ github.com/containerd/containerd/api/types
 github.com/containerd/containerd/api/types/runc/options
 github.com/containerd/containerd/api/types/task
 github.com/containerd/containerd/api/types/transfer
-# github.com/containerd/containerd/v2 v2.2.0 => github.com/containerd/containerd/v2 v2.1.5
-## explicit; go 1.23.0
+# github.com/containerd/containerd/v2 v2.2.0
+## explicit; go 1.24.3
 github.com/containerd/containerd/v2/client
 github.com/containerd/containerd/v2/core/containers
 github.com/containerd/containerd/v2/core/content
@@ -6535,6 +6540,7 @@ github.com/containerd/containerd/v2/core/introspection/proxy
 github.com/containerd/containerd/v2/core/leases
 github.com/containerd/containerd/v2/core/leases/proxy
 github.com/containerd/containerd/v2/core/mount
+github.com/containerd/containerd/v2/core/mount/proxy
 github.com/containerd/containerd/v2/core/remotes
 github.com/containerd/containerd/v2/core/remotes/docker
 github.com/containerd/containerd/v2/core/remotes/docker/auth
@@ -6617,6 +6623,8 @@ github.com/containerd/go-cni
 ## explicit; go 1.18
 # github.com/containerd/imgcrypt v1.1.9
 ## explicit; go 1.20
+# github.com/containerd/imgcrypt/v2 v2.0.2
+## explicit; go 1.23.0
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
@@ -6625,6 +6633,8 @@ github.com/containerd/log/logtest
 ## explicit; go 1.24.3
 # github.com/containerd/nydus-snapshotter v0.15.10
 ## explicit; go 1.24.0
+# github.com/containerd/otelttrpc v0.1.0
+## explicit; go 1.21
 # github.com/containerd/platforms v1.0.0-rc.2
 ## explicit; go 1.20
 github.com/containerd/platforms
@@ -6648,6 +6658,8 @@ github.com/containerd/ttrpc/internal
 github.com/containerd/typeurl/v2
 # github.com/containerd/zfs v1.1.0
 ## explicit; go 1.19
+# github.com/containerd/zfs/v2 v2.0.0
+## explicit; go 1.23.0
 # github.com/containernetworking/cni v1.3.0
 ## explicit; go 1.21
 github.com/containernetworking/cni/libcni
@@ -9886,6 +9898,10 @@ github.com/google/certificate-transparency-go/tls
 github.com/google/certificate-transparency-go/x509
 github.com/google/certificate-transparency-go/x509/pkix
 github.com/google/certificate-transparency-go/x509util
+# github.com/google/certtostore v1.0.6
+## explicit; go 1.18
+# github.com/google/deck v0.0.0-20230104221208-105ad94aa8ae
+## explicit; go 1.19
 # github.com/google/flatbuffers v25.12.19+incompatible
 ## explicit
 github.com/google/flatbuffers/go
@@ -12450,6 +12466,8 @@ github.com/knadh/koanf/providers/confmap
 # github.com/knadh/koanf/v2 v2.3.0
 ## explicit; go 1.23.0
 github.com/knadh/koanf/v2
+# github.com/knqyf263/go-plugin v0.9.0
+## explicit; go 1.24.0
 # github.com/kolesa-team/go-webp v1.0.5
 ## explicit; go 1.10
 github.com/kolesa-team/go-webp/decoder
@@ -23351,7 +23369,7 @@ k8s.io/component-base/zpages/flagz
 k8s.io/component-base/zpages/httputil
 # k8s.io/controller-manager v0.26.2-rc.0
 ## explicit; go 1.19
-# k8s.io/cri-api v0.32.3 => k8s.io/cri-api v0.23.5
+# k8s.io/cri-api v0.34.1 => k8s.io/cri-api v0.23.5
 ## explicit; go 1.16
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
@@ -23984,7 +24002,6 @@ www.velocidex.com/golang/regparser
 # github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.46.7
 # github.com/bufbuild/protoyaml-go => buf.build/go/protoyaml v0.3.2
 # github.com/confluentinc/confluent-kafka-go/v2 => github.com/confluentinc/confluent-kafka-go/v2 v2.1.1
-# github.com/containerd/containerd/v2 => github.com/containerd/containerd/v2 v2.1.5
 # github.com/distribution/reference => github.com/distribution/reference v0.5.0
 # github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
 # github.com/docker/docker => github.com/docker/docker v28.1.1+incompatible

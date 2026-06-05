@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.1.5)
+VERSION(v2.2.0)
 
 SRCS(
     authorizer.go
@@ -13,6 +13,7 @@ SRCS(
     handler.go
     httpreadseeker.go
     pusher.go
+    referrers.go
     registry.go
     resolver.go
     scope.go
@@ -25,6 +26,7 @@ GO_TEST_SRCS(
     fetcher_test.go
     handler_test.go
     pusher_test.go
+    referrers_test.go
     registry_test.go
     resolver_test.go
     scope_test.go
