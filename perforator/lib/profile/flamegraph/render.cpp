@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <type_traits>
 
 namespace NPerforator::NProfile {
 
@@ -70,7 +71,21 @@ struct TFlameValue {
     }
 };
 
-using TFlameTrie = TTrie<TFlameNodeId, TFlameValue>;
+// The trie is keyed by a dense ui32 node-id (interned TFlameNodeId), not the
+// variant itself. This shrinks the edge-map key to {ui32 key, ui32 parent} = 8 bytes
+// (vs ~28 for the variant), so the probe table is ~3x smaller and far more cache-
+// resident on the memory-latency-bound descend. denseToNode maps id -> identity for
+// rendering.
+using TFlameTrie = TTrie<ui32, TFlameValue>;
+
+// A built flame trie together with the table mapping each dense node id back to its
+// identity (root / label / frame). Rendering needs the table to resolve names; the two
+// are produced together by BuildFlameTrie and consumed together by RenderTrieToJson, so
+// they travel as one value rather than a trie plus an out-parameter.
+struct TFlameTrieResult {
+    TFlameTrie Trie;
+    TVector<TFlameNodeId> DenseToNode;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -142,13 +157,52 @@ ui32 ResolveSampleTypeIndex(TProfile& profile) {
     return profile.ValueTypes().size() - 1;
 }
 
-TFlameTrie BuildFlameTrie(
+////////////////////////////////////////////////////////////////////////////////
+
+// Outcome of descending one root-side stack segment, stored in the segment memo.
+// A trie node sits at a unique depth, so (startNode, segmentId) pins the entry depth — the
+// same pair yields identical frames and identical cap behavior every time, making the
+// outcome deterministic and replayable: Length advances depth on replay, Truncated stops
+// the stack (emitting the "(truncated stack)" marker). Bitfields keep it ui64-sized so it
+// fits the memo value slot without packing.
+struct TSegmentOutcome {
+    ui32 EndNode = 0;
+    ui32 Length : 31 = 0;
+    ui32 Truncated : 1 = 0;
+};
+// Stored by value in the memo: must be a trivially-copyable POD that fits the ui64 slot.
+static_assert(sizeof(TSegmentOutcome) == sizeof(ui64));
+static_assert(std::is_standard_layout_v<TSegmentOutcome>);
+static_assert(std::is_trivially_copyable_v<TSegmentOutcome>);
+
+// Segment-memo key: the (startNode id, segment id) pair the outcome is cached against.
+ui64 SegmentMemoKey(ui32 startNodeId, ui32 segmentId) {
+    return (static_cast<ui64>(startNodeId) << 32) | segmentId;
+}
+
+TFlameTrieResult BuildFlameTrie(
     TProfile& profile,
     const TLabelKeyIds& keyIds,
     const NProto::NProfile::RenderOptions& options,
     ui32 sampleTypeIndex
 ) {
-    TFlameTrie trie;
+    TFlameTrieResult result;
+    TFlameTrie& trie = result.Trie;
+    TVector<TFlameNodeId>& denseToNode = result.DenseToNode;
+
+    // Intern each distinct node identity to a dense ui32 (id 0 == root). The trie
+    // is then keyed by ui32 instead of the variant, shrinking the edge-map key from ~28 to
+    // 8 bytes (far more cache-resident). denseToNode maps id -> identity for rendering.
+    absl::flat_hash_map<TFlameNodeId, ui32> nodeIntern;
+    denseToNode.clear();
+    auto intern = [&](const TFlameNodeId& id) -> ui32 {
+        auto [it, inserted] = nodeIntern.try_emplace(id, static_cast<ui32>(denseToNode.size()));
+        if (inserted) {
+            denseToNode.push_back(id);
+        }
+        return it->second;
+    };
+    intern(TFlameNodeId{});  // root identity -> dense 0
 
     TVector<TFlameValue> keyValues(profile.SampleKeys().size());
     for (auto sample : profile.Samples()) {
@@ -157,28 +211,82 @@ TFlameTrie BuildFlameTrie(
         keyValues[keyIndex].EventCount += sample.GetValues()[sampleTypeIndex].GetValue();
     }
 
-    // Process each sample key (unique stack)
+    // Precompute per-stack-frame flamegraph node keys (as dense ids) once, instead
+    // of rebuilding TFrameKey from profile accessors on every descend. frameFlat[k] for k
+    // in [frameOff[fi], frameOff[fi + 1]) are the dense ids of frame fi's inline chain
+    // (root-to-leaf within the frame).
+    const bool showFiles = options.show_file_names();
+    const bool showLines = options.show_line_numbers();
+    const ui32 frameCount = profile.StackFrames().size();
+    TVector<ui32> frameOff(frameCount + 1, 0);
+    TVector<ui32> frameFlat;
+    for (TStackFrame frame : profile.StackFrames()) {
+        ui32 fi = frame.GetIndex().GetInternalIndex();
+        frameOff[fi] = frameFlat.size();
+        TBinaryId binaryId = frame.GetBinary().GetIndex();
+        TStringId binaryPathId = binaryId != TBinaryId::Zero()
+            ? frame.GetBinary().GetPath().GetIndex()
+            : TStringId::Invalid();
+        TInlineChain chain = frame.GetInlineChain();
+        if (chain.GetLines().empty()) {
+            frameFlat.push_back(intern(TFlameNodeId{TFrameKey{
+                .NameId = TStringId::Invalid(),
+                .FileId = showFiles ? binaryPathId : TStringId::Invalid(),
+                .BinaryId = binaryId,
+                .Line = 0,
+                .Column = 0,
+            }}));
+        } else {
+            // Inline chains are stored innermost-first (leaf-to-root); flamegraph needs
+            // root-to-leaf, so iterate in reverse (outermost caller descends first).
+            for (TSourceLine line : chain.GetLines() | std::views::reverse) {
+                TFunction func = line.GetFunction();
+                TStringId fileId = func.GetFileName().GetIndex();
+                if (IsInvalidFilename(func.GetFileName().View())) {
+                    fileId = binaryPathId;
+                }
+                frameFlat.push_back(intern(TFlameNodeId{TFrameKey{
+                    .NameId = func.GetName().GetIndex(),
+                    .FileId = showFiles ? fileId : TStringId::Invalid(),
+                    .BinaryId = binaryId,
+                    .Line = showLines ? line.GetLine() : 0,
+                    .Column = showLines ? line.GetColumn() : 0,
+                }}));
+            }
+        }
+    }
+    frameOff[frameCount] = frameFlat.size();
+
+    // Effective depth cap; max_depth == 0 means unlimited.
+    const ui32 depthCap = options.max_depth() == 0
+        ? std::numeric_limits<ui32>::max()
+        : options.max_depth();
+    const ui32 truncatedDense = intern(TFlameNodeId{TFrameKey::TruncatedStack()});
+
+    // Memoize shared root-side segments: SegmentMemoKey -> TSegmentOutcome. Many samples
+    // share a root-side path, so this replays the segment instead of re-descending it. With
+    // no cap nothing truncates, so every entry is a full segment.
+    absl::flat_hash_map<ui64, TSegmentOutcome> segMemo;
+
     for (auto sampleKey : profile.SampleKeys()) {
         ui32 keyIndex = sampleKey.GetIndex().GetInternalIndex();
         TFlameValue value = keyValues[keyIndex];
-
         if (value.SampleCount == 0) {
             continue;
         }
 
         auto node = trie.Root();
-        node.GetValue() += value;
-        ui32 depth = 0;    // Track depth for truncation (includes labels, like Go)
+        ui32 depth = 0;  // labels + frames descended; drives depth-limit truncation
 
-        // Helper to descend and accumulate value
-        auto descend = [&](TFlameNodeId id) {
-            node = node.GetOrCreateChild(id);
-            node.GetValue() += value;
+        // descend builds structure only; the value is added once at the leaf below
+        // and propagated up by ReduceToRoot after the whole build.
+        auto descend = [&](ui32 denseId) {
+            node = node.GetOrCreateChild(denseId);
             ++depth;
         };
 
-        // Process labels (order matches Go renderer: containers, pid, process_name, thread_name, signal)
-        // Note: Go does NOT include ThreadId (tid), only ThreadCommand (thread name)
+        // Label order: containers, pid, process name, thread name, signal. ThreadId is
+        // intentionally excluded (only ThreadCommand is rendered).
         bool hasFirstContainer = false;
         std::array<TLabelId, 4> labelNodes{{
             TLabelId::Invalid(),  // ProcessId (pid)
@@ -186,15 +294,11 @@ TFlameTrie BuildFlameTrie(
             TLabelId::Invalid(),  // ThreadCommand (thread name)
             TLabelId::Invalid(),  // SignalName
         }};
-
         for (auto label : sampleKey.GetLabels()) {
-            TStringId keyId = label.GetKey().GetIndex();
-            auto labelType = keyIds.GetLabel(keyId);
-
+            auto labelType = keyIds.GetLabel(label.GetKey().GetIndex());
             if (!labelType) {
                 continue;
             }
-
             switch (*labelType) {
                 case NProto::NProfile::Workload:
                     if (label.IsString()) {
@@ -203,7 +307,7 @@ TFlameTrie BuildFlameTrie(
                             break;
                         }
                         hasFirstContainer = true;
-                        descend(TFlameNodeId{label.GetIndex()});
+                        descend(intern(TFlameNodeId{label.GetIndex()}));
                     }
                     break;
                 case NProto::NProfile::ProcessId:
@@ -217,8 +321,7 @@ TFlameTrie BuildFlameTrie(
                     }
                     break;
                 case NProto::NProfile::ThreadId:
-                    // Skip ThreadId - Go renderer doesn't include it
-                    break;
+                    break;  // intentionally skipped
                 case NProto::NProfile::ThreadCommand:
                     if (label.IsString() && label.GetString().GetIndex() != TStringId::Zero()) {
                         labelNodes[2] = label.GetIndex();
@@ -233,79 +336,88 @@ TFlameTrie BuildFlameTrie(
                     break;
             }
         }
-
         for (TLabelId labelId : labelNodes) {
             if (labelId.IsValid()) {
-                descend(TFlameNodeId{labelId});
+                descend(intern(TFlameNodeId{labelId}));
             }
         }
 
-        // Process stacks (reverse order - TProfile stores leaf-to-root, we need root-to-leaf)
+        // Per stack: replay the shared root-side segment from the memo, or descend it once
+        // and record the outcome. The outcome is deterministic per (startNode, segmentId)
+        // — see segMemo above — so a truncation is cached exactly like a full descent. Frame
+        // order is reverse(GetFrames) = reverse(segment) + TopFrame. On truncation we stop
+        // and emit one "(truncated stack)" node. With no cap the truncated bit is never set,
+        // so this is the plain segment-memo fast path.
         bool truncated = false;
         for (TStack stack : sampleKey.GetStacks() | std::views::reverse) {
             if (truncated) {
                 break;
             }
-            for (TStackFrame frame : stack.GetFrames() | std::views::reverse) {
-                if (truncated) {
+            TStackSegment segment = stack.GetStackSegment();
+            ui64 memoKey = SegmentMemoKey(node.GetId(), segment.GetIndex().GetInternalIndex());
+
+            auto [it, inserted] = segMemo.try_emplace(memoKey);
+            if (!inserted) {
+                // Deterministic replay: jump to the recorded end, advancing depth so later
+                // segments see the right cap, and stop here if this segment was truncated.
+                node = trie.NodeAt(it->second.EndNode);
+                depth += it->second.Length;
+                if (it->second.Truncated) {
+                    truncated = true;
                     break;
                 }
-                TBinaryId binaryId = frame.GetBinary().GetIndex();
-                TStringId binaryPathId = binaryId != TBinaryId::Zero()
-                    ? frame.GetBinary().GetPath().GetIndex()
-                    : TStringId::Invalid();
-
-                TInlineChain chain = frame.GetInlineChain();
-                const bool showFiles = options.show_file_names();
-                const bool showLines = options.show_line_numbers();
-
-                if (chain.GetLines().empty()) {
-                    if (options.max_depth() > 0 && depth >= options.max_depth()) {
-                        truncated = true;
-                        break;
-                    }
-                    descend(TFlameNodeId{TFrameKey{
-                        .NameId = TStringId::Invalid(),
-                        .FileId = showFiles ? binaryPathId : TStringId::Invalid(),
-                        .BinaryId = binaryId,
-                        .Line = 0,
-                        .Column = 0,
-                    }});
-                } else {
-                    // Inline chains are stored innermost-first (leaf-to-root)
-                    // per perforator/proto/profile/profile.proto (InlineChains).
-                    // Flamegraph rendering needs root-to-leaf, so iterate the
-                    // chain in reverse: outermost caller descends first.
-                    for (TSourceLine line : chain.GetLines() | std::views::reverse) {
-                        if (options.max_depth() > 0 && depth >= options.max_depth()) {
+            } else {
+                // First time for this (startNode, segmentId): descend frame-by-frame,
+                // truncating on the cap, then record the outcome (full or partial). The
+                // iterator stays valid across the descent — it touches the trie, not segMemo.
+                const ui32 startDepth = depth;
+                for (TStackFrame frame : segment.GetFrames() | std::views::reverse) {
+                    ui32 fi = frame.GetIndex().GetInternalIndex();
+                    for (ui32 k = frameOff[fi]; k < frameOff[fi + 1]; ++k) {
+                        if (depth >= depthCap) {
                             truncated = true;
                             break;
                         }
-                        TFunction func = line.GetFunction();
-                        TStringId fileId = func.GetFileName().GetIndex();
-                        if (IsInvalidFilename(func.GetFileName().View())) {
-                            fileId = binaryPathId;
-                        }
-                        descend(TFlameNodeId{TFrameKey{
-                            .NameId = func.GetName().GetIndex(),
-                            .FileId = showFiles ? fileId : TStringId::Invalid(),
-                            .BinaryId = binaryId,
-                            .Line = showLines ? line.GetLine() : 0,
-                            .Column = showLines ? line.GetColumn() : 0,
-                        }});
+                        node = node.GetOrCreateChild(frameFlat[k]);
+                        ++depth;
+                    }
+                    if (truncated) {
+                        break;
                     }
                 }
+                it->second = TSegmentOutcome{
+                    .EndNode = node.GetId(),
+                    .Length = depth - startDepth,
+                    .Truncated = truncated,
+                };
+                if (truncated) {
+                    break;
+                }
+            }
+
+            TStackFrame top = stack.GetTopFrame();
+            ui32 tfi = top.GetIndex().GetInternalIndex();
+            for (ui32 k = frameOff[tfi]; k < frameOff[tfi + 1]; ++k) {
+                if (depth >= depthCap) {
+                    truncated = true;
+                    break;
+                }
+                node = node.GetOrCreateChild(frameFlat[k]);
+                ++depth;
             }
         }
-
-        // Add truncated stack node if we hit the depth limit
         if (truncated) {
-            descend(TFlameNodeId{TFrameKey::TruncatedStack()});
+            descend(truncatedDense);
         }
+
+        node.GetValue() += value;  // self-count at the leaf
     }
 
+    trie.ReduceToRoot([](TFlameValue& parent, const TFlameValue& child) {
+        parent += child;
+    });
     trie.Finalize();
-    return trie;
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -436,29 +548,23 @@ public:
         , KeyIds_(keyIds)
         , Options_(options)
     {
-        FileBuffer_.reserve(256);
+        // Dense stringId -> output-id cache: a flat array indexed by the
+        // profile's internal string index, replacing a hash map. One cache miss
+        // per first-touch, none afterwards, and no hashing/probing on the hot path.
+        StringIdCache_.assign(Profile_.Strings().size(), NotInterned);
     }
 
-    // Intern a profile string, caching the result to avoid rehashing
-    ui32 InternProfileString(TStringId stringId) {
-        if (!stringId.IsValid()) {
+    // Intern a profile string, caching by dense string index to avoid rehashing on repeats.
+    ui32 InternProfileString(TProfileString str) {
+        TStringId id = str.GetIndex();
+        if (!id.IsValid()) {
             return Common_.Empty;
         }
-        auto [it, inserted] = StringIdCache_.try_emplace(stringId, 0);
-        if (inserted) {
-            // First time seeing this string - intern it (stable, no copy needed)
-            it->second = StringTable_.InternStable(Profile_.String(stringId).View());
+        ui32& slot = StringIdCache_[id.GetInternalIndex()];
+        if (slot == NotInterned) {
+            slot = StringTable_.InternStable(str.View());
         }
-        return it->second;
-    }
-
-    // Intern a profile string when we already have the view (avoids double lookup)
-    ui32 InternProfileString(TStringId stringId, TStringBuf view) {
-        auto [it, inserted] = StringIdCache_.try_emplace(stringId, 0);
-        if (inserted) {
-            it->second = StringTable_.InternStable(view);
-        }
-        return it->second;
+        return slot;
     }
 
     TRenderedNode Render(const TFlameNodeId& identity) {
@@ -499,7 +605,7 @@ private:
 
         switch (*labelType) {
             case NProto::NProfile::Workload:
-                result.NameId = InternProfileString(label.GetString().GetIndex(), label.GetString().View());
+                result.NameId = InternProfileString(label.GetString());
                 result.KindId = Common_.Container;
                 break;
             case NProto::NProfile::ProcessId:
@@ -507,7 +613,7 @@ private:
                 result.KindId = Common_.Process;
                 break;
             case NProto::NProfile::ProcessCommand:
-                result.NameId = InternProfileString(label.GetString().GetIndex(), label.GetString().View());
+                result.NameId = InternProfileString(label.GetString());
                 result.KindId = Common_.Process;
                 break;
             case NProto::NProfile::ThreadId:
@@ -515,11 +621,11 @@ private:
                 result.KindId = Common_.Thread;
                 break;
             case NProto::NProfile::ThreadCommand:
-                result.NameId = InternProfileString(label.GetString().GetIndex(), label.GetString().View());
+                result.NameId = InternProfileString(label.GetString());
                 result.KindId = Common_.Thread;
                 break;
             case NProto::NProfile::SignalName:
-                result.NameId = InternProfileString(label.GetString().GetIndex(), label.GetString().View());
+                result.NameId = InternProfileString(label.GetString());
                 result.KindId = Common_.Signal;
                 break;
             default:
@@ -548,9 +654,9 @@ private:
             : TStringBuf{};
 
         if (frame.NameId.IsValid()) {
-            TStringBuf name = Profile_.String(frame.NameId).View();
-            if (!IsInvalidFunctionName(name)) {
-                result.NameId = InternProfileString(frame.NameId, name);
+            TProfileString name = Profile_.String(frame.NameId);
+            if (!IsInvalidFunctionName(name.View())) {
+                result.NameId = InternProfileString(name);
             }
         }
 
@@ -588,7 +694,8 @@ private:
     const TLabelKeyIds& KeyIds_;
     const NProto::NProfile::RenderOptions& Options_;
     TString FileBuffer_;
-    absl::flat_hash_map<TStringId, ui32> StringIdCache_;  // Cache TStringId → interned ID
+    static constexpr ui32 NotInterned = std::numeric_limits<ui32>::max();
+    TVector<ui32> StringIdCache_;  // Dense TStringId index → interned output ID
 };
 
 template <typename Writer, size_t N>
@@ -623,17 +730,33 @@ void WriteNodeJson(
 }
 
 void RenderTrieToJson(
-    const TFlameTrie& trie,
+    const TFlameTrieResult& built,
     TProfile& profile,
     const TLabelKeyIds& keyIds,
     IOutputStream& out,
     const NProto::NProfile::RenderOptions& options,
     ui32 sampleTypeIndex
 ) {
+    const TFlameTrie& trie = built.Trie;
+    const TVector<TFlameNodeId>& denseToNode = built.DenseToNode;
     TStringInterner stringTable;
     TCommonStrings common = TCommonStrings::Build(stringTable);
 
     TNodeRenderer renderer(profile, stringTable, common, keyIds, options);
+
+    // Resolve each distinct identity once, on first encounter. Many trie nodes share an
+    // identity (same frame in different call paths), so this avoids re-resolving it, and the
+    // first-encounter order keeps string interning in BFS order (output ids stay stable).
+    // A slot is empty until rendered; no real NameId is ever NotRendered (max ui32).
+    static constexpr ui32 NotRendered = std::numeric_limits<ui32>::max();
+    TVector<TRenderedNode> renderedByDense(denseToNode.size(), TRenderedNode{.NameId = NotRendered});
+    auto renderDense = [&](ui32 d) -> const TRenderedNode& {
+        TRenderedNode& slot = renderedByDense[d];
+        if (slot.NameId == NotRendered) {
+            slot = renderer.Render(denseToNode[d]);
+        }
+        return slot;
+    };
 
     // Calculate minWeight threshold based on root event count
     const i64 rootEventCount = trie.Root().GetValue().EventCount;
@@ -647,36 +770,39 @@ void RenderTrieToJson(
         : 0;
 
     rapidjson::StringBuffer buffer;
-    buffer.Reserve(trie.NodeCount() * 100);  // ~100 bytes per node estimate
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 
     writer.StartObject();
     WriteKey(writer, "rows");
     writer.StartArray();
 
-    // Level-order BFS traversal
-    // Each entry: (nodeIdx, parentLevelIdx) where nodeIdx=UINT32_MAX means pruned stack
+    // Level-order BFS traversal.
+    // Each node is rendered exactly once (when first seen as a child, or the
+    // root) and the TRenderedNode is carried through the BFS, so writing never
+    // re-renders. Previously every node was rendered twice (once to sort it among
+    // its siblings, once to write it as an entry).
     constexpr ui32 PrunedNodeMarker = std::numeric_limits<ui32>::max();
 
     struct TLevelEntry {
-        ui32 NodeIdx;
+        ui32 NodeIdx;            // PrunedNodeMarker => aggregated "(pruned stack)" node
         i32 ParentLevelIdx;
-        i64 SampleCount;  // Only used for pruned nodes
-        i64 EventCount;   // Only used for pruned nodes
-        ui32 OriginId;    // Only used for pruned nodes
-    };
-
-    // Child info for sorting - holds node index and pre-rendered data
-    struct TChildInfo {
-        ui32 NodeIdx;
-        TRenderedNode Rendered;
+        TRenderedNode Rendered;  // pre-rendered, never recomputed
+        i64 SampleCount;
+        i64 EventCount;
     };
 
     TVector<TLevelEntry> currentLevel;
     TVector<TLevelEntry> nextLevel;
-    TVector<TChildInfo> children;
+    TVector<TLevelEntry> children;  // reused per node for sibling sorting
 
-    currentLevel.push_back({0, -1, 0, 0, 0});  // Root has parent -1
+    {
+        auto root = trie.Root();
+        const auto& rootValue = root.GetValue();
+        currentLevel.push_back({0, -1, renderDense(root.GetKey()),
+                                rootValue.SampleCount, rootValue.EventCount});
+    }
+
+    static constexpr TStringBuf prunedStackName = "(pruned stack)";
 
     while (!currentLevel.empty()) {
         writer.StartArray();
@@ -686,25 +812,14 @@ void RenderTrieToJson(
         for (size_t levelIdx = 0; levelIdx < currentLevel.size(); ++levelIdx) {
             const auto& entry = currentLevel[levelIdx];
 
-            // Check if this is a pruned stack node (min-weight filtered)
+            WriteNodeJson(writer, entry.Rendered, entry.ParentLevelIdx,
+                         entry.SampleCount, entry.EventCount);
+
             if (entry.NodeIdx == PrunedNodeMarker) {
-                TRenderedNode prunedNode{
-                    .NameId = prunedNameId,
-                    .FileId = 0,  // empty
-                    .OriginId = entry.OriginId,
-                    .KindId = common.Function,
-                };
-                WriteNodeJson(writer, prunedNode, entry.ParentLevelIdx,
-                             entry.SampleCount, entry.EventCount);
                 continue;  // Pruned nodes have no children
             }
 
             auto node = trie.NodeAt(entry.NodeIdx);
-            const auto& nodeValue = node.GetValue();
-            // Render current node directly (no caching needed - each node visited once)
-            WriteNodeJson(writer, renderer.Render(node.GetKey()), entry.ParentLevelIdx,
-                         nodeValue.SampleCount, nodeValue.EventCount);
-
             children.clear();
             i64 prunedSampleCount = 0;
             i64 prunedEventCount = 0;
@@ -713,19 +828,22 @@ void RenderTrieToJson(
             for (auto child = node.GetFirstChild(); !child.IsZero(); child = child.GetNextSibling()) {
                 const auto& childValue = child.GetValue();
                 if (minEventThreshold > 0 && childValue.EventCount < minEventThreshold) {
-                    // Track origin from first pruned child (like Go does)
+                    // Track origin from the first pruned child
                     if (prunedEventCount == 0) {
-                        prunedOriginId = renderer.Render(child.GetKey()).OriginId;
+                        prunedOriginId = renderDense(child.GetKey()).OriginId;
                     }
                     prunedSampleCount += childValue.SampleCount;
                     prunedEventCount += childValue.EventCount;
                     continue;
                 }
-                // Render child once and store for sorting/output
-                children.push_back({child.GetId(), renderer.Render(child.GetKey())});
+                // Render child once; it is carried unchanged into the next level.
+                children.push_back({child.GetId(), static_cast<i32>(levelIdx),
+                                    renderDense(child.GetKey()),
+                                    childValue.SampleCount, childValue.EventCount});
             }
 
-            std::sort(children.begin(), children.end(), [&](const TChildInfo& a, const TChildInfo& b) {
+            // 90% of nodes have <=1 child — nothing to sort.
+            if (children.size() > 1) std::sort(children.begin(), children.end(), [&](const TLevelEntry& a, const TLevelEntry& b) {
                 TStringBuf nameA = stringTable.Get(a.Rendered.NameId);
                 TStringBuf nameB = stringTable.Get(b.Rendered.NameId);
                 return nameA != nameB
@@ -733,33 +851,35 @@ void RenderTrieToJson(
                     : stringTable.Get(a.Rendered.FileId) < stringTable.Get(b.Rendered.FileId);
             });
 
-            // "(pruned stack)" should be sorted alphabetically among siblings
-            static constexpr TStringBuf prunedStackName = "(pruned stack)";
-            bool prunedAdded = false;
-            for (const auto& child : children) {
-                if (!prunedAdded && prunedEventCount > 0 &&
-                    prunedStackName < stringTable.Get(child.Rendered.NameId))
-                {
-                    nextLevel.push_back({
-                        PrunedNodeMarker,
-                        static_cast<i32>(levelIdx),
-                        prunedSampleCount,
-                        prunedEventCount,
-                        prunedOriginId,
-                    });
-                    prunedAdded = true;
-                }
-                nextLevel.push_back({child.NodeIdx, static_cast<i32>(levelIdx), 0, 0, 0});
-            }
-
-            if (!prunedAdded && prunedEventCount > 0) {
+            // "(pruned stack)" should be sorted alphabetically among siblings.
+            auto pushPruned = [&] {
                 nextLevel.push_back({
                     PrunedNodeMarker,
                     static_cast<i32>(levelIdx),
+                    TRenderedNode{
+                        .NameId = prunedNameId,
+                        .FileId = 0,  // empty
+                        .OriginId = prunedOriginId,
+                        .KindId = common.Function,
+                    },
                     prunedSampleCount,
                     prunedEventCount,
-                    prunedOriginId,
                 });
+            };
+
+            bool prunedAdded = false;
+            for (auto& child : children) {
+                if (!prunedAdded && prunedEventCount > 0 &&
+                    prunedStackName < stringTable.Get(child.Rendered.NameId))
+                {
+                    pushPruned();
+                    prunedAdded = true;
+                }
+                nextLevel.push_back(std::move(child));
+            }
+
+            if (!prunedAdded && prunedEventCount > 0) {
+                pushPruned();
             }
         }
 
@@ -805,6 +925,8 @@ void RenderFlameGraphJson(
     IOutputStream& out,
     const NProto::NProfile::RenderOptions& options
 ) {
+    // Reshape the input into render form: strip garbage root frames, sanitize thread
+    // names, and (unless line numbers are requested) collapse source locations.
     NProto::NProfile::MergeOptions mergeOptions;
     mergeOptions.set_strip_garbage_root_frames(true);
     mergeOptions.set_sanitize_thread_names(true);
@@ -816,8 +938,9 @@ void RenderFlameGraphJson(
     TProfile mergedProfile{&merged};
     auto keyIds = TLabelKeyIds::Build(mergedProfile);
     ui32 sampleTypeIndex = ResolveSampleTypeIndex(mergedProfile);
-    auto trie = BuildFlameTrie(mergedProfile, keyIds, options, sampleTypeIndex);
-    RenderTrieToJson(trie, mergedProfile, keyIds, out, options, sampleTypeIndex);
+
+    auto built = BuildFlameTrie(mergedProfile, keyIds, options, sampleTypeIndex);
+    RenderTrieToJson(built, mergedProfile, keyIds, out, options, sampleTypeIndex);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
