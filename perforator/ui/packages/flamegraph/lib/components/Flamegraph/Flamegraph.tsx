@@ -376,7 +376,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     const framesCount = profileData?.rows?.reduce((acc, row) => acc + row.length, 0);
 
     const header = (
-        <div className={b('header-wrapper', { reverse: String(reverse) })}>
+        <div className={b('header-wrapper')}>
             <div className="flamegraph__header">
                 <div className="flamegraph__buttons">
                     <Button className="flamegraph__button flamegraph__button_reverse" onClick={handleReverse}>
@@ -416,7 +416,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                 </div>
                 <div className="flamegraph__frames-count">Showing {framesCount} frames</div>
             </div>
-            <div className={b('annotations', { reverse })}>
+            <div className={b('annotations')}>
                 <div className="flamegraph__status" />
                 <div className="flamegraph__deletion" style={{ display: haveOmittedNodes ? 'inherit' : 'none' }}>
                     <Button
@@ -455,7 +455,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                     initialExcludeText={excludeSearch}
                     initialCaseInsensitive={getQuery('caseInsensitive') === 'true'}
                 />}
-                {reverse && header}
+                {header}
                 <div id="profile" className="flamegraph__content">
                     <div ref={canvasRef} onClickCapture={handleOnClick} onContextMenu={handleContextMenu}>
                         <canvas ref={flamegraphCanvas} className="flamegraph__canvas" />
@@ -467,7 +467,6 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                         <span />
                     </div>
                 </div>
-                {!reverse && header}
             </div>
             {popupData && (
                 <ContextMenu

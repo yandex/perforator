@@ -37,15 +37,7 @@
     z-index: 1;
     display: flex;
     flex-direction: column;
-}
-
-.flamegraph__header-wrapper_reverse_true {
     padding-top: var(--flamegraph-top-spacing);
-}
-
-.flamegraph__header-wrapper_reverse_false {
-    flex-direction: column-reverse;
-    padding-bottom: var(--flamegraph-top-spacing);
 }
 
 .flamegraph__deletion {
