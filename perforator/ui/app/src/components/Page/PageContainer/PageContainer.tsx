@@ -25,9 +25,7 @@ export type PageContainerProps = {
     title?: string;
 };
 
-export const PageContainer: React.FC<PageContainerProps> = props => {
-    const { pageProps } = props;
-
+export const PageContainer: React.FC<PageContainerProps> = ({ page, pageProps, title }: PageContainerProps) => {
     const [compact, setCompact] = React.useState(
         localStorage.getItem(LocalStorageKey.AsideHeaderCompact) !== 'false',
     );
@@ -37,7 +35,7 @@ export const PageContainer: React.FC<PageContainerProps> = props => {
         localStorage.setItem(LocalStorageKey.AsideHeaderCompact, value.toString());
     }, []);
 
-    React.useMemo(() => setPageTitle(props.title), [props.title]);
+    React.useMemo(() => setPageTitle(title), [title]);
 
     const { embed } = pageProps;
     const className = b({ embed });
@@ -55,7 +53,7 @@ export const PageContainer: React.FC<PageContainerProps> = props => {
                 {navigation}
                 <PageLayout.Content>
                     <Container className={pageClassName}>
-                        {React.createElement(props.page, { ...pageProps, header: <PageHeading embed={embed}/> })}
+                        {React.createElement(page, { ...pageProps, header: <PageHeading embed={embed}/> })}
                         {embed ? null : <PageFooter />}
                     </Container>
                 </PageLayout.Content>

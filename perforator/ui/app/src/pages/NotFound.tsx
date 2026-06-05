@@ -5,9 +5,9 @@ import { ErrorPage } from 'src/components/ErrorPage/ErrorPage';
 import type { Page } from './Page';
 
 
-export const NotFound: Page = (props) => {
+export const NotFound: Page = ({ header }) => {
     return <>
-        {props.header}
+        {header}
         <ErrorPage picture={Illustration} title="Page not found" />
     </>;
 };

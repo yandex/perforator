@@ -19,7 +19,7 @@ import type { Page } from './Page';
 const POLLING_PERIOD = 1000;  // 1s
 
 
-export const Task: Page = props => {
+export const Task: Page = ({ embed, header }) => {
     const pollingInterval = React.useRef<number | undefined>(undefined);
 
     const { taskId } = useParams();
@@ -59,7 +59,7 @@ export const Task: Page = props => {
         pollingInterval.current = undefined;
     }
 
-    const taskCard = (state === TaskState.Finished && props.embed)
+    const taskCard = (state === TaskState.Finished && embed)
         ? null
         : (
             <TaskCard
@@ -74,8 +74,8 @@ export const Task: Page = props => {
 
     const timeline = (task) ? <TaskHeader
         task={task}
-        embed={props.embed}
-        header={props.header}
+        embed={embed}
+        header={header}
     /> : null;
 
     return (

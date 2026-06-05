@@ -28,8 +28,8 @@ export interface SelectProps {
 
 const PAGE_SIZE = 100;
 
-export const Select: React.FC<SelectProps> = props => {
-    const value = props.value ? [props.value] : [];
+export const Select: React.FC<SelectProps> = ({ value: propValue, placeholder, onUpdate, listValues }: SelectProps) => {
+    const value = propValue ? [propValue] : [];
 
     const [loadState, setLoadState] = React.useState<'idle' | 'loading' | 'error'>('idle');
     const [items, setItems] = React.useState<string[]>(value);
@@ -52,7 +52,7 @@ export const Select: React.FC<SelectProps> = props => {
         setLoadState('loading');
 
         try {
-            const newItems = (await props.listValues({ value: query, offset: offset, limit: (PAGE_SIZE) }, { signal: abortControllerRef.current.signal }));
+            const newItems = (await listValues({ value: query, offset: offset, limit: (PAGE_SIZE) }, { signal: abortControllerRef.current.signal }));
 
             setItems(oldItems => oldItems.concat(newItems));
 
@@ -98,8 +98,8 @@ export const Select: React.FC<SelectProps> = props => {
         <GravitySelect
             value={value}
             options={options}
-            placeholder={props.placeholder}
-            onUpdate={values => props.onUpdate(values[0])}
+            placeholder={placeholder}
+            onUpdate={values => onUpdate(values[0])}
             filterable={true}
             renderFilter={({ inputProps }) => (
                 <div className={b('input')}>

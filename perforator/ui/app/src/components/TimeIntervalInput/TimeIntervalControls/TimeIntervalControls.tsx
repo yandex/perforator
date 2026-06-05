@@ -42,12 +42,10 @@ interface TimeIntervalControlsProps {
     additionalHeaderItems?: React.ReactElement;
 }
 
-export const TimeIntervalControls: React.FC<TimeIntervalControlsProps> = props => {
-    const { interval } = props;
-
+export const TimeIntervalControls: React.FC<TimeIntervalControlsProps> = ({ interval, onUpdate, header, additionalHeaderItems }: TimeIntervalControlsProps) => {
     const setInterval = React.useCallback((newInterval: TimeInterval) => {
-        props.onUpdate?.(newInterval);
-    }, [props.onUpdate]);
+        onUpdate?.(newInterval);
+    }, [onUpdate]);
 
     const renderDatePicker = React.useCallback(() => (
         <DateRangePicker
@@ -94,13 +92,13 @@ export const TimeIntervalControls: React.FC<TimeIntervalControlsProps> = props =
     }, [customInterval, interval, setCustomInterval, setInterval]);
 
     return (
-        <div className={b('controls', { header: props.header })}>
+        <div className={b('controls', { header })}>
             {renderDatePicker()}
             <div className={b('controls-buttons')}>
                 {renderPresetButtons()}
                 {renderCustomRangeInput()}
             </div>
-            {props.additionalHeaderItems}
+            {additionalHeaderItems}
         </div>
     );
 };

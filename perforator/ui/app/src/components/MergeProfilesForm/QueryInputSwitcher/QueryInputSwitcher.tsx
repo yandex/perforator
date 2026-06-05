@@ -13,9 +13,9 @@ export interface QueryInputSwitcherProps {
     onUpdate: (input: string) => void;
 }
 
-export const QueryInputSwitcher: React.FC<QueryInputSwitcherProps> = props => {
+export const QueryInputSwitcher: React.FC<QueryInputSwitcherProps> = ({ value, inputs, onUpdate }: QueryInputSwitcherProps) => {
     const options = React.useMemo(() => (
-        props.inputs.map(input => (
+        inputs.map(input => (
             <SegmentedRadioGroup.Option key={input.name} value={input.name}>
                 <span>
                     {input.name}
@@ -23,7 +23,7 @@ export const QueryInputSwitcher: React.FC<QueryInputSwitcherProps> = props => {
                 </span>
             </SegmentedRadioGroup.Option>
         ))
-    ), [props.inputs]);
+    ), [inputs]);
 
     if (options.length <= 1) {
         return <div />;  // to not mess up the flexbox layout
@@ -31,8 +31,8 @@ export const QueryInputSwitcher: React.FC<QueryInputSwitcherProps> = props => {
 
     return (
         <SegmentedRadioGroup
-            value={props.value}
-            onUpdate={props.onUpdate}
+            value={value}
+            onUpdate={onUpdate}
         >
             {options}
         </SegmentedRadioGroup>

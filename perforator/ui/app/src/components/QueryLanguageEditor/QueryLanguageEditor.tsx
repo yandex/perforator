@@ -34,20 +34,20 @@ export interface QueryLanguageEditorProps {
     wrapperClassName?: string;
 }
 
-export const QueryLanguageEditorImpl: React.FC<QueryLanguageEditorProps> = props => {
+export const QueryLanguageEditorImpl: React.FC<QueryLanguageEditorProps> = ({ selector, onUpdate, onSelectorChange: onSelectorChangeProp, height, wrapperClassName }: QueryLanguageEditorProps) => {
     const editorOptions = React.useMemo(() => getEditorOptions(), []);
 
     const { handleQuerySuggest } = useQuerySuggest();
 
     React.useEffect(() => {
-        if (props.selector === undefined) {
-            props.onUpdate(EMPTY_SELECTOR);
+        if (selector === undefined) {
+            onUpdate(EMPTY_SELECTOR);
         }
-    }, [props]);
+    }, [selector, onUpdate]);
 
     const theme = useThemeType();
 
-    const selector = removeNewlines(props.selector ?? EMPTY_SELECTOR);
+    const selectorValue = removeNewlines(selector ?? EMPTY_SELECTOR);
 
     const handleWillMount = React.useCallback((monacoInstance: typeof monaco) => {
         registerLanguage(
@@ -59,7 +59,7 @@ export const QueryLanguageEditorImpl: React.FC<QueryLanguageEditorProps> = props
     const debounce = useDebounce();
 
     const handleDidMount = React.useCallback((editor: monaco.editor.IStandaloneCodeEditor) => {
-        const onSelectorChange = () => props.onSelectorChange?.(editor.getValue());
+        const onSelectorChange = () => onSelectorChangeProp?.(editor.getValue());
 
         const suggestController = (): any => editor.getContribution('editor.contrib.suggestController');
         const suggestVisible = () => Boolean(
@@ -139,12 +139,12 @@ export const QueryLanguageEditorImpl: React.FC<QueryLanguageEditorProps> = props
     }, []);
 
     return (
-        <div className={b('wrapper', props.wrapperClassName)}>
+        <div className={b('wrapper', wrapperClassName)}>
             <MonacoEditor
                 language={QUERY_LANGUAGE_ID}
-                value={selector}
-                onChange={props.onUpdate}
-                height={props.height}
+                value={selectorValue}
+                onChange={onUpdate}
+                height={height}
                 options={editorOptions}
                 theme={theme === 'light' ? 'light' : 'vs-dark'}
                 editorWillMount={handleWillMount}

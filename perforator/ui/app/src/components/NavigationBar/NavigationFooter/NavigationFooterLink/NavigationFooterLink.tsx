@@ -17,19 +17,19 @@ export interface NavigationFooterLinkProps {
     onClick?: () => void;
 }
 
-export const NavigationFooterLink: React.FC<NavigationFooterLinkProps> = props => {
-    const handleClick = props.onClick ?? (() => openLink(props.url));
-    const icon = props.renderIcon
-        ? props.renderIcon()
-        : (props.icon ? (<Icon size={ITEM_ICON_SIZE} data={props.icon} />) : null);
+export const NavigationFooterLink: React.FC<NavigationFooterLinkProps> = ({ text, compact, icon, renderIcon, url, onClick }: NavigationFooterLinkProps) => {
+    const handleClick = onClick ?? (() => openLink(url));
+    const iconElement = renderIcon
+        ? renderIcon()
+        : (icon ? (<Icon size={ITEM_ICON_SIZE} data={icon} />) : null);
     return (
         <FooterItem
-            compact={props.compact}
+            compact={compact}
             item={{
-                id: props.text,
-                title: props.text,
+                id: text,
+                title: text,
                 onItemClick: handleClick,
-                itemWrapper: (params, makeItem) => makeItem({ ...params, icon }),
+                itemWrapper: (params, makeItem) => makeItem({ ...params, icon: iconElement }),
             }}
         />
     );

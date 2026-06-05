@@ -12,9 +12,9 @@ export interface ServiceInputProps {
     onUpdate: (service: string | undefined) => void;
 }
 
-export const ServiceInput: React.FC<ServiceInputProps> = props => {
+export const ServiceInput: React.FC<ServiceInputProps> = ({ service, onUpdate }: ServiceInputProps) => {
     React.useEffect(() => {
-        props.onUpdate(props.service);
+        onUpdate(service);
     }, []);
 
     const listValues = React.useCallback(async (filter: SelectFilter, { signal }: { signal: AbortSignal}) => (
@@ -28,8 +28,8 @@ export const ServiceInput: React.FC<ServiceInputProps> = props => {
 
     return <Select
         listValues={listValues}
-        onUpdate={props.onUpdate}
-        value={props.service}
+        onUpdate={onUpdate}
+        value={service}
         placeholder={'Service regexp'}
     />;
 };

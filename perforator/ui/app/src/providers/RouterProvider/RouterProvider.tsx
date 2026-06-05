@@ -11,6 +11,6 @@ export interface RouterProviderProps {
     pageProps: PagePublicProps;
 }
 
-export const RouterProvider: React.FC<RouterProviderProps> = props => {
-    return <BaseRouterProvider router={getRouter(props.pageProps)} />;
+export const RouterProvider: React.FC<RouterProviderProps> = ({ pageProps }: RouterProviderProps) => {
+    return <BaseRouterProvider router={getRouter(pageProps)} />;
 };

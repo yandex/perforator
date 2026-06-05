@@ -14,16 +14,16 @@ export interface SwitcherProps {
     options: SwitcherOption[];
 }
 
-export const Switcher: React.FC<SwitcherProps> = (props) => {
-    const items = props.options.map(({ value, title }) => (
-        <SegmentedRadioGroup.Option key={value} value={value}>
+export const Switcher: React.FC<SwitcherProps> = ({ value, onUpdate, options }: SwitcherProps) => {
+    const items = options.map(({ value: optionValue, title }) => (
+        <SegmentedRadioGroup.Option key={optionValue} value={optionValue}>
             {title}
         </SegmentedRadioGroup.Option>
     ));
     return (
         <SegmentedRadioGroup
-            value={props.value}
-            onUpdate={props.onUpdate}
+            value={value}
+            onUpdate={onUpdate}
         >
             {items}
         </SegmentedRadioGroup>

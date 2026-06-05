@@ -3,8 +3,8 @@ import { MergeProfilesForm } from 'src/components/MergeProfilesForm/MergeProfile
 import type { Page } from './Page';
 
 
-export const ProfileList: Page = (props) => {
+export const ProfileList: Page = ({ header }) => {
     return <>
-        <MergeProfilesForm header={props.header} />
+        <MergeProfilesForm header={header} />
     </>;
 };

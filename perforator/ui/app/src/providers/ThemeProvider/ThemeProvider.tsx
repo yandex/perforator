@@ -9,11 +9,11 @@ export interface ThemeProviderProps {
     children?: React.ReactNode;
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = props => {
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }: ThemeProviderProps) => {
     const { userSettings } = useUserSettings();
     return (
         <GravityThemeProvider theme={userSettings.theme}>
-            {props.children}
+            {children}
         </GravityThemeProvider>
     );
 };

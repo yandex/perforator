@@ -24,10 +24,10 @@ export interface PageHeadingProps {
     embed: boolean;
 }
 
-export const PageHeading: React.FC<PageHeadingProps> = props => {
+export const PageHeading: React.FC<PageHeadingProps> = ({ embed }: PageHeadingProps) => {
     const [searchParams] = useSearchParams();
 
-    if (props.embed) {
+    if (embed) {
         return (
             <div className="page-heading">
                 <Link

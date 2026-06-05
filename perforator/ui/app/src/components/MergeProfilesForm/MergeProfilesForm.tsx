@@ -61,10 +61,18 @@ const fixSelector = (selector: Optional<string>): Optional<string> => {
 };
 
 
-export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
+export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = ({
+    onRender,
+    removeMergeButton,
+    className,
+    inMemory,
+    compactTable,
+    diff,
+    header,
+}: MergeProfilesFormProps) => {
     const navigate = useNavigate();
 
-    const [query, setQuery] = useProfileStateQuery({ inMemory: props.inMemory });
+    const [query, setQuery] = useProfileStateQuery({ inMemory });
 
     const queryInputs: QueryInput[] = React.useMemo(() => QUERY_INPUTS, []);
     const [queryInputName, setQueryInputName] = React.useState(defaultInput(query, queryInputs));
@@ -128,7 +136,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
         }
     };
 
-    const renderMergeProfilesButton = () => props.removeMergeButton ? null : (
+    const renderMergeProfilesButton = () => removeMergeButton ? null : (
         <React.Fragment>
             <Button
                 onClick={() => submitTask()}
@@ -147,7 +155,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
 
     const handleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
         if ((event.ctrlKey || event.metaKey) && event.code === 'Enter') {
-            if (!props.removeMergeButton) {
+            if (!removeMergeButton) {
                 submitTask();
             }
         }
@@ -155,24 +163,22 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
 
     const profileTable = React.useMemo(() => (
         <ProfileTable
-            compact={props.compactTable}
+            compact={compactTable}
             query={{
                 selector: fixSelector(tableSelector),
                 from: query.from,
                 to: query.to,
             }}
         />
-    ), [props.compactTable, tableSelector, query.from, query.to]);
+    ), [compactTable, tableSelector, query.from, query.to]);
 
-    if (props.onRender) {
-        props.onRender(queryWithSelector());
+    if (onRender) {
+        onRender(queryWithSelector());
     }
-
-    const { diff } = props;
 
     return (
         <div
-            className={`${props.className ? props.className : ''}`}
+            className={`${className ? className : ''}`}
             tabIndex={-1}
             onKeyDown={handleKeyDown}
         >
@@ -191,7 +197,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
                             to: interval.end,
                         });
                     }}
-                    header={props.header}
+                    header={header}
                 />
                 <div className="merge-profiles-form__header">
                     {renderQueryInputSwitcher()}

@@ -12,11 +12,11 @@ export interface BugReportLinkProps {
     compact: boolean;
 }
 
-export const BugReportLink: React.FC<BugReportLinkProps> = props => (
+export const BugReportLink: React.FC<BugReportLinkProps> = ({ compact }: BugReportLinkProps) => (
     <NavigationFooterLink
         text="Report a bug"
         icon={Bug}
-        compact={props.compact}
+        compact={compact}
         onClick={() => openLink(uiFactory().bugReportLink())}
     />
 );

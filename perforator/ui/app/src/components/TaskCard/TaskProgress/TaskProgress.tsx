@@ -13,11 +13,9 @@ export interface TaskProgressProps {
     error?: string;
 }
 
-export const TaskProgress: React.FC<TaskProgressProps> = props => {
-    const { state } = props;
-
-    if (state === TaskState.Failed || props.error) {
-        return <ErrorPanel message={props.error ?? 'Task failed without error message'} />;
+export const TaskProgress: React.FC<TaskProgressProps> = ({ state, error }: TaskProgressProps) => {
+    if (state === TaskState.Failed || error) {
+        return <ErrorPanel message={error ?? 'Task failed without error message'} />;
     }
 
     const themes: {[key in TaskState]?: ProgressTheme} = {

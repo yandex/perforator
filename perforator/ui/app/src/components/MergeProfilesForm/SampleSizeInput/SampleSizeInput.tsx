@@ -33,7 +33,7 @@ export interface SampleSizeInputProps {
     onUpdate: (value: number) => void;
 }
 
-export const SampleSizeInput: React.FC<SampleSizeInputProps> = props => {
+export const SampleSizeInput: React.FC<SampleSizeInputProps> = ({ value, onUpdate }: SampleSizeInputProps) => {
     const [customSizes, setCustomSizes] = React.useState<number[]>(getCustomSampleSizes);
     const [popupOpen, setPopupOpen] = React.useState(false);
     const [inputValue, setInputValue] = React.useState<number | null>(null);
@@ -86,18 +86,18 @@ export const SampleSizeInput: React.FC<SampleSizeInputProps> = props => {
         saveCustomSampleSizes(newCustomSizes);
 
         // If the deleted size was selected, switch to default
-        if (props.value === size) {
-            props.onUpdate(uiFactory().defaultSampleSize());
+        if (value === size) {
+            onUpdate(uiFactory().defaultSampleSize());
         }
     };
 
     const handleSelectUpdate = (values: string[]) => {
-        const value = values[0];
-        if (value === ADD_OPTION_VALUE) {
+        const selected = values[0];
+        if (selected === ADD_OPTION_VALUE) {
             setPopupOpen(true);
             return;
         }
-        props.onUpdate(Number(value));
+        onUpdate(Number(selected));
     };
 
     const handleAddOption = () => {
@@ -106,7 +106,7 @@ export const SampleSizeInput: React.FC<SampleSizeInputProps> = props => {
             const newCustomSizes = [...customSizes, numValue].sort((a, b) => a - b);
             setCustomSizes(newCustomSizes);
             saveCustomSampleSizes(newCustomSizes);
-            props.onUpdate(numValue);
+            onUpdate(numValue);
         }
         setInputValue(null);
         setPopupOpen(false);
@@ -125,7 +125,7 @@ export const SampleSizeInput: React.FC<SampleSizeInputProps> = props => {
             <div className="sample-size-input__select-wrapper">
                 <Select
                     className="sample-size-input__select"
-                    value={[props.value.toString()]}
+                    value={[value.toString()]}
                     options={options}
                     onUpdate={handleSelectUpdate}
                 />

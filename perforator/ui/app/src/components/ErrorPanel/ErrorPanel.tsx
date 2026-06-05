@@ -8,13 +8,13 @@ export interface ErrorPanelProps {
     title?: string;
 }
 
-export const ErrorPanel: React.FC<ErrorPanelProps> = props => {
+export const ErrorPanel: React.FC<ErrorPanelProps> = ({ message, title }: ErrorPanelProps) => {
     return (
         <Alert
             theme="danger"
             view="filled"
-            title={props.title ?? 'Error'}
-            message={props.message}
+            title={title ?? 'Error'}
+            message={message}
         />
     );
 };

@@ -28,25 +28,25 @@ export interface TaskReportProps {
 
 const b = cn('task-report');
 
-export const TaskReport: React.FC<TaskReportProps> = props => {
-    const url = props.task?.Result?.MergeProfiles?.ProfileURL || props.task?.Result?.DiffProfiles?.ProfileURL;
+export const TaskReport: React.FC<TaskReportProps> = ({ task, taskId }: TaskReportProps) => {
+    const url = task?.Result?.MergeProfiles?.ProfileURL || task?.Result?.DiffProfiles?.ProfileURL;
     const { enabled: fullscreen } = useFullscreen();
 
-    const spec = props.task?.Spec?.MergeProfiles;
-    const diffspec = props.task?.Spec?.DiffProfiles;
+    const spec = task?.Spec?.MergeProfiles;
+    const diffspec = task?.Spec?.DiffProfiles;
     const query = spec?.Query;
 
-    const isDiff = isDiffTaskResult(props.task);
-    const mergeRenderFormat = props.task?.Spec?.MergeProfiles?.Format;
-    const diffRenderFormat = props.task?.Spec?.DiffProfiles?.RenderFormat;
-    const isLegacyFormat = isDiff && 'FlamegraphOptions' in (props.task?.Spec?.DiffProfiles || {});
+    const isDiff = isDiffTaskResult(task);
+    const mergeRenderFormat = task?.Spec?.MergeProfiles?.Format;
+    const diffRenderFormat = task?.Spec?.DiffProfiles?.RenderFormat;
+    const isLegacyFormat = isDiff && 'FlamegraphOptions' in (task?.Spec?.DiffProfiles || {});
     const format = getFormat(mergeRenderFormat) ?? getFormat(diffRenderFormat) ?? (isLegacyFormat ? 'Flamegraph' : undefined);
     const formatField = spec?.Format?.JSONFlamegraph ?? spec?.Format?.Flamegraph;
     const areLineNumbersEnabled = formatField?.ShowLineNumbers ?? diffspec?.RenderFormat?.JSONFlamegraph?.ShowLineNumbers ?? false;
     const navigate = useNavigate();
     const handleLineNumbers = React.useCallback(
         () => {
-            if (!props.taskId) {
+            if (!taskId) {
                 return;
             }
             navigateToLineNumbers(navigate, {
@@ -55,9 +55,9 @@ export const TaskReport: React.FC<TaskReportProps> = props => {
                 maxProfiles: spec?.MaxSamples! ?? diffspec?.BaselineQuery?.MaxSamples,
                 lineNumbers: boolToString(!areLineNumbersEnabled),
             } as ProfileTaskQuery,
-            props.taskId,
+            taskId,
             );
-        }, [areLineNumbersEnabled, navigate, props.taskId, query?.Selector, spec?.MaxSamples]);
+        }, [areLineNumbersEnabled, navigate, taskId, query?.Selector, spec?.MaxSamples]);
 
     const renderContent = () => {
         if (!url) {

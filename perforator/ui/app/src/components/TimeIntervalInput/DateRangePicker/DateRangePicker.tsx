@@ -42,16 +42,16 @@ interface DateRangePickerProps {
     onUpdate?: (value: TimeInterval) => void;
 }
 
-export const DateRangePicker: React.FC<DateRangePickerProps> = props => (
+export const DateRangePicker: React.FC<DateRangePickerProps> = ({ interval, onUpdate }: DateRangePickerProps) => (
     <RelativeRangeDatePicker
         className="date-range-picker"
-        value={makeDatePickerInterval(props.interval)}
+        value={makeDatePickerInterval(interval)}
         onUpdate={range => {
             if (range) {
                 const start = datePickerValueToString(range.start);
                 const end = datePickerValueToString(range.end);
                 if (start && end) {
-                    props.onUpdate?.({ start, end });
+                    onUpdate?.({ start, end });
                 }
             }
         }}

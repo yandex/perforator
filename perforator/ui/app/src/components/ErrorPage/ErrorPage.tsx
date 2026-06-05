@@ -10,11 +10,11 @@ export interface ErrorPageProps {
     title: string;
 }
 
-export const ErrorPage: React.FC<ErrorPageProps> = props => {
+export const ErrorPage: React.FC<ErrorPageProps> = ({ picture, title }: ErrorPageProps) => {
     return (
         <div className="error-page">
-            {React.createElement(props.picture, { height: PICTURE_SIZE, width: PICTURE_SIZE })}
-            <h2 className="error-page__title">{props.title}</h2>
+            {React.createElement(picture, { height: PICTURE_SIZE, width: PICTURE_SIZE })}
+            <h2 className="error-page__title">{title}</h2>
         </div>
     );
 };

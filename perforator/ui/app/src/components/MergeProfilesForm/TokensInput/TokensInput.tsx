@@ -19,23 +19,23 @@ export interface TokensInputProps {
     onUpdate: (tokens: Optional<string>) => void;
 }
 
-export const TokensInput: React.FC<TokensInputProps> = props => {
-    const [tokens, setTokens] = React.useState<Token[]>(parseTokensString(props.initialTokens));
+export const TokensInput: React.FC<TokensInputProps> = ({ initialTokens, tokens, onUpdate }: TokensInputProps) => {
+    const [tokenList, setTokenList] = React.useState<Token[]>(parseTokensString(initialTokens));
 
     React.useEffect(() => {
-        setTokens(parseTokensString(props.initialTokens));
-    }, [props.initialTokens]);
+        setTokenList(parseTokensString(initialTokens));
+    }, [initialTokens]);
 
-    React.useEffect(() => props.onUpdate(props.initialTokens), []);
+    React.useEffect(() => onUpdate(initialTokens), []);
     React.useEffect(() => {
-        if (props.tokens) {
-            setTokens(parseTokensString(props.tokens));
+        if (tokens) {
+            setTokenList(parseTokensString(tokens));
         }
-    }, [props.tokens]);
+    }, [tokens]);
 
     const handleChange = (value: Token[]) => {
-        setTokens(value);
-        props.onUpdate(serializeTokens(value));
+        setTokenList(value);
+        onUpdate(serializeTokens(value));
     };
 
     const validateToken = () => undefined;  // otherwise empty values get marked as errors
@@ -51,7 +51,7 @@ export const TokensInput: React.FC<TokensInputProps> = props => {
 
     return (
         <TokenizedInput
-            tokens={props.tokens ? parseTokensString(props.tokens) : tokens}
+            tokens={tokens ? parseTokensString(tokens) : tokenList}
             onChange={handleChange}
             validateToken={validateToken}
             fields={tokenFields}

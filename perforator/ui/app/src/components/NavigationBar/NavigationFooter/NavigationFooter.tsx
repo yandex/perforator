@@ -19,8 +19,7 @@ export interface NavigationFooterProps {
     toggleSettings: () => void;
 }
 
-export const NavigationFooter: React.FC<NavigationFooterProps> = props => {
-    const { compact } = props;
+export const NavigationFooter: React.FC<NavigationFooterProps> = ({ compact, toggleSettings }: NavigationFooterProps) => {
     return (
         <>
             {!uiFactory().docsLink() ? null : <NavigationFooterLink
@@ -47,7 +46,7 @@ export const NavigationFooter: React.FC<NavigationFooterProps> = props => {
             <NavigationFooterLink
                 text="Settings"
                 icon={Gear}
-                onClick={props.toggleSettings}
+                onClick={toggleSettings}
                 compact={compact}
             />
             {!uiFactory().authorizationSupported() ? null : <UserLink

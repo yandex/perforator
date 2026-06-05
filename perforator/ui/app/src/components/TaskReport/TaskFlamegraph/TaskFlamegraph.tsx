@@ -31,7 +31,7 @@ export interface TaskFlamegraphProps {
 
 export type Tab = 'flame' | 'top' | 'sbs'
 
-export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
+export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, format, lineNumbers, onLineNumbersChange }: TaskFlamegraphProps) => {
     const isMounted = React.useRef(false);
     const theme = useThemeType();
     const { userSettings } = useUserSettings();
@@ -42,29 +42,29 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
 
     const extractData = useMemo(() => {
         return async (req: Response) => {
-            if (props.format === 'JSONFlamegraph') {
+            if (format === 'JSONFlamegraph') {
                 const data = await parseFromWebStream(req.body!);
                 const rows = data.rows.filter(Boolean);
                 return ({ rows, stringTable: data.stringTable, meta: data.meta });
-            } else if (props.format === 'Flamegraph') {
+            } else if (format === 'Flamegraph') {
                 const data = await req.text();
                 return (uiFactory()?.parseLegacyFormat?.(data)!);
             } else {
                 return { rows: [], stringTable: [], meta: {} };
             }
         };
-    }, [props.format]);
+    }, [format]);
 
     const onFinishDataLoading = useCallback(() => uiFactory().rum()?.finishDataLoading?.(pageName), [pageName]);
 
     const onStartRequest = useCallback(() => {
         if (!isMounted.current) {
-            uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, { flamegraphFormat: props.format });
+            uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, { flamegraphFormat: format });
             isMounted.current = true;
         }
-    }, [props.format]);
+    }, [format]);
 
-    const { data: profileData, error } = useFetchResult<ProfileData>({ url: props.url, extractData: extractData,
+    const { data: profileData, error } = useFetchResult<ProfileData>({ url: url, extractData: extractData,
         onFinishDataLoading: onFinishDataLoading,
         onStartRequest: onStartRequest,
     });
@@ -92,12 +92,12 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
     return (
         <Visualisation
             loading={loading}
-            isDiff={props.isDiff}
+            isDiff={isDiff}
             theme={theme}
             userSettings={userSettings}
             profileData={prerenderedNewData}
-            showLineNumbers={props.lineNumbers}
-            setShowLineNumbers={props.onLineNumbersChange}
+            showLineNumbers={lineNumbers}
+            setShowLineNumbers={onLineNumbersChange}
         />
     );
 

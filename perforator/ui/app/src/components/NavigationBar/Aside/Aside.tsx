@@ -70,7 +70,7 @@ const menuLinkItems = menuLinks.map(makeMenuItem);
 
 type PanelItems = 'settings' | 'tutorials';
 
-export const Aside: React.FC<AsideProps> = (props) => {
+export const Aside: React.FC<AsideProps> = ({ setCompact }: AsideProps) => {
     const asideRef = React.useRef<HTMLDivElement>(null);
 
     const [showPanel, setShowPanel] = React.useState<PanelItems | null>(null);
@@ -111,7 +111,7 @@ export const Aside: React.FC<AsideProps> = (props) => {
             }}
             multipleTooltip
             headerDecoration
-            onChangeCompact={props.setCompact}
+            onChangeCompact={setCompact}
             subheaderItems={uiFactory().useSubheaderItems(asideRef)}
             menuItems={items}
             panelItems={panelItems}

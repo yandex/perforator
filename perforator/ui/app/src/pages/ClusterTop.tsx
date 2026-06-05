@@ -17,7 +17,7 @@ import { useTypedQuery } from 'src/utils/query';
 import type { Page } from './Page';
 
 
-export const ClusterTop: Page = (props) => {
+export const ClusterTop: Page = ({ header }) => {
     const [getQuery, setQuery] = useTypedQuery<'generation'>();
     const currentGeneration = getQuery('generation', '') ?? '';
     const setGeneration = useCallback((value: string) => setQuery({ generation: value }), [setQuery]);
@@ -52,7 +52,7 @@ export const ClusterTop: Page = (props) => {
     }
 
     return (<>
-        {props.header}
+        {header}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>Cluster Top <Beta/></div>
             <GenerationCalendarSelector

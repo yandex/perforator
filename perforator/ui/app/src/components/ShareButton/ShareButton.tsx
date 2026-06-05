@@ -28,13 +28,13 @@ export interface ShareButtonProps {
 
 const b = cn('share-button');
 
-export const ShareButton: React.FC<ShareButtonProps> = props => {
+export const ShareButton: React.FC<ShareButtonProps> = ({ getUrl, view, size, className }: ShareButtonProps) => {
     const shareFormats = React.useMemo(() => uiFactory().shareFormats(), []);
     const builders = Object.fromEntries(shareFormats);
 
     const copyShareString = (format: ShareFormat) => {
         const builder = builders[format] || DEFAULT_SHARE_FORMAT.builder;
-        const shared = builder(props.getUrl());
+        const shared = builder(getUrl());
         navigator.clipboard.writeText(shared)
             .then(() => createSuccessToast({
                 name: 'share-copy',
@@ -50,15 +50,15 @@ export const ShareButton: React.FC<ShareButtonProps> = props => {
     }));
 
     return (
-        <span className={b(null, props.className)}>
+        <span className={b(null, className)}>
             <Button
                 className={b('text')}
                 pin="round-clear"
                 onClick={() => copyShareString(DEFAULT_SHARE_FORMAT.name)}
-                size={props.size}
+                size={size}
             >
                 <Icon size={SHARE_ICON_SIZE} data={ArrowShapeTurnUpRight} />
-                {props.view === 'compact' ? null : 'Share'}
+                {view === 'compact' ? null : 'Share'}
             </Button>
             <DropdownMenu
                 items={items}
@@ -67,7 +67,7 @@ export const ShareButton: React.FC<ShareButtonProps> = props => {
                     <Button
                         className={b('chevron')}
                         pin="clear-round"
-                        size={props.size}
+                        size={size}
                     >
                         <Icon size={SHARE_ICON_SIZE} data={ChevronDown} />
                     </Button>

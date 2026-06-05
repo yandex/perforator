@@ -12,7 +12,7 @@ export interface UserSettingsProviderProps {
     children?: React.ReactNode;
 }
 
-export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = props => {
+export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ children }: UserSettingsProviderProps) => {
     const [userSettings, setUserSettingsImpl] = React.useState(initialUserSettings());
 
     const setUserSettings = React.useCallback((value: UserSettings) => {
@@ -23,7 +23,7 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = props =
     const value: UserSettingsContextProps = { userSettings, setUserSettings };
     return (
         <UserSettingsContext.Provider value={value}>
-            {props.children}
+            {children}
         </UserSettingsContext.Provider>
     );
 };

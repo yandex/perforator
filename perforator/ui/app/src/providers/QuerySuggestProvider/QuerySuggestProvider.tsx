@@ -8,7 +8,7 @@ export interface QuerySuggestProviderProps {
     children?: React.ReactNode;
 }
 
-export const QuerySuggestProvider: React.FC<QuerySuggestProviderProps> = props => {
+export const QuerySuggestProvider: React.FC<QuerySuggestProviderProps> = ({ children }: QuerySuggestProviderProps) => {
     const [fields, setFields] = React.useState<QueryFields>(new Map());
 
     const setFieldsAsync = React.useCallback(async () => {
@@ -21,7 +21,7 @@ export const QuerySuggestProvider: React.FC<QuerySuggestProviderProps> = props =
     const value: QuerySuggestContextProps = { fields };
     return (
         <QuerySuggestContext.Provider value={value}>
-            {props.children}
+            {children}
         </QuerySuggestContext.Provider>
     );
 };

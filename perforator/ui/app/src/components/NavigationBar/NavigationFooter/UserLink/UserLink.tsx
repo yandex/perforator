@@ -12,7 +12,7 @@ export interface UserLinkProps {
     compact: boolean;
 }
 
-export const UserLink: React.FC<UserLinkProps> = props => {
+export const UserLink: React.FC<UserLinkProps> = ({ compact }: UserLinkProps) => {
     const login = React.useMemo(() => getUserLogin() || '', []);
     const userLink = uiFactory().makeUserLink(login);
     const avatarLink = uiFactory().makeUserAvatarLink(login);
@@ -21,7 +21,7 @@ export const UserLink: React.FC<UserLinkProps> = props => {
             text={login}
             renderIcon={() => <img className="user-link__avatar" src={avatarLink} />}
             url={userLink}
-            compact={props.compact}
+            compact={compact}
         />
     );
 };

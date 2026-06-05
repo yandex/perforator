@@ -14,32 +14,32 @@ export interface CustomRangeInputProps {
     onUpdate?: (value: string) => void;
 }
 
-export const CustomRangeInput: React.FC<CustomRangeInputProps> = props => {
+export const CustomRangeInput: React.FC<CustomRangeInputProps> = ({ selected: selectedProp, onUpdate }: CustomRangeInputProps) => {
     const [value, setValue] = React.useState<string>('');
     const [active, setActive] = React.useState(false);
-    const [selected, setSelected] = React.useState(props.selected);
+    const [selected, setSelected] = React.useState(selectedProp);
 
     React.useEffect(() => {
-        if (props.selected !== selected) {
-            setSelected(props.selected);
-            if (!props.selected) {
+        if (selectedProp !== selected) {
+            setSelected(selectedProp);
+            if (!selectedProp) {
                 setValue('');
-                props.onUpdate?.('');
+                onUpdate?.('');
             }
         }
-    }, [props.selected, selected]);
+    }, [selectedProp, selected]);
 
     const handleKeyDown = React.useCallback((ev: React.KeyboardEvent<HTMLInputElement>) => {
         if (ev.key === 'Enter') {
             ev.preventDefault();
             const newValue = ev.currentTarget.value;
             if (newValue) {
-                props.onUpdate?.(value);
+                onUpdate?.(value);
                 setActive(false);
                 setSelected(true);
             }
         }
-    }, [props.onUpdate, setActive, setSelected, value]);
+    }, [onUpdate, setActive, setSelected, value]);
 
     const renderInput = React.useCallback(() => (
         <TextInput
