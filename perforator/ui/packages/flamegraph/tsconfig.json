@@ -6,6 +6,7 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "rootDir": "./lib",
     "compilerOptions": {
+        "strict": false,
         "skipLibCheck": true,
         "module": "ESNext",
         "moduleResolution": "bundler",

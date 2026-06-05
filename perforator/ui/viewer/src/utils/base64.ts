@@ -1,7 +1,7 @@
 /** polyfill instead of UInt8Array.fromBase64
  * @deprecated
  */
-export function base64toUint8Array(base64: string): Uint8Array {
+export function base64toUint8Array(base64: string): Uint8Array<ArrayBuffer> {
     const str = atob(base64);
     const len = str.length;
 

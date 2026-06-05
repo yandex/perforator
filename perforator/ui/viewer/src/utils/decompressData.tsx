@@ -1,4 +1,4 @@
-export async function decompressData(compressed: Uint8Array): Promise<string> {
+export async function decompressData(compressed: Uint8Array<ArrayBuffer>): Promise<string> {
     const stream = new Blob([compressed]).stream();
     const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
     const reader = decompressedStream.getReader();
