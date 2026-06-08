@@ -495,7 +495,7 @@ require (
 	github.com/google/gnostic v0.7.0
 	github.com/google/go-attestation v0.5.1
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-containerregistry v0.20.4
+	github.com/google/go-containerregistry v0.20.6
 	github.com/google/go-github/v35 v35.3.0
 	github.com/google/go-jsonnet v0.21.0
 	github.com/google/go-tpm v0.9.8
@@ -2821,7 +2821,7 @@ replace github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.2
 replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
 
 // https://st.yandex-team.ru/CONTRIB-3687
-replace github.com/docker/docker => github.com/docker/docker v28.1.1+incompatible
+replace github.com/docker/docker => github.com/docker/docker v28.2.2+incompatible
 
 replace go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.43.0
 

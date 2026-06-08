@@ -7411,12 +7411,13 @@ github.com/docker/distribution/registry/storage/cache/cachecheck
 github.com/docker/distribution/registry/storage/cache/memory
 github.com/docker/distribution/testutil
 github.com/docker/distribution/uuid
-# github.com/docker/docker v28.5.2+incompatible => github.com/docker/docker v28.1.1+incompatible
+# github.com/docker/docker v28.5.2+incompatible => github.com/docker/docker v28.2.2+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/auxprogress
 github.com/docker/docker/api/types/blkiodev
+github.com/docker/docker/api/types/build
 github.com/docker/docker/api/types/checkpoint
 github.com/docker/docker/api/types/common
 github.com/docker/docker/api/types/container
@@ -9943,8 +9944,8 @@ github.com/google/go-cmp/cmp/internal/teststructs
 github.com/google/go-cmp/cmp/internal/teststructs/foo1
 github.com/google/go-cmp/cmp/internal/teststructs/foo2
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.20.4
-## explicit; go 1.24.0
+# github.com/google/go-containerregistry v0.20.6
+## explicit; go 1.24
 github.com/google/go-containerregistry/internal/and
 github.com/google/go-containerregistry/internal/compression
 github.com/google/go-containerregistry/internal/depcheck
@@ -24004,7 +24005,7 @@ www.velocidex.com/golang/regparser
 # github.com/confluentinc/confluent-kafka-go/v2 => github.com/confluentinc/confluent-kafka-go/v2 v2.1.1
 # github.com/distribution/reference => github.com/distribution/reference v0.5.0
 # github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
-# github.com/docker/docker => github.com/docker/docker v28.1.1+incompatible
+# github.com/docker/docker => github.com/docker/docker v28.2.2+incompatible
 # github.com/getsentry/sentry-go => github.com/getsentry/sentry-go v0.13.0
 # github.com/go-resty/resty/v2 => github.com/go-resty/resty/v2 v2.16.3
 # github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.9
