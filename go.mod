@@ -620,6 +620,7 @@ require (
 	github.com/kr/text v0.2.0
 	github.com/kyoh86/exportloopref v0.1.11
 	github.com/labstack/echo/v4 v4.13.4
+	github.com/labstack/gommon v0.4.2
 	github.com/leodido/go-urn v1.4.0
 	github.com/lestrrat-go/jwx/v2 v2.0.11
 	github.com/lni/dragonboat/v4 v4.0.0-20240618143154-6a1623140f27
@@ -2012,7 +2013,6 @@ require (
 	github.com/labbsr0x/goh v1.0.1 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/echo-contrib v0.12.0 // indirect
-	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
