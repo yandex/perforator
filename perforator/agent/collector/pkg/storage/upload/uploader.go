@@ -157,7 +157,6 @@ func (u *Scheduler) uploadBinaryImpl(ctx context.Context, buildID string, closed
 
 	err = u.storage.StoreBinary(ctx, buildID, closedBinary.Handle)
 	if err != nil {
-		u.l.Error("Failed to upload binary", log.String("build_id", buildID), log.Error(err))
 		return
 	}
 }

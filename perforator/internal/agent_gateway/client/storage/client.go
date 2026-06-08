@@ -2,10 +2,12 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/klauspost/compress/zstd"
@@ -80,20 +82,47 @@ func WithCompression(codec compressionpb.CompressionMethod, size uint64) PushBin
 	}
 }
 
+type BinaryWriter interface {
+	io.Writer
+	Close() error
+	Abort()
+}
+
 type binaryGRPCClientWriter struct {
-	io.WriteCloser
-	client   perforatorstorage.PerforatorStorage_PushBinaryClient
-	cancelFn func()
+	stream          perforatorstorage.PerforatorStorage_PushBinaryClient
+	cancelUploadCtx context.CancelFunc
+	finishOnce      sync.Once
+	recvErr         error
 }
 
 func newBinaryGRPCClientWriter(
-	client perforatorstorage.PerforatorStorage_PushBinaryClient,
-	cancelFn func(),
+	stream perforatorstorage.PerforatorStorage_PushBinaryClient,
+	cancelUploadCtx context.CancelFunc,
 ) *binaryGRPCClientWriter {
 	return &binaryGRPCClientWriter{
-		client:   client,
-		cancelFn: cancelFn,
+		stream:          stream,
+		cancelUploadCtx: cancelUploadCtx,
 	}
+}
+
+func (w *binaryGRPCClientWriter) Close() error {
+	w.finishOnce.Do(func() {
+		_, w.recvErr = w.stream.CloseAndRecv()
+		if w.cancelUploadCtx != nil {
+			w.cancelUploadCtx()
+			w.cancelUploadCtx = nil
+		}
+	})
+	return w.recvErr
+}
+
+func (w *binaryGRPCClientWriter) Abort() {
+	w.finishOnce.Do(func() {
+		if w.cancelUploadCtx != nil {
+			w.cancelUploadCtx()
+			w.cancelUploadCtx = nil
+		}
+	})
 }
 
 func (w *binaryGRPCClientWriter) Write(p []byte) (int, error) {
@@ -101,7 +130,7 @@ func (w *binaryGRPCClientWriter) Write(p []byte) (int, error) {
 		return 0, nil
 	}
 
-	err := w.client.Send(
+	err := w.stream.Send(
 		&perforatorstorage.PushBinaryRequest{
 			Chunk: &perforatorstorage.PushBinaryRequest_BodyChunk{
 				BodyChunk: &perforatorstorage.PushBinaryRequestBody{
@@ -110,6 +139,16 @@ func (w *binaryGRPCClientWriter) Write(p []byte) (int, error) {
 			},
 		},
 	)
+	if errors.Is(err, io.EOF) {
+		// grpc client stream contract:
+		// if server closed the stream, Write returns io.EOF and aborts the stream.
+		// Error can be obtained from CloseAndRecv.
+		if recvErr := w.Close(); recvErr != nil {
+			return 0, recvErr
+		}
+		// Could not obtain the server error - treat as error still
+		return 0, errors.New("server closed PushBinary stream before upload finished")
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -117,13 +156,26 @@ func (w *binaryGRPCClientWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (w *binaryGRPCClientWriter) Close() error {
-	_, err := w.client.CloseAndRecv()
-	if w.cancelFn != nil {
-		w.cancelFn()
-		w.cancelFn = nil
-	}
-	return err
+// compressingBinaryWriter wraps a compression encoder on top of the gRPC stream
+// writer. Its Close must flush the encoder AND finish the underlying gRPC stream:
+// closing only the encoder flushes the compressed tail but never calls
+// CloseAndRecv, so the server keeps blocking on Recv and never commits the upload.
+type compressingBinaryWriter struct {
+	encoder    io.WriteCloser
+	grpcStream *binaryGRPCClientWriter
+}
+
+func (w *compressingBinaryWriter) Write(p []byte) (int, error) {
+	return w.encoder.Write(p)
+}
+
+func (w *compressingBinaryWriter) Close() error {
+	return errors.Join(w.encoder.Close(), w.grpcStream.Close())
+}
+
+func (w *compressingBinaryWriter) Abort() {
+	w.grpcStream.Abort()
+	_ = w.encoder.Close()
 }
 
 // TODO: remove because of retryConfig for grpc.ClientConn ?
@@ -289,7 +341,7 @@ func (c *Client) AnnounceBinaries(ctx context.Context, availableBuildIDs []strin
 	return resp.UnknownBuildIDs, nil
 }
 
-func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBinaryOption) (io.WriteCloser, error) {
+func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBinaryOption) (BinaryWriter, error) {
 	l := c.logger.With(log.String("build_id", buildID))
 	l.Debug(ctx, "Pushing binary")
 
@@ -307,15 +359,15 @@ func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBin
 	}
 
 	var err error
-	ctx, cancel := context.WithTimeout(ctx, c.conf.RPCTimeouts.PushBinaryTimeout)
+	uploadCtx, cancelUploadCtx := context.WithTimeout(ctx, c.conf.RPCTimeouts.PushBinaryTimeout)
 	defer func() {
 		if err != nil {
-			cancel()
+			cancelUploadCtx()
 		}
 	}()
 
 	var pushBinaryClient perforatorstorage.PerforatorStorage_PushBinaryClient
-	pushBinaryClient, err = c.client.PushBinary(ctx)
+	pushBinaryClient, err = c.client.PushBinary(uploadCtx)
 	if err != nil {
 		l.Error(ctx, "Failed to initialize binary upload")
 		return nil, err
@@ -337,13 +389,11 @@ func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBin
 		return nil, err
 	}
 
-	var writer io.WriteCloser = newBinaryGRPCClientWriter(pushBinaryClient, cancel)
+	grpcWriter := newBinaryGRPCClientWriter(pushBinaryClient, cancelUploadCtx)
+	var writer BinaryWriter = grpcWriter
 	defer func() {
 		if err != nil {
-			closeErr := writer.Close()
-			if closeErr != nil {
-				l.Error(ctx, "Failed to close push binary writer on initialization error", log.Error(closeErr))
-			}
+			writer.Abort()
 		}
 	}()
 
@@ -351,11 +401,13 @@ func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBin
 	case compressionpb.CompressionMethod_None:
 		break
 	case compressionpb.CompressionMethod_Zstd:
-		writer, err = zstd.NewWriter(writer, zstd.WithEncoderConcurrency(1))
+		var encoder *zstd.Encoder
+		encoder, err = zstd.NewWriter(grpcWriter, zstd.WithEncoderConcurrency(1))
 		if err != nil {
 			l.Error(ctx, "Failed to create compression writer", log.Error(err))
 			return nil, err
 		}
+		writer = &compressingBinaryWriter{encoder: encoder, grpcStream: grpcWriter}
 	default:
 		return nil, fmt.Errorf("unsupported compression codec %s", params.compression.String())
 	}

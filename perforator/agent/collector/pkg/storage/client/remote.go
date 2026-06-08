@@ -301,22 +301,26 @@ func (s *RemoteStorage) StoreBinary(ctx context.Context, buildID string, binary 
 		return err
 	}
 
-	written, err := io.Copy(w, file.GetFile())
-	if err != nil {
-		// If send failed with EOF this means that the rpc was terminated by server,
-		// so we must try to obtain error from Close()
-		closeErr := w.Close()
-		if closeErr != nil && err == io.EOF {
-			err = closeErr
-		}
-		l.Error("Failed to upload binary", log.String("build_id", buildID), log.Error(err))
-		return err
+	written, copyErr := io.Copy(w, file.GetFile())
+	if copyErr != nil {
+		w.Abort()
+		l.Error(
+			"Failed to upload binary",
+			log.String("build_id", buildID),
+			log.Int64("bytes_written", written),
+			log.Error(copyErr),
+		)
+		return copyErr
 	}
 
-	err = w.Close()
-	if err != nil {
-		l.Error("Failed to close binary writer", log.String("build_id", buildID), log.Error(err))
-		return err
+	if closeErr := w.Close(); closeErr != nil {
+		l.Error(
+			"Failed to close binary writer",
+			log.String("build_id", buildID),
+			log.Int64("bytes_written", written),
+			log.Error(closeErr),
+		)
+		return closeErr
 	}
 
 	s.metrics.binariesUploadTimer.RecordDuration(time.Since(start))
