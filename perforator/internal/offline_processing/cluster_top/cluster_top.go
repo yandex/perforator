@@ -83,16 +83,41 @@ func NewClusterTop(
 	}, nil
 }
 
-func buildSelector(serviceName string, timeRange TimeRange) (*querylang.Selector, error) {
-	selectorStr := fmt.Sprintf("{%s=\"%s\", %s=\"%s\", %s=\"%s\"}",
+func buildSelector(serviceName string, timeRange TimeRange, podID, nodeID string) (*querylang.Selector, error) {
+	selectorStr := fmt.Sprintf("{%s=\"%s\", %s=\"%s\", %s=\"%s\", %s=\"%s\"}",
 		profilequerylang.EventTypeLabel, sampletype.SampleTypeCPUCycles,
 		profilequerylang.ServiceLabel, serviceName,
 		profilequerylang.SystemNameLabel, "perforator",
+		profilequerylang.CPOIDLabel, "",
 	)
 
 	selector, err := profilequerylang.ParseSelector(selectorStr)
 	if err != nil {
 		return nil, err
+	}
+
+	if podID != "" {
+		selector.Matchers = append(
+			selector.Matchers,
+			profilequerylang.BuildMatcher(
+				profilequerylang.PodIDLabel,
+				querylang.AND,
+				querylang.Condition{Operator: operator.Eq},
+				[]string{podID},
+			),
+		)
+	}
+
+	if nodeID != "" {
+		selector.Matchers = append(
+			selector.Matchers,
+			profilequerylang.BuildMatcher(
+				profilequerylang.NodeIDLabel,
+				querylang.AND,
+				querylang.Condition{Operator: operator.Eq},
+				[]string{nodeID},
+			),
+		)
 	}
 
 	selector.Matchers = append(
@@ -119,13 +144,11 @@ func buildSelector(serviceName string, timeRange TimeRange) (*querylang.Selector
 }
 
 const kDefaultProfilesBatchSize int = 200
-const kHeavyProfilesBatchSize int = 50
 
 func (t *ClusterTop) Run(
 	ctx context.Context,
-	serviceSelector ServiceSelector,
+	jobSelector JobSelector,
 	clusterPerfTopAggregator ClusterPerfTopAggregator,
-	heavy bool,
 	degreeOfParallelism uint,
 ) error {
 	g, ctx := errgroup.WithContext(ctx)
@@ -141,22 +164,14 @@ func (t *ClusterTop) Run(
 	g.Go(func() error {
 		aggregateG, ctx := errgroup.WithContext(ctx)
 
-		servicesDegreeOfParallelism := int(degreeOfParallelism)
-		profilesDegreeOfParallelism := 1
-		if heavy {
-			servicesDegreeOfParallelism = 1
-			profilesDegreeOfParallelism = int(degreeOfParallelism)
-		}
-
-		for range servicesDegreeOfParallelism {
+		for range degreeOfParallelism {
 			aggregateG.Go(func() error {
 				for {
-					shouldContinueRightAway := t.selectAndProcessService(
+					shouldContinueRightAway := t.selectAndProcessJob(
 						ctx,
-						serviceSelector,
+						jobSelector,
 						clusterPerfTopAggregator,
-						heavy,
-						profilesDegreeOfParallelism,
+						int(degreeOfParallelism),
 					)
 					if !shouldContinueRightAway {
 						if ctx.Err() != nil {
@@ -182,72 +197,66 @@ func (t *ClusterTop) Run(
 	return g.Wait()
 }
 
-func (t *ClusterTop) selectAndProcessService(
+func (t *ClusterTop) selectAndProcessJob(
 	ctx context.Context,
-	serviceSelector ServiceSelector,
+	jobSelector JobSelector,
 	clusterPerfTopAggregator ClusterPerfTopAggregator,
-	heavy bool,
 	degreeOfParallelism int,
 ) (shouldContinueRightAway bool) {
-	serviceHandler, err := serviceSelector.SelectService(ctx, heavy)
+	selected, err := jobSelector.SelectJob(ctx)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			t.l.Info(ctx, "No cluster top service jobs")
+			t.l.Info(ctx, "No cluster top jobs")
 			return false
 		}
-		t.l.Warn(ctx, "Failed to select a service", log.Error(err))
-		// In case of select service failure - we should avoid retrying immediately in the upper layer
+		t.l.Warn(ctx, "Failed to select a job", log.Error(err))
 		return false
 	}
 
+	job := selected.Job
 	startTime := time.Now()
 	var profilesCount int
 	defer func() {
 		duration := time.Since(startTime)
 		l := t.l.With(
-			log.String("service", serviceHandler.GetServiceName()),
+			log.Int64("job_id", job.ID),
+			log.String("service", job.Service),
 			log.Duration("duration", duration),
-			log.Int("generation", serviceHandler.GetGeneration()),
-			log.Time("from", serviceHandler.GetTimeRange().From),
-			log.Time("to", serviceHandler.GetTimeRange().To),
+			log.Int("generation", job.Generation),
+			log.String("workload_key", job.WorkloadKey()),
+			log.String("pod_id", job.PodID),
+			log.String("node_id", job.NodeID),
+			log.Time("from", job.TimeRange.From),
+			log.Time("to", job.TimeRange.To),
 			log.Int("profilesCount", profilesCount),
 		)
 		if err != nil {
-			l.Error(ctx, "Failed to process the service", log.Error(err))
+			l.Error(ctx, "Failed to process the job", log.Error(err))
 		} else {
-			l.Info(ctx, "Successfully processed the service")
+			l.Info(ctx, "Successfully processed the job")
 		}
-		serviceHandler.Finalize(ctx, err)
+		selected.Finalize(ctx, err)
 	}()
 
-	profilesBatchSize := kDefaultProfilesBatchSize
-	if heavy {
-		profilesBatchSize = kHeavyProfilesBatchSize
-	}
-
-	profilesCount, err = t.processService(
+	profilesCount, err = t.processJob(
 		ctx,
 		clusterPerfTopAggregator,
-		serviceHandler.GetGeneration(),
-		serviceHandler.GetServiceName(),
-		serviceHandler.GetTimeRange(),
+		job,
 		degreeOfParallelism,
-		profilesBatchSize,
+		kDefaultProfilesBatchSize,
 	)
 
 	return true
 }
 
-func (t *ClusterTop) processService(
+func (t *ClusterTop) processJob(
 	ctx context.Context,
 	clusterPerfTopAggregator ClusterPerfTopAggregator,
-	generation int,
-	serviceName string,
-	timeRange TimeRange,
+	job Job,
 	degreeOfParallelism int,
 	profilesBatchSize int,
 ) (processedProfiles int, err error) {
-	selector, err := buildSelector(serviceName, timeRange)
+	selector, err := buildSelector(job.Service, job.TimeRange, job.PodID, job.NodeID)
 	if err != nil {
 		return 0, err
 	}
@@ -260,14 +269,18 @@ func (t *ClusterTop) processService(
 	}
 
 	if len(profileMetas) == 0 {
-		t.l.Warn(ctx, "Service has no profiles, marking as done",
-			log.String("service", serviceName),
+		t.l.Warn(ctx, "Job has no profiles, marking as done",
+			log.String("service", job.Service),
+			log.String("workload_key", job.WorkloadKey()),
 		)
 		return 0, nil
 	}
 
-	t.l.Info(ctx, "Starting service processing",
-		log.String("service", serviceName),
+	t.l.Info(ctx, "Starting job processing",
+		log.String("service", job.Service),
+		log.String("workload_key", job.WorkloadKey()),
+		log.String("pod_id", job.PodID),
+		log.String("node_id", job.NodeID),
 		log.Int("profilesCount", len(profileMetas)),
 	)
 
@@ -275,7 +288,7 @@ func (t *ClusterTop) processService(
 
 	functions, err := t.processServiceProfiles(
 		ctx,
-		serviceName,
+		job.Service,
 		profileMetas,
 		buildIDs,
 		degreeOfParallelism,
@@ -286,8 +299,8 @@ func (t *ClusterTop) processService(
 	}
 
 	err = clusterPerfTopAggregator.Save(ctx, &ServicePerfTop{
-		Generation:  generation,
-		ServiceName: serviceName,
+		Generation:  job.Generation,
+		ServiceName: job.Service,
 		Functions:   functions,
 	})
 	return len(profileMetas), err

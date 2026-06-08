@@ -5,8 +5,14 @@ SRCS(
     config.go
     cluster_top.go
     models.go
-    pg_service_selector.go
+    pg_job_selector.go
 )
+
+IF (NOT OPENSOURCE)
+    GO_TEST_SRCS(
+        pg_job_selector_test.go
+    )
+ENDIF()
 
 IF (CGO_ENABLED)
     USE_CXX()
@@ -22,6 +28,12 @@ ELSE()
 ENDIF()
 
 END()
+
+IF (NOT OPENSOURCE)
+    RECURSE(
+        gotest
+    )
+ENDIF()
 
 RECURSE(
     scheduler

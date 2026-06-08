@@ -40,13 +40,10 @@ func createStorageBundle(
 var (
 	clusterTopConfigPath          string
 	clusterTopLogLevelStr         string
-	clusterTopIsHeavy             bool
 	clusterTopDegreeOfParallelism uint
 
 	clusterTopSchedulerGenerationInterval time.Duration
 	clusterTopSchedulerProfileLag         time.Duration
-	clusterTopSchedulerMaxServices        int
-	clusterTopSchedulerHeavyPercent       float64
 	clusterTopSchedulerMaxConflictErrors  uint32
 
 	clusterTopCommand = &cobra.Command{
@@ -94,15 +91,14 @@ var (
 				return err
 			}
 
-			serviceSelector := cluster_top.NewPgServiceSelector(storageBundle.DBs.PostgresCluster)
+			jobSelector := cluster_top.NewPgJobSelector(storageBundle.DBs.PostgresCluster)
 
 			clusterPerfTopAggregator := cluster_top.NewClickhousePerfTopAggregator(storageBundle.ClusterTopGenerationsStorage)
 
 			return clusterTop.Run(
 				ctx,
-				serviceSelector,
+				jobSelector,
 				clusterPerfTopAggregator,
-				clusterTopIsHeavy,
 				clusterTopDegreeOfParallelism,
 			)
 		},
@@ -142,8 +138,6 @@ var (
 			schedulerConf := &scheduler.Config{
 				GenerationInterval: clusterTopSchedulerGenerationInterval,
 				ProfileLag:         clusterTopSchedulerProfileLag,
-				MaxServices:        clusterTopSchedulerMaxServices,
-				HeavyPercent:       clusterTopSchedulerHeavyPercent,
 				MaxConflictErrors:  clusterTopSchedulerMaxConflictErrors,
 			}
 			schedulerConf.FillDefault()
@@ -179,14 +173,7 @@ func init() {
 		"parallelism",
 		"p",
 		4,
-		"Degree of parallelism. Cores available is a good choice",
-	)
-
-	clusterTopCommand.Flags().BoolVar(
-		&clusterTopIsHeavy,
-		"heavy",
-		false,
-		`Whether to parallelise services processing (default), or profiles processing within a service.`,
+		"Degree of parallelism for job profile processing (number of CPU cores is a good default)",
 	)
 
 	clusterTopSchedulerCommand.Flags().DurationVar(
@@ -201,20 +188,6 @@ func init() {
 		"profile-lag",
 		10*time.Minute,
 		"Safety buffer to allow all profiles to arrive in storage",
-	)
-
-	clusterTopSchedulerCommand.Flags().IntVar(
-		&clusterTopSchedulerMaxServices,
-		"max-services",
-		10000,
-		"Maximum number of services to build cluster top for",
-	)
-
-	clusterTopSchedulerCommand.Flags().Float64Var(
-		&clusterTopSchedulerHeavyPercent,
-		"heavy-percent",
-		10.0,
-		"Percentage of selected services to classify as 'heavy'",
 	)
 
 	clusterTopSchedulerCommand.Flags().Uint32Var(

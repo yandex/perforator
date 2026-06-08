@@ -20,7 +20,9 @@ import (
 
 const clusterTopSchedulerLeaseName = "cluster_top_scheduler"
 
-const maxServicesInsertBatchSize = 10000
+const clusterTopSystemName = "perforator"
+
+const maxJobsInsertBatchSize = 10000
 
 type generationStatus string
 
@@ -34,8 +36,6 @@ var errGenerationAlreadyExists = errors.New("generation already exists")
 type Config struct {
 	GenerationInterval time.Duration
 	ProfileLag         time.Duration
-	MaxServices        int
-	HeavyPercent       float64
 	LeaseTTL           time.Duration
 	MaxConflictErrors  uint32
 }
@@ -61,10 +61,12 @@ type Scheduler struct {
 	finisherErrors   metrics.Counter
 }
 
-type serviceInfo struct {
-	name         string
-	profileCount uint64
-	heavy        bool
+type jobInsertRow struct {
+	generation    int32
+	service       string
+	podID         string
+	nodeID        string
+	profilesCount uint64
 }
 
 func NewScheduler(
@@ -107,56 +109,34 @@ func (s *Scheduler) getLastGeneration(ctx context.Context) (lastID int32, maxTo 
 	return lastID, maxTo, nil
 }
 
-func (s *Scheduler) discoverServices(ctx context.Context, start, end time.Time) ([]serviceInfo, error) {
-	builder := sq.Select("service", "count(*) as count").
-		From("profiles").
-		Where(sq.GtOrEq{"timestamp": start}).
-		Where(sq.Lt{"timestamp": end}).
-		GroupBy("service").
-		OrderBy("count DESC").
-		Limit(uint64(s.conf.MaxServices))
-
-	query, args, err := builder.ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build clickhouse query: %w", err)
+func discoveredJobsToInsertRows(
+	generationID int32,
+	jobs []discoveredJob,
+) []jobInsertRow {
+	rows := make([]jobInsertRow, 0, len(jobs))
+	for _, job := range jobs {
+		rows = append(rows, jobInsertRow{
+			generation:    generationID,
+			service:       job.service,
+			podID:         job.podID,
+			nodeID:        job.nodeID,
+			profilesCount: job.profilesCount,
+		})
 	}
-
-	rows, err := s.storage.DBs.ClickhouseConn.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute clickhouse query: %w", err)
-	}
-	defer rows.Close()
-
-	var services []serviceInfo
-	for rows.Next() {
-		var info serviceInfo
-		if err := rows.Scan(&info.name, &info.profileCount); err != nil {
-			return nil, fmt.Errorf("failed to scan service info: %w", err)
-		}
-		services = append(services, info)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to read clickhouse services info: %w", err)
-	}
-
-	heavyCount := int(float64(len(services)) * s.conf.HeavyPercent / 100.0)
-	for i := 0; i < heavyCount; i++ {
-		services[i].heavy = true
-	}
-
-	return services, nil
+	return rows
 }
 
-func (s *Scheduler) createGeneration(ctx context.Context, generationID int32, start, end time.Time, services []serviceInfo) error {
+func (s *Scheduler) createGeneration(ctx context.Context, generationID int32, start, end time.Time, jobs []discoveredJob) (int, error) {
+	insertRows := discoveredJobsToInsertRows(generationID, jobs)
+
 	primary, err := s.storage.DBs.PostgresCluster.WaitForPrimary(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to wait for primary postgres: %w", err)
+		return 0, fmt.Errorf("failed to wait for primary postgres: %w", err)
 	}
 
 	tx, err := primary.DBx().BeginTxx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to start postgres tx: %w", err)
+		return 0, fmt.Errorf("failed to start postgres tx: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -170,35 +150,53 @@ func (s *Scheduler) createGeneration(ctx context.Context, generationID int32, st
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errGenerationAlreadyExists
+			return 0, errGenerationAlreadyExists
 		}
-		return fmt.Errorf("failed to insert generation: %w", err)
+		return 0, fmt.Errorf("failed to insert generation: %w", err)
 	}
 
-	for i := 0; i < len(services); i += maxServicesInsertBatchSize {
-		end := min(i+maxServicesInsertBatchSize, len(services))
-		batch := services[i:end]
+	for i := 0; i < len(insertRows); i += maxJobsInsertBatchSize {
+		end := min(i+maxJobsInsertBatchSize, len(insertRows))
+		batch := insertRows[i:end]
 
 		builder := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Insert("cluster_top_services").
-			Columns("service", "status", "profiles_count", "generation", "heavy")
+			Insert("cluster_top_jobs").
+			Columns(
+				"generation",
+				"service",
+				"pod_id",
+				"node_id",
+				"profiles_count",
+				"status",
+			)
 
-		for _, svc := range batch {
-			builder = builder.Values(svc.name, "ready", svc.profileCount, generationID, svc.heavy)
+		for _, job := range batch {
+			builder = builder.Values(
+				job.generation,
+				job.service,
+				job.podID,
+				job.nodeID,
+				job.profilesCount,
+				"pending",
+			)
 		}
 
 		query, args, err := builder.ToSql()
 		if err != nil {
-			return fmt.Errorf("failed to build postgres insert query: %w", err)
+			return 0, fmt.Errorf("failed to build postgres insert query: %w", err)
 		}
 
 		_, err = tx.ExecContext(ctx, query, args...)
 		if err != nil {
-			return fmt.Errorf("failed to insert services: %w", err)
+			return 0, fmt.Errorf("failed to insert jobs: %w", err)
 		}
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+
+	return len(insertRows), nil
 }
 
 func (s *Scheduler) tryScheduleGeneration(ctx context.Context) error {
@@ -247,12 +245,12 @@ func (s *Scheduler) tryScheduleGeneration(ctx context.Context) error {
 		log.Int("generation_id", int(generationID)),
 	)
 
-	services, err := s.discoverServices(ctx, targetStart, targetEnd)
+	jobs, err := s.discoverJobs(ctx, targetStart, targetEnd)
 	if err != nil {
-		return fmt.Errorf("failed to discover services: %w", err)
+		return fmt.Errorf("failed to discover jobs: %w", err)
 	}
 
-	err = s.createGeneration(ctx, generationID, targetStart, targetEnd, services)
+	jobCount, err := s.createGeneration(ctx, generationID, targetStart, targetEnd, jobs)
 	if err != nil {
 		return fmt.Errorf("failed to create generation: %w", err)
 	}
@@ -260,7 +258,8 @@ func (s *Scheduler) tryScheduleGeneration(ctx context.Context) error {
 	s.l.Info(ctx, "Successfully created new generation",
 		log.Time("start", targetStart),
 		log.Time("end", targetEnd),
-		log.Int("services_count", len(services)),
+		log.Int("services_count", countUniqueServices(jobs)),
+		log.Int("jobs_count", jobCount),
 	)
 
 	return nil
@@ -291,11 +290,11 @@ func (s *Scheduler) finishGenerations(ctx context.Context) error {
 	for _, id := range scheduledIDs {
 		var pendingCount int
 		err = primary.DBx().GetContext(ctx, &pendingCount,
-			`SELECT count(*) FROM cluster_top_services WHERE generation = $1 AND status = 'ready'`,
+			`SELECT count(*) FROM cluster_top_jobs WHERE generation = $1 AND status = 'pending'`,
 			id,
 		)
 		if err != nil {
-			s.l.Error(ctx, "Failed to count pending services for in_progress generation", log.Int("id", id), log.Error(err))
+			s.l.Error(ctx, "Failed to count pending jobs for in_progress generation", log.Int("id", id), log.Error(err))
 			errs = append(errs, err)
 			continue
 		}

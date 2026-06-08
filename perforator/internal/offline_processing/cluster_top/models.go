@@ -12,18 +12,40 @@ type TimeRange struct {
 	To   time.Time
 }
 
-type ServiceProcessingHandler interface {
-	GetServiceName() string
-
-	GetGeneration() int
-
-	GetTimeRange() TimeRange
-
-	Finalize(ctx context.Context, processingErr error)
+func workloadKey(podID, nodeID string) string {
+	if podID != "" {
+		return podID
+	}
+	return nodeID
 }
 
-type ServiceSelector interface {
-	SelectService(ctx context.Context, heavy bool) (ServiceProcessingHandler, error)
+type Job struct {
+	ID         int64
+	Generation int
+	Service    string
+	PodID      string
+	NodeID     string
+	TimeRange  TimeRange
+}
+
+func (j Job) WorkloadKey() string {
+	return workloadKey(j.PodID, j.NodeID)
+}
+
+type SelectedJob struct {
+	Job Job
+
+	finalize func(ctx context.Context, processingErr error)
+}
+
+func (s *SelectedJob) Finalize(ctx context.Context, processingErr error) {
+	if s.finalize != nil {
+		s.finalize(ctx, processingErr)
+	}
+}
+
+type JobSelector interface {
+	SelectJob(ctx context.Context) (*SelectedJob, error)
 }
 
 type Function = aggregated.Function
