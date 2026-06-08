@@ -743,9 +743,10 @@ func (s *Service) pushBinaryPerformUpload(preamble binaryPreamble, reqStream per
 		defer cancel()
 		if err != nil {
 			s.metrics.storedBinariesErrors.Inc()
-			err = writer.Abort(ctx)
-			if err != nil {
+			abortErr := writer.Abort(ctx)
+			if abortErr != nil {
 				s.metrics.failedAbortBinariesUploads.Inc()
+				err = errors.Join(err, abortErr)
 			} else {
 				s.metrics.successAbortBinariesUploads.Inc()
 			}
