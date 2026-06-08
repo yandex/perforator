@@ -2,7 +2,6 @@
   "name": "perforator",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@10.14.0",
   "scripts": {
     "build": "tsc && vite build",
     "nots:build": "vite build --config vite.config.ts",
