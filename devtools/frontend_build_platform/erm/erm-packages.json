@@ -5905,7 +5905,7 @@
     "title": "pnpm",
     "description": "Пакетный менеджер\n\nАктивно используется в `tier-0` для установки зависимостей.\n\nМожно сказать, что это корневой инструмент: генерируемые им lock-файлы являются источником истины для расчета зависимостей проекта, включая зависимости по коду.\n\nПри сборке и тестировании проекта пользователи не могут выбрать версию pnpm, она всегда будет дефолтная. Другие версии добавлены для отладки или для прямого использования через прямо из nots: `ya tool nots pnpm@9.12.3` или `ya tool nots pnpx`",
     "type": "NPM_PACKAGE",
-    "default": "10.14.0",
+    "default": "10.33.4",
     "links": {
       "Home": "https://pnpm.io",
       "Sources": "https://github.com/pnpm/pnpm",
@@ -5913,13 +5913,13 @@
       "Docs": "https://pnpm.io/motivation",
       "pnpm in tier-0": "https://docs.yandex-team.ru/frontend-in-arcadia/references/toolchain_pnpm"
     },
-    "specifier": "==10.14.0",
+    "specifier": "==10.33.4",
     "versions": {
-      "10.14.0": {
-        "add_date": "2026-05-28T01:30:48",
+      "10.33.4": {
+        "add_date": "2026-06-05T16:10:57",
         "resources": [
           {
-            "id": 12216028025,
+            "id": 12331382363,
             "platform": "any",
             "arch": "any"
           }
