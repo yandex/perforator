@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-05-28T19:45:57Z",
+    "created": "2026-06-09T12:12:07.767Z",
     "pr": {
-      "id": 13591971,
+      "id": 13811180,
       "author": "baymer",
-      "summary": "FBP-3211: nots/cli: вернуть .pnpm внутрь node_modules"
+      "summary": "FBP-1750: ya make выдаёт в качестве аутпута готовый к использованию результат"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12226545676"
+      "uri": "sbr:12373825754"
     },
     "darwin-arm64": {
-      "uri": "sbr:12226543179"
+      "uri": "sbr:12373821160"
     },
     "linux": {
-      "uri": "sbr:12226550016"
+      "uri": "sbr:12373834873"
     },
     "linux-aarch64": {
-      "uri": "sbr:12226547911"
+      "uri": "sbr:12373830290"
     }
   }
 }
