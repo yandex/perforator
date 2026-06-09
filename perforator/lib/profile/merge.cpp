@@ -349,16 +349,21 @@ public:
 
 private:
     void MergeMetadata() {
-        auto&& prev = Builder_.Metadata().GetProto();
-        auto&& curr = Profile_.GetMetadata();
+        if (!IsFirstProfile_) {
+            return;
+        }
 
-        TProfileString str = Profile_.String(TStringId::FromInternalIndex(curr.default_sample_type()));
-        TStringId defaultSampleType = MapString(str);
+        const auto& metadata = Profile_.GetMetadata();
+        if (metadata.default_sample_type() == 0) {
+            return;
+        }
 
-        if (IsFirstProfile_) {
-            prev.set_default_sample_type(*defaultSampleType);
-        } else {
-            Y_ENSURE(prev.default_sample_type() == (ui32)*defaultSampleType);
+        TStringBuf defaultType = Profile_.String(TStringId::FromInternalIndex(metadata.default_sample_type())).View();
+        for (TValueType valueType : Profile_.ValueTypes()) {
+            if (Policy_.AllowValueType(valueType) && valueType.GetType().View() == defaultType) {
+                Builder_.Metadata().GetProto().set_default_sample_type(*MapString(valueType.GetType()));
+                return;
+            }
         }
     }
 
@@ -400,8 +405,6 @@ private:
     }
 
     TValueTypeId MapValueType(TValueType type) {
-        // TODO(ayles) we do forbid appearance of new sample types after first sample,
-        // but it is still possible to consume sample with less value types that in previous one.
         return ValueTypes_.TryMap(type.GetIndex(), [&, this] {
             return Builder_.AddValueType(
                 MapString(type.GetType()),

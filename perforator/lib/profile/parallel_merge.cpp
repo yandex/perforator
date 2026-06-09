@@ -144,10 +144,12 @@ TParallelProfileMerger::TImpl::TMergeResult TParallelProfileMerger::TImpl::Combi
     NProto::NProfile::Profile* profile = std::move(rhs.UnfinishedMerger).Finish();
     Y_ABORT_UNLESS(profile);
 
-    auto options = Options_.MergeOptions;
-    // FIXME(ayles): ugly hack, should be removed after moving filters to TProfile itself.
-    options.set_sample_period(0);
-    lhs.UnfinishedMerger.Add(*profile, options);
+    if (profile->samples().key_size() != 0) {
+        auto options = Options_.MergeOptions;
+        // FIXME(ayles): ugly hack, should be removed after moving filters to TProfile itself.
+        options.set_sample_period(0);
+        lhs.UnfinishedMerger.Add(*profile, options);
+    }
     *profile = {};
 
     return std::move(lhs);

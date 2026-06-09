@@ -395,13 +395,14 @@ private:
     void FillEntityAt(const TValueTypeInfo& info, TValueTypeId id) {
         auto& values = *Profile_.mutable_samples()->mutable_values();
         for (auto&& sampleValues : values) {
-            Y_ENSURE(sampleValues.value_size() == 0, "Trying to add value type for non-empty profile");
+            Y_ENSURE(sampleValues.value_size() == Profile_.samples().key_size());
         }
 
         Y_ENSURE(values.size() == *id);
         auto* sampleValues = values.Add();
         sampleValues->mutable_type()->set_type(info.Type.GetInternalIndex());
         sampleValues->mutable_type()->set_unit(info.Unit.GetInternalIndex());
+        sampleValues->mutable_value()->Resize(Profile_.samples().key_size(), 0);
 
         Y_ENSURE(ValuesSum_.size() == static_cast<size_t>(*id));
         ValuesSum_.emplace_back(0);
