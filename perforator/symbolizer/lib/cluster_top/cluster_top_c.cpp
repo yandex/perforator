@@ -6,8 +6,8 @@
 
 namespace {
 
-NPerforator::NClusterTop::TServicePerfTopAggregator* FromOpaque(void *aggregator) {
-    return reinterpret_cast<NPerforator::NClusterTop::TServicePerfTopAggregator*>(aggregator);
+NPerforator::NClusterTop::TPerfTopAggregator* FromOpaque(void *aggregator) {
+    return reinterpret_cast<NPerforator::NClusterTop::TPerfTopAggregator*>(aggregator);
 }
 
 constexpr std::size_t kBigIntSizeof = 16;
@@ -16,19 +16,19 @@ constexpr std::size_t kBigIntSizeof = 16;
 
 extern "C" {
 
-void *MakeServicePerfTopAggregator() {
-    auto aggregatorPtr = std::make_unique<NPerforator::NClusterTop::TServicePerfTopAggregator>();
+void *MakePerfTopAggregator() {
+    auto aggregatorPtr = std::make_unique<NPerforator::NClusterTop::TPerfTopAggregator>();
 
     return aggregatorPtr.release();
 }
 
-void DestroyServicePerfTopAggregator(void *aggregator) {
-    std::unique_ptr<NPerforator::NClusterTop::TServicePerfTopAggregator> aggregatorPtr{FromOpaque(aggregator)};
+void DestroyPerfTopAggregator(void *aggregator) {
+    std::unique_ptr<NPerforator::NClusterTop::TPerfTopAggregator> aggregatorPtr{FromOpaque(aggregator)};
 
     aggregatorPtr.reset();
 }
 
-void InitializeSymbolizerForServicePerfTopAggregator(
+void InitializeSymbolizerForPerfTopAggregator(
     void *aggregator,
     const char* buildIdBytes, ui64 buildIdBytesLen,
     const char* gsymPathBytes, ui64 gsymPathBytesLen
@@ -41,26 +41,24 @@ void InitializeSymbolizerForServicePerfTopAggregator(
     );
 }
 
-void AddProfileIntoServicePerfTopAggregator(
+void AddProfileIntoPerfTopAggregator(
     void *aggregator,
-    const char* service,
-    ui64 serviceLen,
     const char* profileBytes,
     ui64 profileBytesLen
 ) {
     auto *aggregatorPtr = FromOpaque(aggregator);
 
-    aggregatorPtr->AddProfile({service, serviceLen}, {profileBytes, profileBytesLen});
+    aggregatorPtr->AddProfile({profileBytes, profileBytesLen});
 }
 
-void MergeServicePerfTopAggregators(void *aggregator, void *otherAggregator) {
+void MergePerfTopAggregators(void *aggregator, void *otherAggregator) {
     auto* dst = FromOpaque(aggregator);
     const auto* src = FromOpaque(otherAggregator);
 
     dst->MergeAggregator(*src);
 }
 
-void FinalizeServicePerfTopAggregator(
+void FinalizePerfTopAggregator(
     void *aggregator,
     ui64* nEntries,
     const char*** functions,

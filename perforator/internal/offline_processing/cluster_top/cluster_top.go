@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -18,10 +17,8 @@ import (
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
-	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile"
-	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -33,6 +30,8 @@ type ClusterTop struct {
 	profileStorage profile.Storage
 
 	symbolizer *ClusterTopSymbolizer
+
+	metrics *workerMetrics
 }
 
 func NewClusterTop(
@@ -73,13 +72,11 @@ func NewClusterTop(
 	}
 
 	return &ClusterTop{
-		l: l,
-
-		downloader: downloaderInstance,
-
+		l:              l,
+		downloader:     downloaderInstance,
 		profileStorage: storageBundle.ProfileStorage,
-
-		symbolizer: symbolizer,
+		symbolizer:     symbolizer,
+		metrics:        newWorkerMetrics(reg),
 	}, nil
 }
 
@@ -214,227 +211,43 @@ func (t *ClusterTop) selectAndProcessJob(
 	}
 
 	job := selected.Job
-	startTime := time.Now()
-	var profilesCount int
-	defer func() {
-		duration := time.Since(startTime)
-		l := t.l.With(
-			log.Int64("job_id", job.ID),
-			log.String("service", job.Service),
-			log.Duration("duration", duration),
-			log.Int("generation", job.Generation),
-			log.String("workload_key", job.WorkloadKey()),
-			log.String("pod_id", job.PodID),
-			log.String("node_id", job.NodeID),
-			log.Time("from", job.TimeRange.From),
-			log.Time("to", job.TimeRange.To),
-			log.Int("profilesCount", profilesCount),
-		)
-		if err != nil {
-			l.Error(ctx, "Failed to process the job", log.Error(err))
-		} else {
-			l.Info(ctx, "Successfully processed the job")
-		}
-		selected.Finalize(ctx, err)
-	}()
-
-	profilesCount, err = t.processJob(
-		ctx,
+	processor := newOneShotJobProcessor(
+		t.l,
+		t.profileStorage,
+		t.symbolizer,
 		clusterPerfTopAggregator,
 		job,
 		degreeOfParallelism,
 		kDefaultProfilesBatchSize,
 	)
 
-	return true
-}
-
-func (t *ClusterTop) processJob(
-	ctx context.Context,
-	clusterPerfTopAggregator ClusterPerfTopAggregator,
-	job Job,
-	degreeOfParallelism int,
-	profilesBatchSize int,
-) (processedProfiles int, err error) {
-	selector, err := buildSelector(job.Service, job.TimeRange, job.PodID, job.NodeID)
-	if err != nil {
-		return 0, err
-	}
-
-	profileMetas, err := t.profileStorage.SelectProfiles(ctx, &meta.ProfileQuery{
-		Selector: selector,
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	if len(profileMetas) == 0 {
-		t.l.Warn(ctx, "Job has no profiles, marking as done",
-			log.String("service", job.Service),
-			log.String("workload_key", job.WorkloadKey()),
-		)
-		return 0, nil
-	}
-
-	t.l.Info(ctx, "Starting job processing",
-		log.String("service", job.Service),
-		log.String("workload_key", job.WorkloadKey()),
-		log.String("pod_id", job.PodID),
-		log.String("node_id", job.NodeID),
-		log.Int("profilesCount", len(profileMetas)),
-	)
-
-	buildIDs := getBuildIDsFromProfiles(profileMetas)
-
-	functions, err := t.processServiceProfiles(
-		ctx,
-		job.Service,
-		profileMetas,
-		buildIDs,
-		degreeOfParallelism,
-		profilesBatchSize,
-	)
-	if err != nil {
-		return len(profileMetas), err
-	}
-
-	err = clusterPerfTopAggregator.Save(ctx, &ServicePerfTop{
-		Generation:  job.Generation,
-		ServiceName: job.Service,
-		Functions:   functions,
-	})
-	return len(profileMetas), err
-}
-
-func (t *ClusterTop) processServiceProfiles(
-	ctx context.Context,
-	serviceName string,
-	profileMetas []*meta.ProfileMetadata,
-	buildIDs []string,
-	degreeOfParallelism int,
-	profilesBatchSize int,
-) ([]Function, error) {
-	metaBatchesChan := make(
-		chan []*meta.ProfileMetadata,
-		// round up to make all the batches fit
-		(len(profileMetas)+profilesBatchSize-1)/profilesBatchSize,
-	)
-	for i := 0; i < len(profileMetas); i += profilesBatchSize {
-		metaBatchesChan <- profileMetas[i:min(i+profilesBatchSize, len(profileMetas))]
-	}
-	close(metaBatchesChan)
-
-	gsyms, err := t.symbolizer.DownloadAllGSYMs(ctx, buildIDs)
-	if err != nil {
-		return nil, err
-	}
-	defer gsyms.Release()
-
-	aggregators := make([]*ServicePerfTopAggregator, degreeOfParallelism)
+	var jobResult oneShotJobResult
 	defer func() {
-		for _, aggregator := range aggregators {
-			if aggregator != nil {
-				aggregator.Destroy()
-			}
+		stats := &jobResult.executionStats
+
+		l := t.l.With(
+			log.Int64("job_id", job.ID),
+			log.String("service", job.Service),
+			log.Int("generation", job.Generation),
+			log.String("workload_key", job.WorkloadKey()),
+			log.String("pod_id", job.PodID),
+			log.String("node_id", job.NodeID),
+			log.Time("from", job.TimeRange.From),
+			log.Time("to", job.TimeRange.To),
+			log.Int("profilesCount", jobResult.profilesProcessed),
+			log.Any("execution_stats", stats),
+		)
+		if err != nil {
+			l.Error(ctx, "Failed to process the job", log.Error(err))
+		} else {
+			l.Info(ctx, "Successfully processed the job")
 		}
+
+		t.metrics.recordJob(err, jobResult.profilesProcessed, stats)
+		selected.Finalize(ctx, err, stats)
 	}()
 
-	processedProfiles := atomic.Int64{}
+	jobResult, err = processor.run(ctx)
 
-	g, ctx := errgroup.WithContext(ctx)
-	for i := range degreeOfParallelism {
-		g.Go(func() error {
-			aggregator, err := t.symbolizer.NewServicePerfTopAggregator(serviceName)
-			if err != nil {
-				return err
-			}
-			aggregators[i] = aggregator
-
-			aggregator.InitializeSymbolizersWithGSYMs(gsyms, buildIDs)
-
-			for metaBatch := range metaBatchesChan {
-				batch, err := t.fetchProfiles(ctx, metaBatch)
-				if err != nil {
-					return err
-				}
-
-				t.l.Info(
-					ctx,
-					"Got a batch of profiles to process",
-					log.String("service", serviceName),
-					log.Int("batchSize", len(batch)),
-					log.Int("alreadyProcessedPct", int(processedProfiles.Load()*100/int64(len(profileMetas)))),
-				)
-
-				err = aggregator.AddProfiles(ctx, batch)
-				if err != nil {
-					return err
-				}
-				processedProfiles.Add(int64(len(batch)))
-			}
-
-			return nil
-		})
-	}
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-
-	for i := 1; i < len(aggregators); i += 1 {
-		aggregators[0].MergeWith(aggregators[i])
-	}
-	return aggregators[0].Extract(), nil
-}
-
-func (t *ClusterTop) fetchProfiles(
-	ctx context.Context,
-	profileMetas []*meta.ProfileMetadata,
-) ([]profile.ProfileData, error) {
-	profiles := make([]profile.ProfileData, len(profileMetas))
-
-	g, ctx := errgroup.WithContext(ctx)
-	for i := range profileMetas {
-		g.Go(func() error {
-			profileBundle, err := t.profileStorage.FetchProfile(ctx, profileMetas[i])
-			if err != nil {
-				noExistErr := &blob.ErrNoExist{}
-				if errors.As(err, &noExistErr) {
-					return nil
-				}
-				return err
-			}
-
-			pprofData, err := profileBundle.GetOrConvertPprof()
-			if err != nil {
-				return err
-			}
-			profiles[i] = pprofData
-
-			return nil
-		})
-	}
-
-	err := g.Wait()
-	if err != nil {
-		return nil, err
-	}
-
-	return profiles, nil
-}
-
-func getBuildIDsFromProfiles(profileMetas []*meta.ProfileMetadata) []string {
-	uniqueBuildIDs := make(map[string]struct{})
-
-	for _, profileMeta := range profileMetas {
-		for _, buildID := range profileMeta.BuildIDs {
-			uniqueBuildIDs[buildID] = struct{}{}
-		}
-	}
-
-	uniqueBuildIDsList := make([]string, 0, len(uniqueBuildIDs))
-	for buildID := range uniqueBuildIDs {
-		uniqueBuildIDsList = append(uniqueBuildIDsList, buildID)
-	}
-
-	return uniqueBuildIDsList
+	return true
 }

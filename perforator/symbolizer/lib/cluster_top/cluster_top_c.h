@@ -6,27 +6,25 @@
 extern "C" {
 #endif
 
-void *MakeServicePerfTopAggregator();
+void *MakePerfTopAggregator();
 
-void DestroyServicePerfTopAggregator(void *aggregator);
+void DestroyPerfTopAggregator(void *aggregator);
 
-void InitializeSymbolizerForServicePerfTopAggregator(
+void InitializeSymbolizerForPerfTopAggregator(
     void *aggregator,
     const char* buildIdBytes, ui64 buildIdBytesLen,
     const char* gsymPathBytes, ui64 gsymPathBytesLen
 );
 
-void AddProfileIntoServicePerfTopAggregator(
+void AddProfileIntoPerfTopAggregator(
     void *aggregator,
-    const char* service,
-    ui64 serviceLen,
     const char* profileBytes,
     ui64 profileBytesLen
 );
 
-void MergeServicePerfTopAggregators(void *aggregator, void *otherAggregator);
+void MergePerfTopAggregators(void *aggregator, void *otherAggregator);
 
-void FinalizeServicePerfTopAggregator(
+void FinalizePerfTopAggregator(
     void *aggregator,
     ui64* nEntries,
     const char*** functions,

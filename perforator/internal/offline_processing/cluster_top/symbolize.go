@@ -35,31 +35,29 @@ func (s *ClusterTopSymbolizer) DownloadAllGSYMs(
 	return symbolize.DownloadBinaries(ctx, s.l, buildIDs, s.gsymDownloader, false)
 }
 
-type ServicePerfTopAggregator struct {
-	symbolizer  *ClusterTopSymbolizer
-	serviceName string
+type PerfTopAggregator struct {
+	symbolizer *ClusterTopSymbolizer
 
 	gsyms *symbolize.CachedBinariesBatch
 
 	aggregator unsafe.Pointer
 }
 
-func (s *ClusterTopSymbolizer) NewServicePerfTopAggregator(serviceName string) (*ServicePerfTopAggregator, error) {
-	aggregator := C.MakeServicePerfTopAggregator()
+func (s *ClusterTopSymbolizer) NewPerfTopAggregator() (*PerfTopAggregator, error) {
+	aggregator := C.MakePerfTopAggregator()
 
-	return &ServicePerfTopAggregator{
-		symbolizer:  s,
-		serviceName: serviceName,
+	return &PerfTopAggregator{
+		symbolizer: s,
 		// gsyms is initialized later in InitializeSymbolizers
 		aggregator: aggregator,
 	}, nil
 }
 
-func (a *ServicePerfTopAggregator) Destroy() {
-	C.DestroyServicePerfTopAggregator(a.aggregator)
+func (a *PerfTopAggregator) Destroy() {
+	C.DestroyPerfTopAggregator(a.aggregator)
 }
 
-func (a *ServicePerfTopAggregator) InitializeSymbolizers(ctx context.Context, buildIDs []string) error {
+func (a *PerfTopAggregator) InitializeSymbolizers(ctx context.Context, buildIDs []string) error {
 	gsyms, err := a.symbolizer.DownloadAllGSYMs(ctx, buildIDs)
 	if err != nil {
 		return err
@@ -70,7 +68,7 @@ func (a *ServicePerfTopAggregator) InitializeSymbolizers(ctx context.Context, bu
 	return nil
 }
 
-func (a *ServicePerfTopAggregator) InitializeSymbolizersWithGSYMs(
+func (a *PerfTopAggregator) InitializeSymbolizersWithGSYMs(
 	gsyms *symbolize.CachedBinariesBatch,
 	buildIDs []string,
 ) {
@@ -85,7 +83,7 @@ func (a *ServicePerfTopAggregator) InitializeSymbolizersWithGSYMs(
 			cPath := C.CString(path)
 			defer C.free(unsafe.Pointer(cPath))
 
-			C.InitializeSymbolizerForServicePerfTopAggregator(
+			C.InitializeSymbolizerForPerfTopAggregator(
 				a.aggregator,
 				cBuildID, C.ui64(len(buildID)),
 				cPath, C.ui64(len(path)),
@@ -94,22 +92,17 @@ func (a *ServicePerfTopAggregator) InitializeSymbolizersWithGSYMs(
 	}
 }
 
-func (a *ServicePerfTopAggregator) AddProfiles(
+func (a *PerfTopAggregator) AddProfiles(
 	ctx context.Context,
 	profiles []profile.ProfileData,
 ) error {
-	cServiceName := C.CString(a.serviceName)
-	defer C.free(unsafe.Pointer(cServiceName))
-
 	for _, profile := range profiles {
 		if len(profile) == 0 {
 			continue
 		}
 
-		C.AddProfileIntoServicePerfTopAggregator(
+		C.AddProfileIntoPerfTopAggregator(
 			a.aggregator,
-			cServiceName,
-			C.ui64(len(a.serviceName)),
 			(*C.char)(unsafe.Pointer(&profile[0])),
 			C.ui64(len(profile)),
 		)
@@ -122,16 +115,16 @@ func (a *ServicePerfTopAggregator) AddProfiles(
 	return nil
 }
 
-func (a *ServicePerfTopAggregator) MergeWith(otherA *ServicePerfTopAggregator) {
-	C.MergeServicePerfTopAggregators(a.aggregator, otherA.aggregator)
+func (a *PerfTopAggregator) MergeWith(otherA *PerfTopAggregator) {
+	C.MergePerfTopAggregators(a.aggregator, otherA.aggregator)
 }
 
-func (a *ServicePerfTopAggregator) Extract() []Function {
+func (a *PerfTopAggregator) Extract() []Function {
 	var cEntries C.ui64
 	var cFunctions **C.char
 	var cSelfCycles, cCumulativeCycles *C.char
 
-	C.FinalizeServicePerfTopAggregator(
+	C.FinalizePerfTopAggregator(
 		a.aggregator,
 		&cEntries,
 		&cFunctions,

@@ -3,6 +3,7 @@ package cluster_top
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -17,6 +18,7 @@ type jobQueueItem struct {
 	NodeID     string    `db:"node_id"`
 	From       time.Time `db:"from_ts"`
 	To         time.Time `db:"to_ts"`
+	CreatedAt  time.Time `db:"created_at"`
 }
 
 type PgJobSelector struct {
@@ -50,6 +52,7 @@ func (s *PgJobSelector) SelectJob(ctx context.Context) (*SelectedJob, error) {
 			j.generation,
 			j.pod_id,
 			j.node_id,
+			j.created_at,
 			g.from_ts,
 			g.to_ts
 		FROM cluster_top_jobs AS j
@@ -67,6 +70,21 @@ func (s *PgJobSelector) SelectJob(ctx context.Context) (*SelectedJob, error) {
 		return nil, err
 	}
 
+	var startedAt time.Time
+	err = tx.GetContext(
+		ctx,
+		&startedAt,
+		`UPDATE cluster_top_jobs
+		SET started_at = clock_timestamp()
+		WHERE id = $1
+		RETURNING started_at`,
+		queueItem.ID,
+	)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, fmt.Errorf("failed to set started_at: %w", err)
+	}
+
 	job := Job{
 		ID:         queueItem.ID,
 		Generation: int(queueItem.Generation),
@@ -77,25 +95,40 @@ func (s *PgJobSelector) SelectJob(ctx context.Context) (*SelectedJob, error) {
 			From: queueItem.From,
 			To:   queueItem.To,
 		},
+		CreatedAt: queueItem.CreatedAt,
+		StartedAt: startedAt,
 	}
 
 	return &SelectedJob{
 		Job: job,
-		finalize: func(ctx context.Context, processingErr error) {
+		finalize: func(ctx context.Context, processingErr error, stats *JobExecutionStats) {
 			newStatus := "done"
 			if processingErr != nil {
 				newStatus = "failed"
 			}
+
+			var executionStatsJSON []byte
+			if stats != nil {
+				var marshalErr error
+				executionStatsJSON, marshalErr = json.Marshal(stats)
+				if marshalErr != nil {
+					_ = tx.Rollback()
+					return
+				}
+			}
+
 			_, finalizationErr := tx.ExecContext(
 				ctx,
 				`UPDATE cluster_top_jobs
 				SET
-					status=$2
+					status = $2,
+					finished_at = clock_timestamp(),
+					execution_stats = $3
 				WHERE
-					id=$1
-				`,
+					id = $1`,
 				job.ID,
 				newStatus,
+				executionStatsJSON,
 			)
 			if finalizationErr == nil {
 				_ = tx.Commit()

@@ -32,7 +32,7 @@ The Cluster Top relies on two main databases:
 1. **PostgreSQL** — used as a job queue and to store the state of generations:
 
    - `cluster_top_generations` — stores information about generations (generation ID, time interval `from_ts` / `to_ts`, status `scheduled` or `finished`).
-   - `cluster_top_jobs` — the queue of jobs to be processed within a generation. Each row is one workload (pod or host agent) for a service. Contains `pod_id`, `node_id`, `profiles_count`, and execution status (`pending`, `done`, `failed`). Time range comes from the linked generation in `cluster_top_generations` (not stored on the job row). Schema: [024_cluster_top_jobs.up.sql](../../../cmd/migrate/migrations/postgres/024_cluster_top_jobs.up.sql).
+   - `cluster_top_jobs` — the queue of jobs to be processed within a generation. Each row is one workload (pod or host agent) for a service. Contains `pod_id`, `node_id`, `profiles_count`, execution status (`pending`, `done`, `failed`), timestamps (`created_at`, `started_at`, `finished_at`), and per-job `execution_stats` (JSONB). Time range comes from the linked generation in `cluster_top_generations` (not stored on the job row). Schema: [024_cluster_top_jobs.up.sql](../../../cmd/migrate/migrations/postgres/024_cluster_top_jobs.up.sql), [025_cluster_top_jobs_execution_stats.up.sql](../../../cmd/migrate/migrations/postgres/025_cluster_top_jobs_execution_stats.up.sql).
      - Unique per generation: `(generation, service, coalesce(nullif(pod_id, ''), node_id))`.
      - Partial index for worker pickup: `(profiles_count DESC) WHERE status = 'pending'`.
    - `cluster_top_services` — legacy whole-service queue kept for rollback safety; no longer populated by the scheduler.
@@ -79,7 +79,19 @@ The Workers are responsible for the actual data aggregation. They run concurrent
   3. Downloads the raw profiles in batches from Blob Storage.
   4. Aggregates the profiles in parallel within the job: builds call trees and extracts the top functions, calculating `self_cycles` and `cumulative_cycles`.
   5. Saves the aggregated result to ClickHouse in `cluster_top_v2` via [ClickhousePerfTopAggregator](./clickhouse_perf_top_aggregator.go).
-  6. Updates the job status in PostgreSQL to `done` (or `failed` in case of an error).
+  6. Updates the job status in PostgreSQL to `done` (or `failed` in case of an error), sets `finished_at`, and writes `execution_stats` JSONB.
+
+## Observability
+
+On job completion the worker writes `execution_stats` (JSONB, schema `version: "v1"`) and sets `started_at` / `finished_at`. Durations are Go `time.Duration` values serialized as nanoseconds. Top-level `processing_wall` is wall-clock time for the parallel profiles block. Stage keys `fetch_profile`, `parse_profile`, and `aggregate_profiles` are cumulative across goroutines. Per-job dimensions live in `metrics` (not Solomon sensors).
+
+Worker Prometheus metrics (prefix `cluster_top_worker`): `jobs.processing.timer` (`status=success|failed`), `jobs.queue_wait.timer`, `jobs.processed.count` (`status=done|failed|empty`).
+
+```sql
+SELECT avg((execution_stats->>'duration')::bigint / profiles_count)
+FROM cluster_top_jobs
+WHERE status = 'done' AND execution_stats->>'version' = 'v1';
+```
 
 ## Architecture
 

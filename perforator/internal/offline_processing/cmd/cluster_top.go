@@ -2,9 +2,13 @@ package cmd
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/internal/offline_processing/cluster_top"
@@ -41,6 +45,7 @@ var (
 	clusterTopConfigPath          string
 	clusterTopLogLevelStr         string
 	clusterTopDegreeOfParallelism uint
+	clusterTopMetricsPort         uint32
 
 	clusterTopSchedulerGenerationInterval time.Duration
 	clusterTopSchedulerProfileLag         time.Duration
@@ -95,12 +100,22 @@ var (
 
 			clusterPerfTopAggregator := cluster_top.NewClickhousePerfTopAggregator(storageBundle.ClusterTopGenerationsStorage)
 
-			return clusterTop.Run(
-				ctx,
-				jobSelector,
-				clusterPerfTopAggregator,
-				clusterTopDegreeOfParallelism,
-			)
+			g, ctx := errgroup.WithContext(ctx)
+
+			g.Go(func() error {
+				return runMetricsServer(ctx, logger, reg, clusterTopMetricsPort)
+			})
+
+			g.Go(func() error {
+				return clusterTop.Run(
+					ctx,
+					jobSelector,
+					clusterPerfTopAggregator,
+					clusterTopDegreeOfParallelism,
+				)
+			})
+
+			return g.Wait()
 		},
 	}
 
@@ -144,10 +159,50 @@ var (
 
 			s := scheduler.NewScheduler(logger, reg, storageBundle, schedulerConf)
 
-			return s.Run(ctx)
+			g, ctx := errgroup.WithContext(ctx)
+
+			g.Go(func() error {
+				return runMetricsServer(ctx, logger, reg, clusterTopMetricsPort)
+			})
+
+			g.Go(func() error {
+				return s.Run(ctx)
+			})
+
+			return g.Wait()
 		},
 	}
 )
+
+func runMetricsServer(
+	ctx context.Context,
+	logger xlog.Logger,
+	reg xmetrics.Registry,
+	port uint32,
+) error {
+	if port == 0 {
+		return nil
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", reg.HTTPHandler(ctx, logger))
+
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: mux,
+	}
+
+	go func() {
+		<-ctx.Done()
+		_ = srv.Shutdown(context.Background())
+	}()
+
+	logger.Info(ctx, "Starting metrics server", log.UInt32("port", port))
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
+}
 
 func init() {
 	for _, cmd := range []*cobra.Command{clusterTopCommand, clusterTopSchedulerCommand} {
@@ -165,6 +220,13 @@ func init() {
 			"log-level",
 			"info",
 			"Logging level - ('info') {'debug', 'info', 'warn', 'error'}",
+		)
+
+		cmd.Flags().Uint32Var(
+			&clusterTopMetricsPort,
+			"metrics-port",
+			0,
+			"Port to export metrics on (0 disables metrics server)",
 		)
 	}
 

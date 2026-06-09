@@ -33,17 +33,15 @@ private:
     absl::flat_hash_map<ui64, std::vector<std::string>> SymbolizationCache_;
 };
 
-class TServicePerfTopAggregator final {
+class TPerfTopAggregator final {
 public:
-    TServicePerfTopAggregator();
+    TPerfTopAggregator();
 
     void InitializeSymbolizer(TArrayRef<const char> buildId, TArrayRef<const char> gsymPath);
 
-    void AddProfile(TArrayRef<const char> service, TArrayRef<const char> profileBytes);
+    void AddProfile(TArrayRef<const char> profileBytes);
 
-    void AddProfile(TArrayRef<const char> service, const NPerforator::NProto::NPProf::ProfileLight& profile);
-
-    void MergeAggregator(const TServicePerfTopAggregator& other);
+    void MergeAggregator(const TPerfTopAggregator& other);
 
     struct Function final {
         TString Name;
@@ -57,6 +55,8 @@ public:
     PerfTop ExtractEntries();
 
 private:
+    void AddProfile(const NPerforator::NProto::NPProf::ProfileLight& profile);
+
     void MaybePruneCaches();
 
     absl::flat_hash_map<TString, TCachingGSYMSymbolizer> Symbolizers_;

@@ -110,7 +110,7 @@ SymbolizedProfileData SymbolizeProfile(
     // Every string, for which the views in this map are stored, outlives the map:
     // * some strings are static/constexpr
     // * some strings belong to the profile
-    // * some strings belong to the TServicePerfTopAggregator (i.e. symbolization cache)
+    // * some strings belong to the TPerfTopAggregator (i.e. symbolization cache)
     absl::flat_hash_map<std::string_view, ui64> symbolizedFunctionsMapping;
     symbolizedFunctionsMapping.reserve(profile.locationSize() * 2);
 
@@ -221,9 +221,9 @@ void TCachingGSYMSymbolizer::PruneCaches() {
     SymbolizationCache_.clear();
 }
 
-TServicePerfTopAggregator::TServicePerfTopAggregator() {}
+TPerfTopAggregator::TPerfTopAggregator() {}
 
-void TServicePerfTopAggregator::InitializeSymbolizer(
+void TPerfTopAggregator::InitializeSymbolizer(
     TArrayRef<const char> buildId,
     TArrayRef<const char> gsymPath
 ) {
@@ -233,7 +233,7 @@ void TServicePerfTopAggregator::InitializeSymbolizer(
     );
 }
 
-void TServicePerfTopAggregator::AddProfile(TArrayRef<const char> service, TArrayRef<const char> profileBytes) {
+void TPerfTopAggregator::AddProfile(TArrayRef<const char> profileBytes) {
     if (profileBytes.data() == nullptr || profileBytes.size() == 0) {
         return;
     }
@@ -243,10 +243,10 @@ void TServicePerfTopAggregator::AddProfile(TArrayRef<const char> service, TArray
         return;
     }
 
-    AddProfile(service, profile);
+    AddProfile(profile);
 }
 
-void TServicePerfTopAggregator::AddProfile(TArrayRef<const char>, const NPerforator::NProto::NPProf::ProfileLight& profile) {
+void TPerfTopAggregator::AddProfile(const NPerforator::NProto::NPProf::ProfileLight& profile) {
     MaybePruneCaches();
 
     const auto symbolizedProfileData = SymbolizeProfile(Symbolizers_, profile);
@@ -335,7 +335,7 @@ void TServicePerfTopAggregator::AddProfile(TArrayRef<const char>, const NPerfora
     ++TotalProfiles_;
 }
 
-void TServicePerfTopAggregator::MergeAggregator(const TServicePerfTopAggregator& other) {
+void TPerfTopAggregator::MergeAggregator(const TPerfTopAggregator& other) {
     for (const auto& [k, v] : other.CyclesByFunction_) {
         auto& cyclesCount = CyclesByFunction_[k];
         cyclesCount.SelfCycles += v.SelfCycles;
@@ -346,7 +346,7 @@ void TServicePerfTopAggregator::MergeAggregator(const TServicePerfTopAggregator&
     TotalProfiles_ += other.TotalProfiles_;
 }
 
-TServicePerfTopAggregator::PerfTop TServicePerfTopAggregator::ExtractEntries() {
+TPerfTopAggregator::PerfTop TPerfTopAggregator::ExtractEntries() {
     const auto sortAndDemangle = [this](const auto& valueSelector) {
         std::vector<std::pair<TString, ui128>> total;
         total.reserve(CyclesByFunction_.size());
@@ -408,7 +408,7 @@ TServicePerfTopAggregator::PerfTop TServicePerfTopAggregator::ExtractEntries() {
     };
 }
 
-void TServicePerfTopAggregator::MaybePruneCaches() {
+void TPerfTopAggregator::MaybePruneCaches() {
     if (TotalProfiles_ % 100 == 0) {
         std::size_t totalSymbolizationCacheSize = 0;
         for (const auto& [_, symbolizer]: Symbolizers_) {

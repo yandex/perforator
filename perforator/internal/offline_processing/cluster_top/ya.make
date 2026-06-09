@@ -4,7 +4,10 @@ SRCS(
     clickhouse_perf_top_aggregator.go
     config.go
     cluster_top.go
+    execution_stats.go
+    metrics.go
     models.go
+    one_shot_job_processor.go
     pg_job_selector.go
 )
 
