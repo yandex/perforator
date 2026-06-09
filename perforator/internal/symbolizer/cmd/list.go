@@ -270,7 +270,7 @@ func init() {
 		&startTime,
 		"start-time",
 		"s",
-		humantime.LongTimeAgo,
+		"now - 24h",
 		`Start time to list profiles from. Unix time in seconds, ISO8601, or HH:MM in the last 24 hours`,
 	)
 	listProfilesCmd.Flags().StringVarP(

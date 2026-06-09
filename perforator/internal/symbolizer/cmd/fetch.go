@@ -612,7 +612,7 @@ func addCommonSelectorOptions(cmd *cobra.Command) {
 		&startTime,
 		"start",
 		"s",
-		humantime.LongTimeAgo,
+		"now - 24h",
 		`Start time to aggregate from. Unix time in seconds, ISO8601, HH:MM in the last 24 hours, or "now - 1d2h3m4s"`,
 	)
 
