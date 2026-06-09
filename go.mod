@@ -1132,6 +1132,7 @@ require (
 	k8s.io/apiserver v0.34.1
 	k8s.io/cli-runtime v0.34.1
 	k8s.io/client-go v0.34.1
+	k8s.io/component-base v0.34.1
 	k8s.io/cri-api v0.34.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-aggregator v0.34.1
@@ -2625,7 +2626,6 @@ require (
 	k8s.io/cloud-provider v0.26.1 // indirect
 	k8s.io/cluster-bootstrap v0.26.1 // indirect
 	k8s.io/code-generator v0.34.1 // indirect
-	k8s.io/component-base v0.34.1 // indirect
 	k8s.io/controller-manager v0.26.2-rc.0 // indirect
 	k8s.io/csi-translation-lib v0.26.1 // indirect
 	k8s.io/dynamic-resource-allocation v0.26.1 // indirect
