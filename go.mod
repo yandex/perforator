@@ -428,7 +428,7 @@ require (
 	github.com/go-cmd/cmd v1.4.2
 	github.com/go-co-op/gocron/v2 v2.21.0
 	github.com/go-critic/go-critic v0.9.0
-	github.com/go-delve/delve v1.25.2
+	github.com/go-delve/delve v1.26.3
 	github.com/go-faster/city v1.0.1
 	github.com/go-faster/errors v0.7.1
 	github.com/go-faster/jx v1.2.0
@@ -1578,6 +1578,7 @@ require (
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba // indirect
 	github.com/derekparker/trie v0.0.0-20230829180723-39f4de51ef7d // indirect
+	github.com/derekparker/trie/v3 v3.2.0 // indirect
 	github.com/devigned/tab v0.1.1 // indirect
 	github.com/dghubble/trie v0.1.0 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
