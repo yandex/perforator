@@ -18,7 +18,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profilerext"
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmattach"
 	"github.com/yandex/perforator/perforator/internal/logfield"
-	"github.com/yandex/perforator/perforator/internal/symbolpool"
+	"github.com/yandex/perforator/perforator/internal/symboltable"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/pidfd"
 	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
@@ -46,7 +46,7 @@ type Registry struct {
 	logger        xlog.Logger
 	mu            sync.RWMutex
 	procs         map[linux.CurrentNamespacePID]*trackedProcess
-	syms          *symbolpool.Pool
+	syms          *symboltable.Table[linux.CurrentNamespacePID, string]
 	jvmDialer     *jvmattach.Dialer
 	enableJVM     bool
 	started       atomic.Bool
@@ -67,7 +67,7 @@ func NewRegistry(logger log.Logger, mReg metrics.Registry, enableJVM bool) *Regi
 	reg := &Registry{
 		logger: xlog.Wrap(logger.WithName("perfmap")),
 		procs:  make(map[linux.CurrentNamespacePID]*trackedProcess),
-		syms:   symbolpool.New(),
+		syms:   symboltable.New[linux.CurrentNamespacePID, string](),
 		jvmDialer: &jvmattach.Dialer{
 			Logger: xlog.Wrap(logger.WithName("perfmap.jvmattach")),
 		},
@@ -349,7 +349,7 @@ func (r *Registry) findProcess(pid linux.CurrentNamespacePID) *trackedProcess {
 }
 
 func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
-	name, ok := r.syms.Resolve(pid, ip)
+	name, ok := r.syms.Find(pid, ip)
 	if ok {
 		return profilerext.JITSymbolizerOutput{
 			SymbolName:  name,

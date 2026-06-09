@@ -1,7 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
-    pool.go
+    table.go
 )
 
 END()

@@ -35,7 +35,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	_ "github.com/yandex/perforator/perforator/internal/linguist/jvm/cheatsheets"
 	"github.com/yandex/perforator/perforator/internal/logfield"
-	"github.com/yandex/perforator/perforator/internal/symbolpool"
+	"github.com/yandex/perforator/perforator/internal/symboltable"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -77,7 +77,7 @@ type Registry struct {
 
 	disambiguateFrameSorce bool
 
-	compiledSyms         *symbolpool.Pool
+	compiledSyms         *symboltable.Table[linux.CurrentNamespacePID, string]
 	interpretedSymsCache *expirable.LRU[interpretedSymbolCacheKey, interpretedSymbolCacheValue]
 
 	helperBinaryPath string
@@ -139,7 +139,7 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		tracked:                make(map[linux.CurrentNamespacePID]*trackedProcess),
 		bpf:                    bpf.State(),
 		unwind:                 unwind,
-		compiledSyms:           symbolpool.New(),
+		compiledSyms:           symboltable.New[linux.CurrentNamespacePID, string](),
 		interpretedSymsCache:   interpretedSymsCache,
 		disambiguateFrameSorce: opts.DisambiguateFrameSource,
 
@@ -285,7 +285,7 @@ func (r *Registry) SymbolizeInterpreted(ctx context.Context, pid linux.CurrentNa
 }
 
 func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
-	name, ok := r.compiledSyms.Resolve(pid, ip)
+	name, ok := r.compiledSyms.Find(pid, ip)
 	if ok {
 		r.compiledMethodResolveSuccess.Inc()
 		return profilerext.JITSymbolizerOutput{
@@ -298,7 +298,7 @@ func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerex
 }
 
 func (r *Registry) updateSymbols(ctx context.Context, pid linux.CurrentNamespacePID, methods []*jvmsupp.MethodInfo) {
-	var s []symbolpool.Symbol
+	var s []symboltable.Entry[string]
 	for _, m := range methods {
 		name := m.Name
 		if r.disambiguateFrameSorce {
@@ -309,13 +309,13 @@ func (r *Registry) updateSymbols(ctx context.Context, pid linux.CurrentNamespace
 			}
 		}
 
-		s = append(s, symbolpool.Symbol{
-			Name:  name,
+		s = append(s, symboltable.Entry[string]{
+			Data:  name,
 			Begin: m.CodeBegin,
 			Size:  m.CodeEnd - m.CodeBegin,
 		})
 	}
-	slices.SortFunc(s, func(lhs, rhs symbolpool.Symbol) int {
+	slices.SortFunc(s, func(lhs, rhs symboltable.Entry[string]) int {
 		return cmp.Compare(lhs.Begin, rhs.Begin)
 	})
 	r.l.Info(ctx, "Updating compiled symbols", logfield.CurrentNamespacePID(pid), log.Int("count", len(s)))

@@ -7,7 +7,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/yandex/perforator/perforator/internal/symbolpool"
+	"github.com/yandex/perforator/perforator/internal/symboltable"
 	"github.com/yandex/perforator/perforator/pkg/disjointsegmentsets"
 )
 
@@ -32,7 +32,7 @@ type refreshStats struct {
 	currentSize int
 }
 
-func (p *perfMap) refresh() ([]symbolpool.Symbol, refreshStats, error) {
+func (p *perfMap) refresh() ([]symboltable.Entry[string], refreshStats, error) {
 	info, err := os.Stat(p.path)
 	if err != nil {
 		return nil, refreshStats{}, fmt.Errorf("failed to stat perf map: %w", err)
@@ -65,10 +65,10 @@ func (p *perfMap) refresh() ([]symbolpool.Symbol, refreshStats, error) {
 
 	p.lastRefreshMtime = info.ModTime()
 	p.lastRefreshSize = info.Size()
-	var syms []symbolpool.Symbol
+	var syms []symboltable.Entry[string]
 	for _, s := range rawSyms {
-		syms = append(syms, symbolpool.Symbol{
-			Name:  s.name,
+		syms = append(syms, symboltable.Entry[string]{
+			Data:  s.name,
 			Begin: s.offset,
 			Size:  s.size,
 		})
