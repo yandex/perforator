@@ -45,6 +45,10 @@ NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath, u
     TVMStructsAddresses addresses;
     addresses.StructsAddress = GetSym(std::string{TVMStructsAddresses::StructsAddressSym});
     addresses.TypesAddress = GetSym(std::string{TVMStructsAddresses::TypesAddressSym});
+    addresses.IntsAddress = GetSym(std::string{TVMStructsAddresses::IntsAddressSym});
+    addresses.IntsNameOffset = GetSym(std::string{TVMStructsAddresses::IntsNameOffsetSym});
+    addresses.IntsValueOffset = GetSym(std::string{TVMStructsAddresses::IntsValueOffsetSym});
+    addresses.IntsStride = GetSym(std::string{TVMStructsAddresses::IntsStrideSym});
 
     return NPerforator::NLinguist::NJvm::ProcessDynamicLinkedJVM(addresses, version);
 }
@@ -81,8 +85,6 @@ int main(int argc, char** argv) {
 
     Cout << "Writing cheatsheets for JDK " << version << Endl;
 
-    Write(spec.Cheatsheet, out + std::format("/jdk{}.txtpb", version));
-
     spec.Cheatsheet.MergeFrom(dynamic.Cheatsheet);
-    Write(spec.Cheatsheet, out + std::format("/jdk{}-min.txtpb", version));
+    Write(spec.Cheatsheet, out + std::format("/jdk{}.txtpb", version));
 }

@@ -1,10 +1,19 @@
 #include "analyzer_impl.h"
 
+#include <util/generic/yexception.h>
+
 namespace NPerforator::NLinguist::NJvm {
 
 TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistryAnalysisOptions options, ui32 version) {
     TJvmAnalysis offsets;
     NPerforator::NBinaryProcessing::NJvm::Cheatsheet& s = offsets.Cheatsheet;
+
+    i32 hasJvmci = metadata.FindIntValue("INCLUDE_JVMCI");
+    if (hasJvmci != 1) {
+        // TODO: support this case too
+        ythrow yexception() << "Unsupported libjvm with disabled JVMCI";
+    }
+
     s.set_code_blob_name(metadata.FindFieldOffset("CodeBlob", "_name"));
     s.set_code_blob_frame_size(
         metadata.FindFieldOffset("CodeBlob", "_frame_size")
@@ -46,6 +55,30 @@ TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistry
     } else {
         s.set_nmethod_method(metadata.FindFieldOffset("CompiledMethod", "_method"));
     }
+    if (version >= 22) {
+        s.set_nmethod_immutable_data(metadata.FindFieldOffset("nmethod", "_immutable_data"));
+    }
+    s.set_nmethod_scopes_pcs(metadata.FindFieldOffset("nmethod", "_scopes_pcs_offset"));
+    if (version >= 22) {
+        s.set_nmethod_scopes_data_offset(metadata.FindFieldOffset("nmethod", "_scopes_data_offset"));
+    }
+    if (version >= 25) {
+        s.set_nmethod_mutable_data(metadata.FindFieldOffset("CodeBlob", "_mutable_data"));
+        s.set_nmethod_mutable_data_size(metadata.FindFieldOffset("CodeBlob", "_mutable_data_size"));
+    } else {
+        s.set_nmethod_data_offset(metadata.FindFieldOffset("CodeBlob", "_data_offset"));
+        s.set_nmethod_metadata_offset(metadata.FindFieldOffset("nmethod", "_metadata_offset"));
+    }
+    if (version >= 22) {
+        s.set_nmethod_relocation_size(metadata.FindFieldOffset("CodeBlob", "_relocation_size"));
+    }
+    if (version <= 21) {
+        s.set_nmethod_dependencies_offset(metadata.FindFieldOffset("nmethod", "_dependencies_offset"));
+    }
+
+    s.set_pc_desc_size(metadata.FindTypeSize("PcDesc"));
+    s.set_pc_desc_pc_offset(metadata.FindFieldOffset("PcDesc", "_pc_offset"));
+    s.set_pc_desc_scope_decode_offset(metadata.FindFieldOffset("PcDesc", "_scope_decode_offset"));
 
     s.set_growable_array_data(
         metadata.FindFieldOffset("GrowableArray<int>", "_data")

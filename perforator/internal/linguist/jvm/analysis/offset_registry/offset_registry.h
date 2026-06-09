@@ -25,13 +25,40 @@ struct THotSpotTypeEntry {
     ui64 Size;
 };
 
+struct IntLayout {
+    size_t Stride;
+    size_t NameOffset;
+    size_t ValueOffset;
+
+    const void* Inc(const void* ptr) const {
+        return reinterpret_cast<const char*>(ptr) + Stride;
+    }
+
+    char const* Name(const void* ptr) const {
+        return *reinterpret_cast<char const* const*>(ptr) + NameOffset;
+    }
+
+    i32 Value(const void* ptr) const {
+        return *reinterpret_cast<const i32*>(reinterpret_cast<const char*>(ptr) + ValueOffset);
+    }
+};
+
 class TJvmMetadata {
 private:
     std::span<const THotSpotStructEntry> Structs_;
     std::span<const THotSpotTypeEntry> Types_;
+    const void* IntsData_;
+    size_t IntsCount_;
+    IntLayout IntLayout_;
 
 public:
-    TJvmMetadata(std::span<const THotSpotStructEntry> structsSym, std::span<const THotSpotTypeEntry> typesSym);
+    TJvmMetadata(
+        std::span<const THotSpotStructEntry> structs,
+        std::span<const THotSpotTypeEntry> types,
+        const void* intsData,
+        size_t intsCount,
+        IntLayout intLayout
+    );
 
 private:
     const THotSpotStructEntry* FindField(std::string_view typeName, std::string_view fieldName) const;
@@ -42,6 +69,8 @@ public:
     size_t FindFieldOffset(std::string_view typeName, std::string_view fieldName) const;
 
     size_t FindTypeSize(std::string_view typeName) const;
+
+    i32 FindIntValue(std::string_view intName) const;
 };
 
 }

@@ -465,7 +465,9 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 		if !ok {
 			continue
 		}
-		loc.AddFrame().SetName(out.SymbolName).SetMangledName(out.SymbolName).Finish()
+		for _, symbol := range out.Symbols {
+			loc.AddFrame().SetName(symbol.Name).SetMangledName(symbol.Name).Finish()
+		}
 		loc.SetMapping().SetPath(out.MappingName).Finish()
 		loc.Finish()
 		return

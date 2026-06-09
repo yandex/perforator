@@ -19,6 +19,7 @@ import (
 var mapPrefix string
 var socketPath string
 var debugLogs bool
+var enableLineInfoParsing bool
 
 func makeSubcommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -48,6 +49,8 @@ func makeSubcommand() *cobra.Command {
 
 	cmd.Flags().BoolVar(&debugLogs, "debug-logging", false, "Enable debug logs")
 
+	cmd.Flags().BoolVar(&enableLineInfoParsing, "enable-line-info-parsing", false, "Enable line info parsing")
+
 	return cmd
 }
 
@@ -61,7 +64,9 @@ func run(ctx context.Context, logger xlog.Logger) error {
 		ProcessInfo: processInfo,
 	}, nil)
 
-	scanner := jvmscanner.New(logger.WithName("scanner"), bpf)
+	scanner := jvmscanner.New(logger.WithName("scanner"), bpf, jvmscanner.Config{
+		EnableLineInfoParsing: enableLineInfoParsing,
+	})
 	s := jvmsupportservice.New(
 		logger.WithName("api"),
 		scanner,

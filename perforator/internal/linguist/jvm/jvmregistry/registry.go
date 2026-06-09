@@ -46,6 +46,7 @@ const (
 	methodKindSuffixInterpreted = " (method-kind:interpreted)"
 	methodKindSuffixJIT         = " (method-kind:jit)"
 	methodKindSuffixStubs       = " (method-kind:stubs)"
+	methodKindSuffixInlined     = " (method-kind:inlined)"
 )
 
 type trackedProcess struct {
@@ -70,18 +71,22 @@ type binaryData struct {
 	version    uint32
 }
 
+type symFunc = func(addr uint64) []string
+
 type Registry struct {
 	l      xlog.Logger
 	bpf    *programstate.State
 	unwind *unwindtable.BPFManager
 
-	disambiguateFrameSorce bool
+	disambiguateFrameSource bool
 
-	compiledSyms         *symboltable.Table[linux.CurrentNamespacePID, string]
+	compiledSyms         *symboltable.Table[linux.CurrentNamespacePID, symFunc]
 	interpretedSymsCache *expirable.LRU[interpretedSymbolCacheKey, interpretedSymbolCacheValue]
 
 	helperBinaryPath string
 	helperSocketPath string
+
+	enableLineInfoParsing bool
 
 	mapPrefix  string
 	grpcClient *grpc.ClientConn
@@ -107,6 +112,9 @@ type Registry struct {
 	interpretedMethodResolveDone          metrics.Counter
 	interpretedMethodResolveFailure       metrics.Counter
 	interpretedMethodResolveInternalError metrics.Counter
+
+	invalidMethodSymbolizationTable    metrics.Counter
+	methodSymbolizationTableLookupFail metrics.Counter
 }
 
 type Options struct {
@@ -117,6 +125,8 @@ type Options struct {
 	MapPrefix                 string
 	InterpetedSymbolCacheSize int
 	InterpretedSymbolCacheTTL time.Duration
+
+	EnableLineInfoParsing bool
 }
 
 func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwindtable.BPFManager, opts Options) (*Registry, error) {
@@ -135,16 +145,18 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		opts.InterpretedSymbolCacheTTL,
 	)
 	return &Registry{
-		l:                      log.WithName("jvmregistry"),
-		tracked:                make(map[linux.CurrentNamespacePID]*trackedProcess),
-		bpf:                    bpf.State(),
-		unwind:                 unwind,
-		compiledSyms:           symboltable.New[linux.CurrentNamespacePID, string](),
-		interpretedSymsCache:   interpretedSymsCache,
-		disambiguateFrameSorce: opts.DisambiguateFrameSource,
+		l:                       log.WithName("jvmregistry"),
+		tracked:                 make(map[linux.CurrentNamespacePID]*trackedProcess),
+		bpf:                     bpf.State(),
+		unwind:                  unwind,
+		compiledSyms:            symboltable.New[linux.CurrentNamespacePID, symFunc](),
+		interpretedSymsCache:    interpretedSymsCache,
+		disambiguateFrameSource: opts.DisambiguateFrameSource,
 
 		helperBinaryPath: opts.ScannerBinaryPath,
 		helperSocketPath: opts.SocketPath,
+
+		enableLineInfoParsing: opts.EnableLineInfoParsing,
 
 		mapPrefix:  opts.MapPrefix,
 		grpcClient: client,
@@ -165,6 +177,9 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		interpretedMethodResolveDone:          reg.WithTags(map[string]string{"outcome": "done"}).Counter("interpreted_methods.resolve.count"),
 		interpretedMethodResolveFailure:       reg.WithTags(map[string]string{"outcome": "failure"}).Counter("interpreted_methods.resolve.count"),
 		interpretedMethodResolveInternalError: reg.WithTags(map[string]string{"outcome": "internal_error"}).Counter("interpreted_methods.resolve.count"),
+
+		invalidMethodSymbolizationTable:    reg.Counter("symbolization.invalid_table.count"),
+		methodSymbolizationTableLookupFail: reg.Counter("symbolization.table_lookup_fail.count"),
 	}, nil
 }
 
@@ -275,7 +290,7 @@ func (r *Registry) SymbolizeInterpreted(ctx context.Context, pid linux.CurrentNa
 
 	name := sym.Name
 	r.interpretedMethodResolveDone.Inc()
-	if r.disambiguateFrameSorce {
+	if r.disambiguateFrameSource {
 		name = name + methodKindSuffixInterpreted
 	}
 	r.interpretedSymsCache.Add(key, interpretedSymbolCacheValue{
@@ -285,11 +300,18 @@ func (r *Registry) SymbolizeInterpreted(ctx context.Context, pid linux.CurrentNa
 }
 
 func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
-	name, ok := r.compiledSyms.Find(pid, ip)
+	symfn, ok := r.compiledSyms.Find(pid, ip)
 	if ok {
 		r.compiledMethodResolveSuccess.Inc()
+		names := symfn(ip)
+		var syms []profilerext.JITSymbol
+		for _, n := range names {
+			syms = append(syms, profilerext.JITSymbol{
+				Name: n,
+			})
+		}
 		return profilerext.JITSymbolizerOutput{
-			SymbolName:  name,
+			Symbols:     syms,
 			MappingName: profile.JVMSpecialMapping,
 		}, true
 	}
@@ -297,25 +319,95 @@ func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerex
 	return profilerext.JITSymbolizerOutput{}, false
 }
 
+func (r *Registry) symbolizeLocation(ctx context.Context, method *jvmsupp.MethodInfo, offset uint64) []string {
+	mst := method.SymbolizationTable
+	pos, ok := slices.BinarySearchFunc(mst.Instructions, offset, func(insn *jvmsupp.InstructionRange, off uint64) int {
+		if off < insn.Begin {
+			return 1
+		}
+		if off >= insn.End {
+			return -1
+		}
+		return 0
+	})
+	if !ok {
+		r.l.Debug(ctx, "Offset not covered by any instruction range", log.UInt64("offset", offset))
+		r.methodSymbolizationTableLookupFail.Inc()
+		return []string{method.Name}
+	}
+	node := mst.Instructions[pos].TreeNode
+	var res []string
+	for {
+		if int(node) >= len(mst.Parent) {
+			r.l.Error(ctx, "Invalid symbolization table: no parent information for node", log.UInt32("node", node))
+			r.invalidMethodSymbolizationTable.Inc()
+			break
+		}
+		methodNamePos := mst.Method[node]
+		if int(methodNamePos) >= len(mst.StringTable) {
+			r.l.Error(ctx, "Invalid symbolization table: method name index points out-of-bounds", log.UInt32("method", methodNamePos))
+			r.invalidMethodSymbolizationTable.Inc()
+			break
+		}
+		mname := mst.StringTable[methodNamePos]
+		parent := mst.Parent[node]
+		if int(node) >= len(mst.Method) {
+			r.l.Error(ctx, "Invalid symbolization table: no method information for node", log.UInt32("node", node))
+			r.invalidMethodSymbolizationTable.Inc()
+			break
+		}
+		if r.disambiguateFrameSource {
+			if parent == node {
+				mname = mname + methodKindSuffixJIT
+			} else {
+				mname = mname + methodKindSuffixInlined
+			}
+		}
+		res = append(res, mname)
+		if len(res) > len(mst.Parent) {
+			r.l.Error(ctx, "Invalid symbolization table: cycle detected")
+			r.invalidMethodSymbolizationTable.Inc()
+			break
+		}
+		if parent == node {
+			break
+		}
+		node = parent
+	}
+
+	return res
+}
+
 func (r *Registry) updateSymbols(ctx context.Context, pid linux.CurrentNamespacePID, methods []*jvmsupp.MethodInfo) {
-	var s []symboltable.Entry[string]
+	var s []symboltable.Entry[symFunc]
 	for _, m := range methods {
 		name := m.Name
-		if r.disambiguateFrameSorce {
+		if r.disambiguateFrameSource {
 			if m.IsJit {
 				name = name + methodKindSuffixJIT
 			} else {
 				name = name + methodKindSuffixStubs
 			}
 		}
+		var symfunc func(uint64) []string
+		if m.SymbolizationTable != nil {
+			symfunc = func(addr uint64) []string {
+				offset := addr - m.CodeBegin
+				return r.symbolizeLocation(ctx, m, offset)
+			}
+		} else {
+			symfunc = func(addr uint64) []string {
+				return []string{name}
+			}
+		}
 
-		s = append(s, symboltable.Entry[string]{
-			Data:  name,
+		s = append(s, symboltable.Entry[symFunc]{
+			Data:  symfunc,
 			Begin: m.CodeBegin,
 			Size:  m.CodeEnd - m.CodeBegin,
 		})
 	}
-	slices.SortFunc(s, func(lhs, rhs symboltable.Entry[string]) int {
+	slices.SortFunc(s, func(lhs, rhs symboltable.Entry[symFunc]) int {
 		return cmp.Compare(lhs.Begin, rhs.Begin)
 	})
 	r.l.Info(ctx, "Updating compiled symbols", logfield.CurrentNamespacePID(pid), log.Int("count", len(s)))
@@ -494,6 +586,11 @@ func (r *Registry) ensureRegistered(ctx context.Context, pid linux.CurrentNamesp
 	data = r.cheatsheets[binaryID]
 	r.cheatsheetsMu.Unlock()
 
+	if data == nil {
+		r.l.Error(ctx, "Missing per-binary information", logfield.CurrentNamespacePID(pid), log.UInt64("binary_id", binaryID))
+		return
+	}
+
 	res, err := r.helper.InitProcess(ctx, &jvmsupp.InitProcessRequest{
 		Pid:            uint32(pid),
 		LibjvmBinaryId: uint64(binaryID),
@@ -515,7 +612,7 @@ func (r *Registry) ensureRegistered(ctx context.Context, pid linux.CurrentNamesp
 	}
 	r.l.Info(ctx, "Process successfully initialized", logfield.CurrentNamespacePID(pid))
 	r.cheatsheetsMu.Lock()
-	delete(r.cheatsheets, binaryID)
+	data.cheatsheet = nil
 	r.cheatsheetsMu.Unlock()
 	tp.initialized = true
 }

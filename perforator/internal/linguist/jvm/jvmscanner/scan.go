@@ -12,17 +12,28 @@ import (
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	"github.com/yandex/perforator/perforator/proto/jvmsupp"
 )
+
+const methodNameLimit = 128
+
+type Config struct {
+	EnableLineInfoParsing bool
+}
 
 type Scanner struct {
 	bpf *programstate.State
 	l   xlog.Logger
+
+	conf Config
 }
 
-func New(l xlog.Logger, bpf *programstate.State) *Scanner {
+func New(l xlog.Logger, bpf *programstate.State, conf Config) *Scanner {
 	return &Scanner{
 		l:   l,
 		bpf: bpf,
+
+		conf: conf,
 	}
 }
 
@@ -125,7 +136,7 @@ func (s *Scanner) InitProcess(pid linux.CurrentNamespacePID, cs *jvmproto.Cheats
 	if err != nil {
 		return nil, ProcessInfoForBPF{}, fmt.Errorf("invalid config: %w", err)
 	}
-	j := jvmbindings.NewJVM(cs, uint32(pid))
+	j := jvmbindings.NewJVM(cs, uint32(pid), version)
 	infoForBPF, err := s.initInterp(j, baseAddress)
 	if err != nil {
 		return nil, ProcessInfoForBPF{}, fmt.Errorf("failed to discover interpreter state: %w", err)
@@ -152,7 +163,7 @@ func (s *Scanner) prepare(ps *ProcessState) (*jvmbindings.JVM, error) {
 		return nil, &ProcessNotFoundError{fmt.Errorf("process has no libjvm mapping")}
 	}
 
-	return jvmbindings.NewJVM(ps.conf, uint32(ps.pid)), nil
+	return jvmbindings.NewJVM(ps.conf, uint32(ps.pid), ps.version), nil
 }
 
 func (s *Scanner) Symbolize(ctx context.Context, ps *ProcessState, addr uint64) (string, error) {
@@ -175,68 +186,77 @@ func (s *Scanner) scanStep(
 	jvm *jvmbindings.JVM,
 	curHeap *heapInfo,
 	blockIndex uint32,
-	version uint32,
-) (MethodInfo, bool, uint32, error) {
+) (*jvmsupp.MethodInfo, bool, uint32, error) {
 	heapBlock := jvmbindings.HeapBlock(jvm.MakeObjPointer(uintptr(curHeap.begin) + (uintptr(blockIndex) << curHeap.segmentSizeLog2)))
 	s.l.Trace(ctx, "Processing heap block", log.UInt32("block", blockIndex))
 	isUsed, err := heapBlock.Used()
 	if err != nil {
-		return MethodInfo{}, false, 0, fmt.Errorf("failed to check if block %d is used: %w", blockIndex, err)
+		return nil, false, 0, fmt.Errorf("failed to check if block %d is used: %w", blockIndex, err)
 	}
 	segmentLength, err := heapBlock.Length()
 	if err != nil {
-		return MethodInfo{}, false, 0, fmt.Errorf("failed to get segment length of segment headed by block %d: %w", blockIndex, err)
+		return nil, false, 0, fmt.Errorf("failed to get segment length of segment headed by block %d: %w", blockIndex, err)
 	}
 	if segmentLength == 0 {
-		return MethodInfo{}, false, 0, fmt.Errorf("unexpected length of zero")
+		return nil, false, 0, fmt.Errorf("unexpected length of zero")
 	}
 	if !isUsed {
 		s.l.Trace(ctx, "This block heads free segment, skipping it", log.UInt32("segment_length", segmentLength))
-		return MethodInfo{}, false, segmentLength, nil
+		return nil, false, segmentLength, nil
 	}
 	s.l.Trace(ctx, "This block heads used segment, scanning it", log.UInt32("segment_length", segmentLength))
 	codeBlob := heapBlock.AllocatedSpace()
 	var blobName []byte
 	var isJIT bool
-	if version >= 22 {
+	if jvm.Version() >= 22 {
 		kind, err := codeBlob.Kind()
 		if err != nil {
-			return MethodInfo{}, false, 0, fmt.Errorf("failed to get kind of code blob: %w", err)
+			return nil, false, 0, fmt.Errorf("failed to get kind of code blob: %w", err)
 		}
 		isJIT = (int64(kind) == *jvm.Cheatsheet().CodeBlobKindNmethod)
 	} else {
 		namePtr, err := codeBlob.Name()
 		if err != nil {
-			return MethodInfo{}, false, 0, fmt.Errorf("failed to get name pointer from code blob %d: %w", blockIndex, err)
+			return nil, false, 0, fmt.Errorf("failed to get name pointer from code blob %d: %w", blockIndex, err)
 		}
-		blobName, err = jvm.ReadString(namePtr, 128)
+		blobName, err = jvm.ReadString(namePtr, methodNameLimit)
 		if err != nil {
-			return MethodInfo{}, false, 0, fmt.Errorf("failed to read code blob name: %w", err)
+			return nil, false, 0, fmt.Errorf("failed to read code blob name: %w", err)
 		}
 		name := string(blobName)
 		isJIT = (name == "native nmethod" || name == "nmethod")
 	}
 	var name []byte
 	var frameSize int32 = -1
+	var symtab *jvmsupp.MethodSymbolizationTable
 	if isJIT {
 		s.l.Debug(ctx, "Code blob classified as nmethod")
 		isJIT = true
 		frameSize, err = codeBlob.FrameSize()
 		if err != nil {
-			return MethodInfo{}, false, 0, fmt.Errorf("failed to read nmethod frame size: %w", err)
+			return nil, false, 0, fmt.Errorf("failed to read nmethod frame size: %w", err)
 		}
 
 		if frameSize < 0 {
-			return MethodInfo{}, false, 0, fmt.Errorf("unexpected negative frame size for code blob %d: %d", blockIndex, frameSize)
+			return nil, false, 0, fmt.Errorf("unexpected negative frame size for code blob %d: %d", blockIndex, frameSize)
 		}
 
 		method, err := codeBlob.NmethodMethod()
 		if err != nil {
-			return MethodInfo{}, false, 0, fmt.Errorf("failed to get method of nmethod %d: %w", blockIndex, err)
+			return nil, false, 0, fmt.Errorf("failed to get method of nmethod %d: %w", blockIndex, err)
 		}
 		name, err = readMethodName(method, 128)
 		if err != nil {
-			return MethodInfo{}, false, 0, fmt.Errorf("failed to read method %d name: %w", blockIndex, err)
+			return nil, false, 0, fmt.Errorf("failed to read method %d name: %w", blockIndex, err)
+		}
+
+		if s.conf.EnableLineInfoParsing {
+			symtab, err = s.parseInstructionInfo(ctx, jvm, codeBlob)
+			if err != nil {
+				// TODO: rather than logging, we should send this error as RPC response back to agent.
+				s.l.Warn(ctx, "Failed to parse instruction info for nmethod", log.String("name", string(name)), log.Error(err))
+				symtab = nil
+			}
 		}
 
 		s.l.Debug(ctx, "Parsed nmethod", log.String("name", string(name)), log.Int32("frame_size", frameSize))
@@ -246,22 +266,23 @@ func (s *Scanner) scanStep(
 		if blobName == nil {
 			namePtr, err := codeBlob.Name()
 			if err != nil {
-				return MethodInfo{}, false, 0, fmt.Errorf("failed to get name pointer from code blob %d: %w", blockIndex, err)
+				return nil, false, 0, fmt.Errorf("failed to get name pointer from code blob %d: %w", blockIndex, err)
 			}
 			blobName, err = jvm.ReadString(namePtr, 128)
 			if err != nil {
-				return MethodInfo{}, false, 0, fmt.Errorf("failed to read code blob name: %w", err)
+				return nil, false, 0, fmt.Errorf("failed to read code blob name: %w", err)
 			}
 		}
 		name = blobName
 		s.l.Debug(ctx, "Parsed non-nmethod", log.String("name", string(name)))
 	}
-	return MethodInfo{
-		Name:      string(name),
-		FrameSize: int64(frameSize) * 8,
-		IsJIT:     isJIT,
-		CodeBegin: uint64(jvmbindings.ObjectPtr(codeBlob).Addr()),
-		CodeEnd:   uint64(jvmbindings.ObjectPtr(heapBlock).Addr()) + uint64(segmentLength)<<uint64(curHeap.segmentSizeLog2),
+	return &jvmsupp.MethodInfo{
+		Name:               string(name),
+		FrameSizeBytes:     int64(frameSize) * 8,
+		IsJit:              isJIT,
+		CodeBegin:          uint64(jvmbindings.ObjectPtr(codeBlob).Addr()),
+		CodeEnd:            uint64(jvmbindings.ObjectPtr(heapBlock).Addr()) + uint64(segmentLength)<<uint64(curHeap.segmentSizeLog2),
+		SymbolizationTable: symtab,
 	}, true, segmentLength, nil
 }
 
@@ -278,20 +299,12 @@ func (e *ProcessNotFoundError) Unwrap() error {
 	return e.inner
 }
 
-type MethodInfo struct {
-	Name      string
-	FrameSize int64
-	IsJIT     bool
-	CodeBegin uint64
-	CodeEnd   uint64
-}
-
-func (s *Scanner) ScanProcess(ctx context.Context, state *ProcessState) ([]MethodInfo, error) {
+func (s *Scanner) ScanProcess(ctx context.Context, state *ProcessState) ([]*jvmsupp.MethodInfo, error) {
 	jvm, err := s.prepare(state)
 	if err != nil {
 		return nil, err
 	}
-	var detectedMethods []MethodInfo
+	var detectedMethods []*jvmsupp.MethodInfo
 	for heapIdx, heap := range state.heaps {
 		blockCount, err := heap.obj.NextSegment()
 		if err != nil {
@@ -304,7 +317,7 @@ func (s *Scanner) ScanProcess(ctx context.Context, state *ProcessState) ([]Metho
 			segmentSizeLog2: uint8(heap.segmentSizeLog2),
 		}
 		for blockIndex < blockCount {
-			minfo, ok, len, err := s.scanStep(ctx, jvm, &curHeap, uint32(blockIndex), state.version)
+			minfo, ok, len, err := s.scanStep(ctx, jvm, &curHeap, uint32(blockIndex))
 			if err != nil {
 				return nil, fmt.Errorf("failed to execute scan step: %w", err)
 			}

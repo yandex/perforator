@@ -75,15 +75,8 @@ func (s *Service) Scan(ctx context.Context, req *jvmsupp.ScanRequest) (*jvmsupp.
 
 		return nil, status.Errorf(codes.Internal, "scan error: %v", err)
 	}
-	res := new(jvmsupp.ScanResponse)
-	for _, m := range scanned {
-		res.Methods = append(res.Methods, &jvmsupp.MethodInfo{
-			Name:           m.Name,
-			FrameSizeBytes: m.FrameSize,
-			CodeBegin:      m.CodeBegin,
-			CodeEnd:        m.CodeEnd,
-			IsJit:          m.IsJIT,
-		})
+	res := &jvmsupp.ScanResponse{
+		Methods: scanned,
 	}
 	return res, nil
 }

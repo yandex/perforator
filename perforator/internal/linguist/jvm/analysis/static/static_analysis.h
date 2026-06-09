@@ -13,8 +13,18 @@ namespace NPerforator::NLinguist::NJvm {
 struct TVMStructsAddresses {
     constexpr static std::string_view StructsAddressSym = "gHotSpotVMStructs";
     const void* StructsAddress;
+
     constexpr static std::string_view TypesAddressSym = "gHotSpotVMTypes";
     const void* TypesAddress;
+
+    constexpr static std::string_view IntsAddressSym = "gHotSpotVMIntConstants";
+    const void* IntsAddress;
+    constexpr static std::string_view IntsNameOffsetSym = "gHotSpotVMIntConstantEntryNameOffset";
+    const void* IntsNameOffset;
+    constexpr static std::string_view IntsValueOffsetSym = "gHotSpotVMIntConstantEntryValueOffset";
+    const void* IntsValueOffset;
+    constexpr static std::string_view IntsStrideSym = "gHotSpotVMIntConstantEntryArrayStride";
+    const void* IntsStride;
 };
 
 TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses, ui32 version);

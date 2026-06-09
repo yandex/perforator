@@ -70,6 +70,7 @@ func parseCompileCommands(ccJsonPath string) (jdkInfo, error) {
 			fmt.Fprintf(os.Stderr, "Skipping unknown flag: %q\n", f)
 		}
 	}
+	defines = append(defines, "SHARE_UTILITIES_FORBIDDENFUNCTIONS_HPP")
 
 	return jdkInfo{
 		defines:    defines,

@@ -11,8 +11,6 @@ ADDINCL(
 
 PEERDIR(
     contrib/libs/llvm18/include
-    contrib/libs/llvm18/lib/Target/X86/MCTargetDesc
-    contrib/libs/llvm18/lib/Target/X86
     
     perforator/lib/llvmex
 

@@ -6,9 +6,18 @@
 
 namespace NPerforator::NLinguist::NJvm {
 
-TJvmMetadata::TJvmMetadata(std::span<const THotSpotStructEntry> structsSym, std::span<const THotSpotTypeEntry> typesSym)
-    : Structs_(structsSym)
-    , Types_(typesSym)
+TJvmMetadata::TJvmMetadata(
+    std::span<const THotSpotStructEntry> structs,
+    std::span<const THotSpotTypeEntry> types,
+    const void* intsData,
+    size_t intsCount,
+    IntLayout intLayout
+)
+    : Structs_(structs)
+    , Types_(types)
+    , IntsData_(intsData)
+    , IntsCount_(intsCount)
+    , IntLayout_(intLayout)
 {
 }
 
@@ -51,6 +60,16 @@ size_t TJvmMetadata::FindTypeSize(std::string_view typeName) const {
         }
     }
     throw yexception() << "Type " << typeName << " not found";
+}
+
+i32 TJvmMetadata::FindIntValue(std::string_view intName) const {
+    const void* elem = IntsData_;
+    for (size_t i = 0; i < IntsCount_; elem = IntLayout_.Inc(elem), ++i) {
+        if (intName == IntLayout_.Name(elem)) {
+            return IntLayout_.Value(elem);
+        }
+    }
+    throw yexception() << "Int " << intName << " not found";
 }
 
 }

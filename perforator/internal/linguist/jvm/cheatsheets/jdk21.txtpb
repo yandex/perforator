@@ -25,4 +25,14 @@ virtual_space_low: 16
 virtual_space_high: 24
 frame_return_addr_offset: 1
 frame_interpreter_frame_method_offset: -3
+pc_desc_size: 16
+nmethod_scopes_pcs: 276
+nmethod_speculations: 292
+pc_desc_pc_offset: 0
+pc_desc_scope_decode_offset: 4
+nmethod_data_offset: 84
+nmethod_metadata_offset: 268
+nmethod_jvmci_data_offset: 296
+nmethod_dependencies_offset: 280
+nmethod_scopes_data_addr: 120
 

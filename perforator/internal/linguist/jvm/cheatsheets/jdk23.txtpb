@@ -1,5 +1,3 @@
-code_blob_code_offset: 36
-code_blob_data_offset: 40
 code_blob_name: 16
 code_blob_frame_size: 44
 code_blob_kind: 52
@@ -29,4 +27,15 @@ virtual_space_low: 16
 virtual_space_high: 24
 frame_return_addr_offset: 1
 frame_interpreter_frame_method_offset: -3
+pc_desc_size: 16
+nmethod_immutable_data: 88
+nmethod_scopes_pcs: 188
+nmethod_scopes_data: 192
+nmethod_speculations: 196
+pc_desc_pc_offset: 0
+pc_desc_scope_decode_offset: 4
+nmethod_relocation_size: 28
+nmethod_data_offset: 40
+nmethod_metadata_offset: 180
+nmethod_jvmci_data_offset: 182
 

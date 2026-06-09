@@ -352,7 +352,11 @@ func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerex
 	name, ok := r.syms.Find(pid, ip)
 	if ok {
 		return profilerext.JITSymbolizerOutput{
-			SymbolName:  name,
+			Symbols: []profilerext.JITSymbol{
+				{
+					Name: name,
+				},
+			},
 			MappingName: profile.JITSpecialMapping,
 		}, true
 	}

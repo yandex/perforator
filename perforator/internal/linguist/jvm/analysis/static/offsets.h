@@ -22,6 +22,10 @@ struct TOffsets {
 
     int Version;
 
+    size_t NmethodSpeculationsOffset;
+    size_t NmethodJvmciDataOffset;
+    size_t NmethodScopesDataBeginOffset;
+
     // following two fields are offsets within actual stack frames, not within frame class
     ssize_t StackFrameReturnAddressOffset;
     ssize_t InterpreterStackFrameMethodOffset;

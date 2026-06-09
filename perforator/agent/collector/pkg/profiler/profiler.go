@@ -512,6 +512,8 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 
 				InterpetedSymbolCacheSize: p.conf.JVM.InterpretedMethodSymbolizationCacheSize,
 				InterpretedSymbolCacheTTL: p.conf.JVM.InterpretedMethodSymbolizationCacheTTL,
+
+				EnableLineInfoParsing: p.conf.FeatureFlagsConfig.JVMLineInfoEnabled(),
 			},
 		)
 		if err != nil {

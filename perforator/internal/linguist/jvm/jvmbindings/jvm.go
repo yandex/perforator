@@ -11,19 +11,25 @@ import (
 )
 
 type JVM struct {
-	jc  *jvmproto.Cheatsheet
-	pid uint32
+	jc      *jvmproto.Cheatsheet
+	pid     uint32
+	version uint32
 }
 
-func NewJVM(jc *jvmproto.Cheatsheet, pid uint32) *JVM {
+func NewJVM(jc *jvmproto.Cheatsheet, pid uint32, version uint32) *JVM {
 	return &JVM{
-		jc:  jc,
-		pid: pid,
+		jc:      jc,
+		pid:     pid,
+		version: version,
 	}
 }
 
 func (j *JVM) Cheatsheet() *jvmproto.Cheatsheet {
 	return j.jc
+}
+
+func (j *JVM) Version() uint32 {
+	return j.version
 }
 
 func ReadScalar[T ~uintptr | uint64 | uint32 | uint16 | uint8 | int32](j *JVM, addr uintptr) (T, error) {

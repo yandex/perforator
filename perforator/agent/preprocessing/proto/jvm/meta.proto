@@ -9,4 +9,5 @@ option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing
 
 extend google.protobuf.FieldOptions {
     optional uint32 required_if_java_gte = 10001;
+    optional uint32 required_if_java_lte = 10002;
 }

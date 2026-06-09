@@ -36,6 +36,7 @@ func (r *Registry) runHelperSubprocess(ctx context.Context) error {
 		r.helperSocketPath,
 		"--map-prefix",
 		r.mapPrefix,
+		fmt.Sprintf("--enable-line-info-parsing=%t", r.enableLineInfoParsing),
 	}
 	sp := exec.CommandContext(ctx, r.helperBinaryPath, helperFlags...)
 	sp.SysProcAttr = &syscall.SysProcAttr{

@@ -13,12 +13,35 @@ message ScanRequest {
     int64 pid = 1;
 }
 
+message InstructionRange {
+    uint64 begin = 1;
+    uint64 end = 2;
+    uint32 tree_node = 3;
+}
+
+message MethodSymbolizationTable {
+    repeated InstructionRange instructions = 1;
+
+    repeated string string_table = 2;
+
+    // Next two fields represent a forest where every tree has a root.
+    // They are arrays of the same size.
+    // Every root node r can be distinguished by `parent[r] = r`.
+
+    repeated uint32 parent = 3;
+    // index into string table
+    repeated uint32 method = 4;
+}
+
 message MethodInfo {
     string name = 2;
+
     bool is_jit = 6;
     int64 frame_size_bytes = 3;
     uint64 code_begin = 4;
     uint64 code_end = 5;
+
+    MethodSymbolizationTable symbolization_table = 7;
 }
 
 message ScanResponse {
