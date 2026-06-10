@@ -701,6 +701,7 @@ require (
 	github.com/openfga/api/proto v0.0.0-20250127102726-f9709139a369
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20250220223040-ed0cfba54336
 	github.com/openfga/openfga v1.8.9
+	github.com/openpcc/ohttp v0.0.80
 	github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
 	github.com/opensearch-project/opensearch-go/v4 v4.1.0
@@ -2198,6 +2199,8 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1 // indirect
 	github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2 // indirect
 	github.com/opencontainers/selinux v1.13.1 // indirect
+	github.com/openpcc/bhttp v0.0.73 // indirect
+	github.com/openpcc/twoway v0.0.73 // indirect
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.5.0 // indirect

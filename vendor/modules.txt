@@ -6253,16 +6253,26 @@ github.com/cloudflare/backoff
 github.com/cloudflare/circl/dh/x25519
 github.com/cloudflare/circl/dh/x448
 github.com/cloudflare/circl/ecc/goldilocks
+github.com/cloudflare/circl/hpke
 github.com/cloudflare/circl/internal/conv
 github.com/cloudflare/circl/internal/sha3
 github.com/cloudflare/circl/internal/test
+github.com/cloudflare/circl/kem
+github.com/cloudflare/circl/kem/kyber/kyber768
+github.com/cloudflare/circl/kem/mlkem/mlkem768
+github.com/cloudflare/circl/kem/xwing
 github.com/cloudflare/circl/math
 github.com/cloudflare/circl/math/fp25519
 github.com/cloudflare/circl/math/fp448
 github.com/cloudflare/circl/math/mlsbset
+github.com/cloudflare/circl/pke/kyber/internal/common
+github.com/cloudflare/circl/pke/kyber/internal/common/params
+github.com/cloudflare/circl/pke/kyber/kyber768
+github.com/cloudflare/circl/pke/kyber/kyber768/internal
 github.com/cloudflare/circl/sign
 github.com/cloudflare/circl/sign/ed25519
 github.com/cloudflare/circl/sign/ed448
+github.com/cloudflare/circl/simd/keccakf1600
 # github.com/cloudflare/cloudflare-go v0.80.0
 ## explicit; go 1.18
 github.com/cloudflare/cloudflare-go
@@ -14175,6 +14185,23 @@ github.com/openfga/openfga/pkg/telemetry
 github.com/openfga/openfga/pkg/testutils
 github.com/openfga/openfga/pkg/tuple
 github.com/openfga/openfga/pkg/typesystem
+# github.com/openpcc/bhttp v0.0.73
+## explicit; go 1.25.4
+github.com/openpcc/bhttp
+# github.com/openpcc/ohttp v0.0.80
+## explicit; go 1.25.4
+github.com/openpcc/ohttp
+github.com/openpcc/ohttp/encoding
+github.com/openpcc/ohttp/encoding/bhttp
+github.com/openpcc/ohttp/examples/client
+github.com/openpcc/ohttp/examples/fakerelay
+github.com/openpcc/ohttp/examples/gateway
+# github.com/openpcc/twoway v0.0.73
+## explicit; go 1.25.4
+github.com/openpcc/twoway
+github.com/openpcc/twoway/internal/chunks
+github.com/openpcc/twoway/internal/test
+github.com/openpcc/twoway/internal/test/unsafehpke
 # github.com/opensearch-project/opensearch-go v1.1.0
 ## explicit; go 1.11
 github.com/opensearch-project/opensearch-go
@@ -14402,6 +14429,7 @@ github.com/parquet-go/parquet-go/internal/unsafecast
 github.com/parquet-go/parquet-go/sparse
 # github.com/pascaldekloe/goe v0.1.0
 ## explicit
+github.com/pascaldekloe/goe/verify
 # github.com/patrickmn/go-cache v2.1.0+incompatible
 ## explicit
 # github.com/paulbellamy/ratecounter v0.2.0
