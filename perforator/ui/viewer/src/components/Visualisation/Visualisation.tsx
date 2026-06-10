@@ -2,14 +2,14 @@ import React, { useMemo, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import type { Coordinate, FlamegraphProps, ProfileData, QueryKeys, UserSettings } from '@perforator/flamegraph';
-import { calculateTopForTable, Flamegraph, prerenderColors, SideBySide, TopTable, createLeftHeavy, inverseLeftHeavy } from '@perforator/flamegraph';
+import type {  FlamegraphProps, QueryKeys, UserSettings } from '@perforator/flamegraph';
+import { calculateTopForTable, Flamegraph, prerenderColors, SideBySide, TopTable, useLeftHeavyProfile } from '@perforator/flamegraph';
 
 import { Loader, useThemeType } from '@gravity-ui/uikit';
 import { Tabs } from '@gravity-ui/uikit/legacy';
 import { createSuccessToast } from '../../utils/toaster';
 
-import { parseStacks, stringifyStacks, useTypedQuery } from '../../query-utils';
+import {  useTypedQuery } from '../../query-utils';
 import { SettingsPopup } from '../SettingsPopup/SettingsPopup';
 
 import './Visualisation.css';
@@ -36,66 +36,23 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
     React.useEffect(() => {
         setIsFirstTopRender(isFirstTopRender || isTopTab);
     }, [isFirstTopRender, isTopTab]);
-    const theme = useThemeType();
-    const rowsRef = React.useRef(profileData?.rows);
-    const firstRenderRef = React.useRef(true);
+    const theme = useThemeType()
 
-        // HACK using memo for ref modification
-    // otherwise would need useLayoutEffect + force the rerender
-    const newProfileData = React.useMemo(() => {
-        if (profileData) {prerenderColors(profileData, { theme });}
-        const currentRootH = parseInt(getQuery('frameDepth') ?? '0');
-        const currentRootI = parseInt(getQuery('framePos') ?? '0');
-        const omittedIndices = parseStacks(getQuery('omittedIndexes') ?? '');
-        const newOmittedIndices: Coordinate[] = [];
-        function findSatisfiesOmittedIndex (h: number, i: number) {
-            for (let j = 0; j < omittedIndices.length; j++) {
-                if (omittedIndices[j][0] === h && omittedIndices[j][1] === i) {
-                    return j;
-                }
-            }
-            return -1;
+    const prerenderedNewData = React.useMemo(() => {
+        if (profileData) {
+            return prerenderColors(profileData, { theme });
         }
-        const coordsMapper = (hmap: number, oldI: number, newI: number) => {
-            if (firstRenderRef.current) {
-                return;
-            }
+        return null;
+    }, [profileData, theme]);
 
-            if (hmap === currentRootH && oldI === currentRootI) {
-                setQuery({ framePos: String(newI) });
-            }
-            const idx = findSatisfiesOmittedIndex(hmap, oldI);
-            if (idx !== -1) {
-                newOmittedIndices[idx] = [hmap, newI];
-            }
-        };
-        if (profileData?.rows && isLeftHeavy) {
-            const rows = createLeftHeavy(rowsRef.current ?? profileData.rows, 'eventCount', coordsMapper);
-            rowsRef.current = rows;
-            if (newOmittedIndices && newOmittedIndices.length > 0) {
-                setQuery({ omittedIndexes: stringifyStacks(newOmittedIndices) });
-            }
-        } else if (profileData?.rows && !isLeftHeavy) {
-            const rows = inverseLeftHeavy(rowsRef.current ?? profileData.rows, profileData.stringTable, coordsMapper);
-            rowsRef.current = rows;
-            if (newOmittedIndices && newOmittedIndices.length > 0) {
-                setQuery({ omittedIndexes: stringifyStacks(newOmittedIndices) });
-            }
-        }
-        if (firstRenderRef.current && profileData?.rows) {
-            firstRenderRef.current = false;
-        }
+     const isDiff = useMemo(() => Boolean(profileData?.rows?.[0][0].baseEventCount), [profileData])
+    const newProfileData = useLeftHeavyProfile(prerenderedNewData, isLeftHeavy, getQuery, setQuery);
 
-        const newProfileData = profileData ? { rows: rowsRef.current, meta: profileData?.meta, stringTable: profileData?.stringTable } as ProfileData : null;
-        return newProfileData;
-    }, [profileData?.rows, isLeftHeavy, props.loading]);
-
-    const isDiff = useMemo(() => Boolean(profileData?.rows?.[0][0].baseEventCount), [profileData])
 
     const topData = React.useMemo(() => {
-        return profileData && isFirstTopRender && rowsRef.current
+        return profileData && isFirstTopRender && newProfileData
             ? calculateTopForTable(
-                  rowsRef.current,
+                  newProfileData.rows,
                   profileData.stringTable.length,
                   { rootCoords: [0, 0], omitted: [], keepCoords: null }
               )

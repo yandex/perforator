@@ -10,3 +10,4 @@ export * from './left-heavy';
 export * from './models/UserSettings';
 export * from './models/goto';
 export * from './models/Profile';
+export * from './hooks/use-left-heavy';
