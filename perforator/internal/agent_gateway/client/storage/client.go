@@ -16,14 +16,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/ptr"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
-
-type CompressionFunction func([]byte) ([]byte, error)
 
 func compressZstd(byteString []byte, level int) ([]byte, error) {
 	encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(level)))
@@ -35,50 +32,67 @@ func compressZstd(byteString []byte, level int) ([]byte, error) {
 	return encoder.EncodeAll(byteString, result), nil
 }
 
-func getZstdCompressionFunction(level int) CompressionFunction {
-	return func(byteString []byte) ([]byte, error) {
-		return compressZstd(byteString, level)
+type compressionConfig struct {
+	codec     compressionpb.CompressionMethod
+	codecName string
+	zstdLevel int
+}
+
+func (c *compressionConfig) compressBytes(data []byte) ([]byte, error) {
+	switch c.codec {
+	case compressionpb.CompressionMethod_Zstd:
+		return compressZstd(data, c.zstdLevel)
+	default:
+		return nil, fmt.Errorf("unsupported compression codec %s", c.codec.String())
 	}
 }
 
-func compressionFunctionFromString(compression string) (CompressionFunction, error) {
-	if strings.HasPrefix(compression, "zstd") {
-		level := int(6)
-		_, err := fmt.Sscanf(compression, "zstd_%d", &level)
-		if err != nil {
-			return nil, err
-		}
-
-		return getZstdCompressionFunction(level), nil
+func (c *compressionConfig) newWriter(w io.Writer) (io.WriteCloser, error) {
+	switch c.codec {
+	case compressionpb.CompressionMethod_Zstd:
+		return zstd.NewWriter(
+			w,
+			zstd.WithEncoderConcurrency(1),
+			zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(c.zstdLevel)),
+		)
+	default:
+		return nil, fmt.Errorf("unsupported compression codec %s", c.codec.String())
 	}
+}
 
+func compressionConfigFromString(compression string) (*compressionConfig, error) {
 	if compression == "" {
 		return nil, nil
+	}
+
+	if compression == "zstd" || strings.HasPrefix(compression, "zstd_") {
+		level := 6
+		if compression != "zstd" {
+			_, err := fmt.Sscanf(compression, "zstd_%d", &level)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return &compressionConfig{
+			codec:     compressionpb.CompressionMethod_Zstd,
+			codecName: compression,
+			zstdLevel: level,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("unrecognized compression codec %s", compression)
 }
 
 type pushBinaryParams struct {
-	compression      compressionpb.CompressionMethod
 	uncompressedSize uint64
-}
-
-func defaultPushBinaryParams() *pushBinaryParams {
-	return &pushBinaryParams{
-		compression:      compressionpb.CompressionMethod_None,
-		uncompressedSize: 0,
-	}
 }
 
 type PushBinaryOption func(*pushBinaryParams)
 
-func WithCompression(codec compressionpb.CompressionMethod, size uint64) PushBinaryOption {
+func WithUncompressedSize(size uint64) PushBinaryOption {
 	return func(p *pushBinaryParams) {
-		if codec != compressionpb.CompressionMethod_None {
-			p.compression = codec
-			p.uncompressedSize = size
-		}
+		p.uncompressedSize = size
 	}
 }
 
@@ -198,45 +212,43 @@ func (t *Timeouts) fillDefault() {
 }
 
 type Config struct {
-	ProfileCompression      string   `yaml:"profile_compression,omitempty"`
-	EnableBinaryCompression *bool    `yaml:"enable_binary_compression,omitempty"`
-	RPCTimeouts             Timeouts `yaml:"timeouts"`
-}
-
-func (c *Config) IsBinaryCompressionEnabled() bool {
-	return c.EnableBinaryCompression != nil && *c.EnableBinaryCompression
+	ProfileCompression string   `yaml:"profile_compression,omitempty"`
+	BinaryCompression  string   `yaml:"binary_compression,omitempty"`
+	RPCTimeouts        Timeouts `yaml:"timeouts"`
 }
 
 func (c *Config) fillDefault() {
 	c.RPCTimeouts.fillDefault()
-	if c.EnableBinaryCompression == nil {
-		c.EnableBinaryCompression = ptr.Bool(false)
-	}
 }
 
 type Client struct {
-	conf             Config
-	compressionFunc  CompressionFunction
-	compressionCodec string
-	client           perforatorstorage.PerforatorStorageClient
-	logger           xlog.Logger
+	conf               Config
+	profileCompression *compressionConfig
+	binaryCompression  *compressionConfig
+	client             perforatorstorage.PerforatorStorageClient
+	logger             xlog.Logger
 }
 
 func NewClient(conf *Config, l xlog.Logger, conn *grpc.ClientConn) (*Client, error) {
 	l = l.WithName("PerforatorStorage.Client")
 	conf.fillDefault()
 
-	compressFunc, err := compressionFunctionFromString(conf.ProfileCompression)
+	profileCompression, err := compressionConfigFromString(conf.ProfileCompression)
+	if err != nil {
+		return nil, err
+	}
+
+	binaryCompression, err := compressionConfigFromString(conf.BinaryCompression)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
-		conf:             *conf,
-		compressionFunc:  compressFunc,
-		compressionCodec: conf.ProfileCompression,
-		client:           perforatorstorage.NewPerforatorStorageClient(conn),
-		logger:           l,
+		conf:               *conf,
+		profileCompression: profileCompression,
+		binaryCompression:  binaryCompression,
+		client:             perforatorstorage.NewPerforatorStorageClient(conn),
+		logger:             l,
 	}, nil
 }
 
@@ -259,22 +271,22 @@ func (c *Client) PushProfile(
 	profile *Profile,
 ) (uint64, error) {
 	var err error
-	if c.compressionFunc != nil {
+	if c.profileCompression != nil {
 		if len(profile.Raw) > 0 {
-			profile.Raw, err = c.compressionFunc(profile.Raw)
+			profile.Raw, err = c.profileCompression.compressBytes(profile.Raw)
 			if err != nil {
 				return 0, fmt.Errorf("failed to compress pprof profile: %w", err)
 			}
 		}
 		if len(profile.YaprofRaw) > 0 {
-			profile.YaprofRaw, err = c.compressionFunc(profile.YaprofRaw)
+			profile.YaprofRaw, err = c.profileCompression.compressBytes(profile.YaprofRaw)
 			if err != nil {
 				return 0, fmt.Errorf("failed to compress yaprof profile: %w", err)
 			}
 		}
 		newLabels := make(map[string]string, len(profile.Labels)+1)
 		maps.Copy(newLabels, profile.Labels)
-		newLabels[profilestorage.CompressionLabel] = string(c.compressionCodec)
+		newLabels[profilestorage.CompressionLabel] = c.profileCompression.codecName
 		profile.Labels = newLabels
 	}
 
@@ -345,17 +357,19 @@ func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBin
 	l := c.logger.With(log.String("build_id", buildID))
 	l.Debug(ctx, "Pushing binary")
 
-	params := defaultPushBinaryParams()
+	params := &pushBinaryParams{}
 	for _, opt := range opts {
 		opt(params)
 	}
 
-	if params.compression != compressionpb.CompressionMethod_None && params.uncompressedSize == 0 {
-		return nil, fmt.Errorf("uncompressed_size is required when compression is set")
-	}
-
-	if params.compression != compressionpb.CompressionMethod_None && params.compression != compressionpb.CompressionMethod_Zstd {
-		return nil, fmt.Errorf("unsupported compression codec %s", params.compression.String())
+	compression := compressionpb.CompressionMethod_None
+	var uncompressedSize uint64
+	if c.binaryCompression != nil {
+		if params.uncompressedSize == 0 {
+			return nil, fmt.Errorf("uncompressed_size is required when compression is set")
+		}
+		compression = c.binaryCompression.codec
+		uncompressedSize = params.uncompressedSize
 	}
 
 	var err error
@@ -378,8 +392,8 @@ func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBin
 			Chunk: &perforatorstorage.PushBinaryRequest_HeadChunk{
 				HeadChunk: &perforatorstorage.PushBinaryRequestHead{
 					BuildID:          buildID,
-					Compression:      params.compression,
-					UncompressedSize: params.uncompressedSize,
+					Compression:      compression,
+					UncompressedSize: uncompressedSize,
 				},
 			},
 		},
@@ -397,19 +411,14 @@ func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBin
 		}
 	}()
 
-	switch params.compression {
-	case compressionpb.CompressionMethod_None:
-		break
-	case compressionpb.CompressionMethod_Zstd:
-		var encoder *zstd.Encoder
-		encoder, err = zstd.NewWriter(grpcWriter, zstd.WithEncoderConcurrency(1))
+	if c.binaryCompression != nil {
+		var encoder io.WriteCloser
+		encoder, err = c.binaryCompression.newWriter(grpcWriter)
 		if err != nil {
 			l.Error(ctx, "Failed to create compression writer", log.Error(err))
 			return nil, err
 		}
 		writer = &compressingBinaryWriter{encoder: encoder, grpcStream: grpcWriter}
-	default:
-		return nil, fmt.Errorf("unsupported compression codec %s", params.compression.String())
 	}
 
 	l.Debug(ctx, "Successfully created push binary writer")
