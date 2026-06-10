@@ -19376,7 +19376,7 @@ go.opentelemetry.io/contrib/propagators/jaeger
 ## explicit; go 1.23.0
 go.opentelemetry.io/contrib/zpages
 go.opentelemetry.io/contrib/zpages/internal
-# go.opentelemetry.io/otel v1.43.0 => go.opentelemetry.io/otel v1.43.0
+# go.opentelemetry.io/otel v1.44.0
 ## explicit; go 1.25.0
 go.opentelemetry.io/otel
 go.opentelemetry.io/otel/attribute
@@ -19595,6 +19595,28 @@ go.opentelemetry.io/otel/semconv/v1.40.0/rpcconv
 go.opentelemetry.io/otel/semconv/v1.40.0/signalrconv
 go.opentelemetry.io/otel/semconv/v1.40.0/systemconv
 go.opentelemetry.io/otel/semconv/v1.40.0/vcsconv
+go.opentelemetry.io/otel/semconv/v1.41.0
+go.opentelemetry.io/otel/semconv/v1.41.0/azureconv
+go.opentelemetry.io/otel/semconv/v1.41.0/cicdconv
+go.opentelemetry.io/otel/semconv/v1.41.0/containerconv
+go.opentelemetry.io/otel/semconv/v1.41.0/dbconv
+go.opentelemetry.io/otel/semconv/v1.41.0/dnsconv
+go.opentelemetry.io/otel/semconv/v1.41.0/faasconv
+go.opentelemetry.io/otel/semconv/v1.41.0/genaiconv
+go.opentelemetry.io/otel/semconv/v1.41.0/goconv
+go.opentelemetry.io/otel/semconv/v1.41.0/httpconv
+go.opentelemetry.io/otel/semconv/v1.41.0/hwconv
+go.opentelemetry.io/otel/semconv/v1.41.0/k8sconv
+go.opentelemetry.io/otel/semconv/v1.41.0/mcpconv
+go.opentelemetry.io/otel/semconv/v1.41.0/messagingconv
+go.opentelemetry.io/otel/semconv/v1.41.0/nfsconv
+go.opentelemetry.io/otel/semconv/v1.41.0/openshiftconv
+go.opentelemetry.io/otel/semconv/v1.41.0/otelconv
+go.opentelemetry.io/otel/semconv/v1.41.0/processconv
+go.opentelemetry.io/otel/semconv/v1.41.0/rpcconv
+go.opentelemetry.io/otel/semconv/v1.41.0/signalrconv
+go.opentelemetry.io/otel/semconv/v1.41.0/systemconv
+go.opentelemetry.io/otel/semconv/v1.41.0/vcsconv
 go.opentelemetry.io/otel/semconv/v1.5.0
 go.opentelemetry.io/otel/semconv/v1.6.1
 go.opentelemetry.io/otel/semconv/v1.7.0
@@ -19696,8 +19718,8 @@ go.opentelemetry.io/otel/exporters/stdout/stdouttrace
 go.opentelemetry.io/otel/exporters/stdout/stdouttrace/internal
 go.opentelemetry.io/otel/exporters/stdout/stdouttrace/internal/counter
 go.opentelemetry.io/otel/exporters/stdout/stdouttrace/internal/x
-# go.opentelemetry.io/otel/log v0.19.0 => go.opentelemetry.io/otel/log v0.15.0
-## explicit; go 1.24.0
+# go.opentelemetry.io/otel/log v0.19.0
+## explicit; go 1.25.0
 go.opentelemetry.io/otel/log
 go.opentelemetry.io/otel/log/embedded
 go.opentelemetry.io/otel/log/global
@@ -19706,12 +19728,12 @@ go.opentelemetry.io/otel/log/noop
 # go.opentelemetry.io/otel/log/logtest v0.15.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/otel/log/logtest
-# go.opentelemetry.io/otel/metric v1.43.0 => go.opentelemetry.io/otel/metric v1.43.0
+# go.opentelemetry.io/otel/metric v1.44.0
 ## explicit; go 1.25.0
 go.opentelemetry.io/otel/metric
 go.opentelemetry.io/otel/metric/embedded
 go.opentelemetry.io/otel/metric/noop
-# go.opentelemetry.io/otel/sdk v1.43.0 => go.opentelemetry.io/otel/sdk v1.43.0
+# go.opentelemetry.io/otel/sdk v1.43.0
 ## explicit; go 1.25.0
 go.opentelemetry.io/otel/sdk
 go.opentelemetry.io/otel/sdk/instrumentation
@@ -19722,14 +19744,16 @@ go.opentelemetry.io/otel/sdk/trace
 go.opentelemetry.io/otel/sdk/trace/internal/env
 go.opentelemetry.io/otel/sdk/trace/internal/observ
 go.opentelemetry.io/otel/sdk/trace/tracetest
-# go.opentelemetry.io/otel/sdk/log v0.19.0 => go.opentelemetry.io/otel/sdk/log v0.14.0
-## explicit; go 1.23.0
+# go.opentelemetry.io/otel/sdk/log v0.19.0
+## explicit; go 1.25.0
 go.opentelemetry.io/otel/sdk/log
+go.opentelemetry.io/otel/sdk/log/internal
+go.opentelemetry.io/otel/sdk/log/internal/observ
 go.opentelemetry.io/otel/sdk/log/internal/x
 # go.opentelemetry.io/otel/sdk/log/logtest v0.14.0
 ## explicit; go 1.23.0
 go.opentelemetry.io/otel/sdk/log/logtest
-# go.opentelemetry.io/otel/sdk/metric v1.43.0 => go.opentelemetry.io/otel/sdk/metric v1.43.0
+# go.opentelemetry.io/otel/sdk/metric v1.43.0
 ## explicit; go 1.25.0
 go.opentelemetry.io/otel/sdk/metric
 go.opentelemetry.io/otel/sdk/metric/exemplar
@@ -19740,7 +19764,7 @@ go.opentelemetry.io/otel/sdk/metric/internal/reservoir
 go.opentelemetry.io/otel/sdk/metric/internal/x
 go.opentelemetry.io/otel/sdk/metric/metricdata
 go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest
-# go.opentelemetry.io/otel/trace v1.43.0 => go.opentelemetry.io/otel/trace v1.43.0
+# go.opentelemetry.io/otel/trace v1.44.0
 ## explicit; go 1.25.0
 go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
@@ -20791,7 +20815,7 @@ golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.43.0 => golang.org/x/sys v0.43.0
+# golang.org/x/sys v0.43.0
 ## explicit; go 1.25.0
 golang.org/x/sys
 golang.org/x/sys/cpu
@@ -24041,19 +24065,11 @@ www.velocidex.com/golang/regparser
 # github.com/vertica/vertica-sql-go => github.com/vertica/vertica-sql-go v1.2.2
 # go.opentelemetry.io/collector/config/configtls => go.opentelemetry.io/collector/config/configtls v1.31.0
 # go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
-# go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.43.0
 # go.opentelemetry.io/otel/exporters/prometheus => go.opentelemetry.io/otel/exporters/prometheus v0.58.0
-# go.opentelemetry.io/otel/log => go.opentelemetry.io/otel/log v0.15.0
-# go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.43.0
-# go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.43.0
-# go.opentelemetry.io/otel/sdk/log => go.opentelemetry.io/otel/sdk/log v0.14.0
-# go.opentelemetry.io/otel/sdk/metric => go.opentelemetry.io/otel/sdk/metric v1.43.0
-# go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.43.0
 # go.temporal.io/api => go.temporal.io/api v1.53.0
 # go.temporal.io/sdk => go.temporal.io/sdk v1.36.0
 # go.temporal.io/server => go.temporal.io/server v1.29.6
 # golang.org/x/sync => golang.org/x/sync v0.15.0
-# golang.org/x/sys => golang.org/x/sys v0.43.0
 # gopkg.in/DataDog/dd-trace-go.v1 => gopkg.in/DataDog/dd-trace-go.v1 v1.62.0
 # k8s.io/api => k8s.io/api v0.33.0
 # k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.0
