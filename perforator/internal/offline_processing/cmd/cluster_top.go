@@ -91,9 +91,21 @@ var (
 				return err
 			}
 
-			clusterTop, err := cluster_top.NewClusterTop(conf, logger, reg, storageBundle)
+			clusterTop, err := cluster_top.NewClusterTop(
+				conf,
+				logger,
+				reg,
+				storageBundle,
+			)
 			if err != nil {
 				return err
+			}
+
+			if len(conf.Worker.SkippedServices) > 0 {
+				logger.Info(ctx, "Cluster top worker service skip list enabled",
+					log.Int("count", len(conf.Worker.SkippedServices)),
+					log.Strings("services", conf.Worker.SkippedServices),
+				)
 			}
 
 			jobSelector := cluster_top.NewPgJobSelector(storageBundle.DBs.PostgresCluster)

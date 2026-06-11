@@ -5,6 +5,8 @@ SRCS(
     config.go
     cluster_top.go
     execution_stats.go
+    job_status.go
+    service_skiplist.go
     metrics.go
     models.go
     one_shot_job_processor.go
@@ -13,6 +15,7 @@ SRCS(
 
 IF (NOT OPENSOURCE)
     GO_TEST_SRCS(
+        cluster_top_skiplist_test.go
         pg_job_selector_test.go
     )
 ENDIF()

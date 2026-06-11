@@ -37,12 +37,12 @@ func (j Job) WorkloadKey() string {
 type SelectedJob struct {
 	Job Job
 
-	finalize func(ctx context.Context, processingErr error, stats *JobExecutionStats)
+	finalize func(ctx context.Context, status string, stats *JobExecutionStats)
 }
 
-func (s *SelectedJob) Finalize(ctx context.Context, processingErr error, stats *JobExecutionStats) {
+func (s *SelectedJob) Finalize(ctx context.Context, status string, stats *JobExecutionStats) {
 	if s.finalize != nil {
-		s.finalize(ctx, processingErr, stats)
+		s.finalize(ctx, status, stats)
 	}
 }
 

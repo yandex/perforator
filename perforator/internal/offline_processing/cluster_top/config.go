@@ -14,9 +14,14 @@ type BinaryProviderConfig struct {
 	MaxSimultaneousDownloads uint32                 `yaml:"max_simultaneous_downloads"`
 }
 
+type WorkerConfig struct {
+	SkippedServices []string `yaml:"skipped_services"`
+}
+
 type Config struct {
 	Storage        bundle.Config        `yaml:"storage"`
 	BinaryProvider BinaryProviderConfig `yaml:"binary_provider"`
+	Worker         WorkerConfig         `yaml:"worker"`
 
 	GsymS3Bucket string `yaml:"gsym_s3_bucket"`
 }

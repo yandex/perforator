@@ -101,12 +101,7 @@ func (s *PgJobSelector) SelectJob(ctx context.Context) (*SelectedJob, error) {
 
 	return &SelectedJob{
 		Job: job,
-		finalize: func(ctx context.Context, processingErr error, stats *JobExecutionStats) {
-			newStatus := "done"
-			if processingErr != nil {
-				newStatus = "failed"
-			}
-
+		finalize: func(ctx context.Context, status string, stats *JobExecutionStats) {
 			var executionStatsJSON []byte
 			if stats != nil {
 				var marshalErr error
@@ -127,7 +122,7 @@ func (s *PgJobSelector) SelectJob(ctx context.Context) (*SelectedJob, error) {
 				WHERE
 					id = $1`,
 				job.ID,
-				newStatus,
+				status,
 				executionStatsJSON,
 			)
 			if finalizationErr == nil {

@@ -12,6 +12,7 @@ type workerMetrics struct {
 	processedDone     metrics.Counter
 	processedFailed   metrics.Counter
 	processedEmpty    metrics.Counter
+	processedSkipped  metrics.Counter
 }
 
 func newWorkerMetrics(reg xmetrics.Registry) *workerMetrics {
@@ -23,15 +24,16 @@ func newWorkerMetrics(reg xmetrics.Registry) *workerMetrics {
 		processedDone:     r.WithTags(map[string]string{"status": "done"}).Counter("jobs.processed.count"),
 		processedFailed:   r.WithTags(map[string]string{"status": "failed"}).Counter("jobs.processed.count"),
 		processedEmpty:    r.WithTags(map[string]string{"status": "empty"}).Counter("jobs.processed.count"),
+		processedSkipped:  r.WithTags(map[string]string{"status": "skipped"}).Counter("jobs.processed.count"),
 	}
 }
 
-func (m *workerMetrics) recordJob(processingErr error, profilesProcessed int, stats *JobExecutionStats) {
+func (m *workerMetrics) recordJob(status string, profilesProcessed int, stats *JobExecutionStats) {
 	if stats == nil {
 		return
 	}
 
-	if processingErr != nil {
+	if status == JobStatusFailed {
 		m.processingFailed.RecordDuration(stats.Duration)
 		m.processedFailed.Inc()
 		return
@@ -48,4 +50,15 @@ func (m *workerMetrics) recordJob(processingErr error, profilesProcessed int, st
 	}
 
 	m.processedDone.Inc()
+}
+
+func (m *workerMetrics) recordSkipped(stats *JobExecutionStats) {
+	if stats == nil {
+		return
+	}
+
+	if stats.QueueWait > 0 {
+		m.queueWait.RecordDuration(stats.QueueWait)
+	}
+	m.processedSkipped.Inc()
 }

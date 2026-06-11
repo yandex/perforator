@@ -31,6 +31,8 @@ type ClusterTop struct {
 
 	symbolizer *ClusterTopSymbolizer
 
+	skiplist *ServiceSkipList
+
 	metrics *workerMetrics
 }
 
@@ -76,6 +78,7 @@ func NewClusterTop(
 		downloader:     downloaderInstance,
 		profileStorage: storageBundle.ProfileStorage,
 		symbolizer:     symbolizer,
+		skiplist:       NewServiceSkipList(conf.Worker.SkippedServices),
 		metrics:        newWorkerMetrics(reg),
 	}, nil
 }
@@ -211,6 +214,20 @@ func (t *ClusterTop) selectAndProcessJob(
 	}
 
 	job := selected.Job
+
+	if t.skiplist.Contains(job.Service) {
+		stats := buildSkippedStats(job)
+		t.l.Info(ctx, "Skipping service on skip list",
+			log.Int64("job_id", job.ID),
+			log.String("service", job.Service),
+			log.Int("generation", job.Generation),
+			log.String("workload_key", job.WorkloadKey()),
+		)
+		t.metrics.recordSkipped(stats)
+		selected.Finalize(ctx, JobStatusSkipped, stats)
+		return true
+	}
+
 	processor := newOneShotJobProcessor(
 		t.l,
 		t.profileStorage,
@@ -222,6 +239,7 @@ func (t *ClusterTop) selectAndProcessJob(
 	)
 
 	var jobResult oneShotJobResult
+	var finishStatus string
 	defer func() {
 		stats := &jobResult.executionStats
 
@@ -243,11 +261,25 @@ func (t *ClusterTop) selectAndProcessJob(
 			l.Info(ctx, "Successfully processed the job")
 		}
 
-		t.metrics.recordJob(err, jobResult.profilesProcessed, stats)
-		selected.Finalize(ctx, err, stats)
+		t.metrics.recordJob(finishStatus, jobResult.profilesProcessed, stats)
+		selected.Finalize(ctx, finishStatus, stats)
 	}()
 
 	jobResult, err = processor.run(ctx)
+	if err != nil {
+		finishStatus = JobStatusFailed
+	} else {
+		finishStatus = JobStatusDone
+	}
 
 	return true
+}
+
+func buildSkippedStats(job Job) *JobExecutionStats {
+	stats := newJobExecutionStats()
+	if !job.StartedAt.IsZero() && !job.CreatedAt.IsZero() {
+		stats.QueueWait = job.StartedAt.Sub(job.CreatedAt)
+	}
+	stats.Duration = time.Since(job.StartedAt)
+	return stats
 }
