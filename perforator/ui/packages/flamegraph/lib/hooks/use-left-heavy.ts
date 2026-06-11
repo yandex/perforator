@@ -7,11 +7,24 @@ import { parseStacks, stringifyStacks } from '../query-utils';
 import type { Coordinate, QueryKeys } from '../renderer';
 
 
+export type UseLeftHeavyProfileOptions = {
+    onCreateLeftHeavyMeasure?: (ms: number) => void;
+    onInverseLeftHeavyMeasure?: (ms: number) => void;
+};
+
+function measure<T>(fn: () => T, onMeasure?: (ms: number) => void): T {
+    const start = performance.now();
+    const result = fn();
+    onMeasure?.(performance.now() - start);
+    return result;
+}
+
 export function useLeftHeavyProfile(
     profileData: ProfileData | null,
     leftHeavy: boolean,
     getState: GetStateFromQuery<QueryKeys>,
     setState: SetStateFromQuery<QueryKeys>,
+    options: UseLeftHeavyProfileOptions = {},
 ): ProfileData | null {
     const rowsRef = React.useRef(profileData?.rows);
     const prevProfileRowsRef = React.useRef(profileData?.rows);
@@ -59,10 +72,16 @@ export function useLeftHeavyProfile(
         };
 
         if (profileData?.rows && leftHeavy) {
-            const rows = createLeftHeavy(rowsRef.current ?? profileData.rows, 'eventCount', coordsMapper);
+            const rows = measure(
+                () => createLeftHeavy(rowsRef.current ?? profileData.rows, 'eventCount', coordsMapper),
+                options.onCreateLeftHeavyMeasure,
+            );
             rowsRef.current = rows;
         } else if (profileData?.rows && !leftHeavy) {
-            const rows = inverseLeftHeavy(rowsRef.current ?? profileData.rows, profileData.stringTable, coordsMapper);
+            const rows = measure(
+                () => inverseLeftHeavy(rowsRef.current ?? profileData.rows, profileData.stringTable, coordsMapper),
+                options.onInverseLeftHeavyMeasure,
+            );
             rowsRef.current = rows;
         }
 
@@ -87,5 +106,5 @@ export function useLeftHeavyProfile(
             meta: profileData.meta,
             stringTable: profileData.stringTable,
         } as ProfileData) : null;
-    }, [profileData, leftHeavy]);
+    }, [profileData, leftHeavy, options.onCreateLeftHeavyMeasure, options.onInverseLeftHeavyMeasure]);
 }

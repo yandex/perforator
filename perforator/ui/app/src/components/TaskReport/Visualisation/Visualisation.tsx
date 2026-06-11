@@ -3,7 +3,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type { FlamegraphProps, QueryKeys, TopTableProps } from '@perforator/flamegraph';
-import { calculateTopForTable as calculateTopForTableOriginal, Flamegraph, SideBySide, TopTable, useLeftHeavyProfile } from '@perforator/flamegraph';
+import {
+    calculateTopForTable as calculateTopForTableOriginal,
+    Flamegraph,
+    SideBySide,
+    TopTable,
+    useLeftHeavyProfile,
+} from '@perforator/flamegraph';
 
 import { Loader } from '@gravity-ui/uikit';
 import { Tabs } from '@gravity-ui/uikit/legacy';
@@ -24,6 +30,11 @@ import './Visualisation.css';
 
 
 const calculateTopForTable = withMeasureTime(calculateTopForTableOriginal, 'calculateTopForTable', (ms) => uiFactory().rum()?.sendDelta?.('calculateTopForTable', ms));
+
+const leftHeavyProfileOptions = {
+    onCreateLeftHeavyMeasure: (ms: number) => uiFactory().rum()?.sendDelta?.('createLeftHeavy', ms),
+    onInverseLeftHeavyMeasure: (ms: number) => uiFactory().rum()?.sendDelta?.('inverseLeftHeavy', ms),
+};
 
 
 type FlamegraphSizes = 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
@@ -115,7 +126,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
         return () => {observer?.disconnect?.();};
     }, []);
 
-    const newProfileData = useLeftHeavyProfile(profileData, isLeftHeavy, getQuery, setQuery);
+    const newProfileData = useLeftHeavyProfile(profileData, isLeftHeavy, getQuery, setQuery, leftHeavyProfileOptions);
     React.useEffect(() => {
         if (tab === 'sbs') {
             setEnabled(true);
