@@ -34,6 +34,9 @@ type BPFBinaryManager struct {
 	state     *programstate.State
 	tables    *unwindtable.BPFManager
 	listeners []Listener
+
+	tlsVarsSkipsByLimit metrics.Counter
+	tlsVarsDist         metrics.Histogram
 }
 
 func NewBPFBinaryManager(
@@ -49,6 +52,19 @@ func NewBPFBinaryManager(
 		l:      l,
 		state:  state,
 		tables: unwindTableManager,
+
+		tlsVarsSkipsByLimit: r.Counter(
+			"tls.binaries_affected_by_variable_limit.count",
+		),
+	}
+
+	{
+		maxVarsPerBinary := len(unwinder.TlsBinaryConfig{}.Offsets)
+		buckets := 6
+		m.tlsVarsDist = r.Histogram(
+			"tls.variable_count.hist",
+			metrics.MakeLinearBuckets(1, float64(maxVarsPerBinary)/float64(buckets), buckets),
+		)
 	}
 
 	for _, opt := range opts {
@@ -81,7 +97,7 @@ func (m *BPFBinaryManager) Add(ctx context.Context, buildID string, id uint64, a
 	// `binary.Listener`s.
 
 	if analysis.TLSConfig != nil {
-		err = m.state.AddTLSConfig(binId, convertToUnwindTLSConfig(analysis.TLSConfig))
+		err = m.state.AddTLSConfig(binId, m.convertToUnwindTLSConfig(analysis.TLSConfig))
 		if err != nil {
 			return nil, err
 		}
@@ -179,13 +195,19 @@ func (m *BPFBinaryManager) releaseTLS(id unwinder.BinaryId) {
 	}
 }
 
-func convertToUnwindTLSConfig(config *tls.TLSConfig) *unwinder.TlsBinaryConfig {
+func (m *BPFBinaryManager) convertToUnwindTLSConfig(config *tls.TLSConfig) *unwinder.TlsBinaryConfig {
 	tlsConf := &unwinder.TlsBinaryConfig{}
-	for idx, variable := range config.Variables {
+	m.tlsVarsDist.RecordValue(float64(len(config.Variables)))
+	maxVars := len(config.Variables)
+	if maxVars > len(tlsConf.Offsets) {
+		maxVars = len(tlsConf.Offsets)
+		m.tlsVarsSkipsByLimit.Inc()
+	}
+	for idx, variable := range config.Variables[:maxVars] {
 		tlsConf.Offsets[idx] = variable.Offset
 	}
-	for idx := len(config.Variables); idx < len(tlsConf.Offsets); idx++ {
-		tlsConf.Offsets[idx] = uint64(^int64(-1))
+	for idx := maxVars; idx < len(tlsConf.Offsets); idx++ {
+		tlsConf.Offsets[idx] = 0
 	}
 	return tlsConf
 }
