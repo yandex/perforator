@@ -1,4 +1,5 @@
-import type { Coordinate } from './renderer';
+import type { ProfileData } from './models/Profile';
+import type { Coordinate, QueryKeys } from './renderer';
 
 /** adds or modifies when value is truthy, deletes query if falsy.
  * Record key is query key, record value is new query value */
@@ -46,3 +47,33 @@ export function parseStacks(str: string) {
     });
 }
 
+export function isValidFrameCoordinate(rows: ProfileData['rows'], [h, i]: Coordinate) {
+    return Number.isInteger(h) && Number.isInteger(i) && h >= 0 && i >= 0 && Boolean(rows[h]?.[i]);
+}
+
+export function getFrameCoordinateFromQuery(getState: GetStateFromQuery<QueryKeys>): Coordinate {
+    return [
+        parseInt(getState('frameDepth', '0')!, 10),
+        parseInt(getState('framePos', '0')!, 10),
+    ];
+}
+
+export function normalizeFrameCoordinate(rows: ProfileData['rows'], coordinate: Coordinate): Coordinate {
+    return isValidFrameCoordinate(rows, coordinate) ? coordinate : [0, 0];
+}
+
+export function resetInvalidFrameCoordinate(rows: ProfileData['rows'], getState: GetStateFromQuery<QueryKeys>, setState: SetStateFromQuery<QueryKeys>) {
+    const coordinate = getFrameCoordinateFromQuery(getState);
+    if (isValidFrameCoordinate(rows, coordinate)) {
+        return coordinate;
+    }
+
+    if (getState('frameDepth') !== undefined || getState('framePos') !== undefined) {
+        setState({
+            frameDepth: false,
+            framePos: false,
+        });
+    }
+
+    return [0, 0] as Coordinate;
+}

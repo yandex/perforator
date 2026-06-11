@@ -16,7 +16,7 @@ import type { ReadString } from '../../node-title';
 import { getNodeTitleFull } from '../../node-title';
 import { pct } from '../../pct';
 import type { GetStateFromQuery, SetStateFromQuery } from '../../query-utils';
-import { modifyQuery } from '../../query-utils';
+import { getFrameCoordinateFromQuery, modifyQuery, normalizeFrameCoordinate, resetInvalidFrameCoordinate } from '../../query-utils';
 import type { QueryKeys } from '../../renderer';
 import { shorten } from '../../shorten';
 import type { TableFunctionTop } from '../../top';
@@ -299,8 +299,14 @@ export const TopTable: React.FC<TopTableProps> = ({
         return profileData.stringTable[id];
     }, [profileData]);
 
-    const frameDepth = Number(getQuery('frameDepth', '0'));
-    const framePos = Number(getQuery('framePos', '0'));
+    const [frameDepth, framePos] = React.useMemo(
+        () => normalizeFrameCoordinate(profileData.rows, getFrameCoordinateFromQuery(getQuery)),
+        [getQuery, profileData.rows],
+    );
+
+    React.useEffect(() => {
+        resetInvalidFrameCoordinate(profileData.rows, getQuery, setQuery);
+    }, [getQuery, profileData.rows, setQuery]);
 
     const eventType = React.useMemo(() => {
         return readString(profileData?.meta.eventType);

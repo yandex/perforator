@@ -44,4 +44,11 @@ describe('top', () => {
         const topEntry = topData.find((entry) => entry.textId === 2)!;
         expect(topEntry['all.eventCount']).toBe(50);
     });
+    it('should fall back to root for invalid root coordinates', () => {
+        expect(() => calculateTopForTable(
+            profileData.rows,
+            profileData.stringTable.length,
+            { rootCoords: [8, 1], omitted: [], keepCoords: null },
+        )).not.toThrow();
+    });
 });

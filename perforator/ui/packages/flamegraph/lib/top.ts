@@ -1,6 +1,7 @@
 import { createCleanupFn } from './cleanup';
 import { type DenselyPackedCoordinates } from './densely-packed';
 import type { FormatNode, ProfileData, StringifiableFields } from './models/Profile';
+import { normalizeFrameCoordinate } from './query-utils';
 import { type Coordinate, FlamegraphOffseter, type H, type I } from './renderer';
 import type { TopKeys } from './top-types';
 
@@ -73,6 +74,7 @@ export function calculateTop(rows: ProfileData['rows'], stringTableLength: numbe
     const res: Map<number, FunctionTop> = new Map();
     const fg = new FlamegraphOffseter(rows, { reverse: false, levelHeight: 20 });
     const getNodeKey = getNodeKeyFull.bind(null, stringTableLength);
+    const rootCoords = normalizeFrameCoordinate(rows, opts.rootCoords);
 
     const visitor = (node: FormatNode) => {
         const funcKey = getNodeKey(node);
@@ -102,14 +104,14 @@ export function calculateTop(rows: ProfileData['rows'], stringTableLength: numbe
 
     populateWithSelfEventCount(rows);
     populateWithChildrenSets(rows);
-    fg.prerenderOffsets(1000, opts.rootCoords, opts.omitted, opts.keepCoords, false, [{ run: visitor }]);
+    fg.prerenderOffsets(1000, rootCoords, opts.omitted, opts.keepCoords, false, [{ run: visitor }]);
 
 
-    calcTotalTime(res, rows, getNodeKey, opts.rootCoords);
+    calcTotalTime(res, rows, getNodeKey, rootCoords);
 
     clearChildrenSets(rows);
-    const rootNode = rows[opts.rootCoords[0]][opts.rootCoords[1]];
-    let currentH = opts.rootCoords[0] - 1;
+    const rootNode = rows[rootCoords[0]][rootCoords[1]];
+    let currentH = rootCoords[0] - 1;
     let currentI = rootNode.parentIndex;
     // delete parents
     while (currentH >= 0) {

@@ -21,7 +21,7 @@ import type { FormatNode, ProfileData } from './models/Profile';
 import { getNodeTitleFull } from './node-title';
 import { pct } from './pct';
 import type { GetStateFromQuery, SetStateFromQuery } from './query-utils';
-import { parseStacks, stringifyStacks } from './query-utils';
+import { parseStacks, resetInvalidFrameCoordinate, stringifyStacks } from './query-utils';
 import { shorten } from './shorten/shorten';
 import { getStatusTitleFull, renderTitleFull } from './title';
 
@@ -958,8 +958,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     canvas.onmouseout = clearHighlight;
 
     // read query and display h and pos
-    const h = parseInt(getState('frameDepth', '0'));
-    const pos = parseInt(getState('framePos', '0'));
+    const [h, pos] = resetInvalidFrameCoordinate(rows, getState, setState);
     const omittedStacks = parseStacks(getState('omittedIndexes', '') || '');
 
     {
@@ -976,8 +975,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
 
     const onResize = () => requestAnimationFrame(() => {
-        const initialH = parseInt(getState('frameDepth', '0'));
-        const initialI = parseInt(getState('framePos', '0'));
+        const [initialH, initialI] = resetInvalidFrameCoordinate(rows, getState, setState);
         //@ts-ignore
         canvas.style.width = null;
         initCanvas();

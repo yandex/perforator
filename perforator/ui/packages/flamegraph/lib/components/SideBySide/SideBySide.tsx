@@ -4,7 +4,7 @@ import { Divider } from '@gravity-ui/uikit';
 
 import type { DenselyPackedCoordinates } from '../../densely-packed';
 import { useSearchPattern } from '../../hooks/use-search-pattern';
-import { parseStacks } from '../../query-utils';
+import { getFrameCoordinateFromQuery, normalizeFrameCoordinate, parseStacks, resetInvalidFrameCoordinate } from '../../query-utils';
 import { search as outerSearch } from '../../search';
 import { calculateTopForTable } from '../../top';
 import { cn } from '../../utils/cn';
@@ -19,9 +19,15 @@ export type SideBySideProps = FlamegraphProps & Pick<TopTableProps, 'navigate'>
 const b = cn('visualisation_sbs');
 
 export function SideBySide(props: SideBySideProps) {
-    const { profileData, getState } = props;
-    const frameDepth = parseInt(getState('frameDepth', '0'));
-    const framePos = parseInt(getState('framePos', '0'));
+    const { profileData, getState, setState } = props;
+    const [frameDepth, framePos] = React.useMemo(
+        () => normalizeFrameCoordinate(profileData.rows, getFrameCoordinateFromQuery(getState)),
+        [getState, profileData.rows],
+    );
+
+    React.useEffect(() => {
+        resetInvalidFrameCoordinate(profileData.rows, getState, setState);
+    }, [getState, profileData.rows, setState]);
     const omitted = getState('omittedIndexes', '');
     const keepOnlyFound = getState('keepOnlyFound') === 'true';
     const search = getState('flamegraphQuery');
