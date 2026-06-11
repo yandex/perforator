@@ -95,7 +95,7 @@ def main():
     _postprocess_output(args, output_dirs)
 
     if args.local_cli:
-        dir_name = pm_utils.build_traces_store_path(args.arcadia_build_root, args.moddir)
+        dir_name = pm_utils.build_traces_store_path(args.arcadia_build_root, args.moddir, args.arcadia_root)
         trace_file = os.path.join(dir_name, f'{args.command}.builder.trace.json')
         timeit_options.dump_trace(trace_file, otherData=dict(moddir=args.moddir))
         if args.verbose:
