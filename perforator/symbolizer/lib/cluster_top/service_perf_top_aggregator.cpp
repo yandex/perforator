@@ -15,8 +15,6 @@ namespace {
 template<typename T>
 using TSmallVector = NYT::TCompactVector<T, 4>;
 
-constexpr std::size_t kMaxEntriesToPrint = 10'000;
-
 constexpr std::string_view kCPUCyclesType = "cpu";
 constexpr std::string_view kCPUCyclesUnit = "cycles";
 
@@ -360,10 +358,6 @@ TPerfTopAggregator::PerfTop TPerfTopAggregator::ExtractEntries() {
         std::sort(total.begin(), total.end(), [](const auto& lhs, const auto& rhs) {
             return lhs.second > rhs.second;
         });
-
-        if (total.size() > kMaxEntriesToPrint) {
-            total.resize(kMaxEntriesToPrint);
-        }
 
         for (auto& [name, _] : total) {
             const auto isKernelFunction = KernelFunctions_.contains(name);
