@@ -7559,12 +7559,13 @@ github.com/eapache/go-xerial-snappy
 # github.com/eapache/queue v1.1.0
 ## explicit
 github.com/eapache/queue
-# github.com/ebitengine/purego v0.9.1
+# github.com/ebitengine/purego v0.10.0
 ## explicit; go 1.18
 github.com/ebitengine/purego
 github.com/ebitengine/purego/internal/cgo
 github.com/ebitengine/purego/internal/fakecgo
 github.com/ebitengine/purego/internal/strings
+github.com/ebitengine/purego/internal/xreflect
 # github.com/ebml-go/ebml v0.0.0-20160925193348-ca8851a10894
 ## explicit
 github.com/ebml-go/ebml
@@ -15901,7 +15902,7 @@ github.com/shirou/gopsutil/v3/mem
 github.com/shirou/gopsutil/v3/net
 github.com/shirou/gopsutil/v3/process
 github.com/shirou/gopsutil/v3/winservices
-# github.com/shirou/gopsutil/v4 v4.25.12
+# github.com/shirou/gopsutil/v4 v4.26.4
 ## explicit; go 1.24.0
 github.com/shirou/gopsutil/v4/common
 github.com/shirou/gopsutil/v4/cpu
