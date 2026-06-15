@@ -296,6 +296,9 @@ static ALWAYS_INLINE void php_collect_stack(
     struct process_info* proc_info,
     struct php_state* state
 ) {
+    // always reset state before any returns
+    php_reset_state(state);
+
     if (proc_info == NULL || state == NULL || !is_mapped(proc_info->php_binary)) {
         return;
     }
@@ -311,7 +314,6 @@ static ALWAYS_INLINE void php_collect_stack(
     void* execute_data = read_execute_data(state->executor_globals_mem_vaddr, config->offsets.zend_execute_data);
 
     // TODO: Check JIT
-    php_reset_state(state);
     php_walk_stack(state, execute_data);
 
     return;
