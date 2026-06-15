@@ -33,6 +33,12 @@ const (
 
 var errGenerationAlreadyExists = errors.New("generation already exists")
 
+var errUnfinishedGenerationExists = errors.New("unfinished generation exists")
+
+var repeatableReadTxOptions = &sql.TxOptions{
+	Isolation: sql.LevelRepeatableRead,
+}
+
 type Config struct {
 	GenerationInterval time.Duration
 	ProfileLag         time.Duration
@@ -55,10 +61,13 @@ type Scheduler struct {
 	storage *bundle.StorageBundle
 	conf    *Config
 
-	schedulerSuccess metrics.Counter
-	schedulerErrors  metrics.Counter
-	finisherSuccess  metrics.Counter
-	finisherErrors   metrics.Counter
+	schedulerSuccess          metrics.Counter
+	schedulerErrors           metrics.Counter
+	finisherSuccess           metrics.Counter
+	finisherErrors            metrics.Counter
+	schedulingThrottled       metrics.Counter
+	pendingJobsGauge          metrics.IntGauge
+	scheduledGenerationsGauge metrics.IntGauge
 }
 
 type jobInsertRow struct {
@@ -78,15 +87,46 @@ func NewScheduler(
 	r := reg.WithPrefix("cluster_top_scheduler")
 
 	return &Scheduler{
-		l:                l.WithName("Scheduler"),
-		reg:              r,
-		storage:          storage,
-		conf:             conf,
-		schedulerSuccess: r.WithTags(map[string]string{"component": "generation_scheduler", "status": "success"}).Counter("iterations.count"),
-		schedulerErrors:  r.WithTags(map[string]string{"component": "generation_scheduler", "status": "error"}).Counter("iterations.count"),
-		finisherSuccess:  r.WithTags(map[string]string{"component": "generation_finisher", "status": "success"}).Counter("iterations.count"),
-		finisherErrors:   r.WithTags(map[string]string{"component": "generation_finisher", "status": "error"}).Counter("iterations.count"),
+		l:                         l.WithName("Scheduler"),
+		reg:                       r,
+		storage:                   storage,
+		conf:                      conf,
+		schedulerSuccess:          r.WithTags(map[string]string{"component": "generation_scheduler", "status": "success"}).Counter("iterations.count"),
+		schedulerErrors:           r.WithTags(map[string]string{"component": "generation_scheduler", "status": "error"}).Counter("iterations.count"),
+		finisherSuccess:           r.WithTags(map[string]string{"component": "generation_finisher", "status": "success"}).Counter("iterations.count"),
+		finisherErrors:            r.WithTags(map[string]string{"component": "generation_finisher", "status": "error"}).Counter("iterations.count"),
+		schedulingThrottled:       r.Counter("scheduling.throttled.count"),
+		pendingJobsGauge:          r.IntGauge("jobs.pending.count"),
+		scheduledGenerationsGauge: r.IntGauge("generations.scheduled.count"),
 	}
+}
+
+func (s *Scheduler) hasScheduledGeneration(ctx context.Context) (bool, error) {
+	primary, err := s.storage.DBs.PostgresCluster.WaitForPrimary(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to wait for primary postgres: %w", err)
+	}
+
+	return hasScheduledGeneration(ctx, primary.DBx())
+}
+
+func hasScheduledGeneration(ctx context.Context, q sqlGetter) (bool, error) {
+	var exists bool
+	err := q.GetContext(
+		ctx,
+		&exists,
+		`SELECT EXISTS(SELECT 1 FROM cluster_top_generations WHERE status = $1)`,
+		generationStatusScheduled,
+	)
+	if err != nil {
+		return false, fmt.Errorf("failed to check scheduled generations: %w", err)
+	}
+
+	return exists, nil
+}
+
+type sqlGetter interface {
+	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 }
 
 func (s *Scheduler) getLastGeneration(ctx context.Context) (lastID int32, maxTo time.Time, err error) {
@@ -134,11 +174,19 @@ func (s *Scheduler) createGeneration(ctx context.Context, generationID int32, st
 		return 0, fmt.Errorf("failed to wait for primary postgres: %w", err)
 	}
 
-	tx, err := primary.DBx().BeginTxx(ctx, nil)
+	tx, err := primary.DBx().BeginTxx(ctx, repeatableReadTxOptions)
 	if err != nil {
 		return 0, fmt.Errorf("failed to start postgres tx: %w", err)
 	}
 	defer tx.Rollback()
+
+	hasScheduled, err := hasScheduledGeneration(ctx, tx)
+	if err != nil {
+		return 0, err
+	}
+	if hasScheduled {
+		return 0, errUnfinishedGenerationExists
+	}
 
 	err = tx.QueryRowContext(ctx,
 		`INSERT INTO cluster_top_generations (id, from_ts, to_ts, status) 
@@ -237,6 +285,19 @@ func (s *Scheduler) tryScheduleGeneration(ctx context.Context) error {
 		return nil
 	}
 
+	// Fast-path backpressure: skip before discoverJobs (ClickHouse). schedulingThrottled
+	// is incremented only here — intentional wait for the current generation to finish.
+	// createGeneration re-checks under RepeatableRead on primary.
+	hasScheduled, err := s.hasScheduledGeneration(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check unfinished generations: %w", err)
+	}
+	if hasScheduled {
+		s.l.Info(ctx, "Skipping generation scheduling: unfinished generation exists")
+		s.schedulingThrottled.Inc()
+		return nil
+	}
+
 	generationID := lastID + 1
 
 	s.l.Info(ctx, "Trying to schedule new generation",
@@ -252,6 +313,10 @@ func (s *Scheduler) tryScheduleGeneration(ctx context.Context) error {
 
 	jobCount, err := s.createGeneration(ctx, generationID, targetStart, targetEnd, jobs)
 	if err != nil {
+		if errors.Is(err, errUnfinishedGenerationExists) {
+			s.l.Info(ctx, "Skipping generation scheduling: unfinished generation appeared before insert")
+			return nil
+		}
 		return fmt.Errorf("failed to create generation: %w", err)
 	}
 
@@ -271,6 +336,12 @@ func (s *Scheduler) finishGenerations(ctx context.Context) error {
 		return fmt.Errorf("failed to wait for primary postgres: %w", err)
 	}
 
+	tx, err := primary.DBx().BeginTxx(ctx, repeatableReadTxOptions)
+	if err != nil {
+		return fmt.Errorf("failed to start postgres tx: %w", err)
+	}
+	defer tx.Rollback()
+
 	var scheduledIDs []int
 	query, args, err := sq.Select("id").
 		From("cluster_top_generations").
@@ -281,15 +352,17 @@ func (s *Scheduler) finishGenerations(ctx context.Context) error {
 		return fmt.Errorf("failed to build in_progress query: %w", err)
 	}
 
-	err = primary.DBx().SelectContext(ctx, &scheduledIDs, query, args...)
+	err = tx.SelectContext(ctx, &scheduledIDs, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to fetch in_progress generations: %w", err)
 	}
 
 	errs := []error{}
+	totalPendingCount := 0
+	remainingScheduledCount := len(scheduledIDs)
 	for _, id := range scheduledIDs {
 		var pendingCount int
-		err = primary.DBx().GetContext(ctx, &pendingCount,
+		err = tx.GetContext(ctx, &pendingCount,
 			`SELECT count(*) FROM cluster_top_jobs WHERE generation = $1 AND status = 'pending'`,
 			id,
 		)
@@ -299,17 +372,28 @@ func (s *Scheduler) finishGenerations(ctx context.Context) error {
 			continue
 		}
 
+		totalPendingCount += pendingCount
+
 		if pendingCount == 0 {
-			_, err = primary.DBx().ExecContext(ctx,
+			_, err = tx.ExecContext(ctx,
 				`UPDATE cluster_top_generations SET status = $1 WHERE id = $2`,
 				generationStatusFinished, id,
 			)
 			if err != nil {
 				s.l.Error(ctx, "Failed to update generation status to finished", log.Int("id", id), log.Error(err))
 				errs = append(errs, err)
+			} else {
+				remainingScheduledCount--
 			}
 		}
 	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit finish generations tx: %w", err)
+	}
+
+	s.pendingJobsGauge.Set(int64(totalPendingCount))
+	s.scheduledGenerationsGauge.Set(int64(remainingScheduledCount))
 
 	return errors.Join(errs...)
 }

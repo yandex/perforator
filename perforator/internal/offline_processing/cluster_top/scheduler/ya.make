@@ -14,6 +14,7 @@ SRCS(
 IF (NOT OPENSOURCE)
     GO_TEST_SRCS(
         discover_jobs_test.go
+        scheduler_test.go
     )
 ENDIF()
 
