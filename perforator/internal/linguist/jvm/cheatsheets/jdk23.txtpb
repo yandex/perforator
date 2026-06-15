@@ -30,7 +30,7 @@ frame_interpreter_frame_method_offset: -3
 pc_desc_size: 16
 nmethod_immutable_data: 88
 nmethod_scopes_pcs: 188
-nmethod_scopes_data: 192
+nmethod_scopes_data_offset: 192
 nmethod_speculations: 196
 pc_desc_pc_offset: 0
 pc_desc_scope_decode_offset: 4
