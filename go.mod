@@ -2726,8 +2726,6 @@ exclude (
 	github.com/docker/docker/api v1.54.2
 )
 
-exclude go.opentelemetry.io/contrib/processors/baggagecopy v0.16.1
-
 replace github.com/insomniacslk/dhcp => github.com/insomniacslk/dhcp v0.0.0-20210120172423-cc9239ac6294
 
 // yo: update cloud.google.com/go/pubsub v1.30.0 => v1.32.0
