@@ -2,8 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !go1.26
+//go:build go1.26
 
 package chacha20poly1305
 
-func fips140Enforced() bool { return false }
+import "crypto/fips140"
+
+func fips140Enforced() bool { return fips140.Enforced() }

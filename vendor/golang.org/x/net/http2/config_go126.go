@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !go1.26
+//go:build go1.26
 
 package http2
 
@@ -11,5 +11,5 @@ import (
 )
 
 func http2ConfigStrictMaxConcurrentRequests(h2 *http.HTTP2Config) bool {
-	return false
+	return h2.StrictMaxConcurrentRequests
 }

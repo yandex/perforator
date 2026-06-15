@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.51.0)
+VERSION(v0.52.0)
 
 SRCS(
     ascii.go
@@ -10,7 +10,7 @@ SRCS(
     client_conn_pool.go
     client_priority_go126.go
     config.go
-    config_go125.go
+    config_go126.go
     databuffer.go
     errors.go
     flow.go

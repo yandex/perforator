@@ -147,7 +147,7 @@ require (
 	cuelang.org/go v0.4.3
 	firebase.google.com/go v3.13.0+incompatible
 	git.apache.org/thrift.git v0.13.0
-	github.com/99designs/gqlgen v0.17.84
+	github.com/99designs/gqlgen v0.17.90
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/AlexxIT/go2rtc v1.8.2
 	github.com/Antonboom/errname v0.1.10
@@ -215,7 +215,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.31
 	github.com/ProtonMail/gopenpgp/v3 v3.1.2
-	github.com/PuerkitoBio/goquery v1.11.0
+	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/RoaringBitmap/roaring/v2 v2.14.4
 	github.com/Shopify/sarama v1.38.1
 	github.com/ThalesIgnite/crypto11 v1.2.5
@@ -638,7 +638,7 @@ require (
 	github.com/masahiro331/go-ext4-filesystem v0.0.0-20260423010602-fe51f5b5e52b
 	github.com/mastercard/oauth1-signer-go v1.1.0
 	github.com/masterzen/winrm v0.0.0-20210623064412-3b76017826b0
-	github.com/mattn/go-isatty v0.0.20
+	github.com/mattn/go-isatty v0.0.21
 	github.com/mattn/go-sqlite3 v2.0.1+incompatible
 	github.com/max-messenger/max-bot-api-client-go v1.6.4
 	github.com/maxence-charriere/go-app/v9 v9.8.0
@@ -872,7 +872,7 @@ require (
 	github.com/ulikunitz/xz v0.5.15
 	github.com/urfave/cli v1.22.17
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/urfave/cli/v3 v3.6.1
+	github.com/urfave/cli/v3 v3.8.0
 	github.com/vakenbolt/go-test-report v0.9.3
 	github.com/valkey-io/valkey-go v1.0.66
 	github.com/valkey-io/valkey-go/mock v1.0.66
@@ -883,7 +883,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vbauerster/mpb v3.4.0+incompatible
 	github.com/vbauerster/mpb/v8 v8.7.1
-	github.com/vektah/gqlparser/v2 v2.5.31
+	github.com/vektah/gqlparser/v2 v2.5.33
 	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/vishvananda/netlink v1.3.1
 	github.com/vishvananda/netns v0.0.5
@@ -1073,11 +1073,11 @@ require (
 	gocloud.dev v0.44.0
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0
-	golang.org/x/crypto v0.48.0
+	golang.org/x/crypto v0.49.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/image v0.32.0
 	golang.org/x/mod v0.33.0
-	golang.org/x/net v0.51.0
+	golang.org/x/net v0.52.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.43.0
@@ -2065,7 +2065,7 @@ require (
 	github.com/maruel/natural v1.1.1 // indirect
 	github.com/maruel/panicparse/v2 v2.5.0 // indirect
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
-	github.com/matryer/moq v0.5.2 // indirect
+	github.com/matryer/moq v0.6.0 // indirect
 	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
@@ -2373,7 +2373,7 @@ require (
 	github.com/smartystreets/mafsa v1.1.0 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8 // indirect
-	github.com/sosodev/duration v1.3.1 // indirect
+	github.com/sosodev/duration v1.4.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spdx/gordf v0.0.0-20221230105357-b735bd5aac89 // indirect
