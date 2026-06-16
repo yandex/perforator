@@ -7,6 +7,9 @@ on:
       paths:
         - 'perforator/ui/packages/*/package.json'
 
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
 
 jobs:
   release:
@@ -16,19 +19,16 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: 9.12.3
-    - name: Use Node.js 20
+        version: 10.33.4
+    - name: Use Node.js 22
       uses: actions/setup-node@v4
       with:
-        node-version: 20.18.1
+        node-version: 22.22.2
+    - name: Install npm
+      run: npm install -g npm@11.5.1
     - name: Install dependencies
       working-directory: perforator/ui/app
-      run: pnpm install
-    - name: "Set token"
-      run: |
-          npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
-      env:
-          NPM_TOKEN: ${{ secrets.NPMJS_TOKEN }}
+      run: pnpm install --frozen-lockfile
     - name: Build
       working-directory: perforator/ui/app
       run: |
