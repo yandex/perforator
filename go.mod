@@ -1166,6 +1166,7 @@ require (
 	buf.build/gen/go/connectrpc/eliza/protocolbuffers/go v1.35.2-20230913231627-233fca715f49.1 // indirect
 	buf.build/go/protoyaml v0.6.0 // indirect
 	cel.dev/expr v0.25.1 // indirect
+	charm.land/fang/v2 v2.0.1 // indirect
 	code.cloudfoundry.org/clock v1.1.0 // indirect
 	code.gitea.io/sdk/gitea v0.19.0 // indirect
 	codeberg.org/go-fonts/dejavu v0.4.0 // indirect
@@ -1462,6 +1463,7 @@ require (
 	github.com/charmbracelet/harmonica v0.2.0 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20260416155717-489999b90468 // indirect
 	github.com/charmbracelet/x/ansi v0.11.7 // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250603201427-c31516f43444 // indirect
 	github.com/charmbracelet/x/exp/golden v0.0.0-20250806222409-83e3a29d542f // indirect
 	github.com/charmbracelet/x/exp/slice v0.0.0-20250327172914-2fdc97757edf // indirect
 	github.com/charmbracelet/x/input v0.1.1 // indirect
@@ -2145,7 +2147,11 @@ require (
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
+	github.com/muesli/mango v0.1.0 // indirect
+	github.com/muesli/mango-cobra v1.2.0 // indirect
+	github.com/muesli/mango-pflag v0.1.0 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
+	github.com/muesli/roff v0.1.0 // indirect
 	github.com/muesli/termenv v0.15.3-0.20240618155329-98d742f6907a // indirect
 	github.com/munnerz/crd-schema-fuzz v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
