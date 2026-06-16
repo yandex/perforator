@@ -4,6 +4,7 @@ go 1.25.8
 
 require (
 	4d63.com/gochecknoglobals v0.2.2-0.20230617165002-a9cb75083ef8
+	buf.build/gen/go/northpolesec/protos/protocolbuffers/go v1.36.11-20260608233110-ddab0636806b.1
 	buf.build/go/protovalidate v0.13.0
 	carvel.dev/ytt v0.52.2
 	charm.land/bubbles/v2 v2.1.0
