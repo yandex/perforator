@@ -4945,7 +4945,6 @@ github.com/armon/go-metrics/prometheus
 github.com/armon/go-radix
 # github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
 ## explicit
-github.com/armon/go-socks5
 # github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b
 ## explicit
 # github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
@@ -10096,13 +10095,6 @@ github.com/google/go-tpm/tpmutil/mssim
 github.com/google/go-tpm/tpmutil/tbs
 # github.com/google/go-tpm-tools v0.4.2 => github.com/google/go-tpm-tools v0.4.2
 ## explicit; go 1.20
-github.com/google/go-tpm-tools/cel
-github.com/google/go-tpm-tools/client
-github.com/google/go-tpm-tools/internal
-github.com/google/go-tpm-tools/internal/test
-github.com/google/go-tpm-tools/proto/attest
-github.com/google/go-tpm-tools/proto/tpm
-github.com/google/go-tpm-tools/server
 github.com/google/go-tpm-tools/simulator
 github.com/google/go-tpm-tools/simulator/internal
 # github.com/google/go-tspi v0.3.0
@@ -14226,8 +14218,6 @@ github.com/openpcc/ohttp/examples/gateway
 ## explicit; go 1.25.4
 github.com/openpcc/twoway
 github.com/openpcc/twoway/internal/chunks
-github.com/openpcc/twoway/internal/test
-github.com/openpcc/twoway/internal/test/unsafehpke
 # github.com/opensearch-project/opensearch-go v1.1.0
 ## explicit; go 1.11
 github.com/opensearch-project/opensearch-go
@@ -15319,6 +15309,7 @@ github.com/qmuntal/stateless
 # github.com/quasilyte/go-ruleguard v0.4.0
 ## explicit; go 1.19
 github.com/quasilyte/go-ruleguard/analyzer
+github.com/quasilyte/go-ruleguard/analyzer/testanalyzer
 github.com/quasilyte/go-ruleguard/internal/goenv
 github.com/quasilyte/go-ruleguard/internal/golist
 github.com/quasilyte/go-ruleguard/internal/xsrcimporter
@@ -20074,6 +20065,7 @@ go.temporal.io/server/common/archiver/gcloud
 go.temporal.io/server/common/archiver/gcloud/connector
 go.temporal.io/server/common/archiver/provider
 go.temporal.io/server/common/archiver/s3store
+go.temporal.io/server/common/archiver/s3store/mocks
 go.temporal.io/server/common/auth
 go.temporal.io/server/common/authorization
 go.temporal.io/server/common/backoff

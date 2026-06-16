@@ -768,6 +768,7 @@ require (
 	github.com/pseudomuto/protoc-gen-doc v1.5.1
 	github.com/qdrant/go-client v1.15.2
 	github.com/qmuntal/stateless v1.8.0
+	github.com/quasilyte/go-ruleguard v0.4.0
 	github.com/quic-go/quic-go v0.59.0
 	github.com/r3labs/diff/v3 v3.0.0
 	github.com/rafaelmartins/usbhid v0.0.0-20240923181811-9aaabf870f67
@@ -2287,7 +2288,6 @@ require (
 	github.com/pseudomuto/protokit v0.2.0 // indirect
 	github.com/pterm/pterm v0.12.82 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
-	github.com/quasilyte/go-ruleguard v0.4.0 // indirect
 	github.com/quasilyte/go-ruleguard/dsl v0.3.22 // indirect
 	github.com/quasilyte/go-ruleguard/rules v0.0.0-20211022131956-028d6511ab71 // indirect
 	github.com/quasilyte/gogrep v0.5.0 // indirect
