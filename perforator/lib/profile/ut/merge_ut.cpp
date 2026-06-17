@@ -54,6 +54,32 @@ NPerforator::NProto::NProfile::Profile MakeProfile(
     return profile;
 }
 
+// Builds a single cpu.cycles sample carrying the given string labels and value.
+NPerforator::NProto::NProfile::Profile MakeLabeledProfile(
+    std::initializer_list<std::pair<TStringBuf, TStringBuf>> labels,
+    ui64 value
+) {
+    NPerforator::NProto::NProfile::Profile profile;
+    NPerforator::NProfile::TProfileBuilder builder{&profile};
+
+    auto valueTypeId = builder.AddValueType("cpu", "cycles");
+    builder.Metadata().GetProto().set_default_sample_type(*builder.AddString("cpu"));
+
+    auto keyBuilder = builder.AddSampleKey();
+    for (auto&& [key, val] : labels) {
+        keyBuilder.AddLabel(builder.AddStringLabel(key, val));
+    }
+    auto sampleKey = keyBuilder.Finish();
+
+    auto sample = builder.AddSample();
+    sample.SetSampleKey(sampleKey);
+    sample.AddValue(valueTypeId, value);
+    sample.Finish();
+
+    std::move(builder).Finish();
+    return profile;
+}
+
 TStringBuf GetDefaultSampleType(const NPerforator::NProto::NProfile::Profile& profile) {
     NPerforator::NProfile::TProfile view{&profile};
     return view.String(NPerforator::NProfile::TStringId::FromInternalIndex(profile.metadata().default_sample_type())).View();
@@ -160,6 +186,33 @@ TEST(MergeProfilesTest, FiltersValueTypesAndDefaultSampleType) {
     ASSERT_EQ(dropped.samples().values_size(), 1);
     EXPECT_EQ(GetSampleValue(dropped, "cpu", "cycles"), 10);
     EXPECT_EQ(dropped.metadata().default_sample_type(), 0);
+}
+
+// A sample filter keyed on a label that keys_show strips must still match: the parallel
+// merger used to re-run the filter at the combine stage on already-stripped intermediate
+// profiles and drop every sample but worker 0's. With many profiles per worker, the loss
+// is large (and can empty the profile entirely).
+TEST(MergeProfilesTest, ParallelMergerKeepsFilteredSamplesAcrossWorkers) {
+    constexpr size_t profileCount = 16;
+    constexpr ui64 perProfileValue = 10;
+
+    NPerforator::NProto::NProfile::MergeOptions options;
+    (*options.mutable_sample_filter()->mutable_required_all_of_string_labels())["tls:perforator_tls_ui64_TestID"] =
+        "1586802";
+    options.mutable_label_filter()->add_keys_show("comm");
+
+    NPerforator::NProfile::TMergeManager manager{/*threadCount=*/4};
+    auto session = manager.StartSession(options);
+    for (size_t i = 0; i < profileCount; ++i) {
+        session->AddProfile(MakeLabeledProfile({
+            {"tls:perforator_tls_ui64_TestID", "1586802"},
+            {"comm", "worker"},
+        }, perProfileValue));
+    }
+    auto merged = std::move(*session).Finish();
+
+    ASSERT_EQ(merged.samples().key_size(), 1);
+    EXPECT_EQ(GetSampleValue(merged, "cpu", "cycles"), perProfileValue * profileCount);
 }
 
 TEST(MergeProfilesTest, ParallelMergerIgnoresEmptyWorkers) {

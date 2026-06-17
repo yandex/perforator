@@ -148,6 +148,9 @@ TParallelProfileMerger::TImpl::TMergeResult TParallelProfileMerger::TImpl::Combi
         auto options = Options_.MergeOptions;
         // FIXME(ayles): ugly hack, should be removed after moving filters to TProfile itself.
         options.set_sample_period(0);
+        // Intermediate profiles are already filtered; re-running the sample filter here
+        // would drop samples whose matched label was stripped by the label filter.
+        options.clear_sample_filter();
         lhs.UnfinishedMerger.Add(*profile, options);
     }
     *profile = {};
