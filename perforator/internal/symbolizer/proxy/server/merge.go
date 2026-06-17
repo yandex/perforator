@@ -240,6 +240,7 @@ func fillMergeOptions(
 		getLabelKey(profileproto.WellKnownLabel_ProcessCommand),
 		getLabelKey(profileproto.WellKnownLabel_ThreadCommand),
 		getLabelKey(profileproto.WellKnownLabel_Workload),
+		getLabelKey(profileproto.WellKnownLabel_SignalName),
 	}...)
 
 	opts.ValueTypeFilter.Allowlist = append(opts.ValueTypeFilter.Allowlist, []string{targetEventType}...)
