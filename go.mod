@@ -543,6 +543,7 @@ require (
 	github.com/haproxytech/config-parser/v5 v5.0.0
 	github.com/haproxytech/go-logger v1.1.0
 	github.com/hashicorp/consul/api v1.32.0
+	github.com/hashicorp/cronexpr v1.1.3
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.6.3
@@ -1866,7 +1867,6 @@ require (
 	github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/hashicorp/consul/sdk v0.16.1 // indirect
-	github.com/hashicorp/cronexpr v1.1.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-checkpoint v0.5.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
