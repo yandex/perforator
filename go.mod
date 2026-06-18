@@ -9,6 +9,7 @@ require (
 	carvel.dev/ytt v0.52.2
 	charm.land/bubbles/v2 v2.1.0
 	charm.land/bubbletea/v2 v2.0.6
+	charm.land/fang/v2 v2.0.1
 	charm.land/glamour/v2 v2.0.0
 	charm.land/lipgloss/v2 v2.0.3
 	cloud.google.com/go v0.123.0
@@ -1168,7 +1169,6 @@ require (
 	buf.build/gen/go/connectrpc/eliza/protocolbuffers/go v1.35.2-20230913231627-233fca715f49.1 // indirect
 	buf.build/go/protoyaml v0.6.0 // indirect
 	cel.dev/expr v0.25.1 // indirect
-	charm.land/fang/v2 v2.0.1 // indirect
 	code.cloudfoundry.org/clock v1.1.0 // indirect
 	code.gitea.io/sdk/gitea v0.19.0 // indirect
 	codeberg.org/go-fonts/dejavu v0.4.0 // indirect
