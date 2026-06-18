@@ -89,8 +89,60 @@ export function cutTimeFromSelector(selector: string): string {
     return selector.replace(timestampCutRegex, '');
 }
 
+function splitSelectorConditions(selector: string): string[] {
+    const trimmedSelector = selector.trim();
+    const innerSelector = trimmedSelector.startsWith('{') && trimmedSelector.endsWith('}')
+        ? trimmedSelector.slice(1, -1)
+        : trimmedSelector;
+    const conditions: string[] = [];
+    let conditionStart = 0;
+    let isInsideQuotedValue = false;
+    let isEscaped = false;
+
+    for (let index = 0; index < innerSelector.length; index += 1) {
+        const char = innerSelector[index];
+
+        if (isEscaped) {
+            isEscaped = false;
+            continue;
+        }
+
+        if (char === '\\' && isInsideQuotedValue) {
+            isEscaped = true;
+            continue;
+        }
+
+        if (char === '"') {
+            isInsideQuotedValue = !isInsideQuotedValue;
+            continue;
+        }
+
+        if (char === ',' && !isInsideQuotedValue) {
+            const condition = innerSelector.slice(conditionStart, index).trim();
+            if (condition) {
+                conditions.push(condition);
+            }
+            conditionStart = index + 1;
+        }
+    }
+
+    const condition = innerSelector.slice(conditionStart).trim();
+    if (condition) {
+        conditions.push(condition);
+    }
+
+    return conditions;
+}
+
+function isProfileIdCondition(condition: string): boolean {
+    return /^id\s*=\s*"([^"\\]|\\.)*"$/.test(condition);
+}
+
 export function cutIdFromSelector(selector: string): string {
-    return selector.replace(/id\s*=\s*"(.*?)"/, '');
+    const conditions = splitSelectorConditions(selector)
+        .filter(condition => !isProfileIdCondition(condition));
+
+    return `{${conditions.join(',')}}`;
 }
 
 export function insertStatementIntoSelector(selector: string, statement: string): string {

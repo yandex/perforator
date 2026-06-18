@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { cutTimeFromSelector, insertStatementIntoSelector, parseTimestampFromSelector, validateSelectorContainsOnlyService } from './selector';
+import { cutIdFromSelector, cutTimeFromSelector, insertStatementIntoSelector, parseTimestampFromSelector, validateSelectorContainsOnlyService } from './selector';
 
 
 const selector = '{service="perforator.perforator-proxy-prod",timestamp>="2024-08-26T09:56:12.624Z", timestamp<="2024-08-27T09:56:12.625Z"}';
@@ -44,6 +44,44 @@ describe('cutTimeFromSelector', () => {
         const s = '{service="perforator.perforator-proxy-prod"}';
 
         expect(cutTimeFromSelector(s)).toEqual(s);
+    });
+});
+
+describe('cutIdFromSelector', () => {
+    it('should cut id from the end', () => {
+        const s = '{service="perforator.perforator-proxy-prod",id="profile-id"}';
+
+        expect(cutIdFromSelector(s)).toEqual('{service="perforator.perforator-proxy-prod"}');
+    });
+
+    it('should cut id from the middle', () => {
+        const s = '{service="perforator.perforator-proxy-prod", id = "profile-id",event_type="cpu"}';
+
+        expect(cutIdFromSelector(s)).toEqual('{service="perforator.perforator-proxy-prod",event_type="cpu"}');
+    });
+
+    it('should cut id from the beginning', () => {
+        const s = '{id = "profile-id",event_type="cpu",service="perforator.perforator-proxy-prod"}';
+
+        expect(cutIdFromSelector(s)).toEqual('{event_type="cpu",service="perforator.perforator-proxy-prod"}');
+    });
+
+    it('should cut id when it is the only condition', () => {
+        const s = '{id="profile-id"}';
+
+        expect(cutIdFromSelector(s)).toEqual('{}');
+    });
+
+    it('should not cut node_id or pod_id', () => {
+        const s = '{node_id="node-id",pod_id="pod-id"}';
+
+        expect(cutIdFromSelector(s)).toEqual(s);
+    });
+
+    it('should not split conditions by comma inside quoted values', () => {
+        const s = '{id="profile-id",service="perforator,proxy",event_type="cpu"}';
+
+        expect(cutIdFromSelector(s)).toEqual('{service="perforator,proxy",event_type="cpu"}');
     });
 });
 

@@ -85,7 +85,7 @@ export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, addi
         const selectorToSave = currentSelector ? removeOptionalTailingComma(currentSelector) : cutTimeFromSelector(selector);
 
         let newSelector = selectorToSave;
-        if (isSingleProfile) {
+        if (isSingleProfile && hasSelectionChanged) {
             newSelector = cutIdFromSelector(newSelector);
         }
 
@@ -104,7 +104,7 @@ export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, addi
                 });
             }
         }
-    }, [areLineNumbersEnabled, currentSelector, isSingleProfile, maxSamples, navigate, selector, time, timelineValue]);
+    }, [areLineNumbersEnabled, currentSelector, hasSelectionChanged, isSingleProfile, maxSamples, navigate, selector, time, timelineValue]);
 
     const handleCancel = React.useCallback(() => {
         setCurrentSelector(initialSelector);
