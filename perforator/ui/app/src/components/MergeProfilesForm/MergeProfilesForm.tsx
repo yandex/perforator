@@ -95,7 +95,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = ({
 
         const newField = changeQueryToNewInput(queryInput, tableSelector);
         if (newField) {
-            setQuery({ ...query, ...newField });
+            setQuery(currentQuery => ({ ...currentQuery, ...newField }));
         }
         else {
             setTableSelector(undefined);
@@ -109,7 +109,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = ({
             onUpdate={name => {
                 setQueryInputName(name);
                 localStorage.setItem(LocalStorageKey.QueryInputKind, name);
-                setQuery({ ...query, [queryInput.queryField]: undefined });
+                setQuery(currentQuery => ({ ...currentQuery, [queryInput.queryField]: undefined }));
             }}
         />
     );
@@ -191,11 +191,11 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = ({
                         end: query.to,
                     }}
                     onUpdate={interval => {
-                        setQuery({
-                            ...query,
+                        setQuery(currentQuery => ({
+                            ...currentQuery,
                             from: interval.start,
                             to: interval.end,
-                        });
+                        }));
                     }}
                     header={header}
                 />
@@ -203,10 +203,10 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = ({
                     {renderQueryInputSwitcher()}
                     <SampleSizeInput
                         value={query.maxProfiles}
-                        onUpdate={value => setQuery({
-                            ...query,
+                        onUpdate={value => setQuery(currentQuery => ({
+                            ...currentQuery,
                             maxProfiles: value,
-                        })}
+                        }))}
                     />
                 </div>
                 <div className="merge-profiles-form__inputs">

@@ -19,6 +19,12 @@ function isNumber(n: unknown) {
     return !Number.isNaN(num);
 }
 
+type QueryUpdate = React.SetStateAction<QueryInputResult>;
+
+function applyProfileQueryUpdate(query: QueryInputResult, update: QueryUpdate): QueryInputResult {
+    return typeof update === 'function' ? update(query) : update;
+}
+
 export function useProfileStateQuery({
     inMemory,
 }: { inMemory?: boolean } = {}) {
@@ -62,13 +68,16 @@ export function useProfileStateQuery({
     const [query, setQueryState] = React.useState<QueryInputResult>(
         inMemory ? defaultQuery : (params as QueryInputResult),
     );
+    const queryRef = React.useRef(query);
 
-    const setQuery = (newQuery: QueryInputResult) => {
+    const setQuery = React.useCallback((update: QueryUpdate) => {
+        const newQuery = applyProfileQueryUpdate(queryRef.current, update);
+        queryRef.current = newQuery;
         if (!inMemory) {
             setSearchParams(taskQueryToSearchParams(newQuery));
         }
         setQueryState(newQuery);
-    };
+    }, [inMemory, setSearchParams]);
 
     return [query, setQuery] as const;
 }

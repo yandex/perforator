@@ -14,10 +14,10 @@ const renderTokensInput: QueryInputRenderer = (query, setQuery, setTableSelector
                     if (setTableSelector) {
                         setTableSelector(makeSelectorFromTokensString(tokens));
                     }
-                    setQuery({
-                        ...query,
+                    setQuery(currentQuery => ({
+                        ...currentQuery,
                         tokens,
-                    });
+                    }));
                 }
             }} />
     </QuerySuggestProvider>

@@ -5,10 +5,10 @@ import { SelectorInput } from './SelectorInput';
 
 const renderSelectorInput: QueryInputRenderer = (query, setQuery, setTableSelector) => {
     const doSetQuery = (selector: Optional<string>) => {
-        setQuery({
-            ...query,
+        setQuery(currentQuery => ({
+            ...currentQuery,
             selector: selector || '',
-        });
+        }));
     };
     return (
         <SelectorInput

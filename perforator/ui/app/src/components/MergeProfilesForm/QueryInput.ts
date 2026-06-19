@@ -9,7 +9,7 @@ export type QueryInputResult = ProfileTaskQuery & {
 
 export type QueryInputRenderer = (
     query: QueryInputResult,
-    setQuery: (query: QueryInputResult) => void,
+    setQuery: React.Dispatch<React.SetStateAction<QueryInputResult>>,
     setTableSelector?: (selector: string) => void,
 ) => React.ReactNode;
 

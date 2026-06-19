@@ -17,10 +17,10 @@ const renderServiceInput: QueryInputRenderer = (query, setQuery, setTableSelecto
                     if (setTableSelector) {
                         setTableSelector(makeSelectorWithService(service));
                     }
-                    setQuery({
-                        ...query,
+                    setQuery(currentQuery => ({
+                        ...currentQuery,
                         service,
-                    });
+                    }));
                 }
             }} />
     </div>
