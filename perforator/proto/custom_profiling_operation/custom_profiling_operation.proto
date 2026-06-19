@@ -69,10 +69,10 @@ message PerfEventSettings {
 
 message LibCudaDetector {}
 
-// Find all mapped binary files (from /proc/pid/maps) that match the given name suffix
+// Find all mapped executable binary files (from /proc/pid/maps) whose path contains the given pattern.
 message MappedBinaryDetector {
-    // Binary name suffix (e.g., "libcuda.so")
-    string Name = 1;
+    // Substring to match against the mapping path
+    string Pattern = 1;
 }
 
 message BinaryDetector {

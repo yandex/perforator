@@ -124,12 +124,12 @@ func resolveUprobeBinaryPaths(pid linux.CurrentNamespacePID, binaryLocation *cpo
 func resolveDetectorBinaryPaths(pid linux.CurrentNamespacePID, detector *cpo_proto.BinaryDetector) ([]string, error) {
 	switch d := detector.Detector.(type) {
 	case *cpo_proto.BinaryDetector_Mapped:
-		nsPaths, err := findLibrariesByName(pid, d.Mapped.Name)
+		nsPaths, err := findLibrariesByName(pid, d.Mapped.Pattern)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find libraries: %w", err)
 		}
 		if len(nsPaths) == 0 {
-			return nil, fmt.Errorf("library %q not found in process mappings", d.Mapped.Name)
+			return nil, fmt.Errorf("library %q not found in process mappings", d.Mapped.Pattern)
 		}
 
 		root := procRoot(pid)

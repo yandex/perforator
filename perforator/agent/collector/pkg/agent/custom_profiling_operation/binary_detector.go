@@ -26,7 +26,7 @@ func findLibrariesByNameFromFS(fsf mappingIterator, name string) ([]string, erro
 			return nil
 		}
 
-		if !strings.HasSuffix(m.Path, name) {
+		if !strings.Contains(m.Path, name) {
 			return nil
 		}
 

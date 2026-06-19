@@ -37,8 +37,8 @@ func validateUprobeSettings(uprobeSettings *cpo_proto.UprobeSettings) error {
 		}
 		switch d := detector.Detector.(type) {
 		case *cpo_proto.BinaryDetector_Mapped:
-			if d.Mapped.GetName() == "" {
-				return errors.New("binary name is not set")
+			if d.Mapped.GetPattern() == "" {
+				return errors.New("binary pattern is not set")
 			}
 		default:
 			return fmt.Errorf("unsupported binary detector type: %T", detector.Detector)

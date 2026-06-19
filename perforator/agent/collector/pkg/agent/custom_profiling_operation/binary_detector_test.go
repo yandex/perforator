@@ -35,6 +35,24 @@ func TestFindLibrariesByName(t *testing.T) {
 			expected:    []string{"/usr/lib/libcuda.so"},
 		},
 		{
+			name: "versioned_library_name",
+			fs: fstest.MapFS{
+				"proc/12345/maps": &fstest.MapFile{Mode: 0o444, Data: []byte(`7f0aec0be000-7f0aec0e1000 r-xp 00001000 fd:01 2825 /opt/yt-nvidia/lib/driver/libcuda.so.580.65.06
+`)},
+			},
+			libraryName: "libcuda.so",
+			expected:    []string{"/opt/yt-nvidia/lib/driver/libcuda.so.580.65.06"},
+		},
+		{
+			name: "versioned_cudart_library_name",
+			fs: fstest.MapFS{
+				"proc/12345/maps": &fstest.MapFile{Mode: 0o444, Data: []byte(`7f0aec0be000-7f0aec0e1000 r-xp 00001000 fd:01 2825 /usr/local/cuda-12.9/targets/x86_64-linux/lib/libcudart.so.12.9.37
+`)},
+			},
+			libraryName: "libcudart.so",
+			expected:    []string{"/usr/local/cuda-12.9/targets/x86_64-linux/lib/libcudart.so.12.9.37"},
+		},
+		{
 			name: "not_executable_mapping_skipped",
 			fs: fstest.MapFS{
 				"proc/12345/maps": &fstest.MapFile{Mode: 0o444, Data: []byte(`7f0aec0be000-7f0aec0e1000 r--p 00001000 fd:01 2825 /usr/lib/libcuda.so
