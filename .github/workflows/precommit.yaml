@@ -1,5 +1,5 @@
 on:
-  - pull_request_target
+  - workflow_dispatch # TODO(mikailbag): address approval concerns and bring this back
 permissions: {} # disable all by default
 jobs:
   run-build:
