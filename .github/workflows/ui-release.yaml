@@ -6,6 +6,8 @@ on:
         - main
       paths:
         - 'perforator/ui/packages/*/package.json'
+  workflow_dispatch:
+
 
 permissions:
   id-token: write  # Required for OIDC
