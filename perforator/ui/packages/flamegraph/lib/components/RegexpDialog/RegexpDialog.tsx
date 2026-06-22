@@ -70,13 +70,17 @@ export function RegexpDialog({ showDialog, onCloseDialog, onSearchUpdate, initia
                     value={searchQuery}
                     onUpdate={handleSearchUpdate}
                     error={Boolean(regexError)}
-                    errorMessage={regexError} />
+                    errorMessage={regexError}
+                    hasClear
+                />
                 <TextInput
                     note={'Exclude pattern (optional)'}
                     value={excludeText}
                     onUpdate={handleExcludeUpdate}
                     error={Boolean(excludeRegexError)}
-                    errorMessage={excludeRegexError} />
+                    errorMessage={excludeRegexError}
+                    hasClear
+                />
                 <Checkbox className={'regexp-dialog__checkbox'} title="Disable regex parsing, literal mode" checked={exact} onUpdate={setExact}>Exact match</Checkbox>
                 <Checkbox className={'regexp-dialog__checkbox'} title="Case insensitive search" checked={caseInsensitive} onUpdate={setCaseInsensitive}>Case insensitive</Checkbox>
             </Dialog.Body>
