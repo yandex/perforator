@@ -8669,14 +8669,21 @@ github.com/getkin/kin-openapi/routers/legacy/pathpattern
 ## explicit
 github.com/getsentry/raven-go
 github.com/getsentry/raven-go/example
-# github.com/getsentry/sentry-go v0.34.1 => github.com/getsentry/sentry-go v0.13.0
-## explicit; go 1.17
+# github.com/getsentry/sentry-go v0.34.1
+## explicit; go 1.21
 github.com/getsentry/sentry-go
-github.com/getsentry/sentry-go/echo
+github.com/getsentry/sentry-go/attribute
 github.com/getsentry/sentry-go/http
-github.com/getsentry/sentry-go/internal/crypto/randutil
 github.com/getsentry/sentry-go/internal/debug
+github.com/getsentry/sentry-go/internal/httputils
+github.com/getsentry/sentry-go/internal/otel/baggage
+github.com/getsentry/sentry-go/internal/otel/baggage/internal/baggage
 github.com/getsentry/sentry-go/internal/ratelimit
+github.com/getsentry/sentry-go/internal/testutils
+github.com/getsentry/sentry-go/internal/traceutils
+# github.com/getsentry/sentry-go/echo v0.34.1
+## explicit; go 1.21
+github.com/getsentry/sentry-go/echo
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
@@ -24093,7 +24100,6 @@ www.velocidex.com/golang/regparser
 # github.com/distribution/reference => github.com/distribution/reference v0.5.0
 # github.com/docker/cli => github.com/docker/cli v25.0.4+incompatible
 # github.com/docker/docker => github.com/docker/docker v28.2.2+incompatible
-# github.com/getsentry/sentry-go => github.com/getsentry/sentry-go v0.13.0
 # github.com/go-resty/resty/v2 => github.com/go-resty/resty/v2 v2.16.3
 # github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.9
 # github.com/google/go-tpm-tools => github.com/google/go-tpm-tools v0.4.2
