@@ -1,6 +1,6 @@
 module github.com/yandex/perforator
 
-go 1.25.8
+go 1.26.3
 
 require (
 	4d63.com/gochecknoglobals v0.2.2-0.20230617165002-a9cb75083ef8
