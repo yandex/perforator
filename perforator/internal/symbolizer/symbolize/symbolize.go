@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 	"unsafe"
 
 	pprof "github.com/google/pprof/profile"
@@ -91,56 +92,29 @@ func AddLine(profile *pprof.Profile, location *pprof.Location, lineInfo *symboli
 	)
 }
 
-func getUnsymbolizedUniqueBuildIDs(ctx context.Context, profile *pprof.Profile, logger xlog.Logger) []string {
-	uniqueBuildIDs := make(map[string]struct{})
+func SkewedOffset(location *pprof.Location) uint64 {
+	return location.Address + location.Mapping.Offset - location.Mapping.Start
+}
 
-	for i, mapping := range profile.Mapping {
-		if mapping == nil {
+func VisitUnsymbolizedLocations(profile *pprof.Profile, visit func(loc *pprof.Location, buildID string, offset uint64)) {
+	for _, loc := range profile.Location {
+		if len(loc.Line) > 0 || loc.Mapping == nil || loc.Mapping.BuildID == "" {
 			continue
 		}
-
-		l := logger.With(
-			log.Int("i", i),
-			log.String("build_id", mapping.BuildID),
-			log.String("path", mapping.File),
-			log.UInt64("start", mapping.Start),
-			log.UInt64("limit", mapping.Limit),
-			log.UInt64("offset", mapping.Offset),
-		)
-
-		l.Debug(ctx, "Found mapping")
-
-		if mapping.BuildID == "" {
-			continue
-		}
-
-		uniqueBuildIDs[mapping.BuildID] = struct{}{}
+		visit(loc, loc.Mapping.BuildID, SkewedOffset(loc))
 	}
+}
 
-	buildIDs := make([]string, 0, len(uniqueBuildIDs))
-	for buildID := range uniqueBuildIDs {
+func getUnsymbolizedUniqueBuildIDs(profile *pprof.Profile) []string {
+	unsymbolized := make(map[string]struct{})
+	VisitUnsymbolizedLocations(profile, func(_ *pprof.Location, buildID string, _ uint64) {
+		unsymbolized[buildID] = struct{}{}
+	})
+
+	buildIDs := make([]string, 0, len(unsymbolized))
+	for buildID := range unsymbolized {
 		buildIDs = append(buildIDs, buildID)
 	}
-
-	unsymbolizedBuildIDs := make(map[string]struct{})
-	for _, loc := range profile.Location {
-		if loc.Mapping != nil && len(loc.Line) == 0 {
-			unsymbolizedBuildIDs[loc.Mapping.BuildID] = struct{}{}
-		}
-	}
-
-	toRemove := make([]string, 0)
-	for buildID := range uniqueBuildIDs {
-		if _, ok := unsymbolizedBuildIDs[buildID]; !ok {
-			toRemove = append(toRemove, buildID)
-		}
-	}
-
-	for _, buildID := range toRemove {
-		delete(uniqueBuildIDs, buildID)
-		logger.Debug(ctx, "already symbolized", log.String("buildID", buildID))
-	}
-
 	return buildIDs
 }
 
@@ -154,6 +128,35 @@ func (s *Symbolizer) SymbolizeLocalProfile(
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	return s.symbolizePprof(ctx, profile, binaryPathProvider, gsymBinaryPathProvider, nil)
+}
+
+func (s *Symbolizer) symbolizePprof(
+	ctx context.Context,
+	profile *pprof.Profile,
+	pathProvider BinaryPathProvider,
+	gsymPathProvider BinaryPathProvider,
+	opts *perforator.SymbolizeOptions,
+) error {
+	start := time.Now()
+	defer func() {
+		s.pruneCaches()
+		s.metrics.symbolizationTimer.RecordDuration(time.Since(start))
+	}()
+
+	s.logger.Debug(ctx, "Start symbolize")
+	VisitUnsymbolizedLocations(profile, func(location *pprof.Location, buildID string, offset uint64) {
+		path, useGSYM, err := s.provideCachePath(ctx, gsymPathProvider, pathProvider, buildID, location.Mapping.File)
+		if err != nil {
+			return // unknown binary, already traced
+		}
+
+		lineInfos, _ := s.symbolizeLocation(ctx, buildID, offset, path, useGSYM)
+		for _, lineInfo := range lineInfos {
+			AddLine(profile, location, lineInfo.ProtoLine, opts)
+		}
+	})
+
+	return nil
 }
 
 func (s *Symbolizer) acquireBinaries(ctx context.Context, buildIDs []string) (
@@ -192,7 +195,7 @@ func (s *Symbolizer) SymbolizeStorageProfile(
 	profile *pprof.Profile,
 	opts *perforator.SymbolizeOptions,
 ) (*pprof.Profile, error) {
-	buildIDs := getUnsymbolizedUniqueBuildIDs(ctx, profile, s.logger)
+	buildIDs := getUnsymbolizedUniqueBuildIDs(profile)
 
 	gsymCachedBinaries, cachedBinaries, err := s.acquireBinaries(ctx, buildIDs)
 	if err != nil {

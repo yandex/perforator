@@ -33,7 +33,6 @@ import (
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
-	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 	symbolizerproto "github.com/yandex/perforator/perforator/proto/symbolizer"
@@ -1107,19 +1106,11 @@ type pprofBuildIDLocationsOffsetIndex struct {
 	locationAtOffset map[uint64]*pprof.Location
 }
 
-func prepareRemoteSymbolizeRequest(ctx context.Context, l xlog.Logger, profile *pprof.Profile) ([]*symbolizerproto.PerBinaryRequest, map[string]*pprofBuildIDLocationsOffsetIndex) {
+func prepareRemoteSymbolizeRequest(profile *pprof.Profile) ([]*symbolizerproto.PerBinaryRequest, map[string]*pprofBuildIDLocationsOffsetIndex) {
 	locsPerBuildID := make(map[string]*pprofBuildIDLocationsOffsetIndex)
 	offsetsPerBuildID := make(map[string][]uint64)
 
-	var nilMappingLocs []uint64
-	for _, loc := range profile.Location {
-		if loc.Mapping == nil {
-			nilMappingLocs = append(nilMappingLocs, loc.ID)
-			continue
-		}
-		buildID := loc.Mapping.BuildID
-		offset := loc.Address
-
+	symbolize.VisitUnsymbolizedLocations(profile, func(loc *pprof.Location, buildID string, offset uint64) {
 		locs, ok := locsPerBuildID[buildID]
 		if !ok {
 			locs = &pprofBuildIDLocationsOffsetIndex{
@@ -1131,11 +1122,7 @@ func prepareRemoteSymbolizeRequest(ctx context.Context, l xlog.Logger, profile *
 
 		offsetsPerBuildID[buildID] = append(offsetsPerBuildID[buildID], offset)
 		locs.locationAtOffset[offset] = loc
-	}
-
-	if nilMappingLocs != nil {
-		l.Warn(ctx, "Couldn't retrieve BuildID: locations with nil mapping found", log.Array("location-id", nilMappingLocs))
-	}
+	})
 
 	batch := make([]*symbolizerproto.PerBinaryRequest, 0, len(locsPerBuildID))
 	for buildID := range locsPerBuildID {
@@ -1159,7 +1146,7 @@ func (s *PerforatorServer) performRemoteSymbolize(
 	profile *pprof.Profile,
 	opts *perforator.SymbolizeOptions,
 ) (ok bool) {
-	batch, locsPerBuildID := prepareRemoteSymbolizeRequest(ctx, s.l, profile)
+	batch, locsPerBuildID := prepareRemoteSymbolizeRequest(profile)
 	resp, failedReqs, err := s.bpClient.DistributeSymbolize(ctx, batch)
 
 	if err != nil {

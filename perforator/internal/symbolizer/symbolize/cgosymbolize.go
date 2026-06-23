@@ -6,18 +6,12 @@ import "C"
 import (
 	"context"
 	"errors"
-	"fmt"
-	"time"
 	"unsafe"
-
-	pprof "github.com/google/pprof/profile"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
-	"github.com/yandex/perforator/perforator/proto/perforator"
-	"github.com/yandex/perforator/perforator/proto/symbolizer"
 )
 
 func newLineInfo(buildID string, addr uint64, lineInfo *C.TLineInfo) *LineInfo {
@@ -71,57 +65,8 @@ func (s *Symbolizer) Destroy() {
 	C.DestroySymbolizer(s.symbolizer)
 }
 
-func (s *Symbolizer) symbolizePprof(
-	ctx context.Context,
-	profile *pprof.Profile,
-	pathProvider BinaryPathProvider,
-	gsymPathProvider BinaryPathProvider,
-	opts *perforator.SymbolizeOptions,
-) error {
-	start := time.Now()
-	defer func() {
-		C.PruneCaches(s.symbolizer)
-		s.metrics.symbolizationTimer.RecordDuration(time.Since(start))
-	}()
-
-	s.logger.Debug(ctx, "Start symbolize")
-	for _, location := range profile.Location {
-		// Skip symbolized code.
-		if len(location.Line) > 0 {
-			continue
-		}
-
-		if location.Mapping == nil {
-			continue
-		}
-
-		path := pathProvider.PathByBuildID(location.Mapping.BuildID)
-		address := location.Address + location.Mapping.Offset - location.Mapping.Start
-
-		useGSYM := false
-		gsymPath := gsymPathProvider.PathByBuildID(location.Mapping.BuildID)
-		if gsymPath != "" {
-			path = gsymPath
-			useGSYM = true
-		}
-
-		if path == "" {
-			s.logger.Trace(ctx, "Unknown binary",
-				log.String("buildid", location.Mapping.BuildID),
-				log.String("address", fmt.Sprintf("%x", location.Address)),
-				log.String("original_file", location.Mapping.File),
-			)
-			s.metrics.unknownBinaries.Inc()
-			continue
-		}
-
-		lineInfos, _ := s.symbolizeLocation(ctx, location.Mapping.BuildID, address, path, useGSYM)
-		for _, lineInfo := range lineInfos {
-			AddLine(profile, location, (*symbolizer.Line)(lineInfo.ProtoLine), opts)
-		}
-	}
-
-	return nil
+func (s *Symbolizer) pruneCaches() {
+	C.PruneCaches(s.symbolizer)
 }
 
 func (s *Symbolizer) symbolizeLocation(
