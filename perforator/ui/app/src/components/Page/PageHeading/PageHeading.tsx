@@ -35,7 +35,7 @@ export const PageHeading: React.FC<PageHeadingProps> = ({ embed }: PageHeadingPr
                     href={makePerforatorUrl(searchParams)}
                     target="_blank"
                 >
-                    View in Perforator
+                    Open in Perforator
                     <Icon className="page-heading__link-arrow" data={ArrowUpRightFromSquare} />
                 </Link>
             </div>
