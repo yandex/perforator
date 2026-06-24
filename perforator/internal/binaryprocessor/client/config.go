@@ -1,23 +1,25 @@
 package client
 
 import (
-	"github.com/yandex/perforator/perforator/internal/servicediscovery"
+	"errors"
 )
 
+const defaultMaxConcurrentRequests = 32
+
 type Config struct {
-	ServiceDiscoveryConfig servicediscovery.Config `yaml:"service_discovery"`
-	MaxRetries             int                     `yaml:"max_retries"`
+	Target                string `yaml:"target"`
+	MaxConcurrentRequests int    `yaml:"max_concurrent_requests"`
 }
 
-const defaultHopsLimit = 2
-
 func (c *Config) FillDefault() {
-	c.ServiceDiscoveryConfig.FillDefault()
-	if c.MaxRetries == 0 {
-		c.MaxRetries = defaultHopsLimit
+	if c.MaxConcurrentRequests == 0 {
+		c.MaxConcurrentRequests = defaultMaxConcurrentRequests
 	}
 }
 
 func (c *Config) Validate() error {
-	return c.ServiceDiscoveryConfig.Validate()
+	if c.Target == "" {
+		return errors.New("target is required")
+	}
+	return nil
 }

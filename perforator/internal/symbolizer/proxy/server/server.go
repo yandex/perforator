@@ -120,7 +120,7 @@ type PerforatorServer struct {
 	symbolizer   *symbolize.Symbolizer
 	mergemanager *cprofile.MergeManager
 
-	bpClient *bpclient.DistributingClient
+	bpClient *bpclient.Client
 
 	llvmTools LLVMTools
 
@@ -230,9 +230,9 @@ func NewPerforatorServer(
 		return nil, err
 	}
 
-	var bpClient *bpclient.DistributingClient
+	var bpClient *bpclient.Client
 	if *conf.FeaturesConfig.EnableRemoteSymbolization {
-		bpClient, err = bpclient.NewDistributingClient(
+		bpClient, err = bpclient.NewClient(
 			conf.BinaryProcessorClientConfig,
 			l.WithName("BPClient"),
 		)

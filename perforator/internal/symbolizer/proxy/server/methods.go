@@ -1147,14 +1147,7 @@ func (s *PerforatorServer) performRemoteSymbolize(
 	opts *perforator.SymbolizeOptions,
 ) (ok bool) {
 	batch, locsPerBuildID := prepareRemoteSymbolizeRequest(profile)
-	resp, failedReqs, err := s.bpClient.DistributeSymbolize(ctx, batch)
-
-	if err != nil {
-		// Perform symbolization on proxy instead
-		s.l.Error(ctx, "Remote symbolization error: %w", log.Error(err))
-		s.metrics.remoteSymbolizationCount.fails.Inc()
-		return false
-	}
+	results, failedReqs := s.bpClient.Symbolize(ctx, batch)
 
 	complete := true
 	defer func() {
@@ -1166,7 +1159,7 @@ func (s *PerforatorServer) performRemoteSymbolize(
 		}
 	}()
 
-	for _, perBinaryResponse := range resp.Batch {
+	for _, perBinaryResponse := range results {
 		buildID := perBinaryResponse.BuildID
 		if perBinaryResponse.Error != "" {
 			complete = false
@@ -1198,7 +1191,7 @@ func (s *PerforatorServer) performRemoteSymbolize(
 		}
 	}
 
-	return failedReqs == nil
+	return len(failedReqs) == 0
 }
 
 func (s *PerforatorServer) symbolizeProfile(

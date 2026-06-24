@@ -9,7 +9,6 @@ RECURSE(
     linguist
     logfield
     offline_processing
-    servicediscovery
     symbolizer
     symboltable
     unwinder
