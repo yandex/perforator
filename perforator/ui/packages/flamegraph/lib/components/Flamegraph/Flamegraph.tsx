@@ -409,9 +409,11 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                             : null
                     }
                     {
-                        <Switch className="flamegraph__switch flamegraph__switch_left-heavy" checked={showLineNumbers} onUpdate={setShowLineNumbers}>
-                                    Line numbers
-                        </Switch>
+                        showLineNumbers !== undefined && setShowLineNumbers !== undefined ?
+                            <Switch className="flamegraph__switch flamegraph__switch_left-heavy" checked={showLineNumbers} onUpdate={setShowLineNumbers}>
+                                Line numbers
+                            </Switch>
+                            : null
                     }
                 </div>
                 <div className="flamegraph__frames-count">Showing {framesCount} frames</div>
