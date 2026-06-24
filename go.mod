@@ -873,7 +873,7 @@ require (
 	github.com/uber/h3-go/v4 v4.3.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
-	github.com/ugorji/go/codec v1.3.0
+	github.com/ugorji/go/codec v1.3.1
 	github.com/ulikunitz/xz v0.5.15
 	github.com/urfave/cli v1.22.17
 	github.com/urfave/cli/v2 v2.27.7

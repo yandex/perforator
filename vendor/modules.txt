@@ -17351,7 +17351,7 @@ github.com/uber/jaeger-lib/metrics/tally
 ## explicit; go 1.17
 # github.com/ugorji/go v1.2.7
 ## explicit; go 1.11
-# github.com/ugorji/go/codec v1.3.0
+# github.com/ugorji/go/codec v1.3.1
 ## explicit; go 1.21
 github.com/ugorji/go/codec
 # github.com/ulikunitz/xz v0.5.15
