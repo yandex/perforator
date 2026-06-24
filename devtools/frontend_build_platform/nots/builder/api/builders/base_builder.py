@@ -135,6 +135,8 @@ class BaseBuilder(object):
 
         # Set directory with the `node` executable as the PATH
         env_paths = [os.path.dirname(self.options.nodejs_bin)] + extra_paths
+        if self.options.bun_bin:
+            env_paths.insert(0, os.path.dirname(self.options.bun_bin))
         env['PATH'] = os.pathsep.join(env_paths)
 
         bindir_node_modules_path = os.path.join(self.options.bindir, pm_constants.NODE_MODULES_DIRNAME)

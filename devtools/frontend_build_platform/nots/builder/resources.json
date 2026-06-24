@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-06-11T18:14:46Z",
+    "created": "2026-06-24T09:34:30.545Z",
     "pr": {
-      "id": 13849384,
-      "author": "baymer",
-      "summary": "FBP-3226: Поддержать мультимаунт аркадии"
+      "id": 14075749,
+      "author": "zaverden",
+      "summary": "FBP-3249: TS_USE_BUN puts bun binary to env PATH"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12414127207"
+      "uri": "sbr:12555388484"
     },
     "darwin-arm64": {
-      "uri": "sbr:12414125231"
+      "uri": "sbr:12555385273"
     },
     "linux": {
-      "uri": "sbr:12414131193"
+      "uri": "sbr:12555395288"
     },
     "linux-aarch64": {
-      "uri": "sbr:12414128925"
+      "uri": "sbr:12555392049"
     }
   }
 }

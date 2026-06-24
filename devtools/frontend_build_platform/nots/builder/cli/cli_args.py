@@ -30,6 +30,7 @@ def register_base_args(parser: ArgumentParser) -> None:
 
     # Essential
     parser.add_argument('--nodejs-bin', required=True, help="Path to the 'node' executable file")
+    parser.add_argument('--bun-bin', required=False, help="Path to the 'bun' executable file")
     parser.add_argument('--ld-library-path', required=False, help="Path to for extra libraries for env LD_LIBRARY_PATH")
     parser.add_argument('--pm-script', required=True, help="Path to package manager script to run `install` command")
     parser.add_argument('--pm-type', required=True, help="Type of package manager (pnpm or npm)")
