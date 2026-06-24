@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { CircleInfo } from '@gravity-ui/icons';
+import type { DropdownMenuItem } from '@gravity-ui/uikit';
 import { Button, DropdownMenu, Icon } from '@gravity-ui/uikit';
 
 import type { ProfileTaskQuery, TaskResult } from 'src/models/Task';
@@ -81,7 +82,7 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
     const spec = task?.Spec?.MergeProfiles;
     const query = spec?.Query;
     const navigate = useNavigate();
-    const items = [];
+    const items: DropdownMenuItem[] = [];
 
     if (task) {
         if (isMergeTask && !isRawProfile(task)) {
@@ -102,6 +103,14 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
                 action: () => {
                     navigate(`/diff?selector=${query!.Selector}&maxProfiles=${spec?.MaxSamples}`);
                 },
+            });
+        }
+
+        const taskUrl = task.Result?.MergeProfiles?.ProfileURL;
+        if (isMergeTask && getFormat(task.Spec?.MergeProfiles?.Format) === 'HTMLVisualisation' && taskUrl) {
+            items.push({
+                text: 'Download html report',
+                href: taskUrl,
             });
         }
     }
