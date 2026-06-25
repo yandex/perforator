@@ -18306,7 +18306,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.22.5
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.139.5
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.141.1
 ## explicit; go 1.24.0
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
@@ -18404,12 +18404,15 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicreadercommon
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicreaderinternal
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicwritercommon
 github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicwriterinternal
+github.com/ydb-platform/ydb-go-sdk/v3/internal/topic/topicwritetest
+github.com/ydb-platform/ydb-go-sdk/v3/internal/tracefuzz
 github.com/ydb-platform/ydb-go-sdk/v3/internal/tx
 github.com/ydb-platform/ydb-go-sdk/v3/internal/types
 github.com/ydb-platform/ydb-go-sdk/v3/internal/value
 github.com/ydb-platform/ydb-go-sdk/v3/internal/version
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xcontext
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xerrors
+github.com/ydb-platform/ydb-go-sdk/v3/internal/xiface
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xiter
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xlist
 github.com/ydb-platform/ydb-go-sdk/v3/internal/xrand
