@@ -129,7 +129,7 @@ export const IFrameReport: React.FC<IFrameReportProps> = ({ url }) => {
     const [loaded, setLoaded] = React.useState(false);
 
     return (
-        <div className="task-report">
+        <div className={b({ iframe: true })}>
             {!loaded ? <Loader /> : null}
             <iframe
                 id='profile'
