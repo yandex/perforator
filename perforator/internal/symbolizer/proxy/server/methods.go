@@ -1101,97 +1101,84 @@ func (s *PerforatorServer) spawnDiffMergeTask(
 	return task.TaskID, nil
 }
 
-// Stores references to the original profile locations
-type pprofBuildIDLocationsOffsetIndex struct {
-	locationAtOffset map[uint64]*pprof.Location
-}
-
-func prepareRemoteSymbolizeRequest(profile *pprof.Profile) ([]*symbolizerproto.PerBinaryRequest, map[string]*pprofBuildIDLocationsOffsetIndex) {
-	locsPerBuildID := make(map[string]*pprofBuildIDLocationsOffsetIndex)
-	offsetsPerBuildID := make(map[string][]uint64)
-
-	symbolize.VisitUnsymbolizedLocations(profile, func(loc *pprof.Location, buildID string, offset uint64) {
-		locs, ok := locsPerBuildID[buildID]
-		if !ok {
-			locs = &pprofBuildIDLocationsOffsetIndex{
-				locationAtOffset: make(map[uint64]*pprof.Location),
-			}
-			locsPerBuildID[buildID] = locs
-			offsetsPerBuildID[buildID] = make([]uint64, 0)
-		}
-
-		offsetsPerBuildID[buildID] = append(offsetsPerBuildID[buildID], offset)
-		locs.locationAtOffset[offset] = loc
-	})
-
-	batch := make([]*symbolizerproto.PerBinaryRequest, 0, len(locsPerBuildID))
-	for buildID := range locsPerBuildID {
-		batch = append(batch, &symbolizerproto.PerBinaryRequest{
-			BuildID: buildID,
-			Offsets: offsetsPerBuildID[buildID],
-		})
-	}
-
-	return batch, locsPerBuildID
-}
-
-func populatePprofLocation(profile *pprof.Profile, pprofLoc *pprof.Location, loc *symbolizerproto.LocationSymbolizationResult, opts *perforator.SymbolizeOptions) {
-	for _, line := range loc.Lines {
-		symbolize.AddLine(profile, pprofLoc, line, opts)
-	}
-}
-
 func (s *PerforatorServer) performRemoteSymbolize(
 	ctx context.Context,
 	profile *pprof.Profile,
 	opts *perforator.SymbolizeOptions,
-) (ok bool) {
-	batch, locsPerBuildID := prepareRemoteSymbolizeRequest(profile)
-	results, failedReqs := s.bpClient.Symbolize(ctx, batch)
-
-	complete := true
-	defer func() {
-		s.metrics.remoteSymbolizationCount.successes.Inc()
-		if complete {
-			s.metrics.remoteSymbolizationCompletenessCount.successes.Inc()
-		} else {
-			s.metrics.remoteSymbolizationCompletenessCount.fails.Inc()
+) error {
+	type binaryLocations struct {
+		offsets   []uint64
+		locations []*pprof.Location
+	}
+	perBinary := make(map[string]*binaryLocations)
+	symbolize.VisitUnsymbolizedLocations(profile, func(loc *pprof.Location, buildID string, offset uint64) {
+		b := perBinary[buildID]
+		if b == nil {
+			b = &binaryLocations{}
+			perBinary[buildID] = b
 		}
-	}()
+		b.offsets = append(b.offsets, offset)
+		b.locations = append(b.locations, loc)
+	})
+	if len(perBinary) == 0 {
+		return nil
+	}
 
-	for _, perBinaryResponse := range results {
-		buildID := perBinaryResponse.BuildID
-		if perBinaryResponse.Error != "" {
-			complete = false
-			s.l.Warn(
-				ctx,
-				"Remote symbolization for binary failed",
-				log.String("buildID", buildID),
-				log.String("error", perBinaryResponse.Error),
-			)
+	requests := make([]*symbolizerproto.SymbolizeRequest, 0, len(perBinary))
+	locsPerRequest := make([][]*pprof.Location, 0, len(perBinary))
+	for buildID, b := range perBinary {
+		requests = append(requests, &symbolizerproto.SymbolizeRequest{
+			BuildID:            buildID,
+			Addresses:          b.offsets,
+			HasSkewedAddresses: true,
+		})
+		locsPerRequest = append(locsPerRequest, b.locations)
+	}
+
+	responses, err := s.bpClient.Symbolize(ctx, requests)
+
+	// Apply what came back; the fallback below fills any gaps.
+	// responses[i]↔requests[i]↔locsPerRequest[i] (nil = failed); resp.Addresses[j]↔locsPerRequest[i][j].
+	failed := 0
+	for i, resp := range responses {
+		if resp == nil {
+			failed++
 			continue
 		}
-
-		pprofLocs := locsPerBuildID[buildID]
-		for _, loc := range perBinaryResponse.Locations {
-			if loc.Error != "" {
-				complete = false
-				s.l.Warn(
-					ctx,
-					"Remote symbolization for location failed",
-					log.String("buildID", buildID),
-					log.UInt64("offset", loc.GetELFOffset()),
-					log.String("error", loc.Error),
-				)
-				continue
+		locs := locsPerRequest[i]
+		if len(resp.Addresses) != len(locs) {
+			failed++
+			err = errors.Join(err, fmt.Errorf("binary %s: got %d address results, want %d",
+				requests[i].BuildID, len(resp.Addresses), len(locs)))
+			s.l.Error(ctx, "Remote symbolization returned wrong number of addresses",
+				log.String("buildID", requests[i].BuildID),
+				log.Int("requested", len(locs)),
+				log.Int("returned", len(resp.Addresses)))
+			continue
+		}
+		for j, addr := range resp.Addresses {
+			for _, frame := range addr.Frames {
+				symbolize.AddLine(profile, locs[j], frame, opts)
 			}
-
-			pprofLoc := pprofLocs.locationAtOffset[loc.GetELFOffset()]
-			populatePprofLocation(profile, pprofLoc, loc, opts)
 		}
 	}
 
-	return len(failedReqs) == 0
+	if failed == 0 {
+		s.metrics.remoteSymbolizationCompletenessCount.successes.Inc()
+	} else {
+		s.metrics.remoteSymbolizationCompletenessCount.fails.Inc()
+		s.l.Warn(ctx, "Some binaries were not symbolized remotely", log.Int("count", failed))
+	}
+
+	// Fall back to local symbolization when the processor failed any binary for a
+	// reason other than NotFound (or returned a malformed count); local fills the
+	// remaining holes (already-symbolized locations are skipped).
+	if err != nil {
+		s.metrics.remoteSymbolizationCount.fails.Inc()
+		return err
+	}
+	s.metrics.remoteSymbolizationCount.successes.Inc()
+	return nil
 }
 
 func (s *PerforatorServer) symbolizeProfile(
@@ -1213,9 +1200,7 @@ func (s *PerforatorServer) symbolizeProfile(
 	}
 
 	if s.bpClient != nil {
-		ok := s.performRemoteSymbolize(ctx, profile, opts)
-
-		if ok {
+		if err := s.performRemoteSymbolize(ctx, profile, opts); err == nil {
 			return profile, nil
 		}
 	}

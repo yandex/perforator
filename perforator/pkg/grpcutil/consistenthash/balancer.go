@@ -12,8 +12,6 @@ import (
 
 const Name = "consistent_hash"
 
-const ServiceConfig = `{"loadBalancingConfig":[{"consistent_hash":{}}]}`
-
 type keyCtxKey struct{}
 
 func WithKey(ctx context.Context, key string) context.Context {

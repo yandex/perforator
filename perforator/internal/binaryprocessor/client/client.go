@@ -2,10 +2,14 @@ package client
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/consistenthash"
@@ -15,6 +19,20 @@ import (
 )
 
 const maxRecvMsgSize = 1024 * 1024 * 1024 // 1G
+
+var serviceConfig = fmt.Sprintf(`{
+	"loadBalancingConfig": [{%q: {}}],
+	"methodConfig": [{
+		"name": [{"service": "NPerforator.NProto.NSymbolizer.Symbolizer"}],
+		"retryPolicy": {
+			"maxAttempts": 2,
+			"initialBackoff": "0.1s",
+			"maxBackoff": "1s",
+			"backoffMultiplier": 2,
+			"retryableStatusCodes": ["UNAVAILABLE"]
+		}
+	}]
+}`, consistenthash.Name)
 
 type Client struct {
 	l             xlog.Logger
@@ -26,7 +44,7 @@ type Client struct {
 func NewClient(c *Config, l xlog.Logger) (*Client, error) {
 	conn, err := grpc.NewClient(
 		c.Target,
-		grpc.WithDefaultServiceConfig(consistenthash.ServiceConfig),
+		grpc.WithDefaultServiceConfig(serviceConfig),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxRecvMsgSize)),
 	)
@@ -50,38 +68,33 @@ func (c *Client) Run(ctx context.Context) error {
 
 func (c *Client) Symbolize(
 	ctx context.Context,
-	batch []*symbolizerproto.PerBinaryRequest,
-) (results []*symbolizerproto.PerBinaryResponse, failed []*symbolizerproto.PerBinaryRequest) {
-	perBinary := make([]*symbolizerproto.PerBinaryResponse, len(batch))
+	requests []*symbolizerproto.SymbolizeRequest,
+) ([]*symbolizerproto.SymbolizeResponse, error) {
+	responses := make([]*symbolizerproto.SymbolizeResponse, len(requests))
+	errs := make([]error, len(requests))
 
 	g := errgroup.Group{}
 	g.SetLimit(c.maxConcurrent)
-	for i, req := range batch {
+	for i, req := range requests {
 		g.Go(func() error {
-			resp, err := c.stub.Symbolize(
-				consistenthash.WithKey(ctx, req.BuildID),
-				&symbolizerproto.SymbolizeRequest{Batch: []*symbolizerproto.PerBinaryRequest{req}},
-			)
+			resp, err := c.stub.Symbolize(consistenthash.WithKey(ctx, req.BuildID), req)
 			if err != nil {
 				c.l.Warn(ctx, "Remote symbolization failed for binary",
 					log.String("buildID", req.BuildID), log.Error(err))
+				// NotFound (binary absent) and FailedPrecondition (present but
+				// unsymbolizable) are binary-level failures local symbolization
+				// cannot fix; any other code warrants a fallback, so record it.
+				if code := status.Code(err); code != codes.NotFound && code != codes.FailedPrecondition {
+					errs[i] = err
+				}
 				return nil
 			}
-			if len(resp.GetBatch()) > 0 {
-				perBinary[i] = resp.Batch[0]
-			}
+			responses[i] = resp
 			return nil
 		})
 	}
 	_ = g.Wait()
 
-	results = make([]*symbolizerproto.PerBinaryResponse, 0, len(batch))
-	for i, req := range batch {
-		if perBinary[i] == nil {
-			failed = append(failed, req)
-			continue
-		}
-		results = append(results, perBinary[i])
-	}
-	return results, failed
+	// A non-nil (joined) error signals the caller to fall back to local symbolization.
+	return responses, errors.Join(errs...)
 }

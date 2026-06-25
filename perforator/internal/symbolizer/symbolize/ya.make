@@ -24,7 +24,6 @@ SRCS(
     cachedbinaries.go
     errors.go
     interface.go
-    lineinfo.go
 )
 
 END()

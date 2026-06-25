@@ -12,21 +12,18 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	"github.com/yandex/perforator/perforator/proto/symbolizer"
 )
 
-func newLineInfo(buildID string, addr uint64, lineInfo *C.TLineInfo) *LineInfo {
-	return &LineInfo{
-		BuildID: buildID,
-		Address: addr,
-		ProtoLine: &ProtoLine{
-			DemangledFunctionName: C.GoString(lineInfo.DemangledFunctionName),
-			FunctionName:          C.GoString(lineInfo.FunctionName),
-			Filename:              C.GoString(lineInfo.FileName),
-			StartLine:             uint64(lineInfo.StartLine),
-			Line:                  uint64(lineInfo.Line),
-			Column:                uint64(lineInfo.Column),
-			Discriminator:         uint64(lineInfo.Discriminator),
-		},
+func newFrame(lineInfo *C.TLineInfo) *symbolizer.Frame {
+	return &symbolizer.Frame{
+		DemangledFunctionName: C.GoString(lineInfo.DemangledFunctionName),
+		FunctionName:          C.GoString(lineInfo.FunctionName),
+		FileName:              C.GoString(lineInfo.FileName),
+		StartLine:             uint32(lineInfo.StartLine),
+		Line:                  uint32(lineInfo.Line),
+		Column:                uint32(lineInfo.Column),
+		Discriminator:         uint32(lineInfo.Discriminator),
 	}
 }
 
@@ -75,7 +72,7 @@ func (s *Symbolizer) symbolizeLocation(
 	address uint64,
 	path string,
 	useGSYM bool,
-) ([]*LineInfo, error) {
+) ([]*symbolizer.Frame, error) {
 	cUseGSYM := C.ui32(0)
 	if useGSYM {
 		cUseGSYM = C.ui32(1)
@@ -112,10 +109,10 @@ func (s *Symbolizer) symbolizeLocation(
 		return nil, nil
 	}
 
-	res := make([]*LineInfo, linesCount)
+	res := make([]*symbolizer.Frame, linesCount)
 	linesSlice := unsafe.Slice(lines, linesCount)
 	for i, lineInfo := range linesSlice {
-		res[i] = newLineInfo(buildID, address, &lineInfo)
+		res[i] = newFrame(&lineInfo)
 	}
 
 	return res, nil

@@ -2,6 +2,7 @@ package binaryprocessor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -133,28 +134,22 @@ func NewBinaryProcessorServer(
 }
 
 func (s *BinaryProcessorServer) Symbolize(ctx context.Context, r *symbolizerproto.SymbolizeRequest) (*symbolizerproto.SymbolizeResponse, error) {
-	if r == nil {
-		return nil, status.Error(codes.InvalidArgument, "nil request")
+	if r.BuildID == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty build id")
 	}
 
-	if r.Batch == nil {
-		return nil, status.Error(codes.InvalidArgument, "nil batch")
-	}
-
-	for _, perBinaryRequest := range r.Batch {
-		if perBinaryRequest == nil {
-			return nil, status.Error(codes.InvalidArgument, "nil binary request")
-		}
-	}
-
-	respBatch, err := s.symbolizer.SymbolizeBatch(ctx, r.Batch)
+	addresses, err := s.symbolizer.Symbolize(ctx, r.BuildID, r.Addresses)
 	if err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to symbolize: %v", err))
+		if errors.Is(err, symbolize.ErrUnknownBinary) {
+			return nil, status.Errorf(codes.NotFound, "binary %s not available: %v", r.BuildID, err)
+		}
+		if errors.Is(err, symbolize.ErrSymbolization) {
+			return nil, status.Errorf(codes.FailedPrecondition, "binary %s could not be symbolized: %v", r.BuildID, err)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to symbolize %s: %v", r.BuildID, err)
 	}
 
-	return &symbolizerproto.SymbolizeResponse{
-		Batch: respBatch,
-	}, nil
+	return &symbolizerproto.SymbolizeResponse{Addresses: addresses}, nil
 }
 
 type RunConfig struct {

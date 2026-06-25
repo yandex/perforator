@@ -22,7 +22,12 @@ const (
 	UnknownLine = "<unknown>"
 )
 
-var errUnknownBinary = errors.New("Unknown binary")
+var ErrUnknownBinary = errors.New("unknown binary")
+
+// ErrSymbolization marks a binary that is present but could not be symbolized
+// (e.g. an unparseable ELF/DWARF). Local fallback shares the same binary storage,
+// so it cannot help — callers should treat it like ErrUnknownBinary, not retry it.
+var ErrSymbolization = errors.New("symbolization failed")
 
 type localSymbolizationPathProvider struct{}
 
@@ -59,12 +64,12 @@ type Symbolizer struct { // thread-safe
 
 // `location` must belong to given `profile` - since this function
 // is used to apply symbolization result to profile
-func AddLine(profile *pprof.Profile, location *pprof.Location, lineInfo *symbolizer.Line, opts *perforator.SymbolizeOptions) {
+func AddLine(profile *pprof.Profile, location *pprof.Location, lineInfo *symbolizer.Frame, opts *perforator.SymbolizeOptions) {
 	function := &pprof.Function{
 		ID:         uint64(len(profile.Function)) + 1,
 		Name:       lineInfo.DemangledFunctionName,
 		SystemName: lineInfo.FunctionName,
-		Filename:   lineInfo.Filename,
+		Filename:   lineInfo.FileName,
 		StartLine:  int64(lineInfo.StartLine),
 	}
 
@@ -144,18 +149,30 @@ func (s *Symbolizer) symbolizePprof(
 	}()
 
 	s.logger.Debug(ctx, "Start symbolize")
+	binaryErrors := make(map[string]error)
 	VisitUnsymbolizedLocations(profile, func(location *pprof.Location, buildID string, offset uint64) {
 		path, useGSYM, err := s.provideCachePath(ctx, gsymPathProvider, pathProvider, buildID, location.Mapping.File)
 		if err != nil {
 			return // unknown binary, already traced
 		}
 
-		lineInfos, _ := s.symbolizeLocation(ctx, buildID, offset, path, useGSYM)
-		for _, lineInfo := range lineInfos {
-			AddLine(profile, location, lineInfo.ProtoLine, opts)
+		frames, err := s.symbolizeLocation(ctx, buildID, offset, path, useGSYM)
+		if err != nil {
+			binaryErrors[buildID] = err // one bad binary must not block the rest
+			return
+		}
+		for _, frame := range frames {
+			AddLine(profile, location, frame, opts)
 		}
 	})
 
+	if len(binaryErrors) > 0 {
+		errs := make([]error, 0, len(binaryErrors))
+		for _, err := range binaryErrors {
+			errs = append(errs, err)
+		}
+		return errors.Join(errs...)
+	}
 	return nil
 }
 
@@ -217,20 +234,6 @@ func (s *Symbolizer) SymbolizeStorageProfile(
 	return profile, nil
 }
 
-func getUniqueBuildIDsFromBatch(batch []*symbolizer.PerBinaryRequest) (buildIDs []string, buildIDOffsets map[string][]uint64) {
-	buildIDOffsets = make(map[string][]uint64)
-	for _, binaryRequest := range batch {
-		buildIDOffsets[binaryRequest.BuildID] = append(buildIDOffsets[binaryRequest.BuildID], binaryRequest.Offsets...)
-	}
-
-	buildIDs = make([]string, 0, len(buildIDOffsets))
-	for buildID := range buildIDOffsets {
-		buildIDs = append(buildIDs, buildID)
-	}
-
-	return buildIDs, buildIDOffsets
-}
-
 func (s *Symbolizer) provideCachePath(
 	ctx context.Context,
 	gsymCachedBinaries BinaryPathProvider,
@@ -250,7 +253,7 @@ func (s *Symbolizer) provideCachePath(
 
 	s.traceUnknownBinary(ctx, buildID, originalFile)
 
-	return "", false, errUnknownBinary
+	return "", false, ErrUnknownBinary
 }
 
 func (s *Symbolizer) traceUnknownBinary(ctx context.Context, buildID string, originalFile string) {
@@ -261,62 +264,39 @@ func (s *Symbolizer) traceUnknownBinary(ctx context.Context, buildID string, ori
 	s.metrics.unknownBinaries.Inc()
 }
 
-func (s *Symbolizer) SymbolizeBatch(
-	ctx context.Context,
-	batch []*symbolizer.PerBinaryRequest,
-) ([]*symbolizer.PerBinaryResponse, error) {
-	buildIDs, buildIDOffsets := getUniqueBuildIDsFromBatch(batch)
-
-	s.logger.Debug(ctx, "unique buildIDs", log.Array("buildIDs", buildIDs))
-
-	res := make([]*symbolizer.PerBinaryResponse, len(buildIDs))
-
-	_, span := otel.Tracer("Symbolizer").Start(ctx, "symbolize.(*Symbolizer).acquireSymbolizerLock")
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	defer span.End()
-
-	gsymCachedBinaries, cachedBinaries, err := s.acquireBinaries(ctx, buildIDs)
+// Symbolize returns results positional with addresses (empty Frames = unresolvable);
+// the binary is acquired before the lock so downloads stay concurrent.
+func (s *Symbolizer) Symbolize(ctx context.Context, buildID string, addresses []uint64) ([]*symbolizer.AddressResult, error) {
+	gsymCachedBinaries, cachedBinaries, err := s.acquireBinaries(ctx, []string{buildID})
 	if err != nil {
 		return nil, err
 	}
 	defer gsymCachedBinaries.Release()
 	defer cachedBinaries.Release()
 
-	for i, buildID := range buildIDs {
-		res[i] = &symbolizer.PerBinaryResponse{
-			BuildID: buildID,
-		}
+	_, span := otel.Tracer("Symbolizer").Start(ctx, "symbolize.(*Symbolizer).Symbolize")
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	defer span.End()
 
-		path, useGSYM, err := s.provideCachePath(ctx, gsymCachedBinaries, cachedBinaries, buildID, "")
-		if err != nil {
-			res[i].Error = err.Error()
-			continue
-		}
-
-		lineInfoCnt := 0
-		for _, offset := range buildIDOffsets[buildID] {
-			loc := &symbolizer.LocationSymbolizationResult{
-				AddressType: &symbolizer.LocationSymbolizationResult_ELFOffset{
-					ELFOffset: offset,
-				},
-			}
-
-			lineInfos, err := s.symbolizeLocation(ctx, buildID, offset, path, useGSYM)
-			if err != nil {
-				loc.Error = err.Error()
-			} else {
-				for _, lineInfo := range lineInfos {
-					loc.Lines = append(loc.Lines, lineInfo.ProtoLine)
-				}
-				lineInfoCnt += len(lineInfos)
-			}
-
-			res[i].Locations = append(res[i].Locations, loc)
-		}
-
-		s.logger.Debug(ctx, "Symbolization stats", log.String("build_id", buildID), log.Int("line_count", lineInfoCnt))
+	path, useGSYM, err := s.provideCachePath(ctx, gsymCachedBinaries, cachedBinaries, buildID, "")
+	if err != nil {
+		return nil, err
 	}
 
-	return res, nil
+	lineInfoCnt := 0
+	results := make([]*symbolizer.AddressResult, len(addresses))
+	backing := make([]symbolizer.AddressResult, len(addresses))
+	for i, offset := range addresses {
+		frames, serr := s.symbolizeLocation(ctx, buildID, offset, path, useGSYM)
+		if serr != nil {
+			return nil, errors.Join(ErrSymbolization, serr)
+		}
+		backing[i].Frames = frames
+		lineInfoCnt += len(frames)
+		results[i] = &backing[i]
+	}
+
+	s.logger.Debug(ctx, "Symbolization stats", log.String("build_id", buildID), log.Int("line_count", lineInfoCnt))
+	return results, nil
 }
