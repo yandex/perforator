@@ -89,6 +89,7 @@
   "perforator/ui/app/pnpm-lock.yaml":"perforator/ui/app/external/pnpm-lock.yaml",
   "perforator/ui/app/pnpm-workspace.yaml":"perforator/ui/app/external/pnpm-workspace.yaml",
   "perforator/ui/app/src/vite/setup.ts":"perforator/ui/app/src/vite/setup.external.ts",
+  "perforator/ui/packages/flamegraph/package.json":"perforator/ui/packages/flamegraph/external/package.json",
   "perforator/ui/union/ya.make":"perforator/ui/union/ya.make.external",
   "ya":"devtools/ya/opensource/ya",
   "ya.conf":"devtools/ya/opensource/ya.conf"
