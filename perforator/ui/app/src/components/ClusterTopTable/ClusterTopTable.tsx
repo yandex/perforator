@@ -8,7 +8,7 @@ import { Table as GravityTable, TreeExpandableCell, useTable } from '@gravity-ui
 import type { ExpandedState, OnChangeFn, SortingState } from '@gravity-ui/table/tanstack';
 import { getCoreRowModel, getExpandedRowModel, getSortedRowModel } from '@gravity-ui/table/tanstack';
 import type { ProgressColorStops } from '@gravity-ui/uikit';
-import { Button, ClipboardButton, HelpMark, Icon, Loader, Progress, TextInput } from '@gravity-ui/uikit';
+import { Button, ClipboardButton, HelpMark, Icon, Loader, Progress, TextInput, Tooltip } from '@gravity-ui/uikit';
 
 import { uiFactory } from 'src/factory';
 import type { ClusterTopEntry, ClusterTopGenerationStatus } from 'src/generated/perforator/proto/perforator/perforator';
@@ -120,9 +120,11 @@ const getColumns: (args: Pick<ClusterTopTableProps, 'timeIntervalFrom' | 'timeIn
                 return <>
                     <span className={b('service-name', nameColumn)}>{getValue<string>()}
                         <ClipboardButton text={row.original.Name} size="xs"/>
-                        {<Button onClick={() => {uiFactory().reachGoal('FLAME_FROM_CLUSTER_TOP');}} target={'_blank'} view={'flat'} size={'xs'} href={`/build?${query.toString()}`}>
-                            <Icon height={14} size={14} data={Flame} className={b('icon', { flamegraph: true })}/>
-                        </Button>}
+                        <Tooltip content="Build a service flamegraph and search for this function">
+                            <Button onClick={() => {uiFactory().reachGoal('FLAME_FROM_CLUSTER_TOP');}} target={'_blank'} view={'flat'} size={'xs'} href={`/build?${query.toString()}`}>
+                                <Icon height={14} size={14} data={Flame} className={b('icon', { flamegraph: true })}/>
+                            </Button>
+                        </Tooltip>
                     </span>
                 </>;
             }
