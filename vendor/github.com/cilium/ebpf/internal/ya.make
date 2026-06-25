@@ -8,7 +8,6 @@ SRCS(
     buffer.go
     deque.go
     elf.go
-    endian_le.go
     errors.go
     feature.go
     goos.go
@@ -18,6 +17,24 @@ SRCS(
     prog.go
     version.go
 )
+
+IF (ARCH_X86_64)
+    SRCS(
+        endian_le.go
+    )
+ENDIF()
+
+IF (ARCH_ARM64)
+    SRCS(
+        endian_le.go
+    )
+ENDIF()
+
+IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
+    SRCS(
+        endian_le.go
+    )
+ENDIF()
 
 END()
 

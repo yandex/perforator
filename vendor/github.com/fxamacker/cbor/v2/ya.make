@@ -13,7 +13,7 @@ SRCS(
     doc.go
     encode.go
     encode_map.go
-    omitzero_pre_go124.go
+    omitzero_go124.go
     simplevalue.go
     stream.go
     structfields.go

@@ -27,4 +27,11 @@ IF (OS_LINUX)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        reader.go
+        ring.go
+    )
+ENDIF()
+
 END()

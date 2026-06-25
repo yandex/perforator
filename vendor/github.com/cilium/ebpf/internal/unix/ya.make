@@ -33,4 +33,19 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        errno_linux.go
+        types_linux.go
+    )
+ENDIF()
+
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        errno_other.go
+        strings_other.go
+        types_other.go
+    )
+ENDIF()
+
 END()

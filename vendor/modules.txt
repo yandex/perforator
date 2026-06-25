@@ -20082,7 +20082,6 @@ go.temporal.io/server/common/archiver/gcloud
 go.temporal.io/server/common/archiver/gcloud/connector
 go.temporal.io/server/common/archiver/provider
 go.temporal.io/server/common/archiver/s3store
-go.temporal.io/server/common/archiver/s3store/mocks
 go.temporal.io/server/common/auth
 go.temporal.io/server/common/authorization
 go.temporal.io/server/common/backoff

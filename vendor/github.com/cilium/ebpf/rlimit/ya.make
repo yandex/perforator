@@ -28,4 +28,16 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        rlimit_linux.go
+    )
+ENDIF()
+
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        rlimit_other.go
+    )
+ENDIF()
+
 END()

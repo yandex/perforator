@@ -26,6 +26,24 @@ IF (OS_DARWIN)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        compile.go
+        output.go
+        target.go
+        types.go
+    )
+ENDIF()
+
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        compile.go
+        output.go
+        target.go
+        types.go
+    )
+ENDIF()
+
 GO_EMBED_PATTERN(output.tpl)
 
 END()

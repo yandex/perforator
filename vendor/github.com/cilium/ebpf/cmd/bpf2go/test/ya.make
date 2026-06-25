@@ -16,6 +16,12 @@ IF (OS_LINUX)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        test_bpfel.go
+    )
+ENDIF()
+
 GO_EMBED_PATTERN(test_bpfel.o)
 
 END()

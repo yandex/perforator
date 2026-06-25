@@ -17,6 +17,15 @@ IF (OS_LINUX)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        map.go
+        misc.go
+        prog.go
+        version.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

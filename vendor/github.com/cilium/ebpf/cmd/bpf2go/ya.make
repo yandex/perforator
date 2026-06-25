@@ -24,6 +24,26 @@ IF (OS_DARWIN)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        doc.go
+        flags.go
+        main.go
+        makedep.go
+        tools.go
+    )
+ENDIF()
+
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        doc.go
+        flags.go
+        main.go
+        makedep.go
+        tools.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(
