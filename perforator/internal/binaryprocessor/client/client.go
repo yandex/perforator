@@ -79,12 +79,11 @@ func (c *Client) Symbolize(
 		g.Go(func() error {
 			resp, err := c.stub.Symbolize(consistenthash.WithKey(ctx, req.BuildID), req)
 			if err != nil {
-				c.l.Warn(ctx, "Remote symbolization failed for binary",
-					log.String("buildID", req.BuildID), log.Error(err))
-				// NotFound (binary absent) and FailedPrecondition (present but
-				// unsymbolizable) are binary-level failures local symbolization
-				// cannot fix; any other code warrants a fallback, so record it.
+				// NotFound/FailedPrecondition are expected binary-level outcomes local
+				// can't fix either: stay quiet, no fallback. Anything else is a real failure.
 				if code := status.Code(err); code != codes.NotFound && code != codes.FailedPrecondition {
+					c.l.Warn(ctx, "Remote symbolization failed for binary",
+						log.String("buildID", req.BuildID), log.Error(err))
 					errs[i] = err
 				}
 				return nil
