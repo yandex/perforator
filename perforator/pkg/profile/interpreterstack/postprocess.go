@@ -101,9 +101,11 @@ func Postprocess(p *pprof.Profile, opts ...Option) PostProcessResults {
 		res.Python = python.Postprocess(p)
 	}
 
-	if o.mergePHP {
-		php.Postprocess(p)
-	}
+	// TODO: on-agent PHP unwinding is broken, so unconditionally strip the
+	// synthetic [php] frames instead of merging them — this keeps PHP out of
+	// profiles and flamegraphs. Restore php.Postprocess(p) (gated on o.mergePHP)
+	// once the agent-side fix ships.
+	php.Strip(p)
 
 	if o.pythonPrettificationLevel != python.PrettifyOff {
 		python.PrettifyProfile(p, o.pythonPrettificationLevel)

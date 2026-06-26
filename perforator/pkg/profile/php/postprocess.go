@@ -206,3 +206,18 @@ func Postprocess(p *pprof.Profile) {
 		merger.MergeStacks(sample)
 	}
 }
+
+// Strip removes all synthetic [php] interpreter frames from every sample,
+// leaving the native stack untouched. Used to hide PHP entirely while
+// on-agent PHP unwinding is broken.
+func Strip(p *pprof.Profile) {
+	for _, sample := range p.Sample {
+		out := sample.Location[:0]
+		for _, loc := range sample.Location {
+			if !isPHPLocation(loc) {
+				out = append(out, loc)
+			}
+		}
+		sample.Location = out
+	}
+}
