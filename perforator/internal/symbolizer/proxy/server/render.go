@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/pprof/profile"
+	"go.opentelemetry.io/otel"
 
 	"github.com/yandex/perforator/perforator/pkg/cprofile"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
@@ -13,6 +14,9 @@ import (
 )
 
 func RenderProfile(ctx context.Context, profile *profile.Profile, format *perforator.RenderFormat) ([]byte, error) {
+	_, span := otel.Tracer("APIProxy").Start(ctx, "RenderProfile")
+	defer span.End()
+
 	buf := new(bytes.Buffer)
 
 	switch v := format.GetFormat().(type) {

@@ -1105,7 +1105,16 @@ func (s *PerforatorServer) performRemoteSymbolize(
 	ctx context.Context,
 	profile *pprof.Profile,
 	opts *perforator.SymbolizeOptions,
-) error {
+) (err error) {
+	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.performRemoteSymbolize")
+	defer func() {
+		if err != nil {
+			span.SetStatus(otelcodes.Error, err.Error())
+			span.RecordError(err)
+		}
+		span.End()
+	}()
+
 	type binaryLocations struct {
 		offsets   []uint64
 		locations []*pprof.Location
@@ -1206,11 +1215,8 @@ func (s *PerforatorServer) symbolizeProfile(
 	}
 
 	s.metrics.symbolizationProxyFallbackCount.Inc()
-	return s.symbolizer.SymbolizeStorageProfile(
-		ctx,
-		profile,
-		opts,
-	)
+	s.l.Debug(ctx, "Falling back to local symbolization")
+	return s.symbolizer.SymbolizeStorageProfile(ctx, profile, opts)
 }
 
 func (s *PerforatorServer) renderProfile(
@@ -1248,13 +1254,11 @@ func (s *PerforatorServer) renderProfile(
 	}
 
 	start := time.Now()
-	defer func() {
-		if err == nil {
-			s.metrics.flamegraphBuildTimer.RecordDuration(time.Since(start))
-		}
-	}()
-
-	return RenderProfile(ctx, profile, format)
+	res, err = RenderProfile(ctx, profile, format)
+	if err == nil {
+		s.metrics.flamegraphBuildTimer.RecordDuration(time.Since(start))
+	}
+	return res, err
 }
 
 func (s *PerforatorServer) maybeUploadProfileWithID(ctx context.Context, profile []byte, id string) (url string, err error) {

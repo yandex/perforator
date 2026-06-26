@@ -18,6 +18,7 @@ import (
 	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/observability/lib/querylang"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
+	"github.com/yandex/perforator/perforator/pkg/cprofile"
 	"github.com/yandex/perforator/perforator/pkg/profile/merge"
 	"github.com/yandex/perforator/perforator/pkg/profile/quality"
 	"github.com/yandex/perforator/perforator/pkg/profile/samplefilter"
@@ -160,8 +161,15 @@ func (s *PerforatorServer) fetchAndMergeProfilesFast(
 	metas []*meta.ProfileMetadata,
 	selector *querylang.Selector,
 	mergeOpts *profileproto.MergeOptions,
-) (*pprof.Profile, []*meta.ProfileMetadata, error) {
-	const kDefaultDownloadConcurrency = 256
+) (_ *pprof.Profile, _ []*meta.ProfileMetadata, err error) {
+	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.fetchAndMergeProfilesFast")
+	defer func() {
+		if err != nil {
+			span.SetStatus(otelcodes.Error, err.Error())
+			span.RecordError(err)
+		}
+		span.End()
+	}()
 
 	session, err := s.mergemanager.Start(mergeOpts)
 	if err != nil {
@@ -169,9 +177,29 @@ func (s *PerforatorServer) fetchAndMergeProfilesFast(
 	}
 	defer session.Close()
 
+	if err := s.downloadAndAddProfiles(ctx, session, metas); err != nil {
+		return nil, nil, err
+	}
+
+	mergedProfile, err := s.finishMergeSession(ctx, session)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return mergedProfile, metas, nil
+}
+
+func (s *PerforatorServer) downloadAndAddProfiles(
+	ctx context.Context,
+	session *cprofile.MergeSession,
+	metas []*meta.ProfileMetadata,
+) error {
+	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.downloadAndAddProfiles")
+	defer span.End()
+
+	const kDefaultDownloadConcurrency = 256
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(kDefaultDownloadConcurrency)
-
 	for _, meta := range metas {
 		g.Go(func() error {
 			profileBundle, err := s.profileStorage.FetchProfile(ctx, meta)
@@ -186,28 +214,32 @@ func (s *PerforatorServer) fetchAndMergeProfilesFast(
 			return session.AddPProfProfile(data)
 		})
 	}
+	return g.Wait()
+}
 
-	if err := g.Wait(); err != nil {
-		return nil, nil, err
-	}
+func (s *PerforatorServer) finishMergeSession(
+	ctx context.Context,
+	session *cprofile.MergeSession,
+) (*pprof.Profile, error) {
+	_, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.finishMergeSession")
+	defer span.End()
 
-	cprofile, err := session.Finish()
+	merged, err := session.Finish()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to merge profiles: %w", err)
+		return nil, fmt.Errorf("failed to merge profiles: %w", err)
 	}
-	defer cprofile.Free()
+	defer merged.Free()
 
-	data, err := cprofile.MarshalPProf()
+	data, err := merged.MarshalPProf()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to merge pprof: %w", err)
+		return nil, fmt.Errorf("failed to merge pprof: %w", err)
 	}
 
 	mergedProfile, err := pprof.ParseData(data)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to serialize pprof: %w", err)
+		return nil, fmt.Errorf("failed to serialize pprof: %w", err)
 	}
-
-	return mergedProfile, metas, nil
+	return mergedProfile, nil
 }
 
 func fillMergeOptions(

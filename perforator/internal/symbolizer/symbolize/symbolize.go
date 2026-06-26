@@ -181,6 +181,9 @@ func (s *Symbolizer) acquireBinaries(ctx context.Context, buildIDs []string) (
 	cachedBinaries *CachedBinariesBatch,
 	err error,
 ) {
+	ctx, span := otel.Tracer("Symbolizer").Start(ctx, "symbolize.(*Symbolizer).acquireBinaries")
+	defer span.End()
+
 	withGSYMLogger := s.logger.WithName("WithGSYM")
 	gsymCachedBinaries = NewCachedBinariesBatch(withGSYMLogger, s.gsymBinaryProvider, false)
 	if s.symbolizationMode == SymbolizationModeGSYMPreferred {
@@ -267,6 +270,9 @@ func (s *Symbolizer) traceUnknownBinary(ctx context.Context, buildID string, ori
 // Symbolize returns results positional with addresses (empty Frames = unresolvable);
 // the binary is acquired before the lock so downloads stay concurrent.
 func (s *Symbolizer) Symbolize(ctx context.Context, buildID string, addresses []uint64) ([]*symbolizer.AddressResult, error) {
+	ctx, span := otel.Tracer("Symbolizer").Start(ctx, "symbolize.(*Symbolizer).Symbolize")
+	defer span.End()
+
 	gsymCachedBinaries, cachedBinaries, err := s.acquireBinaries(ctx, []string{buildID})
 	if err != nil {
 		return nil, err
@@ -274,10 +280,8 @@ func (s *Symbolizer) Symbolize(ctx context.Context, buildID string, addresses []
 	defer gsymCachedBinaries.Release()
 	defer cachedBinaries.Release()
 
-	_, span := otel.Tracer("Symbolizer").Start(ctx, "symbolize.(*Symbolizer).Symbolize")
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	defer span.End()
 
 	path, useGSYM, err := s.provideCachePath(ctx, gsymCachedBinaries, cachedBinaries, buildID, "")
 	if err != nil {
@@ -297,6 +301,11 @@ func (s *Symbolizer) Symbolize(ctx context.Context, buildID string, addresses []
 		results[i] = &backing[i]
 	}
 
-	s.logger.Debug(ctx, "Symbolization stats", log.String("build_id", buildID), log.Int("line_count", lineInfoCnt))
+	s.logger.Debug(ctx, "Symbolization stats",
+		log.String("build_id", buildID),
+		log.Int("addresses", len(addresses)),
+		log.Int("line_count", lineInfoCnt),
+		log.Bool("gsym", useGSYM),
+	)
 	return results, nil
 }

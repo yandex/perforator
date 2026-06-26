@@ -496,6 +496,8 @@ func (s *PerforatorServer) runHTTPServer(ctx context.Context, port uint32) error
 }
 
 func (s *PerforatorServer) Run(ctx context.Context, conf *RunConfig) error {
+	defer func() { _ = s.otelShutdown(context.Background()) }()
+
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {

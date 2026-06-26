@@ -25,6 +25,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpcmetrics"
 	"github.com/yandex/perforator/perforator/pkg/polyheapprof"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
+	"github.com/yandex/perforator/perforator/pkg/tracing"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	symbolizerproto "github.com/yandex/perforator/perforator/proto/symbolizer"
 )
@@ -39,6 +40,8 @@ type BinaryProcessorServer struct {
 
 	grpcServer   *grpc.Server
 	healthServer *health.Server
+
+	shutdownTracing func(context.Context) error
 }
 
 func getSymbolizationMode(conf *Config) symbolize.SymbolizationMode {
@@ -57,6 +60,16 @@ func NewBinaryProcessorServer(
 	reg xmetrics.Registry,
 ) (*BinaryProcessorServer, error) {
 	ctx := context.Background()
+
+	exporter, err := tracing.NewExporter(ctx, conf.Tracing)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize tracing span exporter: %w", err)
+	}
+	shutdownTracing, _, err := tracing.Initialize(ctx, l.WithName("tracing").Logger(), exporter, "perforator", "binproc")
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize tracing: %w", err)
+	}
+	l.Info(ctx, "Successfully initialized tracing")
 
 	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -125,6 +138,8 @@ func NewBinaryProcessorServer(
 		downloader:   downloaderInstance,
 		grpcServer:   grpcServer,
 		healthServer: healthServer,
+
+		shutdownTracing: shutdownTracing,
 	}
 
 	symbolizerproto.RegisterSymbolizerServer(server.grpcServer, server)
@@ -179,6 +194,8 @@ func (s *BinaryProcessorServer) runGRPCServer(ctx context.Context, port uint32) 
 }
 
 func (s *BinaryProcessorServer) Run(ctx context.Context, conf *RunConfig) error {
+	defer func() { _ = s.shutdownTracing(context.Background()) }()
+
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
