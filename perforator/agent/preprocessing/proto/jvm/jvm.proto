@@ -11,6 +11,9 @@ message Cheatsheet {
     optional int64 code_blob_frame_size = 4;
     optional int64 code_blob_kind = 5 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 22];
     optional int64 code_blob_kind_nmethod = 6 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 22];
+    optional int64 code_blob_code_offset = 49 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 23];
+    optional int64 code_blob_code_begin = 50 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 21];
+    
 
     optional int64 code_heap_log2_segment_size = 7;
     optional int64 code_heap_memory = 8;
@@ -37,7 +40,7 @@ message Cheatsheet {
     optional int64 nmethod_scopes_data_addr = 48 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 21];
     optional int64 nmethod_speculations = 38;
     optional int64 nmethod_mutable_data = 41 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 25];
-    optional int64 nmethod_mutable_data_size = 43  [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 25];
+    optional int64 nmethod_mutable_data_size = 43 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 25];
     optional int64 nmethod_data_offset = 44 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 24];
     optional int64 nmethod_metadata_offset = 45 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 24];
     optional int64 nmethod_jvmci_data_offset = 46 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 24];

@@ -45,6 +45,14 @@ func (cb CodeBlob) FrameSize() (int32, error) {
 	return ReadScalar[int32](cb.j, cb.addr+uintptr(*cb.j.jc.CodeBlobFrameSize))
 }
 
+func (cb CodeBlob) CodeBegin() (uintptr, error) {
+	return ReadScalar[uintptr](cb.j, cb.addr+uintptr(*cb.j.jc.CodeBlobCodeBegin))
+}
+
+func (cb CodeBlob) CodeOffset() (int32, error) {
+	return ReadScalar[int32](cb.j, cb.addr+uintptr(*cb.j.jc.CodeBlobCodeOffset))
+}
+
 func (cb CodeBlob) NmethodMethod() (Method, error) {
 	return ReadObjPtr[Method](cb.j, cb.addr+uintptr(*cb.j.jc.NmethodMethod))
 }

@@ -35,4 +35,5 @@ nmethod_metadata_offset: 268
 nmethod_jvmci_data_offset: 296
 nmethod_dependencies_offset: 280
 nmethod_scopes_data_addr: 120
+code_blob_code_begin: 8
 

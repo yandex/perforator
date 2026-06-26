@@ -276,11 +276,25 @@ func (s *Scanner) scanStep(
 		name = blobName
 		s.l.Debug(ctx, "Parsed non-nmethod", log.String("name", string(name)))
 	}
+	var codeBegin uint64
+	if jvm.Version() >= 23 {
+		co, err := codeBlob.CodeOffset()
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("failed to get code offset for %q: %w", name, err)
+		}
+		codeBegin = uint64(jvmbindings.ObjectPtr(codeBlob).Addr()) + uint64(co)
+	} else {
+		cb, err := codeBlob.CodeBegin()
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("failed to get code begin for %q: %w", name, err)
+		}
+		codeBegin = uint64(cb)
+	}
 	return &jvmsupp.MethodInfo{
 		Name:               string(name),
 		FrameSizeBytes:     int64(frameSize) * 8,
 		IsJit:              isJIT,
-		CodeBegin:          uint64(jvmbindings.ObjectPtr(codeBlob).Addr()),
+		CodeBegin:          codeBegin,
 		CodeEnd:            uint64(jvmbindings.ObjectPtr(heapBlock).Addr()) + uint64(segmentLength)<<uint64(curHeap.segmentSizeLog2),
 		SymbolizationTable: symtab,
 	}, true, segmentLength, nil

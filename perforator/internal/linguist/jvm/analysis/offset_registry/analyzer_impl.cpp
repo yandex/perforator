@@ -18,6 +18,11 @@ TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistry
     s.set_code_blob_frame_size(
         metadata.FindFieldOffset("CodeBlob", "_frame_size")
     );
+    if (version >= 23) {
+        s.set_code_blob_code_offset(metadata.FindFieldOffset("CodeBlob", "_code_offset"));
+    } else {
+        s.set_code_blob_code_begin(metadata.FindFieldOffset("CodeBlob", "_code_begin"));
+    }
 
     s.set_code_heap_log2_segment_size(
         metadata.FindFieldOffset("CodeHeap", "_log2_segment_size")
