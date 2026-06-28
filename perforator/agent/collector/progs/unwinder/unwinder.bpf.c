@@ -755,8 +755,11 @@ static NOINLINE int profiler_stage_collect_python_stack(void* ctx, struct profil
 }
 
 static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_state* state, struct profiler_config* config) {
-    if (state == NULL || config == NULL || !config->enable_php) {
+    if (state == NULL || config == NULL) {
         return -1;
+    }
+    if (!config->enable_php) {
+        return 0;
     }
 
     struct process_info* info = lookup_process(ctx, state);
