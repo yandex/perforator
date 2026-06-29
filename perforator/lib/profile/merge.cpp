@@ -117,8 +117,7 @@ public:
 
         return true
             && SampleHasOneOfRequiredBinaries(sample)
-            && SampleHasAllOfRequiredLabels(sample)
-        ;
+            && SampleHasAllOfRequiredLabels(sample);
     }
 
     bool AllowLabel(TLabel label) const {

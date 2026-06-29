@@ -12,7 +12,7 @@ namespace NPerforator::NProfile {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template <typename Tag = decltype([]{})>
+template <typename Tag = decltype([] {})>
 class TStrongIndex {
     static constexpr inline i32 InvalidIndexValue = Min<i32>();
 
@@ -118,4 +118,4 @@ struct is_uniquely_represented<NPerforator::NProfile::TStrongIndex<Tag>> : std::
 
 //////////////////////////////////////////////////////////////////////////////////
 
-} // namespace absl::internal
+} // namespace absl::hash_internal

@@ -190,19 +190,19 @@ public:
     TRenderedNode Render(const TFlameNodeId& identity) {
         // Use index-based switch instead of std::visit to avoid lambda object creation overhead
         switch (identity.index()) {
-            case 0:  // std::monostate (root)
-                return TRenderedNode{
-                    .NameId = Common_.All,
-                    .FileId = Common_.Empty,
-                    .OriginId = Common_.Empty,
-                    .KindId = Common_.Empty,
-                };
-            case 1:  // TLabelId
-                return RenderLabel(std::get<1>(identity));
-            case 2:  // TFrameKey
-                return RenderFrame(std::get<2>(identity));
-            default:
-                Y_UNREACHABLE();
+        case 0:  // std::monostate (root)
+            return TRenderedNode{
+                .NameId = Common_.All,
+                .FileId = Common_.Empty,
+                .OriginId = Common_.Empty,
+                .KindId = Common_.Empty,
+            };
+        case 1:  // TLabelId
+            return RenderLabel(std::get<1>(identity));
+        case 2:  // TFrameKey
+            return RenderFrame(std::get<2>(identity));
+        default:
+            Y_UNREACHABLE();
         }
     }
 
@@ -224,32 +224,32 @@ private:
         }
 
         switch (*labelType) {
-            case NProto::NProfile::Workload:
-                result.NameId = InternProfileString(label.GetString());
-                result.KindId = Common_.Container;
-                break;
-            case NProto::NProfile::ProcessId:
-                result.NameId = StringTable_.Intern(ToString(label.GetNumber()));
-                result.KindId = Common_.Process;
-                break;
-            case NProto::NProfile::ProcessCommand:
-                result.NameId = InternProfileString(label.GetString());
-                result.KindId = Common_.Process;
-                break;
-            case NProto::NProfile::ThreadId:
-                result.NameId = StringTable_.Intern(ToString(label.GetNumber()));
-                result.KindId = Common_.Thread;
-                break;
-            case NProto::NProfile::ThreadCommand:
-                result.NameId = InternProfileString(label.GetString());
-                result.KindId = Common_.Thread;
-                break;
-            case NProto::NProfile::SignalName:
-                result.NameId = InternProfileString(label.GetString());
-                result.KindId = Common_.Signal;
-                break;
-            default:
-                break;
+        case NProto::NProfile::Workload:
+            result.NameId = InternProfileString(label.GetString());
+            result.KindId = Common_.Container;
+            break;
+        case NProto::NProfile::ProcessId:
+            result.NameId = StringTable_.Intern(ToString(label.GetNumber()));
+            result.KindId = Common_.Process;
+            break;
+        case NProto::NProfile::ProcessCommand:
+            result.NameId = InternProfileString(label.GetString());
+            result.KindId = Common_.Process;
+            break;
+        case NProto::NProfile::ThreadId:
+            result.NameId = StringTable_.Intern(ToString(label.GetNumber()));
+            result.KindId = Common_.Thread;
+            break;
+        case NProto::NProfile::ThreadCommand:
+            result.NameId = InternProfileString(label.GetString());
+            result.KindId = Common_.Thread;
+            break;
+        case NProto::NProfile::SignalName:
+            result.NameId = InternProfileString(label.GetString());
+            result.KindId = Common_.Signal;
+            break;
+        default:
+            break;
         }
 
         return result;

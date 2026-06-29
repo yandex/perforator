@@ -305,9 +305,9 @@ private:
             TSampleId& prev = SampleByKeys_.at(*sample.Key);
             if (prev.IsValid()) {
                 id = prev;
-           } else {
+            } else {
                 prev = id;
-           }
+            }
         }
 
         // If this is a new sample, let's register it.

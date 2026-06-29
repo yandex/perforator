@@ -14,16 +14,16 @@ namespace NPerforator::NProfile {
 
 namespace {
 
-template <typename First, typename ...Rest>
-void RequireCongruentContainers(const First& first, const Rest& ...rest) {
+template <typename First, typename... Rest>
+void RequireCongruentContainers(const First& first, const Rest&... rest) {
     auto size = first.size();
-    [[maybe_unused]] int _ = (0 + ... + [&size](const auto& container){
+    [[maybe_unused]] int _ = (0 + ... + [&size](const auto& container) {
         Y_ENSURE(
             container.size() == size,
             "Expected size of " << size << " elements, got " << container.size()
         );
         return 0;
-     }(rest));
+    }(rest));
 }
 
 class TProfileValidator final : public INopProfileVisitor {
@@ -232,8 +232,7 @@ private:
             Y_ENSURE(idx < size,
                 "Invalid " << name
                 << " index, expected indices in range [0, " << size << ")"
-                << ", got " << idx)
-            ;
+                << ", got " << idx);
         }
     }
 
