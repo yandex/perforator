@@ -1,2 +1,4 @@
 RECURSE(flamegraph)
-
+IF (NOT OPENSOURCE)
+RECURSE(dashboard)
+ENDIF()
