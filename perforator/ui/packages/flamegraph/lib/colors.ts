@@ -42,9 +42,9 @@ export function hashcolor(name: string, module?: string): string {
         G = 96 + (255 - 96) * v1;
         B = 205 + 50 * v3;
     } else if (module === 'jvm' || name.includes('[jvm]') || name.endsWith('.java') || name.endsWith('.kt')) {
-        R = 245 + 5 * v3;
-        G = 110 - 58 * v1;
-        B = 110 + 71 * v2;
+        R = 70 + 40 * v3;
+        G = 150 + 55 * v1;
+        B = 140 + 45 * v2;
     } else if (module === 'php' || name.includes('[php]') || name.endsWith('.php')) {
         R = 120 + 40 * v2;
         G = 130 + 40 * v1;
