@@ -55,7 +55,10 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, for
         };
     }, [format]);
 
-    const onFinishDataLoading = useCallback(() => uiFactory().rum()?.finishDataLoading?.(pageName), [pageName]);
+    const onFinishDataLoading = useCallback(() => {
+        uiFactory().rum()?.finishDataLoading?.(pageName);
+        uiFactory().rum()?.sendResTiming?.(url);
+    }, [pageName, url]);
 
     const onStartRequest = useCallback(() => {
         if (!isMounted.current) {

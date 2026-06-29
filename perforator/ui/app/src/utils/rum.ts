@@ -9,6 +9,7 @@ export interface Rum {
     logMemory?: (zone: string, value: Memory) => void;
     logInt?: (name: string, value: number) => void;
     sendDelta?: (deltaName: string, value: number, params?: Record<string, any>) => void;
+    sendResTiming?: (url: string) => void;
 }
 
 export const fakeRum: Rum = {};
