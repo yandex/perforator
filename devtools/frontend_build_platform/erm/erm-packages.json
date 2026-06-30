@@ -361,18 +361,28 @@
   "@yandex-tsg/cli": {
     "description": "Универсальный генератор проектов для разработки на TypeScript",
     "type": "NPM_PACKAGE",
-    "default": "0.1.7",
+    "default": "0.1.8",
     "links": {
       "Sources": "https://a.yandex-team.ru/arcadia/devtools/frontend_build_platform/tsg/",
       "Docs": "https://docs.yandex-team.ru/tsg/"
     },
     "specifier": ">=0.0.2",
     "versions": {
-      "0.1.7": {
-        "add_date": "2026-06-30T05:31:06",
+      "0.1.8": {
+        "add_date": "2026-06-30T12:06:32",
         "resources": [
           {
-            "id": 12619231692,
+            "id": 12621998483,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
+      "0.1.7": {
+        "add_date": "2026-06-29T20:52:11",
+        "resources": [
+          {
+            "id": 12616360546,
             "platform": "any",
             "arch": "any"
           }
