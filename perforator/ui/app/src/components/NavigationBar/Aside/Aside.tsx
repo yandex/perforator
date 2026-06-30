@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useLocation } from 'react-router-dom';
+
 import BarsDescendingAlignLeftIcon from '@gravity-ui/icons/svgs/bars-descending-align-left.svg?raw';
 import ClockArrowRotateLeftIcon from '@gravity-ui/icons/svgs/clock-arrow-rotate-left.svg?raw';
 import GraduationCapIcon from '@gravity-ui/icons/svgs/graduation-cap.svg?raw';
@@ -51,11 +53,11 @@ const menuLinks: MenuLink[] = [
     },
 ];
 
-const makeMenuItem = (link: MenuLink): MenuItem => ({
+const makeMenuItem = (link: MenuLink, pathname: string): MenuItem => ({
     id: link.title,
     title: link.title,
     icon: link.icon,
-    current: window.location.pathname === link.link,
+    current: pathname === link.link,
     itemWrapper: (props, makeItem) => (
         <Link
             className="gn-composite-bar-item__link"
@@ -66,12 +68,11 @@ const makeMenuItem = (link: MenuLink): MenuItem => ({
     ),
 });
 
-const menuLinkItems = menuLinks.map(makeMenuItem);
-
 type PanelItems = 'settings' | 'tutorials';
 
 export const Aside: React.FC<AsideProps> = ({ setCompact }: AsideProps) => {
     const asideRef = React.useRef<HTMLDivElement>(null);
+    const { pathname } = useLocation();
 
     const [showPanel, setShowPanel] = React.useState<PanelItems | null>(null);
 
@@ -88,16 +89,17 @@ export const Aside: React.FC<AsideProps> = ({ setCompact }: AsideProps) => {
         },
     ] as DrawerItemProps[], [showPanel]);
 
-    const items = menuLinkItems.concat(
-        [{
+    const items = React.useMemo(
+        () => menuLinks.map((link) => makeMenuItem(link, pathname)).concat([{
             title: 'Learn',
             icon: GraduationCapIcon,
             id: 'tutorials',
-            current: showPanel === 'tutorials' || window.location.pathname.startsWith('/tutorials'),
+            current: showPanel === 'tutorials' || pathname.startsWith('/tutorials'),
             onItemClick: () => setShowPanel(
                 showPanel ? null : 'tutorials',
             ),
-        }],
+        }]),
+        [pathname, showPanel],
     );
 
     return (
