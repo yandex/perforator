@@ -59,6 +59,11 @@ export const SwitchableSelectorInput: React.FC<SwitchableSelectorInputProps> = (
         onSelectorChange?.(newSelector);
     }, [onSelectorChange]);
 
+    const handleModeChange = React.useCallback((newMode: InputMode) => {
+        setMode(newMode);
+        localStorage.setItem(LocalStorageKey.QueryInputKind, newMode);
+    }, []);
+
     return (
         <QuerySuggestProvider>
             <div className={b(null, className)}>
@@ -84,7 +89,7 @@ export const SwitchableSelectorInput: React.FC<SwitchableSelectorInputProps> = (
                 </div>
                 <SegmentedRadioGroup
                     value={mode}
-                    onUpdate={setMode}
+                    onUpdate={handleModeChange}
                     className={b('switcher')}
                 >
                     <SegmentedRadioGroup.Option value="tokens">
