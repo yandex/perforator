@@ -479,6 +479,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
         />
         <Flex gap={4} alignItems={'center'}>
             <Select
+                qa="task-state-filter"
                 placeholder={'Task State'}
                 label={'Task State'}
                 value={statusFilter}
@@ -489,6 +490,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                 disabled={false}
             />
             <Select
+                qa="task-type-filter"
                 placeholder={'Task Type'}
                 label="Task Type"
                 multiple
@@ -498,6 +500,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                 hasClear
             />
             <Select
+                qa="task-format-filter"
                 placeholder={'Task Format'}
                 label="Task Format"
                 multiple
