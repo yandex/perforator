@@ -18625,6 +18625,7 @@ github.com/zeebo/bencode
 # github.com/zeebo/xxh3 v1.1.0
 ## explicit; go 1.22
 github.com/zeebo/xxh3
+github.com/zeebo/xxh3/internal/table
 # github.com/zenazn/goji v1.0.1
 ## explicit
 # github.com/zhangjianweibj/prometheus-libvirt-exporter v1.1.0

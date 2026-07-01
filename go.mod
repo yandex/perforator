@@ -936,6 +936,7 @@ require (
 	github.com/zaf/g711 v0.0.0-20220109202201-cf0017bf0359
 	github.com/zclconf/go-cty v1.17.0
 	github.com/zeebo/bencode v1.0.0
+	github.com/zeebo/xxh3 v1.1.0
 	github.com/zhangjianweibj/prometheus-libvirt-exporter v1.1.0
 	github.com/zimmski/go-mutesting v0.0.0-20210610104036-6d9217011a00
 	gitlab.com/metakeule/fmtdate v1.2.2
@@ -2540,7 +2541,6 @@ require (
 	github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940 // indirect
 	github.com/zeebo/assert v1.3.1 // indirect
 	github.com/zeebo/errs v1.4.0 // indirect
-	github.com/zeebo/xxh3 v1.1.0 // indirect
 	github.com/zenazn/goji v1.0.1 // indirect
 	github.com/zimmski/go-tool v0.0.0-20150119110811-2dfdc9ac8439 // indirect
 	github.com/zimmski/osutil v0.0.0-20190128123334-0d0b3ca231ac // indirect
