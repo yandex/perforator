@@ -410,7 +410,7 @@ require (
 	github.com/fsouza/go-dockerclient v1.10.1
 	github.com/fullstorydev/grpcurl v1.9.3
 	github.com/fxamacker/cbor/v2 v2.9.0
-	github.com/gabriel-vasile/mimetype v1.4.8
+	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/getkin/kin-openapi v0.132.0
