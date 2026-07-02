@@ -59,12 +59,21 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             : null;
     }, [profileData, isFirstTopRender]);
 
-    const [userSettings, setUserSettings] = useState<UserSettings>(localStorage.getItem('userSettings') ? JSON.parse(localStorage.getItem('userSettings')!) : {
-        monospace: 'default',
-        numTemplating: 'exponent',
-        reverseFlameByDefault: true,
-        shortenFrameTexts: 'false',
-        theme: 'system'
+    const [userSettings, setUserSettings] = useState<UserSettings>(() => {
+        const defaults: UserSettings = {
+            monospace: 'default',
+            numTemplating: 'exponent',
+            reverseFlameByDefault: true,
+            shortenFrameTexts: 'false',
+            theme: 'system'
+        };
+        try {
+            const stored = localStorage.getItem('userSettings');
+            return stored ? JSON.parse(stored) : defaults;
+        } catch (e) {
+            console.error(e);
+            return defaults;
+        }
     });
 
     const handleUserSettings = React.useCallback((settings: UserSettings) => {

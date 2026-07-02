@@ -18,5 +18,11 @@ module.exports = {
         'eol-last': 'error',
         "@typescript-eslint/no-unused-vars": ["error"]
     },
+    overrides: [
+        {
+            files: ['e2e/**/*.ts', 'playwright.config.ts', 'playwright.ts'],
+            env: {node: true, browser: false},
+        },
+    ],
     root: true
 }
