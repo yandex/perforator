@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { cutIdFromSelector, cutTimeFromSelector, insertStatementIntoSelector, parseTimestampFromSelector, validateSelectorContainsOnlyService } from './selector';
+import { cutIdFromSelector, cutSpaceFromSelector, cutTimeFromSelector, insertStatementIntoSelector, parseTimestampFromSelector, validateSelectorContainsOnlyService } from './selector';
 
 
 const selector = '{service="perforator.perforator-proxy-prod",timestamp>="2024-08-26T09:56:12.624Z", timestamp<="2024-08-27T09:56:12.625Z"}';
@@ -44,6 +44,13 @@ describe('cutTimeFromSelector', () => {
         const s = '{service="perforator.perforator-proxy-prod"}';
 
         expect(cutTimeFromSelector(s)).toEqual(s);
+    });
+});
+
+describe('cutSpaceFromSelector', () => {
+    it('should not cut spaces inside quoted values', () => {
+        expect(cutSpaceFromSelector('{service = "perforator", cpu = "AMD EPYC"}'))
+            .toBe('{service="perforator",cpu="AMD EPYC"}');
     });
 });
 

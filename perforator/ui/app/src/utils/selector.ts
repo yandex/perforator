@@ -82,7 +82,37 @@ export function parseTimestampFromSelector(selector: string) {
 const timestampCutRegex = new RegExp(`((${timestampRg})(,\\s*)?)|((,\\s*)?${timestampRg})`, 'g');
 
 export function cutSpaceFromSelector(selector: string): string {
-    return selector.replace(/\s+/g, '');
+    let result = '';
+    let isInsideQuotedValue = false;
+    let isEscaped = false;
+
+    for (const char of selector) {
+        if (isEscaped) {
+            result += char;
+            isEscaped = false;
+            continue;
+        }
+
+        if (char === '\\' && isInsideQuotedValue) {
+            result += char;
+            isEscaped = true;
+            continue;
+        }
+
+        if (char === '"') {
+            isInsideQuotedValue = !isInsideQuotedValue;
+            result += char;
+            continue;
+        }
+
+        if (!isInsideQuotedValue && /\s/.test(char)) {
+            continue;
+        }
+
+        result += char;
+    }
+
+    return result;
 }
 
 export function cutTimeFromSelector(selector: string): string {
