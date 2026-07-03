@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -28,14 +28,11 @@ import { ActionsPanel,
 import { uiFactory } from 'src/factory';
 import type { RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
 import type {
-    ListTasksRequest,
     Task,
 } from 'src/generated/perforator/proto/perforator/task_service';
 import {
     TaskState } from 'src/generated/perforator/proto/perforator/task_service';
-import { apiClient, getPagination } from 'src/utils/api';
-import { formatDate, getIsoDate } from 'src/utils/date';
-import { useDebounce } from 'src/utils/debounce';
+import { formatDate } from 'src/utils/date';
 import { getUserLogin } from 'src/utils/login';
 import { redirectToTaskPage } from 'src/utils/profileTask';
 import { composeDiffQuery } from 'src/utils/selector';
@@ -43,6 +40,8 @@ import { composeDiffQuery } from 'src/utils/selector';
 import { ErrorPanel } from '../ErrorPanel/ErrorPanel';
 import { Link } from '../Link/Link';
 import { type TimeInterval, TimeIntervalInput } from '../TimeIntervalInput/TimeIntervalInput';
+
+import { useTasksQuery } from './queries';
 
 import './Tasks.scss';
 
@@ -247,7 +246,7 @@ const getColumnsConfig = (): TableColumnConfig<Task>[] => [
 
 type TasksQuery = { from?: string; to?: string; user?: string }
 
-const initialPaginationState = { page: 1, pageSize: 100 };
+const USER_FILTER_DEBOUNCE_MS = 300;
 
 const taskRowDescriptor = (task: Task) => ({ id: task?.Meta?.ID });
 
@@ -256,9 +255,6 @@ interface TasksProps {
 }
 
 export const Tasks: React.FC<TasksProps> = ({ header }) => {
-    const [tasks, setTasks] = useState<Task[] | null>(null);
-    const [tasksCount, setTasksCount] = useState(0);
-    const [error, setError] = useState<any>(null);
     const [selected, setSelected] = useState<string[]>([]);
 
     const [stateParams, setState] = useSearchParams();
@@ -267,16 +263,55 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
         ...Object.fromEntries(stateParams),
     };
 
-    const [paginationState, setPaginationState] = useState(initialPaginationState);
-    const handleUpdate = () => {
-        setPaginationState(prevState => ({ ...prevState, page: error ? prevState.page : prevState.page + 1 }));
-    };
-
-    useEffect(() => {
-        setPaginationState(initialPaginationState);
-        setTasks(null);
-    }, [stateParams]);
     const navigate = useNavigate();
+    const login = useMemo(() => getUserLogin(), []);
+
+    const [settings, setSettings] = useState<TableSettingsData>([]);
+    const [statusFilter, setStatusFilter] = useState<string[]>([]);
+    const [typeFilter, setTypeFilter] = useState<string[]>([]);
+    const [formatFilter, setFormatFilter] = useState<string[]>([]);
+    const [mine, setMine] = useState<boolean>(
+        state.user ? login === state.user : true,
+    );
+    const [userFilter, setUserFilter] = useState<string>(
+        state.user || login || '',
+    );
+
+    const debouncedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [debouncedUserFilter, setDebouncedUserFilter] = useState(userFilter);
+    useEffect(() => {
+        if (debouncedTimerRef.current) {
+            clearTimeout(debouncedTimerRef.current);
+            debouncedTimerRef.current = null;
+        }
+        debouncedTimerRef.current = setTimeout(
+            () => setDebouncedUserFilter(userFilter),
+            USER_FILTER_DEBOUNCE_MS,
+        );
+        return () => {
+            if (debouncedTimerRef.current) {
+                clearTimeout(debouncedTimerRef.current);
+                debouncedTimerRef.current = null;
+            }
+        };}, [userFilter]);
+
+    const {
+        data,
+        error,
+        isPending,
+        hasNextPage,
+        fetchNextPage,
+        isFetchingNextPage,
+    } = useTasksQuery({
+        from: state.from,
+        to: state.to,
+        user: debouncedUserFilter,
+    });
+
+    const tasks = useMemo(
+        () => (data ? data.pages.flatMap((page) => page.Tasks ?? []) : null),
+        [data],
+    );
 
     const [selectedProfile, selectedDiffProfile] = useMemo(() => {
         const [diffTaskId, baselineTaskId] = selected;
@@ -317,7 +352,6 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
         redirectToTaskPage(navigate, query);
     }, [selectedProfile?.Spec, selectedDiffProfile?.Spec, navigate]);
 
-    const login = useMemo(() => getUserLogin(), []);
     const updateTimeInterval = (interval: TimeInterval) => {
         setState({
             ...state,
@@ -327,17 +361,6 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
         } as Record<string, string>);
     };
 
-    const [settings, setSettings] = useState<TableSettingsData>([]);
-    const [statusFilter, setStatusFilter] = useState<string[]>([]);
-    const [typeFilter, setTypeFilter] = useState<string[]>([]);
-    const [formatFilter, setFormatFilter] = useState<string[]>([]);
-    const [mine, setMine] = useState<boolean>(
-        state.user ? login === state.user : true,
-    );
-    const [loading, setLoading] = useState(false);
-    const [userFilter, setUserFilter] = useState<string>(
-        state.user || login || '',
-    );
     const handleSetUserFilter = (value: string) => {
         setMine(value === login);
 
@@ -366,36 +389,6 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                     formatFilter.includes(getFormat(task.Spec) as string)),
         );
     }, [tasks, statusFilter, typeFilter, formatFilter]);
-
-    const debounce = useDebounce();
-    React.useEffect(() => {
-        let isMounted = true;
-        const params: ListTasksRequest = {
-            Query: {
-                Author: userFilter,
-                From: getIsoDate(state.from),
-                To: getIsoDate(state.to),
-            },
-            Pagination: getPagination(paginationState),
-        };
-
-        debounce(() =>
-        {
-            setLoading(true);
-            apiClient
-                .getTasks(params)
-                .then((tasksData) => {
-                    if (!isMounted) {return;}
-                    setTasks(currentTasks => (currentTasks ?? []).concat(tasksData.data?.Tasks));
-                    setTasksCount(Number(tasksData.data?.TotalCount ?? 0));
-                    setError(null);
-                })
-                .catch(setError)
-                .finally(() => setLoading(false));
-        },
-        );
-        return () => {isMounted = false;};
-    }, [state.to, state.from, mine, userFilter, paginationState, setLoading]);
 
     const errorMessage = useMemo(() => {
         const validators = [
@@ -530,17 +523,17 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                     className="tasks-table"
                     columns={columnsConfig}
                 />
-                {tasksCount > tasks.length
-                    ? <><Button loading={loading} className='tasks__pagination' onClick={handleUpdate}>Load more</Button>
+                {hasNextPage
+                    ? <><Button loading={isFetchingNextPage} className='tasks__pagination' onClick={() => fetchNextPage()}>Load more</Button>
                         {error ? <Text className="tasks__pagination-error" color="danger">Error: {error?.message}</Text> : null}
                     </>
                     : null}
             </React.Fragment>
         ) : error ? (
             <ErrorPanel message={error?.message} />
-        ) : (
+        ) : isPending ? (
             <Loader />
-        )
+        ) : null
         }
     </React.Fragment>;
 };
