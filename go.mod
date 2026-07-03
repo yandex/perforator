@@ -850,6 +850,7 @@ require (
 	github.com/temporalio/cli v1.4.1
 	github.com/temporalio/omes v1.0.0
 	github.com/temporalio/omes/workers/go v0.0.0-20240701113332-211647aa9dae
+	github.com/temporalio/ringpop-go v0.0.0-20250130211428-b97329e994f7
 	github.com/temporalio/sqlparser v0.0.0-20231115171017-f4060bcfa6cb
 	github.com/temporalio/ui-server/v2 v2.42.1
 	github.com/terminalstatic/go-xsd-validate v0.1.6
@@ -2417,7 +2418,6 @@ require (
 	github.com/temporalio/features v0.0.0-20231218231852-27c681667dae // indirect
 	github.com/temporalio/features/features v1.0.0 // indirect
 	github.com/temporalio/features/harness/go v1.0.0 // indirect
-	github.com/temporalio/ringpop-go v0.0.0-20250130211428-b97329e994f7 // indirect
 	github.com/temporalio/tchannel-go v1.22.1-0.20240528171429-1db37fdea938 // indirect
 	github.com/temporalio/tctl-kit v0.0.0-20250107205014-58462b03dfb2 // indirect
 	github.com/tenntenn/modver v1.0.1 // indirect
