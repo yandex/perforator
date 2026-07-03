@@ -1,5 +1,6 @@
 RECURSE(
     atomicfs
+    boundedcache
     certifi
     clickhouse
     cprofile
@@ -8,6 +9,7 @@ RECURSE(
     ebpf
     endpointsetresolver
     env
+    filecache
     foreach
     graceful
     grpcutil
@@ -32,7 +34,6 @@ RECURSE(
     tls
     tracing
     validateconfig
-    weightedlru
     xelf
     xio
     xlog

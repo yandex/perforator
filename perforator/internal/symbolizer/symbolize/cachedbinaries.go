@@ -2,7 +2,6 @@ package symbolize
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"go.opentelemetry.io/otel"
@@ -13,10 +12,6 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-var (
-	ErrBuildIDAcquired = errors.New("build id releaser is already acquired")
-)
-
 // intended for single thread use
 // first acquire needed binaries then wait for them
 type CachedBinariesBatch struct {
@@ -24,7 +19,6 @@ type CachedBinariesBatch struct {
 	binaryProvider   binaryprovider.BinaryProvider
 	mutex            sync.RWMutex
 	acquiredBinaries map[string]binaryprovider.FileHandle // guarded by mutex
-	downloaded       map[string]bool                      // not guarded
 	acquireGroup     sync.WaitGroup
 
 	logErrorOnFailedAcquire bool
@@ -39,7 +33,6 @@ func NewCachedBinariesBatch(
 		l:                       l.WithName("CachedBinariesBatch"),
 		binaryProvider:          provider,
 		acquiredBinaries:        map[string]binaryprovider.FileHandle{},
-		downloaded:              map[string]bool{},
 		logErrorOnFailedAcquire: logErrorOnFailedAcquire,
 	}
 }
@@ -58,6 +51,8 @@ func (b *CachedBinariesBatch) addAcquired(buildID string, handle binaryprovider.
 	b.acquiredBinaries[buildID] = handle
 }
 
+// Acquire blocks until the binary is downloaded and ready (or fails). A failure
+// is logged, not fatal: symbolization proceeds with whatever binaries it got.
 func (b *CachedBinariesBatch) Acquire(ctx context.Context, buildID string) {
 	acquiredFile, err := b.binaryProvider.Acquire(ctx, buildID)
 	if err != nil {
@@ -80,27 +75,6 @@ func (b *CachedBinariesBatch) AcquireAsync(ctx context.Context, buildID string) 
 	}()
 }
 
-func (b *CachedBinariesBatch) waitDownload(ctx context.Context, buildID string) error {
-	if b.downloaded[buildID] {
-		return nil
-	}
-
-	binary := b.acquiredBinaries[buildID]
-	if binary == nil {
-		return nil
-	}
-
-	err := binary.WaitStored(ctx)
-	if err != nil {
-		binary.Close()
-		delete(b.acquiredBinaries, buildID)
-		return err
-	}
-
-	b.downloaded[buildID] = true
-	return nil
-}
-
 func (b *CachedBinariesBatch) WaitAllDownloads(ctx context.Context) (err error) {
 	ctx, span := otel.Tracer("Symbolizer").Start(
 		ctx, "cachedbinaries.(*CachedBinariesBatch).WaitAllDownloads",
@@ -114,44 +88,19 @@ func (b *CachedBinariesBatch) WaitAllDownloads(ctx context.Context) (err error) 
 	}()
 
 	b.acquireGroup.Wait()
-
-	buildIDs := make(map[string]bool, len(b.acquiredBinaries))
-	for buildID := range b.acquiredBinaries {
-		buildIDs[buildID] = true
-	}
-
-	for buildID := range buildIDs {
-		err = b.waitDownload(ctx, buildID)
-
-		if err != nil {
-			b.l.Warn(
-				ctx, "Failed to download binary",
-				log.String("build_id", buildID),
-				log.Error(err),
-			)
-		}
-
-		if err != nil && errors.Is(err, context.Canceled) {
-			// avoid waiting other downloads if context was cancelled
-			break
-		} else {
-			err = nil
-		}
-	}
-
-	return
+	return ctx.Err()
 }
 
 func (b *CachedBinariesBatch) PathByBuildID(buildID string) string {
-	if b.downloaded[buildID] {
-		return b.acquiredBinaries[buildID].Path()
+	if handle := b.acquiredBinaries[buildID]; handle != nil {
+		return handle.Path()
 	}
 
 	return ""
 }
 
 func (b *CachedBinariesBatch) Count() int {
-	return len(b.downloaded)
+	return len(b.acquiredBinaries)
 }
 
 func (b *CachedBinariesBatch) Release() {

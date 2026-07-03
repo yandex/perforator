@@ -33,12 +33,12 @@ import (
 	gatewayserver "github.com/yandex/perforator/perforator/internal/agent_gateway/server"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/custom_profiling_operation"
 	storage_service "github.com/yandex/perforator/perforator/internal/agent_gateway/server/storage"
-	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
 	proxyserver "github.com/yandex/perforator/perforator/internal/symbolizer/proxy/server"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/certifi"
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
+	"github.com/yandex/perforator/perforator/pkg/filecache"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/postgres"
 	s3client "github.com/yandex/perforator/perforator/pkg/s3"
@@ -760,9 +760,8 @@ func testEnvConfig() *Config {
 				Insecure: true,
 			},
 			BinaryProvider: proxyserver.BinaryProviderConfig{
-				FileCache: &asyncfilecache.Config{
+				FileCache: &filecache.Config{
 					MaxSize:  "10G",
-					MaxItems: 1000000,
 					RootPath: "/tmp/proxy_file_cache",
 				},
 			},

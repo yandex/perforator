@@ -33,9 +33,6 @@ func (t *LLVMTools) fetchBinary(ctx context.Context, buildID string) (binaryprov
 	if err != nil {
 		return nil, 0, err
 	}
-	if err = binary.WaitStored(ctx); err != nil {
-		return nil, 0, err
-	}
 
 	executableBytesCount, err := autofdo.GetBinaryExecutableBytes(binary.Path())
 	if err != nil {

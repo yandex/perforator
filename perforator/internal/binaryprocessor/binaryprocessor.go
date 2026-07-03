@@ -36,7 +36,6 @@ type BinaryProcessorServer struct {
 	reg xmetrics.Registry
 
 	symbolizer *symbolize.Symbolizer
-	downloader *downloader.Downloader
 
 	grpcServer   *grpc.Server
 	healthServer *health.Server
@@ -82,7 +81,7 @@ func NewBinaryProcessorServer(
 
 	l.Info(ctx, "Initialized storage bundle")
 
-	downloaderInstance, binaryDownloader, gsymDownloader, err := downloader.CreateDownloaders(
+	binaryDownloader, gsymDownloader, err := downloader.CreateDownloaders(
 		conf.BinaryProvider.FileCache,
 		conf.BinaryProvider.MaxSimultaneousDownloads,
 		l,
@@ -135,7 +134,6 @@ func NewBinaryProcessorServer(
 		c:            conf,
 		reg:          reg,
 		symbolizer:   symbolizer,
-		downloader:   downloaderInstance,
 		grpcServer:   grpcServer,
 		healthServer: healthServer,
 
@@ -197,14 +195,6 @@ func (s *BinaryProcessorServer) Run(ctx context.Context, conf *RunConfig) error 
 	defer func() { _ = s.shutdownTracing(context.Background()) }()
 
 	g, ctx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		err := s.downloader.RunBackgroundDownloader(context.Background())
-		if err != nil {
-			s.l.Error(ctx, "Failed background downloader", log.Error(err))
-		}
-		return err
-	})
 
 	g.Go(func() error {
 		err := s.runMetricsServer(ctx, conf.MetricsPort)

@@ -824,10 +824,6 @@ func (h *dsoFileHandle) Path() string {
 	return fmt.Sprintf("/proc/self/fd/%d", h.handle.GetFile().Fd())
 }
 
-func (h *dsoFileHandle) WaitStored(ctx context.Context) error {
-	return nil
-}
-
 func (h *dsoFileHandle) Close() {
 	_ = h.handle.Close()
 }
@@ -840,10 +836,6 @@ type osFileHandle struct {
 
 func (h *osFileHandle) Path() string {
 	return h.file.Name()
-}
-
-func (h *osFileHandle) WaitStored(ctx context.Context) error {
-	return nil
 }
 
 func (h *osFileHandle) Close() {

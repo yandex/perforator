@@ -41,25 +41,18 @@ func (s *PerforatorServer) handleDebuginfod(w http.ResponseWriter, r *http.Reque
 
 	handle, err := s.binaryDownloader.Acquire(ctx, buildID)
 	if err != nil {
-		if errors.Is(err, binarystorage.ErrNotFound) {
+		switch {
+		case errors.Is(err, binarystorage.ErrNotFound):
 			http.Error(w, "build-id not found", http.StatusNotFound)
-			return
+		case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded):
+			http.Error(w, "request canceled", http.StatusRequestTimeout)
+		default:
+			logger.Error(ctx, "Failed to acquire binary for debuginfod", log.Error(err))
+			http.Error(w, "failed to fetch binary", http.StatusInternalServerError)
 		}
-		logger.Error(ctx, "Failed to acquire binary for debuginfod", log.Error(err))
-		http.Error(w, "failed to fetch binary", http.StatusInternalServerError)
 		return
 	}
 	defer handle.Close()
-
-	if err = handle.WaitStored(ctx); err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			http.Error(w, "request canceled", http.StatusRequestTimeout)
-			return
-		}
-		logger.Error(ctx, "Failed to wait for binary download", log.Error(err))
-		http.Error(w, "failed to fetch binary", http.StatusInternalServerError)
-		return
-	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	http.ServeFile(w, r, handle.Path())

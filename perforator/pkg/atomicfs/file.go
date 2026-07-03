@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 )
 
@@ -36,6 +37,15 @@ func WithMode(mode os.FileMode) FileOption {
 ////////////////////////////////////////////////////////////////////////////////
 
 const tmpsuffix = ".tmp-"
+
+var tmpRegexp = regexp.MustCompile(regexp.QuoteMeta(tmpsuffix) + `[0-9]+$`)
+
+// IsTmp reports whether name (a bare file name) looks like an uncommitted temp
+// file produced by Create — the temp marker plus os.CreateTemp's random decimal
+// suffix, at the end — e.g. for sweeping leftovers after a crash.
+func IsTmp(name string) bool {
+	return tmpRegexp.MatchString(name)
+}
 
 func Create(path string, opts ...FileOption) (f *File, err error) {
 	path, err = filepath.Abs(path)

@@ -113,7 +113,6 @@ type PerforatorServer struct {
 	tasks                       asynctask.TaskService
 	tasksemaphore               *semaphore.Weighted
 
-	downloader       *downloader.Downloader
 	binaryDownloader binaryprovider.BinaryProvider
 	httpclient       *resty.Client
 
@@ -197,7 +196,7 @@ func NewPerforatorServer(
 		return nil, fmt.Errorf("failed to create banned users poller: %w", err)
 	}
 
-	downloaderInstance, binaryDownloader, gsymDownloader, err := downloader.CreateDownloaders(
+	binaryDownloader, gsymDownloader, err := downloader.CreateDownloaders(
 		conf.BinaryProvider.FileCache,
 		conf.BinaryProvider.MaxSimultaneousDownloads,
 		l, reg,
@@ -304,7 +303,6 @@ func NewPerforatorServer(
 		tasks:                       storageBundle.TaskStorage,
 		tasksemaphore:               semaphore.NewWeighted(conf.Tasks.ConcurrencyLimit),
 		httpclient:                  resty.New().SetTimeout(time.Hour).SetRetryCount(3),
-		downloader:                  downloaderInstance,
 		binaryDownloader:            binaryDownloader,
 		llvmTools:                   llvmTools,
 		symbolizer:                  symbolizer,
@@ -499,14 +497,6 @@ func (s *PerforatorServer) Run(ctx context.Context, conf *RunConfig) error {
 	defer func() { _ = s.otelShutdown(context.Background()) }()
 
 	g, ctx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		err := s.downloader.RunBackgroundDownloader(ctx)
-		if err != nil {
-			s.l.Error(ctx, "Failed background downloader", log.Error(err))
-		}
-		return err
-	})
 
 	g.Go(func() error {
 		err := s.bannedUsers.RunPoller(ctx)

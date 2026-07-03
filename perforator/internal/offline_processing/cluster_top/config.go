@@ -5,13 +5,13 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
+	"github.com/yandex/perforator/perforator/pkg/filecache"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 )
 
 type BinaryProviderConfig struct {
-	FileCache                *asyncfilecache.Config `yaml:"file_cache"`
-	MaxSimultaneousDownloads uint32                 `yaml:"max_simultaneous_downloads"`
+	FileCache                *filecache.Config `yaml:"file_cache"`
+	MaxSimultaneousDownloads uint32            `yaml:"max_simultaneous_downloads"`
 }
 
 type WorkerConfig struct {

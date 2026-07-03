@@ -17,15 +17,5 @@ func NewS3BinaryFetcher(binaryProvider binaryprovider.BinaryProvider) (*S3Binary
 }
 
 func (f *S3BinaryFetcher) FetchBinary(ctx context.Context, binaryID string) (binaryprovider.FileHandle, error) {
-	handle, err := f.binaryProvider.Acquire(ctx, binaryID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = handle.WaitStored(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return handle, nil
+	return f.binaryProvider.Acquire(ctx, binaryID)
 }

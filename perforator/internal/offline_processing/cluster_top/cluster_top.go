@@ -12,9 +12,9 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/observability/lib/querylang"
 	"github.com/yandex/perforator/observability/lib/querylang/operator"
-	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
+	"github.com/yandex/perforator/perforator/pkg/filecache"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
@@ -24,8 +24,6 @@ import (
 
 type ClusterTop struct {
 	l xlog.Logger
-
-	downloader *downloader.Downloader
 
 	profileStorage profile.Storage
 
@@ -42,16 +40,12 @@ func NewClusterTop(
 	reg xmetrics.Registry,
 	storageBundle *bundle.StorageBundle,
 ) (*ClusterTop, error) {
-	fileCache, err := asyncfilecache.NewFileCache(
-		conf.BinaryProvider.FileCache,
-		l,
-		reg,
-	)
+	fileCache, err := filecache.NewFileCache(conf.BinaryProvider.FileCache, reg)
 	if err != nil {
 		return nil, err
 	}
 
-	downloaderInstance, err := downloader.NewDownloader(
+	downloaderInstance := downloader.NewDownloader(
 		l.WithName("Downloader"),
 		reg,
 		fileCache,
@@ -59,14 +53,8 @@ func NewClusterTop(
 			MaxSimultaneousDownloads: uint64(conf.BinaryProvider.MaxSimultaneousDownloads),
 		},
 	)
-	if err != nil {
-		return nil, err
-	}
 
-	gsymDownloader, err := downloader.NewGSYMDownloader(downloaderInstance, storageBundle.GSYMStorage)
-	if err != nil {
-		return nil, err
-	}
+	gsymDownloader := downloader.NewGSYMDownloader(downloaderInstance, storageBundle.GSYMStorage)
 
 	symbolizer, err := NewClusterTopSymbolizer(l, gsymDownloader)
 	if err != nil {
@@ -75,7 +63,6 @@ func NewClusterTop(
 
 	return &ClusterTop{
 		l:              l,
-		downloader:     downloaderInstance,
 		profileStorage: storageBundle.ProfileStorage,
 		symbolizer:     symbolizer,
 		skiplist:       NewServiceSkipList(conf.Worker.SkippedServices),
@@ -153,46 +140,27 @@ func (t *ClusterTop) Run(
 ) error {
 	g, ctx := errgroup.WithContext(ctx)
 
-	g.Go(func() error {
-		err := t.downloader.RunBackgroundDownloader(ctx)
-		if err != nil {
-			t.l.Error(ctx, "Failed background downloader", log.Error(err))
-		}
-		return err
-	})
-
-	g.Go(func() error {
-		aggregateG, ctx := errgroup.WithContext(ctx)
-
-		for range degreeOfParallelism {
-			aggregateG.Go(func() error {
-				for {
-					shouldContinueRightAway := t.selectAndProcessJob(
-						ctx,
-						jobSelector,
-						clusterPerfTopAggregator,
-						int(degreeOfParallelism),
-					)
-					if !shouldContinueRightAway {
-						if ctx.Err() != nil {
-							break
-						}
-
-						time.Sleep(10 * time.Second)
+	for range degreeOfParallelism {
+		g.Go(func() error {
+			for {
+				shouldContinueRightAway := t.selectAndProcessJob(
+					ctx,
+					jobSelector,
+					clusterPerfTopAggregator,
+					int(degreeOfParallelism),
+				)
+				if !shouldContinueRightAway {
+					if ctx.Err() != nil {
+						break
 					}
+
+					time.Sleep(10 * time.Second)
 				}
+			}
 
-				return nil
-			})
-		}
-
-		err := aggregateG.Wait()
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
+			return nil
+		})
+	}
 
 	return g.Wait()
 }

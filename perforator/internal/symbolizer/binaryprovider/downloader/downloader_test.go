@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -13,10 +15,9 @@ import (
 	"go.uber.org/mock/gomock"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/yandex/perforator/library/go/core/metrics"
 	metricsmock "github.com/yandex/perforator/library/go/core/metrics/mock"
-	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
+	"github.com/yandex/perforator/perforator/pkg/filecache"
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	mock_binary "github.com/yandex/perforator/perforator/pkg/storage/binary/mock"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
@@ -24,494 +25,270 @@ import (
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
 
-func newTestObjects(
-	t *testing.T,
-	cacheConfig *asyncfilecache.Config,
-	config *Config,
-) (
+func newTestObjects(t *testing.T, maxSize string, config *Config) (
 	context.Context,
-	context.CancelFunc,
-	xlog.Logger,
-	metrics.Registry,
 	*mock_binary.MockStorage,
-	*Downloader,
 	binaryprovider.BinaryProvider,
 ) {
 	l := xlog.ForTest(t)
 	reg := metricsmock.NewRegistry(nil)
 
-	fileCache, err := asyncfilecache.NewFileCache(
-		cacheConfig,
-		l,
+	fileCache, err := filecache.NewFileCache(
+		&filecache.Config{MaxSize: maxSize, RootPath: t.TempDir()},
 		reg,
 	)
 	require.NoError(t, err)
-	fileCache.EvictReleased()
 
 	ctrl := gomock.NewController(t)
-	storage := mock_binary.NewMockStorage(ctrl)
+	st := mock_binary.NewMockStorage(ctrl)
 
-	downloaderInstance, err := NewDownloader(l, reg, fileCache, *config)
-	require.NoError(t, err)
+	downloaderInstance := NewDownloader(l, reg, fileCache, *config)
+	provider := NewBinaryDownloader(downloaderInstance, st)
 
-	binaryDownloader, err := NewBinaryDownloader(
-		downloaderInstance,
-		storage,
-	)
-	require.NoError(t, err)
+	return context.Background(), st, provider
+}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go func(t *testing.T) {
-		err := downloaderInstance.RunBackgroundDownloader(ctx)
-		if !errors.Is(err, context.Canceled) {
-			require.NoError(t, err)
-		}
-	}(t)
-	return ctx, cancel, l, reg, storage, downloaderInstance, binaryDownloader
+// expectBinary stubs an uncompressed binary of blobSize bytes. loadTimes < 0
+// means the download may happen any number of times (e.g. across evictions).
+func expectBinary(st *mock_binary.MockStorage, buildID string, blobSize uint64, loadTimes int) {
+	st.EXPECT().GetBinaries(gomock.Any(), []string{buildID}).Return(
+		[]*binarymeta.BinaryMeta{{
+			BuildID:     buildID,
+			Compression: compressionpb.CompressionMethod_None,
+			BlobInfo:    &storage.BlobInfo{Size: blobSize},
+		}},
+		nil,
+	).AnyTimes()
+
+	call := st.EXPECT().
+		LoadBinary(gomock.Any(), buildID, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, w io.WriterAt) (*binarymeta.BinaryMeta, error) {
+			if _, err := w.WriteAt(make([]byte, blobSize), 0); err != nil {
+				return nil, err
+			}
+			return &binarymeta.BinaryMeta{BuildID: buildID, BlobInfo: &storage.BlobInfo{Size: blobSize}}, nil
+		})
+	if loadTimes < 0 {
+		call.AnyTimes()
+	} else {
+		call.Times(loadTimes)
+	}
 }
 
 func TestDownloader_Simple(t *testing.T) {
-	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
-		t,
-		&asyncfilecache.Config{
-			MaxSize:  "100G",
-			MaxItems: 100000,
-			RootPath: "./binaries",
-		},
-		&Config{
-			MaxSimultaneousDownloads: 1,
-			MaxQueueSize:             100000,
-		},
-	)
-	defer cancel()
+	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
+	expectBinary(st, "a", 1, 1)
 
-	mockStorage.EXPECT().GetBinaries(gomock.Any(), []string{"a"}).Return(
-		[]*binarymeta.BinaryMeta{
-			{
-				BuildID: "a",
-				BlobInfo: &storage.BlobInfo{
-					Size: 1,
-				},
-			},
-		},
+	handle, err := provider.Acquire(ctx, "a")
+	require.NoError(t, err)
+	require.True(t, strings.HasSuffix(handle.Path(), binaryFilePrefix+"a"))
+
+	fi, err := os.Stat(handle.Path())
+	require.NoError(t, err)
+	require.Equal(t, int64(1), fi.Size())
+
+	handle.Close()
+}
+
+func TestDownloader_SameBinarySingleDownload(t *testing.T) {
+	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
+	expectBinary(st, "a", 1, 1) // exactly one download despite two acquires
+
+	h1, err := provider.Acquire(ctx, "a")
+	require.NoError(t, err)
+	h2, err := provider.Acquire(ctx, "a")
+	require.NoError(t, err)
+
+	require.Equal(t, h1.Path(), h2.Path())
+
+	h1.Close()
+	h2.Close()
+}
+
+func TestDownloader_DownloadErrorNotCached(t *testing.T) {
+	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
+	st.EXPECT().GetBinaries(gomock.Any(), []string{"a"}).Return(
+		[]*binarymeta.BinaryMeta{{
+			BuildID:     "a",
+			Compression: compressionpb.CompressionMethod_None,
+			BlobInfo:    &storage.BlobInfo{Size: 2},
+		}},
 		nil,
 	).AnyTimes()
-	var writer *asyncfilecache.WriterAt
-	mockStorage.EXPECT().
-		LoadBinary(gomock.Any(), "a", gomock.AssignableToTypeOf(writer)).
-		DoAndReturn(func(_ any, _ string, writer *asyncfilecache.WriterAt) (*binarymeta.BinaryMeta, error) {
-			time.Sleep(100 * time.Millisecond)
-			_, err := writer.WriteAt([]byte{'a'}, 0)
-			if err != nil {
-				return nil, err
-			}
-			return &binarymeta.BinaryMeta{
-				BuildID: "a",
-				BlobInfo: &storage.BlobInfo{
-					Size: 1,
-				},
-			}, nil
-		})
+	downloadErr := errors.New("download failed")
+	st.EXPECT().LoadBinary(gomock.Any(), "a", gomock.Any()).
+		Return(nil, downloadErr).Times(2)
 
-	acquiredBinary, err := downloader.Acquire(ctx, "a")
-	require.NoError(t, err)
+	_, err := provider.Acquire(ctx, "a")
+	require.ErrorIs(t, err, downloadErr)
 
-	fileRef := acquiredBinary.(*asyncfilecache.AcquiredFileReference)
-	state := fileRef.State()
-	require.True(t, state == asyncfilecache.Absent || state == asyncfilecache.Opened)
-
-	err = acquiredBinary.WaitStored(ctx)
-	require.NoError(t, err)
-
-	suffix := fmt.Sprintf("%sa", binaryFilePrefix)
-	require.True(
-		t,
-		strings.HasSuffix(acquiredBinary.Path(), suffix),
-		"path %s must end with %s",
-		acquiredBinary.Path(),
-		suffix,
-	)
-
-	err = acquiredBinary.WaitStored(ctx)
-	require.NoError(t, err)
-
-	acquiredBinary.Close()
+	// Not cached: a second acquire retries the download.
+	_, err = provider.Acquire(ctx, "a")
+	require.ErrorIs(t, err, downloadErr)
 }
 
-func TestDownloader_SameBinarySimple(t *testing.T) {
-	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
-		t,
-		&asyncfilecache.Config{
-			MaxSize:  "100G",
-			MaxItems: 100000,
-			RootPath: "./binaries",
-		},
-		&Config{
-			MaxSimultaneousDownloads: 1,
-			MaxQueueSize:             100000,
-		},
-	)
-	defer cancel()
+func TestDownloader_FirstCallerCancelableWaiterGetsBinary(t *testing.T) {
+	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
 
-	buildID := "a"
-
-	mockStorage.EXPECT().GetBinaries(gomock.Any(), []string{buildID}).Return(
-		[]*binarymeta.BinaryMeta{
-			{
-				BlobInfo: &storage.BlobInfo{
-					Size: 1,
-				},
-			},
-		},
+	st.EXPECT().GetBinaries(gomock.Any(), []string{"a"}).Return(
+		[]*binarymeta.BinaryMeta{{
+			BuildID:     "a",
+			Compression: compressionpb.CompressionMethod_None,
+			BlobInfo:    &storage.BlobInfo{Size: 1},
+		}},
 		nil,
 	).AnyTimes()
-	var writer *asyncfilecache.WriterAt
-	mockStorage.EXPECT().
-		LoadBinary(gomock.Any(), "a", gomock.AssignableToTypeOf(writer)).
-		DoAndReturn(func(_ any, _ string, writer *asyncfilecache.WriterAt) (*binarymeta.BinaryMeta, error) {
-			time.Sleep(100 * time.Millisecond)
-			_, err := writer.WriteAt([]byte{'a'}, 0)
-			if err != nil {
+	started := make(chan struct{})
+	proceed := make(chan struct{})
+	st.EXPECT().LoadBinary(gomock.Any(), "a", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, w io.WriterAt) (*binarymeta.BinaryMeta, error) {
+			close(started)
+			<-proceed
+			if _, err := w.WriteAt([]byte{0}, 0); err != nil {
 				return nil, err
 			}
-			return &binarymeta.BinaryMeta{
-				BuildID: buildID,
-				BlobInfo: &storage.BlobInfo{
-					Size: 1,
-				},
-			}, nil
-		})
+			return &binarymeta.BinaryMeta{BuildID: "a"}, nil
+		}).Times(1)
 
-	acquiredBinary1, err := downloader.Acquire(ctx, buildID)
-	require.NoError(t, err)
+	firstCtx, cancel := context.WithCancel(ctx)
+	firstDone := make(chan error, 1)
+	go func() { _, err := provider.Acquire(firstCtx, "a"); firstDone <- err }()
+	<-started
 
-	err = acquiredBinary1.WaitStored(ctx)
-	require.NoError(t, err)
-	suffix := fmt.Sprintf("%s%s", binaryFilePrefix, buildID)
-	require.True(
-		t,
-		strings.HasSuffix(acquiredBinary1.Path(), suffix),
-		"path %s must end with %s",
-		acquiredBinary1.Path(),
-		suffix,
-	)
+	waiterDone := make(chan error, 1)
+	var handle binaryprovider.FileHandle
+	go func() {
+		var err error
+		handle, err = provider.Acquire(ctx, "a") // keeps the download alive
+		waiterDone <- err
+	}()
+	time.Sleep(20 * time.Millisecond)
 
-	acquiredBinary2, err := downloader.Acquire(ctx, buildID)
-	require.NoError(t, err)
+	// The first caller gives up; the download continues for the waiter.
+	cancel()
+	require.ErrorIs(t, <-firstDone, context.Canceled)
 
-	err = acquiredBinary2.WaitStored(ctx)
-	require.NoError(t, err)
-	require.True(
-		t,
-		strings.HasSuffix(acquiredBinary2.Path(), suffix),
-		"path %s must end with %s",
-		acquiredBinary2.Path(),
-		suffix,
-	)
-
-	acquiredBinary1.Close()
-	acquiredBinary2.Close()
+	close(proceed)
+	require.NoError(t, <-waiterDone)
+	handle.Close()
 }
 
-func TestCachedDownloader_ErrorHandling(t *testing.T) {
-	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
-		t,
-		&asyncfilecache.Config{
-			MaxSize:  "100G",
-			MaxItems: 100000,
-			RootPath: "./binaries",
-		},
-		&Config{
-			MaxSimultaneousDownloads: 1,
-			MaxQueueSize:             100000,
-		},
-	)
-	defer cancel()
+func TestDownloader_WaiterCancelableWhileFillContinues(t *testing.T) {
+	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
 
-	buildID := "a"
-	mockStorage.EXPECT().GetBinaries(gomock.Any(), []string{buildID}).Return(
-		[]*binarymeta.BinaryMeta{
-			{
-				BlobInfo: &storage.BlobInfo{
-					Size: 2,
-				},
-				Compression: compressionpb.CompressionMethod_None,
-			},
-		},
+	st.EXPECT().GetBinaries(gomock.Any(), []string{"a"}).Return(
+		[]*binarymeta.BinaryMeta{{
+			BuildID:     "a",
+			Compression: compressionpb.CompressionMethod_None,
+			BlobInfo:    &storage.BlobInfo{Size: 1},
+		}},
 		nil,
 	).AnyTimes()
-	var writer *asyncfilecache.WriterAt
-	mockStorage.EXPECT().
-		LoadBinary(gomock.Any(), "a", gomock.AssignableToTypeOf(writer)).
-		DoAndReturn(func(_ any, _ string, writer *asyncfilecache.WriterAt) (*binarymeta.BinaryMeta, error) {
-			_, err := writer.WriteAt([]byte{'a'}, 0)
-			if err != nil {
+	started := make(chan struct{})
+	proceed := make(chan struct{})
+	st.EXPECT().LoadBinary(gomock.Any(), "a", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, w io.WriterAt) (*binarymeta.BinaryMeta, error) {
+			close(started)
+			<-proceed
+			if _, err := w.WriteAt([]byte{0}, 0); err != nil {
 				return nil, err
 			}
-			return &binarymeta.BinaryMeta{
-				BuildID: buildID,
-				BlobInfo: &storage.BlobInfo{
-					Size: 2,
-				},
-			}, nil
-		})
+			return &binarymeta.BinaryMeta{BuildID: "a"}, nil
+		}).Times(1)
 
-	acquiredBinary, err := downloader.Acquire(ctx, "a")
-	require.NoError(t, err)
-
-	err = acquiredBinary.WaitStored(ctx)
-	require.Error(t, err)
-
-	acquiredBinary.Close()
-}
-
-type Binary struct {
-	Meta *binarymeta.BinaryMeta
-	Body []byte
-}
-
-type Request struct {
-	Binaries []*Binary
-}
-
-func buildRequests(binaries uint32, requestsCount uint32) ([]*Request, map[string]*Binary) {
-	allBinaries := make([]*Binary, 0, binaries)
-	resultAllBinaries := map[string]*Binary{}
-
-	for i := uint32(0); i < binaries; i++ {
-		bin := &Binary{
-			Meta: &binarymeta.BinaryMeta{
-				BuildID: fmt.Sprintf("%d", i),
-				BlobInfo: &storage.BlobInfo{
-					Size: uint64(i),
-				},
-			},
-			Body: make([]byte, i),
+	fillerDone := make(chan error, 1)
+	go func() {
+		h, err := provider.Acquire(ctx, "a")
+		if err == nil {
+			h.Close()
 		}
-		allBinaries = append(allBinaries, bin)
-		resultAllBinaries[fmt.Sprintf("%d", i)] = bin
+		fillerDone <- err
+	}()
+	<-started
+
+	waiterCtx, cancel := context.WithCancel(ctx)
+	waiterDone := make(chan error, 1)
+	go func() {
+		_, err := provider.Acquire(waiterCtx, "a") // coalesces onto the in-flight fill
+		waiterDone <- err
+	}()
+	time.Sleep(20 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-waiterDone:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(2 * time.Second):
+		t.Fatal("canceled waiter did not return while the fill was in flight")
 	}
 
-	requests := make([]*Request, 0, requestsCount)
-	for i := uint32(0); i < requestsCount; i++ {
-		requestBinaries := allBinaries[0:i]
-		if i%2 == 1 {
-			requestBinaries = allBinaries[i:]
-		}
+	close(proceed)
+	require.NoError(t, <-fillerDone)
 
-		requests = append(requests, &Request{
-			Binaries: requestBinaries,
-		})
-	}
-
-	return requests, resultAllBinaries
-}
-
-func TestCachedDownloader_Concurrent(t *testing.T) {
-	ctx, cancel, l, _, mockStorage, _, downloader := newTestObjects(
-		t,
-		&asyncfilecache.Config{
-			MaxSize:  "100B",
-			MaxItems: 1000000,
-			RootPath: "./binaries",
-		},
-		&Config{
-			MaxQueueSize:             100000,
-			MaxSimultaneousDownloads: 2,
-		},
-	)
-	defer cancel()
-
-	requestsCount := uint32(10)
-	requests, allBinaries := buildRequests(20, requestsCount)
-
-	var writer *asyncfilecache.WriterAt
-	for _, bin := range allBinaries {
-		bin := bin
-		mockStorage.EXPECT().GetBinaries(gomock.Any(), []string{bin.Meta.BuildID}).Return(
-			[]*binarymeta.BinaryMeta{
-				{
-					BlobInfo: &storage.BlobInfo{
-						Size: bin.Meta.BlobInfo.Size,
-					},
-					BuildID: bin.Meta.BuildID,
-				},
-			},
-			nil,
-		).AnyTimes()
-		mockStorage.EXPECT().
-			LoadBinary(gomock.Any(), bin.Meta.BuildID, gomock.AssignableToTypeOf(writer)).
-			DoAndReturn(func(_ any, _ string, writer *asyncfilecache.WriterAt) (*binarymeta.BinaryMeta, error) {
-				time.Sleep(3 * time.Millisecond)
-				_, err := writer.WriteAt(make([]byte, bin.Meta.BlobInfo.Size), 0)
-				if err != nil {
-					return nil, err
-				}
-				return &binarymeta.BinaryMeta{
-					BuildID: bin.Meta.BuildID,
-					BlobInfo: &storage.BlobInfo{
-						Size: bin.Meta.BlobInfo.Size,
-					},
-				}, nil
-			}).AnyTimes()
-	}
-
-	g, _ := errgroup.WithContext(ctx)
-
-	successfulRequests := atomic.Uint32{}
-
-	for i, req := range requests {
-		reqCopy := req
-		jitter := time.Duration(i) * time.Millisecond
-		g.Go(func() error {
-			acquiredBinaries := map[string]binaryprovider.FileHandle{}
-
-			failedToAcquire := false
-
-			for _, bin := range reqCopy.Binaries {
-				binary, err := downloader.Acquire(ctx, bin.Meta.BuildID)
-				if err != nil {
-					failedToAcquire = true
-					break
-				}
-
-				acquiredBinaries[bin.Meta.BuildID] = binary
-			}
-
-			for buildID, acquiredBinary := range acquiredBinaries {
-				err := acquiredBinary.WaitStored(ctx)
-				require.NoError(t, err)
-				require.True(t, strings.HasSuffix(acquiredBinary.Path(), getBinaryFileEntryName(buildID, binaryFilePrefix)))
-			}
-
-			if !failedToAcquire {
-				successfulRequests.Add(1)
-				time.Sleep(20*time.Millisecond + jitter)
-			}
-
-			for _, acquiredBinary := range acquiredBinaries {
-				acquiredBinary.Close()
-			}
-
-			return nil
-		})
-	}
-
-	err := g.Wait()
+	// The shared fill survived the waiter's cancellation: the next acquire hits.
+	h, err := provider.Acquire(ctx, "a")
 	require.NoError(t, err)
-	require.Greater(t, successfulRequests.Load(), uint32(0))
-
-	l.Logger().Infof("%d successfull requests out of %d", successfulRequests.Load(), requestsCount)
+	h.Close()
 }
 
 func TestDownloader_ZstdAcquireSize(t *testing.T) {
 	const uncompressedSize = 1024 * 1024
-	const compressedSize = 4096
 
-	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
-		t,
-		&asyncfilecache.Config{
-			MaxSize:  "100G",
-			MaxItems: 100000,
-			RootPath: "./binaries",
-		},
-		&Config{
-			MaxSimultaneousDownloads: 1,
-			MaxQueueSize:             100000,
-		},
-	)
-	defer cancel()
-
-	buildID := "zstd-bin"
-	mockStorage.EXPECT().GetBinaries(gomock.Any(), []string{buildID}).Return(
-		[]*binarymeta.BinaryMeta{
-			{
-				BuildID:          buildID,
-				Compression:      compressionpb.CompressionMethod_Zstd,
-				UncompressedSize: uncompressedSize,
-				BlobInfo: &storage.BlobInfo{
-					Size: compressedSize,
-				},
-			},
-		},
+	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
+	st.EXPECT().GetBinaries(gomock.Any(), []string{"z"}).Return(
+		[]*binarymeta.BinaryMeta{{
+			BuildID:          "z",
+			Compression:      compressionpb.CompressionMethod_Zstd,
+			UncompressedSize: uncompressedSize,
+			BlobInfo:         &storage.BlobInfo{Size: 4096},
+		}},
 		nil,
 	).AnyTimes()
-
-	var writer *asyncfilecache.WriterAt
-	mockStorage.EXPECT().
-		LoadBinary(gomock.Any(), buildID, gomock.AssignableToTypeOf(writer)).
-		DoAndReturn(func(_ any, _ string, writer *asyncfilecache.WriterAt) (*binarymeta.BinaryMeta, error) {
-			_, err := writer.WriteAt(make([]byte, uncompressedSize), 0)
-			if err != nil {
+	st.EXPECT().LoadBinary(gomock.Any(), "z", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, w io.WriterAt) (*binarymeta.BinaryMeta, error) {
+			if _, err := w.WriteAt(make([]byte, uncompressedSize), 0); err != nil {
 				return nil, err
 			}
-			return &binarymeta.BinaryMeta{BuildID: buildID}, nil
-		})
+			return &binarymeta.BinaryMeta{BuildID: "z"}, nil
+		}).Times(1)
 
-	acquiredBinary, err := downloader.Acquire(ctx, buildID)
+	handle, err := provider.Acquire(ctx, "z")
 	require.NoError(t, err)
 
-	fileRef := acquiredBinary.(*asyncfilecache.AcquiredFileReference)
-	require.Equal(t, uint64(uncompressedSize), fileRef.Size())
-
-	err = acquiredBinary.WaitStored(ctx)
+	fi, err := os.Stat(handle.Path())
 	require.NoError(t, err)
+	require.Equal(t, int64(uncompressedSize), fi.Size()) // charged the uncompressed size
 
-	acquiredBinary.Close()
+	handle.Close()
 }
 
-func TestDownloader_LegacyNoneSizeFallback(t *testing.T) {
-	const blobSize = 500
+func TestDownloader_Concurrent(t *testing.T) {
+	ctx, st, provider := newTestObjects(t, "100B", &Config{MaxSimultaneousDownloads: 2})
 
-	ctx, cancel, _, _, mockStorage, _, downloader := newTestObjects(
-		t,
-		&asyncfilecache.Config{
-			MaxSize:  "100G",
-			MaxItems: 100000,
-			RootPath: "./binaries",
-		},
-		&Config{
-			MaxSimultaneousDownloads: 1,
-			MaxQueueSize:             100000,
-		},
-	)
-	defer cancel()
+	const distinct = 20
+	for i := 0; i < distinct; i++ {
+		expectBinary(st, fmt.Sprintf("b%d", i), 10, -1) // 10 bytes each; ~10 fit in 100B
+	}
 
-	buildID := "legacy-bin"
-	mockStorage.EXPECT().GetBinaries(gomock.Any(), []string{buildID}).Return(
-		[]*binarymeta.BinaryMeta{
-			{
-				BuildID:     buildID,
-				Compression: compressionpb.CompressionMethod_None,
-				BlobInfo: &storage.BlobInfo{
-					Size: blobSize,
-				},
-			},
-		},
-		nil,
-	).AnyTimes()
-
-	var writer *asyncfilecache.WriterAt
-	mockStorage.EXPECT().
-		LoadBinary(gomock.Any(), buildID, gomock.AssignableToTypeOf(writer)).
-		DoAndReturn(func(_ any, _ string, writer *asyncfilecache.WriterAt) (*binarymeta.BinaryMeta, error) {
-			_, err := writer.WriteAt(make([]byte, blobSize), 0)
+	var succeeded atomic.Uint32
+	g, _ := errgroup.WithContext(ctx)
+	for i := 0; i < 100; i++ {
+		buildID := fmt.Sprintf("b%d", i%distinct)
+		g.Go(func() error {
+			handle, err := provider.Acquire(ctx, buildID)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			return &binarymeta.BinaryMeta{BuildID: buildID}, nil
+			require.True(t, strings.HasSuffix(handle.Path(), binaryFilePrefix+buildID))
+			time.Sleep(time.Millisecond)
+			handle.Close()
+			succeeded.Add(1)
+			return nil
 		})
+	}
 
-	acquiredBinary, err := downloader.Acquire(ctx, buildID)
-	require.NoError(t, err)
-
-	fileRef := acquiredBinary.(*asyncfilecache.AcquiredFileReference)
-	require.Equal(t, uint64(blobSize), fileRef.Size())
-
-	err = acquiredBinary.WaitStored(ctx)
-	require.NoError(t, err)
-
-	acquiredBinary.Close()
+	require.NoError(t, g.Wait())
+	require.Equal(t, uint32(100), succeeded.Load()) // capacity contention waits, never fails
 }
 
 func TestEffectiveBinarySize(t *testing.T) {

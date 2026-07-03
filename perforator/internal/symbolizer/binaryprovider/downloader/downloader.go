@@ -4,22 +4,18 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/klauspost/compress/zstd"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	otelcodes "go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
-	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
+	"github.com/yandex/perforator/perforator/pkg/filecache"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	gsymstorage "github.com/yandex/perforator/perforator/pkg/storage/gsym"
@@ -31,10 +27,7 @@ const (
 	binaryFilePrefix = "binary_"
 	gsymFilePrefix   = "gsym_"
 
-	downloadTimeout      = 10 * time.Minute
-	binarySizesCacheSize = 10000
-
-	defaultDownloadsQueueSize = 10000
+	downloadTimeout = 10 * time.Minute
 )
 
 type downloadableStorage interface {
@@ -43,221 +36,118 @@ type downloadableStorage interface {
 }
 
 type downloaderMetrics struct {
-	scheduledBinaries metrics.Counter
-	downloadsInFly    metrics.IntGauge
-
-	downloadTimer metrics.Timer
+	downloadsInFly metrics.IntGauge
+	downloadTimer  metrics.Timer
 }
 
-type downloadItem struct {
-	acquiredFile *asyncfilecache.AcquiredFileReference
-	info         *binaryprovider.BinaryInfo
-	storage      downloadableStorage
+// fileHandle is a ready, pinned cache file. It satisfies binaryprovider.FileHandle.
+type fileHandle struct {
+	ref *filecache.Ref
 }
 
-func (b *downloadItem) load(ctx context.Context, writer io.WriterAt, done func() error) error {
-	err := b.storage.download(ctx, b.info.BuildID, writer)
-	if err != nil {
-		return err
-	}
-
-	return done()
-}
+func (h *fileHandle) Path() string { return h.ref.Path() }
+func (h *fileHandle) Close()       { h.ref.Release() }
 
 type Downloader struct {
 	l xlog.Logger
 	r metrics.Registry
 
-	fileCache *asyncfilecache.FileCache
-
-	binariesQueue chan *downloadItem
-
+	fileCache *filecache.Cache
 	semaphore *semaphore.Weighted
 
 	metrics *downloaderMetrics
 }
 
 type Config struct {
-	MaxQueueSize             uint64
-	MaxSimultaneousDownloads uint64
+	MaxSimultaneousDownloads uint64 // 0 means unlimited
 }
 
 func NewDownloader(
 	l xlog.Logger,
 	r metrics.Registry,
-	cache *asyncfilecache.FileCache,
+	cache *filecache.Cache,
 	conf Config,
-) (*Downloader, error) {
-	maxQueueSize := conf.MaxQueueSize
-	if maxQueueSize == 0 {
-		maxQueueSize = defaultDownloadsQueueSize
+) *Downloader {
+	maxDownloads := int64(conf.MaxSimultaneousDownloads)
+	if maxDownloads == 0 {
+		maxDownloads = math.MaxInt64
 	}
 
 	downloader := &Downloader{
-		l:             l,
-		r:             r,
-		fileCache:     cache,
-		semaphore:     semaphore.NewWeighted(int64(conf.MaxSimultaneousDownloads)),
-		binariesQueue: make(chan *downloadItem, maxQueueSize),
+		l:         l,
+		r:         r,
+		fileCache: cache,
+		semaphore: semaphore.NewWeighted(maxDownloads),
 	}
 	downloader.registerMetrics()
 
-	return downloader, nil
+	return downloader
 }
 
 func (d *Downloader) registerMetrics() {
-	d.r.FuncIntGauge(
-		"binaries.downloads_scheduled.gauge",
-		func() int64 {
-			return int64(len(d.binariesQueue))
-		},
-	)
-
 	d.metrics = &downloaderMetrics{
-		scheduledBinaries: d.r.Counter("binaries.downloads_scheduled.count"),
-		downloadsInFly:    d.r.IntGauge("binaries.downloads_in_fly.gauge"),
-		downloadTimer:     d.r.Timer("binaries.downloads.timer"),
+		downloadsInFly: d.r.IntGauge("binaries.downloads_in_fly.gauge"),
+		downloadTimer:  d.r.Timer("binaries.downloads.timer"),
 	}
 }
 
-func (d *Downloader) performDownload(ctx context.Context, item *downloadItem) error {
-	writer, done, err := item.acquiredFile.Open()
-	if err != nil {
+// runDownload performs the actual storage fetch for a single cache fill. The
+// semaphore bounds concurrent downloads (and thus peak memory, since gsym blobs
+// are decompressed in full); coalesced waiters never reach here.
+func (d *Downloader) runDownload(
+	ctx context.Context,
+	storage downloadableStorage,
+	buildID string,
+	writer io.WriterAt,
+) error {
+	if err := d.semaphore.Acquire(ctx, 1); err != nil {
 		return err
 	}
-	defer func() {
-		if err != nil {
-			_ = done()
-		}
-	}()
-
-	err = item.load(ctx, writer, done)
-	return err
-}
-
-func (d *Downloader) runDownload(ctx context.Context, item *downloadItem) {
 	defer d.semaphore.Release(1)
+
 	d.metrics.downloadsInFly.Add(1)
 	defer d.metrics.downloadsInFly.Add(-1)
 
-	ctx, cancel := context.WithTimeout(ctx, downloadTimeout)
-	defer cancel()
-
-	l := d.l.With(
-		log.String("build_id", item.info.BuildID),
-		log.UInt64("size", item.info.Size),
-		log.String("function", "runDownload"),
-	)
-	l.Info(ctx, "Start binary download")
+	d.l.Info(ctx, "Start binary download", log.String("build_id", buildID))
 	ts := time.Now()
-
-	err := d.performDownload(ctx, item)
-	if err != nil {
-		l.Error(ctx, "Failed to download binary")
-		return
+	if err := storage.download(ctx, buildID, writer); err != nil {
+		d.l.Error(ctx, "Failed to download binary", log.String("build_id", buildID), log.Error(err))
+		return err
 	}
-
 	duration := time.Since(ts)
-	l.Info(ctx, "Downloaded binary", log.Duration("duration", duration))
+	d.l.Info(ctx, "Downloaded binary", log.String("build_id", buildID), log.Duration("duration", duration))
 	d.metrics.downloadTimer.RecordDuration(duration)
-}
-
-func (d *Downloader) RunBackgroundDownloader(ctx context.Context) error {
-	for {
-		var req *downloadItem
-		select {
-		case req = <-d.binariesQueue:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-
-		_ = d.semaphore.Acquire(ctx, 1)
-		go d.runDownload(ctx, req)
-	}
-}
-
-func (d *Downloader) scheduleForDownload(ctx context.Context, item *downloadItem) error {
-	d.metrics.scheduledBinaries.Inc()
-
-	select {
-	case d.binariesQueue <- item:
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-
-	d.l.Info(ctx, "Scheduled binary for download", log.String("build_id", item.info.BuildID))
 	return nil
-}
-
-func getSize(
-	ctx context.Context,
-	sizeCache *lru.Cache,
-	storage downloadableStorage,
-	buildID string,
-) (uint64, error) {
-	sizeFromCache, ok := sizeCache.Get(buildID)
-	if ok {
-		return sizeFromCache.(uint64), nil
-	}
-
-	var err error
-	ctx, span := otel.Tracer("Symbolizer").Start(
-		ctx, "downloader.getSize",
-		trace.WithAttributes(attribute.String("buildID", buildID)),
-	)
-	defer span.End()
-	defer func() {
-		if err != nil {
-			span.SetStatus(otelcodes.Error, err.Error())
-			span.RecordError(err)
-		}
-	}()
-
-	sz, err := storage.size(ctx, buildID)
-	if err != nil {
-		return 0, err
-	}
-
-	sizeCache.Add(buildID, sz)
-	return sz, nil
 }
 
 func (d *Downloader) acquire(
 	ctx context.Context,
-	sizeCache *lru.Cache,
 	storage downloadableStorage,
 	buildID string,
 	filePrefix string,
 ) (binaryprovider.FileHandle, error) {
-	sz, err := getSize(ctx, sizeCache, storage, buildID)
-	if err != nil {
-		return nil, err
-	}
+	key := getBinaryFileEntryName(buildID, filePrefix)
 
-	entry := getBinaryFileEntryName(buildID, filePrefix)
+	ref, err := d.fileCache.GetOrFill(ctx, key, func(ctx context.Context, w filecache.Writer) error {
+		// ctx here is cache-owned (survives the requester); the timeout bounds
+		// the download itself.
+		ctx, cancel := context.WithTimeout(ctx, downloadTimeout)
+		defer cancel()
 
-	acquiredRef, inserted, err := d.fileCache.Acquire(entry, sz)
-	if err != nil {
-		return nil, fmt.Errorf("failed to acquire filecache item for %s: %w", entry, err)
-	}
-
-	binaryInfo := &binaryprovider.BinaryInfo{
-		BuildID: buildID,
-		Size:    sz,
-	}
-
-	if inserted {
-		err = d.scheduleForDownload(ctx, &downloadItem{
-			acquiredFile: acquiredRef,
-			info:         binaryInfo,
-			storage:      storage,
-		})
+		size, err := storage.size(ctx, buildID)
 		if err != nil {
-			return nil, err
+			return err
 		}
+		if err := w.Charge(ctx, int64(size)); err != nil {
+			return err
+		}
+		return d.runDownload(ctx, storage, buildID, w)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire filecache item for %s: %w", key, err)
 	}
 
-	return acquiredRef, nil
+	return &fileHandle{ref: ref}, nil
 }
 
 func getBinaryFileEntryName(buildID string, prefix string) string {
@@ -266,7 +156,7 @@ func getBinaryFileEntryName(buildID string, prefix string) string {
 	return prefix + buildIDAsPath
 }
 
-// binaryDownloadAdapter adapts binary.Storage to DownloadableStorage.
+// binaryDownloadAdapter adapts binary.Storage to downloadableStorage.
 type binaryDownloadAdapter struct {
 	storage binarystorage.Storage
 }
@@ -300,7 +190,7 @@ func (a *binaryDownloadAdapter) download(ctx context.Context, buildID string, wr
 	return err
 }
 
-// gsymDownloadAdapter adapts gsym.Storage to DownloadableStorage.
+// gsymDownloadAdapter adapts gsym.Storage to downloadableStorage.
 // Size returns the uncompressed size (the final on-disk size after decompression).
 // Download fetches the compressed blob from storage and decompresses it with zstd before writing to writer.
 type gsymDownloadAdapter struct {
@@ -345,60 +235,42 @@ type artifactDownloader struct {
 	downloader *Downloader
 	storage    downloadableStorage
 	prefix     string
-
-	sizeCache *lru.Cache
 }
 
 func (d *artifactDownloader) Acquire(ctx context.Context, buildID string) (binaryprovider.FileHandle, error) {
-	return d.downloader.acquire(ctx, d.sizeCache, d.storage, buildID, d.prefix)
+	return d.downloader.acquire(ctx, d.storage, buildID, d.prefix)
 }
 
-func NewBinaryDownloader(downloader *Downloader, binaryStorage binarystorage.Storage) (binaryprovider.BinaryProvider, error) {
-	sizeCache, err := lru.New(binarySizesCacheSize)
-	if err != nil {
-		return nil, err
-	}
-
+func NewBinaryDownloader(downloader *Downloader, binaryStorage binarystorage.Storage) binaryprovider.BinaryProvider {
 	return &artifactDownloader{
 		downloader: downloader,
 		storage:    &binaryDownloadAdapter{storage: binaryStorage},
 		prefix:     binaryFilePrefix,
-		sizeCache:  sizeCache,
-	}, nil
+	}
 }
 
-func NewGSYMDownloader(downloader *Downloader, gsymStorage gsymstorage.Storage) (binaryprovider.BinaryProvider, error) {
-	sizeCache, err := lru.New(binarySizesCacheSize)
-	if err != nil {
-		return nil, err
-	}
-
+func NewGSYMDownloader(downloader *Downloader, gsymStorage gsymstorage.Storage) binaryprovider.BinaryProvider {
 	return &artifactDownloader{
 		downloader: downloader,
 		storage:    &gsymDownloadAdapter{storage: gsymStorage},
 		prefix:     gsymFilePrefix,
-		sizeCache:  sizeCache,
-	}, nil
+	}
 }
 
 func CreateDownloaders(
-	fileCacheConfig *asyncfilecache.Config,
+	fileCacheConfig *filecache.Config,
 	maxSimultaneousDownloads uint32,
 	l xlog.Logger,
 	reg metrics.Registry,
 	binaryStorage binarystorage.Storage,
 	gsymStorage gsymstorage.Storage,
-) (*Downloader, binaryprovider.BinaryProvider, binaryprovider.BinaryProvider, error) {
-	fileCache, err := asyncfilecache.NewFileCache(
-		fileCacheConfig,
-		l,
-		reg,
-	)
+) (binaryprovider.BinaryProvider, binaryprovider.BinaryProvider, error) {
+	fileCache, err := filecache.NewFileCache(fileCacheConfig, reg)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	downloaderInstance, err := NewDownloader(
+	downloaderInstance := NewDownloader(
 		l.WithName("Downloader"),
 		reg,
 		fileCache,
@@ -406,25 +278,6 @@ func CreateDownloaders(
 			MaxSimultaneousDownloads: uint64(maxSimultaneousDownloads),
 		},
 	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
 
-	binaryDownloader, err := NewBinaryDownloader(
-		downloaderInstance,
-		binaryStorage,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	gsymDownloader, err := NewGSYMDownloader(
-		downloaderInstance,
-		gsymStorage,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return downloaderInstance, binaryDownloader, gsymDownloader, nil
+	return NewBinaryDownloader(downloaderInstance, binaryStorage), NewGSYMDownloader(downloaderInstance, gsymStorage), nil
 }

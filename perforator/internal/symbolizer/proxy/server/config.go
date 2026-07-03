@@ -10,8 +10,8 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/yandex/perforator/library/go/ptr"
-	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	bpclient "github.com/yandex/perforator/perforator/internal/binaryprocessor/client"
+	"github.com/yandex/perforator/perforator/pkg/filecache"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/tracing"
 )
@@ -30,8 +30,8 @@ type RenderedProfiles struct {
 }
 
 type BinaryProviderConfig struct {
-	FileCache                *asyncfilecache.Config `yaml:"file_cache"`
-	MaxSimultaneousDownloads uint32                 `yaml:"max_simultaneous_downloads"`
+	FileCache                *filecache.Config `yaml:"file_cache"`
+	MaxSimultaneousDownloads uint32            `yaml:"max_simultaneous_downloads"`
 }
 
 type MicroscopeThrottle struct {

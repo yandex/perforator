@@ -4,15 +4,11 @@ import (
 	"context"
 )
 
-type BinaryInfo struct {
-	BuildID string
-	Size    uint64
-}
-
+// FileHandle is a ready binary on disk. Acquire blocks until it is ready, so the
+// handle is usable immediately; Close releases it (and unpins the cache entry).
 type FileHandle interface {
 	Close()
 	Path() string
-	WaitStored(ctx context.Context) error
 }
 
 type BinaryProvider interface {

@@ -11,9 +11,9 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics/nop"
-	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
+	"github.com/yandex/perforator/perforator/pkg/filecache"
 	"github.com/yandex/perforator/perforator/pkg/must"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
@@ -134,11 +134,9 @@ var (
 				return err
 			}
 
-			// TODO : downloaderInstance.RunBackgroundDownloader?
-			_, binaryDownloader, gsymDownloader, err := downloader.CreateDownloaders(
-				&asyncfilecache.Config{
+			binaryDownloader, gsymDownloader, err := downloader.CreateDownloaders(
+				&filecache.Config{
 					MaxSize:  "100G",
-					MaxItems: 10000000,
 					RootPath: "./binaries",
 				},
 				20,

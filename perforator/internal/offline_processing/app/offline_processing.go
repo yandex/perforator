@@ -9,10 +9,10 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	"github.com/yandex/perforator/perforator/internal/offline_processing/processors"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
+	"github.com/yandex/perforator/perforator/pkg/filecache"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -20,8 +20,6 @@ import (
 type OfflineProcessingApp struct {
 	l   xlog.Logger
 	reg xmetrics.Registry
-
-	downloader *downloader.Downloader
 
 	binarySelector BinarySelector
 
@@ -47,16 +45,12 @@ func NewOfflineProcessingApp(
 	}
 	l.Info(ctx, "Initialized storage bundle")
 
-	fileCache, err := asyncfilecache.NewFileCache(
-		conf.BinaryProvider.FileCache,
-		l,
-		reg,
-	)
+	fileCache, err := filecache.NewFileCache(conf.BinaryProvider.FileCache, reg)
 	if err != nil {
 		return nil, err
 	}
 
-	downloaderInstance, err := downloader.NewDownloader(
+	downloaderInstance := downloader.NewDownloader(
 		l.WithName("Downloader"),
 		reg,
 		fileCache,
@@ -64,14 +58,8 @@ func NewOfflineProcessingApp(
 			MaxSimultaneousDownloads: uint64(conf.BinaryProvider.MaxSimultaneousDownloads),
 		},
 	)
-	if err != nil {
-		return nil, err
-	}
 
-	binaryDownloader, err := downloader.NewBinaryDownloader(downloaderInstance, storageBundle.BinaryStorage)
-	if err != nil {
-		return nil, err
-	}
+	binaryDownloader := downloader.NewBinaryDownloader(downloaderInstance, storageBundle.BinaryStorage)
 
 	binarySelector, err := NewPgBinarySelector(
 		l.WithName("pg_binary_selector"),
@@ -112,7 +100,6 @@ func NewOfflineProcessingApp(
 	return &OfflineProcessingApp{
 		l:              l,
 		reg:            reg,
-		downloader:     downloaderInstance,
 		binarySelector: binarySelector,
 		processingLoop: processingLoop,
 	}, nil
@@ -120,14 +107,6 @@ func NewOfflineProcessingApp(
 
 func (a *OfflineProcessingApp) Run(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		err := a.downloader.RunBackgroundDownloader(context.Background())
-		if err != nil {
-			a.l.Error(ctx, "Failed background downloader", log.Error(err))
-		}
-		return err
-	})
 
 	g.Go(func() error {
 		return a.processingLoop.Run(ctx)
