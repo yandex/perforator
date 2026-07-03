@@ -241,6 +241,14 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
         return () => { };
     }, [getQuery, isDiff, profileData, reverse, setQuery, theme, userSettings, levelHeight, onFinishRendering, isLeftHeavy, shouldTrim, foundCoords, searchPattern, excludeSearchPattern, useSelfAsScrollParent]);
 
+    React.useEffect(() => {
+        if (!profileData) {
+            return;
+        }
+        const scrollEl = useSelfAsScrollParent ? flamegraphContainer.current : document.documentElement;
+        scrollEl?.scrollTo({ top: !reverse ? scrollEl.scrollHeight : 0 });
+    }, [reverse, profileData, useSelfAsScrollParent]);
+
     const handleContextMenu = React.useCallback((event: React.MouseEvent) => {
         if (!flamegraphContainer.current || !profileData || !flamegraphOffsets.current) {
             return;
