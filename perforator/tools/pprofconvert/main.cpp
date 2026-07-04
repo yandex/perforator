@@ -5,7 +5,7 @@
 #include <perforator/lib/profile/flat_diffable.h>
 #include <perforator/lib/profile/validate.h>
 
-#include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
+#include <library/cpp/containers/absl/flat_hash_map.h>
 #include <library/cpp/digest/murmur/murmur.h>
 #include <library/cpp/iterator/enumerate.h>
 #include <library/cpp/threading/future/async.h>

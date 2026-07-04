@@ -6,7 +6,7 @@
 #include <perforator/lib/profile/well_known.h>
 #include <perforator/lib/profile/trie/trie.h>
 
-#include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
+#include <library/cpp/containers/absl/flat_hash_map.h>
 
 #include <contrib/libs/rapidjson/include/rapidjson/writer.h>
 #include <contrib/libs/rapidjson/include/rapidjson/stringbuffer.h>

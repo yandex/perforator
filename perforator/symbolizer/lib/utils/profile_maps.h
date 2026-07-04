@@ -2,7 +2,7 @@
 
 #include <util/system/types.h>
 
-#include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
+#include <library/cpp/containers/absl/flat_hash_map.h>
 
 #include <perforator/proto/pprofprofile/profile.pb.h>
 

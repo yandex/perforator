@@ -17,7 +17,7 @@ PEERDIR(
     perforator/proto/pprofprofile
     perforator/proto/profile
 
-    library/cpp/containers/absl_flat_hash
+    library/cpp/containers/absl
     library/cpp/containers/stack_vector
     library/cpp/introspection
     library/cpp/json

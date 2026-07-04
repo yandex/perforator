@@ -5,7 +5,7 @@ SRCS(
 )
 
 PEERDIR(
-    library/cpp/containers/absl_flat_hash
+    library/cpp/containers/absl
 )
 
 END()

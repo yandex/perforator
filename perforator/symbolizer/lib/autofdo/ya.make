@@ -9,7 +9,7 @@ PEERDIR(
     contrib/libs/fmt
 
     library/cpp/yt/compact_containers
-    library/cpp/containers/absl_flat_hash
+    library/cpp/containers/absl
 )
 
 SRCS(

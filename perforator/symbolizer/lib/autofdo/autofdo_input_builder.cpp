@@ -9,7 +9,7 @@
 #include <llvm/Object/ELFObjectFile.h>
 #include <llvm/Object/ObjectFile.h>
 
-#include <library/cpp/containers/absl_flat_hash/flat_hash_set.h>
+#include <library/cpp/containers/absl/flat_hash_set.h>
 #include <library/cpp/yt/compact_containers/compact_vector.h>
 
 #include <perforator/proto/pprofprofile/lightweightprofile.pb.h>

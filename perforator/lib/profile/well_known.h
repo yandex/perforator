@@ -4,7 +4,7 @@
 
 #include <perforator/proto/profile/well_known_labels.pb.h>
 
-#include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
+#include <library/cpp/containers/absl/flat_hash_map.h>
 
 #include <optional>
 

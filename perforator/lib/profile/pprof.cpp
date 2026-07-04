@@ -8,8 +8,8 @@
 
 #include <perforator/lib/permutation/permutation.h>
 
-#include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
-#include <library/cpp/containers/absl_flat_hash/flat_hash_set.h>
+#include <library/cpp/containers/absl/flat_hash_map.h>
+#include <library/cpp/containers/absl/flat_hash_set.h>
 #include <library/cpp/iterator/enumerate.h>
 #include <library/cpp/iterator/zip.h>
 #include <library/cpp/protobuf/inplace/inplace.h>

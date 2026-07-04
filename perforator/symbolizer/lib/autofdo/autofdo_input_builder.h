@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
+#include <library/cpp/containers/absl/flat_hash_map.h>
 
 #include <util/digest/multi.h>
 #include <util/generic/array_ref.h>
