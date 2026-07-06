@@ -115,7 +115,10 @@ func (s *Storage) decompressZstd(
 
 	_, copyErr := io.Copy(outputWriter, decoder)
 	if copyErr != nil {
+		// Writers blocked in ring.WriteAt wake only on CloseWithError or reader
+		// progress; with the reader gone, cancel alone would deadlock them.
 		cancel()
+		ring.CloseWithError(copyErr)
 	}
 
 	loadErr := <-loadErrCh
