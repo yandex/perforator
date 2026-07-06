@@ -134,6 +134,13 @@ export const setupSuggest = (
     ): Promise<Optional<monaco.languages.CompletionList>> => {
         const text = model.getValue();
 
+        // tokenizeInput assumes single-line input; skip suggestions while the
+        // buffer is transiently multi-line (e.g. during a paste with \r\n),
+        // otherwise offsets from tokenize()[0] go past line 1 and blow up.
+        if (/[\r\n]/.test(text)) {
+            return undefined;
+        }
+
         const [suggestState, wordUnderCursor] = tokenizeInput(
             monacoInstance,
             text,

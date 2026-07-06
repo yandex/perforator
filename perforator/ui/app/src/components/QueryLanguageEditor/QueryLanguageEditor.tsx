@@ -23,7 +23,7 @@ const DELIMITERS = [
     'Comma',
 ];
 
-const removeNewlines = (value: string) => value.replace(/\n/g, '');
+const removeNewlines = (value: string) => value.replace(/[\r\n]/g, '');
 
 export interface QueryLanguageEditorProps {
     selector?: string;
