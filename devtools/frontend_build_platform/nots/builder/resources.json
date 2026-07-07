@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-06-24T09:34:30.545Z",
+    "created": "2026-07-06T23:08:05Z",
     "pr": {
-      "id": 14075749,
-      "author": "zaverden",
-      "summary": "FBP-3249: TS_USE_BUN puts bun binary to env PATH"
+      "id": 14286715,
+      "author": "baymer",
+      "summary": "FBP-3266: ts: починить сендбоксинг в TS_LIBRARY"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12555388484"
+      "uri": "sbr:12700282480"
     },
     "darwin-arm64": {
-      "uri": "sbr:12555385273"
+      "uri": "sbr:12700281374"
     },
     "linux": {
-      "uri": "sbr:12555395288"
+      "uri": "sbr:12700284241"
     },
     "linux-aarch64": {
-      "uri": "sbr:12555392049"
+      "uri": "sbr:12700283393"
     }
   }
 }
