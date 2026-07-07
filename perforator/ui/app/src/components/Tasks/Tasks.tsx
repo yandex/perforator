@@ -32,6 +32,7 @@ import type {
 } from 'src/generated/perforator/proto/perforator/task_service';
 import {
     TaskState } from 'src/generated/perforator/proto/perforator/task_service';
+import { cn } from 'src/utils/cn';
 import { formatDate } from 'src/utils/date';
 import { getUserLogin } from 'src/utils/login';
 import { redirectToTaskPage } from 'src/utils/profileTask';
@@ -45,6 +46,8 @@ import { useTasksQuery } from './queries';
 
 import './Tasks.scss';
 
+
+const b = cn('tasks');
 
 type ActionItem = ActionsPanelProps['actions'][number]
 
@@ -532,7 +535,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
         ) : error ? (
             <ErrorPanel message={error?.message} />
         ) : isPending ? (
-            <Loader />
+            <Loader className={b('loader')}/>
         ) : null
         }
     </React.Fragment>;
