@@ -5,19 +5,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"math/rand/v2"
 	"slices"
 	"sync"
 	"time"
 
-	"github.com/karlseguin/ccache/v3"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/perforator/internal/binaryupload"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/kafka/producer"
 	profilebundle "github.com/yandex/perforator/perforator/pkg/profile/bundle"
@@ -25,21 +23,14 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/profile_event/async_publisher"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
-	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
-	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope/filter"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	profilemeta "github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
-	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 	"github.com/yandex/perforator/perforator/proto/pprofprofile"
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 	"github.com/yandex/perforator/perforator/util/go/tsformat"
-)
-
-const (
-	cacheItemTTL = 10 * time.Minute
 )
 
 type serviceMetrics struct {
@@ -56,20 +47,6 @@ type serviceMetrics struct {
 	successPushProfileTimer metrics.Timer
 	failPushProfileTimer    metrics.Timer
 
-	storedBinaries       metrics.Counter
-	storedBinariesErrors metrics.Counter
-	droppedBinaryUploads metrics.Counter
-	binariesBytesCount   metrics.Counter
-	binariesUploadTimer  metrics.Timer
-
-	failedAbortBinariesUploads  metrics.Counter
-	successAbortBinariesUploads metrics.Counter
-
-	successAnnounceBinaries   metrics.Counter
-	failedAnnounceBinaries    metrics.Counter
-	announceBinariesCacheHit  metrics.Counter
-	announceBinariesCacheMiss metrics.Counter
-
 	timeToDatabaseHist metrics.Timer
 }
 
@@ -81,16 +58,14 @@ type Service struct {
 	metrics *serviceMetrics
 	logger  xlog.Logger
 
-	binaryUploadLimiter   *semaphore.Weighted
 	profileSamplerByEvent map[string]*moduloSampler
 	mutex                 sync.RWMutex
 
 	profileStorage profilestorage.Storage
-	binaryStorage  binarystorage.Storage
 
 	microscopeFilter *filter.PullingFilter
 
-	buildIDCache *ccache.Cache[bool]
+	*binaryupload.Service
 
 	profileCommentProcessors map[string]func(string, *profilemeta.ProfileMetadata) error
 
@@ -145,8 +120,6 @@ func NewService(
 		asyncPublisher = async_publisher.NewAsyncSignalProfileEventPublisher(kp, logger, reg, conf.ProfileSignalEvents.Config)
 	}
 
-	cache := ccache.New[bool](ccache.Configure[bool]().MaxSize(int64(opts.maxBuildIDCacheEntries)))
-
 	service := &Service{
 		logger: logger,
 		conf:   conf,
@@ -167,28 +140,19 @@ func NewService(
 				"size.bytes",
 				metrics.MakeLinearBuckets(0, 1024*100, 10),
 			),
-			storedBinaries:              reg.WithTags(map[string]string{"kind": "stored"}).Counter("binaries.count"),
-			storedBinariesErrors:        reg.WithTags(map[string]string{"kind": "failed_store"}).Counter("binaries.count"),
-			droppedBinaryUploads:        reg.Counter("binaries.dropped_uploads"),
-			binariesBytesCount:          reg.WithTags(map[string]string{"kind": "binaries"}).Counter("bytes.uploaded"),
-			binariesUploadTimer:         reg.Timer("binaries.upload_timer"),
-			failedAbortBinariesUploads:  reg.WithTags(map[string]string{"status": "failed"}).Counter("binary_upload_aborts.count"),
-			successAbortBinariesUploads: reg.WithTags(map[string]string{"status": "success"}).Counter("binary_upload_aborts.count"),
-			successAnnounceBinaries:     reg.WithTags(map[string]string{"kind": "success"}).Counter("announce_binaries.count"),
-			failedAnnounceBinaries:      reg.WithTags(map[string]string{"kind": "failed"}).Counter("announce_binaries.count"),
-			announceBinariesCacheHit:    reg.WithTags(map[string]string{"kind": "hit"}).Counter("announce_binaries.count"),
-			announceBinariesCacheMiss:   reg.WithTags(map[string]string{"kind": "miss"}).Counter("announce_binaries.count"),
 			timeToDatabaseHist: reg.DurationHistogram(
 				"profile_time_to_database.seconds",
 				metrics.MakeExponentialDurationBuckets(time.Minute, 1.1, 30),
 			),
 		},
-		profileSamplerByEvent:    make(map[string]*moduloSampler),
-		binaryUploadLimiter:      semaphore.NewWeighted(1),
-		profileStorage:           storageBundle.ProfileStorage,
-		binaryStorage:            storageBundle.BinaryStorage,
-		microscopeFilter:         microscopeFilter,
-		buildIDCache:             cache,
+		profileSamplerByEvent: make(map[string]*moduloSampler),
+		profileStorage:        storageBundle.ProfileStorage,
+		microscopeFilter:      microscopeFilter,
+		Service: binaryupload.NewService(logger, reg, storageBundle.BinaryStorage, binaryupload.Options{
+			MaxConcurrentUploads: 1,
+			KnownCacheSize:       int64(opts.maxBuildIDCacheEntries),
+			DenyWrites:           !opts.pushBinaryWriteAbility,
+		}),
 		profileCommentProcessors: make(map[string]func(string, *profilemeta.ProfileMetadata) error),
 		signalPublisher:          asyncPublisher,
 		signalAllow:              signalAllow,
@@ -562,262 +526,6 @@ func (s *Service) sampleProfiles(
 	}
 
 	return metas[:count]
-}
-
-func (s *Service) doAnnounceBinaries(
-	ctx context.Context,
-	lookupBinaries []string,
-) ([]string, error) {
-	var err error
-	defer func() {
-		if err == nil {
-			s.metrics.successAnnounceBinaries.Inc()
-		} else {
-			s.metrics.failedAnnounceBinaries.Inc()
-		}
-	}()
-
-	existentBuildIDs := map[string]bool{}
-	binaries, err := s.binaryStorage.GetBinaries(ctx, lookupBinaries)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, binary := range binaries {
-		if binary.Status == binarymeta.InProgress && time.Since(binary.LastUsedTimestamp) > 5*time.Minute {
-			continue
-		}
-
-		existentBuildIDs[binary.BuildID] = true
-		s.buildIDCache.Set(binary.BuildID, true, cacheItemTTL)
-	}
-
-	unknownBinaries := make([]string, 0, len(lookupBinaries)-len(existentBuildIDs))
-
-	for _, buildID := range lookupBinaries {
-		if !existentBuildIDs[buildID] {
-			unknownBinaries = append(unknownBinaries, buildID)
-		}
-	}
-
-	return unknownBinaries, nil
-}
-
-// implements PerforatorStorage/AnnounceBinaries
-func (s *Service) AnnounceBinaries(
-	ctx context.Context,
-	req *perforatorstorage.AnnounceBinariesRequest,
-) (*perforatorstorage.AnnounceBinariesResponse, error) {
-	if req.AvailableBuildIDs == nil {
-		return nil, errors.New("missing available build ids")
-	}
-
-	lookupBinaries := make([]string, 0)
-	unknownBinaries := make([]string, 0)
-	for _, buildID := range req.AvailableBuildIDs {
-		item := s.buildIDCache.Get(buildID)
-		if item == nil || item.Expired() {
-			lookupBinaries = append(lookupBinaries, buildID)
-			continue
-		}
-
-		if !item.Value() {
-			unknownBinaries = append(unknownBinaries, buildID)
-		}
-	}
-
-	if len(lookupBinaries) > 0 {
-		s.metrics.announceBinariesCacheMiss.Inc()
-		var unknownLookedUpBinaries []string = nil
-		unknownLookedUpBinaries, err := s.doAnnounceBinaries(ctx, lookupBinaries)
-		if err != nil {
-			// temporary fix to avoid extra binary uploads from agents on errors
-			unknownLookedUpBinaries = []string{}
-			s.logger.Error(ctx, "Failed to announce binaries", log.Array("lookup_binaries", lookupBinaries), log.Error(err))
-			// return nil, err
-		}
-
-		unknownBinaries = append(unknownBinaries, unknownLookedUpBinaries...)
-	} else {
-		s.metrics.announceBinariesCacheHit.Inc()
-	}
-
-	return &perforatorstorage.AnnounceBinariesResponse{
-		UnknownBuildIDs: unknownBinaries,
-	}, nil
-}
-
-type binaryPreamble struct {
-	buildID          string
-	compression      compressionpb.CompressionMethod
-	uncompressedSize uint64
-}
-
-func validatePushBinaryHeader(preamble binaryPreamble) error {
-	switch preamble.compression {
-	case compressionpb.CompressionMethod_Unknown, compressionpb.CompressionMethod_None:
-		return nil
-	default:
-		if preamble.uncompressedSize == 0 {
-			return fmt.Errorf("uncompressed size is required when compression is set: %s", preamble.compression.String())
-		}
-		return nil
-	}
-}
-
-func (s *Service) pushBinaryPreamble(reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (binaryPreamble, error) {
-	firstChunk, err := reqStream.Recv()
-	if err != nil {
-		return binaryPreamble{}, err
-	}
-
-	reqHead, ok := firstChunk.Chunk.(*perforatorstorage.PushBinaryRequest_HeadChunk)
-	if !ok {
-		return binaryPreamble{}, errors.New("first chunk must be head chunk")
-	}
-	if reqHead.HeadChunk.BuildID == "" {
-		return binaryPreamble{}, errors.New("build id is missing")
-	}
-
-	return binaryPreamble{
-		buildID:          reqHead.HeadChunk.BuildID,
-		compression:      reqHead.HeadChunk.Compression,
-		uncompressedSize: reqHead.HeadChunk.UncompressedSize,
-	}, nil
-}
-
-func (s *Service) pushBinaryProcessStream(writer binarystorage.TransactionalWriter, reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (bytesTransmitted uint64, err error) {
-	bytesTransmitted = 0
-
-	for {
-		chunk, err := reqStream.Recv()
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return bytesTransmitted, fmt.Errorf("failed push binary recv chunk: %w", err)
-		}
-
-		bodyChunk, okBodyChunk := chunk.Chunk.(*perforatorstorage.PushBinaryRequest_BodyChunk)
-		if !okBodyChunk {
-			return bytesTransmitted, errors.New("chunks after first must be body chunks")
-		}
-
-		var written int
-		written, err = writer.Write(bodyChunk.BodyChunk.Binary)
-		if err != nil {
-			return bytesTransmitted, fmt.Errorf("failed push binary write chunk: %w", err)
-		}
-
-		bytesTransmitted += uint64(written)
-	}
-
-	return bytesTransmitted, nil
-}
-
-func (s *Service) pushBinaryPerformUpload(preamble binaryPreamble, reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) error {
-	start := time.Now()
-
-	var opts []binarymeta.Option
-	if preamble.compression != compressionpb.CompressionMethod_None && preamble.compression != compressionpb.CompressionMethod_Unknown {
-		opts = append(opts, binarymeta.WithCompression(preamble.compression, preamble.uncompressedSize))
-	}
-
-	writer, err := s.binaryStorage.StoreBinary(
-		reqStream.Context(),
-		preamble.buildID,
-		start,
-		opts...,
-	)
-	if err != nil {
-		if !errors.Is(err, binarymeta.ErrAlreadyUploaded) &&
-			!errors.Is(err, binarymeta.ErrUploadInProgress) {
-			s.metrics.storedBinariesErrors.Inc()
-		}
-		return fmt.Errorf("failed to store binary in meta storage: %w", err)
-	}
-
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
-		defer cancel()
-		if err != nil {
-			s.metrics.storedBinariesErrors.Inc()
-			abortErr := writer.Abort(ctx)
-			if abortErr != nil {
-				s.metrics.failedAbortBinariesUploads.Inc()
-				err = errors.Join(err, abortErr)
-			} else {
-				s.metrics.successAbortBinariesUploads.Inc()
-			}
-		}
-	}()
-
-	bytesTransmitted, err := s.pushBinaryProcessStream(writer, reqStream)
-	if err != nil {
-		return err
-	}
-
-	err = writer.Commit(reqStream.Context())
-	if err != nil {
-		return fmt.Errorf("failed to commit binary: %w", err)
-	}
-
-	s.metrics.storedBinaries.Inc()
-	s.metrics.binariesUploadTimer.RecordDuration(time.Since(start))
-	s.metrics.binariesBytesCount.Add(int64(bytesTransmitted))
-	s.buildIDCache.Set(preamble.buildID, true, cacheItemTTL)
-
-	s.logger.Info(reqStream.Context(), "Uploaded binary",
-		log.String("build_id", preamble.buildID),
-		log.String("compression", preamble.compression.String()),
-	)
-
-	return nil
-}
-
-func (s *Service) pushBinaryImpl(reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (buildID string, err error) {
-	if !s.binaryUploadLimiter.TryAcquire(1) {
-		return "", errors.New("failed to acquire binary upload semaphore")
-	}
-	defer s.binaryUploadLimiter.Release(1)
-
-	preamble, err := s.pushBinaryPreamble(reqStream)
-	if err != nil {
-		return "", fmt.Errorf("failed preamble: %w", err)
-	}
-
-	if err := validatePushBinaryHeader(preamble); err != nil {
-		return preamble.buildID, err
-	}
-
-	err = s.pushBinaryPerformUpload(preamble, reqStream)
-	if err != nil {
-		return preamble.buildID, fmt.Errorf("failed to perform upload: %w", err)
-	}
-
-	err = reqStream.SendAndClose(&perforatorstorage.PushBinaryResponse{})
-	if err != nil {
-		return preamble.buildID, fmt.Errorf("failed to send and close: %w", err)
-	}
-
-	return preamble.buildID, nil
-}
-
-// implements PerforatorStorage/PushBinary
-func (s *Service) PushBinary(
-	reqStream perforatorstorage.PerforatorStorage_PushBinaryServer,
-) error {
-	if !s.opts.pushBinaryWriteAbility {
-		s.metrics.droppedBinaryUploads.Inc()
-		return errors.New("this replica is not allowed to upload binaries")
-	}
-
-	buildID, err := s.pushBinaryImpl(reqStream)
-	if err != nil {
-		s.logger.Warn(reqStream.Context(), "Failed to push binary", log.String("build_id", buildID), log.Error(err))
-	}
-	return err
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////

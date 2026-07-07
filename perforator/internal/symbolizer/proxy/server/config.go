@@ -34,6 +34,10 @@ type BinaryProviderConfig struct {
 	MaxSimultaneousDownloads uint32            `yaml:"max_simultaneous_downloads"`
 }
 
+type BinaryUploadConfig struct {
+	MaxConcurrentUploads int64 `yaml:"max_concurrent_uploads"`
+}
+
 type MicroscopeThrottle struct {
 	LimitPerUser uint32        `yaml:"microscopes_per_user_limit"`
 	LimitWindow  time.Duration `yaml:"limit_window"`
@@ -95,6 +99,7 @@ func (c *FeaturesConfig) FillDefault() {
 type Config struct {
 	StorageConfig               bundle.Config         `yaml:"storage"`
 	BinaryProvider              BinaryProviderConfig  `yaml:"binary_provider"`
+	BinaryUpload                BinaryUploadConfig    `yaml:"binary_upload"`
 	Server                      ServerConfig          `yaml:"server"`
 	Tasks                       TasksConfig           `yaml:"tasks"`
 	RenderedProfiles            *RenderedProfiles     `yaml:"rendered_profiles"`
@@ -125,6 +130,9 @@ func ParseConfig(path string) (conf *Config, err error) {
 func (c *Config) FillDefault() {
 	if c.Tasks.ConcurrencyLimit == 0 {
 		c.Tasks.ConcurrencyLimit = math.MaxInt64
+	}
+	if c.BinaryUpload.MaxConcurrentUploads == 0 {
+		c.BinaryUpload.MaxConcurrentUploads = 8
 	}
 	if c.Tracing == nil {
 		c.Tracing = tracing.NewDefaultConfig()

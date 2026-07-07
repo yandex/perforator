@@ -2,6 +2,7 @@ RECURSE(
     agent_gateway
     asynctask
     binaryprocessor
+    binaryupload
     buildinfo
     ci-tools
     custom_profiling_operation

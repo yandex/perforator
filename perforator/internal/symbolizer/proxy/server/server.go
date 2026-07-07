@@ -31,6 +31,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/asynctask"
 	bpclient "github.com/yandex/perforator/perforator/internal/binaryprocessor/client"
+	"github.com/yandex/perforator/perforator/internal/binaryupload"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/auth"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
@@ -53,6 +54,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/tracing"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/perforator"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 type requestsMetrics struct {
@@ -332,6 +334,11 @@ func NewPerforatorServer(
 	perforator.RegisterPerforatorServer(server.grpcServer, server)
 	perforator.RegisterTaskServiceServer(server.grpcServer, server)
 	perforator.RegisterMicroscopeServiceServer(server.grpcServer, server)
+	perforatorstorage.RegisterPerforatorStorageServer(server.grpcServer, binaryupload.NewService(
+		l, reg, storageBundle.BinaryStorage, binaryupload.Options{
+			MaxConcurrentUploads: conf.BinaryUpload.MaxConcurrentUploads,
+		},
+	))
 	reflection.Register(server.grpcServer)
 
 	for _, service := range server.additionalGrpcServices {
