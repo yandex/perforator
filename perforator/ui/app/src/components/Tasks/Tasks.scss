@@ -8,6 +8,19 @@
     --gc-form-row-label-width: 100px;
 }
 
+.tasks__filters {
+    display: flex;
+    gap: var(--g-spacing-2);
+    align-items: center;
+}
+
+.tasks__user-filter {
+    margin-left: var(--g-spacing-2);
+    display: flex;
+    gap: var(--g-spacing-2);
+    align-items: center;
+}
+
 .tasks__pagination {
     margin-top: var(--g-spacing-2);
 }

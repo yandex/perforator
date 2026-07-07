@@ -1,5 +1,5 @@
 .time-interval-selector {
-    margin-bottom: var(--g-spacing-1);
+    margin-bottom: calc(var(--g-spacing-1) + var(--g-spacing-half));
     display: flex;
     flex-direction: column;
     align-items: stretch;

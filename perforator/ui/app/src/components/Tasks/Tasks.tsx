@@ -12,7 +12,6 @@ import type {
 import { ActionsPanel,
     Button,
     ClipboardButton,
-    Flex,
     Label,
     Loader,
     Select,
@@ -445,7 +444,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
     }, [errorMessage, handleDiff]);
 
     const renderUserInput = () => !uiFactory().authorizationSupported() ? null : (
-        <>
+        <div className={b('user-filter')}>
             <TextInput
                 placeholder={'login'}
                 onUpdate={handleSetUserFilter}
@@ -458,7 +457,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                 onUpdate={handleMine}
                 content={'Show only mine'}
             />
-        </>
+        </div>
     );
 
     const columnsConfig = React.useMemo(() => getColumnsConfig(), []);
@@ -473,8 +472,9 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
             onUpdate={updateTimeInterval}
             header={header}
         />
-        <Flex gap={4} alignItems={'center'}>
+        <div className={b('filters')}>
             <Select
+                className={b('filter')}
                 qa="task-state-filter"
                 placeholder={'Task State'}
                 label={'Task State'}
@@ -486,6 +486,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                 disabled={false}
             />
             <Select
+                className={b('filter')}
                 qa="task-type-filter"
                 placeholder={'Task Type'}
                 label="Task Type"
@@ -496,6 +497,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                 hasClear
             />
             <Select
+                className={b('filter')}
                 qa="task-format-filter"
                 placeholder={'Task Format'}
                 label="Task Format"
@@ -505,7 +507,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                 onUpdate={setFormatFilter}
             />
             {renderUserInput()}
-        </Flex>
+        </div>
         {/* eslint-disable-next-line no-nested-ternary */}
         {tasks ? (
             <React.Fragment>
