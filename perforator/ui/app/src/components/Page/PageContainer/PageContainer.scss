@@ -10,6 +10,14 @@
     .page {
         padding: 0 var(--page-padding-horizontal) 0;
         position: relative;
+
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .page-footer {
+        margin-top: auto;
     }
 }
 
