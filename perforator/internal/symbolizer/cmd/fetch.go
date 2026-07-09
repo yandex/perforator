@@ -379,6 +379,7 @@ func fetchDiffProfile(args []string) error {
 		},
 		SymbolizeOptions: format.Symbolize,
 		RenderFormat:     format,
+		MergeOptions:     &mergeOptions,
 		Experimental:     &experimentalOptions,
 	}, false, taskAnnotation)
 	if err != nil {
