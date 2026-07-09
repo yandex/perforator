@@ -12581,6 +12581,12 @@ github.com/lann/builder
 # github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0
 ## explicit
 github.com/lann/ps
+# github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
+## explicit; go 1.24.1
+github.com/ledongthuc/pdf
+github.com/ledongthuc/pdf/examples/read_plain_text
+github.com/ledongthuc/pdf/examples/read_text_with_styles
+github.com/ledongthuc/pdf/pdfpasswd
 # github.com/leodido/go-urn v1.4.0
 ## explicit; go 1.18
 github.com/leodido/go-urn

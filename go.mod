@@ -625,6 +625,7 @@ require (
 	github.com/kyoh86/exportloopref v0.1.11
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/labstack/gommon v0.4.2
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/leodido/go-urn v1.4.0
 	github.com/lestrrat-go/jwx/v2 v2.0.11
 	github.com/lni/dragonboat/v4 v4.0.0-20240618143154-6a1623140f27
