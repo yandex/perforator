@@ -1088,6 +1088,7 @@ func (s *PerforatorServer) spawnDiffMergeTask(
 					},
 					Query:        query,
 					MaxSamples:   query.GetMaxSamples(),
+					MergeOptions: req.GetMergeOptions(),
 					Experimental: req.GetExperimental(),
 				},
 			},
