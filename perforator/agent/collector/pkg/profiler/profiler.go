@@ -476,11 +476,6 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	if p.enablePerfMaps {
 		p.perfmap = perfmap.NewRegistry(p.log, r, p.enablePerfMapsJVM)
 	}
-
-	if p.enablePerfMaps {
-		p.processListeners = append(p.processListeners, p.perfmap)
-		p.jitSymbolizers = append(p.jitSymbolizers, p.perfmap)
-	}
 	// TODO: ProcessRegistry prefix seems wrong
 	unwmanager, err := unwindtable.NewBPFManager(p.log.WithName("ProcessRegistry"), r.WithPrefix("ProcessRegistry"), p.bpf.State())
 	if err != nil {
@@ -520,6 +515,13 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	var binaryListeners []binary.Listener
 	if p.conf.FeatureFlagsConfig.JVMEnabled() {
 		binaryListeners = append(binaryListeners, p.jvmRegistry)
+	}
+
+	if p.enablePerfMaps {
+		p.processListeners = append(p.processListeners, p.perfmap)
+		// We need to register perfmap with lower priority than jvm registry,
+		// because latter is considered better wherever it is applicable.
+		p.jitSymbolizers = append(p.jitSymbolizers, p.perfmap)
 	}
 
 	bpfManager, err := binary.NewBPFBinaryManager(
