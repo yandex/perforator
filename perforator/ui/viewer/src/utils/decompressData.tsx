@@ -4,7 +4,6 @@ export async function decompressData(compressed: Uint8Array<ArrayBuffer>): Promi
     const reader = decompressedStream.getReader();
     const chunks: Uint8Array[] = [];
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;

@@ -12,7 +12,7 @@ export function navigateToLineNumbers(navigate: NavigateFunction, query: Profile
     try {
         const cacheField = localStorage.getItem(LocalStorageKey.CachedLineNumberTasks);
         localCache = cacheField ? JSON.parse(cacheField) : {};
-    } catch (e) {
+    } catch {
         localCache = {};
     }
     const q = preserveWellKnownQueryParams(new URLSearchParams(window.location.search));
