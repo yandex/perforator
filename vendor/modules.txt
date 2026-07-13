@@ -3933,6 +3933,36 @@ github.com/DataDog/zstd
 ## explicit; go 1.21
 # github.com/DmitriyVTitov/size v1.5.0
 ## explicit; go 1.14
+# github.com/Eyevinn/mp4ff v0.53.0
+## explicit; go 1.19
+github.com/Eyevinn/mp4ff
+github.com/Eyevinn/mp4ff/aac
+github.com/Eyevinn/mp4ff/av1
+github.com/Eyevinn/mp4ff/avc
+github.com/Eyevinn/mp4ff/bits
+github.com/Eyevinn/mp4ff/cmd
+github.com/Eyevinn/mp4ff/cmd/mp4ff-crop
+github.com/Eyevinn/mp4ff/cmd/mp4ff-decrypt
+github.com/Eyevinn/mp4ff/cmd/mp4ff-encrypt
+github.com/Eyevinn/mp4ff/cmd/mp4ff-info
+github.com/Eyevinn/mp4ff/cmd/mp4ff-mvhevc
+github.com/Eyevinn/mp4ff/cmd/mp4ff-nallister
+github.com/Eyevinn/mp4ff/cmd/mp4ff-pslister
+github.com/Eyevinn/mp4ff/cmd/mp4ff-subslister
+github.com/Eyevinn/mp4ff/examples
+github.com/Eyevinn/mp4ff/examples/add-sidx
+github.com/Eyevinn/mp4ff/examples/combine-segs
+github.com/Eyevinn/mp4ff/examples/initcreator
+github.com/Eyevinn/mp4ff/examples/multitrack
+github.com/Eyevinn/mp4ff/examples/resegmenter
+github.com/Eyevinn/mp4ff/examples/segmenter
+github.com/Eyevinn/mp4ff/examples/stream-encrypt
+github.com/Eyevinn/mp4ff/hevc
+github.com/Eyevinn/mp4ff/iamf
+github.com/Eyevinn/mp4ff/internal
+github.com/Eyevinn/mp4ff/mp4
+github.com/Eyevinn/mp4ff/sei
+github.com/Eyevinn/mp4ff/vvc
 # github.com/GehirnInc/crypt v0.0.0-20230320061759-8cc1b52080c5
 ## explicit; go 1.19
 github.com/GehirnInc/crypt

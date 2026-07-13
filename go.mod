@@ -194,6 +194,7 @@ require (
 	github.com/DATA-DOG/godog v0.7.13
 	github.com/DataDog/datadog-api-client-go/v2 v2.17.0
 	github.com/DataDog/zstd v1.5.6
+	github.com/Eyevinn/mp4ff v0.53.0
 	github.com/GehirnInc/crypt v0.0.0-20230320061759-8cc1b52080c5
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2
 	github.com/Jeffail/gabs/v2 v2.7.0
