@@ -1,5 +1,6 @@
 #pragma once
 
+#include "types.h"
 #include "attrs.h"
 #include "core.h"
 #include "endian.h"
@@ -7,5 +8,4 @@
 #include "maps.h"
 #include "sections.h"
 #include "trace.h"
-#include "types.h"
 #include "util.h"

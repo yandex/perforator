@@ -14,9 +14,9 @@ LICENSE(
 
 LICENSE_TEXTS(.yandex_meta/licenses.list.txt)
 
-VERSION(1.2.2)
+VERSION(1.5.1)
 
-ORIGINAL_SOURCE(https://github.com/libbpf/libbpf/archive/v1.2.2.tar.gz)
+ORIGINAL_SOURCE(https://github.com/libbpf/libbpf/archive/v1.5.1.tar.gz)
 
 PEERDIR(
     contrib/libs/zlib
@@ -38,6 +38,10 @@ SRCS(
     src/bpf_prog_linfo.c
     src/btf.c
     src/btf_dump.c
+    src/btf_iter.c
+    src/btf_relocate.c
+    src/elf.c
+    src/features.c
     src/gen_loader.c
     src/hashmap.c
     src/libbpf.c

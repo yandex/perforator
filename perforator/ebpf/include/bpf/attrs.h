@@ -8,7 +8,6 @@
 #define NOINLINE __attribute__((noinline))
 #define PACKED __attribute__((__packed__))
 
-#define SEC(NAME) __attribute__((section(NAME), used))
 #define LICENSE(NAME) char __license[] SEC(BPF_SEC_LICENSE) = NAME;
 
 #define BTF_EXPORT(typ) \

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <linux/types.h>
 #include <contrib/libs/libbpf/src/bpf_core_read.h>
 
 // Get real offset of the field in the structure.

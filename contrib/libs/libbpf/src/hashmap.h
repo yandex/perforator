@@ -80,16 +80,6 @@ struct hashmap {
 	size_t sz;
 };
 
-#define HASHMAP_INIT(hash_fn, equal_fn, ctx) {	\
-	.hash_fn = (hash_fn),			\
-	.equal_fn = (equal_fn),			\
-	.ctx = (ctx),				\
-	.buckets = NULL,			\
-	.cap = 0,				\
-	.cap_bits = 0,				\
-	.sz = 0,				\
-}
-
 void hashmap__init(struct hashmap *map, hashmap_hash_fn hash_fn,
 		   hashmap_equal_fn equal_fn, void *ctx);
 struct hashmap *hashmap__new(hashmap_hash_fn hash_fn,
@@ -176,8 +166,8 @@ bool hashmap_find(const struct hashmap *map, long key, long *value);
  * @bkt: integer used as a bucket loop cursor
  */
 #define hashmap__for_each_entry(map, cur, bkt)				    \
-	for (bkt = 0; bkt < map->cap; bkt++)				    \
-		for (cur = map->buckets[bkt]; cur; cur = cur->next)
+	for (bkt = 0; bkt < (map)->cap; bkt++)				    \
+		for (cur = (map)->buckets[bkt]; cur; cur = cur->next)
 
 /*
  * hashmap__for_each_entry_safe - iterate over all entries in hashmap, safe
@@ -188,8 +178,8 @@ bool hashmap_find(const struct hashmap *map, long key, long *value);
  * @bkt: integer used as a bucket loop cursor
  */
 #define hashmap__for_each_entry_safe(map, cur, tmp, bkt)		    \
-	for (bkt = 0; bkt < map->cap; bkt++)				    \
-		for (cur = map->buckets[bkt];				    \
+	for (bkt = 0; bkt < (map)->cap; bkt++)				    \
+		for (cur = (map)->buckets[bkt];				    \
 		     cur && ({tmp = cur->next; true; });		    \
 		     cur = tmp)
 
@@ -200,19 +190,19 @@ bool hashmap_find(const struct hashmap *map, long key, long *value);
  * @key: key to iterate entries for
  */
 #define hashmap__for_each_key_entry(map, cur, _key)			    \
-	for (cur = map->buckets						    \
-		     ? map->buckets[hash_bits(map->hash_fn((_key), map->ctx), map->cap_bits)] \
+	for (cur = (map)->buckets					    \
+		     ? (map)->buckets[hash_bits((map)->hash_fn((_key), (map)->ctx), (map)->cap_bits)] \
 		     : NULL;						    \
 	     cur;							    \
 	     cur = cur->next)						    \
-		if (map->equal_fn(cur->key, (_key), map->ctx))
+		if ((map)->equal_fn(cur->key, (_key), (map)->ctx))
 
 #define hashmap__for_each_key_entry_safe(map, cur, tmp, _key)		    \
-	for (cur = map->buckets						    \
-		     ? map->buckets[hash_bits(map->hash_fn((_key), map->ctx), map->cap_bits)] \
+	for (cur = (map)->buckets					    \
+		     ? (map)->buckets[hash_bits((map)->hash_fn((_key), (map)->ctx), (map)->cap_bits)] \
 		     : NULL;						    \
 	     cur && ({ tmp = cur->next; true; });			    \
 	     cur = tmp)							    \
-		if (map->equal_fn(cur->key, (_key), map->ctx))
+		if ((map)->equal_fn(cur->key, (_key), (map)->ctx))
 
 #endif /* __LIBBPF_HASHMAP_H */
