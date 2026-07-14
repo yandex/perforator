@@ -33,12 +33,13 @@ buf.build/gen/go/connectrpc/eliza/grpc/go/connectrpc/eliza/v1/elizav1grpc
 # buf.build/gen/go/connectrpc/eliza/protocolbuffers/go v1.35.2-20230913231627-233fca715f49.1
 ## explicit; go 1.21
 buf.build/gen/go/connectrpc/eliza/protocolbuffers/go/connectrpc/eliza/v1
-# buf.build/gen/go/northpolesec/protos/protocolbuffers/go v1.36.11-20260608233110-ddab0636806b.1
+# buf.build/gen/go/northpolesec/protos/protocolbuffers/go v1.36.11-20260708205013-26d7b6481dee.1
 ## explicit; go 1.23
 buf.build/gen/go/northpolesec/protos/protocolbuffers/go
 buf.build/gen/go/northpolesec/protos/protocolbuffers/go/cel
 buf.build/gen/go/northpolesec/protos/protocolbuffers/go/celv2
 buf.build/gen/go/northpolesec/protos/protocolbuffers/go/commands
+buf.build/gen/go/northpolesec/protos/protocolbuffers/go/common
 buf.build/gen/go/northpolesec/protos/protocolbuffers/go/stats
 buf.build/gen/go/northpolesec/protos/protocolbuffers/go/sync
 buf.build/gen/go/northpolesec/protos/protocolbuffers/go/syncv2
