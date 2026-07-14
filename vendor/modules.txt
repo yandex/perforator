@@ -22414,8 +22414,8 @@ helm.sh/helm/v3/pkg/storage/driver
 helm.sh/helm/v3/pkg/strvals
 helm.sh/helm/v3/pkg/time
 helm.sh/helm/v3/pkg/uploader
-# honnef.co/go/tools v0.7.0-0.dev.0.20251022135355-8273271481d0
-## explicit; go 1.23.0
+# honnef.co/go/tools v0.7.0
+## explicit; go 1.25.0
 honnef.co/go/tools
 honnef.co/go/tools/analysis/callcheck
 honnef.co/go/tools/analysis/code
