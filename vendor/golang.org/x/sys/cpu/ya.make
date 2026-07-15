@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.43.0)
+VERSION(v0.45.0)
 
 SRCS(
     byteorder.go
@@ -83,6 +83,13 @@ IF (OS_DARWIN AND ARCH_ARM64)
     )
 ENDIF()
 
+IF (OS_WINDOWS)
+    SRCS(
+        cpu_windows.go
+        zcpu_windows.go
+    )
+ENDIF()
+
 IF (OS_WINDOWS AND ARCH_X86_64)
     SRCS(
         cpu_other_x86.go
@@ -91,7 +98,7 @@ ENDIF()
 
 IF (OS_WINDOWS AND ARCH_ARM64)
     SRCS(
-        cpu_other_arm64.go
+        cpu_windows_arm64.go
     )
 ENDIF()
 

@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -512,7 +513,12 @@ func TestPselectWithSigmask(t *testing.T) {
 }
 
 func TestSchedSetaffinity(t *testing.T) {
+	const maxcpus = 1024 // _CPU_SETSIZE
 	var newMask unix.CPUSet
+	newMask.Fill()
+	if count := newMask.Count(); count != maxcpus {
+		t.Errorf("Fill: got %d CPUs, want %d", count, maxcpus)
+	}
 	newMask.Zero()
 	if newMask.Count() != 0 {
 		t.Errorf("CpuZero: didn't zero CPU set: %v", newMask)
@@ -566,6 +572,14 @@ func TestSchedSetaffinity(t *testing.T) {
 		}
 	}
 
+	t.Cleanup(func() {
+		// Restore old mask so it doesn't affect successive tests.
+		err = unix.SchedSetaffinity(0, &oldMask)
+		if err != nil {
+			t.Fatalf("SchedSetaffinity: %v", err)
+		}
+	})
+
 	err = unix.SchedSetaffinity(0, &newMask)
 	if err != nil {
 		t.Fatalf("SchedSetaffinity: %v", err)
@@ -580,11 +594,90 @@ func TestSchedSetaffinity(t *testing.T) {
 	if gotMask != newMask {
 		t.Errorf("SchedSetaffinity: returned affinity mask does not match set affinity mask")
 	}
+}
 
-	// Restore old mask so it doesn't affect successive tests
-	err = unix.SchedSetaffinity(0, &oldMask)
+func TestSchedSetaffinityDynamic(t *testing.T) {
+	const maxcpus = 4096
+
+	newMask := unix.NewCPUSet(maxcpus)
+	newMask.Fill()
+	if count := newMask.Count(); count != maxcpus {
+		t.Errorf("Fill: got %d CPUs, want %d", count, maxcpus)
+	}
+	newMask.Zero()
+	if newMask.Count() != 0 {
+		t.Errorf("Zero: didn't zero CPU set: %v", newMask)
+	}
+	cpu := 1
+	newMask.Set(cpu)
+	if newMask.Count() != 1 || !newMask.IsSet(cpu) {
+		t.Errorf("Set: didn't set CPU %d in set: %v", cpu, newMask)
+	}
+	cpu = 5
+	newMask.Set(cpu)
+	if newMask.Count() != 2 || !newMask.IsSet(cpu) {
+		t.Errorf("Set: didn't set CPU %d in set: %v", cpu, newMask)
+	}
+	newMask.Clear(cpu)
+	if newMask.Count() != 1 || newMask.IsSet(cpu) {
+		t.Errorf("Clear: didn't clear CPU %d in set: %v", cpu, newMask)
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	oldMask := unix.NewCPUSet(maxcpus)
+	err := unix.SchedGetaffinityDynamic(0, oldMask)
 	if err != nil {
-		t.Fatalf("SchedSetaffinity: %v", err)
+		t.Fatalf("SchedGetaffinityDynamic: %v", err)
+	}
+
+	if runtime.NumCPU() < 2 {
+		t.Skip("skipping setaffinity tests on single CPU system")
+	}
+	if runtime.GOOS == "android" {
+		t.Skip("skipping setaffinity tests on android")
+	}
+
+	// On a system like ppc64x where some cores can be disabled using ppc64_cpu,
+	// setaffinity should only be called with enabled cores. The valid cores
+	// are found from the oldMask, but if none are found then the setaffinity
+	// tests are skipped. Issue #27875.
+	cpu = 1
+	if !oldMask.IsSet(cpu) {
+		newMask.Zero()
+		for i := range len(oldMask) {
+			if oldMask.IsSet(i) {
+				newMask.Set(i)
+				break
+			}
+		}
+		if newMask.Count() == 0 {
+			t.Skip("skipping setaffinity tests if CPU not available")
+		}
+	}
+
+	t.Cleanup(func() {
+		// Restore old mask so it doesn't affect successive tests.
+		err = unix.SchedSetaffinityDynamic(0, oldMask)
+		if err != nil {
+			t.Fatalf("SchedSetaffinityDynamic: %v", err)
+		}
+	})
+
+	err = unix.SchedSetaffinityDynamic(0, newMask)
+	if err != nil {
+		t.Fatalf("SchedSetaffinityDynamic: %v", err)
+	}
+
+	gotMask := unix.NewCPUSet(maxcpus)
+	err = unix.SchedGetaffinityDynamic(0, gotMask)
+	if err != nil {
+		t.Fatalf("SchedGetaffinityDynamic: %v", err)
+	}
+
+	if !slices.Equal(gotMask, newMask) {
+		t.Errorf("SchedSetaffinityDynamic: returned affinity mask does not match set affinity mask (%+v != %+v", gotMask, newMask)
 	}
 }
 

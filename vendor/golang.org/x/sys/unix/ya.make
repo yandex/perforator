@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.43.0)
+VERSION(v0.45.0)
 
 BUILD_ONLY_IF(
     WARNING
@@ -42,6 +42,7 @@ IF (OS_LINUX)
         pagesize_unix.go
         race0.go
         readdirent_getdents.go
+        readv_unix.go
         sockcmsg_linux.go
         sockcmsg_unix.go
         sockcmsg_unix_other.go
@@ -78,6 +79,7 @@ IF (OS_LINUX)
         mmap_unix_test.go
         mremap_test.go
         pipe2_test.go
+        readv_unix_test.go
         sendfile_test.go
         syscall_linux_test.go
         syscall_test.go
@@ -146,6 +148,7 @@ IF (OS_DARWIN)
         ptrace_darwin.go
         race0.go
         readdirent_getdirentries.go
+        readv_unix.go
         sockcmsg_unix.go
         sockcmsg_unix_other.go
         syscall.go
@@ -175,6 +178,7 @@ IF (OS_DARWIN)
         getdirentries_test.go
         getfsstat_test.go
         mmap_unix_test.go
+        readv_unix_test.go
         syscall_bsd_test.go
         syscall_darwin_test.go
         syscall_test.go
@@ -243,6 +247,7 @@ IF (OS_ANDROID)
         pagesize_unix.go
         race0.go
         readdirent_getdents.go
+        readv_unix.go
         sockcmsg_linux.go
         sockcmsg_unix.go
         sockcmsg_unix_other.go
@@ -285,6 +290,7 @@ IF (OS_ANDROID)
         mmap_unix_test.go
         mremap_test.go
         pipe2_test.go
+        readv_unix_test.go
         sendfile_test.go
         syscall_linux_test.go
         syscall_test.go

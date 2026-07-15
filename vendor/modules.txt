@@ -18705,10 +18705,11 @@ go.einride.tech/aip/filtering
 go.einride.tech/aip/filtering/exprs
 go.einride.tech/aip/proto/gen/einride/example/syntax/v1
 go.einride.tech/aip/resourcename
-# go.etcd.io/bbolt v1.4.3
-## explicit; go 1.23
+# go.etcd.io/bbolt v1.5.0
+## explicit; go 1.25.0
 go.etcd.io/bbolt
 go.etcd.io/bbolt/cmd/bbolt
+go.etcd.io/bbolt/cmd/bbolt/command
 go.etcd.io/bbolt/errors
 go.etcd.io/bbolt/internal/btesting
 go.etcd.io/bbolt/internal/common
@@ -20911,6 +20912,8 @@ golang.org/x/oauth2/uber
 golang.org/x/oauth2/vk
 golang.org/x/oauth2/yahoo
 golang.org/x/oauth2/yandex
+# golang.org/x/perf v0.0.0-20250813145418-2f7363a06fe1
+## explicit; go 1.24.0
 # golang.org/x/sync v0.20.0 => golang.org/x/sync v0.15.0
 ## explicit; go 1.23.0
 golang.org/x/sync
@@ -20918,7 +20921,7 @@ golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.43.0
+# golang.org/x/sys v0.45.0
 ## explicit; go 1.25.0
 golang.org/x/sys
 golang.org/x/sys/cpu
