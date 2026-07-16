@@ -8513,6 +8513,7 @@ github.com/fclairamb/go-log/zerolog
 # github.com/felixge/fgprof v0.9.4
 ## explicit; go 1.14
 github.com/felixge/fgprof
+github.com/felixge/fgprof/example
 # github.com/felixge/httpsnoop v1.0.4
 ## explicit; go 1.13
 github.com/felixge/httpsnoop

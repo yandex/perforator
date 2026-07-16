@@ -398,6 +398,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/fclairamb/ftpserver v0.14.0
 	github.com/fclairamb/go-log v0.5.0
+	github.com/felixge/fgprof v0.9.4
 	github.com/fergusstrange/embedded-postgres v1.23.0
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611
 	github.com/florianl/go-nfqueue v1.3.1
@@ -1696,7 +1697,6 @@ require (
 	github.com/fclairamb/afero-s3 v0.3.1 // indirect
 	github.com/fclairamb/afero-snd v0.1.0 // indirect
 	github.com/fclairamb/ftpserverlib v0.24.0 // indirect
-	github.com/felixge/fgprof v0.9.4 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/flopp/go-findfont v0.1.0 // indirect
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3 // indirect
