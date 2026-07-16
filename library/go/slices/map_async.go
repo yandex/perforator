@@ -52,11 +52,13 @@ func MapA[S ~[]T, T, M any](ctx context.Context, s S, fn func(context.Context, T
 	res := make([]M, len(s))
 	for i, v := range s {
 		g.Go(func() (err error) {
-			defer func() {
-				if r := recover(); r != nil {
-					err = params.panicCatch(r)
-				}
-			}()
+			if params.panicCatch != nil {
+				defer func() {
+					if r := recover(); r != nil {
+						err = params.panicCatch(r)
+					}
+				}()
+			}
 			transformed, err := fn(ctx, v)
 			if err != nil {
 				return err
