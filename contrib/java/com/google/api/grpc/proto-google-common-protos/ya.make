@@ -3,7 +3,7 @@ JAVA_CONTRIB_PROXY()
 SUBSCRIBER(g:java-contrib)
 
 PEERDIR(
-    contrib/java/com/google/api/grpc/proto-google-common-protos/2.64.1
+    contrib/java/com/google/api/grpc/proto-google-common-protos/2.71.0
 )
 
 END()
@@ -44,4 +44,5 @@ RECURSE(
     2.63.2
     2.64.1
     2.45.1
+    2.71.0
 )
