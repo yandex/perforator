@@ -359,8 +359,11 @@ export class FlamegraphOffseter {
         const keepFoundChanged = !this.areDenseCoordinateArraysEqual(this.prevKeepFoundCoordinates, keepFoundCoordinates);
         const shouldReverseDiffChanged = this.prevShouldReverseDiff !== shouldReverseDiff;
 
-        // Only clear and recalculate if relevant parameters have changed
-        if (omittedChanged || keepFoundChanged || shouldReverseDiffChanged) {
+        const filtersChanged = omittedChanged || keepFoundChanged || shouldReverseDiffChanged;
+
+        // Derived omission counts combine both filters, so changing either one
+        // requires rebuilding both from their current coordinates.
+        if (filtersChanged) {
             this.clearOmittedEventCount();
         }
 
@@ -379,11 +382,10 @@ export class FlamegraphOffseter {
 
         this.framesWindow = this.fillFramesWindow(initialCoordinates);
 
-        // Only run expensive operations if parameters changed
-        if (keepFoundChanged && keepFoundCoordinates) {
+        if (filtersChanged && keepFoundCoordinates) {
             this.backpropagateKeepOnlyFound(keepFoundCoordinates);
         }
-        if (omittedChanged && omittedOffsetCoordinates && omittedOffsetCoordinates.length) {
+        if (filtersChanged && omittedOffsetCoordinates.length) {
             this.backpropagateOmittedEventCount(omittedOffsetCoordinates);
         }
 

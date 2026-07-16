@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import type { FormatNode } from './models/Profile';
 import { getNodeTitleFull } from './node-title';
+import { FlamegraphOffseter } from './renderer';
 import { getCanvasTitleFull, getStatusTitleFull, renderTitleFull } from './title';
 
 
@@ -105,5 +106,32 @@ describe('flamegraph titles for diffs', () => {
         expect(getCanvasTitle(childThree, null, node)).toMatchSnapshot();
         expect(getCanvasTitle(childFour, null, node)).toMatchSnapshot();
         expect(getStatusTitle(childTwo, childOne, node)).toMatchSnapshot();
+    });
+});
+
+describe('FlamegraphOffseter filters', () => {
+    it('keeps matched stacks filtered when one of duplicate matches is omitted', () => {
+        const rows: FormatNode[][] = [
+            [
+                { parentIndex: -1, textId: 0, eventCount: 100, sampleCount: 100 },
+            ],
+            [
+                { parentIndex: 0, textId: 1, eventCount: 40, sampleCount: 40 },
+                { parentIndex: 0, textId: 1, eventCount: 30, sampleCount: 30 },
+                { parentIndex: 0, textId: 2, eventCount: 30, sampleCount: 30 },
+            ],
+        ];
+        const offsetter = new FlamegraphOffseter(rows, { reverse: false, levelHeight: 20 });
+        const matchedCoordinates = [1, 0, 1, 1];
+
+        offsetter.prerenderOffsets(100, [0, 0], [], matchedCoordinates);
+        expect(rows[0][0].omittedEventCount).toBe(30);
+
+        offsetter.prerenderOffsets(100, [0, 0], [[1, 0]], matchedCoordinates);
+
+        expect(rows[0][0].omittedEventCount).toBe(70);
+        expect(rows[1][0].omittedEventCount).toBe(40);
+        expect(rows[1][1].omittedEventCount).toBe(0);
+        expect(rows[1][2].omittedEventCount).toBe(30);
     });
 });
