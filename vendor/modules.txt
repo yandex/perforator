@@ -17831,7 +17831,7 @@ github.com/xuri/nfp
 # github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0
 ## explicit
 github.com/yalp/jsonpath
-# github.com/yandex-cloud/go-genproto v0.37.0
+# github.com/yandex-cloud/go-genproto v0.93.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-genproto
 github.com/yandex-cloud/go-genproto/yandex/cloud
@@ -17865,6 +17865,9 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/apploadbalancer/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/audittrails/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/backup/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/baremetal/v1alpha
+github.com/yandex-cloud/go-genproto/yandex/cloud/baremetal/v2
+github.com/yandex-cloud/go-genproto/yandex/cloud/baremetal/v2/extend
+github.com/yandex-cloud/go-genproto/yandex/cloud/billing/usage_records/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/billing/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/cdn/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1
@@ -17873,11 +17876,13 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/cic/v1/common
 github.com/yandex-cloud/go-genproto/yandex/cloud/cloudapps/workload/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/clouddesktop/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/cloudregistry/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/cloudregistry/v1/domain
 github.com/yandex-cloud/go-genproto/yandex/cloud/cloudrouter/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1/instancegroup
 github.com/yandex-cloud/go-genproto/yandex/cloud/connectionmanager/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/containerregistry/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/datacatalog/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/dataproc/manager/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/dataproc/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/datasphere/v1
@@ -17885,9 +17890,11 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/datasphere/v2
 github.com/yandex-cloud/go-genproto/yandex/cloud/datasphere/v2/jobs
 github.com/yandex-cloud/go-genproto/yandex/cloud/datatransfer/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/datatransfer/v1/endpoint
+github.com/yandex-cloud/go-genproto/yandex/cloud/devtools/ycvc/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/dns/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/endpoint
 github.com/yandex-cloud/go-genproto/yandex/cloud/gitlab/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/iam
 github.com/yandex-cloud/go-genproto/yandex/cloud/iam/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/iam/v1/awscompatibility
 github.com/yandex-cloud/go-genproto/yandex/cloud/iam/v1/workload
@@ -17916,6 +17923,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/marketplace/licensemanager/saas
 github.com/yandex-cloud/go-genproto/yandex/cloud/marketplace/licensemanager/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/marketplace/metering/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/marketplace/pim/v1/saas
+github.com/yandex-cloud/go-genproto/yandex/cloud/marketplace/stacklandlicenseapi/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/marketplace/v1/metering
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/clickhouse/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/clickhouse/v1/config
@@ -17940,6 +17948,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/redis/v1/config
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/spqr/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/sqlserver/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/sqlserver/v1/config
+github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/metastore/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/monitoring/v3
 github.com/yandex-cloud/go-genproto/yandex/cloud/oauth
@@ -17966,6 +17975,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/workflows/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartcaptcha/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/advanced_rate_limiter
+github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/match_list
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/waf
 github.com/yandex-cloud/go-genproto/yandex/cloud/spark/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/speechsense/v1
@@ -17977,7 +17987,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1/privatelink
 github.com/yandex-cloud/go-genproto/yandex/cloud/ydb/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/ytsaurus/v1
-# github.com/yandex-cloud/go-sdk v0.28.0
+# github.com/yandex-cloud/go-sdk v0.32.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-sdk
 github.com/yandex-cloud/go-sdk/dial
@@ -18013,12 +18023,14 @@ github.com/yandex-cloud/go-sdk/gen/certificatemanagerdata
 github.com/yandex-cloud/go-sdk/gen/cic
 github.com/yandex-cloud/go-sdk/gen/clouddesktop
 github.com/yandex-cloud/go-sdk/gen/cloudregistry
+github.com/yandex-cloud/go-sdk/gen/cloudregistry/domain
 github.com/yandex-cloud/go-sdk/gen/cloudrouter
 github.com/yandex-cloud/go-sdk/gen/compute
 github.com/yandex-cloud/go-sdk/gen/compute/instancegroup
 github.com/yandex-cloud/go-sdk/gen/connectionmanager
 github.com/yandex-cloud/go-sdk/gen/containerregistry
 github.com/yandex-cloud/go-sdk/gen/containers
+github.com/yandex-cloud/go-sdk/gen/datacatalog
 github.com/yandex-cloud/go-sdk/gen/dataproc
 github.com/yandex-cloud/go-sdk/gen/datasphere
 github.com/yandex-cloud/go-sdk/gen/datatransfer
@@ -18080,6 +18092,7 @@ github.com/yandex-cloud/go-sdk/gen/resourcemanager
 github.com/yandex-cloud/go-sdk/gen/smartcaptcha
 github.com/yandex-cloud/go-sdk/gen/smartwebsecurity
 github.com/yandex-cloud/go-sdk/gen/smartwebsecurity/arl
+github.com/yandex-cloud/go-sdk/gen/smartwebsecurity/match_list
 github.com/yandex-cloud/go-sdk/gen/smartwebsecurity/waf
 github.com/yandex-cloud/go-sdk/gen/spark
 github.com/yandex-cloud/go-sdk/gen/storage-api
