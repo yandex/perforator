@@ -13,7 +13,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--g-spacing-4);
     flex-shrink: 0;
 }
 
