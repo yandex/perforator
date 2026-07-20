@@ -201,7 +201,7 @@ require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
 	github.com/KimMachineGun/automemlimit v0.7.4
 	github.com/Masterminds/semver v1.5.0
-	github.com/Masterminds/semver/v3 v3.4.0
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/MicahParks/jwkset v0.11.0
 	github.com/MicahParks/keyfunc/v2 v2.1.0
@@ -366,6 +366,7 @@ require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2
 	github.com/dlclark/regexp2 v1.11.5
+	github.com/dlclark/regexp2/v2 v2.2.1
 	github.com/dnaeon/go-vcr v1.2.0
 	github.com/dnstap/golang-dnstap v0.4.0
 	github.com/docker/distribution v2.8.3+incompatible
@@ -374,6 +375,7 @@ require (
 	github.com/docker/go-metrics v0.0.1
 	github.com/dolthub/swiss v0.1.0
 	github.com/dongri/phonenumber v0.1.12
+	github.com/dop251/goja v0.0.0-20260701091749-b07b74453ea9
 	github.com/doug-martin/goqu/v9 v9.19.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/ebml-go/webm v0.0.0-20221117133942-84fa5245cf70
@@ -1648,6 +1650,7 @@ require (
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815 // indirect
 	github.com/dolthub/maphash v0.0.0-20221220182448-74e1e1ea1577 // indirect
+	github.com/dop251/goja_nodejs v0.0.0-20211022123610-8dd9abb0616d // indirect
 	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect
 	github.com/dropbox/dropbox-sdk-go-unofficial v5.6.0+incompatible // indirect
 	github.com/dustin/go-nma v0.0.0-20140531070111-73c9989a8efc // indirect
@@ -1761,6 +1764,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-quicktest/qt v1.102.0 // indirect
 	github.com/go-shiori/dom v0.0.0-20210627111528-4e4722cd0d65 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-swagger/scan-repo-boundary v0.0.0-20180623220736-973b3573c013 // indirect
 	github.com/go-task/slim-sprig v2.20.0+incompatible // indirect
