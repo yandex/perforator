@@ -39,9 +39,15 @@ interface MergeProfilesFormProps {
 const b = cn('merge-profiles-form');
 
 const defaultInput = (query: QueryInputResult, queryInputs: QueryInput[]): string => {
+    let localStorageDefault;
+    try {
+        localStorageDefault = localStorage.getItem(LocalStorageKey.QueryInputKind);
+    } catch {}
+    if (localStorageDefault && queryInputs.some(input => input.name === localStorageDefault)) {
+        return localStorageDefault;
+    }
     return (
         queryInputs.find(input => query[input.queryField as keyof QueryInputResult])?.name
-        || localStorage.getItem(LocalStorageKey.QueryInputKind)
         || queryInputs[0]?.name
     );
 };
