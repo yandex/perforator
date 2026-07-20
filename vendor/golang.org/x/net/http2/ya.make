@@ -2,13 +2,14 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.52.0)
+VERSION(v0.56.0)
 
 SRCS(
     ascii.go
     ciphers.go
     client_conn_pool.go
     client_priority_go126.go
+    clientconn.go
     config.go
     config_go126.go
     databuffer.go
@@ -19,10 +20,13 @@ SRCS(
     http2.go
     pipe.go
     server.go
+    server_common.go
     transport.go
+    transport_common.go
     unencrypted.go
     write.go
     writesched.go
+    writesched_common.go
     writesched_priority_rfc7540.go
     writesched_priority_rfc9218.go
     writesched_random.go

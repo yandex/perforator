@@ -194,6 +194,15 @@ func main() {
 		b = bytes.Replace(b, s, newNames, 1)
 	}
 
+	// Convert []int8 to []byte in GPIO structs
+	convertGPIONames := regexp.MustCompile(`(Name|Label|Consumer)(\s+)\[(\d+)\]u?int8`)
+	gpioTypes := regexp.MustCompile(`type GPIO\S+ struct {[^}]*}`)
+	gpioStructs := gpioTypes.FindAll(b, -1)
+	for _, s := range gpioStructs {
+		newNames := convertGPIONames.ReplaceAll(s, []byte("$1$2[$3]byte"))
+		b = bytes.Replace(b, s, newNames, 1)
+	}
+
 	// Convert []int8 to []byte in ctl_info ioctl interface
 	convertCtlInfoName := regexp.MustCompile(`(Name)(\s+)\[(\d+)\]int8`)
 	ctlInfoType := regexp.MustCompile(`type CtlInfo struct {[^}]*}`)

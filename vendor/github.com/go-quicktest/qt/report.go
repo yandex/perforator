@@ -18,9 +18,6 @@ import (
 
 // reportParams holds parameters for reporting a test error.
 type reportParams struct {
-	// paramNames holds the names for the parameters of the checker
-	// (including got as the first name).
-	paramNames []string
 	// args holds all the arguments passed to the checker.
 	args []Arg
 	// comments optionally holds comments passed when performing the check.

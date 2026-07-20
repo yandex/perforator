@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.49.0)
+VERSION(v0.53.0)
 
 SRCS(
     client.go
@@ -12,6 +12,7 @@ SRCS(
 )
 
 GO_TEST_SRCS(
+    client_pipeline_test.go
     client_test.go
     keyring_test.go
     server_test.go

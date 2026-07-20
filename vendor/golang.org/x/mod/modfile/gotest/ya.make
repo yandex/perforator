@@ -2,7 +2,7 @@ GO_TEST_FOR(vendor/golang.org/x/mod/modfile)
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.33.0)
+VERSION(v0.37.0)
 
 DATA(
     arcadia/vendor/golang.org/x/mod/modfile/testdata

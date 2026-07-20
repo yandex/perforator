@@ -240,7 +240,7 @@ require (
 	github.com/alitto/pond v1.9.2
 	github.com/anatol/luks.go v0.0.0-20211210165108-5d9a15b4f614
 	github.com/andybalholm/brotli v1.2.0
-	github.com/andybalholm/cascadia v1.3.3
+	github.com/andybalholm/cascadia v1.3.4
 	github.com/annetutil/gnetcli v1.3.6
 	github.com/antchfx/htmlquery v1.3.2
 	github.com/antchfx/xpath v1.3.1
@@ -505,7 +505,7 @@ require (
 	github.com/google/go-jsonnet v0.21.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/gopacket v1.1.19
-	github.com/google/jsonschema-go v0.4.2
+	github.com/google/jsonschema-go v0.4.3
 	github.com/google/licensecheck v0.3.1
 	github.com/google/nftables v0.3.0
 	github.com/google/osv-scalibr v0.2.0
@@ -669,7 +669,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/mkrautz/goar v0.0.0-20150919110319-282caa8bd9da
-	github.com/modelcontextprotocol/go-sdk v1.4.1
+	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee
 	github.com/montanaflynn/stats v0.7.1
 	github.com/mrknow-all/go-oae v0.0.0-20221221002406-36600e4f6b43
@@ -1083,22 +1083,22 @@ require (
 	gocloud.dev v0.44.0
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0
-	golang.org/x/crypto v0.49.0
+	golang.org/x/crypto v0.53.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/image v0.32.0
-	golang.org/x/mod v0.33.0
-	golang.org/x/net v0.52.0
-	golang.org/x/oauth2 v0.35.0
-	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.45.0
-	golang.org/x/term v0.41.0
-	golang.org/x/text v0.35.0
+	golang.org/x/mod v0.37.0
+	golang.org/x/net v0.56.0
+	golang.org/x/oauth2 v0.36.0
+	golang.org/x/sync v0.22.0
+	golang.org/x/sys v0.47.0
+	golang.org/x/term v0.44.0
+	golang.org/x/text v0.38.0
 	golang.org/x/time v0.14.0
-	golang.org/x/tools v0.42.0
+	golang.org/x/tools v0.45.0
 	golang.org/x/tools/go/expect v0.1.1-deprecated
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
 	golang.org/x/tools/godoc v0.1.0-deprecated
-	golang.org/x/tools/gopls v0.21.1
+	golang.org/x/tools/gopls v0.21.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 	golang.yandex/hasql v1.1.1
 	golang.yandex/hasql/v2 v2.1.1
@@ -1136,7 +1136,7 @@ require (
 	gorm.io/gorm v1.25.12
 	gorm.io/plugin/dbresolver v1.5.3
 	helm.sh/helm/v3 v3.11.3
-	honnef.co/go/tools v0.7.0
+	honnef.co/go/tools v0.8.0-rc.1
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
 	k8s.io/apimachinery v0.34.1
@@ -1759,7 +1759,7 @@ require (
 	github.com/go-playground/assert/v2 v2.2.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-quicktest/qt v1.101.0 // indirect
+	github.com/go-quicktest/qt v1.102.0 // indirect
 	github.com/go-shiori/dom v0.0.0-20210627111528-4e4722cd0d65 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-swagger/scan-repo-boundary v0.0.0-20180623220736-973b3573c013 // indirect
@@ -2580,12 +2580,12 @@ require (
 	go4.org/intern v0.0.0-20220617035311-6925f38cc365 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/exp/shiny v0.0.0-20241009180824-f66d83c29e7c // indirect
-	golang.org/x/exp/typeparams v0.0.0-20251125195548-87e1e737ad39 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20260611194520-c48552f49976 // indirect
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
 	golang.org/x/perf v0.0.0-20250813145418-2f7363a06fe1 // indirect
-	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
-	golang.org/x/vuln v1.1.4 // indirect
+	golang.org/x/telemetry v0.0.0-20260625142307-59b4966ccb57 // indirect
+	golang.org/x/vuln v1.3.0 // indirect
 	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f // indirect
 	gonum.org/v1/plot v0.15.2 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
@@ -2682,7 +2682,7 @@ require (
 	modernc.org/xc v1.0.1 // indirect
 	modernc.org/z v1.7.3 // indirect
 	moul.io/http2curl/v2 v2.3.0 // indirect
-	mvdan.cc/gofumpt v0.8.0 // indirect
+	mvdan.cc/gofumpt v0.10.0 // indirect
 	mvdan.cc/xurls/v2 v2.6.0 // indirect
 	oras.land/oras-go v1.2.5 // indirect
 	pack.ag/amqp v0.12.5 // indirect

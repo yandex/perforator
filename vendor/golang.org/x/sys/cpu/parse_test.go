@@ -14,12 +14,21 @@ type parseReleaseTest struct {
 var parseReleaseTests = []parseReleaseTest{
 	{"", -1, -1, -1},
 	{"x", -1, -1, -1},
-	{"5", 5, 0, 0},
+	// A single component is not enough; major+minor are required.
+	{"5", -1, -1, -1},
+	{"5-x", -1, -1, -1},
 	{"5.12", 5, 12, 0},
 	{"5.12-x", 5, 12, 0},
 	{"5.12.1", 5, 12, 1},
 	{"5.12.1-x", 5, 12, 1},
 	{"5.12.1.0", 5, 12, 1},
+	{"5.15.0-91-generic", 5, 15, 0},
+	{"4.19.0+", 4, 19, 0},
+	{"6.6.0-rc1", 6, 6, 0},
+	// Synology embedded Linux appends a platform identifier after an
+	// underscore. See golang/go#79612.
+	{"3.4.35_hi3535", 3, 4, 35},
+	{"2.6.32_synology", 2, 6, 32},
 	{"5.20496382327982653440", -1, -1, -1},
 }
 

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v1.101.0)
+VERSION(v1.102.0)
 
 SRCS(
     checker.go

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.49.0)
+VERSION(v0.53.0)
 
 SRCS(
     buffer.go
@@ -13,6 +13,7 @@ SRCS(
     client_auth.go
     common.go
     connection.go
+    control.go
     doc.go
     handshake.go
     kex.go
@@ -33,10 +34,12 @@ GO_TEST_SRCS(
     benchmark_test.go
     buffer_test.go
     certs_test.go
+    channel_test.go
     cipher_test.go
     client_auth_test.go
     client_test.go
     common_test.go
+    control_test.go
     handshake_test.go
     kex_test.go
     keys_test.go

@@ -334,6 +334,25 @@ func TestExitWithoutStatusOrSignal(t *testing.T) {
 	}
 }
 
+func TestExitStatusShortPayload(t *testing.T) {
+	for _, payload := range [][]byte{nil, {0}, {0, 0}, {0, 0, 0}} {
+		conn := dial(exitStatusShortPayloadHandler(payload), t)
+		session, err := conn.NewSession()
+		if err != nil {
+			t.Fatalf("unable to request new session: %v", err)
+		}
+		if err := session.Shell(); err != nil {
+			t.Fatalf("unable to execute command: %v", err)
+		}
+		err = session.Wait()
+		if err == nil {
+			t.Fatalf("expected error for payload length %d", len(payload))
+		}
+		session.Close()
+		conn.Close()
+	}
+}
+
 // windowTestBytes is the number of bytes that we'll send to the SSH server.
 const windowTestBytes = 16000 * 200
 
@@ -480,6 +499,17 @@ func exitWithoutSignalOrStatus(ch Channel, in <-chan *Request, t *testing.T) {
 	defer ch.Close()
 	shell := newServerShell(ch, in, "> ")
 	readLine(shell, t)
+}
+
+func exitStatusShortPayloadHandler(payload []byte) serverType {
+	return func(ch Channel, in <-chan *Request, t *testing.T) {
+		defer ch.Close()
+		shell := newServerShell(ch, in, "> ")
+		readLine(shell, t)
+		if _, err := ch.SendRequest("exit-status", false, payload); err != nil {
+			t.Errorf("unable to send status: %v", err)
+		}
+	}
 }
 
 func shellHandler(ch Channel, in <-chan *Request, t *testing.T) {

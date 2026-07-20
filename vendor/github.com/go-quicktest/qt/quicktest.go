@@ -9,6 +9,7 @@ import (
 // Assert checks that the provided argument passes the given check and calls
 // tb.Fatal otherwise, including any Comment arguments in the failure.
 func Assert(t testing.TB, checker Checker, comments ...Comment) bool {
+	t.Helper()
 	return check(t, checkParams{
 		fail:     t.Fatal,
 		checker:  checker,
@@ -19,6 +20,7 @@ func Assert(t testing.TB, checker Checker, comments ...Comment) bool {
 // Check checks that the provided argument passes the given check and calls
 // tb.Error otherwise, including any Comment arguments in the failure.
 func Check(t testing.TB, checker Checker, comments ...Comment) bool {
+	t.Helper()
 	return check(t, checkParams{
 		fail:     t.Error,
 		checker:  checker,

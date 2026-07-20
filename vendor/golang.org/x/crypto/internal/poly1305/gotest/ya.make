@@ -2,6 +2,6 @@ GO_TEST_FOR(vendor/golang.org/x/crypto/internal/poly1305)
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.49.0)
+VERSION(v0.53.0)
 
 END()

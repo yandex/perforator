@@ -79,7 +79,7 @@ func checkStringCall(v any, f func() string) (s string, ok bool) {
 		if err == nil {
 			return
 		}
-		if val := reflect.ValueOf(v); val.Kind() == reflect.Ptr && val.IsNil() {
+		if val := reflect.ValueOf(v); val.Kind() == reflect.Pointer && val.IsNil() {
 			ok = false
 			return
 		}

@@ -95,8 +95,8 @@ func (c *equalsChecker[T]) Check(note func(key string, value any)) (err error) {
 			return i != -1 && i < len(s)-1
 		}
 		if isMultiLine(c.got) || isMultiLine(c.want) {
-			diff := cmp.Diff(strings.SplitAfter(c.got, "\n"), strings.SplitAfter(c.want, "\n"))
-			note("line diff (-got +want)", Unquoted(diff))
+			diff := cmp.Diff(strings.SplitAfter(c.want, "\n"), strings.SplitAfter(c.got, "\n"))
+			note("line diff (-want +got)", Unquoted(diff))
 		}
 	}
 
@@ -135,10 +135,10 @@ func (c *cmpEqualsChecker[T]) Check(note func(key string, value any)) (err error
 			err = BadCheckf("%s", r)
 		}
 	}()
-	if diff := cmp.Diff(c.got, c.want, c.opts...); diff != "" {
+	if diff := cmp.Diff(c.want, c.got, c.opts...); diff != "" {
 		// Only output values when the verbose flag is set.
 		note("error", Unquoted("values are not deep equal"))
-		note("diff (-got +want)", Unquoted(diff))
+		note("diff (-want +got)", Unquoted(diff))
 		note("got", SuppressedIfLong{c.got})
 		note("want", SuppressedIfLong{c.want})
 		return ErrSilent
@@ -156,7 +156,16 @@ func ContentEquals[T any](got, want T) Checker {
 }
 
 // Matches returns a Checker checking that the provided string matches the
-// provided regular expression pattern.
+// provided regular expression pattern. If want is a string, the pattern will be
+// anchored; that is:
+//
+//	Matches(got, "foo")
+//
+// is equivalent to:
+//
+//	Matches(got, "^foo$")
+//
+// If want is of type *regexp.Regexp, it will be matched as is.
 func Matches[StringOrRegexp string | *regexp.Regexp](got string, want StringOrRegexp) Checker {
 	return &matchesChecker{
 		got:   got,
@@ -180,7 +189,8 @@ func (c *matchesChecker) Args() []Arg {
 }
 
 // ErrorMatches returns a Checker checking that the provided value is an error
-// whose message matches the provided regular expression pattern.
+// whose message matches the provided regular expression pattern
+// (see [Matches] for more details on how the pattern is matched).
 func ErrorMatches[StringOrRegexp string | *regexp.Regexp](got error, want StringOrRegexp) Checker {
 	return &errorMatchesChecker{
 		got:   got,
@@ -208,6 +218,7 @@ func (c *errorMatchesChecker) Args() []Arg {
 
 // PanicMatches returns a Checker checking that the provided function panics
 // with a message matching the provided regular expression pattern.
+// (see [Matches] for more details on how the pattern is matched).
 func PanicMatches[StringOrRegexp string | *regexp.Regexp](f func(), want StringOrRegexp) Checker {
 	return &panicMatchesChecker{
 		got:   f,
@@ -304,6 +315,15 @@ func (c *hasLenChecker[T]) Check(note func(key string, value any)) (err error) {
 	v := reflect.ValueOf(&c.got).Elem()
 	switch v.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
+	case reflect.Pointer:
+		// Allow a pointer to array.
+		if reflect.Indirect(reflect.ValueOf(c.got)).Kind() == reflect.Array {
+			break
+		}
+
+		// Error on all other pointers.
+		note("got", c.got)
+		return BadCheckf("first argument of type %v has no length", v.Type())
 	default:
 		note("got", c.got)
 		return BadCheckf("first argument of type %v has no length", v.Type())
@@ -333,8 +353,6 @@ type implementsChecker struct {
 	got  any
 	want reflect.Type
 }
-
-var emptyInterface = reflect.TypeOf((*any)(nil)).Elem()
 
 func (c *implementsChecker) Check(note func(key string, value any)) (err error) {
 	if c.got == nil {
@@ -712,7 +730,6 @@ func (c *errorAsChecker[T]) Check(note func(key string, value any)) (err error) 
 	if c.got == nil {
 		return errors.New("got nil error but want non-nil")
 	}
-	gotErr := c.got.(error)
 	defer func() {
 		// A panic is raised when the target is not a pointer to an interface
 		// or error.
@@ -724,7 +741,7 @@ func (c *errorAsChecker[T]) Check(note func(key string, value any)) (err error) 
 	if want == nil {
 		want = new(T)
 	}
-	if !errors.As(gotErr, want) {
+	if !errors.As(c.got, want) {
 		return errors.New("wanted type is not found in error chain")
 	}
 	return nil
@@ -811,7 +828,7 @@ func (p argPair[A, B]) Args() []Arg {
 // canBeNil reports whether a value or type of the given kind can be nil.
 func canBeNil(k reflect.Kind) bool {
 	switch k {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
 		return true
 	}
 	return false
