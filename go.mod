@@ -1159,7 +1159,7 @@ require (
 	sigs.k8s.io/kustomize/api v0.20.1
 	sigs.k8s.io/kustomize/kyaml v0.20.1
 	sigs.k8s.io/yaml v1.6.0
-	software.sslmate.com/src/go-pkcs12 v0.5.0
+	software.sslmate.com/src/go-pkcs12 v0.7.3
 )
 
 require (
