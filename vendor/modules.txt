@@ -4650,7 +4650,7 @@ github.com/annetutil/gnetcli/pkg/trace
 # github.com/antchfx/htmlquery v1.3.2
 ## explicit; go 1.14
 github.com/antchfx/htmlquery
-# github.com/antchfx/xpath v1.3.1
+# github.com/antchfx/xpath v1.3.6
 ## explicit; go 1.14
 github.com/antchfx/xpath
 # github.com/antham/ghokin/v3 v3.7.0

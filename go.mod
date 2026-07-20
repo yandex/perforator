@@ -243,7 +243,7 @@ require (
 	github.com/andybalholm/cascadia v1.3.4
 	github.com/annetutil/gnetcli v1.3.6
 	github.com/antchfx/htmlquery v1.3.2
-	github.com/antchfx/xpath v1.3.1
+	github.com/antchfx/xpath v1.3.6
 	github.com/antham/ghokin/v3 v3.7.0
 	github.com/antihax/optional v1.0.0
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9
