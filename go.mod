@@ -303,7 +303,7 @@ require (
 	github.com/bufbuild/buf v1.31.0
 	github.com/bufbuild/protocompile v0.14.1
 	github.com/buger/goterm v1.0.4
-	github.com/buger/jsonparser v1.1.1
+	github.com/buger/jsonparser v1.2.0
 	github.com/c2h5oh/datasize v0.0.0-20220606134207-859f65c6625b
 	github.com/caarlos0/env/v11 v11.2.2
 	github.com/casbin/casbin/v2 v2.47.3

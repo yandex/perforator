@@ -5943,7 +5943,7 @@ github.com/bufbuild/protoyaml-go
 ## explicit; go 1.15
 github.com/buger/goterm
 github.com/buger/goterm/examples
-# github.com/buger/jsonparser v1.1.1
+# github.com/buger/jsonparser v1.2.0
 ## explicit; go 1.13
 github.com/buger/jsonparser
 # github.com/bugsnag/bugsnag-go v1.0.5-0.20150529004307-13fd6b8acda0
