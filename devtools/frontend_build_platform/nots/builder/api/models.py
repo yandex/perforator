@@ -41,6 +41,9 @@ class BaseOptions:
     inject_peers: bool
     """Inject peers"""
 
+    hermetic_node_modules: bool
+    """Restore node_modules prepared and cached by TS_PREPARE_DEPS"""
+
     command: str
     """builder `command` argument, used only in log messages"""
 
@@ -60,6 +63,9 @@ class BaseOptions:
     # Calculated options
     node_modules_bundle: str
     """path to node_modules.tar bundle if nm_bundle is True, calculated"""
+
+    node_modules_layer: str
+    """path to the opaque cached node_modules layer prepared by TS_PREPARE_DEPS"""
 
     bindir: str
     """module build path ($BINDIR), calculated"""

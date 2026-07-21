@@ -32,7 +32,6 @@ def build_package_parser(subparsers) -> ArgumentParser:
 def build_package_func(args: PackageBuilderOptions):
     builder = PackageBuilder(options=args)
     builder.build()
-
     builder.bundle()
 
     return []

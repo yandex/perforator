@@ -26,26 +26,38 @@ def eprint(*args, **kwargs):
 
 
 @timeit
-def extract_peer_tars(moddir_abs: str, visited: set[str] = set()):
+def _resolve_build_root(path: str, build_root: str | None) -> str:
+    if build_root:
+        return path.replace('$(BUILD_ROOT)', build_root).replace('$B', build_root)
+    return path
+
+
+def extract_peer_tars(moddir_abs: str, visited: set[str] | None = None, build_root: str | None = None):
     """Extracts all the output tars for the dependency tree, excluding root
 
     Args:
         moddir_abs: absolute path of the root module
         visited: set of paths we have visited already
     """
+    if visited is None:
+        visited = set()
+    moddir_abs = _resolve_build_root(moddir_abs, build_root)
     pj = PackageJson.load(pm_utils.build_pj_path(moddir_abs))
     for dep_path in pj.get_workspace_dep_paths():
-        extract_all_output_tars(dep_path, visited)
+        extract_all_output_tars(dep_path, visited, build_root)
 
 
 @timeit
-def extract_all_output_tars(moddir_abs: str, visited: set[str] = set()):
+def extract_all_output_tars(moddir_abs: str, visited: set[str] | None = None, build_root: str | None = None):
     """Extracts all the output tars for the dependency tree, including root
 
     Args:
         moddir_abs: absolute path of the root module
         visited: set of paths we have visited already
     """
+    if visited is None:
+        visited = set()
+    moddir_abs = _resolve_build_root(moddir_abs, build_root)
     if moddir_abs in visited:
         return
 
@@ -56,7 +68,7 @@ def extract_all_output_tars(moddir_abs: str, visited: set[str] = set()):
         eprint(f"could not extract output tar for {moddir_abs}: {e}")
         raise e
 
-    extract_peer_tars(moddir_abs, visited)
+    extract_peer_tars(moddir_abs, visited, build_root)
 
 
 @timeit

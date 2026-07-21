@@ -48,12 +48,14 @@ def test_create_node_modules_args():
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=False,
         nm_bundle=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/node_modules.layer',
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/simple',
         node_modules_bundle=False,
         # Command-specific
@@ -92,12 +94,14 @@ def test_create_node_modules_bundle_args():
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=False,
         nm_bundle=True,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/node_modules.layer',
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/simple',
         node_modules_bundle='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/workspace_node_modules.tar',
         # Command-specific
@@ -139,6 +143,7 @@ def test_build_library_args():
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         env=['NODE_ENV=production'],
         # Flags
         local_cli=False,
@@ -146,6 +151,7 @@ def test_build_library_args():
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/library',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/library/node_modules.layer',
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/library',
         node_modules_bundle=False,
         # Command-specific
@@ -186,6 +192,7 @@ def test_build_package_args():
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         env=[],
         # Flags
         local_cli=False,
@@ -193,6 +200,7 @@ def test_build_package_args():
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/node_modules.layer',
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/simple',
         node_modules_bundle=False,
         # Command-specific
@@ -237,6 +245,7 @@ def test_build_package_nm_args():
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         env=[],
         # Flags
         local_cli=False,
@@ -244,6 +253,7 @@ def test_build_package_nm_args():
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/node_modules.layer',
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/simple',
         node_modules_bundle='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/workspace_node_modules.tar',
         # Command-specific
@@ -291,12 +301,14 @@ def test_build_tsc_args():
         env=[],
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/node_modules.layer',
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/simple',
         node_modules_bundle=False,
         # Command-specific
@@ -344,12 +356,14 @@ def test_build_tsc_nm_args():
         env=[],
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=True,
         nm_bundle=True,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/node_modules.layer',
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/simple',
         node_modules_bundle='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/workspace_node_modules.tar',
         # Command-specific
@@ -399,12 +413,14 @@ def test_build_next_args():
         env=[],
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13/node_modules.layer',
         bundler_config_path=['/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/nextjs13/next.config.js'],
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/nextjs13',
         node_modules_bundle=False,
@@ -457,12 +473,14 @@ def test_build_vite_args():
         env=[],
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project/node_modules.layer',
         bundler_config_path=['/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/vite_project/vite.config.ts'],
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/vite_project',
         node_modules_bundle=False,
@@ -515,12 +533,14 @@ def test_build_webpack_args():
         env=[],
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/node_modules.layer',
         bundler_config_path=[
             '/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js'
         ],
@@ -577,12 +597,14 @@ def test_build_webpack_with_env_args():
         env=["VAR1=value", "VAR2=value"],
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/node_modules.layer',
         bundler_config_path=[
             '/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js'
         ],
@@ -641,12 +663,14 @@ def test_build_webpack_with_after_build():
         env=[],
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/node_modules.layer',
         bundler_config_path=[
             '/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js'
         ],
@@ -701,12 +725,14 @@ def test_build_rspack_args():
         env=[],
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/node_modules.layer',
         bundler_config_path=[
             '/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/rspack.config.js'
         ],
@@ -753,6 +779,7 @@ def test_build_verbose_args():
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
         inject_peers=False,
+        hermetic_node_modules=False,
         env=[],
         # Flags
         local_cli=False,
@@ -760,6 +787,7 @@ def test_build_verbose_args():
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
+        node_modules_layer='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/node_modules.layer',
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/simple',
         node_modules_bundle=False,
         # Command-specific

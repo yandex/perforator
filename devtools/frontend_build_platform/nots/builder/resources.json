@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-07-20T20:48:20.116Z",
+    "created": "2026-07-21T09:26:46.606Z",
     "pr": {
-      "id": 14536182,
+      "id": 14537546,
       "author": "baymer",
-      "summary": "FBP-3293: move node_modules bundling to builder"
+      "summary": "FBP-3287: добавить кешируемые герметичные node_modules"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12859963874"
+      "uri": "sbr:12864763820"
     },
     "darwin-arm64": {
-      "uri": "sbr:12859962579"
+      "uri": "sbr:12864760082"
     },
     "linux": {
-      "uri": "sbr:12859966636"
+      "uri": "sbr:12864770985"
     },
     "linux-aarch64": {
-      "uri": "sbr:12859964965"
+      "uri": "sbr:12864767486"
     }
   }
 }

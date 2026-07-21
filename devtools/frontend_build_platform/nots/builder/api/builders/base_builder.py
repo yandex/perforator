@@ -123,7 +123,7 @@ class BaseBuilder(object):
             pm_utils.build_pj_path(self.options.curdir),
             pm_utils.build_pj_path(self.options.bindir),
         )
-        self.__extract_peer_tars(self.options.bindir)
+        self.__extract_peer_tars(self.options.bindir, build_root=self.options.arcadia_build_root)
 
     def _get_base_env(self, extra_paths: list[str] = []) -> dict[str, str]:
         env = {}

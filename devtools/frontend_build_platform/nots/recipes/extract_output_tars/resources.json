@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-02-20T06:52:12.149Z",
+    "created": "2026-07-21T09:48:20.693Z",
     "pr": {
-      "id": 11751997,
-      "author": "zaverden",
-      "summary": "chore(dummy): migrate base examples to TS_LIBRARY"
+      "id": 14537546,
+      "author": "baymer",
+      "summary": "FBP-3287: добавить кешируемые герметичные node_modules"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11164095285"
+      "uri": "sbr:12865110734"
     },
     "darwin-arm64": {
-      "uri": "sbr:11164093977"
+      "uri": "sbr:12865107164"
     },
     "linux": {
-      "uri": "sbr:11164097497"
+      "uri": "sbr:12865117201"
     },
     "linux-aarch64": {
-      "uri": "sbr:11164096254"
+      "uri": "sbr:12865113976"
     }
   }
 }

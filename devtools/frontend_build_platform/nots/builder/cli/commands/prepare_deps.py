@@ -1,7 +1,11 @@
 from argparse import ArgumentParser
 
 from devtools.frontend_build_platform.libraries.logging import timeit
-from devtools.frontend_build_platform.nots.builder.api import prepare_deps, PrepareDepsOptions
+from devtools.frontend_build_platform.nots.builder.api import (
+    prepare_deps,
+    prepare_node_modules_layer,
+    PrepareDepsOptions,
+)
 
 
 def prepare_deps_parser(subparsers) -> ArgumentParser:
@@ -23,5 +27,7 @@ def prepare_deps_parser(subparsers) -> ArgumentParser:
 @timeit
 def prepare_deps_func(args: PrepareDepsOptions):
     prepare_deps(args)
+    if args.hermetic_node_modules:
+        prepare_node_modules_layer(args)
 
     return []

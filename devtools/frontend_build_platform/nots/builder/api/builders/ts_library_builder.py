@@ -9,7 +9,12 @@ from .base_builder import BaseBuilder
 from ..models import BaseBuildersOptions, BuildError
 from ..utils import copy_files_with_exclusions, popen
 
-from ..create_node_modules import bundle_workspace_node_modules, create_node_modules
+from ..create_node_modules import (
+    bundle_workspace_node_modules,
+    create_node_modules,
+    NodeModulesBuildContext,
+    restore_node_modules_layer,
+)
 
 
 @dataclass
@@ -31,7 +36,11 @@ class TsLibraryBuilder(BaseBuilder):
     def build(self):
         self._prepare_bindir()
 
-        node_modules_context = create_node_modules(self.options)
+        if self.options.hermetic_node_modules:
+            restore_node_modules_layer(self.options)
+            node_modules_context = NodeModulesBuildContext(peer_paths=())
+        else:
+            node_modules_context = create_node_modules(self.options)
 
         self._build()
 

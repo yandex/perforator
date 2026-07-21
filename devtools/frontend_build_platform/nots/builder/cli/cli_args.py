@@ -54,6 +54,14 @@ def register_base_args(parser: ArgumentParser) -> None:
         help="Inject peers",
     )
 
+    parser.add_argument(
+        "--hermetic-node-modules",
+        action=YesNoAction,
+        required=False,
+        default=False,
+        help="Use node_modules prepared by TS_PREPARE_DEPS",
+    )
+
     # Flags
     parser.add_argument(
         '--local-cli', action=YesNoAction, default=False, help="Is run locally (from `nots`) or on the distbuild"
@@ -230,6 +238,11 @@ def parse_args(parser, custom_args: list[str] = None) -> AllOptions:
         os.path.join(bindir, pm_constants.NODE_MODULES_WORKSPACE_BUNDLE_FILENAME) if args.nm_bundle else False
     )
     setattr(args, 'node_modules_bundle', node_modules_bundle)
+    setattr(
+        args,
+        'node_modules_layer',
+        os.path.join(bindir, pm_constants.NODE_MODULES_LAYER_FILENAME),
+    )
 
     if hasattr(args, 'bundler_config_path'):
         bundler_configs = [p.removeprefix(args.curdir).strip('/') for p in args.bundler_config_path]
