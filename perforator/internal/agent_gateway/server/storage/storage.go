@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -58,7 +59,7 @@ type Service struct {
 	metrics *serviceMetrics
 	logger  xlog.Logger
 
-	profileSamplerByEvent map[string]*moduloSampler
+	profileSamplerByTypes map[string]*moduloSampler
 	mutex                 sync.RWMutex
 
 	profileStorage profilestorage.Storage
@@ -145,7 +146,7 @@ func NewService(
 				metrics.MakeExponentialDurationBuckets(time.Minute, 1.1, 30),
 			),
 		},
-		profileSamplerByEvent: make(map[string]*moduloSampler),
+		profileSamplerByTypes: make(map[string]*moduloSampler),
 		profileStorage:        storageBundle.ProfileStorage,
 		microscopeFilter:      microscopeFilter,
 		Service: binaryupload.NewService(logger, reg, storageBundle.BinaryStorage, binaryupload.Options{
@@ -156,10 +157,6 @@ func NewService(
 		profileCommentProcessors: make(map[string]func(string, *profilemeta.ProfileMetadata) error),
 		signalPublisher:          asyncPublisher,
 		signalAllow:              signalAllow,
-	}
-
-	for typ, modulo := range opts.samplingModuloByEvent {
-		service.profileSamplerByEvent[typ] = newModuloSampler(modulo)
 	}
 
 	service.initProfileCommentProcessors()
@@ -332,31 +329,61 @@ const (
 	passedMicroscopes
 )
 
-func (s *Service) sampleProfile(meta *profilemeta.ProfileMetadata) (pushProfileAdmitResult, uint64) {
+func (s *Service) samplerForTypes(eventTypes []string) *moduloSampler {
+	modulo := s.minModuloForTypes(eventTypes)
+	key := typesKey(eventTypes)
+
 	s.mutex.RLock()
-	sampler := s.profileSamplerByEvent[meta.MainEventType]
+	sampler := s.profileSamplerByTypes[key]
 	s.mutex.RUnlock()
 
-	if sampler == nil {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
+	if sampler != nil {
+		return sampler
+	}
 
-		sampler = s.profileSamplerByEvent[meta.MainEventType]
-		if sampler == nil {
-			sampler = newModuloSampler(s.opts.samplingModulo)
-			s.profileSamplerByEvent[meta.MainEventType] = sampler
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	sampler = s.profileSamplerByTypes[key]
+	if sampler == nil {
+		sampler = newModuloSampler(modulo)
+		s.profileSamplerByTypes[key] = sampler
+	}
+
+	return sampler
+}
+
+func (s *Service) moduloForEvent(eventType string) uint64 {
+	modulo, ok := s.opts.samplingModuloByEvent[eventType]
+	if !ok {
+		modulo = s.opts.samplingModulo
+	}
+	if modulo == 0 {
+		modulo = 1
+	}
+
+	return modulo
+}
+
+func (s *Service) minModuloForTypes(eventTypes []string) uint64 {
+	var modulo uint64
+	for _, eventType := range eventTypes {
+		m := s.moduloForEvent(eventType)
+		if modulo == 0 || m < modulo {
+			modulo = m
 		}
 	}
-
-	if sampler.Sample() {
-		return passedSampling, sampler.modulo
+	if modulo == 0 {
+		modulo = 1
 	}
 
-	if s.microscopeFilter != nil && s.microscopeFilter.Filter(meta) {
-		return passedMicroscopes, 1
-	}
+	return modulo
+}
 
-	return notAllowed, 0
+func typesKey(eventTypes []string) string {
+	sorted := slices.Clone(eventTypes)
+	slices.Sort(sorted)
+	return strings.Join(sorted, "\x00")
 }
 
 func fixupEventTypes(eventTypes []string) []string {
@@ -502,9 +529,24 @@ func (s *Service) sampleProfiles(
 	l xlog.Logger,
 	metas []*profilemeta.ProfileMetadata,
 ) []*profilemeta.ProfileMetadata {
+	sampler := s.samplerForTypes(metas[0].AllEventTypes)
+	sampled := sampler.Sample()
+	sampledWeight := sampler.modulo
+
 	count := 0
 	for _, meta := range metas {
-		admitResult, profileWeight := s.sampleProfile(meta)
+		var (
+			admitResult   pushProfileAdmitResult
+			profileWeight uint64
+		)
+		switch {
+		case sampled:
+			admitResult, profileWeight = passedSampling, sampledWeight
+		case s.microscopeFilter != nil && s.microscopeFilter.Filter(meta):
+			admitResult, profileWeight = passedMicroscopes, 1
+		default:
+			admitResult = notAllowed
+		}
 
 		switch admitResult {
 		case passedMicroscopes:
