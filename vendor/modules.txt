@@ -8476,6 +8476,7 @@ github.com/fatih/camelcase
 github.com/fatih/color
 # github.com/fatih/gomodifytags v1.17.1-0.20250423142747-f3939df9aa3c
 ## explicit; go 1.13
+github.com/fatih/gomodifytags
 github.com/fatih/gomodifytags/modifytags
 # github.com/fatih/structs v1.1.0
 ## explicit
@@ -21299,116 +21300,6 @@ golang.org/x/tools/godoc/vfs/gatefs
 golang.org/x/tools/godoc/vfs/httpfs
 golang.org/x/tools/godoc/vfs/mapfs
 golang.org/x/tools/godoc/vfs/zipfs
-# golang.org/x/tools/gopls v0.21.0
-## explicit; go 1.25
-golang.org/x/tools/gopls
-golang.org/x/tools/gopls/integration/govim
-golang.org/x/tools/gopls/internal/analysis/deprecated
-golang.org/x/tools/gopls/internal/analysis/embeddirective
-golang.org/x/tools/gopls/internal/analysis/fillreturns
-golang.org/x/tools/gopls/internal/analysis/fillstruct
-golang.org/x/tools/gopls/internal/analysis/fillswitch
-golang.org/x/tools/gopls/internal/analysis/infertypeargs
-golang.org/x/tools/gopls/internal/analysis/maprange
-golang.org/x/tools/gopls/internal/analysis/maprange/cmd/maprange
-golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize
-golang.org/x/tools/gopls/internal/analysis/nonewvars
-golang.org/x/tools/gopls/internal/analysis/noresultvalues
-golang.org/x/tools/gopls/internal/analysis/recursiveiter
-golang.org/x/tools/gopls/internal/analysis/simplifycompositelit
-golang.org/x/tools/gopls/internal/analysis/simplifyrange
-golang.org/x/tools/gopls/internal/analysis/simplifyslice
-golang.org/x/tools/gopls/internal/analysis/unusedfunc
-golang.org/x/tools/gopls/internal/analysis/unusedparams
-golang.org/x/tools/gopls/internal/analysis/unusedparams/cmd
-golang.org/x/tools/gopls/internal/analysis/unusedvariable
-golang.org/x/tools/gopls/internal/analysis/yield
-golang.org/x/tools/gopls/internal/bloom
-golang.org/x/tools/gopls/internal/cache
-golang.org/x/tools/gopls/internal/cache/metadata
-golang.org/x/tools/gopls/internal/cache/methodsets
-golang.org/x/tools/gopls/internal/cache/parsego
-golang.org/x/tools/gopls/internal/cache/symbols
-golang.org/x/tools/gopls/internal/cache/testfuncs
-golang.org/x/tools/gopls/internal/cache/typerefs
-golang.org/x/tools/gopls/internal/cache/xrefs
-golang.org/x/tools/gopls/internal/clonetest
-golang.org/x/tools/gopls/internal/cmd
-golang.org/x/tools/gopls/internal/debug
-golang.org/x/tools/gopls/internal/debug/log
-golang.org/x/tools/gopls/internal/doc
-golang.org/x/tools/gopls/internal/doc/generate
-golang.org/x/tools/gopls/internal/file
-golang.org/x/tools/gopls/internal/filecache
-golang.org/x/tools/gopls/internal/filewatcher
-golang.org/x/tools/gopls/internal/fuzzy
-golang.org/x/tools/gopls/internal/goasm
-golang.org/x/tools/gopls/internal/golang
-golang.org/x/tools/gopls/internal/golang/completion
-golang.org/x/tools/gopls/internal/golang/completion/snippet
-golang.org/x/tools/gopls/internal/golang/splitpkg
-golang.org/x/tools/gopls/internal/golang/stubmethods
-golang.org/x/tools/gopls/internal/label
-golang.org/x/tools/gopls/internal/licenses
-golang.org/x/tools/gopls/internal/lsprpc
-golang.org/x/tools/gopls/internal/mcp
-golang.org/x/tools/gopls/internal/mod
-golang.org/x/tools/gopls/internal/progress
-golang.org/x/tools/gopls/internal/protocol
-golang.org/x/tools/gopls/internal/protocol/command
-golang.org/x/tools/gopls/internal/protocol/command/commandmeta
-golang.org/x/tools/gopls/internal/protocol/command/gen
-golang.org/x/tools/gopls/internal/protocol/generate
-golang.org/x/tools/gopls/internal/protocol/semtok
-golang.org/x/tools/gopls/internal/server
-golang.org/x/tools/gopls/internal/settings
-golang.org/x/tools/gopls/internal/telemetry
-golang.org/x/tools/gopls/internal/template
-golang.org/x/tools/gopls/internal/test/compare
-golang.org/x/tools/gopls/internal/test/integration
-golang.org/x/tools/gopls/internal/test/integration/bench
-golang.org/x/tools/gopls/internal/test/integration/codelens
-golang.org/x/tools/gopls/internal/test/integration/completion
-golang.org/x/tools/gopls/internal/test/integration/debug
-golang.org/x/tools/gopls/internal/test/integration/diagnostics
-golang.org/x/tools/gopls/internal/test/integration/fake
-golang.org/x/tools/gopls/internal/test/integration/fake/glob
-golang.org/x/tools/gopls/internal/test/integration/inlayhints
-golang.org/x/tools/gopls/internal/test/integration/misc
-golang.org/x/tools/gopls/internal/test/integration/modfile
-golang.org/x/tools/gopls/internal/test/integration/template
-golang.org/x/tools/gopls/internal/test/integration/watch
-golang.org/x/tools/gopls/internal/test/integration/web
-golang.org/x/tools/gopls/internal/test/integration/workspace
-golang.org/x/tools/gopls/internal/test/marker
-golang.org/x/tools/gopls/internal/util/asm
-golang.org/x/tools/gopls/internal/util/browser
-golang.org/x/tools/gopls/internal/util/bug
-golang.org/x/tools/gopls/internal/util/constraints
-golang.org/x/tools/gopls/internal/util/cursorutil
-golang.org/x/tools/gopls/internal/util/fakenet
-golang.org/x/tools/gopls/internal/util/fingerprint
-golang.org/x/tools/gopls/internal/util/frob
-golang.org/x/tools/gopls/internal/util/goversion
-golang.org/x/tools/gopls/internal/util/immutable
-golang.org/x/tools/gopls/internal/util/lru
-golang.org/x/tools/gopls/internal/util/memoize
-golang.org/x/tools/gopls/internal/util/moremaps
-golang.org/x/tools/gopls/internal/util/moreslices
-golang.org/x/tools/gopls/internal/util/morestrings
-golang.org/x/tools/gopls/internal/util/pathutil
-golang.org/x/tools/gopls/internal/util/persistent
-golang.org/x/tools/gopls/internal/util/safetoken
-golang.org/x/tools/gopls/internal/util/tokeninternal
-golang.org/x/tools/gopls/internal/util/typesutil
-golang.org/x/tools/gopls/internal/version
-golang.org/x/tools/gopls/internal/vulncheck
-golang.org/x/tools/gopls/internal/vulncheck/govulncheck
-golang.org/x/tools/gopls/internal/vulncheck/osv
-golang.org/x/tools/gopls/internal/vulncheck/scan
-golang.org/x/tools/gopls/internal/vulncheck/semver
-golang.org/x/tools/gopls/internal/vulncheck/vulntest
-golang.org/x/tools/gopls/internal/work
 # golang.org/x/vuln v1.3.0
 ## explicit; go 1.25.0
 golang.org/x/vuln/internal
@@ -23851,7 +23742,9 @@ modernc.org/token
 moul.io/http2curl/v2
 # mvdan.cc/gofumpt v0.10.0
 ## explicit; go 1.25.0
+mvdan.cc/gofumpt
 mvdan.cc/gofumpt/format
+mvdan.cc/gofumpt/internal/govendor/diff
 mvdan.cc/gofumpt/internal/govendor/go/doc/comment
 mvdan.cc/gofumpt/internal/govendor/go/format
 mvdan.cc/gofumpt/internal/govendor/go/printer
@@ -23859,6 +23752,10 @@ mvdan.cc/gofumpt/internal/version
 # mvdan.cc/xurls/v2 v2.6.0
 ## explicit; go 1.22.0
 mvdan.cc/xurls/v2
+mvdan.cc/xurls/v2/cmd/xurls
+mvdan.cc/xurls/v2/generate/schemesgen
+mvdan.cc/xurls/v2/generate/tldsgen
+mvdan.cc/xurls/v2/generate/unicodegen
 # nhooyr.io/websocket v1.8.17
 ## explicit; go 1.19
 nhooyr.io/websocket

@@ -398,6 +398,7 @@ require (
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052
 	github.com/failsafe-go/failsafe-go v0.6.9
 	github.com/fatih/color v1.18.0
+	github.com/fatih/gomodifytags v1.17.1-0.20250423142747-f3939df9aa3c
 	github.com/fclairamb/ftpserver v0.14.0
 	github.com/fclairamb/go-log v0.5.0
 	github.com/felixge/fgprof v0.9.4
@@ -1100,7 +1101,6 @@ require (
 	golang.org/x/tools/go/expect v0.1.1-deprecated
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
 	golang.org/x/tools/godoc v0.1.0-deprecated
-	golang.org/x/tools/gopls v0.21.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 	golang.yandex/hasql v1.1.1
 	golang.yandex/hasql/v2 v2.1.1
@@ -1153,6 +1153,8 @@ require (
 	k8s.io/kubelet v0.32.3
 	k8s.io/kubernetes v1.26.1
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
+	mvdan.cc/gofumpt v0.10.0
+	mvdan.cc/xurls/v2 v2.6.0
 	nhooyr.io/websocket v1.8.17
 	oras.land/oras-go/v2 v2.6.0
 	rsc.io/omap v1.2.0
@@ -1692,7 +1694,6 @@ require (
 	github.com/fasthttp-contrib/websocket v0.0.0-20160511215533-1f3b11f56072 // indirect
 	github.com/fasthttp/websocket v1.5.1-rc.1 // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
-	github.com/fatih/gomodifytags v1.17.1-0.20250423142747-f3939df9aa3c // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fclairamb/afero-dropbox v0.1.0 // indirect
@@ -2686,8 +2687,6 @@ require (
 	modernc.org/xc v1.0.1 // indirect
 	modernc.org/z v1.7.3 // indirect
 	moul.io/http2curl/v2 v2.3.0 // indirect
-	mvdan.cc/gofumpt v0.10.0 // indirect
-	mvdan.cc/xurls/v2 v2.6.0 // indirect
 	oras.land/oras-go v1.2.5 // indirect
 	pack.ag/amqp v0.12.5 // indirect
 	resenje.org/singleflight v0.4.3 // indirect
