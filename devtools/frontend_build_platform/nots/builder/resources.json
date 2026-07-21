@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-07-06T23:08:05Z",
+    "created": "2026-07-20T20:48:20.116Z",
     "pr": {
-      "id": 14286715,
+      "id": 14536182,
       "author": "baymer",
-      "summary": "FBP-3266: ts: починить сендбоксинг в TS_LIBRARY"
+      "summary": "FBP-3293: move node_modules bundling to builder"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12700282480"
+      "uri": "sbr:12859963874"
     },
     "darwin-arm64": {
-      "uri": "sbr:12700281374"
+      "uri": "sbr:12859962579"
     },
     "linux": {
-      "uri": "sbr:12700284241"
+      "uri": "sbr:12859966636"
     },
     "linux-aarch64": {
-      "uri": "sbr:12700283393"
+      "uri": "sbr:12859964965"
     }
   }
 }

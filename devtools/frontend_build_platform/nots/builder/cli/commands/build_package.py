@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 from devtools.frontend_build_platform.libraries.logging import timeit
-from devtools.frontend_build_platform.nots.builder.api import create_node_modules, PackageBuilder, PackageBuilderOptions
+from devtools.frontend_build_platform.nots.builder.api import PackageBuilder, PackageBuilderOptions
 
 
 def add_package_builder_args(subparser: ArgumentParser) -> ArgumentParser:
@@ -30,14 +30,9 @@ def build_package_parser(subparsers) -> ArgumentParser:
 
 @timeit
 def build_package_func(args: PackageBuilderOptions):
-    # Step 1 - install node_modules
-    create_node_modules(args)
-
-    # Step 2 - run build script
     builder = PackageBuilder(options=args)
     builder.build()
 
-    # Step 3 - create 'output.tar'
     builder.bundle()
 
     return []

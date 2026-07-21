@@ -16,7 +16,9 @@ from .builders import (
     TsProtoAutoTscBuilder,
 )
 from .create_node_modules import (
+    bundle_workspace_node_modules,
     create_node_modules,
+    NodeModulesBuildContext,
 )
 from .generators.ts_proto_generator import TsProtoGenerator, TsProtoGeneratorOptions
 from .models import BaseOptions, BuildError, CommonTsBuildersOptions, CommonBundlersOptions
@@ -51,6 +53,8 @@ __all__ = [
     'PrepareDepsOptions',
     # utils
     'create_node_modules',
+    'bundle_workspace_node_modules',
+    'NodeModulesBuildContext',
     'extract_all_output_tars',
     'extract_peer_tars',
 ]

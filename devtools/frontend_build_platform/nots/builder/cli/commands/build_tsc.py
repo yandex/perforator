@@ -2,7 +2,12 @@ from argparse import ArgumentParser
 
 from build.plugins.lib.nots.typescript import TsConfig, TsValidationError
 from devtools.frontend_build_platform.libraries.logging import timeit
-from devtools.frontend_build_platform.nots.builder.api import create_node_modules, TscBuilder, TscBuilderOptions
+from devtools.frontend_build_platform.nots.builder.api import (
+    bundle_workspace_node_modules,
+    create_node_modules,
+    TscBuilder,
+    TscBuilderOptions,
+)
 
 
 def build_tsc_parser(subparsers) -> ArgumentParser:
@@ -39,7 +44,7 @@ def get_output_dirs(ts_configs: list[TsConfig]) -> list[str]:
 @timeit
 def build_tsc_func(args: TscBuilderOptions):
     # Step 1 - install node_modules
-    create_node_modules(args)
+    node_modules_context = create_node_modules(args)
 
     # Step 2 - run build script
     ts_configs = [TscBuilder.load_ts_config(tc, args.curdir) for tc in args.tsconfigs]
@@ -54,6 +59,8 @@ def build_tsc_func(args: TscBuilderOptions):
         TscBuilder(options=args, ts_config=ts_configs[0]).run_javascript_after_build()
         if args.after_build_outdir:
             out_dirs.append(args.after_build_outdir)
+
+    bundle_workspace_node_modules(args, node_modules_context)
 
     # Step 3 - create 'output.tar'
     builder.bundle()

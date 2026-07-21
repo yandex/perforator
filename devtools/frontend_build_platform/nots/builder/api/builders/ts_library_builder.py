@@ -9,7 +9,7 @@ from .base_builder import BaseBuilder
 from ..models import BaseBuildersOptions, BuildError
 from ..utils import copy_files_with_exclusions, popen
 
-from ..create_node_modules import create_node_modules
+from ..create_node_modules import bundle_workspace_node_modules, create_node_modules
 
 
 @dataclass
@@ -31,9 +31,11 @@ class TsLibraryBuilder(BaseBuilder):
     def build(self):
         self._prepare_bindir()
 
-        create_node_modules(self.options)
+        node_modules_context = create_node_modules(self.options)
 
         self._build()
+
+        bundle_workspace_node_modules(self.options, node_modules_context)
 
     def __init__(self, options: TsLibraryBuilderOptions):
         super(TsLibraryBuilder, self).__init__(options)

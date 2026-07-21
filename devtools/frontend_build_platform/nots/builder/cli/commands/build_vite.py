@@ -3,6 +3,7 @@ import sys
 
 from devtools.frontend_build_platform.libraries.logging import timeit
 from devtools.frontend_build_platform.nots.builder.api import (
+    bundle_workspace_node_modules,
     create_node_modules,
     ViteBuilder,
     ViteBuilderOptions,
@@ -20,7 +21,7 @@ def build_vite_parser(subparsers) -> ArgumentParser:
 @timeit
 def build_vite_func(args: ViteBuilderOptions):
     # Step 1 - install node_modules
-    create_node_modules(args)
+    node_modules_context = create_node_modules(args)
 
     # Step 2 - run build script
     for i, bundler_config_path in enumerate(args.bundler_configs):
@@ -49,6 +50,8 @@ def build_vite_func(args: ViteBuilderOptions):
         builder.run_javascript_after_build()
         if args.after_build_outdir:
             out_dirs.append(args.after_build_outdir)
+
+    bundle_workspace_node_modules(args, node_modules_context)
 
     # Step 3 - create 'output.tar'
     builder.bundle()

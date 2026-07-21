@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 
 from devtools.frontend_build_platform.libraries.logging import timeit
 from devtools.frontend_build_platform.nots.builder.api import (
+    bundle_workspace_node_modules,
     create_node_modules,
     RspackBuilder,
     RspackBuilderOptions,
@@ -19,11 +20,13 @@ def build_rspack_parser(subparsers) -> ArgumentParser:
 @timeit
 def build_rspack_func(args: RspackBuilderOptions):
     # Step 1 - install node_modules
-    create_node_modules(args)
+    node_modules_context = create_node_modules(args)
 
     # Step 2 - run build script
     builder = RspackBuilder(options=args, ts_config_path=args.tsconfigs[0])
     builder.build()
+
+    bundle_workspace_node_modules(args, node_modules_context)
 
     # Step 3 - create 'output.tar'
     builder.bundle()

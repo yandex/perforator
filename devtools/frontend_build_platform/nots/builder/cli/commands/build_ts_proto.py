@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from devtools.frontend_build_platform.libraries.logging import timeit
 from devtools.frontend_build_platform.nots.builder.api import (
+    bundle_workspace_node_modules,
     create_node_modules,
     TscBuilder,
     TscBuilderOptions,
@@ -47,7 +48,7 @@ def build_ts_proto_func(args: TsProtoBuilderOptions):
     generator.generate_auto_package()
 
     # Step 1 - install node_modules
-    create_node_modules(args, original_lf_path=generator.get_auto_deps_lf_path())
+    node_modules_context = create_node_modules(args, original_lf_path=generator.get_auto_deps_lf_path())
 
     # Step 2 - run generate script
     generator.generate()
@@ -67,6 +68,8 @@ def build_ts_proto_func(args: TsProtoBuilderOptions):
             builder.build()
 
     out_dirs = get_output_dirs(ts_configs)
+
+    bundle_workspace_node_modules(args, node_modules_context)
 
     # Step 4 - create 'output.tar'
     builder.bundle()
