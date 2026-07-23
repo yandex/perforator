@@ -22358,14 +22358,12 @@ helm.sh/helm/v3/pkg/storage/driver
 helm.sh/helm/v3/pkg/strvals
 helm.sh/helm/v3/pkg/time
 helm.sh/helm/v3/pkg/uploader
-# honnef.co/go/tools v0.8.0-rc.1
-## explicit; go 1.26.0
+# honnef.co/go/tools v0.7.0
+## explicit; go 1.25.0
 honnef.co/go/tools
 honnef.co/go/tools/analysis/callcheck
 honnef.co/go/tools/analysis/code
 honnef.co/go/tools/analysis/dfa
-honnef.co/go/tools/analysis/dfa/dense
-honnef.co/go/tools/analysis/dfa/sparse
 honnef.co/go/tools/analysis/edit
 honnef.co/go/tools/analysis/facts/deprecated
 honnef.co/go/tools/analysis/facts/directives
@@ -22373,6 +22371,7 @@ honnef.co/go/tools/analysis/facts/generated
 honnef.co/go/tools/analysis/facts/nilness
 honnef.co/go/tools/analysis/facts/purity
 honnef.co/go/tools/analysis/facts/tokenfile
+honnef.co/go/tools/analysis/facts/typedness
 honnef.co/go/tools/analysis/lint
 honnef.co/go/tools/analysis/lint/testutil
 honnef.co/go/tools/analysis/report
@@ -22389,39 +22388,22 @@ honnef.co/go/tools/go/ir
 honnef.co/go/tools/go/ir/irutil
 honnef.co/go/tools/go/loader
 honnef.co/go/tools/go/types/typeutil
+honnef.co/go/tools/internal/analysisinternal/typeindex
 honnef.co/go/tools/internal/cmd/ast-to-pattern
 honnef.co/go/tools/internal/cmd/gogrep
 honnef.co/go/tools/internal/cmd/irdump
 honnef.co/go/tools/internal/cmd/unused
 honnef.co/go/tools/internal/diff/myers
-honnef.co/go/tools/internal/iterutil
 honnef.co/go/tools/internal/passes/buildir
 honnef.co/go/tools/internal/renameio
 honnef.co/go/tools/internal/robustio
 honnef.co/go/tools/internal/sharedcheck
 honnef.co/go/tools/internal/sync
-honnef.co/go/tools/internal/xtools-internal/aliases
-honnef.co/go/tools/internal/xtools-internal/analysis/typeindex
-honnef.co/go/tools/internal/xtools-internal/astutil
-honnef.co/go/tools/internal/xtools-internal/astutil/free
-honnef.co/go/tools/internal/xtools-internal/expect
-honnef.co/go/tools/internal/xtools-internal/gocommand
-honnef.co/go/tools/internal/xtools-internal/graph
-honnef.co/go/tools/internal/xtools-internal/graph/graphfmt
-honnef.co/go/tools/internal/xtools-internal/moreiters
-honnef.co/go/tools/internal/xtools-internal/packagestest
-honnef.co/go/tools/internal/xtools-internal/proxydir
-honnef.co/go/tools/internal/xtools-internal/testenv
-honnef.co/go/tools/internal/xtools-internal/testfiles
-honnef.co/go/tools/internal/xtools-internal/typeparams
-honnef.co/go/tools/internal/xtools-internal/typeparams/genericfeatures
-honnef.co/go/tools/internal/xtools-internal/typesinternal
-honnef.co/go/tools/internal/xtools-internal/typesinternal/typeindex
-honnef.co/go/tools/internal/xtools-internal/versions
+honnef.co/go/tools/internal/testenv
+honnef.co/go/tools/internal/typesinternal/typeindex
 honnef.co/go/tools/knowledge
 honnef.co/go/tools/lintcmd
 honnef.co/go/tools/lintcmd/cache
-honnef.co/go/tools/lintcmd/cache/cacheprog
 honnef.co/go/tools/lintcmd/runner
 honnef.co/go/tools/lintcmd/version
 honnef.co/go/tools/pattern
@@ -22575,7 +22557,6 @@ honnef.co/go/tools/staticcheck/sa9006
 honnef.co/go/tools/staticcheck/sa9007
 honnef.co/go/tools/staticcheck/sa9008
 honnef.co/go/tools/staticcheck/sa9009
-honnef.co/go/tools/staticcheck/sa9010
 honnef.co/go/tools/structlayout
 honnef.co/go/tools/stylecheck
 honnef.co/go/tools/stylecheck/st1000
