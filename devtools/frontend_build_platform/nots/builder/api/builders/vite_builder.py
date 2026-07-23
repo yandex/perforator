@@ -31,7 +31,7 @@ class ViteBuilder(BaseTsBuilder):
 
     @timeit
     def _get_script_path(self):
-        return self.resolve_bin("vite")
+        return self.get_bin_path("vite")
 
     @timeit
     def _get_exec_args(self) -> list[str]:

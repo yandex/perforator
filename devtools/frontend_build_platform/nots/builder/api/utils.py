@@ -267,27 +267,6 @@ def popen(args: list[str], env: dict[str, str], cwd: str, verbose: bool = False)
     return return_code, stdout, stderr
 
 
-def resolve_bin(cwd: str, package_name: str, bin_name: str = None) -> str:
-    """
-    Looks for the specified `bin_name` (or default) for the package
-    :param package_name: Name of the package in `node_modules` dir
-    :param bin_name: Custom "bin", defined in `package.json:bin` object
-    :return: Full path to the script (.js file)
-    """
-    pj_path = os.path.join(
-        cwd,
-        pm_constants.NODE_MODULES_DIRNAME,
-        package_name,
-        pm_constants.PACKAGE_JSON_FILENAME,
-    )
-    pj = PackageJson.load(pj_path)
-    bin_path = pj.get_bin_path(bin_name)
-
-    assert bin_path is not None
-
-    return os.path.normpath(os.path.join(cwd, pm_constants.NODE_MODULES_DIRNAME, package_name, bin_path))
-
-
 def parse_opt_to_dict(opts: list[str]) -> dict[str, str]:
     result = {}
     for opt in opts:

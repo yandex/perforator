@@ -27,7 +27,7 @@ class WebpackBuilder(BaseTsBuilder):
 
     @timeit
     def _get_script_path(self):
-        return self.resolve_bin("webpack-cli")
+        return self.get_bin_path("webpack")
 
     @timeit
     def _get_exec_args(self) -> list[str]:

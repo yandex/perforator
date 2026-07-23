@@ -30,7 +30,7 @@ class NextBuilder(BaseTsBuilder):
 
     @timeit
     def _get_script_path(self) -> str:
-        return self.resolve_bin("next")
+        return self.get_bin_path("next")
 
     @timeit
     def _get_exec_args(self) -> list[str]:

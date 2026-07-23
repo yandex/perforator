@@ -30,7 +30,7 @@ class TscBuilder(BaseTsBuilder):
 
     @timeit
     def _get_script_path(self) -> str:
-        return self.resolve_bin("typescript", "tsc")
+        return self.get_bin_path("tsc")
 
     @timeit
     def _get_exec_args(self) -> list[str]:

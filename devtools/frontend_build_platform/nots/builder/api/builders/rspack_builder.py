@@ -27,7 +27,7 @@ class RspackBuilder(BaseTsBuilder):
 
     @timeit
     def _get_script_path(self):
-        return self.resolve_bin("@rspack/cli", "rspack")
+        return self.get_bin_path("rspack")
 
     @timeit
     def _get_exec_args(self) -> list[str]:

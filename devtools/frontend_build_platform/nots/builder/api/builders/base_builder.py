@@ -19,7 +19,6 @@ from ..utils import (
     recursive_copy,
     extract_peer_tars,
     popen,
-    resolve_bin,
     bundle_fs_entries,
 )
 
@@ -314,14 +313,8 @@ class BaseTsBuilder(BaseLegacyBuilder):
         return os.path.join(self.options.bindir, self.ts_config_path)
 
     @timeit
-    def resolve_bin(self, package_name: str, bin_name: str = None) -> str:
-        """
-        Looks for the specified `bin_name` (or default) for the package
-        :param package_name: Name of the package in `node_modules` dir
-        :param bin_name: Custom "bin", defined in `package.json:bin` object
-        :return: Full path to the script (.js file)
-        """
-        return resolve_bin(self.options.bindir, package_name, bin_name)
+    def get_bin_path(self, binfile: str) -> str:
+        return os.path.join(self.options.bindir, pm_constants.NODE_MODULES_DIRNAME, ".bin", binfile)
 
     @timeit
     def _prepare_bindir(self):

@@ -5,7 +5,7 @@ from devtools.frontend_build_platform.libraries.logging import timeit
 from build.plugins.lib.nots.package_manager import PackageJson, utils as pm_utils
 
 from ..models import BuildError, BaseOptions
-from ..utils import copy_if_not_exists, dict_to_ts_proto_opt, parse_opt_to_dict, popen, resolve_bin, extract_output_tar
+from ..utils import copy_if_not_exists, dict_to_ts_proto_opt, extract_output_tar, parse_opt_to_dict, popen
 
 from .default_ts_proto_opt import DEFAULT_TS_PROTO_OPT, DEFAULT_TS_PROTO_AUTO_OPT
 
@@ -120,7 +120,7 @@ class TsProtoGenerator:
         return os.path.join(self.options.bindir, "src", "generated")
 
     def _resolve_ts_proto_plugin(self):
-        return resolve_bin(self.options.bindir, "ts-proto", "protoc-gen-ts_proto")
+        return os.path.join(self.options.bindir, "node_modules", ".bin", "protoc-gen-ts_proto")
 
     def _make_out_dir(self):
         os.makedirs(self._get_out_dir(), exist_ok=True)

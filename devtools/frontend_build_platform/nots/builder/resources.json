@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-07-21T09:26:46.606Z",
+    "created": "2026-07-22T12:55:37.802Z",
     "pr": {
-      "id": 14537546,
+      "id": 14570648,
       "author": "baymer",
-      "summary": "FBP-3287: добавить кешируемые герметичные node_modules"
+      "summary": "FBP-3295: nots/builder: перевести запуск инструментов на бинарники из node_modules/.bin"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12864763820"
+      "uri": "sbr:12883744653"
     },
     "darwin-arm64": {
-      "uri": "sbr:12864760082"
+      "uri": "sbr:12883740902"
     },
     "linux": {
-      "uri": "sbr:12864770985"
+      "uri": "sbr:12883752477"
     },
     "linux-aarch64": {
-      "uri": "sbr:12864767486"
+      "uri": "sbr:12883748255"
     }
   }
 }
