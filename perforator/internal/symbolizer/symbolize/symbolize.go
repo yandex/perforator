@@ -9,6 +9,7 @@ import (
 
 	pprof "github.com/google/pprof/profile"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
@@ -181,9 +182,6 @@ func (s *Symbolizer) acquireBinaries(ctx context.Context, buildIDs []string) (
 	cachedBinaries *CachedBinariesBatch,
 	err error,
 ) {
-	ctx, span := otel.Tracer("Symbolizer").Start(ctx, "symbolize.(*Symbolizer).acquireBinaries")
-	defer span.End()
-
 	withGSYMLogger := s.logger.WithName("WithGSYM")
 	gsymCachedBinaries = NewCachedBinariesBatch(withGSYMLogger, s.gsymBinaryProvider, false)
 	if s.symbolizationMode == SymbolizationModeGSYMPreferred {
@@ -271,6 +269,7 @@ func (s *Symbolizer) traceUnknownBinary(ctx context.Context, buildID string, ori
 // the binary is acquired before the lock so downloads stay concurrent.
 func (s *Symbolizer) Symbolize(ctx context.Context, buildID string, addresses []uint64) ([]*symbolizer.AddressResult, error) {
 	ctx, span := otel.Tracer("Symbolizer").Start(ctx, "symbolize.(*Symbolizer).Symbolize")
+	span.SetAttributes(attribute.String("build_id", buildID), attribute.Int("addresses", len(addresses)))
 	defer span.End()
 
 	gsymCachedBinaries, cachedBinaries, err := s.acquireBinaries(ctx, []string{buildID})

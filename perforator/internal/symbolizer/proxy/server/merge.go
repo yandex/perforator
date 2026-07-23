@@ -8,6 +8,7 @@ import (
 
 	pprof "github.com/google/pprof/profile"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	otelcodes "go.opentelemetry.io/otel/codes"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -170,6 +171,19 @@ func (s *PerforatorServer) fetchAndMergeProfilesFast(
 		}
 		span.End()
 	}()
+
+	// Record which profiles contributed to the merge so they're readable straight
+	// off the trace by trace.id. Cap the id list to keep the span small.
+	span.SetAttributes(attribute.Int("merge.profiles", len(metas)))
+	const maxLoggedProfileIDs = 10
+	ids := make([]string, 0, maxLoggedProfileIDs)
+	for i, m := range metas {
+		if i >= maxLoggedProfileIDs {
+			break
+		}
+		ids = append(ids, m.ID)
+	}
+	span.SetAttributes(attribute.StringSlice("merge.profile_ids", ids))
 
 	session, err := s.mergemanager.Start(mergeOpts)
 	if err != nil {
