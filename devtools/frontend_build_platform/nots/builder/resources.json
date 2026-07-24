@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-07-22T12:55:37.802Z",
+    "created": "2026-07-24T20:28:22.975Z",
     "pr": {
-      "id": 14570648,
+      "id": 14579033,
       "author": "baymer",
-      "summary": "FBP-3295: nots/builder: перевести запуск инструментов на бинарники из node_modules/.bin"
+      "summary": "FBP-3287: Use RAM disk for hermetic node_modules"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12883744653"
+      "uri": "sbr:12918224214"
     },
     "darwin-arm64": {
-      "uri": "sbr:12883740902"
+      "uri": "sbr:12918223349"
     },
     "linux": {
-      "uri": "sbr:12883752477"
+      "uri": "sbr:12918225978"
     },
     "linux-aarch64": {
-      "uri": "sbr:12883748255"
+      "uri": "sbr:12918224997"
     }
   }
 }

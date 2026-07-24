@@ -10,6 +10,43 @@ from ..utils import copy_if_not_exists, dict_to_ts_proto_opt, extract_output_tar
 from .default_ts_proto_opt import DEFAULT_TS_PROTO_OPT, DEFAULT_TS_PROTO_AUTO_OPT
 
 
+def generate_ts_proto_auto_package(
+    build_root: str,
+    bindir: str,
+    moddir: str,
+    auto_package_name: str,
+    auto_deps_path: str,
+) -> None:
+    auto_deps_build_path = os.path.join(build_root, auto_deps_path)
+    deps_pj = PackageJson.load(pm_utils.build_pj_path(auto_deps_build_path))
+    pj = PackageJson(pm_utils.build_pj_path(bindir))
+    gen_name = moddir.replace("/", "-")
+    pj.data = {
+        "name": auto_package_name.replace("*", gen_name),
+        "version": "0.0.0",
+        "type": "module",
+        "files": ["build", "pnpm-lock.yaml"],
+        "repository": {"type": "arc", "directory": moddir},
+        "dependencies": deps_pj.data.get("dependencies", {}),
+        "devDependencies": deps_pj.data.get("devDependencies", {}),
+        "exports": {
+            "./*": {
+                "import": os.path.join(".", "build", "esm", "generated", moddir, "*.js"),
+                "require": os.path.join(".", "build", "cjs", "generated", moddir, "*.js"),
+                "types": os.path.join(".", "build", "types", "generated", moddir, "*.d.ts"),
+                "default": os.path.join(".", "build", "esm", "generated", moddir, "*.js"),
+            },
+            "./generated/*": {
+                "import": os.path.join(".", "build", "esm", "generated", "*.js"),
+                "require": os.path.join(".", "build", "cjs", "generated", "*.js"),
+                "types": os.path.join(".", "build", "types", "generated", "*.d.ts"),
+                "default": os.path.join(".", "build", "esm", "generated", "*.js"),
+            },
+        },
+    }
+    pj.write()
+
+
 @dataclass
 class TsProtoGeneratorOptions(BaseOptions):
     protoc_bin: str
@@ -54,51 +91,18 @@ class TsProtoGenerator:
         return self.options.auto_package_name is not None and self.options.auto_deps_path is not None
 
     @timeit
-    def generate_auto_package(self):
+    def copy_auto_tsconfigs(self):
         if not self.is_auto_package:
             return
 
         auto_deps_build_path = os.path.join(self.options.arcadia_build_root, self.options.auto_deps_path)
         extract_output_tar(auto_deps_build_path)
 
-        deps_pj = PackageJson.load(pm_utils.build_pj_path(auto_deps_build_path))
-        pj = PackageJson(pm_utils.build_pj_path(self.options.bindir))
-        gen_name = self.options.moddir.replace("/", "-")
-        pj.data = {
-            "name": self.options.auto_package_name.replace("*", gen_name),
-            "version": "0.0.0",
-            "type": "module",
-            "files": ["build", "pnpm-lock.yaml"],
-            "repository": {"type": "arc", "directory": self.options.moddir},
-            "dependencies": deps_pj.data.get("dependencies", {}),
-            "devDependencies": deps_pj.data.get("devDependencies", {}),
-            "exports": {
-                "./*": {
-                    "import": os.path.join(".", "build", "esm", "generated", self.options.moddir, "*.js"),
-                    "require": os.path.join(".", "build", "cjs", "generated", self.options.moddir, "*.js"),
-                    "types": os.path.join(".", "build", "types", "generated", self.options.moddir, "*.d.ts"),
-                    "default": os.path.join(".", "build", "esm", "generated", self.options.moddir, "*.js"),
-                },
-                "./generated/*": {
-                    "import": os.path.join(".", "build", "esm", "generated", "*.js"),
-                    "require": os.path.join(".", "build", "cjs", "generated", "*.js"),
-                    "types": os.path.join(".", "build", "types", "generated", "*.d.ts"),
-                    "default": os.path.join(".", "build", "esm", "generated", "*.js"),
-                },
-            },
-        }
-        pj.write()
-
         tsconfigs = ["tsconfig.json", "tsconfig.cjs.json", "tsconfig.esm.json"]
         for tsconfig in tsconfigs:
             copy_if_not_exists(
                 os.path.join(auto_deps_build_path, tsconfig), os.path.join(self.options.bindir, tsconfig)
             )
-
-    def get_auto_deps_lf_path(self) -> str | None:
-        if not self.is_auto_package:
-            return None
-        return os.path.join(self.options.arcadia_build_root, self.options.auto_deps_path, "pnpm-lock.yaml")
 
     @timeit
     def generate_cjs_pj(self):

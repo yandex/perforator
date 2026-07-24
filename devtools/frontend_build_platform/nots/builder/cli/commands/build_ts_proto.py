@@ -44,11 +44,11 @@ def build_ts_proto_parser(subparsers) -> ArgumentParser:
 def build_ts_proto_func(args: TsProtoBuilderOptions):
     generator = TsProtoGenerator(options=args)
 
-    # Step 0 - generate package.json and tsconfigs
-    generator.generate_auto_package()
+    # Step 0 - copy generated-package tsconfigs
+    generator.copy_auto_tsconfigs()
 
     # Step 1 - install node_modules
-    node_modules_context = create_node_modules(args, original_lf_path=generator.get_auto_deps_lf_path())
+    node_modules_context = create_node_modules(args)
 
     # Step 2 - run generate script
     generator.generate()

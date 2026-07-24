@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-07-21T09:48:20.693Z",
+    "created": "2026-07-24T20:28:22.975Z",
     "pr": {
-      "id": 14537546,
+      "id": 14579033,
       "author": "baymer",
-      "summary": "FBP-3287: добавить кешируемые герметичные node_modules"
+      "summary": "FBP-3287: Use RAM disk for hermetic node_modules"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12865110734"
+      "uri": "sbr:12918260801"
     },
     "darwin-arm64": {
-      "uri": "sbr:12865107164"
+      "uri": "sbr:12918259867"
     },
     "linux": {
-      "uri": "sbr:12865117201"
+      "uri": "sbr:12918263145"
     },
     "linux-aarch64": {
-      "uri": "sbr:12865113976"
+      "uri": "sbr:12918261835"
     }
   }
 }

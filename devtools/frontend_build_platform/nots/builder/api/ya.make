@@ -20,6 +20,7 @@ PY_SRCS(
     globs.py
     models.py
     prepare_deps.py
+    ram_disk.py
     utils.py
 )
 

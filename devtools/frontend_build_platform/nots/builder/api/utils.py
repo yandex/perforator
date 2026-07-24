@@ -5,6 +5,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 
 import click
 import library.python.archive as archive
@@ -97,7 +98,7 @@ def extract_output_tar(moddir_abs: str):
     archive.extract_tar(output_tar_path, moddir_abs, fail_on_duplicates=False, entry_filter=pj_filter)
 
 
-def __add_write_permissions(path):
+def add_write_permissions(path):
     if not os.path.exists(path):
         eprint(f"Directory not exists: {path}")
         return
@@ -112,10 +113,25 @@ def __add_write_permissions(path):
             eprint(f"Can't update permissions for {path}")
 
 
+def copy_writable_file(src, dst):
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    # Copy through a new inode to detach dst from a read-only build-input hardlink.
+    fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(dst))
+    os.close(fd)
+    try:
+        shutil.copyfile(src, tmp_path)
+        src_mode = stat.S_IMODE(os.stat(src).st_mode)
+        os.chmod(tmp_path, src_mode | stat.S_IWUSR | stat.S_IWGRP)
+        os.replace(tmp_path, dst)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
 def __copy_file_with_write_permissions(src, dst):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copy(src, dst, follow_symlinks=False)
-    __add_write_permissions(dst)
+    add_write_permissions(dst)
 
 
 @timeit
@@ -135,7 +151,7 @@ def recursive_copy_impl(src: str, dest: str, overwrite: bool, recurse_level=0):
     # just for avoiding extra tracing with @timeit decorator
     copy_fn = recursive_copy_impl if recurse_level >= 1 else recursive_copy
 
-    __add_write_permissions(os.path.dirname(dest))
+    add_write_permissions(os.path.dirname(dest))
 
     if os.path.isdir(src):
         os.makedirs(dest, exist_ok=True)
@@ -207,7 +223,7 @@ def copy_files_with_exclusions(src_dir: str, dst_dir: str, exclude_globs: list[s
             dst_path = os.path.join(dst_dir, rel_file_path)
             if not os.path.exists(dst_path):
                 shutil.copy(src_path, dst_path)
-                __add_write_permissions(dst_path)
+                add_write_permissions(dst_path)
 
 
 @timeit

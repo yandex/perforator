@@ -31,7 +31,10 @@ def build_package_parser(subparsers) -> ArgumentParser:
 @timeit
 def build_package_func(args: PackageBuilderOptions):
     builder = PackageBuilder(options=args)
-    builder.build()
-    builder.bundle()
+    try:
+        builder.build()
+        builder.bundle()
+    finally:
+        builder.cleanup()
 
     return []

@@ -1,9 +1,10 @@
 import os
+import stat
 import tempfile
 
 import pytest
 
-from devtools.frontend_build_platform.nots.builder.api.utils import copy_files_with_exclusions
+from devtools.frontend_build_platform.nots.builder.api.utils import copy_files_with_exclusions, copy_writable_file
 
 TEST_FILE_STRUCTURE = {
     'src': {
@@ -31,6 +32,23 @@ TEST_FILE_STRUCTURE = {
     'package.json': '{"name": "test"}',
     'README.md': '# Test',
 }
+
+
+def test_copy_writable_file_does_not_hardlink_source(tmp_path):
+    src = tmp_path / 'src-package.json'
+    dst = tmp_path / 'dst-package.json'
+    src.write_text('{"name": "original"}')
+    src.chmod(0o444)
+    os.link(src, dst)
+
+    copy_writable_file(src, dst)
+
+    assert dst.read_text() == src.read_text()
+    assert dst.stat().st_ino != src.stat().st_ino
+    assert dst.stat().st_mode & stat.S_IWUSR
+
+    dst.write_text('{"name": "updated"}')
+    assert src.read_text() == '{"name": "original"}'
 
 
 def create_test_file_structure(base_dir, structure=None):
@@ -86,12 +104,12 @@ def mock_file_operations(monkeypatch):
         def mock_add_write_permissions(path):
             pass
 
-        # Monkeypatch shutil.copy and __add_write_permissions
+        # Monkeypatch file operations.
         import devtools.frontend_build_platform.nots.builder.api.utils as utils_module
         import shutil as shutil_module
 
         monkeypatch.setattr(shutil_module, 'copy', mock_copy)
-        monkeypatch.setattr(utils_module, '__add_write_permissions', mock_add_write_permissions, raising=False)
+        monkeypatch.setattr(utils_module, 'add_write_permissions', mock_add_write_permissions)
 
         yield src_dir, dst_dir, copied_files
 

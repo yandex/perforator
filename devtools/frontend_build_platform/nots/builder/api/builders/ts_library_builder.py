@@ -1,12 +1,20 @@
+import copy
 import os
+import shutil
 import textwrap
 from dataclasses import dataclass
 
 import click
-from devtools.frontend_build_platform.libraries.logging import timeit
+from build.plugins.lib.nots.package_manager import (
+    PackageJson,
+    constants as pm_constants,
+    utils as pm_utils,
+)
+from devtools.frontend_build_platform.libraries.logging import get_logger, timeit
 
 from .base_builder import BaseBuilder
 from ..models import BaseBuildersOptions, BuildError
+from ..ram_disk import RamDisk, RamDiskUsage
 from ..utils import copy_files_with_exclusions, popen
 
 from ..create_node_modules import (
@@ -15,6 +23,8 @@ from ..create_node_modules import (
     NodeModulesBuildContext,
     restore_node_modules_layer,
 )
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -47,15 +57,102 @@ class TsLibraryBuilder(BaseBuilder):
         bundle_workspace_node_modules(self.options, node_modules_context)
 
     def __init__(self, options: TsLibraryBuilderOptions):
+        self._ram_disk_usage = RamDiskUsage.NONE
+        self._ram_disk = None
+        self._original_bindir = None
+        self._original_output_file = None
+
+        if options.hermetic_node_modules:
+            self._ram_disk = RamDisk.from_env()
+            ram_bindir = self._ram_disk.path(options.arcadia_build_root, options.bindir) if self._ram_disk else None
+            source_exclude_globs = options.exclude_globs + [f"{output}/**/*" for output in options.outputs]
+            build_exclude_globs = [
+                f"{pm_constants.NODE_MODULES_DIRNAME}/**/*",
+                os.path.basename(options.output_file),
+                *[f"{output}/**/*" for output in options.outputs],
+            ]
+            ram_disk_usage = (
+                self._ram_disk.select_usage(
+                    options.curdir,
+                    options.bindir,
+                    options.node_modules_layer,
+                    source_exclude_globs,
+                    build_exclude_globs,
+                    include_workspace_bundle=options.nm_bundle,
+                )
+                if ram_bindir
+                else RamDiskUsage.NONE
+            )
+            self._ram_disk_usage = ram_disk_usage
+            if self._ram_disk_usage == RamDiskUsage.FULL_BUILD:
+                self._original_bindir = options.bindir
+                self._original_output_file = options.output_file
+                options = copy.copy(options)
+                options.bindir = ram_bindir
+                options.output_file = self._ram_disk.path(options.arcadia_build_root, options.output_file)
+            elif self._ram_disk_usage == RamDiskUsage.NODE_MODULES:
+                options = copy.copy(options)
+                options.use_ram_disk = True
+            elif ram_bindir:
+                options = copy.copy(options)
+                options.use_ram_disk = False
+
         super(TsLibraryBuilder, self).__init__(options)
         self.options = options  # for type hints
 
     @timeit
+    def bundle(self):
+        result = super().bundle()
+
+        if self._ram_disk_usage == RamDiskUsage.FULL_BUILD:
+            assert self._original_bindir is not None
+            assert self._original_output_file is not None
+            os.makedirs(os.path.dirname(self._original_output_file), exist_ok=True)
+            shutil.copyfile(self.options.output_file, self._original_output_file)
+            if self.options.nm_bundle:
+                shutil.copyfile(
+                    pm_utils.build_nm_bundle_path(self.options.bindir),
+                    pm_utils.build_nm_bundle_path(self._original_bindir),
+                )
+
+        return result
+
+    def cleanup(self):
+        if self._ram_disk_usage != RamDiskUsage.NONE:
+            assert self._ram_disk is not None
+            self._ram_disk.cleanup()
+
+    @timeit
     def _prepare_bindir(self):
         """Prepare bindir by extracting dependencies and copying source files"""
-        super()._prepare_bindir()
+        if self._ram_disk_usage == RamDiskUsage.FULL_BUILD:
+            assert self._original_bindir is not None
+            assert self._original_output_file is not None
+            exclude_globs = [
+                f"{pm_constants.NODE_MODULES_DIRNAME}/**/*",
+                os.path.basename(self._original_output_file),
+                *[f"{output}/**/*" for output in self.options.outputs],
+            ]
+            copy_files_with_exclusions(self._original_bindir, self.options.bindir, exclude_globs)
+            os.makedirs(self.options.bindir, exist_ok=True)
+        else:
+            super()._prepare_bindir()
+
         exclude_globs = self.options.exclude_globs + [f"{o}/**/*" for o in self.options.outputs]
         copy_files_with_exclusions(self.options.curdir, self.options.bindir, exclude_globs)
+        if self._ram_disk_usage == RamDiskUsage.FULL_BUILD:
+            self._copy_workspace_peer_package_jsons()
+
+    def _copy_workspace_peer_package_jsons(self):
+        package_json = PackageJson.load(pm_utils.build_pj_path(self.options.curdir))
+
+        for peer_source_path in package_json.get_workspace_dep_paths():
+            peer_moddir = os.path.relpath(peer_source_path, self.options.arcadia_root)
+            source_package_json = pm_utils.build_pj_path(os.path.join(self.options.arcadia_build_root, peer_moddir))
+            assert self._ram_disk is not None
+            ram_package_json = self._ram_disk.path(self.options.arcadia_build_root, source_package_json)
+            os.makedirs(os.path.dirname(ram_package_json), exist_ok=True)
+            shutil.copyfile(source_package_json, ram_package_json)
 
     @timeit
     def _run_build_script(self):

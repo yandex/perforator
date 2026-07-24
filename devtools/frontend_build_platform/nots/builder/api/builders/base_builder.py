@@ -16,6 +16,7 @@ from build.plugins.lib.nots.typescript import TsConfig
 from devtools.frontend_build_platform.libraries.logging import timeit
 from ..models import BuildError, BaseBuildersOptions, CommonBuildersOptions, CommonTsBuildersOptions
 from ..utils import (
+    copy_writable_file,
     recursive_copy,
     extract_peer_tars,
     popen,
@@ -118,9 +119,11 @@ class BaseBuilder(object):
     @timeit
     def _prepare_dependencies(self):
         # package.json should be in BINDIR in order for extract_peer_tars to work
-        recursive_copy(
-            pm_utils.build_pj_path(self.options.curdir),
-            pm_utils.build_pj_path(self.options.bindir),
+        source_package_json = pm_utils.build_pj_path(self.options.curdir)
+        package_json_path = pm_utils.build_pj_path(self.options.bindir)
+        copy_writable_file(
+            source_package_json if os.path.exists(source_package_json) else package_json_path,
+            package_json_path,
         )
         self.__extract_peer_tars(self.options.bindir, build_root=self.options.arcadia_build_root)
 
