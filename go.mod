@@ -655,6 +655,7 @@ require (
 	github.com/mdlayher/netlink v1.7.3-0.20250113171957-fbb4dce95f42
 	github.com/mdlayher/vsock v1.2.1
 	github.com/mennanov/fieldmask-utils v1.1.4
+	github.com/mennanov/fmutils v0.4.0
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.1.0
 	github.com/micromdm/plist v0.2.1

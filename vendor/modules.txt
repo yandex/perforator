@@ -13094,6 +13094,10 @@ github.com/mdlayher/vsock/internal/vsutil
 ## explicit; go 1.16
 github.com/mennanov/fieldmask-utils
 github.com/mennanov/fieldmask-utils/testproto
+# github.com/mennanov/fmutils v0.4.0
+## explicit; go 1.22
+github.com/mennanov/fmutils
+github.com/mennanov/fmutils/testproto
 # github.com/mfridman/interpolate v0.0.2
 ## explicit; go 1.19
 github.com/mfridman/interpolate
