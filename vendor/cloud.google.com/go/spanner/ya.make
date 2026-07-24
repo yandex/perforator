@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.87.0)
+VERSION(v1.88.0)
 
 GO_SKIP_TESTS(
     TestTakeFromIdleWriteListChecked
@@ -41,6 +41,7 @@ SRCS(
 GO_TEST_SRCS(
     # batch_test.go
     # client_benchmarks_test.go
+    # client_context_test.go
     # client_test.go
     cmp_test.go
     errors_test.go

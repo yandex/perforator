@@ -2,19 +2,22 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.5.3)
+VERSION(v1.6.0)
 
 SRCS(
     doc.go
     gcp_balancer.go
+    gcp_fallback.go
     gcp_interceptor.go
     gcp_logger.go
     gcp_multiendpoint.go
     gcp_picker.go
+    version.go
 )
 
 GO_TEST_SRCS(
     # gcp_balancer_test.go
+    gcp_fallback_test.go
     gcp_interceptor_test.go
     # gcp_picker_test.go
 )

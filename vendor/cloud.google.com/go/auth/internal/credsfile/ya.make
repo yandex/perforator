@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.18.1)
+VERSION(v0.18.2)
 
 DATA(
     arcadia/vendor/cloud.google.com/go/auth/internal/testdata

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.87.0)
+VERSION(v1.88.0)
 
 SRCS(
     backup.pb.go

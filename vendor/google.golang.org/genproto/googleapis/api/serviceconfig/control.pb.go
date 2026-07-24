@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,8 +47,8 @@ type Control struct {
 	unknownFields protoimpl.UnknownFields
 
 	// The service controller environment to use. If empty, no control plane
-	// feature (like quota and billing) will be enabled. The recommended value for
-	// most services is servicecontrol.googleapis.com
+	// features (like quota and billing) will be enabled. The recommended value
+	// for most services is servicecontrol.googleapis.com.
 	Environment string `protobuf:"bytes,1,opt,name=environment,proto3" json:"environment,omitempty"`
 	// Defines policies applying to the API methods of the service.
 	MethodPolicies []*MethodPolicy `protobuf:"bytes,4,rep,name=method_policies,json=methodPolicies,proto3" json:"method_policies,omitempty"`

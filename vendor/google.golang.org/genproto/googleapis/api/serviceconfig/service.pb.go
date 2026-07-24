@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -142,8 +142,7 @@ type Service struct {
 	// Defines the metrics used by this service.
 	Metrics []*metric.MetricDescriptor `protobuf:"bytes,24,rep,name=metrics,proto3" json:"metrics,omitempty"`
 	// Defines the monitored resources used by this service. This is required
-	// by the [Service.monitoring][google.api.Service.monitoring] and
-	// [Service.logging][google.api.Service.logging] configurations.
+	// by the `Service.monitoring` and `Service.logging` configurations.
 	MonitoredResources []*monitoredres.MonitoredResourceDescriptor `protobuf:"bytes,25,rep,name=monitored_resources,json=monitoredResources,proto3" json:"monitored_resources,omitempty"`
 	// Billing configuration.
 	Billing *Billing `protobuf:"bytes,26,opt,name=billing,proto3" json:"billing,omitempty"`

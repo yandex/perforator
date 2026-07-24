@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -120,29 +120,6 @@ func (x *Usage) GetProducerNotificationChannel() string {
 }
 
 // Usage configuration rules for the service.
-//
-// NOTE: Under development.
-//
-// Use this rule to configure unregistered calls for the service. Unregistered
-// calls are calls that do not contain consumer project identity.
-// (Example: calls that do not contain an API key).
-// By default, API methods do not allow unregistered calls, and each method call
-// must be identified by a consumer project identity. Use this rule to
-// allow/disallow unregistered calls.
-//
-// Example of an API that wants to allow unregistered calls for entire service.
-//
-//	usage:
-//	  rules:
-//	  - selector: "*"
-//	    allow_unregistered_calls: true
-//
-// Example of a method that wants to allow unregistered calls.
-//
-//	usage:
-//	  rules:
-//	  - selector: "google.example.library.v1.LibraryService.CreateBook"
-//	    allow_unregistered_calls: true
 type UsageRule struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -154,8 +131,12 @@ type UsageRule struct {
 	// Refer to [selector][google.api.DocumentationRule.selector] for syntax
 	// details.
 	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
-	// If true, the selected method allows unregistered calls, e.g. calls
-	// that don't identify any user or application.
+	// Use this rule to configure unregistered calls for the service. Unregistered
+	// calls are calls that do not contain consumer project identity.
+	// (Example: calls that do not contain an API key).
+	//
+	// WARNING: By default, API methods do not allow unregistered calls, and each
+	// method call must be identified by a consumer project identity.
 	AllowUnregisteredCalls bool `protobuf:"varint,2,opt,name=allow_unregistered_calls,json=allowUnregisteredCalls,proto3" json:"allow_unregistered_calls,omitempty"`
 	// If true, the selected method should skip service control and the control
 	// plane features, such as quota and billing, will not be available.

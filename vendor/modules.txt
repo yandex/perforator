@@ -175,8 +175,8 @@ cloud.google.com/go/accesscontextmanager
 cloud.google.com/go/accesscontextmanager/apiv1
 cloud.google.com/go/accesscontextmanager/apiv1/accesscontextmanagerpb
 cloud.google.com/go/accesscontextmanager/internal
-# cloud.google.com/go/aiplatform v1.114.0
-## explicit; go 1.24.0
+# cloud.google.com/go/aiplatform v1.120.0
+## explicit; go 1.25.0
 cloud.google.com/go/aiplatform
 cloud.google.com/go/aiplatform/apiv1
 cloud.google.com/go/aiplatform/apiv1/aiplatformpb
@@ -218,13 +218,13 @@ cloud.google.com/go/appengine
 cloud.google.com/go/appengine/apiv1
 cloud.google.com/go/appengine/apiv1/appenginepb
 cloud.google.com/go/appengine/internal
-# cloud.google.com/go/area120 v0.9.7
-## explicit; go 1.23.0
+# cloud.google.com/go/area120 v0.10.0
+## explicit; go 1.25.0
 cloud.google.com/go/area120
 cloud.google.com/go/area120/internal
 cloud.google.com/go/area120/tables/apiv1alpha1
 cloud.google.com/go/area120/tables/apiv1alpha1/tablespb
-# cloud.google.com/go/artifactregistry v1.19.0
+# cloud.google.com/go/artifactregistry v1.20.0
 ## explicit; go 1.24.0
 cloud.google.com/go/artifactregistry
 cloud.google.com/go/artifactregistry/apiv1
@@ -232,7 +232,7 @@ cloud.google.com/go/artifactregistry/apiv1/artifactregistrypb
 cloud.google.com/go/artifactregistry/apiv1beta2
 cloud.google.com/go/artifactregistry/apiv1beta2/artifactregistrypb
 cloud.google.com/go/artifactregistry/internal
-# cloud.google.com/go/asset v1.22.0
+# cloud.google.com/go/asset v1.22.1
 ## explicit; go 1.24.0
 cloud.google.com/go/asset
 cloud.google.com/go/asset/apiv1
@@ -250,7 +250,7 @@ cloud.google.com/go/assuredworkloads/apiv1/assuredworkloadspb
 cloud.google.com/go/assuredworkloads/apiv1beta1
 cloud.google.com/go/assuredworkloads/apiv1beta1/assuredworkloadspb
 cloud.google.com/go/assuredworkloads/internal
-# cloud.google.com/go/auth v0.18.1
+# cloud.google.com/go/auth v0.18.2
 ## explicit; go 1.24.0
 cloud.google.com/go/auth
 cloud.google.com/go/auth/credentials
@@ -316,8 +316,8 @@ cloud.google.com/go/beyondcorp/clientconnectorservices/apiv1/clientconnectorserv
 cloud.google.com/go/beyondcorp/clientgateways/apiv1
 cloud.google.com/go/beyondcorp/clientgateways/apiv1/clientgatewayspb
 cloud.google.com/go/beyondcorp/internal
-# cloud.google.com/go/bigquery v1.72.0
-## explicit; go 1.24.0
+# cloud.google.com/go/bigquery v1.74.0
+## explicit; go 1.25.0
 cloud.google.com/go/bigquery
 cloud.google.com/go/bigquery/analyticshub/apiv1
 cloud.google.com/go/bigquery/analyticshub/apiv1/analyticshubpb
@@ -362,7 +362,7 @@ cloud.google.com/go/bigquery/storage/apiv1beta2/storagepb
 cloud.google.com/go/bigquery/storage/managedwriter
 cloud.google.com/go/bigquery/storage/managedwriter/adapt
 cloud.google.com/go/bigquery/storage/managedwriter/testdata
-# cloud.google.com/go/bigtable v1.41.0
+# cloud.google.com/go/bigtable v1.42.0
 ## explicit; go 1.24.0
 cloud.google.com/go/bigtable
 cloud.google.com/go/bigtable/admin/apiv2/adminpb
@@ -449,7 +449,7 @@ cloud.google.com/go/contactcenterinsights
 cloud.google.com/go/contactcenterinsights/apiv1
 cloud.google.com/go/contactcenterinsights/apiv1/contactcenterinsightspb
 cloud.google.com/go/contactcenterinsights/internal
-# cloud.google.com/go/container v1.45.0
+# cloud.google.com/go/container v1.46.0
 ## explicit; go 1.24.0
 cloud.google.com/go/container
 cloud.google.com/go/container/apiv1
@@ -479,7 +479,7 @@ cloud.google.com/go/dataflow
 cloud.google.com/go/dataflow/apiv1beta3
 cloud.google.com/go/dataflow/apiv1beta3/dataflowpb
 cloud.google.com/go/dataflow/internal
-# cloud.google.com/go/dataform v0.12.1
+# cloud.google.com/go/dataform v0.13.0
 ## explicit; go 1.24.0
 cloud.google.com/go/dataform
 cloud.google.com/go/dataform/apiv1
@@ -510,7 +510,7 @@ cloud.google.com/go/dataplex/internal
 cloud.google.com/go/dataproc/apiv1
 cloud.google.com/go/dataproc/apiv1/dataprocpb
 cloud.google.com/go/dataproc/internal
-# cloud.google.com/go/dataproc/v2 v2.15.0
+# cloud.google.com/go/dataproc/v2 v2.16.0
 ## explicit; go 1.24.0
 cloud.google.com/go/dataproc/v2
 cloud.google.com/go/dataproc/v2/apiv1
@@ -522,7 +522,7 @@ cloud.google.com/go/dataqna
 cloud.google.com/go/dataqna/apiv1alpha
 cloud.google.com/go/dataqna/apiv1alpha/dataqnapb
 cloud.google.com/go/dataqna/internal
-# cloud.google.com/go/datastore v1.21.0
+# cloud.google.com/go/datastore v1.22.0
 ## explicit; go 1.24.0
 cloud.google.com/go/datastore
 cloud.google.com/go/datastore/admin/apiv1
@@ -544,7 +544,7 @@ cloud.google.com/go/deploy
 cloud.google.com/go/deploy/apiv1
 cloud.google.com/go/deploy/apiv1/deploypb
 cloud.google.com/go/deploy/internal
-# cloud.google.com/go/dialogflow v1.74.0
+# cloud.google.com/go/dialogflow v1.76.0
 ## explicit; go 1.24.0
 cloud.google.com/go/dialogflow
 cloud.google.com/go/dialogflow/apiv2
@@ -562,8 +562,8 @@ cloud.google.com/go/dlp
 cloud.google.com/go/dlp/apiv2
 cloud.google.com/go/dlp/apiv2/dlppb
 cloud.google.com/go/dlp/internal
-# cloud.google.com/go/documentai v1.39.0
-## explicit; go 1.24.0
+# cloud.google.com/go/documentai v1.42.0
+## explicit; go 1.25.0
 cloud.google.com/go/documentai
 cloud.google.com/go/documentai/apiv1
 cloud.google.com/go/documentai/apiv1/documentaipb
@@ -706,7 +706,7 @@ cloud.google.com/go/iot
 cloud.google.com/go/iot/apiv1
 cloud.google.com/go/iot/apiv1/iotpb
 cloud.google.com/go/iot/internal
-# cloud.google.com/go/kms v1.25.0
+# cloud.google.com/go/kms v1.26.0
 ## explicit; go 1.24.0
 cloud.google.com/go/kms
 cloud.google.com/go/kms/apiv1
@@ -730,7 +730,7 @@ cloud.google.com/go/lifesciences
 cloud.google.com/go/lifesciences/apiv2beta
 cloud.google.com/go/lifesciences/apiv2beta/lifesciencespb
 cloud.google.com/go/lifesciences/internal
-# cloud.google.com/go/logging v1.13.1
+# cloud.google.com/go/logging v1.13.2
 ## explicit; go 1.24.0
 cloud.google.com/go/logging
 cloud.google.com/go/logging/apiv2
@@ -750,8 +750,8 @@ cloud.google.com/go/managedidentities
 cloud.google.com/go/managedidentities/apiv1
 cloud.google.com/go/managedidentities/apiv1/managedidentitiespb
 cloud.google.com/go/managedidentities/internal
-# cloud.google.com/go/maps v1.26.0
-## explicit; go 1.24.0
+# cloud.google.com/go/maps v1.29.0
+## explicit; go 1.25.0
 cloud.google.com/go/maps
 cloud.google.com/go/maps/addressvalidation/apiv1
 cloud.google.com/go/maps/addressvalidation/apiv1/addressvalidationpb
@@ -805,16 +805,18 @@ cloud.google.com/go/monitoring/dashboard/apiv1/dashboardpb
 cloud.google.com/go/monitoring/internal
 cloud.google.com/go/monitoring/metricsscope/apiv1
 cloud.google.com/go/monitoring/metricsscope/apiv1/metricsscopepb
-# cloud.google.com/go/networkconnectivity v1.20.0
-## explicit; go 1.24.0
+# cloud.google.com/go/networkconnectivity v1.21.0
+## explicit; go 1.25.0
 cloud.google.com/go/networkconnectivity
 cloud.google.com/go/networkconnectivity/apiv1
 cloud.google.com/go/networkconnectivity/apiv1/networkconnectivitypb
 cloud.google.com/go/networkconnectivity/apiv1alpha1
 cloud.google.com/go/networkconnectivity/apiv1alpha1/networkconnectivitypb
+cloud.google.com/go/networkconnectivity/apiv1beta
+cloud.google.com/go/networkconnectivity/apiv1beta/networkconnectivitypb
 cloud.google.com/go/networkconnectivity/internal
-# cloud.google.com/go/networkmanagement v1.21.0
-## explicit; go 1.24.0
+# cloud.google.com/go/networkmanagement v1.23.0
+## explicit; go 1.25.0
 cloud.google.com/go/networkmanagement
 cloud.google.com/go/networkmanagement/apiv1
 cloud.google.com/go/networkmanagement/apiv1/networkmanagementpb
@@ -854,7 +856,7 @@ cloud.google.com/go/orgpolicy/apiv1/orgpolicypb
 cloud.google.com/go/orgpolicy/apiv2
 cloud.google.com/go/orgpolicy/apiv2/orgpolicypb
 cloud.google.com/go/orgpolicy/internal
-# cloud.google.com/go/osconfig v1.15.1
+# cloud.google.com/go/osconfig v1.16.0
 ## explicit; go 1.24.0
 cloud.google.com/go/osconfig
 cloud.google.com/go/osconfig/agentendpoint/apiv1
@@ -984,7 +986,7 @@ cloud.google.com/go/resourcemanager/internal
 cloud.google.com/go/resourcesettings/apiv1
 cloud.google.com/go/resourcesettings/apiv1/resourcesettingspb
 cloud.google.com/go/resourcesettings/internal
-# cloud.google.com/go/retail v1.25.1
+# cloud.google.com/go/retail v1.26.0
 ## explicit; go 1.24.0
 cloud.google.com/go/retail
 cloud.google.com/go/retail/apiv2
@@ -1069,7 +1071,7 @@ cloud.google.com/go/shell
 cloud.google.com/go/shell/apiv1
 cloud.google.com/go/shell/apiv1/shellpb
 cloud.google.com/go/shell/internal
-# cloud.google.com/go/spanner v1.87.0
+# cloud.google.com/go/spanner v1.88.0
 ## explicit; go 1.24.0
 cloud.google.com/go/spanner
 cloud.google.com/go/spanner/adapter/apiv1
@@ -1095,8 +1097,8 @@ cloud.google.com/go/spanner/test/cloudexecutor/executor/internal/inputstream
 cloud.google.com/go/spanner/test/cloudexecutor/executor/internal/outputstream
 cloud.google.com/go/spanner/test/cloudexecutor/executor/internal/utility
 cloud.google.com/go/spanner/testdata/protos
-# cloud.google.com/go/speech v1.29.0
-## explicit; go 1.24.0
+# cloud.google.com/go/speech v1.30.0
+## explicit; go 1.25.0
 cloud.google.com/go/speech
 cloud.google.com/go/speech/apiv1
 cloud.google.com/go/speech/apiv1/speechpb
@@ -3981,8 +3983,8 @@ github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/proxy
 github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/util
 # github.com/GoogleCloudPlatform/grpc-gcp-go v1.3.0
 ## explicit
-# github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.5.3
-## explicit; go 1.12
+# github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0
+## explicit; go 1.23.0
 github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp
 github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp/grpc_gcp
 github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp/mocks
@@ -10680,8 +10682,8 @@ github.com/googleapis/api-linter/rules/internal/utils
 # github.com/googleapis/cloud-bigtable-clients-test v0.0.4
 ## explicit; go 1.23.0
 github.com/googleapis/cloud-bigtable-clients-test/testproxypb
-# github.com/googleapis/enterprise-certificate-proxy v0.3.11
-## explicit; go 1.24.0
+# github.com/googleapis/enterprise-certificate-proxy v0.3.14
+## explicit; go 1.24.11
 github.com/googleapis/enterprise-certificate-proxy/client
 github.com/googleapis/enterprise-certificate-proxy/client/util
 # github.com/googleapis/gax-go v2.0.2+incompatible
@@ -21062,8 +21064,8 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/unicode/rangetable
 golang.org/x/text/unicode/runenames
 golang.org/x/text/width
-# golang.org/x/time v0.14.0
-## explicit; go 1.24.0
+# golang.org/x/time v0.15.0
+## explicit; go 1.25.0
 golang.org/x/time
 golang.org/x/time/rate
 # golang.org/x/tools v0.45.0
@@ -21476,8 +21478,8 @@ gonum.org/v1/plot/vg/vgimg
 gonum.org/v1/plot/vg/vgpdf
 gonum.org/v1/plot/vg/vgsvg
 gonum.org/v1/plot/vg/vgtex
-# google.golang.org/api v0.267.0
-## explicit; go 1.24.0
+# google.golang.org/api v0.270.0
+## explicit; go 1.25.0
 google.golang.org/api/admin/directory/v1
 google.golang.org/api/androidpublisher/v3
 google.golang.org/api/bigquery/v2
@@ -21523,8 +21525,8 @@ google.golang.org/api/transport/http
 ## explicit; go 1.24
 google.golang.org/genai
 google.golang.org/genai/tokenizer
-# google.golang.org/genproto v0.0.0-20260128011058-8636f8732409
-## explicit; go 1.24.0
+# google.golang.org/genproto v0.0.0-20260319201613-d00831a3d3e7
+## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/appengine/logging/v1
 google.golang.org/genproto/googleapis/apps/script/type
 google.golang.org/genproto/googleapis/apps/script/type/calendar
@@ -21593,8 +21595,8 @@ google.golang.org/genproto/protobuf/api
 google.golang.org/genproto/protobuf/field_mask
 google.golang.org/genproto/protobuf/ptype
 google.golang.org/genproto/protobuf/source_context
-# google.golang.org/genproto/googleapis/api v0.0.0-20260203192932-546029d2fa20
-## explicit; go 1.24.0
+# google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9
+## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/configchange
@@ -21609,10 +21611,10 @@ google.golang.org/genproto/googleapis/api/metric
 google.golang.org/genproto/googleapis/api/monitoredres
 google.golang.org/genproto/googleapis/api/serviceconfig
 google.golang.org/genproto/googleapis/api/visibility
-# google.golang.org/genproto/googleapis/bytestream v0.0.0-20260203192932-546029d2fa20
-## explicit; go 1.24.0
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20260203192932-546029d2fa20
-## explicit; go 1.24.0
+# google.golang.org/genproto/googleapis/bytestream v0.0.0-20260226221140-a57be14db171
+## explicit; go 1.25.0
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20260427160629-7cedc36a6bc4
+## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/rpc
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/context
