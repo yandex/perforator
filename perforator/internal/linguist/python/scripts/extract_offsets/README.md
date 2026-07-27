@@ -91,6 +91,7 @@ The script currently provides offsets for the following structures and fields:
   - f_executable (Python 3.13+, replaces f_code)
   - previous
   - owner (relevant only for CPython 3.12+)
+  - instr_ptr (Python 3.11+; sourced from `prev_instr` on 3.11-3.12 and `instr_ptr` on 3.13+) — pointer to the current bytecode instruction, used for line number resolution
 
 - **_PyRuntimeState**
   - interpreters.main

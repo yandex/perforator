@@ -77,6 +77,13 @@ struct python_code_object_offsets {
     u32 co_firstlineno;
     u32 filename;
     u32 name;
+    // co_code_adaptive is the start of the inlined bytecode array within PyCodeObject
+    // (CPython 3.11+). Used in userspace to convert instruction pointer into a
+    // bytecode offset: offset = instr_ptr - (code_addr + co_code_adaptive).
+    u32 co_code_adaptive;
+    // co_linetable is the offset of the PyBytesObject* line table field within
+    // PyCodeObject (CPython 3.11+). Read in userspace via process_vm_readv.
+    u32 co_linetable;
 };
 
 struct python_frame_object_offsets {
@@ -88,6 +95,17 @@ struct python_frame_offsets {
     u32 f_code;
     u32 previous;
     u32 owner;
+    // instr_ptr is the offset of the currently executing bytecode instruction pointer
+    // within _PyInterpreterFrame. Sourced from `prev_instr` on CPython 3.11/3.12
+    // and from `instr_ptr` on CPython 3.13+.
+    u32 instr_ptr;
+};
+
+// python_bytes_object_offsets describes the layout of PyBytesObject. Used by
+// userspace to read the co_linetable bytes after dereferencing co_linetable.
+struct python_bytes_object_offsets {
+    u32 ob_size;
+    u32 ob_sval;
 };
 
 struct python_cframe_offsets {
@@ -108,6 +126,7 @@ struct python_internals_offsets {
     struct python_code_object_offsets py_code_object_offsets;
     struct python_string_object_offsets py_string_object_offsets;
     struct python_tss_t_offsets py_tss_t_offsets;
+    struct python_bytes_object_offsets py_bytes_object_offsets;
 };
 
 struct python_config {

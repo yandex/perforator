@@ -34,6 +34,7 @@ type jsonOffsets struct {
 	PyASCIIObject      map[string]int `json:"PyASCIIObject,omitempty"`
 	PyUnicodeObject    map[string]int `json:"PyUnicodeObject,omitempty"`
 	PyStringObject     map[string]int `json:"PyStringObject,omitempty"`
+	PyBytesObject      map[string]int `json:"PyBytesObject,omitempty"`
 	PyTssT             map[string]int `json:"Py_tss_t,omitempty"`
 }
 
@@ -166,6 +167,18 @@ func extractPyCodeObjectOffsets(data map[string]int) unwinder.PythonCodeObjectOf
 		offsets.Name = UnspecifiedOffset
 	}
 
+	if val, ok := data["co_code_adaptive"]; ok {
+		offsets.CoCodeAdaptive = uint32(val)
+	} else {
+		offsets.CoCodeAdaptive = UnspecifiedOffset
+	}
+
+	if val, ok := data["co_linetable"]; ok {
+		offsets.CoLinetable = uint32(val)
+	} else {
+		offsets.CoLinetable = UnspecifiedOffset
+	}
+
 	return offsets
 }
 
@@ -194,6 +207,34 @@ func extractPyFrameOffsets(data map[string]int) unwinder.PythonFrameOffsets {
 		offsets.Owner = uint32(val)
 	} else {
 		offsets.Owner = UnspecifiedOffset
+	}
+
+	// instr_ptr (CPython 3.11+): offset of the currently executing bytecode
+	// instruction pointer within _PyInterpreterFrame. extract_offsets.py emits
+	// this key for both `prev_instr` (3.11/3.12) and `instr_ptr` (3.13+).
+	if val, ok := data["instr_ptr"]; ok {
+		offsets.InstrPtr = uint32(val)
+	} else {
+		offsets.InstrPtr = UnspecifiedOffset
+	}
+
+	return offsets
+}
+
+// Extract PyBytesObject offsets from JSON data (CPython 3.11+).
+func extractPyBytesObjectOffsets(data map[string]int) unwinder.PythonBytesObjectOffsets {
+	var offsets unwinder.PythonBytesObjectOffsets
+
+	if val, ok := data["ob_size"]; ok {
+		offsets.ObSize = uint32(val)
+	} else {
+		offsets.ObSize = UnspecifiedOffset
+	}
+
+	if val, ok := data["ob_sval"]; ok {
+		offsets.ObSval = uint32(val)
+	} else {
+		offsets.ObSval = UnspecifiedOffset
 	}
 
 	return offsets
@@ -368,6 +409,10 @@ func convertToPythonInternalsOffsets(data jsonOffsets) *unwinder.PythonInternals
 
 	if data.PyTssT != nil {
 		offsets.PyTssTOffsets = extractPyTssTOffsets(data.PyTssT)
+	}
+
+	if data.PyBytesObject != nil {
+		offsets.PyBytesObjectOffsets = extractPyBytesObjectOffsets(data.PyBytesObject)
 	}
 
 	return offsets
