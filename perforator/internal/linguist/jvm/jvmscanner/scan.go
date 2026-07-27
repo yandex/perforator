@@ -229,6 +229,7 @@ func (s *Scanner) scanStep(
 	var name []byte
 	var frameSize int32 = -1
 	var symtab *jvmsupp.MethodSymbolizationTable
+	var frameCompleteOffset int16 = -1
 	if isJIT {
 		s.l.Debug(ctx, "Code blob classified as nmethod")
 		isJIT = true
@@ -256,6 +257,12 @@ func (s *Scanner) scanStep(
 				// TODO: rather than logging, we should send this error as RPC response back to agent.
 				s.l.Warn(ctx, "Failed to parse instruction info for nmethod", log.String("name", string(name)), log.Error(err))
 				symtab = nil
+			}
+		}
+		if jvm.Version() >= 25 {
+			frameCompleteOffset, err = codeBlob.FrameCompleteOffset()
+			if err != nil {
+				return nil, false, 0, fmt.Errorf("failed to read nmethod frame complete offset: %w", err)
 			}
 		}
 
@@ -291,12 +298,13 @@ func (s *Scanner) scanStep(
 		codeBegin = uint64(cb)
 	}
 	return &jvmsupp.MethodInfo{
-		Name:               string(name),
-		FrameSizeBytes:     int64(frameSize) * 8,
-		IsJit:              isJIT,
-		CodeBegin:          codeBegin,
-		CodeEnd:            uint64(jvmbindings.ObjectPtr(heapBlock).Addr()) + uint64(segmentLength)<<uint64(curHeap.segmentSizeLog2),
-		SymbolizationTable: symtab,
+		Name:                string(name),
+		FrameSizeBytes:      int64(frameSize) * 8,
+		FrameCompleteOffset: int64(frameCompleteOffset),
+		IsJit:               isJIT,
+		CodeBegin:           codeBegin,
+		CodeEnd:             uint64(jvmbindings.ObjectPtr(heapBlock).Addr()) + uint64(segmentLength)<<uint64(curHeap.segmentSizeLog2),
+		SymbolizationTable:  symtab,
 	}, true, segmentLength, nil
 }
 

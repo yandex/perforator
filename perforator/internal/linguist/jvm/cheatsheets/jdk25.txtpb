@@ -38,4 +38,5 @@ nmethod_mutable_data: 16
 nmethod_relocation_size: 28
 nmethod_mutable_data_size: 48
 code_blob_code_offset: 36
+nmethod_frame_complete_offset: 54
 

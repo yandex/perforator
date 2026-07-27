@@ -80,6 +80,9 @@ TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistry
     if (version <= 21) {
         s.set_nmethod_dependencies_offset(metadata.FindFieldOffset("nmethod", "_dependencies_offset"));
     }
+    if (version >= 25) {
+        s.set_nmethod_frame_complete_offset(metadata.FindFieldOffset("CodeBlob", "_frame_complete_offset"));
+    }
 
     s.set_pc_desc_size(metadata.FindTypeSize("PcDesc"));
     s.set_pc_desc_pc_offset(metadata.FindFieldOffset("PcDesc", "_pc_offset"));

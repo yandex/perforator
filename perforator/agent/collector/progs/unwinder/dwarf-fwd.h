@@ -25,9 +25,11 @@ struct  __attribute__((packed)) cfa_unwind_rule {
     i32 offset;
 };
 
-enum {
+enum dwarf_cfa_well_known {
     DWARF_UNWIND_CFA_RULE_UNDEFINED = 0x7f,
 };
+
+BTF_EXPORT(enum dwarf_cfa_well_known);
 
 struct rbp_unwind_rule {
     // Offset from the CFA to read saved value of RBP from.

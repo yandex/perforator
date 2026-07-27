@@ -46,6 +46,7 @@ message Cheatsheet {
     optional int64 nmethod_jvmci_data_offset = 46 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 24];
     optional int64 nmethod_relocation_size = 42 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 22];
     optional int64 nmethod_dependencies_offset = 47 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 21];
+    optional int64 nmethod_frame_complete_offset = 51 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 25];
 
     optional int64 pc_desc_size = 34;
     optional int64 pc_desc_pc_offset = 39;

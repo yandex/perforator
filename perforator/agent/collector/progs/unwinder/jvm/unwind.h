@@ -46,7 +46,11 @@ static ALWAYS_INLINE int jvm_process_interpreted_frame(
     }
     BPF_TRACE("[jvm] return address: %llX\n", caller_ip);
     regs->ip = caller_ip;
-    regs->cfa = regs->fp;
+    ret = jvm_read(&regs->cfa, sizeof(regs->cfa), regs->fp - 8);
+    if (ret < 0) {
+        BPF_TRACE("[jvm] failed to read CFA: %lld\n", -ret);
+        return -1;
+    }
     u64 caller_rbp = 0;
     BPF_TRACE("[jvm] caller_rbp located at %llX\n", regs->fp);
     ret = jvm_read(&caller_rbp, sizeof(caller_rbp), regs->fp);

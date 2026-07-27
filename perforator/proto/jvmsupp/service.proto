@@ -37,6 +37,7 @@ message MethodInfo {
     string name = 2;
 
     bool is_jit = 6;
+    int64 frame_complete_offset = 8;
     int64 frame_size_bytes = 3;
     uint64 code_begin = 4;
     uint64 code_end = 5;

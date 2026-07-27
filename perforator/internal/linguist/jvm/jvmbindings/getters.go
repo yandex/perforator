@@ -53,6 +53,10 @@ func (cb CodeBlob) CodeOffset() (int32, error) {
 	return ReadScalar[int32](cb.j, cb.addr+uintptr(*cb.j.jc.CodeBlobCodeOffset))
 }
 
+func (cb CodeBlob) FrameCompleteOffset() (int16, error) {
+	return ReadScalar[int16](cb.j, cb.addr+uintptr(*cb.j.jc.NmethodFrameCompleteOffset))
+}
+
 func (cb CodeBlob) NmethodMethod() (Method, error) {
 	return ReadObjPtr[Method](cb.j, cb.addr+uintptr(*cb.j.jc.NmethodMethod))
 }

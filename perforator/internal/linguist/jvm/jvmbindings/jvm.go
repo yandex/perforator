@@ -32,7 +32,7 @@ func (j *JVM) Version() uint32 {
 	return j.version
 }
 
-func ReadScalar[T ~uintptr | uint64 | uint32 | uint16 | uint8 | int32](j *JVM, addr uintptr) (T, error) {
+func ReadScalar[T ~uintptr | uint64 | uint32 | uint16 | uint8 | int32 | int16](j *JVM, addr uintptr) (T, error) {
 	var out T
 	cnt := unsafe.Sizeof(out)
 	n, err := unix.ProcessVMReadv(
