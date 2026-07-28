@@ -196,12 +196,15 @@ TMaybe<std::pair<ui64, ui64>> TLuaAnalyzer::GetVMLocation() {
         return false;
     };
 
-    auto getFdes = [&](const llvm::DWARFDebugFrame* ehFrame, auto predicate) {
+    auto getFdes = [&](const llvm::DWARFDebugFrame* ehFrame, auto predicate) -> TVector<FDE*> {
         TVector<FDE*> result;
         for (const auto& entry : *ehFrame) {
             FDE* fde = llvm::dyn_cast<llvm::dwarf::FDE>(&entry);
             if (fde == nullptr) {
-                Y_ENSURE(llvm::isa<llvm::dwarf::CIE>(&entry), "Unknown frame kind " << static_cast<int>(entry.getKind()));
+                if (!llvm::isa<llvm::dwarf::CIE>(&entry)) {
+                    return {};
+                }
+
                 continue;
             }
 
@@ -214,8 +217,14 @@ TMaybe<std::pair<ui64, ui64>> TLuaAnalyzer::GetVMLocation() {
     };
 
     auto dwarfContext = llvm::DWARFContext::create(File_);
-    const llvm::DWARFDebugFrame* ehFrame = Y_LLVM_RAISE(dwarfContext->getEHFrame());
-    Y_ENSURE(ehFrame);
+    auto ehFrameValue = dwarfContext->getEHFrame();
+    if (!ehFrameValue){
+        return Nothing();
+    }
+    const llvm::DWARFDebugFrame* ehFrame = *ehFrameValue;
+    if (!ehFrame) {
+        return Nothing();
+    }
 
     // Search for "big asm blob"
     TVector<FDE*> vmFdeCandidates = getFdes(
