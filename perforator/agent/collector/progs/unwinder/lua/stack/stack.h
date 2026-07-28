@@ -173,8 +173,6 @@ lua_stack_push(struct lua_state *state,
  * @param state Lua unwind state.
  */
 static ALWAYS_INLINE void lua_stack_walk(struct lua_state *state) {
-    lua_stack_reset(state);
-
     lua_State *L = lua_state_get_lua_state(state);
     global_State *g = lua_state_get_global_state(state);
 

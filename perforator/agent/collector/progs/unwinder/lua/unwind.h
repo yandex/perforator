@@ -20,6 +20,8 @@ _Static_assert(__x86_64__,
 static ALWAYS_INLINE void
 lua_collect_stack(const struct process_info *process_info,
                   struct lua_state *state) {
+    lua_stack_reset(state);
+
     if (!is_mapped(process_info->lua_binary)) {
         return;
     }
