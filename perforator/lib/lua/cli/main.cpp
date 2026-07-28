@@ -27,8 +27,6 @@ int main(int argc, const char *argv[]) {
 
     if (version) {
         Cout << "Parsed Lua binary version " << version->ToString() << Endl;
-    } else {
-        Cout << "Could not parse Lua version" << Endl;
     }
 
     auto offset = analyzer.ParseOffsetGtoL();
