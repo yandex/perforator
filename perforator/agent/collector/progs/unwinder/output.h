@@ -82,6 +82,7 @@ enum language_id : u8 {
     LANGUAGE_PYTHON = 0,
     LANGUAGE_PHP = 1,
     LANGUAGE_JVM = 2,
+    LANGUAGE_LUA = 3,
 };
 
 // 8-byte aligned language section header (embedded in the language_sections data).

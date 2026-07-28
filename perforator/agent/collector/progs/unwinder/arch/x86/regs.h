@@ -14,6 +14,10 @@ struct user_regs {
     u64 rsp;
     u64 rbp;
     u64 rip;
+    u64 rdi;
+    u64 rbx;
+    u64 rdx;
+    u64 r14;
 };
 
 static ALWAYS_INLINE u64 regs_get_current_instruction(struct user_regs* regs) {
@@ -78,6 +82,10 @@ static NOINLINE bool find_task_userspace_registers(struct pt_regs* kregs, struct
     uregs->rsp = kregs->rsp;
     uregs->rbp = kregs->rbp;
     uregs->rip = kregs->rip;
+    uregs->rdi = kregs->rdi;
+    uregs->rbx = kregs->rbx;
+    uregs->rdx = kregs->rdx;
+    uregs->r14 = kregs->r14;
 
     return true;
 }

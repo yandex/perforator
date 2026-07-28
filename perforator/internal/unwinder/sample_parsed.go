@@ -17,6 +17,7 @@ type RecordSampleParsed struct {
 	PythonStack InterpreterStack
 	PhpStack    InterpreterStack
 	JvmStack    JvmStack
+	LuaStack    InterpreterStack
 }
 
 // NewRecordSampleParsed creates a RecordSampleParsed with pre-allocated

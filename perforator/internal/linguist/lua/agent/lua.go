@@ -1,0 +1,40 @@
+package agent
+
+import (
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/lua"
+	"github.com/yandex/perforator/perforator/internal/linguist/common/offsetloader"
+	"github.com/yandex/perforator/perforator/internal/unwinder"
+)
+
+var (
+	minSupportedVersion = offsetloader.NewLanguageVersion(2, 1, 0).EncodeToUint32()
+	maxSupportedVersion = offsetloader.NewLanguageVersion(2, 2, 0).EncodeToUint32()
+)
+
+func IsVersionSupported(version *lua.LuaVersion) bool {
+	if version == nil {
+		return false
+	}
+
+	versionKey := offsetloader.NewLanguageVersion(version.Major, version.Minor, 0).EncodeToUint32()
+	if versionKey < minSupportedVersion || versionKey > maxSupportedVersion {
+		return false
+	}
+
+	return true
+}
+
+func encodeVersion(version *lua.LuaVersion) uint32 {
+	return (version.Minor << 8) + (version.Major << 16)
+}
+
+func ParseLuaUnwinderConfig(conf *lua.LuaConfig) *unwinder.LuaConfig {
+	return &unwinder.LuaConfig{
+		Version:           offsetloader.NewLanguageVersion(conf.Version.Major, conf.Version.Minor, 0).EncodeToUint32(),
+		OffsetGToL:        conf.OffsetGtoL,
+		OffsetGToDispatch: conf.OffsetGtoDispatch,
+		BinarySize:        conf.BinarySize,
+		VmStartPc:         conf.VmStartPc,
+		VmEndPc:           conf.VmEndPc,
+	}
+}

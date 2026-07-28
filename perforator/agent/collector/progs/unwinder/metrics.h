@@ -46,6 +46,31 @@ enum metric : u32 {
     METRIC_PHP_READ_TYPE_INFO_ERROR_COUNT,
     METRIC_PHP_PROCESSED_STACKS_COUNT,
     METRIC_PHP_FAILED_TO_READ_SYMBOL_COUNT,
+
+    // Lua unwinder metrics
+    METRIC_ERROR_STAGE_COLLECT_LUA_STACK_COUNT, // Lua unwinder failed to collect stack. See `profiler_stage_collect_lua_stack`.
+    METRIC_LUA_PROCESSED_STACKS_COUNT, // Started to unwind in process with LuaJIT binary. Valid state is not found yet.
+
+    // Lua state search metrics
+    METRIC_LUA_VALID_CACHE_COUNT, // Cache hit. Cache is valid.
+    METRIC_LUA_INVALIDED_CACHE_COUNT, // Cache hit. Cache is not valid anymore.
+    METRIC_LUA_NOT_IN_LUAJIT_BINARY_COUNT, // `rip` is not in mapped address range for LuaJIT binary.
+    METRIC_LUA_GLOBAL_STATE_FOUND_COUNT, // Found valid `global_State*` from registers. Cached.
+    METRIC_LUA_GLOBAL_STATE_NOT_FOUND_COUNT, // Unable to find valid `global_State*` from registers.
+
+    // Lua base deducing metrics
+    METRIC_LUA_RDX_OUTSIDE_OF_STACK_COUNT, // `rdx` is out of stack range.
+    METRIC_LUA_BASE_DEDUCED_FROM_RET_COUNT, // Top frame was deduced from corner case in `BC_RET` opcode.
+    METRIC_LUA_BASE_DEDUCED_FROM_RDX_COUNT, // Top frame was deduced from `rdx`.
+
+    // Lua stack walk metrics
+    METRIC_LUA_PROCESSED_FRAMES_COUNT, // Walked frames.
+    METRIC_LUA_BROKEN_FRAME_COUNT, // Frame is out of stack.
+    METRIC_LUA_FRAME_GET_INFO_FAIL_COUNT, // Failed to read frame.
+    METRIC_LUA_FRAME_IS_NULL_COUNT, // Frame was NULL. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
+    METRIC_LUA_FUNCTION_IS_NULL_COUNT, // Function in the frame was NULL. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
+    METRIC_LUA_CACHE_MISMATCH_COUNT, // Cached symbol differs from the new one for the same key.
+
     METRIC_ERROR_STAGE_RECORDSAMPLE_COUNT,
     METRIC_ERROR_STAGE_LBR_STACK_COUNT,
     METRIC_DWARF_ERROR_TOOMANYFRAMES_COUNT,

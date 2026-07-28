@@ -34,6 +34,14 @@ func (s *State) DeletePhpConfig(id unwinder.BinaryId) error {
 
 }
 
+func (b *State) AddLuaConfig(id unwinder.BinaryId, luaInfo *unwinder.LuaConfig) error {
+	return b.maps.LuaStorage.Update(id, luaInfo, ebpf.UpdateAny)
+}
+
+func (b *State) DeleteLuaConfig(id unwinder.BinaryId) error {
+	return b.maps.LuaStorage.Delete(&id)
+}
+
 func (s *State) AddPthreadConfig(id unwinder.BinaryId, pthreadInfo *unwinder.PthreadConfig) error {
 	return s.maps.PthreadStorage.Update(id, pthreadInfo, ebpf.UpdateAny)
 }
