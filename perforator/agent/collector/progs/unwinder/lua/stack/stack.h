@@ -8,13 +8,12 @@
 // namespace lua::stack
 
 /**
- * @brief `lua_stack_step` function return codes.
+ * @brief `lua_stack_step` function flags.
  */
 enum lua_stack_step_result {
-    LUA_STACK_STEP_RESULT_CONTINUE, // OK. Walk further.
-    LUA_STACK_STEP_RESULT_DONE,     // OK. We've reached the end of the stack.
-    LUA_STACK_STEP_RESULT_ERROR, // Error during step. The actual error reason
-                                 // is written using metrics or stack frames.
+    LUA_STACK_STEP_RESULT_STOP = 0,          // Stop the loop
+    LUA_STACK_STEP_RESULT_CONTINUE = 1 << 0, // Continue the loop
+    LUA_STACK_STEP_RESULT_HAS_FRAME = 1 << 1 // New frame was made
 };
 
 /**
@@ -39,7 +38,6 @@ lua_stack_process_frame(struct lua_stack_context *context, cTValue *frame,
         lua_frame_push_invalid(interpreter_frame,
                                LUA_STACK_WALK_ERROR_FRAME_IS_NULL, 0);
         metric_increment(METRIC_LUA_FRAME_IS_NULL_COUNT);
-
         return false;
     }
 
@@ -48,7 +46,6 @@ lua_stack_process_frame(struct lua_stack_context *context, cTValue *frame,
         lua_frame_push_invalid(interpreter_frame,
                                LUA_STACK_WALK_ERROR_GCFUNC_IS_NULL, 0);
         metric_increment(METRIC_LUA_FUNCTION_IS_NULL_COUNT);
-
         return false;
     }
 
@@ -57,7 +54,7 @@ lua_stack_process_frame(struct lua_stack_context *context, cTValue *frame,
         lua_frame_push_invalid(interpreter_frame,
                                LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC,
                                ~itype(frame - LJ_FR2));
-        metric_increment(METRIC_LUA_BROKEN_FRAME_COUNT);
+        metric_increment(METRIC_LUA_FRAME_IS_NOT_FUNC_COUNT);
         return false;
     }
 
@@ -110,41 +107,39 @@ lua_stack_next_frame(cTValue *frame) {
     struct lua_stack_context *context = lua_stack_context_get();
     if (context == NULL) {
         LUA_TRACE("lua_stack_step failed to get lua_stack_context");
-        return LUA_STACK_STEP_RESULT_ERROR;
+        return LUA_STACK_STEP_RESULT_STOP;
     }
 
     __auto_type frame = (cTValue *)context->frame;
     __auto_type max_stack = (cTValue *)context->max_stack;
     __auto_type bottom = (cTValue *)context->bottom;
 
-    // not error
     if (frame <= bottom) {
-        return LUA_STACK_STEP_RESULT_DONE;
+        return LUA_STACK_STEP_RESULT_STOP;
     }
 
     if (frame >= max_stack) {
         metric_increment(METRIC_LUA_BROKEN_FRAME_COUNT);
-
-        return LUA_STACK_STEP_RESULT_ERROR;
+        return LUA_STACK_STEP_RESULT_STOP;
     }
+
+    context->frame = (u64)lua_stack_next_frame(frame);
 
     __auto_type frame_gc = frame_gc(frame);
     bool is_dummy_frame = frame_gc == obj2gco(context->L);
 
     // Skip dummy frames. See lj_err_optype_call().
-    if (!is_dummy_frame) {
-        if (!lua_stack_process_frame(context, frame, frame_gc)) {
-            metric_increment(METRIC_LUA_FRAME_GET_INFO_FAIL_COUNT);
-
-            return LUA_STACK_STEP_RESULT_ERROR;
-        }
-
-        metric_increment(METRIC_LUA_PROCESSED_FRAMES_COUNT);
+    if (is_dummy_frame) {
+        return LUA_STACK_STEP_RESULT_CONTINUE;
     }
 
-    context->frame = (u64)lua_stack_next_frame(frame);
+    if (!lua_stack_process_frame(context, frame, frame_gc)) {
+        metric_increment(METRIC_LUA_FRAME_GET_INFO_FAIL_COUNT);
+        return LUA_STACK_STEP_RESULT_STOP | LUA_STACK_STEP_RESULT_HAS_FRAME;
+    }
 
-    return LUA_STACK_STEP_RESULT_CONTINUE;
+    metric_increment(METRIC_LUA_PROCESSED_FRAMES_COUNT);
+    return LUA_STACK_STEP_RESULT_CONTINUE | LUA_STACK_STEP_RESULT_HAS_FRAME;
 }
 
 /**
@@ -163,9 +158,11 @@ static ALWAYS_INLINE void lua_stack_reset(struct lua_state *state) {
  * @param frame Interpreter frame.
  */
 static ALWAYS_INLINE void
-lua_stack_push(struct lua_state *state, size_t i,
+lua_stack_push(struct lua_state *state,
                struct interpreter_frame interpreter_frame) {
-    state->stack.frames[i] = interpreter_frame;
+    state->stack.len &= LUA_MAX_STACK_DEPTH_VERIFIER_MASK;
+    state->stack.frames[state->stack.len] = interpreter_frame;
+    ++state->stack.len;
 }
 
 /**
@@ -214,11 +211,14 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state *state) {
     lua_stack_context_init(context, state, frame, max_stack, bottom);
 
     for (int i = 0; i < LUA_MAX_STACK_DEPTH; ++i) {
-        if (lua_stack_step() != LUA_STACK_STEP_RESULT_CONTINUE) {
-            state->stack.len = i;
-            break;
+        __auto_type status = lua_stack_step();
+
+        if (status & LUA_STACK_STEP_RESULT_HAS_FRAME) {
+            lua_stack_push(state, context->interpreter_frame);
         }
 
-        lua_stack_push(state, i, context->interpreter_frame);
+        if ((status & LUA_STACK_STEP_RESULT_CONTINUE) == 0) {
+            return;
+        }
     }
 }

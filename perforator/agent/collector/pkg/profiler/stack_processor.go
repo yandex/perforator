@@ -323,6 +323,7 @@ var lua_stack_walk_error_descriptions = []string{
 	"frame is null",
 	"GCfunc is null",
 	"bad function in frame",
+	"proto is null",
 }
 
 // see lj_obj.h
@@ -359,7 +360,7 @@ const (
 
 	LuaObjectAddressStackWalkErrorOffset = LuaObjectAddressPtrBits
 	LuaObjectAddressStackWalkErrorBits   = 2
-	LuaObjectAddressStackWalkMask        = uint64(unwinder.LuaStackWalkErrorLast)
+	LuaObjectAddressStackWalkErrorMask   = (1 << LuaObjectAddressStackWalkErrorBits) - 1
 
 	LuaObjectAddressGctOffset = LuaObjectAddressStackWalkErrorOffset + LuaObjectAddressStackWalkErrorBits
 	LuaObjectAddressGctBits   = 8
@@ -395,7 +396,7 @@ func (ld *LuaData) GetFfid() uint8 {
 }
 
 func (ld *LuaData) GetErrorKind() unwinder.LuaStackWalkError {
-	return unwinder.LuaStackWalkError((ld.getObjectAddress() >> LuaObjectAddressStackWalkErrorOffset) & LuaObjectAddressStackWalkMask)
+	return unwinder.LuaStackWalkError((ld.getObjectAddress() >> LuaObjectAddressStackWalkErrorOffset) & LuaObjectAddressStackWalkErrorMask)
 }
 
 func (ld *LuaData) GetFrameGct() uint8 {
@@ -403,10 +404,6 @@ func (ld *LuaData) GetFrameGct() uint8 {
 }
 
 func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc *profile.LocationBuilder, frame *unwinder.InterpreterFrame) {
-	loc.SetMapping().SetPath(string(s.langMapping)).Finish()
-
-	symbol, exists := s.interpreterSymbolizer.Symbolize(&frame.SymbolKey)
-
 	name := "[lua] "
 	filename := ""
 
@@ -425,6 +422,7 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 		}
 	case LuaObjectAddressFfidLua:
 		// Lua frame
+		symbol, exists := s.interpreterSymbolizer.Symbolize(&frame.SymbolKey)
 
 		if !exists {
 			mtr.unsymbolizedFramesCount++

@@ -7,6 +7,8 @@
 enum {
     // Maximum stack size to walk.
     LUA_MAX_STACK_DEPTH = PYTHON_MAX_STACK_DEPTH,
+    // Verifier mask for stack length
+    LUA_MAX_STACK_DEPTH_VERIFIER_MASK = LUA_MAX_STACK_DEPTH - 1,
 };
 
 /**

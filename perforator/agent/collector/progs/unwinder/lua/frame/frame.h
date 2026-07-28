@@ -69,8 +69,10 @@ lua_frame_push_invalid(struct interpreter_frame *interpreter_frame,
 lua_frame_push_lua(struct interpreter_frame *interpreter_frame,
                    struct symbol *symbol, GCfunc *function) {
     GCproto *proto = funcproto(function);
-
     if (!proto) {
+        lua_frame_push_invalid(interpreter_frame,
+                               LUA_STACK_WALK_ERROR_PROTO_IS_NULL, 0);
+        metric_increment(METRIC_LUA_PROTO_IS_NULL_COUNT);
         return false;
     }
 
@@ -78,7 +80,6 @@ lua_frame_push_lua(struct interpreter_frame *interpreter_frame,
     BCLine line_defined = BPF_PROBE_READ_USER(proto, firstline);
     lua_frame_set_key(interpreter_frame, object_address, line_defined);
 
-    lua_symbol_new(symbol);
     char *caret = symbol->data;
     size_t name_length = 0;
 
@@ -103,7 +104,6 @@ lua_frame_push_lua(struct interpreter_frame *interpreter_frame,
     }
 
     lua_frame_save_symbol(interpreter_frame, symbol);
-
     return true;
 }
 

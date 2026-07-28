@@ -65,8 +65,8 @@ enum {
     LUA_LINESTART_NON_LUA_FRAME = (u32)-1
 };
 
-_Static_assert(LUA_STACK_WALK_ERROR_LAST ==
-                   (1 << LUA_OBJECT_ADDRESS_STACK_WALK_ERROR_BITS) - 1,
+_Static_assert(LUA_STACK_WALK_ERROR_LAST <=
+                   (1 << LUA_OBJECT_ADDRESS_STACK_WALK_ERROR_BITS),
                "lua_stack_walk_error bits mismatch");
 
 /**

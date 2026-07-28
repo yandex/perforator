@@ -7,17 +7,6 @@
 // namespace lua::symbol
 
 /**
- * @brief Resets the symbol to empty state. This is called before writing a new
- * symbol.
- *
- * @param symbol Symbol from state.
- */
-static ALWAYS_INLINE void lua_symbol_new(struct symbol *symbol) {
-    symbol->name_length = 0;
-    symbol->filename_length = 0;
-}
-
-/**
  * @brief Writes string to symbol buffer.
  *
  * @note The size of the string must be known at compile-time.

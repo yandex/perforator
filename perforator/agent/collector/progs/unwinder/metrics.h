@@ -68,7 +68,8 @@ enum metric : u32 {
     METRIC_LUA_FRAME_GET_INFO_FAIL_COUNT, // Failed to read frame.
     METRIC_LUA_FRAME_IS_NULL_COUNT, // Frame was NULL. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
     METRIC_LUA_FUNCTION_IS_NULL_COUNT, // Function in the frame was NULL. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
-    METRIC_LUA_CACHE_MISMATCH_COUNT, // Cached symbol differs from the new one for the same key.
+    METRIC_LUA_FRAME_IS_NOT_FUNC_COUNT, // Frame wasn't a function. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
+    METRIC_LUA_PROTO_IS_NULL_COUNT, // Proto of the frame function was NULL. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
 
     METRIC_ERROR_STAGE_RECORDSAMPLE_COUNT,
     METRIC_ERROR_STAGE_LBR_STACK_COUNT,
