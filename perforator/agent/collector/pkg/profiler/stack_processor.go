@@ -205,7 +205,7 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 
 			// Usually scripts has @ appended at the beginning.
 			// Perforator has same symbol, removing here.
-			if filename[0] == '@' {
+			if len(filename) != 0 && filename[0] == '@' {
 				filename = symbol.FileName[1:]
 			}
 
