@@ -32,14 +32,6 @@ lua_collect_stack(const struct process_info *process_info,
 
     metric_increment(METRIC_LUA_PROCESSED_STACKS_COUNT);
 
-    _Static_assert(offsetof(lua_State, base) == 32, "");
-    _Static_assert(offsetof(lua_State, top) == 40, "");
-    _Static_assert(offsetof(lua_State, maxstack) == 48, "");
-    _Static_assert(offsetof(lua_State, stack) == 56, "");
-    _Static_assert(offsetof(lua_State, cframe) == 80, "");
-    _Static_assert(offsetof(lua_State, stacksize) == 88, "");
-    _Static_assert(offsetof(global_State, vmstate) == 184, "");
-
     if (!lua_state_find_g_and_l(state)) {
         return;
     }

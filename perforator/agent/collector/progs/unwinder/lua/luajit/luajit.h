@@ -21,3 +21,12 @@
 #include "lj_stdint.h"
 #include "lua.h"
 #include "luaconf.h"
+
+// TODO: Temp until we strip headers
+_Static_assert(offsetof(lua_State, base) == 32, "");
+_Static_assert(offsetof(lua_State, top) == 40, "");
+_Static_assert(offsetof(lua_State, maxstack) == 48, "");
+_Static_assert(offsetof(lua_State, stack) == 56, "");
+_Static_assert(offsetof(lua_State, cframe) == 80, "");
+_Static_assert(offsetof(lua_State, stacksize) == 88, "");
+_Static_assert(offsetof(global_State, vmstate) == 184, "");
