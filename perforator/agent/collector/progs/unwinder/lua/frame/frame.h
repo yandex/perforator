@@ -27,6 +27,17 @@ static ALWAYS_INLINE void lua_frame_set_key(struct interpreter_frame* interprete
 }
 
 /**
+ * @brief Checks if this frame already has a saved symbol in the symbol cache.
+ *
+ * @param interpreter_frame Current frame.
+ *
+ * @return `true` if already saved this symbol
+ */
+static ALWAYS_INLINE bool lua_frame_has_symbol(struct interpreter_frame* interpreter_frame) {
+    return bpf_map_lookup_elem(&interpreter_symbols, interpreter_frame) != NULL;
+}
+
+/**
  * @brief Save symbol info for the current frame to the map.
  *
  * @param interpreter_frame Current frame.
@@ -63,6 +74,10 @@ static ALWAYS_INLINE void lua_frame_set_invalid(struct interpreter_frame* interp
     u64 object_address = lua_frame_pack_lua_object_address(proto);
     i32 line_defined = luajit_gc_proto_get_firstline(proto);
     lua_frame_set_key(interpreter_frame, object_address, line_defined);
+
+    if (lua_frame_has_symbol(interpreter_frame)) {
+        return true;
+    }
 
     char* caret = symbol->data;
     u64 name_length = 0;
