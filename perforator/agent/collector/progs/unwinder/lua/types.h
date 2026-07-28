@@ -16,8 +16,6 @@ enum {
  * Filled from BinaryAnalysis.
  */
 struct lua_config {
-    u32 version; // Version of LuaJIT. Encoded as (minor << 8) + (major << 16).
-                 // See encodeVersion@lua.go
     u64 offset_g_to_l;        // `offsetof(global_State, cur_L)`
     u64 offset_g_to_dispatch; // `GG_G2DISP`
     u64 binary_size; // Size of LuaJIT binary. Used to determine if current

@@ -24,13 +24,8 @@ func IsVersionSupported(version *lua.LuaVersion) bool {
 	return true
 }
 
-func encodeVersion(version *lua.LuaVersion) uint32 {
-	return (version.Minor << 8) + (version.Major << 16)
-}
-
 func ParseLuaUnwinderConfig(conf *lua.LuaConfig) *unwinder.LuaConfig {
 	return &unwinder.LuaConfig{
-		Version:           offsetloader.NewLanguageVersion(conf.Version.Major, conf.Version.Minor, 0).EncodeToUint32(),
 		OffsetGToL:        conf.OffsetGtoL,
 		OffsetGToDispatch: conf.OffsetGtoDispatch,
 		BinarySize:        conf.BinarySize,
