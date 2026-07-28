@@ -3,7 +3,7 @@
 #include "cgroups.h"
 #include "thread_local.h"
 #include "lbr.h"
-#include "python/types.h"
+#include "interpreter/types.h"
 #include "thread_local.h"
 #include "jvm/api.h"
 
@@ -40,7 +40,7 @@ enum sample_type : u32 {
 };
 
 struct interpreter_stack {
-    struct interpreter_frame frames[PYTHON_MAX_STACK_DEPTH];
+    struct interpreter_frame frames[COMMON_MAX_STACK_DEPTH];
     u8 len;
 };
 
