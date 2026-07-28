@@ -55,5 +55,4 @@ struct lua_state {
 
     // Stack
     struct interpreter_stack stack; // Call stack of current `lua_State`.
-    struct symbol symbol;           // Temporary buffer for frame information.
 };

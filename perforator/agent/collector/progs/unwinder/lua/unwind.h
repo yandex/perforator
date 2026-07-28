@@ -42,6 +42,5 @@ lua_collect_stack(const struct process_info *process_info,
         return;
     }
 
-    lua_symbol_prepare(state);
     lua_stack_walk(state);
 }

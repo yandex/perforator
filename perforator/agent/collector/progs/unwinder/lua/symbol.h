@@ -7,21 +7,12 @@
 // namespace lua::symbol
 
 /**
- * @brief Prepares the symbol. This should be called once.
- * @param state Lua unwind state.
- */
-static ALWAYS_INLINE void lua_symbol_prepare(struct lua_state *state) {
-    state->symbol.codepoint_size = 1; // Lua strings are always utf-8
-}
-
-/**
  * @brief Resets the symbol to empty state. This is called before writing a new
  * symbol.
  *
  * @param symbol Symbol from state.
  */
-[[maybe_unused]] static ALWAYS_INLINE void
-lua_symbol_new(struct symbol *symbol) {
+static ALWAYS_INLINE void lua_symbol_new(struct symbol *symbol) {
     symbol->name_length = 0;
     symbol->filename_length = 0;
 }
@@ -37,9 +28,8 @@ lua_symbol_new(struct symbol *symbol) {
  * @param string_size Size of the string.
  * @return size_t Size written.
  */
-static ALWAYS_INLINE size_t lua_symbol_append_string(char *caret,
-                                                     const char *string,
-                                                     size_t string_size) {
+[[nodiscard]] static ALWAYS_INLINE size_t
+lua_symbol_append_string(char *caret, const char *string, size_t string_size) {
     memcpy(caret, string, string_size);
 
     return string_size;
@@ -65,7 +55,7 @@ static ALWAYS_INLINE size_t lua_symbol_append_string(char *caret,
  * @param caret Pointer from symbol where to append.
  * @return size_t Size written.
  */
-static ALWAYS_INLINE size_t lua_symbol_append_fail(char *caret) {
+[[nodiscard]] static ALWAYS_INLINE size_t lua_symbol_append_fail(char *caret) {
     const char kInvalidString[] = "<failed to read>";
 
     return LUA_SYMBOL_APPEND_LITERAL(caret, kInvalidString);

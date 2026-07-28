@@ -3,7 +3,7 @@
 #include <bpf/bpf.h>
 
 #include "../luajit/luajit.h"
-#include "../stack/stack_walk_error.h"
+#include "../stack/walk_error.h"
 
 // namespace lua::frame::pack
 
@@ -75,7 +75,8 @@ _Static_assert(LUA_STACK_WALK_ERROR_LAST ==
  * @param proto Frame function.
  * @return Value ready to be used for `object_addr` field.
  */
-static ALWAYS_INLINE u64 lua_frame_pack_lua_object_address(GCproto *proto) {
+[[nodiscard]] static ALWAYS_INLINE u64
+lua_frame_pack_lua_object_address(GCproto *proto) {
     return (u64)proto;
 }
 
@@ -86,8 +87,8 @@ static ALWAYS_INLINE u64 lua_frame_pack_lua_object_address(GCproto *proto) {
  * @param ffid Fast function ID.
  * @return Value ready to be used for `object_addr` field.
  */
-static ALWAYS_INLINE u64 lua_frame_pack_c_object_address(lua_CFunction function,
-                                                         u8 ffid) {
+[[nodiscard]] static ALWAYS_INLINE u64
+lua_frame_pack_c_object_address(lua_CFunction function, u8 ffid) {
     u64 object_address = ((u64)function & LUA_OBJECT_ADDRESS_MASK);
     object_address |= ((u64)ffid << LUA_OBJECT_ADDRESS_FFID_OFFSET);
 
@@ -100,7 +101,7 @@ static ALWAYS_INLINE u64 lua_frame_pack_c_object_address(lua_CFunction function,
  * @param error Error during stack walking.
  * @return Value ready to be used for `object_addr` field.
  */
-static ALWAYS_INLINE u64
+[[nodiscard]] static ALWAYS_INLINE u64
 lua_frame_pack_invalid_object_address(enum lua_stack_walk_error error, u8 gct) {
     u64 object_address = 0;
     object_address |=

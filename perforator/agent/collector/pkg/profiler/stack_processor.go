@@ -454,7 +454,7 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 
 		// The frame will try to symbolize by postprocess
 		// If postprocess will fail, at least print its builtin number to find the name manually
-		name += "function: builtin#" + strconv.Itoa(int(luaData.GetFfid())) + " " + ffnames[luaData.GetFfid()]
+		name += "function: builtin#" + strconv.Itoa(int(luaData.GetFfid())) + " (" + ffnames[luaData.GetFfid()] + ")"
 	}
 
 	loc.AddFrame().

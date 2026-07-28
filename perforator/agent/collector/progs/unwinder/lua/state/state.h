@@ -123,9 +123,11 @@ lua_state_test_and_set(struct lua_state *state, global_State *global_state) {
 
 /**
  * @brief Find and save process `global_State` (`G`) and current `lua_State`
- * (`L`). This function caches found G and reuses it if it's valid. If no cache
- * exists, function checks if current `rip` is inside LuaJIT binary to minimize
- * CPU cost. When in LuaJIT binary, function will try to find `G` from dispatch
+ * (`L`).
+ *
+ * This function caches found G and reuses it if it's valid. If no cache exists,
+ * function checks if current `rip` is inside LuaJIT binary to minimize CPU
+ * cost. When in LuaJIT binary, function will try to find `G` from dispatch
  * register (`r14`).
  *
  * @param process_info Information about the current process, and specifically
@@ -148,7 +150,7 @@ lua_state_find_g_and_l(struct lua_state *state) {
         // The state is no longer valid, probably called lua_close
         // Erase cached pointer
         metric_increment(METRIC_LUA_INVALIDED_CACHE_COUNT);
-        lua_state_cache_set(state, NULL);
+        (void)lua_state_cache_set(state, NULL);
     }
 
     // Cache doesn't exist or invalidated
@@ -195,7 +197,7 @@ lua_state_find_g_and_l(struct lua_state *state) {
         metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
         LUA_TRACE("lua_state_find_g_and_l: found new global_State=%px",
                   global_state);
-        lua_state_cache_set(state, global_state);
+        (void)lua_state_cache_set(state, global_state);
         return true;
     }
 
