@@ -33,8 +33,8 @@ TMaybe<TParsedLuaVersion> TLuaAnalyzer::ParseVersion() {
 
     // Alternative method. Some binaries (e.g. in Debian) have `luaJIT_version_*` symbol removed.
     // 1. We need to make sure this is not a library but an interpreter. Binary must have `lua_close`.
-    // 2. Then, to make sure this is LuaJIT and not Lua, the binary must have `luaopen_jit`
-    // 3. Last, we search for `LuaJIT 2.1.***` literal (`LUAJIT_VERSION` macro) in `.rodata` section.
+    // 2. Then, to make sure this is LuaJIT and not Lua, the binary must have `luaopen_jit`.
+    // 3. Last, we search for `LuaJIT 2.1.*` literal (`LUAJIT_VERSION` macro) in `.rodata` section.
     if (symbols.LuaClose && symbols.LuaOpenJit) {
         if (const auto& version = TryFindVersionInRodata()) {
             return MakeMaybe(TParsedLuaVersion {
@@ -60,7 +60,6 @@ TMaybe<ui64> TLuaAnalyzer::FindOffsetGToL() {
     }
 
     if (luaCloseSymbol->Size == 0) {
-        // Fallback in case symbol size is not specified in symbol table of ELF
         luaCloseSymbol->Size = TLuaSymbols::kFallbackLocationSize;
     }
 
@@ -86,7 +85,6 @@ TMaybe<ui64> TLuaAnalyzer::FindOffsetGToDispatch() {
     }
 
     if (luaOpenJitSymbol->Size == 0) {
-        // Fallback in case symbol size is not specified in symbol table of ELF
         luaOpenJitSymbol->Size = TLuaSymbols::kFallbackLocationSize;
     }
 
@@ -127,7 +125,6 @@ TMaybe<ui64> TLuaAnalyzer::FindOffsetGToVmState() {
     }
 
     if (luaGcSymbol->Size == 0) {
-        // Fallback in case symbol size is not specified in symbol table of ELF
         luaGcSymbol->Size = TLuaSymbols::kFallbackLocationSize;
     }
 
@@ -333,15 +330,17 @@ TMaybe<TLuaVersion> TLuaAnalyzer::TryScanVersion(std::string_view input, const r
     }
 
     // Since 2090842410e0ba6f81fad310a77bf5432488249a commit LuaJIT has rolling release semantic.
-    // This means patch version is a commit unix timestamp, when before it was `0-beta3`
+    // This means patch version is a commit unix timestamp or `ROLLING`, when before it was `0-beta3`.
     // Currently we support LuaJIT since `2.1.0-beta3`.
-    if (ui64 patchNumber; !fromChars(patch, patchNumber)) {
-        return Nothing();
-    } else if (patchNumber == 0 && !patch.ends_with("-beta3")) {
-        return Nothing();
+    if (patch == "ROLLING" || patch == "0-beta3") {
+        return luaVersion;
     }
 
-    return luaVersion;
+    if (ui64 patchNumber = 0; fromChars(patch, patchNumber) && patchNumber != 0) {
+        return luaVersion;
+    }
+
+    return Nothing();
 }
 
 } // namespace NPerforator::NLinguist::NLua
