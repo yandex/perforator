@@ -11,9 +11,9 @@
  * @brief `lua_stack_step` function flags.
  */
 enum lua_stack_step_result {
-    LUA_STACK_STEP_RESULT_STOP = 0,          // Stop the loop
-    LUA_STACK_STEP_RESULT_CONTINUE = 1 << 0, // Continue the loop
-    LUA_STACK_STEP_RESULT_HAS_FRAME = 1 << 1 // New frame was made
+    LUA_STACK_STEP_RESULT_STOP = 0,           // Stop the loop
+    LUA_STACK_STEP_RESULT_CONTINUE = 1 << 0,  // Continue the loop
+    LUA_STACK_STEP_RESULT_HAS_FRAME = 1 << 1  // New frame was made
 };
 
 /**
@@ -29,9 +29,8 @@ enum lua_stack_step_result {
  * @param frame_gc `frame_gc(frame)`.
  * @return bool
  */
-[[nodiscard]] static ALWAYS_INLINE bool
-lua_stack_process_frame(struct lua_stack_context *context, cTValue *frame,
-                        GCobj *frame_gc) {
+[[nodiscard]] static ALWAYS_INLINE bool lua_stack_process_frame(
+    struct lua_stack_context* context, cTValue* frame, GCobj* frame_gc) {
     __auto_type interpreter_frame = &context->interpreter_frame;
 
     if (!frame) {
@@ -41,7 +40,7 @@ lua_stack_process_frame(struct lua_stack_context *context, cTValue *frame,
         return false;
     }
 
-    GCfunc *fn = gco2func(frame_gc);
+    GCfunc* fn = gco2func(frame_gc);
     if (!fn) {
         lua_frame_push_invalid(interpreter_frame,
                                LUA_STACK_WALK_ERROR_GCFUNC_IS_NULL, 0);
@@ -79,8 +78,8 @@ lua_stack_process_frame(struct lua_stack_context *context, cTValue *frame,
  * @param frame Current frame.
  * @return cTValue* Next frame below current.
  */
-[[nodiscard]] static ALWAYS_INLINE cTValue *
-lua_stack_next_frame(cTValue *frame) {
+[[nodiscard]] static ALWAYS_INLINE cTValue* lua_stack_next_frame(
+    cTValue* frame) {
     if (frame_islua(frame)) {
         return frame_prevl(frame);
     }
@@ -104,15 +103,15 @@ lua_stack_next_frame(cTValue *frame) {
  * @return enum lua_stack_step_result Result code.
  */
 [[nodiscard]] NOINLINE enum lua_stack_step_result lua_stack_step() {
-    struct lua_stack_context *context = lua_stack_context_get();
+    struct lua_stack_context* context = lua_stack_context_get();
     if (context == NULL) {
         LUA_TRACE("lua_stack_step failed to get lua_stack_context");
         return LUA_STACK_STEP_RESULT_STOP;
     }
 
-    __auto_type frame = (cTValue *)context->frame;
-    __auto_type max_stack = (cTValue *)context->max_stack;
-    __auto_type bottom = (cTValue *)context->bottom;
+    __auto_type frame = (cTValue*)context->frame;
+    __auto_type max_stack = (cTValue*)context->max_stack;
+    __auto_type bottom = (cTValue*)context->bottom;
 
     if (frame <= bottom) {
         return LUA_STACK_STEP_RESULT_STOP;
@@ -147,7 +146,7 @@ lua_stack_next_frame(cTValue *frame) {
  *
  * @param state Lua unwind state.
  */
-static ALWAYS_INLINE void lua_stack_reset(struct lua_state *state) {
+static ALWAYS_INLINE void lua_stack_reset(struct lua_state* state) {
     state->stack.len = 0;
 }
 
@@ -157,9 +156,8 @@ static ALWAYS_INLINE void lua_stack_reset(struct lua_state *state) {
  * @param state Lua unwind state.
  * @param frame Interpreter frame.
  */
-static ALWAYS_INLINE void
-lua_stack_push(struct lua_state *state,
-               struct interpreter_frame interpreter_frame) {
+static ALWAYS_INLINE void lua_stack_push(
+    struct lua_state* state, struct interpreter_frame interpreter_frame) {
     state->stack.len &= LUA_MAX_STACK_DEPTH_VERIFIER_MASK;
     state->stack.frames[state->stack.len] = interpreter_frame;
     ++state->stack.len;
@@ -172,13 +170,13 @@ lua_stack_push(struct lua_state *state,
  *
  * @param state Lua unwind state.
  */
-static ALWAYS_INLINE void lua_stack_walk(struct lua_state *state) {
-    lua_State *L = lua_state_get_lua_state(state);
-    global_State *g = lua_state_get_global_state(state);
+static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
+    lua_State* L = lua_state_get_lua_state(state);
+    global_State* g = lua_state_get_global_state(state);
 
 // `vmstate` is volatile
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored                                               \
+#pragma clang diagnostic ignored \
     "-Wincompatible-pointer-types-discards-qualifiers"
     int vmstate = BPF_PROBE_READ_USER(g, vmstate);
 #pragma clang diagnostic pop
@@ -188,9 +186,9 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state *state) {
         return;
     }
 
-    cTValue *base = BPF_PROBE_READ_USER(L, base);
-    cTValue *max_stack = tvref(BPF_PROBE_READ_USER(L, maxstack));
-    cTValue *bottom = tvref(BPF_PROBE_READ_USER(L, stack)) + LJ_FR2;
+    cTValue* base = BPF_PROBE_READ_USER(L, base);
+    cTValue* max_stack = tvref(BPF_PROBE_READ_USER(L, maxstack));
+    cTValue* bottom = tvref(BPF_PROBE_READ_USER(L, stack)) + LJ_FR2;
 
     if (vmstate == ~LJ_VMST_INTERP) {
         base = lua_state_resolve_base(state, base, max_stack, bottom);
@@ -198,9 +196,9 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state *state) {
         base = lua_state_get_jit_base(state, base, g);
     }
 
-    cTValue *frame = base - 1;
+    cTValue* frame = base - 1;
 
-    struct lua_stack_context *context = lua_stack_context_get();
+    struct lua_stack_context* context = lua_stack_context_get();
     if (context == NULL) {
         LUA_TRACE("lua_stack_walk failed to get lua_stack_context");
         return;

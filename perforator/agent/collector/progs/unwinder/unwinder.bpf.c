@@ -794,12 +794,12 @@ static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_
  * @param profiler_state Profiler state.
  * @return int Status code
  */
-static NOINLINE int profiler_stage_collect_lua_stack(void *context, const struct user_regs *user_registers, struct profiler_state *profiler_state, struct profiler_config* config) {
+static NOINLINE int profiler_stage_collect_lua_stack(void* context, const struct user_regs* user_registers, struct profiler_state* profiler_state, struct profiler_config* config) {
     if (!config->enable_lua) {
         return -1;
     }
 
-    struct process_info *process_info = lookup_process(context, profiler_state);
+    struct process_info* process_info = lookup_process(context, profiler_state);
     if (!process_info) {
         return -1;
     }

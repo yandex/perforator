@@ -25,30 +25,30 @@ BPF_MAP(lua_state_cache, BPF_MAP_TYPE_LRU_HASH, u32, u64, LUA_STATE_CACHE_SIZE);
  */
 struct lua_state {
     // Process info
-    u32 pid;                  // Current process ID.
-    struct lua_config config; // Config of LuaJIT binary found in this process.
-    u64 binary_start_address; // Base address of LuaJIT binary in memory.
-    u64 binary_end_address;   // Last address of LuaJIT binary in memory.
+    u32 pid;                   // Current process ID.
+    struct lua_config config;  // Config of LuaJIT binary found in this process.
+    u64 binary_start_address;  // Base address of LuaJIT binary in memory.
+    u64 binary_end_address;    // Last address of LuaJIT binary in memory.
 
     // Registers
-    u64 instruction_pointer; // Value of `rip`. Used to determine if we're
-                             // executing in LuaJIT binary.
+    u64 instruction_pointer;  // Value of `rip`. Used to determine if we're
+                              // executing in LuaJIT binary.
     u64 dispatch_register;   // Value of `r14`. This register might hold pointer
                              // to `GG_State->dispatch`.
     u64 lua_state_register;  // Value of register for C ABI first function
                              // argument. This register might hold pointer to
                              // `lua_State`.
-    u64 base_register; // Value of `rdx`. This register might have a hint about
-                       // the actual L->base value.
+    u64 base_register;  // Value of `rdx`. This register might have a hint about
+                        // the actual L->base value.
 
     // Main structures
-    u64 current_lua_state; // Current `lua_State*`. Use
-                           // `lua_state_get_lua_state`.
-    u64 global_state;      // Process `global_State*`. Use
-                           // `lua_state_get_global_state`.
+    u64 current_lua_state;  // Current `lua_State*`. Use
+                            // `lua_state_get_lua_state`.
+    u64 global_state;       // Process `global_State*`. Use
+                            // `lua_state_get_global_state`.
 
     // Stack
-    struct interpreter_stack stack; // Call stack of current `lua_State`.
+    struct interpreter_stack stack;  // Call stack of current `lua_State`.
 };
 
 /**
@@ -59,12 +59,11 @@ struct lua_state {
  * binary where LuaJIT is located.
  * @returns `true` if config was found.
  */
-[[nodiscard]] static ALWAYS_INLINE bool
-lua_state_get_config_from_process(struct lua_state *state,
-                                  const struct process_info *process_info) {
+[[nodiscard]] static ALWAYS_INLINE bool lua_state_get_config_from_process(
+    struct lua_state* state, const struct process_info* process_info) {
     __auto_type binary = process_info->lua_binary;
 
-    struct lua_config *config = bpf_map_lookup_elem(&lua_storage, &binary.id);
+    struct lua_config* config = bpf_map_lookup_elem(&lua_storage, &binary.id);
     if (config == NULL) {
         return false;
     }
@@ -83,9 +82,9 @@ lua_state_get_config_from_process(struct lua_state *state,
  *
  * @warning Can be used only after lua_state_find_g_and_l().
  */
-[[nodiscard]] static ALWAYS_INLINE global_State *
-lua_state_get_global_state(struct lua_state *state) {
-    return (global_State *)state->global_state;
+[[nodiscard]] static ALWAYS_INLINE global_State* lua_state_get_global_state(
+    struct lua_state* state) {
+    return (global_State*)state->global_state;
 }
 
 /**
@@ -94,9 +93,8 @@ lua_state_get_global_state(struct lua_state *state) {
  * @param state Lua unwind state.
  * @param global_state Valid global state.
  */
-static ALWAYS_INLINE void
-lua_state_set_global_state(struct lua_state *state,
-                           global_State *global_state) {
+static ALWAYS_INLINE void lua_state_set_global_state(
+    struct lua_state* state, global_State* global_state) {
     state->global_state = (u64)global_state;
 }
 
@@ -105,9 +103,9 @@ lua_state_set_global_state(struct lua_state *state,
  *
  * @param state Lua unwind state.
  */
-[[nodiscard]] static ALWAYS_INLINE lua_State *
-lua_state_get_lua_state(struct lua_state *state) {
-    return (lua_State *)state->current_lua_state;
+[[nodiscard]] static ALWAYS_INLINE lua_State* lua_state_get_lua_state(
+    struct lua_state* state) {
+    return (lua_State*)state->current_lua_state;
 }
 
 /**
@@ -116,8 +114,8 @@ lua_state_get_lua_state(struct lua_state *state) {
  * @param state Lua unwind state.
  * @param L Valid Lua state.
  */
-static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state *state,
-                                                  lua_State *L) {
+static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state,
+                                                  lua_State* L) {
     state->current_lua_state = (u64)L;
 }
 
@@ -129,9 +127,9 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state *state,
  * @param state Lua unwind state.
  * @return `global_State*` value from cache or NULL.
  */
-[[nodiscard]] static ALWAYS_INLINE global_State *
-lua_state_cache_get(const struct lua_state *state) {
-    global_State **global_state_holder =
+[[nodiscard]] static ALWAYS_INLINE global_State* lua_state_cache_get(
+    const struct lua_state* state) {
+    global_State** global_state_holder =
         bpf_map_lookup_elem(&lua_state_cache, &state->pid);
     if (global_state_holder == NULL) {
         return NULL;
@@ -146,8 +144,8 @@ lua_state_cache_get(const struct lua_state *state) {
  * @param state Lua unwind state.
  * @return Status of `bpf_map_update_elem` operation.
  */
-[[nodiscard]] static ALWAYS_INLINE int
-lua_state_cache_set(struct lua_state *state, global_State *g) {
+[[nodiscard]] static ALWAYS_INLINE int lua_state_cache_set(
+    struct lua_state* state, global_State* g) {
     return bpf_map_update_elem(&lua_state_cache, &state->pid, &g, BPF_ANY);
 }
 
@@ -162,13 +160,13 @@ lua_state_cache_set(struct lua_state *state, global_State *g) {
  * @param global_state Non-NULL but still potential state.
  * @return
  */
-[[nodiscard]] static ALWAYS_INLINE bool
-lua_state_test_and_set(struct lua_state *state, global_State *global_state) {
+[[nodiscard]] static ALWAYS_INLINE bool lua_state_test_and_set(
+    struct lua_state* state, global_State* global_state) {
     // cur_L must be taken using parsed offsets
-    void *cur_L_field = (char *)global_state + state->config.offset_g_to_l;
-    lua_State *L;
+    void* cur_L_field = (char*)global_state + state->config.offset_g_to_l;
+    lua_State* L;
 
-    long err = bpf_probe_read_user(&L, sizeof(lua_State *), cur_L_field);
+    long err = bpf_probe_read_user(&L, sizeof(lua_State*), cur_L_field);
     if (err != 0) {
         LUA_TRACE(
             "lua_state_test_and_set: failed to read global_state->curL=%px "
@@ -181,14 +179,15 @@ lua_state_test_and_set(struct lua_state *state, global_State *global_state) {
         return false;
     }
 
-    global_State *global_state_from_l = G(L);
+    global_State* global_state_from_l = G(L);
 
     // Cross check that `global_state` points to `cur_L`, `cur_L` points to
     // `global_state`
     if (global_state != global_state_from_l) {
-        LUA_TRACE("lua_state_test_and_set: G(global_state->cur_L)=%px doesn't "
-                  "match global_state=%px",
-                  global_state_from_l, global_state);
+        LUA_TRACE(
+            "lua_state_test_and_set: G(global_state->cur_L)=%px doesn't "
+            "match global_state=%px",
+            global_state_from_l, global_state);
         return false;
     }
 
@@ -212,9 +211,9 @@ lua_state_test_and_set(struct lua_state *state, global_State *global_state) {
  * @param state Lua unwind state.
  * @return `true` if G and L were found.
  */
-[[nodiscard]] static ALWAYS_INLINE bool
-lua_state_find_g_and_l(struct lua_state *state) {
-    global_State *cached_global_state = lua_state_cache_get(state);
+[[nodiscard]] static ALWAYS_INLINE bool lua_state_find_g_and_l(
+    struct lua_state* state) {
+    global_State* cached_global_state = lua_state_cache_get(state);
     if (cached_global_state != NULL) {
         // Cache exists
         if (lua_state_test_and_set(state, cached_global_state)) {
@@ -248,9 +247,9 @@ lua_state_find_g_and_l(struct lua_state *state) {
 
     // Try to find state from dispatch register.
     // It's always present when we are executing inside LuaJIT VM.
-    global_State *global_state =
-        (global_State *)((char *)state->dispatch_register -
-                         state->config.offset_g_to_dispatch);
+    global_State* global_state =
+        (global_State*)((char*)state->dispatch_register -
+                        state->config.offset_g_to_dispatch);
     if (lua_state_test_and_set(state, global_state)) {
         metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
         LUA_TRACE("lua_state_find_g_and_l: found new global_State=%px",
@@ -261,7 +260,7 @@ lua_state_find_g_and_l(struct lua_state *state) {
 
     // Alternatively try to find from register for C ABI first function
     // argument.
-    global_state = G((lua_State *)state->lua_state_register);
+    global_state = G((lua_State*)state->lua_state_register);
     if (lua_state_test_and_set(state, global_state)) {
         metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
         LUA_TRACE("lua_state_find_g_and_l: found new global_State=%px",
@@ -291,9 +290,9 @@ lua_state_find_g_and_l(struct lua_state *state) {
  * @param bottom Bottom frame of the stack.
  * @return TValue* Correct base.
  */
-[[nodiscard]] static ALWAYS_INLINE cTValue *
-lua_state_resolve_base(struct lua_state *state, cTValue *base,
-                       cTValue *max_stack, cTValue *bottom) {
+[[nodiscard]] static ALWAYS_INLINE cTValue* lua_state_resolve_base(
+    struct lua_state* state, cTValue* base, cTValue* max_stack,
+    cTValue* bottom) {
     __auto_type binary_relative_address =
         state->instruction_pointer - state->binary_start_address;
     bool is_in_luajit_vm =
@@ -305,7 +304,7 @@ lua_state_resolve_base(struct lua_state *state, cTValue *base,
     }
 
     metric_increment(METRIC_LUA_BASE_DEDUCED_FROM_RDX_COUNT);
-    return (cTValue *)state->base_register;
+    return (cTValue*)state->base_register;
 }
 
 /**
@@ -315,15 +314,14 @@ lua_state_resolve_base(struct lua_state *state, cTValue *base,
  * @param base Current value of base if we fail to get `jit_base`.
  * @return
  */
-[[nodiscard]] static ALWAYS_INLINE cTValue *
-lua_state_get_jit_base(const struct lua_state *state, cTValue *base,
-                       global_State *g) {
+[[nodiscard]] static ALWAYS_INLINE cTValue* lua_state_get_jit_base(
+    const struct lua_state* state, cTValue* base, global_State* g) {
     // TODO: Is it possible to have different padding? `jit_base` is next field
     // after `cur_L`. If yes, parse from binary.
-    __auto_type jit_base_pointer = (char *)g + state->config.offset_g_to_l +
-                                   sizeof(((global_State *)0)->cur_L);
+    __auto_type jit_base_pointer = (char*)g + state->config.offset_g_to_l +
+                                   sizeof(((global_State*)0)->cur_L);
     __auto_type jit_base =
-        tvref(BPF_PROBE_READ_USER_FROM((MRef *)(jit_base_pointer)));
+        tvref(BPF_PROBE_READ_USER_FROM((MRef*)(jit_base_pointer)));
 
     if (!jit_base) {
         return base;

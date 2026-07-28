@@ -18,7 +18,7 @@
  * @return size_t Size written.
  */
 [[nodiscard]] static ALWAYS_INLINE size_t
-lua_symbol_append_string(char *caret, const char *string, size_t string_size) {
+lua_symbol_append_string(char* caret, const char* string, size_t string_size) {
     memcpy(caret, string, string_size);
 
     return string_size;
@@ -34,7 +34,7 @@ lua_symbol_append_string(char *caret, const char *string, size_t string_size) {
  * @param literal Literal to write
  * @return size_t Size written.
  */
-#define LUA_SYMBOL_APPEND_LITERAL(caret, literal)                              \
+#define LUA_SYMBOL_APPEND_LITERAL(caret, literal) \
     lua_symbol_append_string((caret), (literal), sizeof(literal) - 1)
 
 /**
@@ -44,7 +44,7 @@ lua_symbol_append_string(char *caret, const char *string, size_t string_size) {
  * @param caret Pointer from symbol where to append.
  * @return size_t Size written.
  */
-[[nodiscard]] static ALWAYS_INLINE size_t lua_symbol_append_fail(char *caret) {
+[[nodiscard]] static ALWAYS_INLINE size_t lua_symbol_append_fail(char* caret) {
     const char kInvalidString[] = "<failed to read>";
 
     return LUA_SYMBOL_APPEND_LITERAL(caret, kInvalidString);

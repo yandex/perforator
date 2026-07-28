@@ -16,12 +16,12 @@ enum {
  * Filled from BinaryAnalysis.
  */
 struct lua_config {
-    u64 offset_g_to_l;        // `offsetof(global_State, cur_L)`
-    u64 offset_g_to_dispatch; // `GG_G2DISP`
-    u64 binary_size; // Size of LuaJIT binary. Used to determine if current
-                     // `rip` is from this binary.
-    u64 vm_start_pc; // First PC of VM. Relative to the binary!
-    u64 vm_end_pc;   // Last PC of VM. Relative to the binary!
+    u64 offset_g_to_l;         // `offsetof(global_State, cur_L)`
+    u64 offset_g_to_dispatch;  // `GG_G2DISP`
+    u64 binary_size;  // Size of LuaJIT binary. Used to determine if current
+                      // `rip` is from this binary.
+    u64 vm_start_pc;  // First PC of VM. Relative to the binary!
+    u64 vm_end_pc;    // Last PC of VM. Relative to the binary!
 };
 
 BPF_MAP(lua_storage, BPF_MAP_TYPE_HASH, binary_id, struct lua_config,

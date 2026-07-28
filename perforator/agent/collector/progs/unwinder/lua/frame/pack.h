@@ -76,7 +76,7 @@ _Static_assert(LUA_STACK_WALK_ERROR_LAST <=
  * @return Value ready to be used for `object_addr` field.
  */
 [[nodiscard]] static ALWAYS_INLINE u64
-lua_frame_pack_lua_object_address(GCproto *proto) {
+lua_frame_pack_lua_object_address(GCproto* proto) {
     return (u64)proto;
 }
 
