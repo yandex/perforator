@@ -241,9 +241,3 @@ static const int LUAJIT_FRAME_TYPEP = (LUAJIT_FRAME_TYPE | LUAJIT_FRAME_P);
     // #define frame_prevd(f)		((TValue *)((char *)(f) - frame_sized(f)))
     return (const luajit_tvalue*)((char*)(frame)-luajit_frame_sized(frame));
 }
-
-// Does not skip over FRAME_VARG
-[[nodiscard]] static ALWAYS_INLINE const luajit_tvalue* luajit_frame_prev(const luajit_tvalue* frame) {
-    // #define frame_prev(f)		(frame_islua(f)?frame_prevl(f):frame_prevd(f))
-    return luajit_frame_islua(frame) ? luajit_frame_prevl(frame) : luajit_frame_prevd(frame);
-}

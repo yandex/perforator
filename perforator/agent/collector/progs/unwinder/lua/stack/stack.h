@@ -68,12 +68,12 @@ enum lua_stack_step_result {
  */
 [[nodiscard]] static ALWAYS_INLINE const luajit_tvalue* lua_stack_next_frame(const luajit_tvalue* frame) {
     if (luajit_frame_islua(frame)) {
-        return luajit_frame_prevl(frame);
-    }
+        frame = luajit_frame_prevl(frame);
 
-    if (luajit_frame_isvarg(frame)) {
-        // Skip vararg pseudo-frame.
-        return luajit_frame_prev(luajit_frame_prevd(frame));
+        // Skip vararg pseudo-frame. (if varg: fallthrough)
+        if (!luajit_frame_isvarg(frame)) {
+            return frame;
+        }
     }
 
     return luajit_frame_prevd(frame);
@@ -178,6 +178,11 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
     }
 
     const luajit_tvalue* frame = base - 1;
+
+    // This might happen if we stopped before full initialize of vararg function frames.
+    if (luajit_frame_isvarg(frame)) {
+        frame = luajit_frame_prevd(frame);
+    }
 
     struct lua_stack_context* context = lua_stack_context_get();
     if (context == NULL) {
