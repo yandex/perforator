@@ -139,7 +139,7 @@ typedef struct luajit_global_state luajit_global_state;
  * @return global_State* Pointer to global state.
  */
 [[nodiscard]] static ALWAYS_INLINE luajit_global_state* luajit_get_global_state_from_dispatch(u64 dispatch, const struct lua_config* config) {
-    return LUAJIT_GET_OFFSET(dispatch, config->offset_g_to_dispatch);
+    return LUAJIT_GET_OFFSET(dispatch, -config->offset_g_to_dispatch);
 }
 
 // Per-thread state object.
