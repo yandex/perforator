@@ -27,6 +27,9 @@ struct pt_regs___kernel {
     u64 ip;
     u64 sp;
     u64 bp;
+    u64 di;
+    u64 dx;
+    u64 r14;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -69,6 +72,9 @@ static NOINLINE bool extract_saved_userspace_registers(struct user_regs* regs) {
     regs->rip = BPF_CORE_READ(kregs, ip);
     regs->rbp = BPF_CORE_READ(kregs, bp);
     regs->rsp = BPF_CORE_READ(kregs, sp);
+    regs->rdi = BPF_CORE_READ(kregs, di);
+    regs->rdx = BPF_CORE_READ(kregs, dx);
+    regs->r14 = BPF_CORE_READ(kregs, r14);
 
     return true;
 }
