@@ -19,6 +19,7 @@ PY_SRCS(
     create_node_modules.py
     globs.py
     models.py
+    node_modules_layer.py
     prepare_deps.py
     ram_disk.py
     utils.py

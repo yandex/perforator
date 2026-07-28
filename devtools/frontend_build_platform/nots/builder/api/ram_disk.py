@@ -4,8 +4,6 @@ import shutil
 from dataclasses import dataclass
 from enum import Enum
 
-import libarchive
-
 from .globs import GlobMatcher
 
 logger = logging.getLogger(__name__)
@@ -42,19 +40,17 @@ class RamDisk:
         self,
         source_path: str,
         build_path: str,
-        node_modules_layer: str,
         source_exclude_globs: list[str],
         build_exclude_globs: list[str],
-        include_workspace_bundle: bool = False,
+        workspace_bundle_reserve: int = 0,
     ) -> RamDiskUsage:
         return select_ram_disk_usage(
             self.root,
             source_path,
             build_path,
-            node_modules_layer,
             source_exclude_globs,
             build_exclude_globs,
-            include_workspace_bundle,
+            workspace_bundle_reserve,
         )
 
     def cleanup(self) -> None:
@@ -106,49 +102,35 @@ def _tree_size(path: str, exclude_globs: list[str], block_size: int) -> int:
     return total
 
 
-def _archive_size(path: str, block_size: int) -> int:
-    with libarchive.Archive(path, mode='rb') as entries:
-        return sum(_allocated_size(entry.size, block_size) for entry in entries)
-
-
 def select_ram_disk_usage(
     ram_disk_path: str,
     source_path: str,
     build_path: str,
-    node_modules_layer: str,
     source_exclude_globs: list[str],
     build_exclude_globs: list[str],
-    include_workspace_bundle: bool = False,
+    workspace_bundle_reserve: int = 0,
 ) -> RamDiskUsage:
     try:
         block_size = os.statvfs(ram_disk_path).f_frsize
         source_size = _tree_size(source_path, source_exclude_globs, block_size)
         build_size = _tree_size(build_path, build_exclude_globs, block_size)
-        node_modules_size = _archive_size(node_modules_layer, block_size)
-        workspace_bundle_size = node_modules_size if include_workspace_bundle else 0
-        full_build_required = (
-            source_size + build_size + node_modules_size + workspace_bundle_size + BUILD_OUTPUT_RESERVE_BYTES
-        )
+        full_build_required = source_size + build_size + workspace_bundle_reserve + BUILD_OUTPUT_RESERVE_BYTES
         available = shutil.disk_usage(ram_disk_path).free
     except Exception:
-        logger.exception('Failed to estimate RAM disk capacity; using build directory')
-        return RamDiskUsage.NONE
+        logger.exception('Failed to estimate remaining RAM disk capacity; keeping sources in build directory')
+        return RamDiskUsage.NODE_MODULES
 
     logger.info(
-        'RAM disk capacity: full_build_required=%d, node_modules_required=%d, available=%d '
-        '(source=%d, build_inputs=%d, node_modules=%d, workspace_bundle=%d, '
+        'Remaining RAM disk capacity: full_build_required=%d, available=%d '
+        '(source=%d, build_inputs=%d, workspace_bundle_reserve=%d, '
         'build_output_reserve=%d)',
         full_build_required,
-        node_modules_size,
         available,
         source_size,
         build_size,
-        node_modules_size,
-        workspace_bundle_size,
+        workspace_bundle_reserve,
         BUILD_OUTPUT_RESERVE_BYTES,
     )
     if full_build_required <= available:
         return RamDiskUsage.FULL_BUILD
-    if node_modules_size <= available:
-        return RamDiskUsage.NODE_MODULES
-    return RamDiskUsage.NONE
+    return RamDiskUsage.NODE_MODULES

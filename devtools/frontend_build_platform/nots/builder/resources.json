@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-07-24T20:28:22.975Z",
+    "created": "2026-07-28T16:24:46.225Z",
     "pr": {
-      "id": 14579033,
+      "id": 14665171,
       "author": "baymer",
-      "summary": "FBP-3287: Use RAM disk for hermetic node_modules"
+      "summary": "FBP-3287: squashfs для упаковки в prepare deps"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12918224214"
+      "uri": "sbr:12957462606"
     },
     "darwin-arm64": {
-      "uri": "sbr:12918223349"
+      "uri": "sbr:12957459105"
     },
     "linux": {
-      "uri": "sbr:12918225978"
+      "uri": "sbr:12957468663"
     },
     "linux-aarch64": {
-      "uri": "sbr:12918224997"
+      "uri": "sbr:12957465403"
     }
   }
 }

@@ -44,10 +44,12 @@ class TsLibraryBuilderOptions(BaseTsLibraryBuilderOptions):
 
 class TsLibraryBuilder(BaseBuilder):
     def build(self):
+        node_modules_restored = self._restore_node_modules_to_ram_disk()
         self._prepare_bindir()
 
         if self.options.hermetic_node_modules:
-            restore_node_modules_layer(self.options)
+            if not node_modules_restored:
+                restore_node_modules_layer(self.options)
             node_modules_context = NodeModulesBuildContext(peer_paths=())
         else:
             node_modules_context = create_node_modules(self.options)
@@ -61,44 +63,45 @@ class TsLibraryBuilder(BaseBuilder):
         self._ram_disk = None
         self._original_bindir = None
         self._original_output_file = None
-
         if options.hermetic_node_modules:
             self._ram_disk = RamDisk.from_env()
-            ram_bindir = self._ram_disk.path(options.arcadia_build_root, options.bindir) if self._ram_disk else None
-            source_exclude_globs = options.exclude_globs + [f"{output}/**/*" for output in options.outputs]
-            build_exclude_globs = [
-                f"{pm_constants.NODE_MODULES_DIRNAME}/**/*",
-                os.path.basename(options.output_file),
-                *[f"{output}/**/*" for output in options.outputs],
-            ]
-            ram_disk_usage = (
-                self._ram_disk.select_usage(
-                    options.curdir,
-                    options.bindir,
-                    options.node_modules_layer,
-                    source_exclude_globs,
-                    build_exclude_globs,
-                    include_workspace_bundle=options.nm_bundle,
-                )
-                if ram_bindir
-                else RamDiskUsage.NONE
-            )
-            self._ram_disk_usage = ram_disk_usage
-            if self._ram_disk_usage == RamDiskUsage.FULL_BUILD:
-                self._original_bindir = options.bindir
-                self._original_output_file = options.output_file
-                options = copy.copy(options)
-                options.bindir = ram_bindir
-                options.output_file = self._ram_disk.path(options.arcadia_build_root, options.output_file)
-            elif self._ram_disk_usage == RamDiskUsage.NODE_MODULES:
-                options = copy.copy(options)
-                options.use_ram_disk = True
-            elif ram_bindir:
-                options = copy.copy(options)
-                options.use_ram_disk = False
 
         super(TsLibraryBuilder, self).__init__(options)
         self.options = options  # for type hints
+
+    def _restore_node_modules_to_ram_disk(self) -> bool:
+        if not self.options.hermetic_node_modules or self._ram_disk is None:
+            return False
+
+        self._ram_disk_usage = RamDiskUsage.NODE_MODULES
+        free_before_restore = shutil.disk_usage(self._ram_disk.root).free
+        options = copy.copy(self.options)
+        options.use_ram_disk = True
+        restore_node_modules_layer(options)
+        free_after_restore = shutil.disk_usage(self._ram_disk.root).free
+        node_modules_size = max(0, free_before_restore - free_after_restore)
+
+        source_exclude_globs = options.exclude_globs + [f"{output}/**/*" for output in options.outputs]
+        build_exclude_globs = [
+            f"{pm_constants.NODE_MODULES_DIRNAME}/**/*",
+            os.path.basename(options.output_file),
+            *[f"{output}/**/*" for output in options.outputs],
+        ]
+        self._ram_disk_usage = self._ram_disk.select_usage(
+            options.curdir,
+            options.bindir,
+            source_exclude_globs,
+            build_exclude_globs,
+            workspace_bundle_reserve=node_modules_size if options.nm_bundle else 0,
+        )
+        if self._ram_disk_usage == RamDiskUsage.FULL_BUILD:
+            self._original_bindir = options.bindir
+            self._original_output_file = options.output_file
+            options.bindir = self._ram_disk.path(options.arcadia_build_root, options.bindir)
+            options.output_file = self._ram_disk.path(options.arcadia_build_root, options.output_file)
+
+        self.options = options
+        return True
 
     @timeit
     def bundle(self):

@@ -37,6 +37,11 @@ def register_base_args(parser: ArgumentParser) -> None:
     parser.add_argument(
         '--yatool-prebuilder-path', required=False, help="Path to `@yatool/prebuilder` script, if it needed"
     )
+    parser.add_argument(
+        '--squashfs-tools-path',
+        required=False,
+        help="Path to the Linux x86-64 SquashFS tool bundle",
+    )
 
     parser.add_argument(
         "--use-legacy-pnpm-virtual-store",

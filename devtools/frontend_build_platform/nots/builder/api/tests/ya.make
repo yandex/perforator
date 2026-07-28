@@ -5,6 +5,7 @@ TEST_SRCS(
     test_create_node_modules.py
     test_globs.py
     test_node_modules_build_lifecycle.py
+    test_node_modules_layer.py
     test_prepare_deps.py
     test_ts_proto_generator.py
     test_utils_copy_files_with_exclusions.py

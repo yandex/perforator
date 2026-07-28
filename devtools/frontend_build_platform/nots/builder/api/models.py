@@ -34,6 +34,8 @@ class BaseOptions:
     """type of package manager (pnpm or npm)"""
     yatool_prebuilder_path: str | None
     """optional path to `@yatool/prebuilder` script"""
+    squashfs_tools_path: str | None
+    """optional path to Linux x86-64 SquashFS tools"""
 
     use_legacy_pnpm_virtual_store: bool
     """Use legacy pnpm virtual store"""
