@@ -123,8 +123,8 @@ struct profiler_config {
     // Enable PHP profiling
     bool enable_php;
 
-    // TODO: For Lua?
-    // bool enable_lua;
+    // Enable Lua profiling
+    bool enable_lua;
 
     // Cgroup resolution engine to use
     enum cgroup_engine active_cgroup_engine;
@@ -794,7 +794,11 @@ static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_
  * @param profiler_state Profiler state.
  * @return int Status code
  */
-static NOINLINE int profiler_stage_collect_lua_stack(void *context, const struct user_regs *user_registers, struct profiler_state *profiler_state) {
+static NOINLINE int profiler_stage_collect_lua_stack(void *context, const struct user_regs *user_registers, struct profiler_state *profiler_state, struct profiler_config* config) {
+    if (!config->enable_lua) {
+        return -1;
+    }
+
     struct process_info *process_info = lookup_process(context, profiler_state);
     if (!process_info) {
         return -1;
@@ -909,7 +913,7 @@ struct profiler_sample_args {
     PROFILER_DEFINE_STAGE(profiler_stage_collect_stack(ctx, regs, state, config), METRIC_ERROR_STAGE_COLLECTSTACK_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_tls(ctx, state, config), METRIC_ERROR_STAGE_TLS_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_python_stack(ctx, state, config), METRIC_ERROR_STAGE_COLLECT_PYTHON_STACK_COUNT); \
-    PROFILER_DEFINE_STAGE(profiler_stage_collect_lua_stack(ctx, regs, state), METRIC_ERROR_STAGE_COLLECT_LUA_STACK_COUNT); \
+    PROFILER_DEFINE_STAGE(profiler_stage_collect_lua_stack(ctx, regs, state, config), METRIC_ERROR_STAGE_COLLECT_LUA_STACK_COUNT); \
 
 static NOINLINE int profiler_do_sample_impl_perfevent(void* ctx, struct user_regs* regs, struct profiler_sample_args* args) {
     PROFILER_DO_SAMPLE_COMMON_PROLOGUE;

@@ -926,6 +926,8 @@ func (p *Profiler) setupConfig() error {
 
 	conf.EnablePhp = p.conf.FeatureFlagsConfig.PhpEnabled()
 
+	conf.EnableLua = p.conf.FeatureFlagsConfig.LuaEnabled()
+
 	// Record current pidns.
 	pidns, err := procfs.Self().GetNamespaces().GetPidInode()
 	if err != nil {
