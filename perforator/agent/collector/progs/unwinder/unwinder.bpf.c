@@ -806,7 +806,6 @@ static NOINLINE int profiler_stage_collect_lua_stack(void *context, const struct
     lua_state->dispatch_register = user_registers->r14;
     lua_state->l_register = user_registers->rdi;
     lua_state->base_register = user_registers->rdx;
-    lua_state->pc_register = user_registers->rbx;
 
     lua_collect_stack(process_info, lua_state);
 

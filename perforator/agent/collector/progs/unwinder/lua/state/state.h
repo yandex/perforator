@@ -237,17 +237,6 @@ lua_state_resolve_base(struct lua_state *state, cTValue *base,
         return base;
     }
 
-    __auto_type ins = BPF_PROBE_READ_USER_FROM((BCIns *)state->pc_register);
-
-    // During `BC_RET` we move results from a function to caller stack, this
-    // might erase information about the last frame (which just ended).
-    // `BC_RET` instruction from C functions holds information about previous
-    // frame. TODO: Can it be improved?
-    if (bc_op(ins) == BC_RET && base == base_from_register) {
-        metric_increment(METRIC_LUA_BASE_DEDUCED_FROM_RET_COUNT);
-        return (TValue *)((char *)base_from_register + 8 * -bc_a(ins) - 0x10);
-    }
-
     metric_increment(METRIC_LUA_BASE_DEDUCED_FROM_RDX_COUNT);
     return base_from_register;
 }

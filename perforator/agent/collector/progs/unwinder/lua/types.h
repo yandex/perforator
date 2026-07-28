@@ -46,8 +46,6 @@ struct lua_state {
     u64 l_register; // Value of `rdi`. This register might hold pointer to `L`.
     u64 base_register; // Value of `rdx`. This register might have a hint about
                        // the actual L->base value.
-    u64 pc_register;   // Value of `rbx`. This register might hold current
-                       // instruction executed by VM.
 
     // Main structures
     u64 L; // Current `lua_State*`. Use `lua_state_get_lua_state`.

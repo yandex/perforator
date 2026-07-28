@@ -60,7 +60,6 @@ enum metric : u32 {
 
     // Lua base deducing metrics
     METRIC_LUA_RDX_OUTSIDE_OF_STACK_COUNT, // `rdx` is out of stack range.
-    METRIC_LUA_BASE_DEDUCED_FROM_RET_COUNT, // Top frame was deduced from corner case in `BC_RET` opcode.
     METRIC_LUA_BASE_DEDUCED_FROM_RDX_COUNT, // Top frame was deduced from `rdx`.
 
     // Lua stack walk metrics
@@ -99,6 +98,7 @@ enum metric : u32 {
 ////////////////////////////////////////////////////////////////////////////////
 
 BPF_MAP(metrics, BPF_MAP_TYPE_PERCPU_ARRAY, u32, u64, METRIC_COUNT);
+
 
 // Make enum metrics available for the userspace.
 BTF_EXPORT(enum metric);
