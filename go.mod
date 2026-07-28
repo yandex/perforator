@@ -245,6 +245,7 @@ require (
 	github.com/antchfx/htmlquery v1.3.2
 	github.com/antchfx/xpath v1.3.6
 	github.com/antham/ghokin/v3 v3.7.0
+	github.com/anthropics/anthropic-sdk-go v1.57.0
 	github.com/antihax/optional v1.0.0
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9
 	github.com/antlr4-go/antlr/v4 v4.13.1
@@ -580,7 +581,7 @@ require (
 	github.com/imdario/mergo v0.3.16
 	github.com/insomniacslk/dhcp v0.0.0-20240829085014-a3a4c1f04475
 	github.com/intel/govmm v0.0.0-20200602145448-7cc469641b7b
-	github.com/invopop/jsonschema v0.7.0
+	github.com/invopop/jsonschema v0.14.0
 	github.com/iovisor/gobpf v0.0.0-20200311173154-8078b203833d
 	github.com/itchyny/gojq v0.12.18
 	github.com/jackc/pgconn v1.14.3
@@ -1410,6 +1411,7 @@ require (
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymanbagabas/go-udiff v0.4.1 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df // indirect
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3 // indirect
@@ -2244,6 +2246,7 @@ require (
 	github.com/paulbellamy/ratecounter v0.2.0 // indirect
 	github.com/paulmach/protoscan v0.2.1 // indirect
 	github.com/pavlo-v-chernykh/keystore-go/v4 v4.5.0 // indirect
+	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pborman/getopt v1.1.0 // indirect
 	github.com/pborman/getopt/v2 v2.1.0 // indirect
 	github.com/pelletier/go-buffruneio v0.3.0 // indirect
@@ -2404,6 +2407,7 @@ require (
 	github.com/src-d/gcfg v1.4.0 // indirect
 	github.com/ssgreg/nlreturn v1.0.5 // indirect
 	github.com/stackitcloud/stackit-sdk-go/core v0.17.3 // indirect
+	github.com/standard-webhooks/standard-webhooks/libraries v0.0.1 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/streadway/handy v0.0.0-20200128134331-0f66f006fb2e // indirect
@@ -2583,6 +2587,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.5 // indirect
 	go4.org/intern v0.0.0-20220617035311-6925f38cc365 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/exp/shiny v0.0.0-20241009180824-f66d83c29e7c // indirect

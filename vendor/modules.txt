@@ -4661,6 +4661,40 @@ github.com/antham/ghokin/v3
 github.com/antham/ghokin/v3/cmd
 github.com/antham/ghokin/v3/ghokin
 github.com/antham/ghokin/v3/ghokin/internal/transformer
+# github.com/anthropics/anthropic-sdk-go v1.57.0
+## explicit; go 1.24
+github.com/anthropics/anthropic-sdk-go
+github.com/anthropics/anthropic-sdk-go/aws
+github.com/anthropics/anthropic-sdk-go/bedrock
+github.com/anthropics/anthropic-sdk-go/config
+github.com/anthropics/anthropic-sdk-go/internal
+github.com/anthropics/anthropic-sdk-go/internal/apierror
+github.com/anthropics/anthropic-sdk-go/internal/apiform
+github.com/anthropics/anthropic-sdk-go/internal/apijson
+github.com/anthropics/anthropic-sdk-go/internal/apiquery
+github.com/anthropics/anthropic-sdk-go/internal/auth
+github.com/anthropics/anthropic-sdk-go/internal/awsauth
+github.com/anthropics/anthropic-sdk-go/internal/encoding/json
+github.com/anthropics/anthropic-sdk-go/internal/encoding/json/sentinel
+github.com/anthropics/anthropic-sdk-go/internal/encoding/json/shims
+github.com/anthropics/anthropic-sdk-go/internal/paramutil
+github.com/anthropics/anthropic-sdk-go/internal/requestconfig
+github.com/anthropics/anthropic-sdk-go/internal/stainlessheader
+github.com/anthropics/anthropic-sdk-go/internal/testutil
+github.com/anthropics/anthropic-sdk-go/lib/betafallback
+github.com/anthropics/anthropic-sdk-go/lib/environments
+github.com/anthropics/anthropic-sdk-go/mcp
+github.com/anthropics/anthropic-sdk-go/option
+github.com/anthropics/anthropic-sdk-go/packages/jsonl
+github.com/anthropics/anthropic-sdk-go/packages/pagination
+github.com/anthropics/anthropic-sdk-go/packages/param
+github.com/anthropics/anthropic-sdk-go/packages/respjson
+github.com/anthropics/anthropic-sdk-go/packages/ssestream
+github.com/anthropics/anthropic-sdk-go/shared
+github.com/anthropics/anthropic-sdk-go/shared/constant
+github.com/anthropics/anthropic-sdk-go/toolrunner
+github.com/anthropics/anthropic-sdk-go/tools/agenttoolset
+github.com/anthropics/anthropic-sdk-go/vertex
 # github.com/antihax/optional v1.0.0
 ## explicit; go 1.13
 github.com/antihax/optional
@@ -5401,6 +5435,9 @@ github.com/aymerick/raymond/ast
 github.com/aymerick/raymond/handlebars
 github.com/aymerick/raymond/lexer
 github.com/aymerick/raymond/parser
+# github.com/bahlo/generic-list-go v0.2.0
+## explicit; go 1.18
+github.com/bahlo/generic-list-go
 # github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f
 ## explicit
 # github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
@@ -11761,8 +11798,8 @@ github.com/insomniacslk/dhcp/rfc1035label
 # github.com/intel/govmm v0.0.0-20200602145448-7cc469641b7b
 ## explicit
 github.com/intel/govmm/qemu
-# github.com/invopop/jsonschema v0.7.0
-## explicit; go 1.16
+# github.com/invopop/jsonschema v0.14.0
+## explicit; go 1.24
 github.com/invopop/jsonschema
 github.com/invopop/jsonschema/examples
 github.com/invopop/jsonschema/examples/nested
@@ -14571,6 +14608,9 @@ github.com/paulmach/protoscan
 github.com/paulmach/protoscan/internal/testmsg
 # github.com/pavlo-v-chernykh/keystore-go/v4 v4.5.0
 ## explicit; go 1.17
+# github.com/pb33f/ordered-map/v2 v2.3.1
+## explicit; go 1.24
+github.com/pb33f/ordered-map/v2
 # github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 ## explicit; go 1.16
 github.com/pbnjay/memory
@@ -16717,6 +16757,9 @@ github.com/stackitcloud/stackit-sdk-go/core/auth
 github.com/stackitcloud/stackit-sdk-go/core/clients
 github.com/stackitcloud/stackit-sdk-go/core/config
 github.com/stackitcloud/stackit-sdk-go/core/oapierror
+# github.com/standard-webhooks/standard-webhooks/libraries v0.0.1
+## explicit; go 1.21.0
+github.com/standard-webhooks/standard-webhooks/libraries/go
 # github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6
 ## explicit; go 1.19
 # github.com/stoewer/go-strcase v1.3.1
@@ -20633,6 +20676,11 @@ go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
+# go.yaml.in/yaml/v4 v4.0.0-rc.5
+## explicit; go 1.18
+go.yaml.in/yaml/v4
+go.yaml.in/yaml/v4/internal/libyaml
+go.yaml.in/yaml/v4/plugin/limit
 # go4.org/intern v0.0.0-20220617035311-6925f38cc365
 ## explicit; go 1.13
 # go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760
