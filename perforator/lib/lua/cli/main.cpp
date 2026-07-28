@@ -4,7 +4,7 @@
 #include <perforator/lib/lua/lua.h>
 #include <util/stream/format.h>
 
-int main(int argc, const char *argv[]) {
+int main(int argc, const char* argv[]) {
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetDisassembler();
 
@@ -41,5 +41,15 @@ int main(int argc, const char *argv[]) {
         Cout << "Found no `GG_G2DISP` offset" << Endl;
     } else {
         Cout << "Found `GG_G2DISP` offset: " << *offset << Endl;
+    }
+
+    auto vm_location = analyzer.GetVMLocation();
+    if (!vm_location) {
+        Cout << "Failed to find VM location" << Endl;
+    } else {
+        auto [start, end] = *vm_location;
+
+        Cout << "Found VM location at: " << start << " - " << end << " ("
+             << end - start << ")" << Endl;
     }
 }

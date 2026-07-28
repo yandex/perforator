@@ -84,6 +84,8 @@ class TLuaAnalyzer {
     // in BPF
     ui64 GetBinarySize();
 
+    TMaybe<std::pair<ui64, ui64>> GetVMLocation();
+
   private:
     void ParseSymbolLocations();
     TMaybe<TLuaVersion> TryScanVersion(std::string_view data);

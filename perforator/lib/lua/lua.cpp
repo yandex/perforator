@@ -5,6 +5,9 @@
 
 #include <contrib/libs/re2/re2/stringpiece.h>
 
+#include <llvm/ADT/AddressRanges.h>
+#include <llvm/DebugInfo/DWARF/DWARFContext.h>
+#include <llvm/DebugInfo/DWARF/DWARFDebugFrame.h>
 #include <llvm/Object/ELFObjectFile.h>
 #include <llvm/Object/ObjectFile.h>
 
@@ -24,7 +27,7 @@ namespace NPerforator::NLinguist::NLua {
 const re2::RE2
     TLuaAnalyzer::kLuaJitVersionRegex(R"(^luaJIT_version_(\d+)_(\d+)_\d+)");
 
-TLuaAnalyzer::TLuaAnalyzer(const llvm::object::ObjectFile &file)
+TLuaAnalyzer::TLuaAnalyzer(const llvm::object::ObjectFile& file)
     : File_(file) {}
 
 TMaybe<TParsedLuaVersion> TLuaAnalyzer::ParseVersion() {
@@ -34,11 +37,11 @@ TMaybe<TParsedLuaVersion> TLuaAnalyzer::ParseVersion() {
         return Nothing();
     }
 
-    auto &&symbols = *Symbols_;
+    const auto& symbols = *Symbols_;
 
     // Main method. Find `luaJIT_version_*` symbol and parse semver.
     if (symbols.LuaJitVersion) {
-        if (auto &&version = TryScanVersion(*symbols.LuaJitVersion)) {
+        if (const auto& version = TryScanVersion(*symbols.LuaJitVersion)) {
             return MakeMaybe(TParsedLuaVersion{
                 .Version = *version,
                 .Source = ELuaVersionSource::LuaJitVersionSymbol});
@@ -138,14 +141,82 @@ ui64 TLuaAnalyzer::GetBinarySize() {
     return File_.getMemoryBufferRef().getBufferSize();
 }
 
+// emit_asm_debug
+// TODO: Test what is the minimum possible size
+// TODO: Explain what we are getting here and why
+TMaybe<std::pair<ui64, ui64>> TLuaAnalyzer::GetVMLocation() {
+    // Analysis of builds from 2.1.0-beta3 to
+    // 7ff85518540617c0f97c4720558bb21c245994a8 (+ backported bitwise operators)
+    // showed that VM size varies from 14'322 to 17'447.
+    // We will expand and round bounds to be future-proof.
+    static constexpr uint64_t kMinVMSize = 12'000;
+    static constexpr uint64_t kMaxVMSize = 20'000;
+
+    // CFRAME_SIZE on LJ_TARGET_X64
+    static constexpr unsigned long kMinCFrameSize = 10 * 8;
+    // CFRAME_SIZE on LJ_TARGET_X64 with LJ_NO_UNWIND
+    static constexpr unsigned long kMaxCFrameSize = 12 * 8;
+
+    auto dwarfContext = llvm::DWARFContext::create(File_);
+
+    const llvm::DWARFDebugFrame* ehFrame =
+        Y_LLVM_RAISE(dwarfContext->getEHFrame());
+    Y_ENSURE(ehFrame);
+
+    TVector<const llvm::dwarf::FDE*> candidates;
+    for (auto&& entry : ehFrame->entries()) {
+        const llvm::dwarf::FDE* fde = llvm::dyn_cast<llvm::dwarf::FDE>(&entry);
+        if (fde == nullptr) {
+            Y_ENSURE(llvm::isa<llvm::dwarf::CIE>(&entry),
+                     "Unknown frame kind " << (int)entry.getKind());
+            continue;
+        }
+
+        auto fdeSize = fde->getAddressRange();
+        bool isFdeInRange = kMinVMSize <= fdeSize && fdeSize < kMaxVMSize;
+        if (!isFdeInRange) {
+            continue;
+        }
+
+        candidates.emplace_back(fde);
+    }
+
+    std::ranges::sort(
+        candidates, std::greater<>{},
+        [](const llvm::dwarf::FDE* fde) { return fde->getAddressRange(); });
+
+    for (auto&& candidate : candidates) {
+        unsigned long cfa = 0;
+        for (auto&& instr : candidate->cfis()) {
+            if (instr.Opcode == llvm::dwarf::DW_CFA_def_cfa_offset) {
+                cfa = instr.Ops[0];
+                break;
+            }
+        }
+
+        bool isCfaInRange = kMinCFrameSize <= cfa && cfa <= kMaxCFrameSize;
+        if (!isCfaInRange) {
+            continue;
+        }
+
+        // TODO: get tail?
+
+        return MakeMaybe(std::pair(
+            candidate->getInitialLocation(),
+            candidate->getInitialLocation() + candidate->getAddressRange()));
+    }
+
+    return Nothing();
+}
+
 void TLuaAnalyzer::ParseSymbolLocations() {
     if (Symbols_) {
         return;
     }
 
-    auto setSymbolIfFoundByPrefix = [&](auto &&symbols, auto &&symbolName,
-                                        auto &target) {
-        auto &&found_symbol = std::ranges::find_if(symbols, [&](auto &&symbol) {
+    auto setSymbolIfFoundByPrefix = [&](auto&& symbols, auto&& symbolName,
+                                        auto& target) {
+        auto&& found_symbol = std::ranges::find_if(symbols, [&](auto&& symbol) {
             return symbol.first.starts_with(symbolName);
         });
 
@@ -154,8 +225,8 @@ void TLuaAnalyzer::ParseSymbolLocations() {
         }
     };
 
-    auto setSymbolIfFound = [&](auto &&symbols, auto &&symbolName,
-                                auto &target) {
+    auto setSymbolIfFound = [&](auto&& symbols, auto&& symbolName,
+                                auto& target) {
         if (auto it = symbols.find(symbolName); it != symbols.end()) {
             target = std::move(it->second);
         }
@@ -163,13 +234,13 @@ void TLuaAnalyzer::ParseSymbolLocations() {
 
     Symbols_ = MakeHolder<TLuaSymbols>();
 
-    if (auto &&version_symbols =
+    if (auto&& version_symbols =
             NELF::RetrieveSymbolsByPrefix(File_, kLuaJitVersionSymbolPrefix)) {
         setSymbolIfFoundByPrefix(*version_symbols, kLuaJitVersionSymbolPrefix,
                                  Symbols_->LuaJitVersion);
     }
 
-    if (auto &&symbols = NELF::RetrieveSymbols(
+    if (auto&& symbols = NELF::RetrieveSymbols(
             File_, kLuaCloseSymbol, kLuaOpenJitSymbol, kLuaOpenBitSymbol)) {
         setSymbolIfFound(*symbols, kLuaCloseSymbol, Symbols_->LuaClose);
         setSymbolIfFound(*symbols, kLuaOpenJitSymbol, Symbols_->LuaOpenJit);
@@ -185,7 +256,7 @@ TMaybe<TLuaVersion> TLuaAnalyzer::TryScanVersion(std::string_view input) {
         return Nothing();
     }
 
-    auto from_chars = [](auto &&string, auto &&output) -> bool {
+    auto from_chars = [](auto&& string, auto&& output) -> bool {
         return std::from_chars(string.data(), string.data() + string.size(),
                                output)
                    .ec == std::errc{};
@@ -204,4 +275,4 @@ TMaybe<TLuaVersion> TLuaAnalyzer::TryScanVersion(std::string_view input) {
     return luaVersion;
 }
 
-} // namespace NPerforator::NLinguist::NLua
+}  // namespace NPerforator::NLinguist::NLua

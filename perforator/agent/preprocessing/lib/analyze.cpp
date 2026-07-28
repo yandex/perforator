@@ -143,8 +143,7 @@ TMaybe<NPerforator::NBinaryProcessing::NPhp::PhpConfig> BuildPhpConfig(llvm::obj
 
 namespace NPerforator::NBinaryProcessing::NLua {
 
-TMaybe<LuaConfig> BuildLuaConfig(llvm::object::ObjectFile *objectFile,
-                                 NUnwind::UnwindTable &unwindTable) {
+TMaybe<LuaConfig> BuildLuaConfig(llvm::object::ObjectFile *objectFile) {
     auto analyzer = NPerforator::NLinguist::NLua::TLuaAnalyzer{*objectFile};
 
     auto version = analyzer.ParseVersion();
@@ -170,35 +169,11 @@ TMaybe<LuaConfig> BuildLuaConfig(llvm::object::ObjectFile *objectFile,
     conf.SetOffsetGtoDispatch(*offsetGtoDispatch);
     conf.SetBinarySize(analyzer.GetBinarySize());
 
-    // emit_asm_debug
-    // TODO: Test what is the minimum possible size
-    // TODO: Explain what we are getting here and why
-    const auto& pcRanges = unwindTable.pc_range();
-
-    auto maxVmPcRangePtr = std::ranges::find_if(pcRanges, [](unsigned long range){
-        return range > 12'000;
-    });
-    if (maxVmPcRangePtr == pcRanges.end()) {
-        return Nothing();
+    if (auto vmLocation = analyzer.GetVMLocation()) {
+        auto [start, end] = *vmLocation;
+        conf.SetVmStartPc(start);
+        conf.SetVmEndPc(end);
     }
-
-    const auto& pcStarts = unwindTable.start_pc();
-    auto max_pc_range_index =
-        std::ranges::distance(pcRanges.begin(), maxVmPcRangePtr);
-    auto vmStartPc = pcStarts[max_pc_range_index];
-    auto ljVmFfiCallPc =
-        std::ranges::find(pcStarts, vmStartPc + *maxVmPcRangePtr);
-
-    if (ljVmFfiCallPc == pcStarts.end()) {
-        return Nothing();
-    }
-
-    auto index = std::ranges::distance(pcStarts.begin(), ljVmFfiCallPc);
-    auto lastFunctionRange = pcRanges[index];
-    auto vmEndPc = vmStartPc + *maxVmPcRangePtr + lastFunctionRange;
-
-    conf.SetVmStartPc(vmStartPc);
-    conf.SetVmEndPc(vmEndPc);
 
     return MakeMaybe(conf);
 }
@@ -258,10 +233,11 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
     auto pythonConfig = NPython::BuildPythonConfig(objectFile.getBinary());
     auto pthreadConfig = NPthread::BuildPthreadConfig(objectFile.getBinary());
     auto phpConfig = NPhp::BuildPhpConfig(objectFile.getBinary());
-    auto luaConfig = NLua::BuildLuaConfig(objectFile.getBinary(), unwtable);
+    auto luaConfig = NLua::BuildLuaConfig(objectFile.getBinary());
     auto jvm = BuildJvmAnalysis(objectFile.getBinary());
 
     NPerforator::NBinaryProcessing::BinaryAnalysis result;
+    *result.MutableUnwindTable() = std::move(unwtable);
     *result.MutableTLSConfig() = std::move(tlsConfig);
     *result.MutablePythonConfig() = std::move(pythonConfig);
 
@@ -276,9 +252,7 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
     if (pthreadConfig) {
         *result.MutablePthreadConfig() = std::move(pthreadConfig.GetRef());
     }
-
     *result.mutable_jvm() = std::move(jvm);
-    *result.MutableUnwindTable() = std::move(unwtable);
 
     return result;
 }
