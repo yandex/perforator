@@ -5,6 +5,7 @@
 #include <util/generic/vector.h>
 #include <util/generic/maybe.h>
 #include <util/generic/array_ref.h>
+#include "util/generic/function_ref.h"
 
 #include <llvm/Object/ObjectFile.h>
 #include <llvm/Object/ELFObjectFile.h>
@@ -57,42 +58,9 @@ TSymbolMap ParseSymbolsImpl(
     return result;
 }
 
-template <typename Container>
-TSymbolMap ParseSymbolsByPrefixImpl(
-    const llvm::object::ELFObjectFileBase::elf_symbol_iterator_range& symbols,
-    const Container& targetSymbols
-) {
-    TSymbolMap result;
-
-    for (const auto& symbol : symbols) {
-        TLocation location;
-
-        Y_LLVM_UNWRAP(name, symbol.getName(), { continue; });
-        Y_LLVM_UNWRAP(address, symbol.getAddress(), { continue; });
-
-        location.Address = address;
-        location.Size = symbol.getSize();
-
-        TStringBuf symbolName{name.data(), name.size()};
-        for (const auto& targetSymbol : targetSymbols) {
-            if (symbolName.StartsWith(targetSymbol)) {
-                result[symbolName] = location;
-                break;
-            }
-        }
-    }
-
-    return result;
-}
-
 template <typename ELFT, typename Predicate>
 TSymbolMap ParseDynsym(const llvm::object::ELFObjectFile<ELFT>& elf, const Predicate& predicate) {
     return ParseSymbolsImpl(elf.getDynamicSymbolIterators(), predicate);
-}
-
-template <typename ELFT, typename Container>
-TSymbolMap ParseDynsymByPrefix(const llvm::object::ELFObjectFile<ELFT>& elf, const Container& symbols) {
-    return ParseSymbolsByPrefixImpl(elf.getDynamicSymbolIterators(), symbols);
 }
 
 template <typename ELFT, typename Predicate>
@@ -100,20 +68,14 @@ TSymbolMap ParseSymtab(const llvm::object::ELFObjectFile<ELFT>& elf, const Predi
     return ParseSymbolsImpl(elf.symbols(), predicate);
 }
 
-template <typename ELFT, typename Container>
-TSymbolMap ParseSymtabByPrefix(const llvm::object::ELFObjectFile<ELFT>& elf, const Container& symbols) {
-    return ParseSymbolsByPrefixImpl(elf.symbols(), symbols);
-}
-
 TMaybe<TSymbolMap> RetrieveSymbolsFromDynsym(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols);
-
-TMaybe<TSymbolMap> RetrieveSymbolsFromDynsymByPrefix(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols);
 
 TMaybe<TSymbolMap> RetrieveSymbolsFromSymtab(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols);
 
 TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols);
+TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFunctionRef<bool(TStringBuf)> predicate);
 
-TMaybe<TSymbolMap> RetrieveSymbolsByPrefix(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols);
+TMaybe<TSymbolMap> RetrieveSymbolsByPrefix(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbol_prefixes);
 
 } // namespace NPerforator::NELF::NPrivate
 
@@ -131,11 +93,6 @@ TSymbolMap FilterSymbolsFromSymtab(const llvm::object::ObjectFile& file, const P
 template <typename... Args>
 TMaybe<TSymbolMap> RetrieveSymbolsFromDynsym(const llvm::object::ObjectFile& file, Args... symbols) {
     return NPerforator::NELF::NPrivate::RetrieveSymbolsFromDynsym(file, {symbols...});
-}
-
-template <typename... Args>
-TMaybe<TSymbolMap> RetrieveSymbolsFromDynsymByPrefix(const llvm::object::ObjectFile& file, Args... symbols) {
-    return NPerforator::NELF::NPrivate::RetrieveSymbolsFromDynsymByPrefix(file, {symbols...});
 }
 
 template <typename... Args>
@@ -163,8 +120,8 @@ TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, Args...
 }
 
 template <typename... Args>
-TMaybe<TSymbolMap> RetrieveSymbolsByPrefix(const llvm::object::ObjectFile& file, Args... symbols) {
-    return NPerforator::NELF::NPrivate::RetrieveSymbolsByPrefix(file, {symbols...});
+TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFunctionRef<bool(TStringBuf)> predicate) {
+    return NPerforator::NELF::NPrivate::RetrieveSymbols(file, predicate);
 }
 
 TMaybe<llvm::object::SectionRef> GetSection(const llvm::object::ObjectFile& file, TStringBuf sectionName);

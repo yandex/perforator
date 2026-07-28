@@ -225,8 +225,12 @@ void TLuaAnalyzer::ParseSymbolLocations() {
 
     Symbols_ = MakeHolder<TLuaSymbols>();
 
+    auto startsWithLuaJitVersion = [](TStringBuf symbol){
+        return symbol.StartsWith(kLuaJitVersionSymbolPrefix);
+    };
+
     if (const auto& versionSymbols =
-            NELF::RetrieveSymbolsByPrefix(File_, kLuaJitVersionSymbolPrefix)) {
+            NELF::RetrieveSymbols(File_, startsWithLuaJitVersion)) {
         setSymbolIfFoundByPrefix(*versionSymbols, kLuaJitVersionSymbolPrefix,
             Symbols_->LuaJitVersion);
     }

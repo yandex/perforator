@@ -17,17 +17,23 @@ auto MakePredicate(const Container& symbols) {
         return false;
     };
 }
+
+template <typename Container>
+auto MakeCustomPredicate(TFunctionRef<bool(TStringBuf, TStringBuf)>& predicate, const Container& symbol_prefixes) {
+    return [&](TStringBuf name) {
+        for (auto s : symbol_prefixes) {
+            if (predicate(name, s)) {
+                return true;
+            }
+        }
+        return false;
+    };
+}
 }
 
 TMaybe<TSymbolMap> RetrieveSymbolsFromDynsym(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols) {
     return NLLVM::VisitELF(&file, [&symbols](const auto& elf) {
         return ParseDynsym(elf, MakePredicate(symbols));
-    });
-}
-
-TMaybe<TSymbolMap> RetrieveSymbolsFromDynsymByPrefix(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols) {
-    return NLLVM::VisitELF(&file, [&symbols](const auto& elf) {
-        return ParseDynsymByPrefix(elf, symbols);
     });
 }
 
@@ -58,25 +64,11 @@ TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile &file, std::in
     });
 }
 
-TMaybe<TSymbolMap> RetrieveSymbolsByPrefix(const llvm::object::ObjectFile &file, std::initializer_list<TStringBuf> symbols) {
-    return NLLVM::VisitELF(&file, [&symbols](const auto& elf) {
-        TSymbolMap res = ParseDynsymByPrefix(elf, symbols);
+TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFunctionRef<bool(TStringBuf)> predicate) {
+    return NLLVM::VisitELF(&file, [&predicate](const auto& elf) {
+        TSymbolMap res = ParseDynsym(elf, predicate);
 
-        llvm::SmallVector<TStringBuf> symtabSymbols;
-        symtabSymbols.reserve(symbols.size());
-        for (const TStringBuf& symbol : symbols) {
-            bool found = false;
-            for (auto& [key, value] : res) {
-                if (key.find(symbol) == 0) {
-                    found = true;
-                }
-            }
-            if (!found) {
-                symtabSymbols.push_back(symbol);
-            }
-        }
-
-        TSymbolMap symtab = ParseSymtabByPrefix(elf, symtabSymbols);
+        TSymbolMap symtab = ParseSymtab(elf, predicate);
         for (auto& [key, value] : symtab) {
             res[key] = std::move(value);
         }
