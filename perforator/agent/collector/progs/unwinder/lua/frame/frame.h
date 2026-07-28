@@ -29,10 +29,10 @@ static ALWAYS_INLINE void lua_frame_set_key(
 }
 
 /**
- * @brief Finishes frame by pushing symbol info to the map and incrementing
- * stack size.
+ * @brief Save symbol info for the current frame to the map.
  *
  * @param interpreter_frame Current frame.
+ * @param symbol Symbol info.
  */
 static ALWAYS_INLINE void lua_frame_save_symbol(
     struct interpreter_frame* interpreter_frame, struct symbol* symbol) {
@@ -41,14 +41,14 @@ static ALWAYS_INLINE void lua_frame_save_symbol(
 }
 
 /**
- * @brief Push invalid frame to stack.
+ * @brief Set frame as invalid frame.
  *
  * @param interpreter_frame Current frame.
  * @param error Error code.
  * @param gct GCobj type found instead of function. Relevant only with
  * `LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC`.
  */
-static ALWAYS_INLINE void lua_frame_push_invalid(
+static ALWAYS_INLINE void lua_frame_set_invalid(
     struct interpreter_frame* interpreter_frame,
     enum lua_stack_walk_error error, uint8_t gct) {
     __auto_type addr = lua_frame_pack_invalid_object_address(error, gct);
@@ -57,19 +57,19 @@ static ALWAYS_INLINE void lua_frame_push_invalid(
 }
 
 /**
- * @brief Push Lua frame to stack.
+ * @brief Set frame as Lua frame.
  *
  * @param interpreter_frame Current frame.
  * @param symbol Symbol from state.
  * @param function Lua function.
  * @return `true` if pushed successfully.
  */
-[[nodiscard]] static ALWAYS_INLINE bool lua_frame_push_lua(
+[[nodiscard]] static ALWAYS_INLINE bool lua_frame_set_lua(
     struct interpreter_frame* interpreter_frame, struct symbol* symbol,
     GCfunc* function) {
     GCproto* proto = funcproto(function);
     if (!proto) {
-        lua_frame_push_invalid(interpreter_frame,
+        lua_frame_set_invalid(interpreter_frame,
                                LUA_STACK_WALK_ERROR_PROTO_IS_NULL, 0);
         metric_increment(METRIC_LUA_PROTO_IS_NULL_COUNT);
         return false;
@@ -107,12 +107,12 @@ static ALWAYS_INLINE void lua_frame_push_invalid(
 }
 
 /**
- * @brief Push C/FF frame to stack.
+ * @brief Set frame as C/FF frame.
  *
  * @param interpreter_frame Current frame.
  * @param function C/FF function
  */
-static ALWAYS_INLINE void lua_frame_push_c(
+static ALWAYS_INLINE void lua_frame_set_c(
     struct interpreter_frame* interpreter_frame, GCfunc* function) {
     __auto_type object_address =
         lua_frame_pack_c_object_address(BPF_PROBE_READ_USER(function, c.f),

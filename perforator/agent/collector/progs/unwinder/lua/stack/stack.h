@@ -34,7 +34,7 @@ enum lua_stack_step_result {
     __auto_type interpreter_frame = &context->interpreter_frame;
 
     if (!frame) {
-        lua_frame_push_invalid(interpreter_frame,
+        lua_frame_set_invalid(interpreter_frame,
                                LUA_STACK_WALK_ERROR_FRAME_IS_NULL, 0);
         metric_increment(METRIC_LUA_FRAME_IS_NULL_COUNT);
         return false;
@@ -42,7 +42,7 @@ enum lua_stack_step_result {
 
     GCfunc* fn = gco2func(frame_gc);
     if (!fn) {
-        lua_frame_push_invalid(interpreter_frame,
+        lua_frame_set_invalid(interpreter_frame,
                                LUA_STACK_WALK_ERROR_GCFUNC_IS_NULL, 0);
         metric_increment(METRIC_LUA_FUNCTION_IS_NULL_COUNT);
         return false;
@@ -50,7 +50,7 @@ enum lua_stack_step_result {
 
     if (!tvisfunc(frame - LJ_FR2)) {
         // TODO: Is it because of some failed read before this check?
-        lua_frame_push_invalid(interpreter_frame,
+        lua_frame_set_invalid(interpreter_frame,
                                LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC,
                                ~itype(frame - LJ_FR2));
         metric_increment(METRIC_LUA_FRAME_IS_NOT_FUNC_COUNT);
@@ -58,11 +58,11 @@ enum lua_stack_step_result {
     }
 
     if (isluafunc(fn)) {
-        return lua_frame_push_lua(interpreter_frame, &context->symbol, fn);
+        return lua_frame_set_lua(interpreter_frame, &context->symbol, fn);
     }
 
     // C and FF functions are handled in the same way
-    lua_frame_push_c(interpreter_frame, fn);
+    lua_frame_set_c(interpreter_frame, fn);
     return true;
 }
 
