@@ -209,12 +209,12 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 	case LuaObjectAddressFfidC:
 		// C frame
 
-		// The frame will try to symbolize by postprocess
+		// TODO: Try to symbolize this frame by postprocess
 		name += fmt.Sprintf("function: 0x%x", luaData.GetPtr())
 	default:
 		// FF frame
 
-		// The frame will try to symbolize by postprocess
+		// TODO: Try to symbolize this frame by postprocess
 		// If postprocess will fail, at least print its builtin number to find the name manually
 		name += "function: builtin#" + strconv.Itoa(int(luaData.GetFfid()))
 	}
@@ -223,6 +223,7 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 		SetName(name).
 		SetFilename(filename).
 		SetLine(int64(frame.SymbolKey.Linestart)).
+		SetStartLine(int64(frame.SymbolKey.Linestart)).
 		Finish()
 }
 
