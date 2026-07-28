@@ -170,13 +170,15 @@ TMaybe<LuaConfig> BuildLuaConfig(llvm::object::ObjectFile *objectFile,
     conf.SetOffsetGtoDispatch(*offsetGtoDispatch);
     conf.SetBinarySize(analyzer.GetBinarySize());
 
-    const auto& pcRanges = unwindTable.pc_range();
-    auto maxVmPcRangePtr = std::ranges::max_element(pcRanges);
-
     // emit_asm_debug
     // TODO: Test what is the minimum possible size
     // TODO: Explain what we are getting here and why
-    if (maxVmPcRangePtr == pcRanges.end() || *maxVmPcRangePtr < 12000) {
+    const auto& pcRanges = unwindTable.pc_range();
+
+    auto maxVmPcRangePtr = std::ranges::find_if(pcRanges, [](unsigned long range){
+        return range > 12'000;
+    });
+    if (maxVmPcRangePtr == pcRanges.end()) {
         return Nothing();
     }
 
