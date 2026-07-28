@@ -52,7 +52,19 @@ TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile &file, std::in
     });
 }
 
+template <typename ELFT>
+bool IsElfFileImpl(const llvm::object::ObjectFile& file) {
+    return llvm::dyn_cast<llvm::object::ELFObjectFile<ELFT>>(&file);
+}
+
+} // namespace NPerforator::NELF::NPrivate
+
+namespace NPerforator::NELF {
+
 TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFunctionRef<bool(TStringBuf)> predicate) {
+    using NPerforator::NELF::NPrivate::ParseDynsym;
+    using NPerforator::NELF::NPrivate::ParseSymtab;
+
     return NLLVM::VisitELF(&file, [&predicate](const auto& elf) {
         TSymbolMap res = ParseDynsym(elf, predicate);
 
@@ -64,15 +76,6 @@ TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFuncti
         return res;
     });
 }
-
-template <typename ELFT>
-bool IsElfFileImpl(const llvm::object::ObjectFile& file) {
-    return llvm::dyn_cast<llvm::object::ELFObjectFile<ELFT>>(&file);
-}
-
-} // namespace NPerforator::NELF::NPrivate
-
-namespace NPerforator::NELF {
 
 TMaybe<llvm::object::SectionRef> GetSection(const llvm::object::ObjectFile& file, TStringBuf sectionName) {
     for (const auto& section : file.sections()) {

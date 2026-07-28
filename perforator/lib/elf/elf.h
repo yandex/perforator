@@ -73,9 +73,6 @@ TMaybe<TSymbolMap> RetrieveSymbolsFromDynsym(const llvm::object::ObjectFile& fil
 TMaybe<TSymbolMap> RetrieveSymbolsFromSymtab(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols);
 
 TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols);
-TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFunctionRef<bool(TStringBuf)> predicate);
-
-TMaybe<TSymbolMap> RetrieveSymbolsByPrefix(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbol_prefixes);
 
 } // namespace NPerforator::NELF::NPrivate
 
@@ -113,15 +110,11 @@ TSymbolMap RetrieveSymbolsFromSymtabChecked(
     return std::move(*res);
 }
 
+TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFunctionRef<bool(TStringBuf)> predicate);
 
-template <typename... Args>
+template <std::convertible_to<TStringBuf>... Args>
 TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, Args... symbols) {
     return NPerforator::NELF::NPrivate::RetrieveSymbols(file, {symbols...});
-}
-
-template <typename... Args>
-TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFunctionRef<bool(TStringBuf)> predicate) {
-    return NPerforator::NELF::NPrivate::RetrieveSymbols(file, predicate);
 }
 
 TMaybe<llvm::object::SectionRef> GetSection(const llvm::object::ObjectFile& file, TStringBuf sectionName);
