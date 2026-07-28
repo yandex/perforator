@@ -153,7 +153,7 @@ func (f *FeatureFlagsConfig) PhpEnabled() bool {
 
 func (f *FeatureFlagsConfig) LuaEnabled() bool {
 	if f.EnableLua == nil {
-		return true
+		return false
 	}
 	return *f.EnableLua
 }
@@ -313,9 +313,6 @@ func (c *Config) FillDefault() {
 	}
 	if c.BPF.TracePython == nil {
 		c.BPF.TracePython = ptr.Bool(true)
-	}
-	if c.BPF.TraceLua == nil {
-		c.BPF.TraceLua = ptr.Bool(true)
 	}
 	if c.EnableLBRDeprecated != nil {
 		c.BPF.TraceLBR = c.EnableLBRDeprecated

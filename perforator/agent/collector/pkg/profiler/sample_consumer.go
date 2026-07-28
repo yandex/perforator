@@ -585,7 +585,7 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 		)
 	}
 
-	if enableLua := c.p.conf.BPF.TraceLua; enableLua != nil && *enableLua {
+	if c.p.conf.FeatureFlagsConfig.LuaEnabled() {
 		c.collectInterpreterStackInto(
 			&c.p.metrics.luaMetrics,
 			builder,

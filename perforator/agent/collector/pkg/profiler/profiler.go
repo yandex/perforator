@@ -468,7 +468,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	}
 
 	// Create Lua symbolizer
-	if enabled := p.conf.BPF.TraceLua; enabled != nil && *enabled {
+	if p.conf.FeatureFlagsConfig.LuaEnabled() {
 		p.luaSymbolizer, err = symbolizer.NewLuaSymbolizer(&p.conf.Symbolizer.Lua, p.bpf.State(), r)
 		if err != nil {
 			return err
