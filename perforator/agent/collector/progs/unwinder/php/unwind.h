@@ -85,7 +85,8 @@ static ALWAYS_INLINE bool php_read_string(char* buf, size_t buf_size, u8* res_le
         return false;
     }
 
-    *res_length = err - 1;
+    --err;
+    *res_length = err > 255 ? 255 : (u8)err;
     PHP_TRACE("Successfully read string of length %u (declared len %d, buf_size %u)", *res_length, length, buf_size);
     return true;
 }

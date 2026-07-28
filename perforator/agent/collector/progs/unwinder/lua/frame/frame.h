@@ -1,10 +1,8 @@
 #pragma once
 
-#include "../../metrics.h"
 #include "../luajit.h"
 #include "../symbol.h"
 #include "../trace.h"
-#include "../types.h"
 
 #include "pack.h"
 
@@ -80,12 +78,12 @@ static ALWAYS_INLINE void lua_frame_set_invalid(struct interpreter_frame* interp
     }
 
     char* caret = symbol->data;
-    u64 name_length = 0;
+    u8 name_length = 0;
 
     if (line_defined || !luajit_gc_proto_get_numline(proto)) {
-        name_length = LUA_SYMBOL_APPEND_LITERAL(symbol->data, "<no name>");
+        name_length = (u8)LUA_SYMBOL_APPEND_LITERAL(symbol->data, "<no name>");
     } else {
-        name_length = LUA_SYMBOL_APPEND_LITERAL(symbol->data, "in main chunk");
+        name_length = (u8)LUA_SYMBOL_APPEND_LITERAL(symbol->data, "in main chunk");
     }
 
     symbol->name_length = name_length;
@@ -96,9 +94,10 @@ static ALWAYS_INLINE void lua_frame_set_invalid(struct interpreter_frame* interp
     long status = bpf_probe_read_user_str(caret, SYMBOL_BUFFER_SIZE - name_length, filename);
     if (status <= 0) {
         LUA_TRACE("[error] lua_frame_set_lua: failed to read proto=%px filename (%d)", proto, status);
-        symbol->filename_length = lua_symbol_append_fail(caret);
+        symbol->filename_length = (u8)lua_symbol_append_fail(caret);
     } else {
-        symbol->filename_length = status - 1;
+        --status;
+        symbol->filename_length = status > 255 ? 255 : (u8)status;
     }
 
     lua_frame_save_symbol(interpreter_frame, symbol);

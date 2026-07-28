@@ -161,7 +161,7 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
  * @param state Lua unwind state.
  * @return Status of `bpf_map_update_elem` operation.
  */
-[[nodiscard]] static ALWAYS_INLINE int lua_state_cache_set(struct lua_state* state, const luajit_global_state* g) {
+[[nodiscard]] static ALWAYS_INLINE long lua_state_cache_set(struct lua_state* state, const luajit_global_state* g) {
     return bpf_map_update_elem(&lua_state_cache, &state->pid, &g, BPF_ANY);
 }
 

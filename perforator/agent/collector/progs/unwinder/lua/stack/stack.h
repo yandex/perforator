@@ -41,7 +41,7 @@ enum lua_stack_step_result {
     // Probably the top frame is invalid, but others below are valid. Continue, mark frame as invalid.
     if (!luajit_tvisfunc(frame - LUAJIT_LJ_FR2)) {
         LUA_TRACE("[error] lua_stack_process_frame: invalid frame=%px, frame doesn't contain a function, got %d", frame, ~luajit_itype(frame - LUAJIT_LJ_FR2));
-        lua_frame_set_invalid(interpreter_frame, LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC, ~luajit_itype(frame - LUAJIT_LJ_FR2));
+        lua_frame_set_invalid(interpreter_frame, LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC, (u8)~luajit_itype(frame - LUAJIT_LJ_FR2));
         return true;
     }
 
