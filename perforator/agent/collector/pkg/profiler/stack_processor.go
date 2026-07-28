@@ -92,7 +92,7 @@ func processPythonFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, l
 // array of Lua built-in names (fast functions)
 // hard-coded for now, taken from vmdef.lua (generated file)
 // fragile, as array depends on order of files being compiled in LuaJIT!
-var ffnames = []string{
+var builtin_function_names = []string{
 	"Lua",
 	"C",
 	"assert",
@@ -318,29 +318,28 @@ var ffnames = []string{
 	"buffer.decode",
 }
 
-// internal frame decoding errors, see lua_stack_walk_error at perforator/agent/collector/progs/unwinder/lua/frame.h
-var frame_decoding_errors = []string{
+// internal frame decoding errors, see lua_stack_walk_error at perforator/agent/collector/progs/unwinder/lua/stack/walk_error.h
+var lua_stack_walk_error_descriptions = []string{
 	"frame is null",
 	"GCfunc is null",
 	"bad function in frame",
 }
 
 // see lj_obj.h
-var gct = []string{
-	"TNIL",
-	"TFALSE",
-	"TTRUE",
-	"TLIGHTUD",
-	"TSTR",
-	"TUPVAL",
-	"TTHREAD",
-	"TPROTO",
-	"TFUNC",
-	"TTRACE",
-	"TCDATA",
-	"TTAB",
-	"TUDATA",
-	"TNUMX",
+var gc_types = []string{
+	"nil",
+	"false",
+	"true",
+	"light userdata",
+	"string",
+	"upvalue",
+	"thread",
+	"proto",
+	"function",
+	"trace",
+	"cdata",
+	"table",
+	"userdata",
 }
 
 type LuaData struct {
@@ -408,20 +407,20 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 
 	symbol, exists := s.interpreterSymbolizer.Symbolize(&frame.SymbolKey)
 
-	luaData := LuaData{frame}
 	name := "[lua] "
 	filename := ""
 
+	luaData := LuaData{frame}
 	switch luaData.GetFrameType() {
 	case LuaObjectAddressFfidInvalid:
 		// Invalid frame
 		name += "<invalid lua frame>"
 
-		if int(luaData.GetErrorKind()) < len(frame_decoding_errors) {
-			name += ": " + frame_decoding_errors[luaData.GetErrorKind()]
+		if int(luaData.GetErrorKind()) < len(lua_stack_walk_error_descriptions) {
+			name += ": " + lua_stack_walk_error_descriptions[luaData.GetErrorKind()]
 
-			if luaData.GetErrorKind() == unwinder.LuaStackWalkErrorFrameIsNotFunc && int(luaData.GetFrameGct()) < len(gct) {
-				name += ", was " + gct[luaData.GetFrameGct()]
+			if luaData.GetErrorKind() == unwinder.LuaStackWalkErrorFrameIsNotFunc && int(luaData.GetFrameGct()) < len(gc_types) {
+				name += ", was " + gc_types[luaData.GetFrameGct()]
 			}
 		}
 	case LuaObjectAddressFfidLua:
@@ -442,7 +441,9 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 			}
 
 			// TODO: Perforator broke line numbers
-			filename += ":" + strconv.Itoa(int(frame.SymbolKey.Linestart))
+			if frame.SymbolKey.Linestart != 0 {
+				filename += ":" + strconv.Itoa(int(frame.SymbolKey.Linestart))
+			}
 		}
 	case LuaObjectAddressFfidC:
 		// C frame
@@ -454,7 +455,7 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 
 		// The frame will try to symbolize by postprocess
 		// If postprocess will fail, at least print its builtin number to find the name manually
-		name += "function: builtin#" + strconv.Itoa(int(luaData.GetFfid())) + " (" + ffnames[luaData.GetFfid()] + ")"
+		name += "function: builtin#" + strconv.Itoa(int(luaData.GetFfid())) + " (" + builtin_function_names[luaData.GetFfid()] + ")"
 	}
 
 	loc.AddFrame().

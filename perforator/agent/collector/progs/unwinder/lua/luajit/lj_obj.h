@@ -473,9 +473,9 @@ typedef union GCfunc {
 
 #define FF_LUA		0
 #define FF_C		1
-#define isluafunc(fn)	(BPF_PROBE_READ_USER(fn, c).ffid == FF_LUA)
-#define iscfunc(fn)	(BPF_PROBE_READ_USER(fn, c).ffid == FF_C)
-#define isffunc(fn)	(BPF_PROBE_READ_USER(fn, c).ffid > FF_C)
+#define isluafunc(fn)	(BPF_PROBE_READ_USER(fn, c.ffid) == FF_LUA)
+#define iscfunc(fn)	(BPF_PROBE_READ_USER(fn, c.ffid) == FF_C)
+#define isffunc(fn)	(BPF_PROBE_READ_USER(fn, c.ffid) > FF_C)
 #define funcproto(fn) \
   check_exp(isluafunc(fn), (GCproto *)(mref(BPF_PROBE_READ_USER(fn, l.pc), char)-sizeof(GCproto)))
 #define sizeCfunc(n)	(sizeof(GCfuncC)-sizeof(TValue)+sizeof(TValue)*(n))

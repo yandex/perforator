@@ -227,9 +227,12 @@ lua_state_resolve_base(struct lua_state *state, cTValue *base,
                        cTValue *max_stack, cTValue *bottom) {
     __auto_type base_from_register = (cTValue *)state->base_register;
 
-    bool is_register_inside_stack =
-        bottom < base_from_register && base_from_register <= max_stack;
-    if (!is_register_inside_stack) {
+    __auto_type binary_relative_address =
+    state->instruction_pointer - state->binary_start_address;
+    bool is_in_luajit_vm =
+        state->config.vm_start_pc <= binary_relative_address &&
+        binary_relative_address < state->config.vm_end_pc;
+    if (!is_in_luajit_vm) {
         metric_increment(METRIC_LUA_RDX_OUTSIDE_OF_STACK_COUNT);
         return base;
     }
