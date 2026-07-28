@@ -4,7 +4,7 @@
 
 #include "../../interpreter/types.h"
 #include "../luajit/luajit.h"
-#include "../types.h"
+#include "../state.h"
 
 // namespace lua::stack::context
 
@@ -15,7 +15,7 @@ struct lua_stack_context {
     u64 frame;                                  // Current frame.
     u64 max_stack;                              // Last free slot in the stack.
     u64 bottom;                                 // Last frame in the stack.
-    u64 L;                                      // Current `lua_State*`.
+    u64 current_lua_state;                      // Current `lua_State*`.
     struct interpreter_frame interpreter_frame; // Current interpreter frame.
     struct symbol symbol; // Temporary buffer for frame information.
 };
@@ -50,7 +50,7 @@ lua_stack_context_init(struct lua_stack_context *context,
     context->frame = (u64)frame;
     context->max_stack = (u64)max_stack;
     context->bottom = (u64)bottom;
-    context->L = state->L;
+    context->current_lua_state = state->current_lua_state;
     context->interpreter_frame.symbol_key.pid = state->pid;
     context->symbol.codepoint_size = 1; // Lua strings are always utf-8
 }

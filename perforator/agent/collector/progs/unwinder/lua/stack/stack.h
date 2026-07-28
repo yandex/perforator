@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../frame/frame.h"
-#include "../state/state.h"
+#include "../state.h"
 #include "../types.h"
 #include "context.h"
 
@@ -126,7 +126,7 @@ lua_stack_next_frame(cTValue *frame) {
     context->frame = (u64)lua_stack_next_frame(frame);
 
     __auto_type frame_gc = frame_gc(frame);
-    bool is_dummy_frame = frame_gc == obj2gco(context->L);
+    bool is_dummy_frame = frame_gc == obj2gco(context->current_lua_state);
 
     // Skip dummy frames. See lj_err_optype_call().
     if (is_dummy_frame) {

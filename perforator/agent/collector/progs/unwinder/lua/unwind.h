@@ -6,7 +6,7 @@ _Static_assert(__x86_64__,
 #include "../metrics.h"
 #include "../process.h"
 #include "stack/stack.h"
-#include "state/state.h"
+#include "state.h"
 #include "symbol.h"
 #include "types.h"
 
