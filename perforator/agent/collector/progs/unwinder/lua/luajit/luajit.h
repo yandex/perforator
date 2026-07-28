@@ -6,8 +6,6 @@
 
 #include <bpf/bpf.h>
 
-#include "../utils.h"
-
 #include "lj_arch.h"
 #include "lj_bc.h"
 #include "lj_debug.h"
