@@ -122,7 +122,7 @@ struct TCommonStrings {
             .Kernel = table.Intern("kernel"),
             .Python = table.Intern("python"),
             .Php = table.Intern("php"),
-            .Lua = table.Intern("Lua"),
+            .Lua = table.Intern("lua"),
             .UnsymbolizedFunction = table.Intern("<unsymbolized function>"),
             .UnknownMapping = table.Intern("<unknown mapping>"),
             .TruncatedStack = table.Intern("(truncated stack)"),
