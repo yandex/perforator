@@ -56,7 +56,7 @@ type Config struct {
 	// Collect python stacks
 	TracePython *bool `yaml:"trace_python"`
 	// Collect lua stacks
-	TraceLua *bool `yaml:"trace_lua"` // TODO: How to test this config?
+	TraceLua *bool `yaml:"trace_lua"`
 	// Configuration for uprobes tracing (deprecated, this field has moved to profiler config)
 	UprobesDeprecated []uprobe.Config `yaml:"uprobes,omitempty"`
 	// bpffs mount point.

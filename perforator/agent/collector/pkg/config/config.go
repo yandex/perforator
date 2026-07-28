@@ -113,7 +113,7 @@ type PodsDeploySystemConfig struct {
 type SymbolizerConfig struct {
 	Python symbolizer.SymbolizerConfig `yaml:"python"`
 	Php    symbolizer.SymbolizerConfig `yaml:"php"`
-	Lua    symbolizer.SymbolizerConfig `yaml:"lua"` // TODO: Where is this config?
+	Lua    symbolizer.SymbolizerConfig `yaml:"lua"`
 }
 
 // FeatureFlagsConfig holds agent-side [feature-flags](https://trunkbaseddevelopment.com/feature-flags/)
@@ -314,7 +314,7 @@ func (c *Config) FillDefault() {
 	if c.BPF.TracePython == nil {
 		c.BPF.TracePython = ptr.Bool(true)
 	}
-	if c.BPF.TraceLua == nil { // TODO: How to test this config?
+	if c.BPF.TraceLua == nil {
 		c.BPF.TraceLua = ptr.Bool(true)
 	}
 	if c.EnableLBRDeprecated != nil {
