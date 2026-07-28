@@ -1,14 +1,15 @@
 #pragma once
 
-_Static_assert(__x86_64__,
-               "We currently support x64 only");  // TODO
+#include "stack/walk_error.h"
+#include "state.h"
+#include "types.h"
+
+#ifdef __x86_64__
 
 #include "../metrics.h"
 #include "../process.h"
 #include "stack/stack.h"
-#include "state.h"
 #include "symbol.h"
-#include "types.h"
 
 /**
  * @brief Entry point for collecting stack info from Lua VM.
@@ -37,3 +38,5 @@ static ALWAYS_INLINE void lua_collect_stack(
 
     lua_stack_walk(state);
 }
+
+#endif

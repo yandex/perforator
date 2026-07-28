@@ -1,7 +1,6 @@
 #include "lua.h"
 
 #include <charconv>
-#include <ranges>
 
 #include <contrib/libs/re2/re2/stringpiece.h>
 
@@ -14,7 +13,7 @@
 #include <perforator/lib/elf/elf.h>
 #include <perforator/lib/llvmex/llvm_elf.h>
 #include <perforator/lib/llvmex/llvm_exception.h>
-#include <perforator/lib/lua/asm/x86-64/decode.h>
+#include <perforator/lib/lua/asm/decode.h>
 
 #include <util/generic/adaptor.h>
 #include <util/generic/array_ref.h>
@@ -49,8 +48,9 @@ TMaybe<TParsedLuaVersion> TLuaAnalyzer::ParseVersion() {
     // 1. We need to make sure this is not a library but an interpreter. Binary
     // must have `lua_close`
     // 2. Then, to make sure this is LuaJIT and not Lua, the binary must have
-    // `luaopen_jit` or `luaopen_bit` (in case JIT is disabled)
-    if (symbols.LuaClose && (symbols.LuaOpenJit || symbols.LuaOpenBit)) {
+    // `luaopen_jit`
+    if (symbols.LuaClose && symbols.LuaOpenJit) {
+        // TODO: find "LuaJIT 2.1.***" string inside the binary
         // Return hard-coded version
         return MakeMaybe(TParsedLuaVersion{
             .Version = {.MajorVersion = 2, .MinorVersion = 1},
@@ -67,24 +67,25 @@ TMaybe<ui64> TLuaAnalyzer::ParseOffsetGtoL() {
         return Nothing();
     }
 
-    auto& LuaCloseSymbol = Symbols_->LuaClose;
-    if (!LuaCloseSymbol || LuaCloseSymbol->Address == 0) {
+    auto& luaCloseSymbol = Symbols_->LuaClose;
+    if (!luaCloseSymbol || luaCloseSymbol->Address == 0) {
         // Binary doesn't have `lua_close`. It's not an interpreter.
         return Nothing();
     }
 
-    if (LuaCloseSymbol->Size == 0) {
+    if (luaCloseSymbol->Size == 0) {
         // Fallback in case symbol size is not specified in symbol table of ELF
-        LuaCloseSymbol->Size = 100;
+        luaCloseSymbol->Size = TLuaSymbols::kFallbackLocationSize;
     }
 
     auto bytecode = NPerforator::NELF::RetrieveContentFromSection(
-        File_, *LuaCloseSymbol, NELF::NSections::kText);
+        File_, *luaCloseSymbol, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }
 
-    return NAsm::NX86::DecodeLuaClose(File_.makeTriple(), *bytecode);
+    return NAsm::DecodeLuaClose(
+        File_.makeTriple(), luaCloseSymbol->Address, *bytecode);
 }
 
 TMaybe<ui64> TLuaAnalyzer::ParseOffsetGtoDispatch() {
@@ -94,41 +95,41 @@ TMaybe<ui64> TLuaAnalyzer::ParseOffsetGtoDispatch() {
         return Nothing();
     }
 
-    auto& LuaOpenJitSymbol = Symbols_->LuaOpenJit;
-    if (!LuaOpenJitSymbol || LuaOpenJitSymbol->Address == 0) {
+    auto& luaOpenJitSymbol = Symbols_->LuaOpenJit;
+    if (!luaOpenJitSymbol || luaOpenJitSymbol->Address == 0) {
         return Nothing();
     }
 
-    if (LuaOpenJitSymbol->Size == 0) {
-        // Fallback in case symbol size is not specified in symbol table of ELF
-        LuaOpenJitSymbol->Size = 100;
+    if (luaOpenJitSymbol->Size == 0) {
+        luaOpenJitSymbol->Size = TLuaSymbols::kFallbackLocationSize;
     }
 
     auto bytecode = NPerforator::NELF::RetrieveContentFromSection(
-        File_, *LuaOpenJitSymbol, NELF::NSections::kText);
+        File_, *luaOpenJitSymbol, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }
 
-    TMaybe<ui64> LjDispatchUpdateAddress =
-        NAsm::NX86::DecodeLuaOpenJit(File_.makeTriple(), *bytecode);
-    if (!LjDispatchUpdateAddress) {
+    TMaybe<ui64> ljDispatchUpdateAddress = NAsm::DecodeLuaOpenJit(
+        File_.makeTriple(), luaOpenJitSymbol->Address, *bytecode);
+    if (!ljDispatchUpdateAddress) {
         return Nothing();
     }
 
-    NPerforator::NELF::TLocation LjDispatchUpdate = {
-        .Address = LuaOpenJitSymbol->Address +
-                   static_cast<i64>(*LjDispatchUpdateAddress),
-        .Size = 1000,
+    NPerforator::NELF::TLocation ljDispatchUpdate = {
+        .Address = luaOpenJitSymbol->Address +
+                   static_cast<i64>(*ljDispatchUpdateAddress),
+        .Size = TLuaSymbols::kLjDispatchUpdateFallbackLocationSize,
     };
 
     bytecode = NPerforator::NELF::RetrieveContentFromSection(
-        File_, LjDispatchUpdate, NELF::NSections::kText);
+        File_, ljDispatchUpdate, NELF::NSections::kText);
     if (!bytecode) {
         return Nothing();
     }
 
-    return NAsm::NX86::DecodeLjDispatchUpdate(File_.makeTriple(), *bytecode);
+    return NAsm::DecodeLjDispatchUpdate(
+        File_.makeTriple(), ljDispatchUpdate.Address, *bytecode);
 }
 
 ui64 TLuaAnalyzer::GetBinarySize() {
@@ -230,11 +231,10 @@ void TLuaAnalyzer::ParseSymbolLocations() {
             Symbols_->LuaJitVersion);
     }
 
-    if (const auto& symbols = NELF::RetrieveSymbols(
-            File_, kLuaCloseSymbol, kLuaOpenJitSymbol, kLuaOpenBitSymbol)) {
+    if (const auto& symbols =
+            NELF::RetrieveSymbols(File_, kLuaCloseSymbol, kLuaOpenJitSymbol)) {
         setSymbolIfFound(*symbols, kLuaCloseSymbol, Symbols_->LuaClose);
         setSymbolIfFound(*symbols, kLuaOpenJitSymbol, Symbols_->LuaOpenJit);
-        setSymbolIfFound(*symbols, kLuaOpenBitSymbol, Symbols_->LuaOpenBit);
     }
 }
 
@@ -246,7 +246,7 @@ TMaybe<TLuaVersion> TLuaAnalyzer::TryScanVersion(std::string_view input) {
         return Nothing();
     }
 
-    auto from_chars = [](const auto& string, auto& output) -> bool {
+    auto fromChars = [](const auto& string, auto& output) -> bool {
         return std::from_chars(
                    string.data(), string.data() + string.size(), output)
                    .ec == std::errc{};
@@ -254,11 +254,11 @@ TMaybe<TLuaVersion> TLuaAnalyzer::TryScanVersion(std::string_view input) {
 
     TLuaVersion luaVersion;
 
-    if (!from_chars(major, luaVersion.MajorVersion)) {
+    if (!fromChars(major, luaVersion.MajorVersion)) {
         return Nothing();
     }
 
-    if (!from_chars(minor, luaVersion.MinorVersion)) {
+    if (!fromChars(minor, luaVersion.MinorVersion)) {
         return Nothing();
     }
 

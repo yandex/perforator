@@ -1,9 +1,23 @@
 #pragma once
 
+#include "types.h"
+
+#ifdef __x86_64__
+
+#include "../arch/x86/regs.h"
 #include "../metrics.h"
 #include "luajit/luajit.h"
 #include "trace.h"
-#include "types.h"
+
+#elif __aarch64__
+
+#include "../arch/arm/regs.h"
+
+#else
+
+#error This arch is not supported by Perforator yet
+
+#endif
 
 // namespace lua::state
 
@@ -12,12 +26,16 @@ enum {
     LUA_STATE_CACHE_SIZE = 1024
 };
 
+#ifdef __x86_64__
+
 /**
  * @brief Cache of `global_State*` per process.
  * Key: pid.
  * Value: `global_State*`.
  */
 BPF_MAP(lua_state_cache, BPF_MAP_TYPE_LRU_HASH, u32, u64, LUA_STATE_CACHE_SIZE);
+
+#endif
 
 /**
  * @brief Lua unwinder state.
@@ -50,6 +68,16 @@ struct lua_state {
     // Stack
     struct interpreter_stack stack;  // Call stack of current `lua_State`.
 };
+
+#ifdef __x86_64__
+
+static ALWAYS_INLINE void lua_state_init_registers(
+    struct lua_state* state, const struct user_regs* user_registers) {
+    state->instruction_pointer = user_registers->rip;
+    state->dispatch_register = user_registers->r14;
+    state->lua_state_register = user_registers->rdi;
+    state->base_register = user_registers->rdx;
+}
 
 /**
  * @brief Get and save config for the found LuaJIT binary in Lua unwind state.
@@ -114,8 +142,8 @@ static ALWAYS_INLINE void lua_state_set_global_state(
  * @param state Lua unwind state.
  * @param L Valid Lua state.
  */
-static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state,
-                                                  lua_State* L) {
+static ALWAYS_INLINE void lua_state_set_lua_state(
+    struct lua_state* state, lua_State* L) {
     state->current_lua_state = (u64)L;
 }
 
@@ -252,8 +280,8 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state,
                         state->config.offset_g_to_dispatch);
     if (lua_state_test_and_set(state, global_state)) {
         metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
-        LUA_TRACE("lua_state_find_g_and_l: found new global_State=%px",
-                  global_state);
+        LUA_TRACE(
+            "lua_state_find_g_and_l: found new global_State=%px", global_state);
         (void)lua_state_cache_set(state, global_state);
         return true;
     }
@@ -263,15 +291,15 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state,
     global_state = G((lua_State*)state->lua_state_register);
     if (lua_state_test_and_set(state, global_state)) {
         metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
-        LUA_TRACE("lua_state_find_g_and_l: found new global_State=%px",
-                  global_state);
+        LUA_TRACE(
+            "lua_state_find_g_and_l: found new global_State=%px", global_state);
         (void)lua_state_cache_set(state, global_state);
         return true;
     }
 
     metric_increment(METRIC_LUA_GLOBAL_STATE_NOT_FOUND_COUNT);
     LUA_TRACE("lua_state_find_g_and_l: ignore invalid global_State=%px",
-              global_state);
+        global_state);
     return false;
 }
 
@@ -329,3 +357,5 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state,
 
     return jit_base;
 }
+
+#endif

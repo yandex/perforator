@@ -28,18 +28,21 @@ struct TParsedLuaVersion {
 const re2::RE2 kLuaJitVersionRegex(R"(^luaJIT_version_(\d+)_(\d+)_\d+)");
 
 class TLuaAnalyzer {
-  public:
+   public:
     struct TLuaSymbols {
-        TMaybe<TStringBuf>
-            LuaJitVersion; // Name of the symbol containing the LuaJIT version.
-                           // Used as a main method to identify LuaJIT.
+        // Fallback in case symbol size is not specified in symbol table of ELF
+        static constexpr ui64 kFallbackLocationSize = 100;
+        static constexpr ui64 kLjDispatchUpdateFallbackLocationSize = 1000;
 
-        TMaybe<NPerforator::NELF::TLocation> LuaClose;   // `lua_close`
-        TMaybe<NPerforator::NELF::TLocation> LuaOpenJit; // `luaopen_jit`
-        TMaybe<NPerforator::NELF::TLocation> LuaOpenBit; // `luaopen_bit`
+        TMaybe<TStringBuf>
+            LuaJitVersion;  // Name of the symbol containing the LuaJIT version.
+                            // Used to identify LuaJIT.
+
+        TMaybe<NPerforator::NELF::TLocation> LuaClose;    // `lua_close`
+        TMaybe<NPerforator::NELF::TLocation> LuaOpenJit;  // `luaopen_jit`
     };
 
-  public:
+   public:
     // Main symbol prefix to find LuaJIT binary
     static constexpr TStringBuf kLuaJitVersionSymbolPrefix = "luaJIT_version_";
 
@@ -51,11 +54,8 @@ class TLuaAnalyzer {
     // offsets later
     static constexpr TStringBuf kLuaOpenJitSymbol = "luaopen_jit";
 
-    // Last hope to identify LuaJIT binary
-    static constexpr TStringBuf kLuaOpenBitSymbol = "luaopen_bit";
-
-  public:
-    explicit TLuaAnalyzer(const llvm::object::ObjectFile &file);
+   public:
+    explicit TLuaAnalyzer(const llvm::object::ObjectFile& file);
 
     TMaybe<TParsedLuaVersion> ParseVersion();
 
@@ -74,13 +74,13 @@ class TLuaAnalyzer {
 
     TMaybe<std::pair<ui64, ui64>> GetVMLocation();
 
-  private:
+   private:
     void ParseSymbolLocations();
     TMaybe<TLuaVersion> TryScanVersion(std::string_view data);
 
-  private:
-    const llvm::object::ObjectFile &File_;
+   private:
+    const llvm::object::ObjectFile& File_;
     THolder<TLuaSymbols> Symbols_;
 };
 
-} // namespace NPerforator::NLinguist::NLua
+}  // namespace NPerforator::NLinguist::NLua

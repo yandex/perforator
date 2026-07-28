@@ -1,16 +1,46 @@
 #include "decode.h"
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+#include <contrib/libs/llvm18/lib/Target/X86/X86InstrInfo.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+#include <llvm/MC/MCAsmInfo.h>
+#include <llvm/MC/MCContext.h>
+#include <llvm/MC/MCDisassembler/MCDisassembler.h>
+#include <llvm/MC/MCInst.h>
+#include <llvm/MC/MCInstBuilder.h>
+#include <llvm/MC/MCObjectFileInfo.h>
+#include <llvm/MC/MCRegisterInfo.h>
+#include <llvm/MC/MCSubtargetInfo.h>
+#include <llvm/MC/TargetRegistry.h>
+#include <llvm/Object/ELFObjectFile.h>
+#include <llvm/Object/ObjectFile.h>
+#include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Target/TargetMachine.h>
+
+#include <library/cpp/logger/global/global.h>
+
+#include <util/generic/function_ref.h>
+#include <util/generic/hash.h>
+#include <util/generic/vector.h>
+
+#include <perforator/lib/asm/evaluator.h>
+
 namespace NPerforator::NLinguist::NLua::NAsm::NX86 {
 
 /*
 clang-format off
-Functions below are kinda fragile, as there are infinite options to generate assembly code for LuaJIT C code:
-- depend on a compiler and version
-- depend on optimization flags
-- depend on LuaJIT source code revision
-- depend on options LuaJIT was compiled with
 
-looking for setgcrefnull(g->cur_L);
+Used to find offsetof(global_State, cur_L)
+Looking for setgcrefnull(g->cur_L);
 
 Some examples on my machine:
 
@@ -71,10 +101,9 @@ key instructions:
 clang-format on
 */
 
-TMaybe<i64> DecodeLuaClose(
-    const llvm::Triple& triple, TConstArrayRef<ui8> bytecode) {
-    i64 result = 0;
-    unsigned int Greg = 0;
+TMaybe<i64> DecodeLuaClose(const llvm::Triple& triple,
+    [[maybe_unused]] ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
+    TMaybe<i64> result;
 
     std::string error;
     const llvm::Target* target =
@@ -82,6 +111,8 @@ TMaybe<i64> DecodeLuaClose(
     if (!target) {
         return Nothing();
     }
+
+    unsigned int globalStateRegister = 0;
 
     NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(),
         triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
@@ -103,7 +134,7 @@ TMaybe<i64> DecodeLuaClose(
 
                     if (base.isReg() && base.getReg() == llvm::X86::RDI &&
                         dst.isReg() && disp.isImm()) {
-                        Greg = dst.getReg();
+                        globalStateRegister = dst.getReg();
                     }
                 } break;
                 // Parse `movq $0, disp(reg)`
@@ -116,8 +147,8 @@ TMaybe<i64> DecodeLuaClose(
                     auto& disp = inst.getOperand(3);
                     auto& imm = inst.getOperand(5);
 
-                    if (base.isReg() && base.getReg() == Greg && disp.isImm() &&
-                        imm.isImm() && imm.getImm() == 0) {
+                    if (base.isReg() && base.getReg() == globalStateRegister &&
+                        disp.isImm() && imm.isImm() && imm.getImm() == 0) {
                         // stop the search
                         result = disp.getImm();
                         return false;
@@ -132,11 +163,13 @@ TMaybe<i64> DecodeLuaClose(
         return Nothing();
     }
 
-    return MakeMaybe(result);
+    return result;
 }
 
 /*
 clang-format off
+
+Used to find `lj_dispatch_update` function.
 Looking for lj_dispatch_update(G(L));
 
 Some examples on my machine:
@@ -270,12 +303,9 @@ key instructions:
 clang-format on
 */
 
-TMaybe<i64> DecodeLuaOpenJit(
-    const llvm::Triple& triple, TConstArrayRef<ui8> bytecode) {
-    i64 result = 0;
-    i64 pc = 0;
-    unsigned int Lreg = 0;
-    bool hasG = false;
+TMaybe<i64> DecodeLuaOpenJit(const llvm::Triple& triple,
+    [[maybe_unused]] ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
+    TMaybe<i64> result;
 
     std::string error;
     const llvm::Target* target =
@@ -283,8 +313,10 @@ TMaybe<i64> DecodeLuaOpenJit(
     if (!target) {
         return Nothing();
     }
-    THolder<llvm::MCRegisterInfo> mri(
-        target->createMCRegInfo(triple.getTriple()));
+
+    i64 pc = 0;
+    unsigned int luaStateRegister = 0;
+    bool hasG = false;
 
     NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(),
         triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
@@ -303,7 +335,7 @@ TMaybe<i64> DecodeLuaOpenJit(
 
                     if (dst.isReg() && src.isReg() &&
                         src.getReg() == llvm::X86::RDI) {
-                        Lreg = dst.getReg();
+                        luaStateRegister = dst.getReg();
                     }
                 } break;
                 // Parse `0x10(reg), %rdi`
@@ -314,8 +346,8 @@ TMaybe<i64> DecodeLuaOpenJit(
                     auto& disp = inst.getOperand(4);
 
                     if (dst.isReg() && dst.getReg() == llvm::X86::RDI &&
-                        base.isReg() && base.getReg() == Lreg && disp.isImm() &&
-                        disp.getImm() == 0x10) {
+                        base.isReg() && base.getReg() == luaStateRegister &&
+                        disp.isImm() && disp.getImm() == 0x10) {
                         hasG = true;
                     }
                 } break;
@@ -335,15 +367,15 @@ TMaybe<i64> DecodeLuaOpenJit(
             return true;
         });
 
-    if (result == 0) {
-        return Nothing();
-    }
-
-    return MakeMaybe(result);
+    return result;
 }
 
 /*
 clang-format off
+
+Used to find `GG_G2DISP`.
+Looking for `G2GG(g)->dispatch;`
+
 Some examples on my machine:
 
    164e0:       0f b6 97 88 03 00 00    movzbl 0x388(%rdi),%edx
@@ -536,10 +568,9 @@ key instructions:
 clang-format on
 */
 
-TMaybe<i64> DecodeLjDispatchUpdate(
-    const llvm::Triple& triple, TConstArrayRef<ui8> bytecode) {
-    i64 result = 0;
-    unsigned int Greg = 0;
+TMaybe<i64> DecodeLjDispatchUpdate(const llvm::Triple& triple,
+    [[maybe_unused]] ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
+    TMaybe<i64> result;
 
     std::string error;
     const llvm::Target* target =
@@ -547,8 +578,8 @@ TMaybe<i64> DecodeLjDispatchUpdate(
     if (!target) {
         return Nothing();
     }
-    auto mri = std::unique_ptr<llvm::MCRegisterInfo>(
-        target->createMCRegInfo(triple.getTriple()));
+
+    unsigned int globalStateRegister = 0;
 
     NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(),
         triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
@@ -566,14 +597,15 @@ TMaybe<i64> DecodeLjDispatchUpdate(
                     const auto& src = inst.getOperand(1);
                     if (dst.isReg() && src.isReg() &&
                         src.getReg() == llvm::X86::RDI) {
-                        Greg = dst.getReg();
+                        globalStateRegister = dst.getReg();
                     }
                 } break;
                 case llvm::X86::LEA64r:
                 case llvm::X86::LEA32r: {
                     const auto& base = inst.getOperand(1);
                     const auto& disp = inst.getOperand(4);
-                    if (base.isReg() && base.getReg() == Greg && disp.isImm()) {
+                    if (base.isReg() && base.getReg() == globalStateRegister &&
+                        disp.isImm()) {
                         // stop the search
                         result = disp.getImm();
                         return false;
@@ -591,11 +623,7 @@ TMaybe<i64> DecodeLjDispatchUpdate(
             return true;
         });
 
-    if (result == 0) {
-        return Nothing();
-    }
-
-    return MakeMaybe(result);
+    return result;
 }
 
 }  // namespace NPerforator::NLinguist::NLua::NAsm::NX86
