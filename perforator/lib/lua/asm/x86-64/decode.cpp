@@ -80,8 +80,6 @@ TMaybe<ThreadImageOffsetType> DecodeLuaClose(const llvm::Triple &triple,
     if (!target) {
         return Nothing();
     }
-    THolder<llvm::MCRegisterInfo> mri(
-        target->createMCRegInfo(triple.getTriple()));
 
     NPerforator::NAsm::DecodeInstructions(
         TLoggerOperator<TGlobalLog>::Log(), triple, bytecode,
