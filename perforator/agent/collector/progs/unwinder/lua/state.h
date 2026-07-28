@@ -61,7 +61,7 @@ struct lua_state {
  */
 [[nodiscard]] static ALWAYS_INLINE bool lua_state_get_config_from_process(
     struct lua_state* state, const struct process_info* process_info) {
-    __auto_type binary = process_info->lua_binary;
+    struct mapped_binary binary = process_info->lua_binary;
 
     struct lua_config* config = bpf_map_lookup_elem(&lua_storage, &binary.id);
     if (config == NULL) {
@@ -293,7 +293,7 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state,
 [[nodiscard]] static ALWAYS_INLINE cTValue* lua_state_resolve_base(
     struct lua_state* state, cTValue* base, cTValue* max_stack,
     cTValue* bottom) {
-    __auto_type binary_relative_address =
+    u64 binary_relative_address =
         state->instruction_pointer - state->binary_start_address;
     bool is_in_luajit_vm =
         state->config.vm_start_pc <= binary_relative_address &&
@@ -318,9 +318,9 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state,
     const struct lua_state* state, cTValue* base, global_State* g) {
     // TODO: Is it possible to have different padding? `jit_base` is next field
     // after `cur_L`. If yes, parse from binary.
-    __auto_type jit_base_pointer = (char*)g + state->config.offset_g_to_l +
-                                   sizeof(((global_State*)0)->cur_L);
-    __auto_type jit_base =
+    void* jit_base_pointer = (char*)g + state->config.offset_g_to_l +
+                             sizeof(((global_State*)0)->cur_L);
+    cTValue* jit_base =
         tvref(BPF_PROBE_READ_USER_FROM((MRef*)(jit_base_pointer)));
 
     if (!jit_base) {

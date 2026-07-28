@@ -22,7 +22,7 @@
 static ALWAYS_INLINE void lua_frame_set_key(
     struct interpreter_frame* interpreter_frame, u64 object_address,
     i32 linestart) {
-    __auto_type key = &interpreter_frame->symbol_key;
+    struct symbol_key* key = &interpreter_frame->symbol_key;
 
     key->object_addr = object_address;
     key->linestart = linestart;
@@ -51,7 +51,7 @@ static ALWAYS_INLINE void lua_frame_save_symbol(
 static ALWAYS_INLINE void lua_frame_set_invalid(
     struct interpreter_frame* interpreter_frame,
     enum lua_stack_walk_error error, uint8_t gct) {
-    __auto_type addr = lua_frame_pack_invalid_object_address(error, gct);
+    u64 addr = lua_frame_pack_invalid_object_address(error, gct);
 
     lua_frame_set_key(interpreter_frame, addr, LUA_LINESTART_NON_LUA_FRAME);
 }
@@ -70,12 +70,12 @@ static ALWAYS_INLINE void lua_frame_set_invalid(
     GCproto* proto = funcproto(function);
     if (!proto) {
         lua_frame_set_invalid(interpreter_frame,
-                               LUA_STACK_WALK_ERROR_PROTO_IS_NULL, 0);
+                              LUA_STACK_WALK_ERROR_PROTO_IS_NULL, 0);
         metric_increment(METRIC_LUA_PROTO_IS_NULL_COUNT);
         return false;
     }
 
-    __auto_type object_address = lua_frame_pack_lua_object_address(proto);
+    u64 object_address = lua_frame_pack_lua_object_address(proto);
     BCLine line_defined = BPF_PROBE_READ_USER(proto, firstline);
     lua_frame_set_key(interpreter_frame, object_address, line_defined);
 
@@ -114,7 +114,7 @@ static ALWAYS_INLINE void lua_frame_set_invalid(
  */
 static ALWAYS_INLINE void lua_frame_set_c(
     struct interpreter_frame* interpreter_frame, GCfunc* function) {
-    __auto_type object_address =
+    u64 object_address =
         lua_frame_pack_c_object_address(BPF_PROBE_READ_USER(function, c.f),
                                         BPF_PROBE_READ_USER(function, c.ffid));
 

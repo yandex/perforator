@@ -31,11 +31,11 @@ enum lua_stack_step_result {
  */
 [[nodiscard]] static ALWAYS_INLINE bool lua_stack_process_frame(
     struct lua_stack_context* context, cTValue* frame, GCobj* frame_gc) {
-    __auto_type interpreter_frame = &context->interpreter_frame;
+    struct interpreter_frame* interpreter_frame = &context->interpreter_frame;
 
     if (!frame) {
         lua_frame_set_invalid(interpreter_frame,
-                               LUA_STACK_WALK_ERROR_FRAME_IS_NULL, 0);
+                              LUA_STACK_WALK_ERROR_FRAME_IS_NULL, 0);
         metric_increment(METRIC_LUA_FRAME_IS_NULL_COUNT);
         return false;
     }
@@ -43,7 +43,7 @@ enum lua_stack_step_result {
     GCfunc* fn = gco2func(frame_gc);
     if (!fn) {
         lua_frame_set_invalid(interpreter_frame,
-                               LUA_STACK_WALK_ERROR_GCFUNC_IS_NULL, 0);
+                              LUA_STACK_WALK_ERROR_GCFUNC_IS_NULL, 0);
         metric_increment(METRIC_LUA_FUNCTION_IS_NULL_COUNT);
         return false;
     }
@@ -51,8 +51,8 @@ enum lua_stack_step_result {
     if (!tvisfunc(frame - LJ_FR2)) {
         // TODO: Is it because of some failed read before this check?
         lua_frame_set_invalid(interpreter_frame,
-                               LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC,
-                               ~itype(frame - LJ_FR2));
+                              LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC,
+                              ~itype(frame - LJ_FR2));
         metric_increment(METRIC_LUA_FRAME_IS_NOT_FUNC_COUNT);
         return false;
     }
@@ -109,9 +109,9 @@ enum lua_stack_step_result {
         return LUA_STACK_STEP_RESULT_STOP;
     }
 
-    __auto_type frame = (cTValue*)context->frame;
-    __auto_type max_stack = (cTValue*)context->max_stack;
-    __auto_type bottom = (cTValue*)context->bottom;
+    cTValue* frame = (cTValue*)context->frame;
+    cTValue* max_stack = (cTValue*)context->max_stack;
+    cTValue* bottom = (cTValue*)context->bottom;
 
     if (frame <= bottom) {
         return LUA_STACK_STEP_RESULT_STOP;
@@ -124,7 +124,7 @@ enum lua_stack_step_result {
 
     context->frame = (u64)lua_stack_next_frame(frame);
 
-    __auto_type frame_gc = frame_gc(frame);
+    GCobj* frame_gc = frame_gc(frame);
     bool is_dummy_frame = frame_gc == obj2gco(context->current_lua_state);
 
     // Skip dummy frames. See lj_err_optype_call().
@@ -207,7 +207,7 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
     lua_stack_context_init(context, state, frame, max_stack, bottom);
 
     for (int i = 0; i < LUA_MAX_STACK_DEPTH; ++i) {
-        __auto_type status = lua_stack_step();
+        enum lua_stack_step_result status = lua_stack_step();
 
         if (status & LUA_STACK_STEP_RESULT_HAS_FRAME) {
             lua_stack_push(state, context->interpreter_frame);

@@ -804,7 +804,7 @@ static NOINLINE int profiler_stage_collect_lua_stack(void* context, const struct
         return -1;
     }
 
-    __auto_type lua_state = &profiler_state->lua_state;
+    struct lua_state* lua_state = &profiler_state->lua_state;
     lua_state->pid = profiler_state->packed.header.pid;
     lua_state->instruction_pointer = user_registers->rip;
     lua_state->dispatch_register = user_registers->r14;
