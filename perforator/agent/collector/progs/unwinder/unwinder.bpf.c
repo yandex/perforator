@@ -794,7 +794,7 @@ static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_
  * @param profiler_state Profiler state.
  * @return int Status code
  */
-static NOINLINE int profiler_stage_collect_lua_stack(void* context, const struct user_regs* user_registers, struct profiler_state* profiler_state, struct profiler_config* config) {
+static NOINLINE int profiler_stage_collect_lua_stack(void* context, struct user_regs* user_registers, struct profiler_state* profiler_state, struct profiler_config* config) {
 #ifdef __x86_64__
     if (!config->enable_lua) {
         return 0;
@@ -812,7 +812,7 @@ static NOINLINE int profiler_stage_collect_lua_stack(void* context, const struct
     lua_collect_stack(process_info, lua_state);
 
     return 0;
-#elif __aarch64__
+#else
     // Not implemented yet
     return 0;
 #endif

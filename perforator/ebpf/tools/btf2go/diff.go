@@ -12,7 +12,7 @@ import (
 
 func isType(entity btf.Type) bool {
 	switch entity.(type) {
-	case *btf.Const, *btf.Struct, *btf.Enum, *btf.Union, *btf.Array, *btf.Pointer, *btf.Typedef, *btf.Int, *btf.Void:
+	case *btf.Struct, *btf.Enum, *btf.Union, *btf.Array, *btf.Pointer, *btf.Typedef, *btf.Int, *btf.Void:
 		return true
 	case *btf.Var, *btf.Func, *btf.FuncProto, *btf.Datasec, *btf.Fwd:
 		return false

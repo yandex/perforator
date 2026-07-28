@@ -217,7 +217,7 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
 
         // The state is no longer valid, probably called lua_close
         // Erase cached pointer
-        metric_increment(METRIC_LUA_INVALIDED_CACHE_COUNT);
+        metric_increment(METRIC_LUA_INVALIDATED_CACHE_COUNT);
         LUA_TRACE("[info] lua_state_find_g_and_l: cached G=%px is no longer valid", cached_global_state);
         (void)lua_state_cache_set(state, NULL);
     }

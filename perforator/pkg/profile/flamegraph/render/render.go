@@ -390,6 +390,8 @@ func (f *FlameGraph) addProfile(p *pprof.Profile, baseline bool) error {
 					origin = FrameOriginPHP
 				case profile.PythonSpecialMapping:
 					origin = FrameOriginPython
+				case profile.LuaSpecialMapping:
+					origin = FrameOriginLua
 				}
 			}
 

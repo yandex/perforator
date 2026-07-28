@@ -15,8 +15,7 @@
  * @param string_size Size of the string.
  * @return u64 Size written.
  */
-[[nodiscard]] static ALWAYS_INLINE u64
-lua_symbol_append_string(char* caret, const char* string, u64 string_size) {
+[[nodiscard]] static ALWAYS_INLINE u64 lua_symbol_append_string(char* caret, const char* string, u64 string_size) {
     memcpy(caret, string, string_size);
 
     return string_size;

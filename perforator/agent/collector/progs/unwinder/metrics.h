@@ -54,7 +54,7 @@ enum metric : u32 {
     METRIC_LUA_PROCESSED_STACKS_COUNT, // Started to unwind in process with LuaJIT binary. Valid state is not found yet.
 
     // Lua state search metrics
-    METRIC_LUA_INVALIDED_CACHE_COUNT, // Cache hit. Cache is not valid anymore.
+    METRIC_LUA_INVALIDATED_CACHE_COUNT, // Cache hit. Cache is not valid anymore.
 
     // Lua stack walk metrics
     METRIC_LUA_PROCESSED_FRAMES_COUNT, // Walked frames.
