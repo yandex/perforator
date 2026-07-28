@@ -98,7 +98,7 @@ namespace NPerforator::NLinguist::NLua::NAsm::NX86 {
     6baa5:	48 c7 85 70 01 00 00 	movq   $0x0,0x170(%rbp)
 */
 
-TMaybe<i64> DecodeLuaClose(const llvm::Triple& triple, [[maybe_unused]] ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
+TMaybe<i64> DecodeLuaClose(const llvm::Triple& triple, ui64, TConstArrayRef<ui8> bytecode) {
     TMaybe<i64> result;
 
     std::string error;
@@ -292,7 +292,7 @@ TMaybe<i64> DecodeLuaClose(const llvm::Triple& triple, [[maybe_unused]] ui64 fun
     765fb:	e8 e0 f0 f9 ff       	call   156e0 <__cxa_finalize@plt+0xca58>
 */
 
-TMaybe<i64> DecodeLuaOpenJit(const llvm::Triple& triple, [[maybe_unused]] ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
+TMaybe<i64> DecodeLuaOpenJit(const llvm::Triple& triple, ui64, TConstArrayRef<ui8> bytecode) {
     TMaybe<i64> result;
 
     std::string error;
@@ -553,7 +553,7 @@ TMaybe<i64> DecodeLuaOpenJit(const llvm::Triple& triple, [[maybe_unused]] ui64 f
     157ad:       48 8d 82 b0 0f 00 00    lea    0xfb0(%rdx),%rax
 */
 
-TMaybe<i64> DecodeLjDispatchUpdate(const llvm::Triple& triple, [[maybe_unused]] ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
+TMaybe<i64> DecodeLjDispatchUpdate(const llvm::Triple& triple, ui64, TConstArrayRef<ui8> bytecode) {
     TMaybe<i64> result;
 
     std::string error;
@@ -632,7 +632,7 @@ TMaybe<i64> DecodeLjDispatchUpdate(const llvm::Triple& triple, [[maybe_unused]] 
     call   3e2e0 <luaL_where+0xe6a0> // Find following `call` instruction
 */
 
-TMaybe<i64> DecodeLuaGc(const llvm::Triple& triple, [[maybe_unused]] ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
+TMaybe<i64> DecodeLuaGc(const llvm::Triple& triple, ui64, TConstArrayRef<ui8> bytecode) {
     static constexpr i64 kShift = 0xA;
 
     TMaybe<i64> result;
@@ -705,7 +705,7 @@ TMaybe<i64> DecodeLuaGc(const llvm::Triple& triple, [[maybe_unused]] ui64 functi
     e473:	c7 85 b8 00 00 00 fd 	mov    DWORD PTR [rbp+0xb8],0xfffffffd
 */
 
-TMaybe<i64> DecodeLjGcStep(const llvm::Triple& triple, [[maybe_unused]] ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
+TMaybe<i64> DecodeLjGcStep(const llvm::Triple& triple, ui64, TConstArrayRef<ui8> bytecode) {
     TMaybe<i64> result;
 
     std::string error;
