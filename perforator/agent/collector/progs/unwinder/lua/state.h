@@ -127,12 +127,17 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state *state,
  * @note To modify cached value, use `lua_state_cache_set`.
  *
  * @param state Lua unwind state.
- * @return Pointer to cached `global_State*`. May be NULL. Cached value may be
- * NULL.
+ * @return `global_State*` value from cache or NULL.
  */
-[[nodiscard]] static ALWAYS_INLINE global_State *const *
+[[nodiscard]] static ALWAYS_INLINE global_State *
 lua_state_cache_get(const struct lua_state *state) {
-    return bpf_map_lookup_elem(&lua_state_cache, &state->pid);
+    global_State **global_state_holder =
+        bpf_map_lookup_elem(&lua_state_cache, &state->pid);
+    if (global_state_holder == NULL) {
+        return NULL;
+    }
+
+    return *global_state_holder;
 }
 
 /**
@@ -209,11 +214,10 @@ lua_state_test_and_set(struct lua_state *state, global_State *global_state) {
  */
 [[nodiscard]] static ALWAYS_INLINE bool
 lua_state_find_g_and_l(struct lua_state *state) {
-    global_State *const *cached_global_state = lua_state_cache_get(state);
-
-    if (cached_global_state != NULL && *cached_global_state != NULL) {
+    global_State *cached_global_state = lua_state_cache_get(state);
+    if (cached_global_state != NULL) {
         // Cache exists
-        if (lua_state_test_and_set(state, *cached_global_state)) {
+        if (lua_state_test_and_set(state, cached_global_state)) {
             metric_increment(METRIC_LUA_VALID_CACHE_COUNT);
             // L and G are set in `lua_state_test_and_set`
             return true;
