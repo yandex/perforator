@@ -15,7 +15,6 @@ struct user_regs {
     u64 rbp;
     u64 rip;
     u64 rdi;
-    u64 rbx;
     u64 rdx;
     u64 r14;
 };
@@ -83,7 +82,6 @@ static NOINLINE bool find_task_userspace_registers(struct pt_regs* kregs, struct
     uregs->rbp = kregs->rbp;
     uregs->rip = kregs->rip;
     uregs->rdi = kregs->rdi;
-    uregs->rbx = kregs->rbx;
     uregs->rdx = kregs->rdx;
     uregs->r14 = kregs->r14;
 
