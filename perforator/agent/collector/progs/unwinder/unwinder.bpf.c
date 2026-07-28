@@ -315,6 +315,8 @@ static ALWAYS_INLINE void pack_lang_section(
         off += bytes;
         CLAMP_OFFSET(off);
         *offset = off;
+    } else {
+        metric_increment(METRIC_ERROR_STAGE_PACK_SAMPLE_LANG_COUNT);
     }
 }
 
