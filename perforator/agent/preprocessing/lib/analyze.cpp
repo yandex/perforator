@@ -246,7 +246,7 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
     }
 
     if (luaConfig) {
-        *result.MutableLuaConfig() = std::move(luaConfig).GetRef();
+        *result.MutableLuaConfig() = std::move(luaConfig.GetRef());
     }
 
     if (pthreadConfig) {
