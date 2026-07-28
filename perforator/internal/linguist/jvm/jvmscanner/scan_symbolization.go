@@ -14,18 +14,18 @@ type symTreeNodeData struct {
 	// TODO: there is also bci (aka bytecode index), this is needed for line information
 }
 
-func (s *Scanner) parseSymbolizationNodeData(nmeta *jvmbindings.NmethodInfo, offset int) (symTreeNodeData, error) {
+func (s *Scanner) parseSymbolizationNodeData(nmeta *jvmbindings.NmethodInfo, offset int, cfg config) (symTreeNodeData, error) {
 	if offset >= len(nmeta.ScopesData) {
 		return symTreeNodeData{}, fmt.Errorf("offset out of range: %d", offset)
 	}
-	po, nread, err := u5decode(nmeta.ScopesData[offset:])
+	po, nread, err := u5decode(cfg, nmeta.ScopesData[offset:])
 	if err != nil {
 		return symTreeNodeData{}, fmt.Errorf("failed to read parent offset: %w", err)
 	}
 	if offset+nread >= len(nmeta.ScopesData) {
 		return symTreeNodeData{}, fmt.Errorf("end-of-stream after reading parent offset")
 	}
-	mID, _, err := u5decode(nmeta.ScopesData[offset+nread:])
+	mID, _, err := u5decode(cfg, nmeta.ScopesData[offset+nread:])
 	if err != nil {
 		return symTreeNodeData{}, fmt.Errorf("failed to read method ID: %w", err)
 	}
@@ -39,6 +39,13 @@ func (s *Scanner) parseInstructionInfo(ctx context.Context, jvm *jvmbindings.JVM
 	nmeta, err := nmethod.NmethodInfo()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nmethod metadata: %w", err)
+	}
+	var u5cfg config
+	if jvm.Version() >= 20 {
+		// TODO: for [20.0.0, 20.0.15) we probably need 19m as well
+		u5cfg = u5config20p
+	} else {
+		u5cfg = u5config19m
 	}
 	table := new(jvmsupp.MethodSymbolizationTable)
 
@@ -64,7 +71,7 @@ func (s *Scanner) parseInstructionInfo(ctx context.Context, jvm *jvmbindings.JVM
 		nodeID = nodeCounter
 		nodeCounter++
 		knownNodes[offset] = nodeID
-		nodeData, err := s.parseSymbolizationNodeData(&nmeta, int(offset))
+		nodeData, err := s.parseSymbolizationNodeData(&nmeta, int(offset), u5cfg)
 		if err != nil {
 			return 0, fmt.Errorf("failed to parse symbolization node data at offset %d: %w", offset, err)
 		}

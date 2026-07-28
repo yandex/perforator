@@ -112,6 +112,7 @@ func writeYmakeInc(w io.Writer, jdkInfo jdkInfo) error {
 var headers = []string{
 	"src/hotspot/share/runtime/frame.hpp",
 	"src/hotspot/share/code/codeCache.hpp",
+	"src/hotspot/share/code/nmethod.hpp",
 	"src/hotspot/share/runtime/vmStructs.hpp",
 	"src/hotspot/share/runtime/abstract_vm_version.hpp",
 }
