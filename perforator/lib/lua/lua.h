@@ -28,8 +28,7 @@ class TLuaAnalyzer {
 public:
     struct TLuaSymbols {
         // Fallback in case symbol size is not specified in symbol table of ELF
-        static constexpr ui64 kFallbackLocationSize = 100;
-        static constexpr ui64 kLjDispatchUpdateFallbackLocationSize = 1000;
+        static constexpr ui64 kFallbackLocationSize = 1000;
 
         TMaybe<TStringBuf> LuaJitVersionSymbol; // Name of the symbol containing the LuaJIT version. Used to identify LuaJIT.
 

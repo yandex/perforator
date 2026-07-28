@@ -100,7 +100,7 @@ TMaybe<ui64> TLuaAnalyzer::FindOffsetGToDispatch() {
 
     NPerforator::NELF::TLocation ljDispatchUpdate = {
         .Address = luaOpenJitSymbol->Address + static_cast<i64>(*ljDispatchUpdateAddress),
-        .Size = TLuaSymbols::kLjDispatchUpdateFallbackLocationSize,
+        .Size = TLuaSymbols::kFallbackLocationSize,
     };
 
     bytecode = NPerforator::NELF::RetrieveContentFromSection(File_, ljDispatchUpdate, NELF::NSections::kText);
@@ -218,7 +218,7 @@ TMaybe<std::pair<ui64, ui64>> TLuaAnalyzer::GetVMLocation() {
 
     auto dwarfContext = llvm::DWARFContext::create(File_);
     auto ehFrameValue = dwarfContext->getEHFrame();
-    if (!ehFrameValue){
+    if (!ehFrameValue) {
         return Nothing();
     }
     const llvm::DWARFDebugFrame* ehFrame = *ehFrameValue;
