@@ -38,8 +38,8 @@ lua_state_cache_get(const struct lua_state *state) {
  * @param state Lua unwind state.
  * @return Status of `bpf_map_update_elem` operation.
  */
-[[nodiscard]] static ALWAYS_INLINE int lua_state_cache_set(struct lua_state *state,
-                                             global_State *g) {
+[[nodiscard]] static ALWAYS_INLINE int
+lua_state_cache_set(struct lua_state *state, global_State *g) {
     return bpf_map_update_elem(&lua_global_state_cache, &state->pid, &g,
                                BPF_ANY);
 }

@@ -170,30 +170,23 @@ lua_state_find_g_and_l(struct lua_state *state) {
         return false;
     }
 
-    global_State *global_state;
-
-    // TODO: Alternatively we can probe both register and save that was valid
-    __auto_type binary_relative_address =
-        state->instruction_pointer - state->binary_start_address;
-    bool is_in_luajit_vm =
-        state->config.vm_start_pc <= binary_relative_address &&
-        binary_relative_address < state->config.vm_end_pc;
-    if (is_in_luajit_vm) {
-        // Inside VM the dispatch register will always hold dispatch field.
-        // Subtracting `GG_G2DISP` will get `global_State*`.
-        global_state = (global_State *)((char *)state->dispatch_register -
-                                        state->config.offset_g_to_dispatch);
-        LUA_TRACE("Inside VM");
-    } else {
-        // Outside VM we might have `lua_State*` as the first argument.
-        // We can't assume it's `cur_L`, so we need to get back to
-        // `global_State*` and get actual `cur_L` from there.
-        global_state = G((lua_State *)state->l_register);
-        LUA_TRACE("Outside VM");
+    // Try to find state from dispatch register.
+    // It's always present when we are executing inside LuaJIT VM.
+    global_State *global_state =
+        (global_State *)((char *)state->dispatch_register -
+                         state->config.offset_g_to_dispatch);
+    if (lua_state_test_and_set(state, global_state)) {
+        metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
+        LUA_TRACE("lua_state_find_g_and_l: found new global_State=%px",
+                  global_state);
+        (void)lua_state_cache_set(state, global_state);
+        return true;
     }
 
+    // Alternatively try to find from register for C ABI first function
+    // argument.
+    global_state = G((lua_State *)state->l_register);
     if (lua_state_test_and_set(state, global_state)) {
-        // L and G are set in `lua_state_test_and_set`
         metric_increment(METRIC_LUA_GLOBAL_STATE_FOUND_COUNT);
         LUA_TRACE("lua_state_find_g_and_l: found new global_State=%px",
                   global_state);
@@ -228,7 +221,7 @@ lua_state_resolve_base(struct lua_state *state, cTValue *base,
     __auto_type base_from_register = (cTValue *)state->base_register;
 
     __auto_type binary_relative_address =
-    state->instruction_pointer - state->binary_start_address;
+        state->instruction_pointer - state->binary_start_address;
     bool is_in_luajit_vm =
         state->config.vm_start_pc <= binary_relative_address &&
         binary_relative_address < state->config.vm_end_pc;
