@@ -17,18 +17,6 @@ auto MakePredicate(const Container& symbols) {
         return false;
     };
 }
-
-template <typename Container>
-auto MakeCustomPredicate(TFunctionRef<bool(TStringBuf, TStringBuf)>& predicate, const Container& symbol_prefixes) {
-    return [&](TStringBuf name) {
-        for (auto s : symbol_prefixes) {
-            if (predicate(name, s)) {
-                return true;
-            }
-        }
-        return false;
-    };
-}
 }
 
 TMaybe<TSymbolMap> RetrieveSymbolsFromDynsym(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols) {

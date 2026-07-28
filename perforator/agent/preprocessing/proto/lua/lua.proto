@@ -12,9 +12,10 @@ message LuaVersion {
 // See documentation in perforator/agent/collector/progs/unwinder/lua/types.h
 message LuaConfig {
   LuaVersion Version = 1;
-  uint64 OffsetGtoL = 2;
-  uint64 OffsetGtoDispatch = 3;
-  uint64 BinarySize = 4;
-  uint64 VmStartPc = 5;
-  uint64 VmEndPc = 6;
+  uint64 OffsetGToL = 2;
+  uint64 OffsetGToDispatch = 3;
+  uint64 OffsetGToVmState = 4;
+  uint64 BinarySize = 5;
+  uint64 VmStartPc = 6;
+  uint64 VmEndPc = 7;
 }

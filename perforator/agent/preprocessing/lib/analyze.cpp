@@ -143,37 +143,44 @@ TMaybe<NPerforator::NBinaryProcessing::NPhp::PhpConfig> BuildPhpConfig(llvm::obj
 
 namespace NPerforator::NBinaryProcessing::NLua {
 
-TMaybe<LuaConfig> BuildLuaConfig(llvm::object::ObjectFile *objectFile) {
-    auto analyzer = NPerforator::NLinguist::NLua::TLuaAnalyzer{*objectFile};
+TMaybe<LuaConfig> BuildLuaConfig(llvm::object::ObjectFile* objectFile) {
+    NPerforator::NLinguist::NLua::TLuaAnalyzer analyzer {*objectFile};
+    LuaConfig conf;
 
     auto version = analyzer.ParseVersion();
     if (!version) {
         return Nothing();
     }
-
-    LuaConfig conf;
     conf.MutableVersion()->SetMajor(version->Version.MajorVersion);
     conf.MutableVersion()->SetMinor(version->Version.MinorVersion);
 
-    auto offsetGtoL = analyzer.ParseOffsetGtoL();
-    if (!offsetGtoL) {
+    auto offsetGToL = analyzer.FindOffsetGToL();
+    if (!offsetGToL) {
         return Nothing();
     }
+    conf.SetOffsetGToL(*offsetGToL);
 
-    auto offsetGtoDispatch = analyzer.ParseOffsetGtoDispatch();
-    if (!offsetGtoDispatch) {
+    auto offsetGToDispatch = analyzer.FindOffsetGToDispatch();
+    if (!offsetGToDispatch) {
         return Nothing();
     }
+    conf.SetOffsetGToDispatch(*offsetGToDispatch);
 
-    conf.SetOffsetGtoL(*offsetGtoL);
-    conf.SetOffsetGtoDispatch(*offsetGtoDispatch);
+    auto offsetGToVmState = analyzer.FindOffsetGToVmState();
+    if (!offsetGToVmState) {
+        return Nothing();
+    }
+    conf.SetOffsetGToVmState(*offsetGToVmState);
+
+    auto vmLocation = analyzer.GetVMLocation();
+    if (!vmLocation) {
+        return Nothing();
+    }
+    auto [start, end] = *vmLocation;
+    conf.SetVmStartPc(start);
+    conf.SetVmEndPc(end);
+
     conf.SetBinarySize(analyzer.GetBinarySize());
-
-    if (auto vmLocation = analyzer.GetVMLocation()) {
-        auto [start, end] = *vmLocation;
-        conf.SetVmStartPc(start);
-        conf.SetVmEndPc(end);
-    }
 
     return MakeMaybe(conf);
 }

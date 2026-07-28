@@ -26,8 +26,9 @@ func IsVersionSupported(version *lua.LuaVersion) bool {
 
 func ParseLuaUnwinderConfig(conf *lua.LuaConfig) *unwinder.LuaConfig {
 	return &unwinder.LuaConfig{
-		OffsetGToL:        conf.OffsetGtoL,
-		OffsetGToDispatch: conf.OffsetGtoDispatch,
+		OffsetGToL:        conf.OffsetGToL,
+		OffsetGToDispatch: conf.OffsetGToDispatch,
+		OffsetGToVmState:  conf.OffsetGToVmState,
 		BinarySize:        conf.BinarySize,
 		VmStartPc:         conf.VmStartPc,
 		VmEndPc:           conf.VmEndPc,

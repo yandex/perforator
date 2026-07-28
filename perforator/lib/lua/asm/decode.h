@@ -21,13 +21,17 @@ namespace NPerforator::NLinguist::NLua::NAsm {
 using NArm::DecodeLuaClose;
 using NArm::DecodeLuaOpenJit;
 using NArm::DecodeLjDispatchUpdate;
+using NArm::DecodeLuaGc;
+using NArm::DecodeLjGcStep;
 
 #elif defined(__x86_64__)
 
 using NX86::DecodeLuaClose;
 using NX86::DecodeLuaOpenJit;
 using NX86::DecodeLjDispatchUpdate;
+using NX86::DecodeLuaGc;
+using NX86::DecodeLjGcStep;
 
 #endif
 
-}
+} // namespace NPerforator::NLinguist::NLua::NAsm

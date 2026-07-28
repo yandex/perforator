@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../metrics.h"
-#include "../luajit/luajit.h"
+#include "../luajit.h"
 #include "../symbol.h"
 #include "../trace.h"
 #include "../types.h"
@@ -19,9 +19,7 @@
  * @param object_address Object address. Must be packed to u64 before this call.
  * @param linestart Line information.
  */
-static ALWAYS_INLINE void lua_frame_set_key(
-    struct interpreter_frame* interpreter_frame, u64 object_address,
-    i32 linestart) {
+static ALWAYS_INLINE void lua_frame_set_key(struct interpreter_frame* interpreter_frame, u64 object_address, i32 linestart) {
     struct symbol_key* key = &interpreter_frame->symbol_key;
 
     key->object_addr = object_address;
@@ -34,10 +32,8 @@ static ALWAYS_INLINE void lua_frame_set_key(
  * @param interpreter_frame Current frame.
  * @param symbol Symbol info.
  */
-static ALWAYS_INLINE void lua_frame_save_symbol(
-    struct interpreter_frame* interpreter_frame, struct symbol* symbol) {
-    bpf_map_update_elem(&interpreter_symbols, interpreter_frame, symbol,
-                        BPF_ANY);
+static ALWAYS_INLINE void lua_frame_save_symbol(struct interpreter_frame* interpreter_frame, struct symbol* symbol) {
+    bpf_map_update_elem(&interpreter_symbols, interpreter_frame, symbol, BPF_ANY);
 }
 
 /**
@@ -45,15 +41,12 @@ static ALWAYS_INLINE void lua_frame_save_symbol(
  *
  * @param interpreter_frame Current frame.
  * @param error Error code.
- * @param gct GCobj type found instead of function. Relevant only with
- * `LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC`.
+ * @param gct GCobj type found instead of function. Relevant only with `LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC`.
  */
-static ALWAYS_INLINE void lua_frame_set_invalid(
-    struct interpreter_frame* interpreter_frame,
-    enum lua_stack_walk_error error, uint8_t gct) {
-    u64 addr = lua_frame_pack_invalid_object_address(error, gct);
+static ALWAYS_INLINE void lua_frame_set_invalid(struct interpreter_frame* interpreter_frame, enum lua_stack_walk_error error, u8 gct) {
+    u64 address = lua_frame_pack_invalid_object_address(error, gct);
 
-    lua_frame_set_key(interpreter_frame, addr, LUA_LINESTART_NON_LUA_FRAME);
+    lua_frame_set_key(interpreter_frame, address, LUA_LINESTART_NON_LUA_FRAME);
 }
 
 /**
@@ -64,25 +57,17 @@ static ALWAYS_INLINE void lua_frame_set_invalid(
  * @param function Lua function.
  * @return `true` if pushed successfully.
  */
-[[nodiscard]] static ALWAYS_INLINE bool lua_frame_set_lua(
-    struct interpreter_frame* interpreter_frame, struct symbol* symbol,
-    GCfunc* function) {
-    GCproto* proto = funcproto(function);
-    if (!proto) {
-        lua_frame_set_invalid(interpreter_frame,
-                              LUA_STACK_WALK_ERROR_PROTO_IS_NULL, 0);
-        metric_increment(METRIC_LUA_PROTO_IS_NULL_COUNT);
-        return false;
-    }
+[[nodiscard]] static ALWAYS_INLINE bool lua_frame_set_lua(struct interpreter_frame* interpreter_frame, struct symbol* symbol, luajit_gc_func* function) {
+    luajit_gc_proto* proto = luajit_funcproto(function);
 
     u64 object_address = lua_frame_pack_lua_object_address(proto);
-    BCLine line_defined = BPF_PROBE_READ_USER(proto, firstline);
+    i32 line_defined = luajit_gc_proto_get_firstline(proto);
     lua_frame_set_key(interpreter_frame, object_address, line_defined);
 
     char* caret = symbol->data;
-    size_t name_length = 0;
+    u64 name_length = 0;
 
-    if ((line_defined || !BPF_PROBE_READ_USER(proto, numline))) {
+    if (line_defined || !luajit_gc_proto_get_numline(proto)) {
         name_length = LUA_SYMBOL_APPEND_LITERAL(symbol->data, "<no name>");
     } else {
         name_length = LUA_SYMBOL_APPEND_LITERAL(symbol->data, "in main chunk");
@@ -91,12 +76,11 @@ static ALWAYS_INLINE void lua_frame_set_invalid(
     symbol->name_length = name_length;
     caret += name_length;
 
-    const char* filename = strdata(proto_chunkname(proto));
-
     // This must be written inline for least amount of verifier checks
-    long status = bpf_probe_read_user_str(
-        caret, SYMBOL_BUFFER_SIZE - name_length, filename);
+    const char* filename = luajit_proto_chunknamestr(proto);
+    long status = bpf_probe_read_user_str(caret, SYMBOL_BUFFER_SIZE - name_length, filename);
     if (status <= 0) {
+        LUA_TRACE("[error] lua_frame_set_lua: failed to read proto=%px filename (%d)", proto, status);
         symbol->filename_length = lua_symbol_append_fail(caret);
     } else {
         symbol->filename_length = status - 1;
@@ -108,16 +92,13 @@ static ALWAYS_INLINE void lua_frame_set_invalid(
 
 /**
  * @brief Set frame as C/FF frame.
+ * FF means FastFunction.
  *
  * @param interpreter_frame Current frame.
  * @param function C/FF function
  */
-static ALWAYS_INLINE void lua_frame_set_c(
-    struct interpreter_frame* interpreter_frame, GCfunc* function) {
-    u64 object_address =
-        lua_frame_pack_c_object_address(BPF_PROBE_READ_USER(function, c.f),
-                                        BPF_PROBE_READ_USER(function, c.ffid));
+static ALWAYS_INLINE void lua_frame_set_c(struct interpreter_frame* interpreter_frame, luajit_gc_func* function) {
+    u64 object_address = lua_frame_pack_c_object_address(luajit_gc_func_get_f(function), luajit_gc_func_get_ffid(function));
 
-    lua_frame_set_key(interpreter_frame, object_address,
-                      LUA_LINESTART_NON_LUA_FRAME);
+    lua_frame_set_key(interpreter_frame, object_address, LUA_LINESTART_NON_LUA_FRAME);
 }

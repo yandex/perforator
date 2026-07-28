@@ -89,15 +89,13 @@ func processPythonFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, l
 	processFrameCommon(s, mtr, loc, frame)
 }
 
-// internal frame decoding errors, see lua_stack_walk_error at perforator/agent/collector/progs/unwinder/lua/stack/walk_error.h
+// Internal frame decoding errors, see lua_stack_walk_error at perforator/agent/collector/progs/unwinder/lua/stack/walk_error.h
 var luaStackWalkErrorDescriptions = []string{
-	"frame is null",
 	"GCfunc is null",
 	"bad function in frame",
-	"proto is null",
 }
 
-// see lj_obj.h
+// See LJ_T object tags in lj_obj.h
 var gcTypes = []string{
 	"nil",
 	"false",
@@ -130,7 +128,7 @@ const (
 	LuaObjectAddressFfidInvalid = -1
 
 	LuaObjectAddressStackWalkErrorOffset = LuaObjectAddressPtrBits
-	LuaObjectAddressStackWalkErrorBits   = 2
+	LuaObjectAddressStackWalkErrorBits   = 1
 	LuaObjectAddressStackWalkErrorMask   = (1 << LuaObjectAddressStackWalkErrorBits) - 1
 
 	LuaObjectAddressGctOffset = LuaObjectAddressStackWalkErrorOffset + LuaObjectAddressStackWalkErrorBits
@@ -197,7 +195,6 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 
 		if !exists {
 			mtr.unsymbolizedFramesCount++
-
 			name += fmt.Sprintf("unsymbolized lua function: 0x%x", luaData.GetPtr())
 		} else {
 			name += symbol.Name

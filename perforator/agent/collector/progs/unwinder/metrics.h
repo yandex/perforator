@@ -24,6 +24,7 @@ enum metric : u32 {
     METRIC_ERROR_STAGE_LOCATETRACEEE_COUNT,
     METRIC_ERROR_STAGE_COLLECTSTACK_COUNT,
     METRIC_ERROR_STAGE_TLS_COUNT,
+
     METRIC_ERROR_STAGE_COLLECT_PYTHON_STACK_COUNT,
     METRIC_PYTHON_READ_TLS_THREAD_STATE_ERROR_COUNT,
     METRIC_PYTHON_TLS_THREAD_STATE_NULL,
@@ -37,6 +38,7 @@ enum metric : u32 {
     METRIC_PYTHON_NON_ASCII_COMPACT_STRINGS_COUNT,
     METRIC_PYTHON_PROCESSED_STACKS_COUNT,
     METRIC_PYTHON_READ_THREAD_ID_ERROR_COUNT,
+
     METRIC_ERROR_STAGE_COLLECT_PHP_STACK_COUNT,
     METRIC_PHP_READ_EXECUTE_DATA_ERROR_COUNT,
     METRIC_PHP_READ_ZEND_FUNCTION_ERROR_COUNT,
@@ -52,24 +54,11 @@ enum metric : u32 {
     METRIC_LUA_PROCESSED_STACKS_COUNT, // Started to unwind in process with LuaJIT binary. Valid state is not found yet.
 
     // Lua state search metrics
-    METRIC_LUA_VALID_CACHE_COUNT, // Cache hit. Cache is valid.
     METRIC_LUA_INVALIDED_CACHE_COUNT, // Cache hit. Cache is not valid anymore.
-    METRIC_LUA_NOT_IN_LUAJIT_BINARY_COUNT, // `rip` is not in mapped address range for LuaJIT binary.
-    METRIC_LUA_GLOBAL_STATE_FOUND_COUNT, // Found valid `global_State*` from registers. Cached.
-    METRIC_LUA_GLOBAL_STATE_NOT_FOUND_COUNT, // Unable to find valid `global_State*` from registers.
-
-    // Lua base deducing metrics
-    METRIC_LUA_RDX_OUTSIDE_OF_STACK_COUNT, // `rdx` is out of stack range.
-    METRIC_LUA_BASE_DEDUCED_FROM_RDX_COUNT, // Top frame was deduced from `rdx`.
 
     // Lua stack walk metrics
     METRIC_LUA_PROCESSED_FRAMES_COUNT, // Walked frames.
-    METRIC_LUA_BROKEN_FRAME_COUNT, // Frame is out of stack.
-    METRIC_LUA_FRAME_GET_INFO_FAIL_COUNT, // Failed to read frame.
-    METRIC_LUA_FRAME_IS_NULL_COUNT, // Frame was NULL. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
-    METRIC_LUA_FUNCTION_IS_NULL_COUNT, // Function in the frame was NULL. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
-    METRIC_LUA_FRAME_IS_NOT_FUNC_COUNT, // Frame wasn't a function. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
-    METRIC_LUA_PROTO_IS_NULL_COUNT, // Proto of the frame function was NULL. Subset of `METRIC_LUA_GET_FUNCTION_INFO_FAIL_COUNT`.
+    METRIC_LUA_PROCESSED_FRAMES_FAIL_COUNT, // Failed to read frame.
 
     METRIC_ERROR_STAGE_RECORDSAMPLE_COUNT,
     METRIC_ERROR_STAGE_LBR_STACK_COUNT,
@@ -99,7 +88,6 @@ enum metric : u32 {
 ////////////////////////////////////////////////////////////////////////////////
 
 BPF_MAP(metrics, BPF_MAP_TYPE_PERCPU_ARRAY, u32, u64, METRIC_COUNT);
-
 
 // Make enum metrics available for the userspace.
 BTF_EXPORT(enum metric);

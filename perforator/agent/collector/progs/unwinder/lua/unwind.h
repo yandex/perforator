@@ -9,17 +9,14 @@
 #include "../metrics.h"
 #include "../process.h"
 #include "stack/stack.h"
-#include "symbol.h"
 
 /**
  * @brief Entry point for collecting stack info from Lua VM.
  *
- * @param process_info Information about the current process, and specifically
- * the binary, where LuaJIT is, located.
+ * @param process_info Information about the current process, and specifically the binary, where LuaJIT is, located.
  * @param state Lua unwind state. Not to be confused with `lua_State`.
  */
-static ALWAYS_INLINE void lua_collect_stack(
-    const struct process_info* process_info, struct lua_state* state) {
+static ALWAYS_INLINE void lua_collect_stack(const struct process_info* process_info, struct lua_state* state) {
     lua_stack_reset(state);
 
     if (!is_mapped(process_info->lua_binary)) {

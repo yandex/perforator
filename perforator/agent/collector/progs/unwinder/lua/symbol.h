@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stddef.h>
-
 #include "types.h"
 
 // namespace lua::symbol
@@ -15,10 +13,10 @@
  * @param caret Pointer from symbol where to append.
  * @param string String to write.
  * @param string_size Size of the string.
- * @return size_t Size written.
+ * @return u64 Size written.
  */
-[[nodiscard]] static ALWAYS_INLINE size_t
-lua_symbol_append_string(char* caret, const char* string, size_t string_size) {
+[[nodiscard]] static ALWAYS_INLINE u64
+lua_symbol_append_string(char* caret, const char* string, u64 string_size) {
     memcpy(caret, string, string_size);
 
     return string_size;
@@ -32,7 +30,7 @@ lua_symbol_append_string(char* caret, const char* string, size_t string_size) {
  *
  * @param caret Pointer from symbol where to append.
  * @param literal Literal to write
- * @return size_t Size written.
+ * @return u64 Size written.
  */
 #define LUA_SYMBOL_APPEND_LITERAL(caret, literal) \
     lua_symbol_append_string((caret), (literal), sizeof(literal) - 1)
@@ -42,9 +40,9 @@ lua_symbol_append_string(char* caret, const char* string, size_t string_size) {
  * @note Writes without a NULL terminator.
  *
  * @param caret Pointer from symbol where to append.
- * @return size_t Size written.
+ * @return u64 Size written.
  */
-[[nodiscard]] static ALWAYS_INLINE size_t lua_symbol_append_fail(char* caret) {
+[[nodiscard]] static ALWAYS_INLINE u64 lua_symbol_append_fail(char* caret) {
     const char kInvalidString[] = "<failed to read>";
 
     return LUA_SYMBOL_APPEND_LITERAL(caret, kInvalidString);

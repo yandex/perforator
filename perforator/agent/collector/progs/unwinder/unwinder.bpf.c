@@ -797,7 +797,6 @@ static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_
 static NOINLINE int profiler_stage_collect_lua_stack(void* context, const struct user_regs* user_registers, struct profiler_state* profiler_state, struct profiler_config* config) {
 #ifdef __x86_64__
     if (!config->enable_lua) {
-        LUA_TRACE("%d", profiler_state->lua_state.stack.len);
         return 0;
     }
 
