@@ -125,6 +125,8 @@ func originSpecialMapping(name string) string {
 		return "[php]"
 	case strings.HasSuffix(name, ".py"):
 		return "[python]"
+	case strings.HasSuffix(name, ".lua"):
+		return "[lua]"
 	default:
 		return ""
 	}

@@ -53,6 +53,10 @@ export function hashcolor(name: string, module?: string): string {
         R = 103 + 50 * v2;
         G = 178 + 77 * v1;
         B = 120 + 50 * v3;
+    } else if (module === 'lua' || name.includes('[lua]') || name.endsWith('.lua')) {
+        R = 20 + 65 + 10 * v2;
+        G = 20 + 98 + 10 * v3;
+        B = 20 + 191 + 10 * v1;
     } else {
         R = 205 + 50 * v3;
         G = 0 + 230 * v1;

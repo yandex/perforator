@@ -228,6 +228,7 @@ type oneShotSampleConsumer struct {
 
 	pythonProcessor *sampleStackProcessor
 	phpProcessor    *sampleStackProcessor
+	luaProcessor    *sampleStackProcessor
 
 	workloadParts []string
 }
@@ -249,6 +250,7 @@ func newOneShotSampleConsumer(
 		envWhitelist:    p.envWhitelist,
 		pythonProcessor: newPythonSampleStackProcessor(p.pythonSymbolizer),
 		phpProcessor:    newPHPSampleStackProcessor(p.phpSymbolizer),
+		luaProcessor:    newLuaSampleStackProcessor(p.luaSymbolizer),
 	}
 }
 
@@ -580,6 +582,15 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 			builder,
 			c.phpProcessor,
 			&c.sample.PhpStack,
+		)
+	}
+
+	if enableLua := c.p.conf.BPF.TraceLua; enableLua != nil && *enableLua {
+		c.collectInterpreterStackInto(
+			&c.p.metrics.luaMetrics,
+			builder,
+			c.luaProcessor,
+			&c.sample.LuaStack,
 		)
 	}
 
