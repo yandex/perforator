@@ -50,6 +50,7 @@ lua_stack_context_init(struct lua_stack_context *context,
     context->frame = (u64)frame;
     context->max_stack = (u64)max_stack;
     context->bottom = (u64)bottom;
+    context->L = state->L;
     context->interpreter_frame.symbol_key.pid = state->pid;
     context->symbol.codepoint_size = 1; // Lua strings are always utf-8
 }
