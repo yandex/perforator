@@ -203,15 +203,10 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 			name += symbol.Name
 			filename = symbol.FileName
 
-			// Usually scripts has @ appended at the beginning.
-			// Perforator has same symbol, removing here.
+			// Usually scripts has `@` symbol appended at the beginning.
+			// Perforator has the same symbol, removing here.
 			if len(filename) != 0 && filename[0] == '@' {
 				filename = symbol.FileName[1:]
-			}
-
-			// TODO: Perforator broke line numbers
-			if frame.SymbolKey.Linestart != 0 {
-				filename += ":" + strconv.Itoa(int(frame.SymbolKey.Linestart))
 			}
 		}
 	case LuaObjectAddressFfidC:
@@ -230,7 +225,7 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 	loc.AddFrame().
 		SetName(name).
 		SetFilename(filename).
-		SetStartLine(int64(frame.SymbolKey.Linestart)).
+		SetLine(int64(frame.SymbolKey.Linestart)).
 		Finish()
 }
 
