@@ -25,6 +25,12 @@ TMaybe<TSymbolMap> RetrieveSymbolsFromDynsym(const llvm::object::ObjectFile& fil
     });
 }
 
+TMaybe<TSymbolMap> RetrieveSymbolsFromDynsymByPrefix(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols) {
+    return NLLVM::VisitELF(&file, [&symbols](const auto& elf) {
+        return ParseDynsymByPrefix(elf, symbols);
+    });
+}
+
 TMaybe<TSymbolMap> RetrieveSymbolsFromSymtab(const llvm::object::ObjectFile& file, std::initializer_list<TStringBuf> symbols) {
     return NLLVM::VisitELF(&file, [&symbols](const auto& elf) {
         return ParseSymtab(elf, MakePredicate(symbols));
@@ -44,6 +50,33 @@ TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile &file, std::in
         }
 
         TSymbolMap symtab = ParseSymtab(elf, MakePredicate(symtabSymbols));
+        for (auto& [key, value] : symtab) {
+            res[key] = std::move(value);
+        }
+
+        return res;
+    });
+}
+
+TMaybe<TSymbolMap> RetrieveSymbolsByPrefix(const llvm::object::ObjectFile &file, std::initializer_list<TStringBuf> symbols) {
+    return NLLVM::VisitELF(&file, [&symbols](const auto& elf) {
+        TSymbolMap res = ParseDynsymByPrefix(elf, symbols);
+
+        llvm::SmallVector<TStringBuf> symtabSymbols;
+        symtabSymbols.reserve(symbols.size());
+        for (const TStringBuf& symbol : symbols) {
+            bool found = false;
+            for (auto& [key, value] : res) {
+                if (key.find(symbol) == 0) {
+                    found = true;
+                }
+            }
+            if (!found) {
+                symtabSymbols.push_back(symbol);
+            }
+        }
+
+        TSymbolMap symtab = ParseSymtabByPrefix(elf, symtabSymbols);
         for (auto& [key, value] : symtab) {
             res[key] = std::move(value);
         }
