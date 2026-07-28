@@ -14,21 +14,8 @@ struct TLuaVersion {
     ui8 MinorVersion = 0;
 };
 
-enum class ELuaVersionSource {
-    LuaJitVersionSymbol,
-    // Older LuaJIT versions (e.g. ones from debian/ubuntu distribution) do not
-    // expose `luaJIT_version_*` symbol.
-    // `lua_version` symbol is useless, as it always returns constant
-    // value `LUA_VERSION_NUM` (501).
-    // For now just hardcode 2.1.0 version if the binary happens to expose
-    // `lua_close` and `luaopen_jit` or `luaopen_bit`, should be enough for
-    // current purposes
-    LuaJitDeduced,
-};
-
 struct TParsedLuaVersion {
     TLuaVersion Version;
-    ELuaVersionSource Source;
 
     TString ToString() const {
         TStringBuilder builder;
@@ -37,6 +24,8 @@ struct TParsedLuaVersion {
         return builder;
     }
 };
+
+const re2::RE2 kLuaJitVersionRegex(R"(^luaJIT_version_(\d+)_(\d+)_\d+)");
 
 class TLuaAnalyzer {
   public:
@@ -53,7 +42,6 @@ class TLuaAnalyzer {
   public:
     // Main symbol prefix to find LuaJIT binary
     static constexpr TStringBuf kLuaJitVersionSymbolPrefix = "luaJIT_version_";
-    static const re2::RE2 kLuaJitVersionRegex;
 
     // Used to identify LuaJIT binary and find some LuaJIT
     // offsets later

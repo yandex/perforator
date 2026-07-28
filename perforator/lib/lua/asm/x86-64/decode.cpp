@@ -3,6 +3,7 @@
 namespace NPerforator::NLinguist::NLua::NAsm::NX86 {
 
 /*
+clang-format off
 Functions below are kinda fragile, as there are infinite options to generate assembly code for LuaJIT C code:
 - depend on a compiler and version
 - depend on optimization flags
@@ -67,23 +68,23 @@ key instructions:
 key instructions:
    6ba8b:	48 8b 6f 10          	mov    0x10(%rdi),%rbp
    6baa5:	48 c7 85 70 01 00 00 	movq   $0x0,0x170(%rbp)
+clang-format on
 */
 
-TMaybe<ThreadImageOffsetType> DecodeLuaClose(const llvm::Triple &triple,
-                                             TConstArrayRef<ui8> bytecode) {
-    ThreadImageOffsetType result = 0;
+TMaybe<i64> DecodeLuaClose(
+    const llvm::Triple& triple, TConstArrayRef<ui8> bytecode) {
+    i64 result = 0;
     unsigned int Greg = 0;
 
     std::string error;
-    const llvm::Target *target =
+    const llvm::Target* target =
         llvm::TargetRegistry::lookupTarget(triple.getTriple(), error);
     if (!target) {
         return Nothing();
     }
 
-    NPerforator::NAsm::DecodeInstructions(
-        TLoggerOperator<TGlobalLog>::Log(), triple, bytecode,
-        [&](const llvm::MCInst &inst, ui64 size) {
+    NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(),
+        triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
             Y_UNUSED(size);
 
             if (NPerforator::NAsm::IsRet(inst)) {
@@ -91,36 +92,37 @@ TMaybe<ThreadImageOffsetType> DecodeLuaClose(const llvm::Triple &triple,
             }
 
             switch (inst.getOpcode()) {
-            // Parse `mov disp(%rdi), reg`
-            // MOV64rm [dstReg, baseReg, scaleImm, indexReg, dispImm, segReg]
-            case llvm::X86::MOV64rm:
-            case llvm::X86::MOV32rm: {
-                auto &dst = inst.getOperand(0);
-                auto &base = inst.getOperand(1);
-                auto &disp = inst.getOperand(4);
+                // Parse `mov disp(%rdi), reg`
+                // MOV64rm [dstReg, baseReg, scaleImm, indexReg, dispImm,
+                // segReg]
+                case llvm::X86::MOV64rm:
+                case llvm::X86::MOV32rm: {
+                    auto& dst = inst.getOperand(0);
+                    auto& base = inst.getOperand(1);
+                    auto& disp = inst.getOperand(4);
 
-                if (base.isReg() && base.getReg() == llvm::X86::RDI &&
-                    dst.isReg() && disp.isImm()) {
-                    Greg = dst.getReg();
-                }
-            } break;
-            // Parse `movq $0, disp(reg)`
-            // [baseReg, scaleImm, indexReg, dispImm, segReg, imm]
-            case llvm::X86::MOV64mi32:
-            case llvm::X86::MOV32mi:
-            case llvm::X86::MOV16mi:
-            case llvm::X86::MOV8mi: {
-                auto &base = inst.getOperand(0);
-                auto &disp = inst.getOperand(3);
-                auto &imm = inst.getOperand(5);
+                    if (base.isReg() && base.getReg() == llvm::X86::RDI &&
+                        dst.isReg() && disp.isImm()) {
+                        Greg = dst.getReg();
+                    }
+                } break;
+                // Parse `movq $0, disp(reg)`
+                // [baseReg, scaleImm, indexReg, dispImm, segReg, imm]
+                case llvm::X86::MOV64mi32:
+                case llvm::X86::MOV32mi:
+                case llvm::X86::MOV16mi:
+                case llvm::X86::MOV8mi: {
+                    auto& base = inst.getOperand(0);
+                    auto& disp = inst.getOperand(3);
+                    auto& imm = inst.getOperand(5);
 
-                if (base.isReg() && base.getReg() == Greg && disp.isImm() &&
-                    imm.isImm() && imm.getImm() == 0) {
-                    // stop the search
-                    result = disp.getImm();
-                    return false;
-                }
-            } break;
+                    if (base.isReg() && base.getReg() == Greg && disp.isImm() &&
+                        imm.isImm() && imm.getImm() == 0) {
+                        // stop the search
+                        result = disp.getImm();
+                        return false;
+                    }
+                } break;
             }
 
             return true;
@@ -134,6 +136,7 @@ TMaybe<ThreadImageOffsetType> DecodeLuaClose(const llvm::Triple &triple,
 }
 
 /*
+clang-format off
 Looking for lj_dispatch_update(G(L));
 
 Some examples on my machine:
@@ -264,17 +267,18 @@ key instructions:
    76588:	48 89 fb             	mov    %rdi,%rbx
    765f0:	48 8b 7b 10          	mov    0x10(%rbx),%rdi
    765fb:	e8 e0 f0 f9 ff       	call   156e0 <__cxa_finalize@plt+0xca58>
+clang-format on
 */
 
-TMaybe<ThreadImageOffsetType> DecodeLuaOpenJit(const llvm::Triple &triple,
-                                               TConstArrayRef<ui8> bytecode) {
-    ThreadImageOffsetType result = 0;
-    ThreadImageOffsetType pc = 0;
+TMaybe<i64> DecodeLuaOpenJit(
+    const llvm::Triple& triple, TConstArrayRef<ui8> bytecode) {
+    i64 result = 0;
+    i64 pc = 0;
     unsigned int Lreg = 0;
     bool hasG = false;
 
     std::string error;
-    const llvm::Target *target =
+    const llvm::Target* target =
         llvm::TargetRegistry::lookupTarget(triple.getTriple(), error);
     if (!target) {
         return Nothing();
@@ -282,9 +286,8 @@ TMaybe<ThreadImageOffsetType> DecodeLuaOpenJit(const llvm::Triple &triple,
     THolder<llvm::MCRegisterInfo> mri(
         target->createMCRegInfo(triple.getTriple()));
 
-    NPerforator::NAsm::DecodeInstructions(
-        TLoggerOperator<TGlobalLog>::Log(), triple, bytecode,
-        [&](const llvm::MCInst &inst, ui64 size) {
+    NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(),
+        triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
             Y_UNUSED(size);
 
             if (NPerforator::NAsm::IsRet(inst)) {
@@ -292,42 +295,41 @@ TMaybe<ThreadImageOffsetType> DecodeLuaOpenJit(const llvm::Triple &triple,
             }
 
             switch (inst.getOpcode()) {
-            // Parse `mov reg, rdi`
-            case llvm::X86::MOV64rr:
-            case llvm::X86::MOV32rr: {
-                auto &dst = inst.getOperand(0);
-                auto &src = inst.getOperand(1);
+                // Parse `mov reg, rdi`
+                case llvm::X86::MOV64rr:
+                case llvm::X86::MOV32rr: {
+                    auto& dst = inst.getOperand(0);
+                    auto& src = inst.getOperand(1);
 
-                if (dst.isReg() && src.isReg() &&
-                    src.getReg() == llvm::X86::RDI) {
-                    Lreg = dst.getReg();
-                }
-            } break;
-            // Parse `0x10(reg), %rdi`
-            case llvm::X86::MOV64rm:
-            case llvm::X86::MOV32rm: {
-                auto &dst = inst.getOperand(0);
-                auto &base = inst.getOperand(1);
-                auto &disp = inst.getOperand(4);
+                    if (dst.isReg() && src.isReg() &&
+                        src.getReg() == llvm::X86::RDI) {
+                        Lreg = dst.getReg();
+                    }
+                } break;
+                // Parse `0x10(reg), %rdi`
+                case llvm::X86::MOV64rm:
+                case llvm::X86::MOV32rm: {
+                    auto& dst = inst.getOperand(0);
+                    auto& base = inst.getOperand(1);
+                    auto& disp = inst.getOperand(4);
 
-                if (dst.isReg() && dst.getReg() == llvm::X86::RDI &&
-                    base.isReg() && base.getReg() == Lreg && disp.isImm() &&
-                    disp.getImm() == 0x10) {
-                    hasG = true;
-                }
-            } break;
-            // Parse `call rel`
-            case llvm::X86::CALL64pcrel32: {
-                auto &rel = inst.getOperand(0);
-                if (rel.isImm() && hasG) {
+                    if (dst.isReg() && dst.getReg() == llvm::X86::RDI &&
+                        base.isReg() && base.getReg() == Lreg && disp.isImm() &&
+                        disp.getImm() == 0x10) {
+                        hasG = true;
+                    }
+                } break;
+                // Parse `call rel`
+                case llvm::X86::CALL64pcrel32: {
+                    auto& rel = inst.getOperand(0);
+                    if (rel.isImm() && hasG) {
+                        auto callAddr = pc + rel.getImm() + size;
+                        // stop the search
+                        result = callAddr;
 
-                    auto callAddr = pc + rel.getImm() + size;
-                    // stop the search
-                    result = callAddr;
-
-                    return false;
-                }
-            } break;
+                        return false;
+                    }
+                } break;
             }
             pc += size;
             return true;
@@ -341,6 +343,7 @@ TMaybe<ThreadImageOffsetType> DecodeLuaOpenJit(const llvm::Triple &triple,
 }
 
 /*
+clang-format off
 Some examples on my machine:
 
    164e0:       0f b6 97 88 03 00 00    movzbl 0x388(%rdi),%edx
@@ -530,16 +533,16 @@ no RDI copying!
 
 key instructions:
    157ad:       48 8d 82 b0 0f 00 00    lea    0xfb0(%rdx),%rax
+clang-format on
 */
 
-TMaybe<ThreadImageOffsetType>
-DecodeLjDispatchUpdate(const llvm::Triple &triple,
-                       TConstArrayRef<ui8> bytecode) {
-    ThreadImageOffsetType result = 0;
+TMaybe<i64> DecodeLjDispatchUpdate(
+    const llvm::Triple& triple, TConstArrayRef<ui8> bytecode) {
+    i64 result = 0;
     unsigned int Greg = 0;
 
     std::string error;
-    const llvm::Target *target =
+    const llvm::Target* target =
         llvm::TargetRegistry::lookupTarget(triple.getTriple(), error);
     if (!target) {
         return Nothing();
@@ -547,9 +550,8 @@ DecodeLjDispatchUpdate(const llvm::Triple &triple,
     auto mri = std::unique_ptr<llvm::MCRegisterInfo>(
         target->createMCRegInfo(triple.getTriple()));
 
-    NPerforator::NAsm::DecodeInstructions(
-        TLoggerOperator<TGlobalLog>::Log(), triple, bytecode,
-        [&](const llvm::MCInst &inst, ui64 size) {
+    NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(),
+        triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
             Y_UNUSED(size);
 
             if (NPerforator::NAsm::IsRet(inst)) {
@@ -557,32 +559,33 @@ DecodeLjDispatchUpdate(const llvm::Triple &triple,
             }
 
             switch (inst.getOpcode()) {
-            //
-            case llvm::X86::MOV64rr:
-            case llvm::X86::MOV32rr: {
-                const auto &dst = inst.getOperand(0);
-                const auto &src = inst.getOperand(1);
-                if (dst.isReg() && src.isReg() &&
-                    src.getReg() == llvm::X86::RDI) {
-                    Greg = dst.getReg();
-                }
-            } break;
-            case llvm::X86::LEA64r:
-            case llvm::X86::LEA32r: {
-                const auto &base = inst.getOperand(1);
-                const auto &disp = inst.getOperand(4);
-                if (base.isReg() && base.getReg() == Greg && disp.isImm()) {
-                    // stop the search
-                    result = disp.getImm();
-                    return false;
-                    // another case - RDI used directly (no copying)
-                } else if (base.isReg() && base.getReg() == llvm::X86::RDI &&
-                           disp.isImm()) {
-                    // stop the search
-                    result = disp.getImm();
-                    return false;
-                }
-            } break;
+                //
+                case llvm::X86::MOV64rr:
+                case llvm::X86::MOV32rr: {
+                    const auto& dst = inst.getOperand(0);
+                    const auto& src = inst.getOperand(1);
+                    if (dst.isReg() && src.isReg() &&
+                        src.getReg() == llvm::X86::RDI) {
+                        Greg = dst.getReg();
+                    }
+                } break;
+                case llvm::X86::LEA64r:
+                case llvm::X86::LEA32r: {
+                    const auto& base = inst.getOperand(1);
+                    const auto& disp = inst.getOperand(4);
+                    if (base.isReg() && base.getReg() == Greg && disp.isImm()) {
+                        // stop the search
+                        result = disp.getImm();
+                        return false;
+                        // another case - RDI used directly (no copying)
+                    } else if (base.isReg() &&
+                               base.getReg() == llvm::X86::RDI &&
+                               disp.isImm()) {
+                        // stop the search
+                        result = disp.getImm();
+                        return false;
+                    }
+                } break;
             }
 
             return true;
@@ -595,4 +598,4 @@ DecodeLjDispatchUpdate(const llvm::Triple &triple,
     return MakeMaybe(result);
 }
 
-} // namespace NPerforator::NLinguist::NLua::NAsm::NX86
+}  // namespace NPerforator::NLinguist::NLua::NAsm::NX86
