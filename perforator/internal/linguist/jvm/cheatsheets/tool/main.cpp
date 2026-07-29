@@ -103,4 +103,6 @@ int main(int argc, char** argv) {
 
     spec.Cheatsheet.MergeFrom(dynamic.Cheatsheet);
     Write(spec.Cheatsheet, out + std::format("/jdk{}.txtpb", version));
+
+    Cout << "OK" << Endl;
 }

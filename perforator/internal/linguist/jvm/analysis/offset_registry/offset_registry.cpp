@@ -24,7 +24,7 @@ const void* TJvmMetadata::FindField(std::string_view typeName, std::string_view 
         if (sTn == nullptr || sFn == nullptr) {
             continue;
         }
-        if (typeName == Structs_.Layout().TypeName(s) && fieldName == sFn) {
+        if (typeName == sTn && fieldName == sFn) {
             return s;
         }
     }
