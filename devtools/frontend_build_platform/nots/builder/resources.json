@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-07-28T16:24:46.225Z",
+    "created": "2026-07-29T08:21:12.577Z",
     "pr": {
-      "id": 14665171,
+      "id": 14695923,
       "author": "baymer",
-      "summary": "FBP-3287: squashfs для упаковки в prepare deps"
+      "summary": "FBP-3307: nots.py: поправить разбор пакетов с неймспейсом"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12957462606"
+      "uri": "sbr:12965131553"
     },
     "darwin-arm64": {
-      "uri": "sbr:12957459105"
+      "uri": "sbr:12965127662"
     },
     "linux": {
-      "uri": "sbr:12957468663"
+      "uri": "sbr:12965139070"
     },
     "linux-aarch64": {
-      "uri": "sbr:12957465403"
+      "uri": "sbr:12965134990"
     }
   }
 }
