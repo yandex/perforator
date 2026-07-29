@@ -44,7 +44,23 @@ NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath, u
 
     TVMStructsAddresses addresses;
     addresses.StructsAddress = GetSym(std::string{TVMStructsAddresses::StructsAddressSym});
+    addresses.StructsStructNameOffset = GetSym(std::string{TVMStructsAddresses::StructsStructNameOffsetSym});
+    addresses.StructsFieldNameOffset = GetSym(std::string{TVMStructsAddresses::StructsFieldNameOffsetSym});
+    addresses.StructsTypeNameOffset = GetSym(std::string{TVMStructsAddresses::StructsTypeNameOffsetSym});
+    addresses.StructsIsStaticOffset = GetSym(std::string{TVMStructsAddresses::StructsIsStaticOffsetSym});
+    addresses.StructsOffsetOffset = GetSym(std::string{TVMStructsAddresses::StructsOffsetOffsetSym});
+    addresses.StructsAddressOffset = GetSym(std::string{TVMStructsAddresses::StructsAddressOffsetSym});
+    addresses.StructsStride = GetSym(std::string{TVMStructsAddresses::StructsStrideSym});
+
     addresses.TypesAddress = GetSym(std::string{TVMStructsAddresses::TypesAddressSym});
+    addresses.TypesStructNameOffset = GetSym(std::string{TVMStructsAddresses::TypesStructNameOffsetSym});
+    addresses.TypesSuperNameOffset = GetSym(std::string{TVMStructsAddresses::TypesSuperNameOffsetSym});
+    addresses.TypesIsOopOffset = GetSym(std::string{TVMStructsAddresses::TypesIsOopOffsetSym});
+    addresses.TypesIsIntegerOffset = GetSym(std::string{TVMStructsAddresses::TypesIsIntegerOffsetSym});
+    addresses.TypesIsUnsignedOffset = GetSym(std::string{TVMStructsAddresses::TypesIsUnsignedOffsetSym});
+    addresses.TypesSizeOffset = GetSym(std::string{TVMStructsAddresses::TypesSizeOffsetSym});
+    addresses.TypesStride = GetSym(std::string{TVMStructsAddresses::TypesStrideSym});
+
     addresses.IntsAddress = GetSym(std::string{TVMStructsAddresses::IntsAddressSym});
     addresses.IntsNameOffset = GetSym(std::string{TVMStructsAddresses::IntsNameOffsetSym});
     addresses.IntsValueOffset = GetSym(std::string{TVMStructsAddresses::IntsValueOffsetSym});

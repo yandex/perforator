@@ -128,13 +128,10 @@ func writeHeader(w io.Writer, jdkInfo jdkInfo) error {
 
 func mainImpl() error {
 	ccJsonPath := flag.String("compile-commands-path", "", "Path to compile_commands.json")
-	outDir := flag.String("out-dir", "", "Path to output directory")
+	outDir := flag.String("out-dir", "../../analysis/static", "Path to output directory")
 	flag.Parse()
 	if *ccJsonPath == "" {
 		return fmt.Errorf("--compile-commands-path is required")
-	}
-	if *outDir == "" {
-		return fmt.Errorf("--out-dir is required")
 	}
 
 	jdkInfo, err := parseCompileCommands(*ccJsonPath)

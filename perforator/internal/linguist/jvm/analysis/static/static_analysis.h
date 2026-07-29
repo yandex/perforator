@@ -13,9 +13,37 @@ namespace NPerforator::NLinguist::NJvm {
 struct TVMStructsAddresses {
     constexpr static std::string_view StructsAddressSym = "gHotSpotVMStructs";
     const void* StructsAddress;
+    constexpr static std::string_view StructsStructNameOffsetSym = "gHotSpotVMStructEntryTypeNameOffset";
+    const void* StructsStructNameOffset;
+    constexpr static std::string_view StructsFieldNameOffsetSym = "gHotSpotVMStructEntryFieldNameOffset";
+    const void* StructsFieldNameOffset;
+    constexpr static std::string_view StructsTypeNameOffsetSym = "gHotSpotVMStructEntryTypeStringOffset";
+    const void* StructsTypeNameOffset;
+    constexpr static std::string_view StructsIsStaticOffsetSym = "gHotSpotVMStructEntryIsStaticOffset";
+    const void* StructsIsStaticOffset;
+    constexpr static std::string_view StructsOffsetOffsetSym = "gHotSpotVMStructEntryOffsetOffset";
+    const void* StructsOffsetOffset;
+    constexpr static std::string_view StructsAddressOffsetSym = "gHotSpotVMStructEntryAddressOffset";
+    const void* StructsAddressOffset;
+    constexpr static std::string_view StructsStrideSym = "gHotSpotVMStructEntryArrayStride";
+    const void* StructsStride;
 
     constexpr static std::string_view TypesAddressSym = "gHotSpotVMTypes";
     const void* TypesAddress;
+    constexpr static std::string_view TypesStructNameOffsetSym = "gHotSpotVMTypeEntryTypeNameOffset";
+    const void* TypesStructNameOffset;
+    constexpr static std::string_view TypesSuperNameOffsetSym = "gHotSpotVMTypeEntrySuperclassNameOffset";
+    const void* TypesSuperNameOffset;
+    constexpr static std::string_view TypesIsOopOffsetSym = "gHotSpotVMTypeEntryIsOopTypeOffset";
+    const void* TypesIsOopOffset;
+    constexpr static std::string_view TypesIsIntegerOffsetSym = "gHotSpotVMTypeEntryIsIntegerTypeOffset";
+    const void* TypesIsIntegerOffset;
+    constexpr static std::string_view TypesIsUnsignedOffsetSym = "gHotSpotVMTypeEntryIsUnsignedOffset";
+    const void* TypesIsUnsignedOffset;
+    constexpr static std::string_view TypesSizeOffsetSym = "gHotSpotVMTypeEntrySizeOffset";
+    const void* TypesSizeOffset;
+    constexpr static std::string_view TypesStrideSym = "gHotSpotVMTypeEntryArrayStride";
+    const void* TypesStride;
 
     constexpr static std::string_view IntsAddressSym = "gHotSpotVMIntConstants";
     const void* IntsAddress;

@@ -7,66 +7,64 @@
 namespace NPerforator::NLinguist::NJvm {
 
 TJvmMetadata::TJvmMetadata(
-    std::span<const THotSpotStructEntry> structs,
-    std::span<const THotSpotTypeEntry> types,
-    const void* intsData,
-    size_t intsCount,
-    IntLayout intLayout
+    TSpan<TStructEntryLayout> structs,
+    TSpan<TTypeEntryLayout> types,
+    TSpan<TIntEntryLayout> ints
 )
     : Structs_(structs)
     , Types_(types)
-    , IntsData_(intsData)
-    , IntsCount_(intsCount)
-    , IntLayout_(intLayout)
+    , Ints_(ints)
 {
 }
 
-const THotSpotStructEntry* TJvmMetadata::FindField(std::string_view typeName, std::string_view fieldName) const {
-    for (const auto& s : Structs_) {
-        if (s.TypeName == nullptr || s.FieldName == nullptr) {
+const void* TJvmMetadata::FindField(std::string_view typeName, std::string_view fieldName) const {
+    for (const void* s : Structs_) {
+        const char* sTn = Structs_.Layout().StructName(s);
+        const char* sFn = Structs_.Layout().FieldName(s);
+        if (sTn == nullptr || sFn == nullptr) {
             continue;
         }
-        if (typeName == s.StructName && fieldName == s.FieldName) {
-            return &s;
+        if (typeName == Structs_.Layout().TypeName(s) && fieldName == sFn) {
+            return s;
         }
     }
     return nullptr;
 }
 
 uintptr_t TJvmMetadata::FindStaticFieldAddress(std::string_view typeName, std::string_view fieldName) const {
-    const THotSpotStructEntry* s = FindField(typeName, fieldName);
+    const void* s = FindField(typeName, fieldName);
     if (s == nullptr) {
         throw yexception() << "Static field " << fieldName << " not found in type " << typeName;
     }
-    Y_THROW_UNLESS(s->IsStatic);
-    Y_THROW_UNLESS(s->Address != nullptr);
-    return reinterpret_cast<uintptr_t>(s->Address);
+    Y_THROW_UNLESS(Structs_.Layout().IsStatic(s));
+    void* addr = Structs_.Layout().Address(s);
+    Y_THROW_UNLESS(addr != nullptr);
+    return reinterpret_cast<uintptr_t>(addr);
 }
 
-
 size_t TJvmMetadata::FindFieldOffset(std::string_view typeName, std::string_view fieldName) const {
-    const THotSpotStructEntry* s = FindField(typeName, fieldName);
+    const void* s = FindField(typeName, fieldName);
     if (s == nullptr) {
         throw yexception() << "Field " << fieldName << " not found in type " << typeName;
     }
-    Y_THROW_UNLESS(!s->IsStatic);
-    return static_cast<size_t>(s->Offset);
+    Y_THROW_UNLESS(!Structs_.Layout().IsStatic(s));
+    return static_cast<size_t>(Structs_.Layout().Offset(s));
 }
 
 size_t TJvmMetadata::FindTypeSize(std::string_view typeName) const {
-    for (const THotSpotTypeEntry& t : Types_) {
-        if (t.StructName != nullptr && t.StructName == typeName) {
-            return t.Size;
+    for (const void* t : Types_) {
+        const char* tSn = Types_.Layout().StructName(t);
+        if (tSn != nullptr && tSn == typeName) {
+            return Types_.Layout().Size(t);
         }
     }
     throw yexception() << "Type " << typeName << " not found";
 }
 
 i32 TJvmMetadata::FindIntValue(std::string_view intName) const {
-    const void* elem = IntsData_;
-    for (size_t i = 0; i < IntsCount_; elem = IntLayout_.Inc(elem), ++i) {
-        if (intName == IntLayout_.Name(elem)) {
-            return IntLayout_.Value(elem);
+    for (const void* i : Ints_) {
+        if (intName == Ints_.Layout().Name(i)) {
+            return Ints_.Layout().Value(i);
         }
     }
     throw yexception() << "Int " << intName << " not found";
