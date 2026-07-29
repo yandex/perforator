@@ -18441,7 +18441,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.22.5
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.141.1
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.146.0
 ## explicit; go 1.24.0
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
@@ -18490,6 +18490,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/kv
 github.com/ydb-platform/ydb-go-sdk/v3/internal/meta
 github.com/ydb-platform/ydb-go-sdk/v3/internal/mock
 github.com/ydb-platform/ydb-go-sdk/v3/internal/node
+github.com/ydb-platform/ydb-go-sdk/v3/internal/observability
 github.com/ydb-platform/ydb-go-sdk/v3/internal/operation
 github.com/ydb-platform/ydb-go-sdk/v3/internal/operation/metadata
 github.com/ydb-platform/ydb-go-sdk/v3/internal/operation/options
@@ -18596,6 +18597,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/topic/topicsugar
 github.com/ydb-platform/ydb-go-sdk/v3/topic/topictypes
 github.com/ydb-platform/ydb-go-sdk/v3/topic/topicwriter
 github.com/ydb-platform/ydb-go-sdk/v3/trace
+github.com/ydb-platform/ydb-go-sdk/v3/types
 # github.com/ydb-platform/ydb-go-yc v0.12.3
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-yc
