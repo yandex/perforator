@@ -286,23 +286,24 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 	}
 	buildID := dso.buildInfo.BuildID
 
+	// Fast path: allocation already exists — check under lock.
+	// MoveFromCache/Release mutate bpfBinaryManager state, so exclusive lock is required.
 	dso.bpfAllocationMutex.Lock()
-	defer dso.bpfAllocationMutex.Unlock()
-
-	// Happy path. Our DSO was analyzed previously and unwind tables were cached.
 	if alloc := dso.bpfAllocation; alloc != nil {
 		if d.bpfBinaryManager.MoveFromCache(alloc) {
+			dso.bpfAllocationMutex.Unlock()
 			d.onPagesRestoredFromCache(ctx, len(alloc.UnwindTableAllocation.Pages))
 			return
 		}
-
-		// We had analyzed our DSO previously, but the allocation
-		// had been evicted from the BPF DSO unwind table cache.
-		// So let's try to release current allocation and create the new one.
+		// Allocation evicted from BPF cache; release and re-parse.
 		d.bpfBinaryManager.Release(alloc)
+		dso.bpfAllocation = nil
 		d.l.Debug(ctx, "Removing stale BPF DSO allocation", log.String("buildid", buildID))
 	}
+	dso.bpfAllocationMutex.Unlock()
 
+	// Slow path: parse binary WITHOUT holding the lock to avoid serialising
+	// concurrent DSO loads on an expensive ELF parse operation.
 	analysis, err := d.binaryParser.Parse(ctx, f)
 	if err != nil {
 		d.l.Warn(ctx,
@@ -326,26 +327,35 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 		analysis.PythonConfig = nil
 	}
 
-	if analysis.PythonConfig != nil {
-		dso.BinaryClass = PythonBinaryClass
-	}
-
 	if analysis.PhpConfig != nil && (!php_agent.IsVersionSupported(analysis.PhpConfig.Version) ||
 		analysis.PhpConfig.ZtsEnabled) {
 		analysis.PhpConfig = nil
 	}
 
-	if analysis.PhpConfig != nil {
-		dso.BinaryClass = PhpBinaryClass
+	// Determine binary class from analysis (local variable — no race).
+	binaryClass := DefaultBinaryClass
+	if analysis.PythonConfig != nil {
+		binaryClass = PythonBinaryClass
 	}
-
+	if analysis.PhpConfig != nil {
+		binaryClass = PhpBinaryClass
+	}
 	if analysis.PthreadConfig != nil {
-		dso.BinaryClass = PthreadGlibcBinaryClass
+		binaryClass = PthreadGlibcBinaryClass
 	}
 	if analysis.Jvm.GetStatus() == jvm.JvmAnalysis_STATUS_OK {
 		dso.BinaryClass = JvmBinaryClass
 	}
 
+	// Re-acquire lock to store results.
+	dso.bpfAllocationMutex.Lock()
+	defer dso.bpfAllocationMutex.Unlock()
+	// Double-check: another goroutine may have raced and already populated.
+	if dso.bpfAllocation != nil {
+		return
+	}
+
+	dso.BinaryClass = binaryClass
 	dso.bpfAllocation, err = d.bpfBinaryManager.Add(ctx, buildID, dso.ID, analysis)
 	if err != nil {
 		d.l.Error(
