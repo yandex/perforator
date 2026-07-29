@@ -2,7 +2,7 @@ GO_TEST()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.79.3)
+VERSION(v1.80.0)
 
 GO_XTEST_SRCS(
     ads_stream_ack_nack_test.go
@@ -11,6 +11,7 @@ GO_XTEST_SRCS(
     ads_stream_restart_test.go
     ads_stream_watch_test.go
     authority_test.go
+    custom_resource_watch_test.go
     dump_test.go
     helpers_test.go
     lds_watchers_test.go

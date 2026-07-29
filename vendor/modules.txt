@@ -1286,18 +1286,29 @@ codeberg.org/go-pdf/fpdf/list
 codeberg.org/go-pdf/fpdf/makefont
 # collectd.org v0.6.0
 ## explicit; go 1.19
-# connectrpc.com/connect v1.16.2
-## explicit; go 1.20
+# connectrpc.com/connect v1.20.0
+## explicit; go 1.25.0
 connectrpc.com/connect
 connectrpc.com/connect/cmd/protoc-gen-connect-go
+connectrpc.com/connect/cmd/protoc-gen-connect-go/internal/testdata/defaultpackage/gen
+connectrpc.com/connect/cmd/protoc-gen-connect-go/internal/testdata/defaultpackage/gen/genconnect
+connectrpc.com/connect/cmd/protoc-gen-connect-go/internal/testdata/diffpackage/gen
+connectrpc.com/connect/cmd/protoc-gen-connect-go/internal/testdata/diffpackage/gen/gendiff
+connectrpc.com/connect/cmd/protoc-gen-connect-go/internal/testdata/noservice/gen
+connectrpc.com/connect/cmd/protoc-gen-connect-go/internal/testdata/samepackage/gen
+connectrpc.com/connect/cmd/protoc-gen-connect-go/internal/testdata/simple/gen
+connectrpc.com/connect/cmd/protoc-gen-connect-go/internal/testdata/v1beta1service/gen
 connectrpc.com/connect/internal/assert
 connectrpc.com/connect/internal/gen/connect/collide/v1
-connectrpc.com/connect/internal/gen/connect/collide/v1/collidev1connect
 connectrpc.com/connect/internal/gen/connect/import/v1
-connectrpc.com/connect/internal/gen/connect/import/v1/importv1connect
 connectrpc.com/connect/internal/gen/connect/ping/v1
-connectrpc.com/connect/internal/gen/connect/ping/v1/pingv1connect
 connectrpc.com/connect/internal/gen/connectext/grpc/status/v1
+connectrpc.com/connect/internal/gen/generics/connect/collide/v1/collidev1connect
+connectrpc.com/connect/internal/gen/generics/connect/import/v1/importv1connect
+connectrpc.com/connect/internal/gen/generics/connect/ping/v1/pingv1connect
+connectrpc.com/connect/internal/gen/simple/connect/collide/v1/collidev1connect
+connectrpc.com/connect/internal/gen/simple/connect/import/v1/importv1connect
+connectrpc.com/connect/internal/gen/simple/connect/ping/v1/pingv1connect
 connectrpc.com/connect/internal/memhttp
 connectrpc.com/connect/internal/memhttp/memhttptest
 # connectrpc.com/grpcreflect v1.2.0
@@ -1305,8 +1316,8 @@ connectrpc.com/connect/internal/memhttp/memhttptest
 connectrpc.com/grpcreflect
 connectrpc.com/grpcreflect/internal/gen/go/connect/reflecttest/v1
 connectrpc.com/grpcreflect/internal/gen/go/connectext/grpc/reflection/v1
-# connectrpc.com/otelconnect v0.7.0
-## explicit; go 1.19
+# connectrpc.com/otelconnect v0.9.0
+## explicit; go 1.24
 connectrpc.com/otelconnect
 connectrpc.com/otelconnect/internal/gen/observability/ping/v1
 connectrpc.com/otelconnect/internal/gen/observability/ping/v1/pingv1connect
@@ -3991,7 +4002,7 @@ github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp/mocks
 github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp/multiendpoint
 # github.com/GoogleCloudPlatform/k8s-cloud-provider v1.20.0
 ## explicit; go 1.13
-# github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0
+# github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.31.0
 ## explicit; go 1.24.0
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp
 # github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0
@@ -17746,11 +17757,11 @@ github.com/wsxiaoys/terminal/color
 ## explicit; go 1.25
 github.com/wundergraph/astjson
 github.com/wundergraph/astjson/fastfloat
-# github.com/wundergraph/go-arena v1.1.0
+# github.com/wundergraph/go-arena v1.3.0
 ## explicit; go 1.25
 github.com/wundergraph/go-arena
-# github.com/wundergraph/graphql-go-tools/v2 v2.3.0
-## explicit; go 1.25
+# github.com/wundergraph/graphql-go-tools/v2 v2.13.2
+## explicit; go 1.25.0
 github.com/wundergraph/graphql-go-tools/v2
 github.com/wundergraph/graphql-go-tools/v2/pkg/apollocompatibility
 github.com/wundergraph/graphql-go-tools/v2/pkg/ast
@@ -17792,6 +17803,7 @@ github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/cmd/mapping_helper
 github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/mapping
 github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/plugin
 github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/productv1
+github.com/wundergraph/graphql-go-tools/v2/pkg/grpctest/productv1/productv1connect
 github.com/wundergraph/graphql-go-tools/v2/pkg/imports
 github.com/wundergraph/graphql-go-tools/v2/pkg/internal/quotes
 github.com/wundergraph/graphql-go-tools/v2/pkg/internal/unsafebytes
@@ -21676,7 +21688,7 @@ google.golang.org/genproto/googleapis/rpc/context/attribute_context
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/http
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.79.3
+# google.golang.org/grpc v1.80.0
 ## explicit; go 1.24.0
 google.golang.org/grpc
 google.golang.org/grpc/admin
@@ -21783,6 +21795,7 @@ google.golang.org/grpc/internal/grpcutil
 google.golang.org/grpc/internal/hierarchy
 google.golang.org/grpc/internal/idle
 google.golang.org/grpc/internal/leakcheck
+google.golang.org/grpc/internal/mem
 google.golang.org/grpc/internal/metadata
 google.golang.org/grpc/internal/pretty
 google.golang.org/grpc/internal/profiling
@@ -21820,7 +21833,6 @@ google.golang.org/grpc/internal/xds/balancer/cdsbalancer
 google.golang.org/grpc/internal/xds/balancer/cdsbalancer/e2e_test
 google.golang.org/grpc/internal/xds/balancer/clusterimpl
 google.golang.org/grpc/internal/xds/balancer/clustermanager
-google.golang.org/grpc/internal/xds/balancer/clusterresolver
 google.golang.org/grpc/internal/xds/balancer/loadstore
 google.golang.org/grpc/internal/xds/balancer/outlierdetection
 google.golang.org/grpc/internal/xds/balancer/outlierdetection/e2e_test

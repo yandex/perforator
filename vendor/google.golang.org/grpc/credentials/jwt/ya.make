@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.79.3)
+VERSION(v1.80.0)
 
 SRCS(
     doc.go
@@ -14,6 +14,8 @@ GO_TEST_SRCS(
     file_reader_test.go
     token_file_call_creds_test.go
 )
+
+GO_XTEST_SRCS(token_file_call_creds_ext_test.go)
 
 END()
 

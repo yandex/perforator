@@ -144,7 +144,7 @@ require (
 	cloud.google.com/go/websecurityscanner v1.7.7
 	cloud.google.com/go/workflows v1.14.3
 	codeberg.org/go-pdf/fpdf v0.11.1
-	connectrpc.com/connect v1.16.2
+	connectrpc.com/connect v1.20.0
 	connectrpc.com/vanguard v0.3.0
 	cuelang.org/go v0.4.3
 	firebase.google.com/go v3.13.0+incompatible
@@ -911,8 +911,8 @@ require (
 	github.com/wk8/go-win-iscsidsc v0.0.0-20190724224204-4e4ffe953c77
 	github.com/wneessen/go-mail v0.5.2
 	github.com/wundergraph/astjson v1.1.0
-	github.com/wundergraph/go-arena v1.1.0
-	github.com/wundergraph/graphql-go-tools/v2 v2.3.0
+	github.com/wundergraph/go-arena v1.3.0
+	github.com/wundergraph/graphql-go-tools/v2 v2.13.2
 	github.com/xanzy/go-gitlab v0.73.1
 	github.com/xdg-go/scram v1.1.2
 	github.com/xdg-go/stringprep v1.0.4
@@ -1114,7 +1114,7 @@ require (
 	google.golang.org/genproto v0.0.0-20260319201613-d00831a3d3e7
 	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260427160629-7cedc36a6bc4
-	google.golang.org/grpc v1.79.3
+	google.golang.org/grpc v1.80.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/grpc/examples v0.0.0-20250407062114-b368379ef8f6
 	google.golang.org/grpc/gcp/observability v1.0.1
@@ -1188,7 +1188,7 @@ require (
 	codeberg.org/go-latex/latex v0.2.0 // indirect
 	collectd.org v0.6.0 // indirect
 	connectrpc.com/grpcreflect v1.2.0 // indirect
-	connectrpc.com/otelconnect v0.7.0 // indirect
+	connectrpc.com/otelconnect v0.9.0 // indirect
 	contrib.go.opencensus.io/exporter/aws v0.0.0-20200617204711-c478e41e60e9 // indirect
 	contrib.go.opencensus.io/exporter/ocagent v0.7.0 // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2 // indirect
@@ -1259,7 +1259,7 @@ require (
 	github.com/GoogleCloudPlatform/grpc-gcp-go v1.3.0 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0 // indirect
 	github.com/GoogleCloudPlatform/k8s-cloud-provider v1.20.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.31.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.29.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0.55.0 // indirect
