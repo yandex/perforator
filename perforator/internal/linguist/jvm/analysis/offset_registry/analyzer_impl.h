@@ -10,6 +10,8 @@ struct TOffsetRegistryAnalysisOptions {
     bool IncludeAddresses = false;
 };
 
+uint64_t FindMajorVersionAddress(const TJvmMetadata& metadata);
+
 TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistryAnalysisOptions options, ui32 version);
 
 }

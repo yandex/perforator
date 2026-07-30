@@ -24,7 +24,7 @@ struct TDeleter {
     }
 };
 
-NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath, ui32 version) {
+NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath) {
     using namespace NPerforator::NLinguist::NJvm;
     void* rawHandle = dlopen(libjvmPath.c_str(), RTLD_LAZY | RTLD_LOCAL);
     if (rawHandle == nullptr) {
@@ -43,6 +43,7 @@ NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath, u
     };
 
     TVMStructsAddresses addresses;
+
     addresses.StructsAddress = GetSym(std::string{TVMStructsAddresses::StructsAddressSym});
     addresses.StructsStructNameOffset = GetSym(std::string{TVMStructsAddresses::StructsStructNameOffsetSym});
     addresses.StructsFieldNameOffset = GetSym(std::string{TVMStructsAddresses::StructsFieldNameOffsetSym});
@@ -66,7 +67,7 @@ NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath, u
     addresses.IntsValueOffset = GetSym(std::string{TVMStructsAddresses::IntsValueOffsetSym});
     addresses.IntsStride = GetSym(std::string{TVMStructsAddresses::IntsStrideSym});
 
-    return NPerforator::NLinguist::NJvm::ProcessDynamicLinkedJVM(addresses, version);
+    return NPerforator::NLinguist::NJvm::ProcessDynamicLinkedJVM(addresses);
 }
 
 void Write(NPerforator::NBinaryProcessing::NJvm::Cheatsheet cheatsheet, const TString& path) {
@@ -97,7 +98,11 @@ int main(int argc, char** argv) {
 
     int version = spec.Version;
 
-    TJvmAnalysis dynamic = DumpDynamic(libjvmPath, version);
+    TJvmAnalysis dynamic = DumpDynamic(libjvmPath);
+
+    if (static_cast<int64_t>(dynamic.Version) != version) {
+        throw yexception() << "This tool was compiled against " << version << " but input version is " << dynamic.Version;
+    }
 
     Cout << "Writing cheatsheets for JDK " << version << Endl;
 

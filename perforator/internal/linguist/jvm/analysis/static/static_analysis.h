@@ -55,7 +55,7 @@ struct TVMStructsAddresses {
     const void* IntsStride;
 };
 
-TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses, ui32 version);
+TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses);
 
 TJvmAnalysis ProcessJVMHeaders();
 

@@ -5,6 +5,7 @@
 #include <perforator/internal/linguist/jvm/analysis/offset_registry/analyzer_impl.h>
 #include <perforator/internal/linguist/jvm/analysis/offset_registry/offset_registry.h>
 
+#include <util/generic/yexception.h>
 #include <util/stream/output.h>
 #include <util/system/yassert.h>
 
@@ -67,7 +68,7 @@ TJvmAnalysis ProcessJVMHeaders() {
     return analysis;
 }
 
-TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses, ui32 version) {
+TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses) {
     const auto* structs = *reinterpret_cast<char const* const*>(addresses.StructsAddress);
     const auto* types = *reinterpret_cast<char const* const*>(addresses.TypesAddress);
     const auto* ints = *reinterpret_cast<char const* const*>(addresses.IntsAddress);
@@ -102,6 +103,11 @@ TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses, ui32 version
         {types, typesLength, typeLayout},
         {ints, intsLength, intLayout},
     };
+    int* versionAddr = reinterpret_cast<int*>(FindMajorVersionAddress(metadata));
+    int version = *versionAddr;
+    if (version < 0) {
+        throw yexception() << "negative version";
+    }
     TJvmAnalysis analysis = ProcessOffsetRegistry(metadata, TOffsetRegistryAnalysisOptions{}, version);
     analysis.Version = version;
     return analysis;
