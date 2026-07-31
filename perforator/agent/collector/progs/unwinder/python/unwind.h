@@ -265,10 +265,12 @@ static ALWAYS_INLINE u8 python_read_string(char* buf, size_t buf_size, u8* res_l
     return python_read_ascii_object(buf, buf_size, res_length, &state->config, py_object);
 }
 
-static ALWAYS_INLINE bool python_read_symbol(struct python_state* state) {
-    if (state == NULL) {
+NOINLINE int python_read_symbol() {
+    struct profiler_state* profiler = get_state();
+    if (profiler == NULL) {
         return false;
     }
+    struct python_state* state = &profiler->python_state;
 
     /** unicode_type_size_log2 is 1 or 2, so we need to mask it to 2 bits */
     state->symbol.codepoint_size = (state->config.version >= PYVERSION(3, 0, 0) && state->config.version < PYVERSION(3, 3, 0)) ? (1 << (state->config.unicode_type_size_log2 & 0b11)) : 1;
@@ -347,7 +349,7 @@ static ALWAYS_INLINE bool python_process_frame(struct interpreter_frame* res_fra
         return false;
     }
 
-    if (!python_read_symbol(state)) {
+    if (!python_read_symbol()) {
         metric_increment(METRIC_PYTHON_FAILED_TO_READ_SYMBOL_COUNT);
         return false;
     }

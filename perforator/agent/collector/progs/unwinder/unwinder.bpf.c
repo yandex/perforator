@@ -16,6 +16,8 @@
 
 #endif
 
+#include <stddef.h>
+
 #include "cgroups.h"
 #include "core.h"
 #include "dwarf.h"
@@ -23,7 +25,7 @@
 #include "metrics.h"
 #include "output.h"
 #include "pidns.h"
-#include "python/unwind.h"
+#include "python/types.h"
 #include "php/unwind.h"
 #include "task.h"
 #include "thread_local.h"
@@ -484,6 +486,8 @@ static ALWAYS_INLINE struct profiler_state* get_state() {
     }
     return state;
 }
+
+#include "python/unwind.h"
 
 static ALWAYS_INLINE struct profiler_config* get_config() {
     struct profiler_config* config = map_lookup_zero(&profiler_config);
