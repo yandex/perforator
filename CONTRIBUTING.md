@@ -17,10 +17,22 @@ We use Pull Requests to receive patches from external contributors.
 
 Each non-trivial pull request should be linked to an issue. Additionally, issue should have `accepted` label. This way, risk of PR rejection is minimized.
 
-### Legal notice to external contributors
-#### General info
-Apache 2.0 license already has standard regulations concerning contributions, you don't have to sign our custom CLA anymore.
+## Notice to external contributors
+### General info
+Hello! In order for us (YANDEX LLC) to accept patches and other contributions from you, you will have to adopt our Contributor License Agreement (the “CLA”). The current version of the CLA you may find here:
 
-## Other questions
-If you have any questions, feel free to discuss them in a discussion or an issue.
-Alternatively, you may send email to the Yandex Open Source team at opensource-support@yandex-team.ru.
+* https://yandex.ru/legal/cla/en/ (in English) and
+* https://yandex.ru/legal/cla/ru/ (in Russian).
+
+By adopting the CLA, you state the following:
+
+* You obviously wish and are willingly licensing your contributions to us for our open source projects under the terms of the CLA,
+* You have read the terms and conditions of the CLA and agree with them in full,
+* You are legally able to provide and license your contributions as stated,
+* We may use your contributions for our open source projects and for any other our project too,
+* We rely on your assurances concerning the rights of third parties in relation to your contributions.
+
+If you agree with these principles, please read and adopt our CLA. By providing us your contributions, you hereby declare that you have read and adopted our CLA, and we may freely merge your contributions with our corresponding open source project and use it in further in accordance with terms and conditions of the CLA.
+
+### Other questions
+If you have any questions, please write us at opensource-support@yandex-team.ru.

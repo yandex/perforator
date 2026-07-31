@@ -43,8 +43,6 @@ We are welcome to contributions! The [contributor's guide](CONTRIBUTING.md) prov
 
 This project is licensed under the Apache 2.0 License (Apache-2.0). [Apache 2.0 License](https://github.com/yandex/perforator/tree/main/LICENSE)
 
-NB: Formerly, we licensed Perforator under MIT license. We switched to Apache 2.0 to waive custom CLA signature requirements and simplify contributions.
-
 Some parts are licensed under the GPL 2.0 license. [GPL 2.0](https://github.com/yandex/perforator/tree/main/perforator/agent/collector/progs/unwinder/LICENSE)
 These include:
 * eBPF program source code (perforator/agent/collector/progs/unwinder)
