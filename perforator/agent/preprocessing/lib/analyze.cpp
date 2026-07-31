@@ -7,6 +7,7 @@
 #include <perforator/lib/pthread/pthread.h>
 #include <perforator/lib/python/python.h>
 #include <perforator/lib/php/php.h>
+#include <perforator/lib/lua/lua.h>
 
 #include <library/cpp/streams/zstd/zstd.h>
 
@@ -140,6 +141,52 @@ TMaybe<NPerforator::NBinaryProcessing::NPhp::PhpConfig> BuildPhpConfig(llvm::obj
 
 } // namespace NPerforator::NBinaryProcessing::NPhp
 
+namespace NPerforator::NBinaryProcessing::NLua {
+
+TMaybe<LuaConfig> BuildLuaConfig(llvm::object::ObjectFile* objectFile) {
+    NPerforator::NLinguist::NLua::TLuaAnalyzer analyzer {*objectFile};
+    LuaConfig conf;
+
+    auto version = analyzer.ParseVersion();
+    if (!version) {
+        return Nothing();
+    }
+    conf.MutableVersion()->SetMajor(version->Version.MajorVersion);
+    conf.MutableVersion()->SetMinor(version->Version.MinorVersion);
+
+    auto offsetGToL = analyzer.FindOffsetGToL();
+    if (!offsetGToL) {
+        return Nothing();
+    }
+    conf.SetOffsetGToL(*offsetGToL);
+
+    auto offsetGToDispatch = analyzer.FindOffsetGToDispatch();
+    if (!offsetGToDispatch) {
+        return Nothing();
+    }
+    conf.SetOffsetGToDispatch(*offsetGToDispatch);
+
+    auto offsetGToVmState = analyzer.FindOffsetGToVmState();
+    if (!offsetGToVmState) {
+        return Nothing();
+    }
+    conf.SetOffsetGToVmState(*offsetGToVmState);
+
+    auto vmLocation = analyzer.GetVMLocation();
+    if (!vmLocation) {
+        return Nothing();
+    }
+    auto [start, end] = *vmLocation;
+    conf.SetVmStartPc(start);
+    conf.SetVmEndPc(end);
+
+    conf.SetBinarySize(analyzer.GetBinarySize());
+
+    return MakeMaybe(conf);
+}
+
+} // namespace NPerforator::NBinaryProcessing::NLua
+
 namespace NPerforator::NBinaryProcessing {
 
 NPerforator::NBinaryProcessing::NJvm::JvmAnalysis BuildJvmAnalysis(const llvm::object::ObjectFile* binary) {
@@ -193,6 +240,7 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
     auto pythonConfig = NPython::BuildPythonConfig(objectFile.getBinary());
     auto pthreadConfig = NPthread::BuildPthreadConfig(objectFile.getBinary());
     auto phpConfig = NPhp::BuildPhpConfig(objectFile.getBinary());
+    auto luaConfig = NLua::BuildLuaConfig(objectFile.getBinary());
     auto jvm = BuildJvmAnalysis(objectFile.getBinary());
 
     NPerforator::NBinaryProcessing::BinaryAnalysis result;
@@ -202,6 +250,10 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, c
 
     if (phpConfig) {
         *result.MutablePhpConfig() = std::move(phpConfig.GetRef());
+    }
+
+    if (luaConfig) {
+        *result.MutableLuaConfig() = std::move(luaConfig.GetRef());
     }
 
     if (pthreadConfig) {

@@ -174,7 +174,8 @@ static ALWAYS_INLINE bool python_read_string_object(char* buf, size_t buf_size, 
     }
 
     // In this case `err` is the length of the string including the null terminator.
-    *res_length = err - 1;
+    --err;
+    *res_length = err > 255 ? 255 : (u8)err;
     BPF_TRACE("python: Successfully read ASCII string of length %d", err);
     return true;
 }
@@ -244,7 +245,7 @@ static ALWAYS_INLINE bool python_read_unicode_object(char* buf, size_t buf_size,
         return false;
     }
 
-    *res_length = length;
+    *res_length = length > 255 ? 255 : (u8)length;
 
     return true;
 }

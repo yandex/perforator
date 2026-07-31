@@ -25,6 +25,7 @@ const (
 	FrameOriginKernel  FrameOrigin = "kernel"
 	// rest is sorted alphabetically on values
 	FrameOriginJVM    FrameOrigin = "jvm"
+	FrameOriginLua    FrameOrigin = "lua"
 	FrameOriginPHP    FrameOrigin = "php"
 	FrameOriginPython FrameOrigin = "python"
 )

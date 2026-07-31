@@ -13,6 +13,7 @@ enum {
     // we use it for ending length to satisfy the BPF verifier.
     INTERPRETER_SYMBOL_STRING_LENGTH_VERIFIER_MASK = SYMBOL_BUFFER_SIZE - 1,
     MAX_SYMBOLS_SIZE = 200000,
+    COMMON_MAX_STACK_DEPTH = 128,
 };
 
 struct symbol {

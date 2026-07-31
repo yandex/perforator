@@ -87,6 +87,7 @@ type recordOptions struct {
 	disablePerfMapJVM             bool
 	enableJVM                     bool
 	enablePHP                     bool
+	enableLua                     bool
 	enableSframe                  bool
 
 	jvmHelperBinaryPath string
@@ -120,6 +121,7 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.disablePerfMapJVM, "disable-perf-maps-jvm", false, "Disable perf map for JVM")
 	cmd.Flags().BoolVar(&o.enableJVM, "experimental-enable-jvm", false, "[Experimental feature] Enable JVM profiling")
 	cmd.Flags().BoolVar(&o.enablePHP, "experimental-enable-php", true, "[Experimental feature] Enable PHP profiling")
+	cmd.Flags().BoolVar(&o.enableLua, "experimental-enable-lua", false, "[Experimental feature] Enable Lua profiling")
 	cmd.Flags().BoolVar(&o.enableSframe, "experimental-enable-sframe-parsing", false, "[Experimental feature] Enable Sframe unwinder")
 	cmd.Flags().StringVar(&o.pythonPrettifyLevel, "experimental-prettify-python-stacks", "off", "[Experimental] Python stack prettification level: off, mixed (remove CPython frames, keep user native), python-only (only python frames)")
 
@@ -413,6 +415,7 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 		FeatureFlagsConfig: config.FeatureFlagsConfig{
 			EnableJVM:    ptr.Bool(opts.enableJVM),
 			EnablePHP:    ptr.Bool(opts.enablePHP),
+			EnableLua:    ptr.Bool(opts.enableLua),
 			EnableSframe: ptr.Bool(opts.enableSframe),
 		},
 		JVM: jvmConfig,

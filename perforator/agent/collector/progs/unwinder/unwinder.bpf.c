@@ -27,6 +27,7 @@
 #include "pidns.h"
 #include "python/types.h"
 #include "php/unwind.h"
+#include "lua/unwind.h"
 #include "task.h"
 #include "thread_local.h"
 #include "tracepoints.h"
@@ -94,6 +95,7 @@ struct profiler_state {
 
     struct python_state python_state;
     struct php_state php_state;
+    struct lua_state lua_state;
 
     struct last_branch_records lbr;
     struct record_new_process newproc;
@@ -122,6 +124,9 @@ struct profiler_config {
 
     // Enable PHP profiling
     bool enable_php;
+
+    // Enable Lua profiling
+    bool enable_lua;
 
     // Cgroup resolution engine to use
     enum cgroup_engine active_cgroup_engine;
@@ -312,6 +317,8 @@ static ALWAYS_INLINE void pack_lang_section(
         off += bytes;
         CLAMP_OFFSET(off);
         *offset = off;
+    } else {
+        metric_increment(METRIC_ERROR_STAGE_PACK_SAMPLE_LANG_COUNT);
     }
 }
 
@@ -343,6 +350,15 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
         .src       = state->jvm_entries,
         .src_size  = sizeof(state->jvm_entries),
         .elem_size = sizeof(struct jvm_lang_entry),
+    });
+
+    pack_lang_section(packed, &offset, &(struct lang_section_desc){
+        .lang_id   = LANGUAGE_LUA,
+        .count     = state->lua_state.stack.len,
+        .max       = LUA_MAX_STACK_DEPTH,
+        .src       = state->lua_state.stack.frames,
+        .src_size  = sizeof(state->lua_state.stack.frames),
+        .elem_size = sizeof(struct interpreter_frame),
     });
 
     set_section(&packed->header.language_sections, lang_start, offset - lang_start);
@@ -774,6 +790,40 @@ static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_
     return 0;
 }
 
+/**
+ * @brief LuaJIT VM stack unwinder entrypoint.
+ *
+ * @see `lua/unwind.h`
+ *
+ * @param context BPF context.
+ * @param user_registers Struct of user registers.
+ * @param profiler_state Profiler state.
+ * @return int Status code
+ */
+static NOINLINE int profiler_stage_collect_lua_stack(void* context, struct user_regs* user_registers, struct profiler_state* profiler_state, struct profiler_config* config) {
+#ifdef __x86_64__
+    if (!config->enable_lua) {
+        return 0;
+    }
+
+    struct process_info* process_info = lookup_process(context, profiler_state);
+    if (!process_info) {
+        return -1;
+    }
+
+    struct lua_state* lua_state = &profiler_state->lua_state;
+    lua_state->pid = profiler_state->packed.header.pid;
+    lua_state_init_registers(lua_state, user_registers);
+
+    lua_collect_stack(process_info, lua_state);
+
+    return 0;
+#else
+    // Not implemented yet
+    return 0;
+#endif
+}
+
 static NOINLINE int profiler_stage_collect_tls(void* ctx, struct profiler_state* state, struct profiler_config* config) {
     if (state == NULL || config == NULL) {
         return -1;
@@ -871,6 +921,7 @@ struct profiler_sample_args {
     PROFILER_DEFINE_STAGE(profiler_stage_collect_stack(ctx, regs, state, config), METRIC_ERROR_STAGE_COLLECTSTACK_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_tls(ctx, state, config), METRIC_ERROR_STAGE_TLS_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_python_stack(ctx, state, config), METRIC_ERROR_STAGE_COLLECT_PYTHON_STACK_COUNT); \
+    PROFILER_DEFINE_STAGE(profiler_stage_collect_lua_stack(ctx, regs, state, config), METRIC_ERROR_STAGE_COLLECT_LUA_STACK_COUNT); \
 
 static NOINLINE int profiler_do_sample_impl_perfevent(void* ctx, struct user_regs* regs, struct profiler_sample_args* args) {
     PROFILER_DO_SAMPLE_COMMON_PROLOGUE;

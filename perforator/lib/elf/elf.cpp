@@ -61,6 +61,22 @@ bool IsElfFileImpl(const llvm::object::ObjectFile& file) {
 
 namespace NPerforator::NELF {
 
+TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFunctionRef<bool(TStringBuf)> predicate) {
+    using NPerforator::NELF::NPrivate::ParseDynsym;
+    using NPerforator::NELF::NPrivate::ParseSymtab;
+
+    return NLLVM::VisitELF(&file, [&predicate](const auto& elf) {
+        TSymbolMap res = ParseDynsym(elf, predicate);
+
+        TSymbolMap symtab = ParseSymtab(elf, predicate);
+        for (auto& [key, value] : symtab) {
+            res[key] = std::move(value);
+        }
+
+        return res;
+    });
+}
+
 TMaybe<llvm::object::SectionRef> GetSection(const llvm::object::ObjectFile& file, TStringBuf sectionName) {
     for (const auto& section : file.sections()) {
         Y_LLVM_UNWRAP(name, section.getName(), { continue; });

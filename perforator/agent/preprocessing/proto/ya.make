@@ -1,4 +1,5 @@
 RECURSE(
+    lua
     parse
     pthread
     python

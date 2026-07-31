@@ -16,6 +16,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/parser"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm"
 	preprocessig_proto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
+	lua_agent "github.com/yandex/perforator/perforator/internal/linguist/lua/agent"
 	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
 	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
@@ -49,6 +50,7 @@ const (
 	PthreadGlibcBinaryClass
 	PhpBinaryClass
 	JvmBinaryClass
+	LuaBinaryClass
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -337,6 +339,23 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 
 	if analysis.PhpConfig != nil {
 		dso.BinaryClass = PhpBinaryClass
+	}
+
+	if analysis.LuaConfig != nil && !lua_agent.IsVersionSupported(analysis.LuaConfig.Version) {
+		if analysis.LuaConfig.Version != nil {
+			d.l.Debug(
+				ctx,
+				"Lua version is not supported, removing Lua config from binary analysis",
+				log.String("buildid", buildID),
+				log.Any("version", analysis.LuaConfig.Version),
+			)
+		}
+
+		analysis.LuaConfig = nil
+	}
+
+	if analysis.LuaConfig != nil {
+		dso.BinaryClass = LuaBinaryClass
 	}
 
 	if analysis.PthreadConfig != nil {

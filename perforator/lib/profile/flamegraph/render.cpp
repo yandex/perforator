@@ -101,6 +101,7 @@ struct TCommonStrings {
     ui32 Kernel;
     ui32 Python;
     ui32 Php;
+    ui32 Lua;
     ui32 UnsymbolizedFunction;
     ui32 UnknownMapping;
     ui32 TruncatedStack;
@@ -121,6 +122,7 @@ struct TCommonStrings {
             .Kernel = table.Intern("kernel"),
             .Python = table.Intern("python"),
             .Php = table.Intern("php"),
+            .Lua = table.Intern("lua"),
             .UnsymbolizedFunction = table.Intern("<unsymbolized function>"),
             .UnknownMapping = table.Intern("<unknown mapping>"),
             .TruncatedStack = table.Intern("(truncated stack)"),
@@ -138,6 +140,8 @@ struct TCommonStrings {
             return Python;
         } else if (binaryPath == "[php]") {
             return Php;
+        } else if (binaryPath == "[lua]") {
+            return Lua;
         }
         return Native;
     }

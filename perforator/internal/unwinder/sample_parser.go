@@ -88,6 +88,7 @@ func ParsePackedSample(data []byte, out *RecordSampleParsed) error {
 
 	out.PythonStack.Len = 0
 	out.PhpStack.Len = 0
+	out.LuaStack.Len = 0
 	out.JvmStack.FramesLen = 0
 	off, sz := out.GetSection(RecordSampleHeaderSectionLanguageSections)
 	return parseLangSections(data, base, off, sz, out)
@@ -171,6 +172,8 @@ func parseLangSections(data []byte, base int, off, size uint16, out *RecordSampl
 			decodeInterpreterFrames(frames, &out.PhpStack)
 		case LanguageJvm:
 			decodeJvmEntries(frames, &out.JvmStack)
+		case LanguageLua:
+			decodeInterpreterFrames(frames, &out.LuaStack)
 		}
 		pos += byteSize
 	}

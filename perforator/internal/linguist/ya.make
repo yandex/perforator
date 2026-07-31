@@ -1,6 +1,7 @@
 RECURSE(
     common
     jvm
+    lua
     python
     php
     symbolizer

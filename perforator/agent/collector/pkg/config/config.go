@@ -113,6 +113,7 @@ type PodsDeploySystemConfig struct {
 type SymbolizerConfig struct {
 	Python symbolizer.SymbolizerConfig `yaml:"python"`
 	Php    symbolizer.SymbolizerConfig `yaml:"php"`
+	Lua    symbolizer.SymbolizerConfig `yaml:"lua"`
 }
 
 // FeatureFlagsConfig holds agent-side [feature-flags](https://trunkbaseddevelopment.com/feature-flags/)
@@ -121,6 +122,7 @@ type FeatureFlagsConfig struct {
 	EnableJVM         *bool `yaml:"enable_jvm"`
 	EnableJVMLineInfo *bool `yaml:"enable_jvm_line_info"`
 	EnablePHP         *bool `yaml:"enable_php"`
+	EnableLua         *bool `yaml:"enable_lua"`
 	EnableSframe      *bool `yaml:"enable_sframe"`
 
 	// ProfileFormat controls which profile format the agent sends to storage.
@@ -147,6 +149,13 @@ func (f *FeatureFlagsConfig) PhpEnabled() bool {
 		return true
 	}
 	return *f.EnablePHP
+}
+
+func (f *FeatureFlagsConfig) LuaEnabled() bool {
+	if f.EnableLua == nil {
+		return false
+	}
+	return *f.EnableLua
 }
 
 func (f *FeatureFlagsConfig) SframeEnabled() bool {

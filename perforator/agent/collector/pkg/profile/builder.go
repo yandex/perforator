@@ -21,6 +21,7 @@ const (
 	JVMSpecialMapping    SpecialMapping = "[jvm]"
 	PHPSpecialMapping    SpecialMapping = "[php]"
 	PythonSpecialMapping SpecialMapping = "[python]"
+	LuaSpecialMapping    SpecialMapping = "[lua]"
 )
 
 var (
@@ -30,6 +31,7 @@ var (
 		string(JVMSpecialMapping):    true,
 		string(PHPSpecialMapping):    true,
 		string(PythonSpecialMapping): true,
+		string(LuaSpecialMapping):    true,
 	}
 )
 

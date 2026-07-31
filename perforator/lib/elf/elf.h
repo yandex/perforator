@@ -5,6 +5,7 @@
 #include <util/generic/vector.h>
 #include <util/generic/maybe.h>
 #include <util/generic/array_ref.h>
+#include "util/generic/function_ref.h"
 
 #include <llvm/Object/ObjectFile.h>
 #include <llvm/Object/ELFObjectFile.h>
@@ -109,12 +110,12 @@ TSymbolMap RetrieveSymbolsFromSymtabChecked(
     return std::move(*res);
 }
 
+TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, TFunctionRef<bool(TStringBuf)> predicate);
 
-template <typename... Args>
+template <std::convertible_to<TStringBuf>... Args>
 TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, Args... symbols) {
     return NPerforator::NELF::NPrivate::RetrieveSymbols(file, {symbols...});
 }
-
 
 TMaybe<llvm::object::SectionRef> GetSection(const llvm::object::ObjectFile& file, TStringBuf sectionName);
 
