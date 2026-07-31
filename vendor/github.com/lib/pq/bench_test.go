@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"io"
-	"math/rand"
 	"net"
 	"runtime"
 	"strconv"
@@ -16,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lib/pq/internal/pqtest"
+	"github.com/lib/pq/internal/pqtime"
 	"github.com/lib/pq/oid"
 )
 
@@ -34,10 +35,9 @@ func BenchmarkSelectSeries(b *testing.B) {
 	benchQuery(b, selectSeriesQuery, &result)
 }
 
-func benchQuery(b *testing.B, query string, result interface{}) {
+func benchQuery(b *testing.B, query string, result any) {
 	b.StopTimer()
-	db := openTestConn(b)
-	defer db.Close()
+	db := pqtest.MustDB(b)
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -45,7 +45,7 @@ func benchQuery(b *testing.B, query string, result interface{}) {
 	}
 }
 
-func benchQueryLoop(b *testing.B, db *sql.DB, query string, result interface{}) {
+func benchQueryLoop(b *testing.B, db *sql.DB, query string, result any) {
 	rows, err := db.Query(query)
 	if err != nil {
 		b.Fatal(err)
@@ -181,10 +181,9 @@ func BenchmarkPreparedSelectSeries(b *testing.B) {
 	benchPreparedQuery(b, selectSeriesQuery, &result)
 }
 
-func benchPreparedQuery(b *testing.B, query string, result interface{}) {
+func benchPreparedQuery(b *testing.B, query string, result any) {
 	b.StopTimer()
-	db := openTestConn(b)
-	defer db.Close()
+	db := pqtest.MustDB(b)
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		b.Fatal(err)
@@ -197,7 +196,7 @@ func benchPreparedQuery(b *testing.B, query string, result interface{}) {
 	}
 }
 
-func benchPreparedQueryLoop(b *testing.B, db *sql.DB, stmt *sql.Stmt, result interface{}) {
+func benchPreparedQueryLoop(b *testing.B, db *sql.DB, stmt *sql.Stmt, result any) {
 	rows, err := stmt.Query()
 	if err != nil {
 		b.Fatal(err)
@@ -283,13 +282,13 @@ func benchPreparedMockQuery(b *testing.B, c *conn, stmt driver.Stmt) {
 
 func BenchmarkEncodeInt64(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		encode(&parameterStatus{}, int64(1234), oid.T_int8)
+		encode(int64(1234), oid.T_int8)
 	}
 }
 
 func BenchmarkEncodeFloat64(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		encode(&parameterStatus{}, 3.14159, oid.T_float8)
+		encode(3.14159, oid.T_float8)
 	}
 }
 
@@ -297,18 +296,18 @@ var testByteString = []byte("abcdefghijklmnopqrstuvwxyz")
 
 func BenchmarkEncodeByteaHex(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		encode(&parameterStatus{serverVersion: 90000}, testByteString, oid.T_bytea)
+		encode(testByteString, oid.T_bytea)
 	}
 }
 func BenchmarkEncodeByteaEscape(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		encode(&parameterStatus{serverVersion: 84000}, testByteString, oid.T_bytea)
+		encode(testByteString, oid.T_bytea)
 	}
 }
 
 func BenchmarkEncodeBool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		encode(&parameterStatus{}, true, oid.T_bool)
+		encode(true, oid.T_bool)
 	}
 }
 
@@ -316,7 +315,7 @@ var testTimestamptz = time.Date(2001, time.January, 1, 0, 0, 0, 0, time.Local)
 
 func BenchmarkEncodeTimestamptz(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		encode(&parameterStatus{}, testTimestamptz, oid.T_timestamptz)
+		encode(testTimestamptz, oid.T_timestamptz)
 	}
 }
 
@@ -324,7 +323,7 @@ var testIntBytes = []byte("1234")
 
 func BenchmarkDecodeInt64(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		decode(&parameterStatus{}, testIntBytes, oid.T_int8, formatText)
+		decode(nil, testIntBytes, oid.T_int8, formatText)
 	}
 }
 
@@ -332,7 +331,7 @@ var testFloatBytes = []byte("3.14159")
 
 func BenchmarkDecodeFloat64(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		decode(&parameterStatus{}, testFloatBytes, oid.T_float8, formatText)
+		decode(nil, testFloatBytes, oid.T_float8, formatText)
 	}
 }
 
@@ -340,12 +339,12 @@ var testBoolBytes = []byte{'t'}
 
 func BenchmarkDecodeBool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		decode(&parameterStatus{}, testBoolBytes, oid.T_bool, formatText)
+		decode(nil, testBoolBytes, oid.T_bool, formatText)
 	}
 }
 
 func TestDecodeBool(t *testing.T) {
-	db := openTestConn(t)
+	db := pqtest.MustDB(t)
 	rows, err := db.Query("select true")
 	if err != nil {
 		t.Fatal(err)
@@ -365,7 +364,7 @@ func BenchmarkDecodeTimestamptzMultiThread(b *testing.B) {
 	oldProcs := runtime.GOMAXPROCS(0)
 	defer runtime.GOMAXPROCS(oldProcs)
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	globalLocationCache = newLocationCache()
+	pqtime.Reset()
 
 	f := func(wg *sync.WaitGroup, loops int) {
 		defer wg.Done()
@@ -383,41 +382,11 @@ func BenchmarkDecodeTimestamptzMultiThread(b *testing.B) {
 	wg.Wait()
 }
 
-func BenchmarkLocationCache(b *testing.B) {
-	globalLocationCache = newLocationCache()
-	for i := 0; i < b.N; i++ {
-		globalLocationCache.getLocation(rand.Intn(10000))
-	}
-}
-
-func BenchmarkLocationCacheMultiThread(b *testing.B) {
-	oldProcs := runtime.GOMAXPROCS(0)
-	defer runtime.GOMAXPROCS(oldProcs)
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	globalLocationCache = newLocationCache()
-
-	f := func(wg *sync.WaitGroup, loops int) {
-		defer wg.Done()
-		for i := 0; i < loops; i++ {
-			globalLocationCache.getLocation(rand.Intn(10000))
-		}
-	}
-
-	wg := &sync.WaitGroup{}
-	b.ResetTimer()
-	for j := 0; j < 10; j++ {
-		wg.Add(1)
-		go f(wg, b.N/10)
-	}
-	wg.Wait()
-}
-
 // Stress test the performance of parsing results from the wire.
 func BenchmarkResultParsing(b *testing.B) {
 	b.StopTimer()
 
-	db := openTestConn(b)
-	defer db.Close()
+	db := pqtest.MustDB(b)
 	_, err := db.Exec("BEGIN")
 	if err != nil {
 		b.Fatal(err)
@@ -430,5 +399,66 @@ func BenchmarkResultParsing(b *testing.B) {
 			b.Fatal(err)
 		}
 		res.Close()
+	}
+}
+
+func BenchmarkAppendEscapedText(b *testing.B) {
+	var longString strings.Builder
+	for i := 0; i < 100; i++ {
+		longString.WriteString("123456789\n")
+	}
+	for i := 0; i < b.N; i++ {
+		appendEscapedText(nil, longString.String())
+	}
+}
+
+func BenchmarkAppendEscapedTextNoEscape(b *testing.B) {
+	var longString strings.Builder
+	for i := 0; i < 100; i++ {
+		longString.WriteString("1234567890")
+	}
+	for i := 0; i < b.N; i++ {
+		appendEscapedText(nil, longString.String())
+	}
+}
+
+func BenchmarkDecodeUUIDBinary(b *testing.B) {
+	x := []byte{0x03, 0xa3, 0x52, 0x2f, 0x89, 0x28, 0x49, 0x87, 0x84, 0xd6, 0x93, 0x7b, 0x36, 0xec, 0x27, 0x6f}
+	for i := 0; i < b.N; i++ {
+		decodeUUIDBinary(x)
+	}
+}
+
+func Benchmark_writeBuf_string(b *testing.B) {
+	var buf writeBuf
+	const s = "foo"
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		buf.string(s)
+		buf.buf = buf.buf[:0]
+	}
+}
+
+func BenchmarkCopyIn(b *testing.B) {
+	db := pqtest.MustDB(b)
+	tx := pqtest.Begin(b, db)
+
+	pqtest.Exec(b, tx, `create temp table tbl (a int, b varchar)`)
+	stmt := pqtest.Prepare(b, tx, `copy tbl (a, b) from stdin`)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		stmt.MustExec(b, int64(i), "hello world!")
+	}
+
+	stmt.MustExec(b)
+	stmt.MustClose(b)
+
+	rows := pqtest.Query[int](b, tx, `select count(*) from tbl`)
+	if rows[0]["count"] != b.N {
+		b.Fatalf("expected %d items, not %d", b.N, rows[0]["count"])
 	}
 }

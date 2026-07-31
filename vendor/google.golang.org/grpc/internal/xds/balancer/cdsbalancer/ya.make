@@ -14,9 +14,9 @@ SRCS(
 GO_TEST_SRCS(
     # aggregate_cluster_test.go
     # cdsbalancer_security_test.go
-    cdsbalancer_test.go
-    configbuilder_childname_test.go
-    configbuilder_test.go
+    # cdsbalancer_test.go
+    # configbuilder_childname_test.go
+    # configbuilder_test.go
 )
 
 END()

@@ -4,7 +4,6 @@
 package otelhttp
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 )
 
 func TestStartTimeFromContext(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	startTime := StartTimeFromContext(ctx)
 	assert.True(t, startTime.IsZero())
 

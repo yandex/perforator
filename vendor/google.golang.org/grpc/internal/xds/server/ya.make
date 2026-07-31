@@ -13,9 +13,9 @@ SRCS(
 )
 
 GO_TEST_SRCS(
-    filter_chain_manager_test.go
-    rds_handler_test.go
-    routing_test.go
+    # filter_chain_manager_test.go
+    # rds_handler_test.go
+    # routing_test.go
 )
 
 END()

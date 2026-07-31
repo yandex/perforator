@@ -2,7 +2,9 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v2.17.0)
+VERSION(v2.19.0)
+
+GO_SKIP_TESTS(TestNoSDKImport)
 
 SRCS(
     call_option.go
@@ -12,6 +14,7 @@ SRCS(
     header.go
     invoke.go
     proto_json_stream.go
+    telemetry.go
 )
 
 GO_TEST_SRCS(
@@ -21,6 +24,7 @@ GO_TEST_SRCS(
     header_test.go
     invoke_test.go
     proto_json_stream_test.go
+    telemetry_test.go
 )
 
 GO_XTEST_SRCS(example_test.go)

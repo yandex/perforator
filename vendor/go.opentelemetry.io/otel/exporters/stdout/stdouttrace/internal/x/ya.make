@@ -5,13 +5,17 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v1.38.0)
+VERSION(v1.41.0)
 
 SRCS(
+    features.go
     x.go
 )
 
-GO_TEST_SRCS(x_test.go)
+GO_TEST_SRCS(
+    features_test.go
+    x_test.go
+)
 
 END()
 

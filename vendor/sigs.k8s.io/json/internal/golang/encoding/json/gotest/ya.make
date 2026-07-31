@@ -5,7 +5,7 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v0.0.0-20241014173422-cfa47c3a1cc8)
+VERSION(v0.0.0-20250730193827-2d320260d730)
 
 DATA(
     arcadia/vendor/sigs.k8s.io/json/internal/golang/encoding/json/testdata

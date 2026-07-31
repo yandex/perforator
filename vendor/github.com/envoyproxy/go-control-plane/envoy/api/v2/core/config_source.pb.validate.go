@@ -218,7 +218,7 @@ type ApiConfigSourceMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ApiConfigSourceMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -318,7 +318,7 @@ type AggregatedConfigSourceMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m AggregatedConfigSourceMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -431,7 +431,7 @@ type SelfConfigSourceMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m SelfConfigSourceMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -575,7 +575,7 @@ type RateLimitSettingsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RateLimitSettingsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -871,7 +871,7 @@ type ConfigSourceMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ConfigSourceMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

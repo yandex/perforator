@@ -5,10 +5,9 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v0.63.0)
+VERSION(v0.67.0)
 
 SRCS(
-    client.go
     common.go
     config.go
     doc.go
@@ -27,7 +26,6 @@ GO_TEST_SRCS(
 )
 
 GO_XTEST_SRCS(
-    client_test.go
     config_test.go
     handler_example_test.go
     version_test.go

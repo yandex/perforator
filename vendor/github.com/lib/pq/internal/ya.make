@@ -1,0 +1,9 @@
+RECURSE(
+    pgpass
+    pgservice
+    pqsql
+    pqtest
+    pqtime
+    pqutil
+    proto
+)

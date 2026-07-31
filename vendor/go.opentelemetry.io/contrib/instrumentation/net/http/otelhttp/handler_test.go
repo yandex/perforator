@@ -4,7 +4,6 @@
 package otelhttp
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,7 +24,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -136,7 +134,7 @@ func TestHandlerBasics(t *testing.T) {
 	h.ServeHTTP(rr, r)
 
 	rm := metricdata.ResourceMetrics{}
-	err = reader.Collect(context.Background(), &rm)
+	err = reader.Collect(t.Context(), &rm)
 	require.NoError(t, err)
 	require.Len(t, rm.ScopeMetrics, 1)
 	attrs := attribute.NewSet(
@@ -175,7 +173,7 @@ func TestHandlerBasics(t *testing.T) {
 func assertScopeMetrics(t *testing.T, sm metricdata.ScopeMetrics, attrs attribute.Set) {
 	assert.Equal(t, instrumentation.Scope{
 		Name:    "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
-		Version: Version(),
+		Version: Version,
 	}, sm.Scope)
 
 	require.Len(t, sm.Metrics, 3)
@@ -183,7 +181,7 @@ func assertScopeMetrics(t *testing.T, sm metricdata.ScopeMetrics, attrs attribut
 	want := metricdata.ScopeMetrics{
 		Scope: instrumentation.Scope{
 			Name:    ScopeName,
-			Version: Version(),
+			Version: Version,
 		},
 		Metrics: []metricdata.Metrics{
 			{
@@ -419,7 +417,7 @@ func TestHandlerRequestWithTraceContext(t *testing.T) {
 		sdktrace.WithSpanProcessor(spanRecorder),
 	)
 	tracer := provider.Tracer("")
-	ctx, span := tracer.Start(context.Background(), "test_request")
+	ctx, span := tracer.Start(t.Context(), "test_request")
 	r = r.WithContext(ctx)
 
 	h.ServeHTTP(rr, r)
@@ -488,57 +486,12 @@ func TestWithSpanNameFormatter(t *testing.T) {
 			h.ServeHTTP(rr, r)
 			assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
 
-			assert.NoError(t, spanRecorder.ForceFlush(context.Background()))
+			assert.NoError(t, spanRecorder.ForceFlush(t.Context()))
 			spans := spanRecorder.Ended()
 			assert.Len(t, spans, 1)
 			assert.Equal(t, tt.wantSpanName, spans[0].Name())
 		})
 	}
-}
-
-func TestWithPublicEndpoint(t *testing.T) {
-	spanRecorder := tracetest.NewSpanRecorder()
-	provider := sdktrace.NewTracerProvider(
-		sdktrace.WithSpanProcessor(spanRecorder),
-	)
-	remoteSpan := trace.SpanContextConfig{
-		TraceID: trace.TraceID{0x01},
-		SpanID:  trace.SpanID{0x01},
-		Remote:  true,
-	}
-	prop := propagation.TraceContext{}
-	h := NewHandler(
-		http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-			s := trace.SpanFromContext(r.Context())
-			sc := s.SpanContext()
-
-			// Should be with new root trace.
-			assert.True(t, sc.IsValid())
-			assert.False(t, sc.IsRemote())
-			assert.NotEqual(t, remoteSpan.TraceID, sc.TraceID())
-		}), "test_handler",
-		WithPublicEndpoint(),
-		WithPropagators(prop),
-		WithTracerProvider(provider),
-	)
-
-	r, err := http.NewRequest(http.MethodGet, "http://localhost/", http.NoBody)
-	require.NoError(t, err)
-
-	sc := trace.NewSpanContext(remoteSpan)
-	ctx := trace.ContextWithSpanContext(context.Background(), sc)
-	prop.Inject(ctx, propagation.HeaderCarrier(r.Header))
-
-	rr := httptest.NewRecorder()
-	h.ServeHTTP(rr, r)
-	assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
-
-	// Recorded span should be linked with an incoming span context.
-	assert.NoError(t, spanRecorder.ForceFlush(ctx))
-	done := spanRecorder.Ended()
-	require.Len(t, done, 1)
-	require.Len(t, done[0].Links(), 1, "should contain link")
-	require.True(t, sc.Equal(done[0].Links()[0].SpanContext), "should link incoming span context")
 }
 
 func TestWithPublicEndpointFn(t *testing.T) {
@@ -610,7 +563,7 @@ func TestWithPublicEndpointFn(t *testing.T) {
 			require.NoError(t, err)
 
 			sc := trace.NewSpanContext(remoteSpan)
-			ctx := trace.ContextWithSpanContext(context.Background(), sc)
+			ctx := trace.ContextWithSpanContext(t.Context(), sc)
 			prop.Inject(ctx, propagation.HeaderCarrier(r.Header))
 
 			rr := httptest.NewRecorder()
@@ -651,74 +604,6 @@ func TestSpanStatus(t *testing.T) {
 			require.Len(t, sr.Ended(), 1, "should emit a span")
 			assert.Equal(t, tc.wantSpanStatus, sr.Ended()[0].Status().Code, "should only set Error status for HTTP statuses >= 500")
 		})
-	}
-}
-
-func TestWithRouteTag(t *testing.T) {
-	t.Setenv("OTEL_METRICS_EXEMPLAR_FILTER", "always_off")
-	route := "/some/route"
-
-	spanRecorder := tracetest.NewSpanRecorder()
-	tracerProvider := sdktrace.NewTracerProvider()
-	tracerProvider.RegisterSpanProcessor(spanRecorder)
-
-	metricReader := sdkmetric.NewManualReader()
-	meterProvider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(metricReader))
-
-	h := NewHandler(
-		WithRouteTag(
-			route,
-			http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusTeapot)
-			}),
-		),
-		"test_handler",
-		WithTracerProvider(tracerProvider),
-		WithMeterProvider(meterProvider),
-	)
-
-	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", http.NoBody))
-	want := semconv.HTTPRouteKey.String(route)
-
-	require.Len(t, spanRecorder.Ended(), 1, "should emit a span")
-	gotSpan := spanRecorder.Ended()[0]
-	require.Contains(t, gotSpan.Attributes(), want, "should add route to span attributes")
-
-	rm := metricdata.ResourceMetrics{}
-	err := metricReader.Collect(context.Background(), &rm)
-	require.NoError(t, err)
-	require.Len(t, rm.ScopeMetrics, 1, "should emit metrics for one scope")
-	gotMetrics := rm.ScopeMetrics[0].Metrics
-
-	for _, m := range gotMetrics {
-		switch d := m.Data.(type) {
-		case metricdata.Sum[int64]:
-			require.Len(t, d.DataPoints, 1, "metric '%v' should have exactly one data point", m.Name)
-			require.Contains(t, d.DataPoints[0].Attributes.ToSlice(), want, "should add route to attributes for metric '%v'", m.Name)
-
-		case metricdata.Sum[float64]:
-			require.Len(t, d.DataPoints, 1, "metric '%v' should have exactly one data point", m.Name)
-			require.Contains(t, d.DataPoints[0].Attributes.ToSlice(), want, "should add route to attributes for metric '%v'", m.Name)
-
-		case metricdata.Histogram[int64]:
-			require.Len(t, d.DataPoints, 1, "metric '%v' should have exactly one data point", m.Name)
-			require.Contains(t, d.DataPoints[0].Attributes.ToSlice(), want, "should add route to attributes for metric '%v'", m.Name)
-
-		case metricdata.Histogram[float64]:
-			require.Len(t, d.DataPoints, 1, "metric '%v' should have exactly one data point", m.Name)
-			require.Contains(t, d.DataPoints[0].Attributes.ToSlice(), want, "should add route to attributes for metric '%v'", m.Name)
-
-		case metricdata.Gauge[int64]:
-			require.Len(t, d.DataPoints, 1, "metric '%v' should have exactly one data point", m.Name)
-			require.Contains(t, d.DataPoints[0].Attributes.ToSlice(), want, "should add route to attributes for metric '%v'", m.Name)
-
-		case metricdata.Gauge[float64]:
-			require.Len(t, d.DataPoints, 1, "metric '%v' should have exactly one data point", m.Name)
-			require.Contains(t, d.DataPoints[0].Attributes.ToSlice(), want, "should add route to attributes for metric '%v'", m.Name)
-
-		default:
-			require.Fail(t, "metric has unexpected data type", "metric '%v' has unexpected data type %T", m.Name, m.Data)
-		}
 	}
 }
 
@@ -771,7 +656,7 @@ func TestHandlerWithMetricAttributesFn(t *testing.T) {
 		h.ServeHTTP(rr, r)
 
 		rm := metricdata.ResourceMetrics{}
-		err = reader.Collect(context.Background(), &rm)
+		err = reader.Collect(t.Context(), &rm)
 		require.NoError(t, err)
 		require.Len(t, rm.ScopeMetrics, 1)
 		assert.Len(t, rm.ScopeMetrics[0].Metrics, 3)

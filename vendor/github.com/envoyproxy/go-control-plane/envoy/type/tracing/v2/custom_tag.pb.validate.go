@@ -266,7 +266,7 @@ type CustomTagMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CustomTagMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -377,7 +377,7 @@ type CustomTag_LiteralMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CustomTag_LiteralMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -492,7 +492,7 @@ type CustomTag_EnvironmentMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CustomTag_EnvironmentMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -618,7 +618,7 @@ type CustomTag_HeaderMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CustomTag_HeaderMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -780,7 +780,7 @@ type CustomTag_MetadataMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CustomTag_MetadataMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

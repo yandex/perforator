@@ -228,431 +228,106 @@ func TestDualStackCIDRs(t *testing.T) {
 	}
 }
 
-func TestIPFamilyOfString(t *testing.T) {
-	testCases := []struct {
-		desc   string
-		ip     string
-		family IPFamily
-	}{
-		{
-			desc:   "IPv4 1",
-			ip:     "127.0.0.1",
-			family: IPv4,
-		},
-		{
-			desc:   "IPv4 2",
-			ip:     "192.168.0.0",
-			family: IPv4,
-		},
-		{
-			desc:   "IPv4 3",
-			ip:     "1.2.3.4",
-			family: IPv4,
-		},
-		{
-			desc:   "IPv4 with leading 0s is accepted",
-			ip:     "001.002.003.004",
-			family: IPv4,
-		},
-		{
-			desc:   "IPv4 encoded as IPv6 is IPv4",
-			ip:     "::FFFF:1.2.3.4",
-			family: IPv4,
-		},
-		{
-			desc:   "IPv6 1",
-			ip:     "::1",
-			family: IPv6,
-		},
-		{
-			desc:   "IPv6 2",
-			ip:     "fd00::600d:f00d",
-			family: IPv6,
-		},
-		{
-			desc:   "IPv6 3",
-			ip:     "2001:db8::5",
-			family: IPv6,
-		},
-		{
-			desc:   "IPv4 with out-of-range octets is not accepted",
-			ip:     "1.2.3.400",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 with out-of-range segment is not accepted",
-			ip:     "2001:db8::10005",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 with empty octet is not accepted",
-			ip:     "1.2..4",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 with multiple empty segments is not accepted",
-			ip:     "2001::db8::5",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 CIDR is not accepted",
-			ip:     "1.2.3.4/32",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 CIDR is not accepted",
-			ip:     "2001:db8::/64",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4:port is not accepted",
-			ip:     "1.2.3.4:80",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "[IPv6] with brackets is not accepted",
-			ip:     "[2001:db8::5]",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "[IPv6]:port is not accepted",
-			ip:     "[2001:db8::5]:80",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6%zone is not accepted",
-			ip:     "fe80::1234%eth0",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 with leading whitespace is not accepted",
-			ip:     " 1.2.3.4",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 with trailing whitespace is not accepted",
-			ip:     "1.2.3.4 ",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 with leading whitespace is not accepted",
-			ip:     " 2001:db8::5",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 with trailing whitespace is not accepted",
-			ip:     " 2001:db8::5",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "random unparseable string",
-			ip:     "bad ip",
-			family: IPFamilyUnknown,
-		},
+func checkOneIPFamily(t *testing.T, ip string, expectedFamily, family IPFamily, isIPv4, isIPv6 bool) {
+	t.Helper()
+	if family != expectedFamily {
+		t.Errorf("Expect %q family %q, got %q", ip, expectedFamily, family)
 	}
-	for _, tc := range testCases {
-		t.Run(tc.desc, func(t *testing.T) {
-			family := IPFamilyOfString(tc.ip)
-			isIPv4 := IsIPv4String(tc.ip)
-			isIPv6 := IsIPv6String(tc.ip)
+	if isIPv4 != (expectedFamily == IPv4) {
+		t.Errorf("Expect %q ipv4 %v, got %v", ip, expectedFamily == IPv4, isIPv6)
+	}
+	if isIPv6 != (expectedFamily == IPv6) {
+		t.Errorf("Expect %q ipv6 %v, got %v", ip, expectedFamily == IPv6, isIPv6)
+	}
+}
 
-			if family != tc.family {
-				t.Errorf("Expect %q family %q, got %q", tc.ip, tc.family, family)
+func TestIPFamilyOf(t *testing.T) {
+	// See test cases in ips_test.go
+	for _, tc := range goodTestIPs {
+		if tc.skipFamily {
+			continue
+		}
+		t.Run(tc.desc, func(t *testing.T) {
+			for _, str := range tc.strings {
+				family := IPFamilyOfString(str)
+				isIPv4 := IsIPv4String(str)
+				isIPv6 := IsIPv6String(str)
+				checkOneIPFamily(t, str, tc.family, family, isIPv4, isIPv6)
 			}
-			if isIPv4 != (tc.family == IPv4) {
-				t.Errorf("Expect %q ipv4 %v, got %v", tc.ip, tc.family == IPv4, isIPv6)
-			}
-			if isIPv6 != (tc.family == IPv6) {
-				t.Errorf("Expect %q ipv6 %v, got %v", tc.ip, tc.family == IPv6, isIPv6)
+			for _, ip := range tc.ips {
+				family := IPFamilyOf(ip)
+				isIPv4 := IsIPv4(ip)
+				isIPv6 := IsIPv6(ip)
+				checkOneIPFamily(t, ip.String(), tc.family, family, isIPv4, isIPv6)
 			}
 		})
 	}
-}
 
-// This is specifically for testing "the kinds of net.IP values returned by net.ParseCIDR()"
-func mustParseCIDRIP(cidrstr string) net.IP {
-	ip, _, err := net.ParseCIDR(cidrstr)
-	if ip == nil {
-		panic(fmt.Sprintf("bad test case: %q should have been parseable: %v", cidrstr, err))
-	}
-	return ip
-}
-
-// This is specifically for testing "the kinds of net.IP values returned by net.ParseCIDR()"
-func mustParseCIDRBase(cidrstr string) net.IP {
-	_, cidr, err := net.ParseCIDR(cidrstr)
-	if cidr == nil {
-		panic(fmt.Sprintf("bad test case: %q should have been parseable: %v", cidrstr, err))
-	}
-	return cidr.IP
-}
-
-// This is specifically for testing "the kinds of net.IP values returned by net.ParseCIDR()"
-func mustParseCIDRMask(cidrstr string) net.IPMask {
-	_, cidr, err := net.ParseCIDR(cidrstr)
-	if cidr == nil {
-		panic(fmt.Sprintf("bad test case: %q should have been parseable: %v", cidrstr, err))
-	}
-	return cidr.Mask
-}
-
-func TestIsIPFamilyOf(t *testing.T) {
-	testCases := []struct {
-		desc   string
-		ip     net.IP
-		family IPFamily
-	}{
-		{
-			desc:   "IPv4 all-zeros",
-			ip:     net.IPv4zero,
-			family: IPv4,
-		},
-		{
-			desc:   "IPv6 all-zeros",
-			ip:     net.IPv6zero,
-			family: IPv6,
-		},
-		{
-			desc:   "IPv4 broadcast",
-			ip:     net.IPv4bcast,
-			family: IPv4,
-		},
-		{
-			desc:   "IPv4 loopback",
-			ip:     net.ParseIP("127.0.0.1"),
-			family: IPv4,
-		},
-		{
-			desc:   "IPv6 loopback",
-			ip:     net.IPv6loopback,
-			family: IPv6,
-		},
-		{
-			desc:   "IPv4 1",
-			ip:     net.ParseIP("10.20.40.40"),
-			family: IPv4,
-		},
-		{
-			desc:   "IPv4 2",
-			ip:     net.ParseIP("172.17.3.0"),
-			family: IPv4,
-		},
-		{
-			desc:   "IPv4 encoded as IPv6 is IPv4",
-			ip:     net.ParseIP("::FFFF:1.2.3.4"),
-			family: IPv4,
-		},
-		{
-			desc:   "IPv6 1",
-			ip:     net.ParseIP("fd00::600d:f00d"),
-			family: IPv6,
-		},
-		{
-			desc:   "IPv6 2",
-			ip:     net.ParseIP("2001:db8::5"),
-			family: IPv6,
-		},
-		{
-			desc:   "IP from IPv4 CIDR is IPv4",
-			ip:     mustParseCIDRIP("192.168.1.1/24"),
-			family: IPv4,
-		},
-		{
-			desc:   "CIDR base IP from IPv4 CIDR is IPv4",
-			ip:     mustParseCIDRBase("192.168.1.1/24"),
-			family: IPv4,
-		},
-		{
-			desc:   "CIDR mask from IPv4 CIDR is IPv4",
-			ip:     net.IP(mustParseCIDRMask("192.168.1.1/24")),
-			family: IPv4,
-		},
-		{
-			desc:   "IP from IPv6 CIDR is IPv6",
-			ip:     mustParseCIDRIP("2001:db8::5/64"),
-			family: IPv6,
-		},
-		{
-			desc:   "CIDR base IP from IPv6 CIDR is IPv6",
-			ip:     mustParseCIDRBase("2001:db8::5/64"),
-			family: IPv6,
-		},
-		{
-			desc:   "CIDR mask from IPv6 CIDR is IPv6",
-			ip:     net.IP(mustParseCIDRMask("2001:db8::5/64")),
-			family: IPv6,
-		},
-		{
-			desc:   "nil is accepted, but is neither IPv4 nor IPv6",
-			ip:     nil,
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "invalid empty binary net.IP",
-			ip:     net.IP([]byte{}),
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "invalid short binary net.IP",
-			ip:     net.IP([]byte{1, 2, 3}),
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "invalid medium-length binary net.IP",
-			ip:     net.IP([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "invalid long binary net.IP",
-			ip:     net.IP([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}),
-			family: IPFamilyUnknown,
-		},
-	}
-	for _, tc := range testCases {
+	// See test cases in ips_test.go
+	for _, tc := range badTestIPs {
+		if tc.skipFamily {
+			continue
+		}
 		t.Run(tc.desc, func(t *testing.T) {
-			family := IPFamilyOf(tc.ip)
-			isIPv4 := IsIPv4(tc.ip)
-			isIPv6 := IsIPv6(tc.ip)
-
-			if family != tc.family {
-				t.Errorf("Expect family %q, got %q", tc.family, family)
+			for _, ip := range tc.ips {
+				family := IPFamilyOf(ip)
+				isIPv4 := IsIPv4(ip)
+				isIPv6 := IsIPv6(ip)
+				checkOneIPFamily(t, fmt.Sprintf("%#v", ip), IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
-			if isIPv4 != (tc.family == IPv4) {
-				t.Errorf("Expect ipv4 %v, got %v", tc.family == IPv4, isIPv6)
-			}
-			if isIPv6 != (tc.family == IPv6) {
-				t.Errorf("Expect ipv6 %v, got %v", tc.family == IPv6, isIPv6)
+			for _, str := range tc.strings {
+				family := IPFamilyOfString(str)
+				isIPv4 := IsIPv4String(str)
+				isIPv6 := IsIPv6String(str)
+				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 		})
 	}
 }
 
 func TestIPFamilyOfCIDR(t *testing.T) {
-	testCases := []struct {
-		desc   string
-		cidr   string
-		family IPFamily
-	}{
-		{
-			desc:   "IPv4 CIDR 1",
-			cidr:   "10.0.0.0/8",
-			family: IPv4,
-		},
-		{
-			desc:   "IPv4 CIDR 2",
-			cidr:   "192.168.0.0/16",
-			family: IPv4,
-		},
-		{
-			desc:   "IPv6 CIDR 1",
-			cidr:   "::/1",
-			family: IPv6,
-		},
-		{
-			desc:   "IPv6 CIDR 2",
-			cidr:   "2000::/10",
-			family: IPv6,
-		},
-		{
-			desc:   "IPv6 CIDR 3",
-			cidr:   "2001:db8::/32",
-			family: IPv6,
-		},
-		{
-			desc:   "bad CIDR",
-			cidr:   "foo",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 with out-of-range octets is not accepted",
-			cidr:   "1.2.3.400/32",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 with out-of-range segment is not accepted",
-			cidr:   "2001:db8::10005/64",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 with out-of-range mask length is not accepted",
-			cidr:   "1.2.3.4/64",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 with out-of-range mask length is not accepted",
-			cidr:   "2001:db8::5/192",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 with empty octet is not accepted",
-			cidr:   "1.2..4/32",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 with multiple empty segments is not accepted",
-			cidr:   "2001::db8::5/64",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 IP is not CIDR",
-			cidr:   "192.168.0.0",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 IP is not CIDR",
-			cidr:   "2001:db8::",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 CIDR with leading whitespace is not accepted",
-			cidr:   " 1.2.3.4/32",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv4 CIDR with trailing whitespace is not accepted",
-			cidr:   "1.2.3.4/32 ",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 CIDR with leading whitespace is not accepted",
-			cidr:   " 2001:db8::5/64",
-			family: IPFamilyUnknown,
-		},
-		{
-			desc:   "IPv6 CIDR with trailing whitespace is not accepted",
-			cidr:   " 2001:db8::5/64",
-			family: IPFamilyUnknown,
-		},
+	// See test cases in ips_test.go
+	for _, tc := range goodTestCIDRs {
+		if tc.skipFamily {
+			continue
+		}
+		t.Run(tc.desc, func(t *testing.T) {
+			for _, str := range tc.strings {
+				family := IPFamilyOfCIDRString(str)
+				isIPv4 := IsIPv4CIDRString(str)
+				isIPv6 := IsIPv6CIDRString(str)
+				checkOneIPFamily(t, str, tc.family, family, isIPv4, isIPv6)
+			}
+			for _, ipnet := range tc.ipnets {
+				family := IPFamilyOfCIDR(ipnet)
+				isIPv4 := IsIPv4CIDR(ipnet)
+				isIPv6 := IsIPv6CIDR(ipnet)
+				checkOneIPFamily(t, ipnet.String(), tc.family, family, isIPv4, isIPv6)
+			}
+		})
 	}
 
-	for _, tc := range testCases {
+	// See test cases in ips_test.go
+	for _, tc := range badTestCIDRs {
+		if tc.skipFamily {
+			continue
+		}
 		t.Run(tc.desc, func(t *testing.T) {
-			family := IPFamilyOfCIDRString(tc.cidr)
-			isIPv4 := IsIPv4CIDRString(tc.cidr)
-			isIPv6 := IsIPv6CIDRString(tc.cidr)
-
-			if family != tc.family {
-				t.Errorf("Expect family %v, got %v", tc.family, family)
+			for _, ipnet := range tc.ipnets {
+				family := IPFamilyOfCIDR(ipnet)
+				isIPv4 := IsIPv4CIDR(ipnet)
+				isIPv6 := IsIPv6CIDR(ipnet)
+				str := "<nil>"
+				if ipnet != nil {
+					str = fmt.Sprintf("%#v", *ipnet)
+				}
+				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
-			if isIPv4 != (tc.family == IPv4) {
-				t.Errorf("Expect %q ipv4 %v, got %v", tc.cidr, tc.family == IPv4, isIPv6)
-			}
-			if isIPv6 != (tc.family == IPv6) {
-				t.Errorf("Expect %q ipv6 %v, got %v", tc.cidr, tc.family == IPv6, isIPv6)
-			}
-
-			_, parsed, _ := ParseCIDRSloppy(tc.cidr)
-			familyParsed := IPFamilyOfCIDR(parsed)
-			isIPv4Parsed := IsIPv4CIDR(parsed)
-			isIPv6Parsed := IsIPv6CIDR(parsed)
-			if familyParsed != family {
-				t.Errorf("%q gives different results for IPFamilyOfCIDR (%v) and IPFamilyOfCIDRString (%v)", tc.cidr, familyParsed, family)
-			}
-			if isIPv4Parsed != isIPv4 {
-				t.Errorf("%q gives different results for IsIPv4CIDR (%v) and IsIPv4CIDRString (%v)", tc.cidr, isIPv4Parsed, isIPv4)
-			}
-			if isIPv6Parsed != isIPv6 {
-				t.Errorf("%q gives different results for IsIPv6CIDR (%v) and IsIPv6CIDRString (%v)", tc.cidr, isIPv6Parsed, isIPv6)
+			for _, str := range tc.strings {
+				family := IPFamilyOfCIDRString(str)
+				isIPv4 := IsIPv4CIDRString(str)
+				isIPv6 := IsIPv6CIDRString(str)
+				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 		})
 	}

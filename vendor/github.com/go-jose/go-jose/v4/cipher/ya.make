@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v4.1.3)
+VERSION(v4.1.4)
 
 SRCS(
     cbc_hmac.go

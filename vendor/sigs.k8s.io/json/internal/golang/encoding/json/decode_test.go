@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"maps"
 	"math"
 	"math/big"
 	"net"
@@ -59,6 +60,21 @@ type SS string
 
 func (*SS) UnmarshalJSON(data []byte) error {
 	return &UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[SS]()}
+}
+
+type TAlias T
+
+func (tt *TAlias) UnmarshalJSON(data []byte) error {
+	t := T{}
+	if err := Unmarshal(data, &t); err != nil {
+		return err
+	}
+	*tt = TAlias(t)
+	return nil
+}
+
+type TOuter struct {
+	T TAlias
 }
 
 // ifaceNumAsFloat64/ifaceNumAsNumber are used to test unmarshaling with and
@@ -427,6 +443,7 @@ var unmarshalTests = []struct {
 	{CaseName: Name(""), in: `{"x": 1}`, ptr: new(tx), out: tx{}},
 	{CaseName: Name(""), in: `{"x": 1}`, ptr: new(tx), err: fmt.Errorf("json: unknown field \"x\""), disallowUnknownFields: true},
 	{CaseName: Name(""), in: `{"S": 23}`, ptr: new(W), out: W{}, err: &UnmarshalTypeError{"number", reflect.TypeFor[SS](), 0, "W", "S"}},
+	{CaseName: Name(""), in: `{"T": {"X": 23}}`, ptr: new(TOuter), out: TOuter{}, err: &UnmarshalTypeError{"number", reflect.TypeFor[string](), 8, "TOuter", "T.X"}},
 	{CaseName: Name(""), in: `{"F1":1,"F2":2,"F3":3}`, ptr: new(V), out: V{F1: float64(1), F2: int32(2), F3: Number("3")}},
 	{CaseName: Name(""), in: `{"F1":1,"F2":2,"F3":3}`, ptr: new(V), out: V{F1: Number("1"), F2: int32(2), F3: Number("3")}, useNumber: true},
 	{CaseName: Name(""), in: `{"k1":1,"k2":"s","k3":[1,2.0,3e-3],"k4":{"kk1":"s","kk2":2}}`, ptr: new(any), out: ifaceNumAsFloat64},
@@ -441,10 +458,10 @@ var unmarshalTests = []struct {
 
 	// Z has a "-" tag.
 	{CaseName: Name(""), in: `{"Y": 1, "Z": 2}`, ptr: new(T), out: T{Y: 1}},
-	{CaseName: Name(""), in: `{"Y": 1, "Z": 2}`, ptr: new(T), err: fmt.Errorf("json: unknown field \"Z\""), disallowUnknownFields: true},
+	{CaseName: Name(""), in: `{"Y": 1, "Z": 2}`, ptr: new(T), out: T{Y: 1}, err: fmt.Errorf("json: unknown field \"Z\""), disallowUnknownFields: true},
 
 	{CaseName: Name(""), in: `{"alpha": "abc", "alphabet": "xyz"}`, ptr: new(U), out: U{Alphabet: "abc"}},
-	{CaseName: Name(""), in: `{"alpha": "abc", "alphabet": "xyz"}`, ptr: new(U), err: fmt.Errorf("json: unknown field \"alphabet\""), disallowUnknownFields: true},
+	{CaseName: Name(""), in: `{"alpha": "abc", "alphabet": "xyz"}`, ptr: new(U), out: U{Alphabet: "abc"}, err: fmt.Errorf("json: unknown field \"alphabet\""), disallowUnknownFields: true},
 	{CaseName: Name(""), in: `{"alpha": "abc"}`, ptr: new(U), out: U{Alphabet: "abc"}},
 	{CaseName: Name(""), in: `{"alphabet": "xyz"}`, ptr: new(U), out: U{}},
 	{CaseName: Name(""), in: `{"alphabet": "xyz"}`, ptr: new(U), err: fmt.Errorf("json: unknown field \"alphabet\""), disallowUnknownFields: true},
@@ -454,7 +471,7 @@ var unmarshalTests = []struct {
 	{CaseName: Name(""), in: `[1, 2, 3+]`, err: &SyntaxError{"invalid character '+' after array element", 9}},
 	{CaseName: Name(""), in: `{"X":12x}`, err: &SyntaxError{"invalid character 'x' after object key:value pair", 8}, useNumber: true},
 	{CaseName: Name(""), in: `[2, 3`, err: &SyntaxError{msg: "unexpected end of JSON input", Offset: 5}},
-	{CaseName: Name(""), in: `{"F3": -}`, ptr: new(V), out: V{F3: Number("-")}, err: &SyntaxError{msg: "invalid character '}' in numeric literal", Offset: 9}},
+	{CaseName: Name(""), in: `{"F3": -}`, ptr: new(V), err: &SyntaxError{msg: "invalid character '}' in numeric literal", Offset: 9}},
 
 	// raw value errors
 	{CaseName: Name(""), in: "\x01 42", err: &SyntaxError{"invalid character '\\x01' looking for beginning of value", 1}},
@@ -546,6 +563,7 @@ var unmarshalTests = []struct {
 		CaseName: Name(""),
 		in:       `{"2":4}`,
 		ptr:      new(map[u8marshal]int),
+		out:      map[u8marshal]int{},
 		err:      errMissingU8Prefix,
 	},
 
@@ -554,36 +572,42 @@ var unmarshalTests = []struct {
 		CaseName: Name(""),
 		in:       `{"abc":"abc"}`,
 		ptr:      new(map[int]string),
+		out:      map[int]string{},
 		err:      &UnmarshalTypeError{Value: "number abc", Type: reflect.TypeFor[int](), Offset: 2},
 	},
 	{
 		CaseName: Name(""),
 		in:       `{"256":"abc"}`,
 		ptr:      new(map[uint8]string),
+		out:      map[uint8]string{},
 		err:      &UnmarshalTypeError{Value: "number 256", Type: reflect.TypeFor[uint8](), Offset: 2},
 	},
 	{
 		CaseName: Name(""),
 		in:       `{"128":"abc"}`,
 		ptr:      new(map[int8]string),
+		out:      map[int8]string{},
 		err:      &UnmarshalTypeError{Value: "number 128", Type: reflect.TypeFor[int8](), Offset: 2},
 	},
 	{
 		CaseName: Name(""),
 		in:       `{"-1":"abc"}`,
 		ptr:      new(map[uint8]string),
+		out:      map[uint8]string{},
 		err:      &UnmarshalTypeError{Value: "number -1", Type: reflect.TypeFor[uint8](), Offset: 2},
 	},
 	{
 		CaseName: Name(""),
 		in:       `{"F":{"a":2,"3":4}}`,
 		ptr:      new(map[string]map[int]int),
+		out:      map[string]map[int]int{"F": {3: 4}},
 		err:      &UnmarshalTypeError{Value: "number a", Type: reflect.TypeFor[int](), Offset: 7},
 	},
 	{
 		CaseName: Name(""),
 		in:       `{"F":{"a":2,"3":4}}`,
 		ptr:      new(map[string]map[uint]int),
+		out:      map[string]map[uint]int{"F": {3: 4}},
 		err:      &UnmarshalTypeError{Value: "number a", Type: reflect.TypeFor[uint](), Offset: 7},
 	},
 
@@ -665,6 +689,7 @@ var unmarshalTests = []struct {
 		CaseName:              Name(""),
 		in:                    `{"X": 1,"Y":2}`,
 		ptr:                   new(S5),
+		out:                   S5{S8: S8{S9{Y: 2}}},
 		err:                   fmt.Errorf("json: unknown field \"X\""),
 		disallowUnknownFields: true,
 	},
@@ -678,6 +703,7 @@ var unmarshalTests = []struct {
 		CaseName:              Name(""),
 		in:                    `{"X": 1,"Y":2}`,
 		ptr:                   new(S10),
+		out:                   S10{S13: S13{S8{S9{Y: 2}}}},
 		err:                   fmt.Errorf("json: unknown field \"X\""),
 		disallowUnknownFields: true,
 	},
@@ -872,12 +898,27 @@ var unmarshalTests = []struct {
 		CaseName: Name(""),
 		in:       `{"V": {"F4": {}, "F2": "hello"}}`,
 		ptr:      new(VOuter),
+		out:      VOuter{V: V{F4: &VOuter{}}},
 		err: &UnmarshalTypeError{
 			Value:  "string",
 			Struct: "V",
 			Field:  "V.F2",
 			Type:   reflect.TypeFor[int32](),
 			Offset: 30,
+		},
+	},
+
+	{
+		CaseName: Name(""),
+		in:       `{"Level1a": "hello"}`,
+		ptr:      new(Top),
+		out:      Top{Embed0a: &Embed0a{}},
+		err: &UnmarshalTypeError{
+			Value:  "string",
+			Struct: "Top",
+			Field:  "Embed0a.Level1a",
+			Type:   reflect.TypeFor[int](),
+			Offset: 19,
 		},
 	},
 
@@ -917,7 +958,29 @@ var unmarshalTests = []struct {
 			"Q": 18,
 			"extra": true
 		}`,
-		ptr:                   new(Top),
+		ptr: new(Top),
+		out: Top{
+			Level0: 1,
+			Embed0: Embed0{
+				Level1b: 2,
+				Level1c: 3,
+			},
+			Embed0a: &Embed0a{Level1a: 5, Level1b: 6},
+			Embed0b: &Embed0b{Level1a: 8, Level1b: 9, Level1c: 10, Level1d: 11, Level1e: 12},
+			Loop: Loop{
+				Loop1: 13,
+				Loop2: 14,
+				Loop:  nil,
+			},
+			Embed0p: Embed0p{
+				Point: image.Point{
+					X: 15,
+					Y: 16,
+				},
+			},
+			Embed0q: Embed0q{Point: Point{Z: 17}},
+			embed:   embed{Q: 18},
+		},
 		err:                   fmt.Errorf("json: unknown field \"extra\""),
 		disallowUnknownFields: true,
 	},
@@ -945,7 +1008,29 @@ var unmarshalTests = []struct {
 			"Z": 17,
 			"Q": 18
 		}`,
-		ptr:                   new(Top),
+		ptr: new(Top),
+		out: Top{
+			Level0: 1,
+			Embed0: Embed0{
+				Level1b: 2,
+				Level1c: 3,
+			},
+			Embed0a: &Embed0a{Level1a: 5, Level1b: 6},
+			Embed0b: &Embed0b{Level1a: 8, Level1b: 9, Level1c: 10, Level1d: 11, Level1e: 12},
+			Loop: Loop{
+				Loop1: 13,
+				Loop2: 14,
+				Loop:  nil,
+			},
+			Embed0p: Embed0p{
+				Point: image.Point{
+					X: 15,
+					Y: 16,
+				},
+			},
+			Embed0q: Embed0q{Point: Point{Z: 17}},
+			embed:   embed{Q: 18},
+		},
 		err:                   fmt.Errorf("json: unknown field \"e.extra\""),
 		disallowUnknownFields: true,
 	},
@@ -955,12 +1040,14 @@ var unmarshalTests = []struct {
 		CaseName: Name(""),
 		in:       `{"data":{"test1": "bob", "test2": 123}}`,
 		ptr:      new(mapStringToStringData),
+		out:      mapStringToStringData{map[string]string{"test1": "bob", "test2": ""}},
 		err:      &UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[string](), Offset: 37, Struct: "mapStringToStringData", Field: "data"},
 	},
 	{
 		CaseName: Name(""),
 		in:       `{"data":{"test1": 123, "test2": "bob"}}`,
 		ptr:      new(mapStringToStringData),
+		out:      mapStringToStringData{Data: map[string]string{"test1": "", "test2": "bob"}},
 		err:      &UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[string](), Offset: 21, Struct: "mapStringToStringData", Field: "data"},
 	},
 
@@ -994,12 +1081,13 @@ var unmarshalTests = []struct {
 		CaseName: Name(""),
 		in:       `{"Ts": [{"Y": 1}, {"Y": 2}, {"Y": "bad-type"}]}`,
 		ptr:      new(PP),
+		out:      PP{Ts: []T{{Y: 1}, {Y: 2}, {Y: 0}}},
 		err: &UnmarshalTypeError{
 			Value:  "string",
 			Struct: "T",
 			Field:  "Ts.Y",
 			Type:   reflect.TypeFor[int](),
-			Offset: 29,
+			Offset: 44,
 		},
 	},
 	// #14702
@@ -1036,7 +1124,68 @@ var unmarshalTests = []struct {
 		CaseName: Name(""),
 		in:       `{"A":"invalid"}`,
 		ptr:      new(map[string]Number),
+		out:      map[string]Number{},
 		err:      fmt.Errorf("json: invalid number literal, trying to unmarshal %q into Number", `"invalid"`),
+	},
+
+	{
+		CaseName: Name(""),
+		in:       `5`,
+		ptr:      new(Number),
+		out:      Number("5"),
+	},
+	{
+		CaseName: Name(""),
+		in:       `"5"`,
+		ptr:      new(Number),
+		out:      Number("5"),
+	},
+	{
+		CaseName: Name(""),
+		in:       `{"N":5}`,
+		ptr:      new(struct{ N Number }),
+		out:      struct{ N Number }{"5"},
+	},
+	{
+		CaseName: Name(""),
+		in:       `{"N":"5"}`,
+		ptr:      new(struct{ N Number }),
+		out:      struct{ N Number }{"5"},
+	},
+	{
+		CaseName: Name(""),
+		in:       `{"N":5}`,
+		ptr: new(struct {
+			N Number `json:",string"`
+		}),
+		err: fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal unquoted value into json.Number"),
+	},
+	{
+		CaseName: Name(""),
+		in:       `{"N":"5"}`,
+		ptr: new(struct {
+			N Number `json:",string"`
+		}),
+		out: struct {
+			N Number `json:",string"`
+		}{"5"},
+	},
+
+	// Verify that syntactic errors are immediately fatal,
+	// while semantic errors are lazily reported
+	// (i.e., allow processing to continue).
+	{
+		CaseName: Name(""),
+		in:       `[1,2,true,4,5}`,
+		ptr:      new([]int),
+		err:      &SyntaxError{msg: "invalid character '}' after array element", Offset: 14},
+	},
+	{
+		CaseName: Name(""),
+		in:       `[1,2,true,4,5]`,
+		ptr:      new([]int),
+		out:      []int{1, 2, 0, 4, 5},
+		err:      &UnmarshalTypeError{Value: "bool", Type: reflect.TypeFor[int](), Offset: 9},
 	},
 }
 
@@ -1140,8 +1289,27 @@ func TestMarshalEmbeds(t *testing.T) {
 }
 
 func equalError(a, b error) bool {
+	isJSONError := func(err error) bool {
+		switch err.(type) {
+		case
+			*InvalidUTF8Error,
+			*InvalidUnmarshalError,
+			*MarshalerError,
+			*SyntaxError,
+			*UnmarshalFieldError,
+			*UnmarshalTypeError,
+			*UnsupportedTypeError,
+			*UnsupportedValueError:
+			return true
+		}
+		return false
+	}
+
 	if a == nil || b == nil {
 		return a == nil && b == nil
+	}
+	if isJSONError(a) || isJSONError(b) {
+		return reflect.DeepEqual(a, b) // safe for locally defined error types
 	}
 	return a.Error() == b.Error()
 }
@@ -1153,7 +1321,7 @@ func TestUnmarshal(t *testing.T) {
 			var scan scanner
 			if err := checkValid(in, &scan); err != nil {
 				if !equalError(err, tt.err) {
-					t.Fatalf("%s: checkValid error: %#v", tt.Where, err)
+					t.Fatalf("%s: checkValid error:\n\tgot  %#v\n\twant %#v", tt.Where, err, tt.err)
 				}
 			}
 			if tt.ptr == nil {
@@ -1187,9 +1355,11 @@ func TestUnmarshal(t *testing.T) {
 				dec.DisallowUnknownFields()
 			}
 			if err := dec.Decode(v.Interface()); !equalError(err, tt.err) {
-				t.Fatalf("%s: Decode error:\n\tgot:  %v\n\twant: %v", tt.Where, err, tt.err)
-			} else if err != nil {
-				return
+				t.Fatalf("%s: Decode error:\n\tgot:  %v\n\twant: %v\n\n\tgot:  %#v\n\twant: %#v", tt.Where, err, tt.err, err, tt.err)
+			} else if err != nil && tt.out == nil {
+				// Initialize tt.out during an error where there are no mutations,
+				// so the output is just the zero value of the input type.
+				tt.out = reflect.Zero(v.Elem().Type()).Interface()
 			}
 			if got := v.Elem().Interface(); !reflect.DeepEqual(got, tt.out) {
 				gotJSON, _ := Marshal(got)
@@ -1748,19 +1918,12 @@ func TestNullString(t *testing.T) {
 	}
 }
 
-func intp(x int) *int {
-	p := new(int)
-	*p = x
-	return p
-}
-
-func intpp(x *int) **int {
-	pp := new(*int)
-	*pp = x
-	return pp
+func addr[T any](v T) *T {
+	return &v
 }
 
 func TestInterfaceSet(t *testing.T) {
+	errUnmarshal := &UnmarshalTypeError{Value: "object", Offset: 6, Type: reflect.TypeFor[int](), Field: "X"}
 	tests := []struct {
 		CaseName
 		pre  any
@@ -1771,21 +1934,55 @@ func TestInterfaceSet(t *testing.T) {
 		{Name(""), "foo", `2`, 2.0},
 		{Name(""), "foo", `true`, true},
 		{Name(""), "foo", `null`, nil},
+		{Name(""), map[string]any{}, `true`, true},
+		{Name(""), []string{}, `true`, true},
 
-		{Name(""), nil, `null`, nil},
-		{Name(""), new(int), `null`, nil},
-		{Name(""), (*int)(nil), `null`, nil},
-		{Name(""), new(*int), `null`, new(*int)},
-		{Name(""), (**int)(nil), `null`, nil},
-		{Name(""), intp(1), `null`, nil},
-		{Name(""), intpp(nil), `null`, intpp(nil)},
-		{Name(""), intpp(intp(1)), `null`, intpp(nil)},
+		{Name(""), any(nil), `null`, any(nil)},
+		{Name(""), (*int)(nil), `null`, any(nil)},
+		{Name(""), (*int)(addr(0)), `null`, any(nil)},
+		{Name(""), (*int)(addr(1)), `null`, any(nil)},
+		{Name(""), (**int)(nil), `null`, any(nil)},
+		{Name(""), (**int)(addr[*int](nil)), `null`, (**int)(addr[*int](nil))},
+		{Name(""), (**int)(addr(addr(1))), `null`, (**int)(addr[*int](nil))},
+		{Name(""), (***int)(nil), `null`, any(nil)},
+		{Name(""), (***int)(addr[**int](nil)), `null`, (***int)(addr[**int](nil))},
+		{Name(""), (***int)(addr(addr[*int](nil))), `null`, (***int)(addr[**int](nil))},
+		{Name(""), (***int)(addr(addr(addr(1)))), `null`, (***int)(addr[**int](nil))},
+
+		{Name(""), any(nil), `2`, float64(2)},
+		{Name(""), (int)(1), `2`, float64(2)},
+		{Name(""), (*int)(nil), `2`, float64(2)},
+		{Name(""), (*int)(addr(0)), `2`, (*int)(addr(2))},
+		{Name(""), (*int)(addr(1)), `2`, (*int)(addr(2))},
+		{Name(""), (**int)(nil), `2`, float64(2)},
+		{Name(""), (**int)(addr[*int](nil)), `2`, (**int)(addr(addr(2)))},
+		{Name(""), (**int)(addr(addr(1))), `2`, (**int)(addr(addr(2)))},
+		{Name(""), (***int)(nil), `2`, float64(2)},
+		{Name(""), (***int)(addr[**int](nil)), `2`, (***int)(addr(addr(addr(2))))},
+		{Name(""), (***int)(addr(addr[*int](nil))), `2`, (***int)(addr(addr(addr(2))))},
+		{Name(""), (***int)(addr(addr(addr(1)))), `2`, (***int)(addr(addr(addr(2))))},
+
+		{Name(""), any(nil), `{}`, map[string]any{}},
+		{Name(""), (int)(1), `{}`, map[string]any{}},
+		{Name(""), (*int)(nil), `{}`, map[string]any{}},
+		{Name(""), (*int)(addr(0)), `{}`, errUnmarshal},
+		{Name(""), (*int)(addr(1)), `{}`, errUnmarshal},
+		{Name(""), (**int)(nil), `{}`, map[string]any{}},
+		{Name(""), (**int)(addr[*int](nil)), `{}`, errUnmarshal},
+		{Name(""), (**int)(addr(addr(1))), `{}`, errUnmarshal},
+		{Name(""), (***int)(nil), `{}`, map[string]any{}},
+		{Name(""), (***int)(addr[**int](nil)), `{}`, errUnmarshal},
+		{Name(""), (***int)(addr(addr[*int](nil))), `{}`, errUnmarshal},
+		{Name(""), (***int)(addr(addr(addr(1)))), `{}`, errUnmarshal},
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			b := struct{ X any }{tt.pre}
 			blob := `{"X":` + tt.json + `}`
 			if err := Unmarshal([]byte(blob), &b); err != nil {
+				if wantErr, _ := tt.post.(error); equalError(err, wantErr) {
+					return
+				}
 				t.Fatalf("%s: Unmarshal(%#q) error: %v", tt.Where, blob, err)
 			}
 			if !reflect.DeepEqual(b.X, tt.post) {
@@ -1979,7 +2176,7 @@ func TestStringKind(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unmarshal error: %v", err)
 	}
-	if !reflect.DeepEqual(got, want) {
+	if !maps.Equal(got, want) {
 		t.Fatalf("Marshal/Unmarshal mismatch:\n\tgot:  %v\n\twant: %v", got, want)
 	}
 }
@@ -2192,49 +2389,27 @@ func TestPrefilled(t *testing.T) {
 }
 
 func TestInvalidUnmarshal(t *testing.T) {
-	buf := []byte(`{"a":"1"}`)
 	tests := []struct {
 		CaseName
-		v    any
-		want string
+		in      string
+		v       any
+		wantErr error
 	}{
-		{Name(""), nil, "json: Unmarshal(nil)"},
-		{Name(""), struct{}{}, "json: Unmarshal(non-pointer struct {})"},
-		{Name(""), (*int)(nil), "json: Unmarshal(nil *int)"},
+		{Name(""), `{"a":"1"}`, nil, &InvalidUnmarshalError{}},
+		{Name(""), `{"a":"1"}`, struct{}{}, &InvalidUnmarshalError{reflect.TypeFor[struct{}]()}},
+		{Name(""), `{"a":"1"}`, (*int)(nil), &InvalidUnmarshalError{reflect.TypeFor[*int]()}},
+		{Name(""), `123`, nil, &InvalidUnmarshalError{}},
+		{Name(""), `123`, struct{}{}, &InvalidUnmarshalError{reflect.TypeFor[struct{}]()}},
+		{Name(""), `123`, (*int)(nil), &InvalidUnmarshalError{reflect.TypeFor[*int]()}},
+		{Name(""), `123`, new(net.IP), &UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[*net.IP](), Offset: 3}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			err := Unmarshal(buf, tt.v)
-			if err == nil {
+			switch gotErr := Unmarshal([]byte(tt.in), tt.v); {
+			case gotErr == nil:
 				t.Fatalf("%s: Unmarshal error: got nil, want non-nil", tt.Where)
-			}
-			if got := err.Error(); got != tt.want {
-				t.Errorf("%s: Unmarshal error:\n\tgot:  %s\n\twant: %s", tt.Where, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestInvalidUnmarshalText(t *testing.T) {
-	buf := []byte(`123`)
-	tests := []struct {
-		CaseName
-		v    any
-		want string
-	}{
-		{Name(""), nil, "json: Unmarshal(nil)"},
-		{Name(""), struct{}{}, "json: Unmarshal(non-pointer struct {})"},
-		{Name(""), (*int)(nil), "json: Unmarshal(nil *int)"},
-		{Name(""), new(net.IP), "json: cannot unmarshal number into Go value of type *net.IP"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			err := Unmarshal(buf, tt.v)
-			if err == nil {
-				t.Fatalf("%s: Unmarshal error: got nil, want non-nil", tt.Where)
-			}
-			if got := err.Error(); got != tt.want {
-				t.Errorf("%s: Unmarshal error:\n\tgot:  %s\n\twant: %s", tt.Where, got, tt.want)
+			case !reflect.DeepEqual(gotErr, tt.wantErr):
+				t.Errorf("%s: Unmarshal error:\n\tgot:  %#v\n\twant: %#v", tt.Where, gotErr, tt.wantErr)
 			}
 		})
 	}
@@ -2533,7 +2708,7 @@ func TestUnmarshalRescanLiteralMangledUnquote(t *testing.T) {
 		t.Fatalf("Unmarshal error: %v", err)
 	}
 	want := map[textUnmarshalerString]string{"foo": "", `"`: ""}
-	if !reflect.DeepEqual(got, want) {
+	if !maps.Equal(got, want) {
 		t.Errorf("Marshal/Unmarshal roundtrip:\n\tgot:  %q\n\twant: %q", gotT, wantT)
 	}
 }

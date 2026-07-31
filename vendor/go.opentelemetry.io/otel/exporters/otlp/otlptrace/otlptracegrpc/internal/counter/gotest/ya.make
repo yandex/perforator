@@ -1,0 +1,10 @@
+GO_TEST_FOR(vendor/go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal/counter)
+
+LICENSE(
+    Apache-2.0 AND
+    BSD-3-Clause
+)
+
+VERSION(v1.42.0)
+
+END()

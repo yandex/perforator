@@ -580,7 +580,7 @@ type ListenerMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListenerMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -709,7 +709,7 @@ type Listener_DeprecatedV1MultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m Listener_DeprecatedV1MultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -871,7 +871,7 @@ type Listener_ConnectionBalanceConfigMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m Listener_ConnectionBalanceConfigMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -977,7 +977,7 @@ type Listener_ConnectionBalanceConfig_ExactBalanceMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m Listener_ConnectionBalanceConfig_ExactBalanceMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

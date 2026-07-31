@@ -44,43 +44,41 @@ func ExampleNewHandler() {
 	}
 
 	var mux http.ServeMux
-	mux.Handle("/hello/",
-		otelhttp.WithRouteTag("/hello/:name", http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				ctx := r.Context()
-				labeler, _ := otelhttp.LabelerFromContext(ctx)
+	mux.Handle("/hello/", http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			labeler, _ := otelhttp.LabelerFromContext(ctx)
 
-				var name string
-				// Wrap another function in its own span
-				if err := func(ctx context.Context) error {
-					ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("exampleTracer").Start(ctx, "figureOutName")
-					defer span.End()
+			var name string
+			// Wrap another function in its own span
+			if err := func(ctx context.Context) error {
+				ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("exampleTracer").Start(ctx, "figureOutName")
+				defer span.End()
 
-					var err error
-					name, err = figureOutName(ctx, r.URL.Path[1:])
-					return err
-				}(ctx); err != nil {
-					log.Println("error figuring out name: ", err)
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					labeler.Add(attribute.Bool("error", true))
-					return
-				}
+				var err error
+				name, err = figureOutName(ctx, r.URL.Path[1:])
+				return err
+			}(ctx); err != nil {
+				log.Println("error figuring out name: ", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				labeler.Add(attribute.Bool("error", true))
+				return
+			}
 
-				d, err := io.ReadAll(r.Body)
-				if err != nil {
-					log.Println("error reading body: ", err)
-					w.WriteHeader(http.StatusBadRequest)
-					labeler.Add(attribute.Bool("error", true))
-					return
-				}
+			d, err := io.ReadAll(r.Body)
+			if err != nil {
+				log.Println("error reading body: ", err)
+				w.WriteHeader(http.StatusBadRequest)
+				labeler.Add(attribute.Bool("error", true))
+				return
+			}
 
-				n, err := io.WriteString(w, "Hello, "+name+"!\nYou sent me this:\n"+string(d))
-				if err != nil {
-					log.Printf("error writing reply after %d bytes: %s", n, err)
-					labeler.Add(attribute.Bool("error", true))
-				}
-			}),
-		),
+			n, err := io.WriteString(w, "Hello, "+name+"!\nYou sent me this:\n"+string(d))
+			if err != nil {
+				log.Printf("error writing reply after %d bytes: %s", n, err)
+				labeler.Add(attribute.Bool("error", true))
+			}
+		}),
 	)
 
 	if err := http.ListenAndServe(":7777",

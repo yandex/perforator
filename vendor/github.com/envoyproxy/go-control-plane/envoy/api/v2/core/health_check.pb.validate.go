@@ -721,7 +721,7 @@ type HealthCheckMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HealthCheckMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -874,7 +874,7 @@ type HealthCheck_PayloadMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HealthCheck_PayloadMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1170,7 +1170,7 @@ type HealthCheck_HttpHealthCheckMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HealthCheck_HttpHealthCheckMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1336,7 +1336,7 @@ type HealthCheck_TcpHealthCheckMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HealthCheck_TcpHealthCheckMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1440,7 +1440,7 @@ type HealthCheck_RedisHealthCheckMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HealthCheck_RedisHealthCheckMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1547,7 +1547,7 @@ type HealthCheck_GrpcHealthCheckMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HealthCheck_GrpcHealthCheckMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1748,7 +1748,7 @@ type HealthCheck_CustomHealthCheckMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HealthCheck_CustomHealthCheckMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1851,7 +1851,7 @@ type HealthCheck_TlsOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HealthCheck_TlsOptionsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

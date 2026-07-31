@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.60.0)
+VERSION(v1.61.3)
 
 SRCS(
     acl.go
@@ -14,6 +14,7 @@ SRCS(
     dynamic_delay.go
     grpc_client.go
     grpc_dp.go
+    grpc_dp_diag.go
     grpc_metrics.go
     grpc_reader.go
     grpc_reader_multi_range.go
@@ -41,6 +42,7 @@ GO_TEST_SRCS(
     copy_test.go
     dynamic_delay_test.go
     grpc_client_test.go
+    grpc_dp_diag_test.go
     grpc_metrics_test.go
     grpc_writer_test.go
     headers_test.go

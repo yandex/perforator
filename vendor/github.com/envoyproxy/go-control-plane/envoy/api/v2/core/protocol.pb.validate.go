@@ -72,7 +72,7 @@ type TcpProtocolOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m TcpProtocolOptionsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -178,7 +178,7 @@ type UpstreamHttpProtocolOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m UpstreamHttpProtocolOptionsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -385,7 +385,7 @@ type HttpProtocolOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HttpProtocolOptionsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -551,7 +551,7 @@ type Http1ProtocolOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m Http1ProtocolOptionsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -870,7 +870,7 @@ type Http2ProtocolOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m Http2ProtocolOptionsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1001,7 +1001,7 @@ type GrpcProtocolOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrpcProtocolOptionsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1163,7 +1163,7 @@ type Http1ProtocolOptions_HeaderKeyFormatMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m Http1ProtocolOptions_HeaderKeyFormatMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1270,7 +1270,7 @@ type Http1ProtocolOptions_HeaderKeyFormat_ProperCaseWordsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m Http1ProtocolOptions_HeaderKeyFormat_ProperCaseWordsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1447,7 +1447,7 @@ type Http2ProtocolOptions_SettingsParameterMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m Http2ProtocolOptions_SettingsParameterMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

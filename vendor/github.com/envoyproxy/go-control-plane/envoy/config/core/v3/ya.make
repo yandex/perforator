@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.36.0)
+VERSION(v1.37.0)
 
 SRCS(
     address.pb.go
@@ -11,6 +11,8 @@ SRCS(
     backoff.pb.validate.go
     base.pb.go
     base.pb.validate.go
+    cel.pb.go
+    cel.pb.validate.go
     config_source.pb.go
     config_source.pb.validate.go
     event_service_config.pb.go

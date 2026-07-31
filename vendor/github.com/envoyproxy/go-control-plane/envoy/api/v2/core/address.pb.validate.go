@@ -92,7 +92,7 @@ type PipeMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m PipeMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -271,7 +271,7 @@ type SocketAddressMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m SocketAddressMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -457,7 +457,7 @@ type TcpKeepaliveMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m TcpKeepaliveMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -659,7 +659,7 @@ type BindConfigMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m BindConfigMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -857,7 +857,7 @@ type AddressMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m AddressMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -982,7 +982,7 @@ type CidrRangeMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CidrRangeMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

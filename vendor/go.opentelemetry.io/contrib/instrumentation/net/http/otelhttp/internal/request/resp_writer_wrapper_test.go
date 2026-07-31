@@ -25,6 +25,18 @@ func TestRespWriterWriteHeader(t *testing.T) {
 	assert.Equal(t, http.StatusTeapot, rw.statusCode)
 }
 
+func TestRespWriterWriteInformationalStatusCode(t *testing.T) {
+	rw := NewRespWriterWrapper(&httptest.ResponseRecorder{}, func(int64) {})
+
+	rw.WriteHeader(http.StatusContinue)
+	assert.Equal(t, http.StatusOK, rw.statusCode)
+	assert.False(t, rw.wroteHeader)
+
+	rw.WriteHeader(http.StatusGone)
+	assert.Equal(t, http.StatusGone, rw.statusCode)
+	assert.True(t, rw.wroteHeader)
+}
+
 func TestRespWriterFlush(t *testing.T) {
 	rw := NewRespWriterWrapper(&httptest.ResponseRecorder{}, func(int64) {})
 

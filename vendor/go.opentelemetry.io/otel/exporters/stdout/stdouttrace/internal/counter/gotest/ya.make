@@ -5,6 +5,6 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v1.38.0)
+VERSION(v1.41.0)
 
 END()

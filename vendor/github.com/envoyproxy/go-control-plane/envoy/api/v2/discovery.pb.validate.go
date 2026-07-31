@@ -136,7 +136,7 @@ type DiscoveryRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DiscoveryRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -307,7 +307,7 @@ type DiscoveryResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DiscoveryResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -473,7 +473,7 @@ type DeltaDiscoveryRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DeltaDiscoveryRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -615,7 +615,7 @@ type DeltaDiscoveryResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DeltaDiscoveryResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -749,7 +749,7 @@ type ResourceMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ResourceMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.0.0-20250604170112-4c0f3b243397)
+VERSION(v0.0.0-20251002143259-bc988d571ff4)
 
 SRCS(
     ipfamily.go
@@ -16,8 +16,10 @@ SRCS(
 GO_TEST_SRCS(
     ipfamily_test.go
     ipnet_test.go
+    ips_test.go
     multi_listen_test.go
     net_test.go
+    parse_test.go
     port_test.go
 )
 

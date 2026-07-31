@@ -3,44 +3,23 @@ package pq
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"testing"
 	"time"
+
+	"github.com/lib/pq/internal/pqtest"
+	"github.com/lib/pq/pqerror"
 )
 
-func TestIssue494(t *testing.T) {
-	db := openTestConn(t)
-	defer db.Close()
+// #1046: stmt.QueryRowContext doesn't respect canceled context
+func TestQueryRowContext(t *testing.T) {
+	t.Parallel()
+	db := pqtest.MustDB(t)
 
-	query := `CREATE TEMP TABLE t (i INT PRIMARY KEY)`
-	if _, err := db.Exec(query); err != nil {
-		t.Fatal(err)
-	}
-
-	txn, err := db.Begin()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := txn.Prepare(CopyIn("t", "i")); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := txn.Query("SELECT 1"); err == nil {
-		t.Fatal("expected error")
-	}
-}
-
-func TestIssue1046(t *testing.T) {
-	ctxTimeout := time.Second * 2
-
-	db := openTestConn(t)
-	defer db.Close()
-
+	ctxTimeout := time.Millisecond * 50
 	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeout)
 	defer cancel()
 
-	stmt, err := db.PrepareContext(ctx, `SELECT pg_sleep(10) AS id`)
+	stmt, err := db.PrepareContext(ctx, `SELECT pg_sleep(1) AS id`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,16 +32,15 @@ func TestIssue1046(t *testing.T) {
 		t.Logf("FAIL %s: query returned after context deadline: %v\n", t.Name(), since)
 		t.Fail()
 	}
-	if pgErr := (*Error)(nil); !(errors.As(err, &pgErr) && pgErr.Code == cancelErrorCode) {
-		t.Logf("ctx.Err(): [%T]%+v\n", ctx.Err(), ctx.Err())
-		t.Logf("got err: [%T] %+v expected errCode: %v", err, err, cancelErrorCode)
-		t.Fail()
-	}
+	mustAs(t, err, pqerror.QueryCanceled)
 }
 
-func TestIssue1062(t *testing.T) {
-	db := openTestConn(t)
-	defer db.Close()
+// #1062: drivers.ErrBadConn returned for DB.QueryRowContext.Scan when context is cancelled
+func TestQueryRowContextBad(t *testing.T) {
+	if !pqtest.Pgpool() {
+		t.Parallel()
+	}
+	db := pqtest.MustDB(t)
 
 	// Ensure that cancelling a QueryRowContext does not result in an ErrBadConn.
 
@@ -73,10 +51,10 @@ func TestIssue1062(t *testing.T) {
 
 		var v int
 		err := row.Scan(&v)
-		if pgErr := (*Error)(nil); err != nil &&
-			err != context.Canceled &&
-			!(errors.As(err, &pgErr) && pgErr.Code == cancelErrorCode) {
-			t.Fatalf("Scan resulted in unexpected error %v for canceled QueryRowContext at attempt %d", err, i+1)
+
+		// nil, context Canceled, and  QueryCancelled are all fine.
+		if err != nil && err != context.Canceled {
+			mustAs(t, err, pqerror.QueryCanceled)
 		}
 	}
 }
@@ -104,8 +82,7 @@ func connIsValid(t *testing.T, db *sql.DB) {
 }
 
 func TestQueryCancelRace(t *testing.T) {
-	db := openTestConn(t)
-	defer db.Close()
+	db := pqtest.MustDB(t)
 
 	// cancel a query while executing on Postgres: must return the cancelled error code
 	ctx, cancel := context.WithCancel(context.Background())
@@ -116,9 +93,8 @@ func TestQueryCancelRace(t *testing.T) {
 	row := db.QueryRowContext(ctx, "select pg_sleep(0.5)")
 	var pgSleepVoid string
 	err := row.Scan(&pgSleepVoid)
-	if pgErr := (*Error)(nil); !(errors.As(err, &pgErr) && pgErr.Code == cancelErrorCode) {
-		t.Fatalf("expected cancelled error; err=%#v", err)
-	}
+
+	mustAs(t, err, pqerror.QueryCanceled)
 
 	// get a connection: it must be a valid
 	connIsValid(t, db)
@@ -126,8 +102,8 @@ func TestQueryCancelRace(t *testing.T) {
 
 // Test cancelling a scan after it is started. This broke with 1.10.4.
 func TestQueryCancelledReused(t *testing.T) {
-	db := openTestConn(t)
-	defer db.Close()
+	t.Parallel()
+	db := pqtest.MustDB(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	// run a query that returns a lot of data

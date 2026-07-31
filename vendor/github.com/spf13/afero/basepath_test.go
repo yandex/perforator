@@ -80,10 +80,10 @@ func TestRealPath(t *testing.T) {
 			t.Errorf("Got error %s", err)
 		}
 
-		excpected := filepath.Join(baseDir, anotherDir)
+		expected := filepath.Join(baseDir, anotherDir)
 
-		if surrealPath != excpected {
-			t.Errorf("Expected \n%s got \n%s", excpected, surrealPath)
+		if surrealPath != expected {
+			t.Errorf("Expected \n%s got \n%s", expected, surrealPath)
 		}
 	}
 }
@@ -123,12 +123,14 @@ func TestNestedBasePaths(t *testing.T) {
 				t.Errorf("Got error %s", err.Error())
 			}
 
-			if s.BaseFs == level3Fs {
+			switch s.BaseFs {
+			case level3Fs:
 				pathToExist := filepath.Join(ds.Dir3, s.FileName)
 				if _, err := level2Fs.Stat(pathToExist); err != nil {
 					t.Errorf("Got error %s (path %s)", err.Error(), pathToExist)
 				}
-			} else if s.BaseFs == level2Fs {
+
+			case level2Fs:
 				pathToExist := filepath.Join(ds.Dir2, ds.Dir3, s.FileName)
 				if _, err := level1Fs.Stat(pathToExist); err != nil {
 					t.Errorf("Got error %s (path %s)", err.Error(), pathToExist)

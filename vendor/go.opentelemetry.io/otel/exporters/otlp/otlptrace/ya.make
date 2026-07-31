@@ -5,7 +5,7 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v1.38.0)
+VERSION(v1.43.0)
 
 SRCS(
     clients.go
