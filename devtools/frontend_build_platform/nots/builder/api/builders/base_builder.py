@@ -118,6 +118,12 @@ class BaseBuilder(object):
 
     @timeit
     def _prepare_dependencies(self):
+        # Auto-proto installs its injected workspace before generation. Repeating
+        # legacy peer-tar traversal here is redundant and generated proto peers
+        # do not expose package.json as a build output for that traversal.
+        if self.options.inject_peers and getattr(self.options, 'auto_deps_path', None):
+            return
+
         # package.json should be in BINDIR in order for extract_peer_tars to work
         source_package_json = pm_utils.build_pj_path(self.options.curdir)
         package_json_path = pm_utils.build_pj_path(self.options.bindir)
