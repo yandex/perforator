@@ -36,6 +36,12 @@ func (e *Expression) Repr() string {
 		return e.Identifier.Repr()
 	case e.Value != nil:
 		return e.Value.Repr()
+	case e.Vector != nil:
+		items := make([]string, len(e.Vector))
+		for i, item := range e.Vector {
+			items[i] = item.Repr()
+		}
+		return "[" + strings.Join(items, ", ") + "]"
 	}
 	return "invalid_expression"
 }
@@ -52,6 +58,8 @@ func (e *Expression) Kind() string {
 		return "identifier"
 	case e.Value != nil:
 		return "scalar"
+	case e.Vector != nil:
+		return "vector"
 	}
 	return "invalid_expression"
 }

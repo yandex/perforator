@@ -1,6 +1,8 @@
 package parserv2
 
 import (
+	"fmt"
+
 	"github.com/antlr4-go/antlr/v4"
 
 	"github.com/yandex/perforator/observability/lib/querylang"
@@ -45,6 +47,15 @@ func (p *parserImpl) ParseExpression(query string) (*querylang.Expression, error
 	ssp.AddErrorListener(l)
 
 	antlr.ParseTreeWalkerDefault.Walk(l, ssp.Expression())
+
+	if !l.hasErrors() {
+		if tok := stream.LT(1); tok != nil && tok.GetTokenType() != antlr.TokenEOF {
+			l.onSyntaxError(fmt.Errorf(
+				"unexpected token '%s' (at line %d, column %d)",
+				tok.GetText(), tok.GetLine(), tok.GetColumn(),
+			))
+		}
+	}
 
 	return l.getRoot(), l.getError()
 }

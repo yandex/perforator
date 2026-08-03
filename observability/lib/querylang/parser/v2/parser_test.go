@@ -274,6 +274,37 @@ func TestParseExpression(t *testing.T) {
 			ExpectedStr:  `filter({"project" = "smth", "service" = "wow"}, x -> all(eq(get(x, "a"), "x")))`,
 			ExpectedRepr: `filter({"project" = "smth" AND "service" = "wow"}, (x) -> all(eq(get(x, "a"), "x")))`,
 		},
+		{
+			Query:        `some_func([1, 2, 3])`,
+			ExpectedStr:  `some_func([1, 2, 3])`,
+			ExpectedRepr: `some_func([1, 2, 3])`,
+		},
+		{
+			Query:        `some_func(['a', 'b'])`,
+			ExpectedStr:  `some_func(["a", "b"])`,
+			ExpectedRepr: `some_func(["a", "b"])`,
+		},
+		{
+			Query:        `some_func([1, 2], [3, 4])`,
+			ExpectedStr:  `some_func([1, 2], [3, 4])`,
+			ExpectedRepr: `some_func([1, 2], [3, 4])`,
+		},
+		{
+			Query:         `some_func([], "test")`,
+			ExpectedError: `syntax error`,
+		},
+		{
+			Query:         `[1, 2, 3]`,
+			ExpectedError: `semantic error`,
+		},
+		{
+			Query:         `x -> [1, 2, 3]`,
+			ExpectedError: `semantic error`,
+		},
+		{
+			Query:         `some_func([[1, 2], [3, 4]])`,
+			ExpectedError: `semantic error`,
+		},
 
 		{
 			Query:         `filter({a = b}) by 'a'`,

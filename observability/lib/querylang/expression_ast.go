@@ -8,6 +8,7 @@ type Expression struct {
 	Selector     *Selector
 	Identifier   Identifier
 	Value        Value
+	Vector       []*Expression
 }
 
 type FunctionCall struct {

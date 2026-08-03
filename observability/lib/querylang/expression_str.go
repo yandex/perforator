@@ -62,6 +62,12 @@ func (e *Expression) ToString() (string, error) {
 		return e.Identifier.ToString()
 	case e.Value != nil:
 		return e.Value.ToString()
+	case e.Vector != nil:
+		items, err := arrayToString(e.Vector)
+		if err != nil {
+			return "", err
+		}
+		return "[" + strings.Join(items, ", ") + "]", nil
 	}
 	return "", fmt.Errorf("empty expression")
 }

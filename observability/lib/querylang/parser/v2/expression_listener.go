@@ -50,10 +50,13 @@ func (l *expressionListener) EnterExpression(c *parser.ExpressionContext) {
 
 	arg := &querylang.Expression{}
 
-	if l.top().FunctionCall != nil {
+	switch {
+	case l.top().FunctionCall != nil:
 		l.top().FunctionCall.Arguments = append(l.top().FunctionCall.Arguments, arg)
-	} else if l.top().Lambda != nil {
+	case l.top().Lambda != nil:
 		l.top().Lambda.Expression = arg
+	case l.top().Vector != nil:
+		l.top().Vector = append(l.top().Vector, arg)
 	}
 
 	l.push(arg)
@@ -155,6 +158,35 @@ func (l *expressionListener) EnterAtomIdent(c *parser.AtomIdentContext) {
 	l.top().Identifier = querylang.Identifier(c.IDENT().GetText())
 }
 
+func (l *expressionListener) EnterAtomVector(c *parser.AtomVectorContext) {
+	if l.hasErrors() {
+		return
+	}
+
+	if !isCallArgument(c) {
+		l.onSemanticError(fmt.Errorf("vector value is only allowed as a function argument"))
+		return
+	}
+
+	l.top().Vector = []*querylang.Expression{}
+}
+
+func isCallArgument(atom antlr.Tree) bool {
+	for node := atom; node != nil; node = node.GetParent() {
+		expr, ok := node.(*parser.ExpressionContext)
+		if !ok {
+			continue
+		}
+		sequence, ok := expr.GetParent().(*parser.SequenceContext)
+		if !ok {
+			return false
+		}
+		_, ok = sequence.GetParent().(*parser.ArgumentsContext)
+		return ok
+	}
+	return false
+}
+
 // --- Helpers ---
 
 func (l *expressionListener) pop() {
@@ -176,7 +208,7 @@ func isZeroExpression(e *querylang.Expression) bool {
 	if e == nil {
 		return true
 	}
-	return e.FunctionCall == nil && e.Lambda == nil && e.Selector == nil && e.Identifier == "" && e.Value == nil
+	return e.FunctionCall == nil && e.Lambda == nil && e.Selector == nil && e.Identifier == "" && e.Value == nil && e.Vector == nil
 }
 
 // --- Ensure no operators on expressions are used ---
@@ -224,10 +256,6 @@ func (l *expressionListener) EnterExprOr(c *parser.ExprOrContext) {
 }
 
 // --- Unsupported yet expressions ---
-
-func (l *expressionListener) EnterAtomVector(c *parser.AtomVectorContext) {
-	l.onSemanticError(fmt.Errorf("unexpected vector value"))
-}
 
 func (l *expressionListener) EnterAtomDuration(c *parser.AtomDurationContext) {
 	l.onSemanticError(fmt.Errorf("unexpected duration value"))
