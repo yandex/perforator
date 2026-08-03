@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-01T00:59:37.231Z",
+    "created": "2026-08-03T21:04:06.528Z",
     "pr": {
-      "id": 14758358,
+      "id": 14789367,
       "author": "baymer",
-      "summary": "FBP-3314: Enable injected workspace packages by default"
+      "summary": "FBP-3314: enable inject for t0-reporters"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13007551575"
+      "uri": "sbr:13032821679"
     },
     "darwin-arm64": {
-      "uri": "sbr:13007550875"
+      "uri": "sbr:13032819706"
     },
     "linux": {
-      "uri": "sbr:13007553561"
+      "uri": "sbr:13032825150"
     },
     "linux-aarch64": {
-      "uri": "sbr:13007552653"
+      "uri": "sbr:13032823492"
     }
   }
 }
