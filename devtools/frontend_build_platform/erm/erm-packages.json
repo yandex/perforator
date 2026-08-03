@@ -5453,7 +5453,6 @@
       "Changelog": "https://github.com/npm/cli/blob/latest/CHANGELOG.md",
       "Docs": "https://docs.npmjs.com/cli/v10/commands"
     },
-    "comment": "на 12 npm падает публикация (https://st.yandex-team.ru/DEVTOOLSSUPPORT-92011)",
     "specifier": "==11.18.0",
     "internal": true,
     "versions": {
@@ -6197,10 +6196,10 @@
     "specifier": "==10.33.4",
     "versions": {
       "10.33.4": {
-        "add_date": "2026-07-15T01:33:58",
+        "add_date": "2026-08-03T15:23:56",
         "resources": [
           {
-            "id": 12794858883,
+            "id": 13025788651,
             "platform": "any",
             "arch": "any"
           }
