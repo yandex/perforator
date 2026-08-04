@@ -18,6 +18,7 @@ RECURSE(
     perfevent
     pidfd
     procfs
+    procmem
     uname
     vdso
 )

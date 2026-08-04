@@ -14,6 +14,7 @@ END()
 
 RECURSE(
     linetable
+    remotemem
 )
 
 RECURSE_FOR_TESTS(

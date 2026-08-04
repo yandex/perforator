@@ -2,12 +2,10 @@ package jvmbindings
 
 import (
 	"fmt"
-	"unsafe"
-
-	"golang.org/x/sys/unix"
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
 	jvmproto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm"
+	"github.com/yandex/perforator/perforator/pkg/linux/procmem"
 )
 
 type JVM struct {
@@ -33,28 +31,9 @@ func (j *JVM) Version() uint32 {
 }
 
 func ReadScalar[T ~uintptr | uint64 | uint32 | uint16 | uint8 | int32 | int16](j *JVM, addr uintptr) (T, error) {
-	var out T
-	cnt := unsafe.Sizeof(out)
-	n, err := unix.ProcessVMReadv(
-		int(j.pid),
-		[]unix.Iovec{
-			{
-				Base: (*byte)(unsafe.Pointer(&out)),
-				Len:  uint64(cnt),
-			},
-		},
-		[]unix.RemoteIovec{
-			{
-				Base: addr,
-				Len:  int(cnt),
-			},
-		}, 0,
-	)
+	out, err := procmem.ReadScalar[T](int(j.pid), addr)
 	if err != nil {
-		return 0, fmt.Errorf("reading %d bytes at address %x failed: %w", cnt, addr, err)
-	}
-	if n != int(cnt) {
-		return 0, fmt.Errorf("partial read: read %d bytes, expected %d", n, cnt)
+		return 0, fmt.Errorf("reading at address %x failed: %w", addr, err)
 	}
 	return out, nil
 }
@@ -75,26 +54,8 @@ func ReadObjPtr[T ~struct {
 
 func (j *JVM) ReadBytes(addr uintptr, count int) ([]byte, error) {
 	out := make([]byte, count)
-	n, err := unix.ProcessVMReadv(
-		int(j.pid),
-		[]unix.Iovec{
-			{
-				Base: unsafe.SliceData(out),
-				Len:  uint64(count),
-			},
-		},
-		[]unix.RemoteIovec{
-			{
-				Base: addr,
-				Len:  (count),
-			},
-		}, 0,
-	)
-	if err != nil {
+	if err := procmem.Read(int(j.pid), addr, out); err != nil {
 		return nil, fmt.Errorf("reading %d bytes at address %x failed: %w", count, addr, err)
-	}
-	if n != count {
-		return nil, fmt.Errorf("partial read: read %d bytes, expected %d", n, count)
 	}
 	return out, nil
 }
