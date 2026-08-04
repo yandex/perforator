@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-07-24T20:28:22.975Z",
+    "created": "2026-08-04T13:59:45.225Z",
     "pr": {
-      "id": 14579033,
+      "id": 14735269,
       "author": "baymer",
-      "summary": "FBP-3287: Use RAM disk for hermetic node_modules"
+      "summary": "FBP-3309: Поменять логику с output.tar.uuid"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:12918260801"
+      "uri": "sbr:13042161077"
     },
     "darwin-arm64": {
-      "uri": "sbr:12918259867"
+      "uri": "sbr:13042157407"
     },
     "linux": {
-      "uri": "sbr:12918263145"
+      "uri": "sbr:13042167639"
     },
     "linux-aarch64": {
-      "uri": "sbr:12918261835"
+      "uri": "sbr:13042164162"
     }
   }
 }

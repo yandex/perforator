@@ -1,7 +1,8 @@
 import hashlib
 import os.path
-import re
+import posixpath
 import json
+import re
 import sys
 from pprint import pformat
 
@@ -22,25 +23,28 @@ def on_crash(exctype, value, traceback):
 sys.excepthook = on_crash
 
 
-FIXED_OUTPUT_TIMESTAMP = '2020-01-01T00:00:00+00:00'
 HASH_CHUNK_SIZE = 1024 * 1024
 
 
-def __add_uuid_for_output(bindir: str, output_file: str, outputs: list[str] | None):
-    uuid_file_name = f'{bindir}/{pm_constants.OUTPUT_TAR_UUID_FILENAME}'
-
+def __write_output_meta(bindir: str, output_file: str, outputs: list[str] | None):
     file_hash = hashlib.sha256()
     with open(output_file, 'rb') as output_f:
         for chunk in iter(lambda: output_f.read(HASH_CHUNK_SIZE), b''):
             file_hash.update(chunk)
-        uuid_str = file_hash.hexdigest()
 
-    with open(uuid_file_name, 'w') as f:
-        output_filename = os.path.basename(output_file)
-
-        f.write(f"{output_filename}: {uuid_str} - {FIXED_OUTPUT_TIMESTAMP}")
-        f.write("\noutputs: ")
-        json.dump(list(set(outputs)), f)
+    meta_path = os.path.join(bindir, pm_constants.OUTPUT_TAR_UUID_FILENAME)
+    # Metadata is shared between platforms, so keep paths in a stable POSIX form.
+    build_outputs = sorted(set(posixpath.normpath(output.replace('\\', '/')) for output in outputs or []))
+    with open(meta_path, 'w') as f:
+        json.dump(
+            {
+                "outputTar": {"sha256": file_hash.hexdigest()},
+                "buildOutputs": build_outputs,
+            },
+            f,
+            separators=(',', ':'),
+        )
+        f.write('\n')
 
 
 def _postprocess_output(args: AllOptions, outputs: list[str]) -> None:
@@ -51,9 +55,8 @@ def _postprocess_output(args: AllOptions, outputs: list[str]) -> None:
     if after_build_outdir:
         outputs.append(after_build_outdir)
 
-    if output_file and os.path.isfile(output_file):
-        if output_file != args.node_modules_bundle:
-            __add_uuid_for_output(args.bindir, output_file, [os.path.normpath(p) for p in outputs])
+    if output_file and output_file != args.node_modules_bundle and os.path.isfile(output_file):
+        __write_output_meta(args.bindir, output_file, outputs)
 
 
 def _get_ouput_large_dirs(args: AllOptions) -> list[str]:

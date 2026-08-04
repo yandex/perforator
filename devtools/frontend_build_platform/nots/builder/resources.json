@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-03T21:04:06.528Z",
+    "created": "2026-08-04T08:24:32.060Z",
     "pr": {
-      "id": 14789367,
+      "id": 14735269,
       "author": "baymer",
-      "summary": "FBP-3314: enable inject for t0-reporters"
+      "summary": "FBP-3309: Поменять логику с output.tar.uuid"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13032821679"
+      "uri": "sbr:13039617213"
     },
     "darwin-arm64": {
-      "uri": "sbr:13032819706"
+      "uri": "sbr:13039613907"
     },
     "linux": {
-      "uri": "sbr:13032825150"
+      "uri": "sbr:13039623719"
     },
     "linux-aarch64": {
-      "uri": "sbr:13032823492"
+      "uri": "sbr:13039620521"
     }
   }
 }
