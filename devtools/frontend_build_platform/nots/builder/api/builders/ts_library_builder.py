@@ -1,6 +1,8 @@
 import copy
+import json
 import os
 import shutil
+import tempfile
 import textwrap
 from dataclasses import dataclass
 
@@ -40,6 +42,9 @@ class BaseTsLibraryBuilderOptions(BaseBuildersOptions):
 class TsLibraryBuilderOptions(BaseTsLibraryBuilderOptions):
     build_script: str
     """name of a script from package.json#scripts"""
+
+    build_command: str | None = None
+    """inline command to execute as build_script instead of package.json#scripts"""
 
 
 class TsLibraryBuilder(BaseBuilder):
@@ -160,10 +165,36 @@ class TsLibraryBuilder(BaseBuilder):
     @timeit
     def _run_build_script(self):
         """Execute node --run <build_script> in bindir"""
+        package_json_path = None
+        package_json_backup_path = None
+        inline_package_json = None
+        if self.options.build_command:
+            package_json_path = pm_utils.build_pj_path(self.options.bindir)
+            with open(package_json_path, "rb") as package_json_file:
+                package_json = json.load(package_json_file)
+            package_json.setdefault("scripts", {})[self.options.build_script] = self.options.build_command
+            inline_package_json = json.dumps(package_json).encode("utf-8")
+
         args = [self.options.nodejs_bin, '--run', self.options.build_script]
         env = self._get_envs()
 
-        return_code, stdout, stderr = popen(args, env=env, cwd=self.options.bindir, verbose=self.options.verbose)
+        try:
+            if package_json_path is not None and inline_package_json is not None:
+                backup_fd, backup_path = tempfile.mkstemp(prefix="package-json-", suffix=".backup")
+                os.close(backup_fd)
+                try:
+                    shutil.copyfile(package_json_path, backup_path)
+                except Exception:
+                    os.unlink(backup_path)
+                    raise
+                package_json_backup_path = backup_path
+                with open(package_json_path, "wb") as package_json_file:
+                    package_json_file.write(inline_package_json)
+            return_code, stdout, stderr = popen(args, env=env, cwd=self.options.bindir, verbose=self.options.verbose)
+        finally:
+            if package_json_path is not None and package_json_backup_path is not None:
+                shutil.copyfile(package_json_backup_path, package_json_path)
+                os.unlink(package_json_backup_path)
 
         if return_code != 0:
             raise BuildError(self.options.command, return_code, stdout, stderr)

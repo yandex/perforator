@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-04T08:24:32.060Z",
+    "created": "2026-08-04T23:16:17.886Z",
     "pr": {
-      "id": 14735269,
+      "id": 14746534,
       "author": "baymer",
-      "summary": "FBP-3309: Поменять логику с output.tar.uuid"
+      "summary": "FBP-3198: Добавить в TS_BUILD_SCRIPT опциональный параметр со скриптом"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13039617213"
+      "uri": "sbr:13048023624"
     },
     "darwin-arm64": {
-      "uri": "sbr:13039613907"
+      "uri": "sbr:13048022294"
     },
     "linux": {
-      "uri": "sbr:13039623719"
+      "uri": "sbr:13048026256"
     },
     "linux-aarch64": {
-      "uri": "sbr:13039620521"
+      "uri": "sbr:13048024897"
     }
   }
 }

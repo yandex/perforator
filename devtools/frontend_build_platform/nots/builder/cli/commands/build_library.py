@@ -12,6 +12,11 @@ def add_library_builder_args(subparser: ArgumentParser) -> ArgumentParser:
     subparser.add_argument('--outputs', required=True, nargs='+', help="List of output directories for the build")
 
     subparser.add_argument('--build-script', required=True, help="Name of the npm script from package.json to execute")
+    subparser.add_argument(
+        '--build-command',
+        required=False,
+        help="Inline command to execute as --build-script without changing the source package.json",
+    )
 
     subparser.add_argument(
         '--exclude-globs', required=False, nargs='*', default=[], help="Glob patterns to exclude when copying files"

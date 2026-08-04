@@ -1,11 +1,13 @@
 import os
-import textwrap
+import shlex
+
+import pytest
 
 from devtools.frontend_build_platform.nots.builder.cli.cli_args import get_args_parser, parse_args
 
 
 def split_to_argv(command: str) -> list[str]:
-    return textwrap.dedent(command).strip().replace('\n', ' ').split(' ')
+    return shlex.split(command)
 
 
 def __convert_args_to_dict(command_args: str, nots_builder_verbose_env: str = '') -> dict[str, str]:
@@ -112,9 +114,19 @@ def test_create_node_modules_bundle_args():
     )
 
 
-def test_build_library_args():
+@pytest.mark.parametrize(
+    ("build_command_arg", "expected_build_command"),
+    [
+        ("", None),
+        (
+            '--build-command "tsc -c tsconfig.json && node --run build:esm"',
+            'tsc -c tsconfig.json && node --run build:esm',
+        ),
+    ],
+)
+def test_build_library_args(build_command_arg, expected_build_command):
     # arrange
-    command_args = """
+    command_args = f"""
         --arcadia-root /Users/khoden/arcadia
         --arcadia-build-root /Users/khoden/.ya/build/build_root/5gxr/000067
         --moddir devtools/dummy_arcadia/typescript/library
@@ -126,6 +138,7 @@ def test_build_library_args():
         --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/library/output.tar
         --outputs dist build
         --build-script build
+        {build_command_arg}
         --exclude-globs ya.make (.idea|.vscode|node_modules)/**/*
         --vcs-info /path/to/vcs_info.json
         --env NODE_ENV=production
@@ -163,6 +176,7 @@ def test_build_library_args():
         vcs_info='/path/to/vcs_info.json',
         outputs=['dist', 'build'],
         build_script='build',
+        build_command=expected_build_command,
         exclude_globs=["ya.make", "(.idea|.vscode|node_modules)/**/*"],
     )
 
