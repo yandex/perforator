@@ -186,7 +186,13 @@ func (s *BinaryStorage) LoadBinary(
 		return nil, fmt.Errorf("no blob for binary %s", meta.BuildID)
 	}
 
-	err = s.blobStorage.Get(ctx, meta.BlobInfo.ID, writer)
+	r, err := s.blobStorage.Get(ctx, meta.BlobInfo.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	_, err = io.Copy(io.NewOffsetWriter(writer, 0), r)
 	if err != nil {
 		return nil, err
 	}

@@ -1,16 +1,19 @@
 package s3
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"sync/atomic"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"golang.org/x/sync/errgroup"
 
@@ -35,16 +38,24 @@ var _ models.Storage = (*S3Storage)(nil)
 type mdsStorageMetrics struct {
 	bytesDownloaded metrics.Counter
 	bytesUploaded   metrics.Counter
+	// degradedDownloads counts Get calls that could not use the parallel
+	// ranged path, by reason.
+	degradedDownloads metrics.CounterVec
 }
 
 type S3Storage struct {
 	bucket string
 	l      xlog.Logger
 
-	client     *s3client.Client
-	uploader   *s3manager.Uploader
+	client   s3iface.S3API
+	uploader *s3manager.Uploader
+	deleter  *s3manager.BatchDelete
+	// downloader is used with an explicit Range only: that path downloads
+	// the single range synchronously (no internal part fan-out) while
+	// keeping the SDK's interrupted-body retry loop.
 	downloader *s3manager.Downloader
-	deleter    *s3manager.BatchDelete
+
+	downloadCfg models.ParallelDownloadConfig
 
 	metrics *mdsStorageMetrics
 }
@@ -61,15 +72,16 @@ func NewS3Storage(l xlog.Logger, reg metrics.Registry, client *s3client.Client, 
 			d.Concurrency = UploadConcurrency
 		}),
 		downloader: s3manager.NewDownloaderWithClient(client, func(d *s3manager.Downloader) {
-			d.Concurrency = downloadCfg.Concurrency
-			d.PartSize = downloadCfg.PartSize
+			d.Concurrency = 1
 		}),
+		downloadCfg: downloadCfg,
 		deleter: s3manager.NewBatchDeleteWithClient(client, func(d *s3manager.BatchDelete) {
 			d.BatchSize = s3manager.DefaultBatchSize
 		}),
 		metrics: &mdsStorageMetrics{
-			bytesDownloaded: reg.Counter("downloaded.bytes"),
-			bytesUploaded:   reg.Counter("uploaded.bytes"),
+			bytesDownloaded:   reg.Counter("downloaded.bytes"),
+			bytesUploaded:     reg.Counter("uploaded.bytes"),
+			degradedDownloads: reg.CounterVec("degraded_downloads.count", []string{"reason"}),
 		},
 	}, nil
 }
@@ -143,34 +155,148 @@ func isNoExistError(err error) bool {
 	return false
 }
 
-// Get implements Storage
-func (s *S3Storage) Get(ctx context.Context, key string, w io.WriterAt) error {
-	l := s.keylog(key)
-	l.Debug(ctx, "Fetching blob")
-	start := time.Now()
+// Get implements Storage. The first ranged request discovers the blob size;
+// larger blobs are streamed with parallel ranged fetches ahead of the reader.
+func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	out, err := s.client.GetObjectWithContext(ctx, &s3.GetObjectInput{
+		Bucket: &s.bucket,
+		Key:    &key,
+		Range:  aws.String(fmt.Sprintf("bytes=0-%d", s.downloadCfg.PartSize-1)),
+	})
+	if err != nil {
+		if isInvalidRangeError(err) {
+			// A ranged GET on a zero-length blob is unsatisfiable. Rather
+			// than assign the error code any broader meaning, fall back to a
+			// plain GET: an empty object yields an empty stream, anything
+			// else downloads sequentially.
+			s.degraded("invalid_range")
+			return s.getSequential(ctx, key)
+		}
+		if isNoExistError(err) {
+			err = &models.ErrNoExist{Err: err, Key: key}
+		}
+		s.keylog(key).Error(ctx, "Failed to fetch blob", log.Error(err))
+		return nil, err
+	}
 
-	count, err := s.downloader.DownloadWithContext(ctx, w, &s3.GetObjectInput{
+	if out.ContentRange == nil {
+		// The server ignored Range and is returning the whole object: stream
+		// it sequentially instead of buffering an unbounded body.
+		s.degraded("range_ignored")
+		return &meteredReader{r: out.Body, counter: s.metrics.bytesDownloaded}, nil
+	}
+	total, ok := contentRangeTotal(*out.ContentRange)
+	if !ok {
+		// Unknown total (e.g. "bytes 0-N/*", the same case the aws
+		// downloader degrades on): one sequential unranged GET.
+		s.degraded("unknown_total")
+		_ = out.Body.Close()
+		return s.getSequential(ctx, key)
+	}
+	etag := out.ETag
+
+	firstLen := min(total, s.downloadCfg.PartSize)
+	first := make([]byte, firstLen)
+	_, err = io.ReadFull(out.Body, first)
+	_ = out.Body.Close()
+	if err != nil {
+		// Interrupted initial body: refetch the range through the retrying
+		// downloader.
+		s.degraded("first_part_refetch")
+		first, err = s.fetchPart(ctx, key, etag, 0, firstLen-1)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		s.metrics.bytesDownloaded.Add(firstLen)
+	}
+
+	if total <= s.downloadCfg.PartSize {
+		return io.NopCloser(bytes.NewReader(first)), nil
+	}
+
+	fetch := func(ctx context.Context, start, end int64) ([]byte, error) {
+		return s.fetchPart(ctx, key, etag, start, end)
+	}
+
+	return newRangedReader(ctx, fetch, first, total, s.downloadCfg.Concurrency, s.downloadCfg.PartSize), nil
+}
+
+// fetchPart downloads bytes [start, end] of the object through the SDK
+// downloader, which retries interrupted bodies; the explicit Range keeps it to
+// a single synchronous ranged request. IfMatch pins the object version seen by
+// the initial request so a concurrent overwrite cannot splice two versions
+// into one stream.
+func (s *S3Storage) fetchPart(ctx context.Context, key string, etag *string, start, end int64) ([]byte, error) {
+	buf := aws.NewWriteAtBuffer(make([]byte, 0, end-start+1))
+	n, err := s.downloader.DownloadWithContext(ctx, buf, &s3.GetObjectInput{
+		Bucket:  &s.bucket,
+		Key:     &key,
+		Range:   aws.String(fmt.Sprintf("bytes=%d-%d", start, end)),
+		IfMatch: etag,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if n != end-start+1 {
+		return nil, fmt.Errorf("range %d-%d of %s: expected %d bytes, got %d", start, end, key, end-start+1, n)
+	}
+	s.metrics.bytesDownloaded.Add(n)
+	return buf.Bytes(), nil
+}
+
+func (s *S3Storage) degraded(reason string) {
+	s.metrics.degradedDownloads.With(map[string]string{"reason": reason}).Inc()
+}
+
+func isInvalidRangeError(err error) bool {
+	var aerr awserr.Error
+	return errors.As(err, &aerr) && aerr.Code() == "InvalidRange"
+}
+
+// contentRangeTotal extracts the total length from a Content-Range header
+// value of the form "bytes 0-123/456"; "*" means the server does not know the
+// total. Mirrors the aws downloader's private setTotalBytes:
+// https://github.com/aws/aws-sdk-go/blob/main/service/s3/s3manager/download.go
+func contentRangeTotal(contentRange string) (int64, bool) {
+	_, totalStr, found := strings.Cut(contentRange, "/")
+	if !found || totalStr == "*" {
+		return 0, false
+	}
+	total, err := strconv.ParseInt(totalStr, 10, 64)
+	if err != nil || total < 0 {
+		return 0, false
+	}
+	return total, true
+}
+
+func (s *S3Storage) getSequential(ctx context.Context, key string) (io.ReadCloser, error) {
+	out, err := s.client.GetObjectWithContext(ctx, &s3.GetObjectInput{
 		Bucket: &s.bucket,
 		Key:    &key,
 	})
-
-	s.metrics.bytesDownloaded.Add(count)
-
 	if err != nil {
 		if isNoExistError(err) {
 			err = &models.ErrNoExist{Err: err, Key: key}
 		}
-		l.Error(ctx, "Failed to fetch blob", log.Error(err))
-		return err
-	} else {
-		l.Debug(ctx, "Fetched blob",
-			log.Int64("size", count),
-			log.Duration("duration", time.Since(start)),
-		)
+		return nil, err
 	}
-
-	return nil
+	return &meteredReader{r: out.Body, counter: s.metrics.bytesDownloaded}, nil
 }
+
+// meteredReader charges the transfer counter as bytes arrive.
+type meteredReader struct {
+	r       io.ReadCloser
+	counter metrics.Counter
+}
+
+func (m *meteredReader) Read(p []byte) (int, error) {
+	n, err := m.r.Read(p)
+	m.counter.Add(int64(n))
+	return n, err
+}
+
+func (m *meteredReader) Close() error { return m.r.Close() }
 
 func (s *S3Storage) Size(ctx context.Context, key string) (uint64, error) {
 	l := s.keylog(key)

@@ -65,7 +65,13 @@ func (s *gsymStorage) LoadGSYM(
 		return nil, err
 	}
 
-	err = s.blobStorage.Get(ctx, buildID, writer)
+	r, err := s.blobStorage.Get(ctx, buildID)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	_, err = io.Copy(io.NewOffsetWriter(writer, 0), r)
 	if err != nil {
 		return nil, err
 	}

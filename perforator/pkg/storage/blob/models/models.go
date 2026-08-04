@@ -36,7 +36,9 @@ type Pagination struct {
 type Storage interface {
 	Put(ctx context.Context, key string) (Writer, error)
 
-	Get(ctx context.Context, key string, w io.WriterAt) error
+	// Get streams the blob sequentially. Implementations are free to fetch
+	// ahead in parallel under the hood.
+	Get(ctx context.Context, key string) (io.ReadCloser, error)
 
 	Size(ctx context.Context, key string) (uint64, error)
 

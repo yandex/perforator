@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -164,14 +165,13 @@ func (s *ProfileStorage) getBlob(ctx context.Context, key meta.ProfileID) (Profi
 	}
 	defer s.downloadSemaphore.Release(1)
 
-	buf := util.NewWriteAtBuffer(nil)
-
-	err := s.BlobStorage.Get(ctx, string(key), buf)
+	r, err := s.BlobStorage.Get(ctx, string(key))
 	if err != nil {
 		return nil, err
 	}
+	defer r.Close()
 
-	return buf.Bytes(), nil
+	return io.ReadAll(r)
 }
 
 // implements profilestorage.Storage

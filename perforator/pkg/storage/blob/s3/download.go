@@ -16,8 +16,5 @@ func defaultParallelDownloadConfig() models.ParallelDownloadConfig {
 }
 
 func (s *S3Storage) ParallelDownloadConfig() models.ParallelDownloadConfig {
-	return models.ParallelDownloadConfig{
-		Concurrency: s.downloader.Concurrency,
-		PartSize:    s.downloader.PartSize,
-	}
+	return s.downloadCfg
 }

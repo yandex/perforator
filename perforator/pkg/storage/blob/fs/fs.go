@@ -11,7 +11,6 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
-	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -50,20 +49,15 @@ func (s *FSStorage) DeleteObjects(ctx context.Context, keys []string) error {
 }
 
 // Get implements Storage
-func (s *FSStorage) Get(ctx context.Context, key string, w io.WriterAt) error {
+func (s *FSStorage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	f, err := os.Open(s.makepath(key))
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = &models.ErrNoExist{Err: err, Key: key}
 		}
-		return fmt.Errorf("failed to locate key %s: %w", key, err)
+		return nil, fmt.Errorf("failed to locate key %s: %w", key, err)
 	}
-
-	_, err = io.Copy(util.WrapWriterAt(w), f)
-	if err != nil {
-		return err
-	}
-	return nil
+	return f, nil
 }
 
 // Size implements Storage
