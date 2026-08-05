@@ -25,7 +25,7 @@ To see the list of already-collected profiles that that can be used for a flameg
 
 See further instructions on perforator querylang [here](../reference/querylang.md). It can be used to switch the profile type from default (cycles) to wall time profiling and other perf events, and many other things.
 
-Once you select a service, you will see a table with all the profiles collected for such a selector. 
+Once you select a service, you will see a table with all the profiles collected for such a selector.
 
 If you click the profile id link, a flamegraph will be built right away. It will come with the profile id inlined into the selector.
 
@@ -37,9 +37,27 @@ Note that the bigger the sample size the longer it will take to merge and build 
 
 Once you click the "Merge profiles" button, you will be redirected to the flamegraph page. At first, you will see the progress bar while flamegraph is being prepared, and after a while you will see the flamegraph.
 
-## Flamegraph
+## Visualisations
+
+### Flamegraph
 
 ![Perforator UI Flamegraph](../../_assets/ui-flame-page.png)
+
+#### Context menu
+
+On right button click on flamegraph nodes, you get context menu that allows some basic flamegraph manipulation and simplifies copying function names and file paths.
+
+![UI context menu](../../_assets/ui-context-menu.png){width=400}
+
+### Top
+
+![Perforator UI Top](../../_assets/ui-top-page.png)
+
+### Interactive side by side
+
+![Perforator UI SBS](../../_assets/ui-sbs-page.png)
+
+Functions top on the left automatically recalculates after clicks on the flamegraph.
 
 ## History
 
