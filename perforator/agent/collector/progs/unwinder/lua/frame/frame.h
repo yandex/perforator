@@ -22,6 +22,7 @@ static ALWAYS_INLINE void lua_frame_set_key(struct interpreter_frame* interprete
 
     key->object_addr = object_address;
     key->linestart = linestart;
+    interpreter_frame->position_info = 0;
 }
 
 /**

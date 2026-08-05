@@ -28,6 +28,9 @@ struct symbol {
 
 struct interpreter_frame {
     struct symbol_key symbol_key;
+    // Opaque language-defined sample-time position. Zero if unused.
+    // Interpreted by the corresponding userspace symbolizer.
+    u64 position_info;
 };
 
 BPF_MAP(interpreter_symbols, BPF_MAP_TYPE_LRU_HASH, struct symbol_key, struct symbol, MAX_SYMBOLS_SIZE);

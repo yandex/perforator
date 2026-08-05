@@ -44,4 +44,10 @@ SRCS(
     sample_parser.go
 )
 
+GO_TEST_SRCS(sample_parser_test.go)
+
 END()
+
+RECURSE_FOR_TESTS(
+    gotest
+)

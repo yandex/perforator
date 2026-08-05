@@ -191,6 +191,7 @@ func decodeInterpreterFrames(data []byte, stack *InterpreterStack) {
 		stack.Frames[i].SymbolKey.ObjectAddr = le.Uint64(data[off : off+8])
 		stack.Frames[i].SymbolKey.Pid = le.Uint32(data[off+8 : off+12])
 		stack.Frames[i].SymbolKey.Linestart = int32(le.Uint32(data[off+12 : off+16]))
+		stack.Frames[i].PositionInfo = le.Uint64(data[off+16 : off+24])
 	}
 }
 

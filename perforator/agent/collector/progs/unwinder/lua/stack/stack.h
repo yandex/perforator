@@ -141,9 +141,9 @@ static ALWAYS_INLINE void lua_stack_reset(struct lua_state* state) {
  * @param state Lua unwind state.
  * @param frame Interpreter frame.
  */
-static ALWAYS_INLINE void lua_stack_push(struct lua_state* state, struct interpreter_frame interpreter_frame) {
+static NOINLINE void lua_stack_push(struct lua_state* state, struct interpreter_frame* frame) {
     state->stack.len &= LUA_MAX_STACK_DEPTH_VERIFIER_MASK;
-    state->stack.frames[state->stack.len] = interpreter_frame;
+    state->stack.frames[state->stack.len] = *frame;
     ++state->stack.len;
 }
 
@@ -195,7 +195,7 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
         enum lua_stack_step_result status = lua_stack_step();
 
         if (status & LUA_STACK_STEP_RESULT_HAS_FRAME) {
-            lua_stack_push(state, context->interpreter_frame);
+            lua_stack_push(state, &context->interpreter_frame);
         }
 
         if ((status & LUA_STACK_STEP_RESULT_CONTINUE) == 0) {
