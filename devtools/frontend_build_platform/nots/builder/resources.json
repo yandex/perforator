@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-05T12:03:11.964Z",
+    "created": "2026-08-04T23:16:17.886Z",
     "pr": {
-      "id": 14752033,
+      "id": 14746534,
       "author": "baymer",
-      "summary": "FBP-3313: Убрать промежуточный pre.pnpm-lock.yaml из TS_PREPARE_DEPS"
+      "summary": "FBP-3198: Добавить в TS_BUILD_SCRIPT опциональный параметр со скриптом"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13055466139"
+      "uri": "sbr:13048023624"
     },
     "darwin-arm64": {
-      "uri": "sbr:13055460908"
+      "uri": "sbr:13048022294"
     },
     "linux": {
-      "uri": "sbr:13055476821"
+      "uri": "sbr:13048026256"
     },
     "linux-aarch64": {
-      "uri": "sbr:13055471341"
+      "uri": "sbr:13048024897"
     }
   }
 }
