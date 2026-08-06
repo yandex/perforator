@@ -10,7 +10,8 @@
   },
   "_PyInterpreterFrame": {
     "f_code": 32,
-    "previous": 48
+    "previous": 48,
+    "instr_ptr": 56
   },
   "_PyRuntimeState": {
     "interpreters.main": 48
@@ -30,7 +31,13 @@
   "PyCodeObject": {
     "co_firstlineno": 72,
     "co_filename": 112,
-    "co_qualname": 128
+    "co_qualname": 128,
+    "co_code_adaptive": 184,
+    "co_linetable": 136
+  },
+  "PyBytesObject": {
+    "ob_size": 16,
+    "ob_sval": 32
   },
   "Py_tss_t": {
     "_is_initialized": 0,
