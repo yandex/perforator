@@ -309,7 +309,7 @@ func (s *Service) push(stream perforatorstorage.PerforatorStorage_PushBinaryServ
 		if err == nil || committed {
 			return
 		}
-		abortCtx, cancel := context.WithTimeout(context.Background(), abortTimeout)
+		abortCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), abortTimeout)
 		defer cancel()
 		if abortErr := writer.Abort(abortCtx); abortErr != nil {
 			s.metrics.abortsFailed.Inc()

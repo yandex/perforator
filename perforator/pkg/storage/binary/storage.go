@@ -53,9 +53,11 @@ type BinaryStorageWriter struct {
 	blobWriter blob.Writer
 	lastPing   time.Time
 	logger     xlog.Logger
+	ctx        context.Context
 }
 
 func NewBinaryStorageWriter(
+	ctx context.Context,
 	buildID string,
 	commiter binarymeta.Commiter,
 	storage *BinaryStorage,
@@ -68,12 +70,13 @@ func NewBinaryStorageWriter(
 		blobWriter: writer,
 		lastPing:   time.Now(),
 		logger:     storage.logger.With(log.String("build_id", buildID)),
+		ctx:        ctx,
 	}, nil
 }
 
 func (w *BinaryStorageWriter) maybePing() {
 	if time.Since(w.lastPing) > 30*time.Second {
-		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+		ctx, cancel := context.WithTimeout(w.ctx, 5*time.Second)
 		defer cancel()
 		err := w.commiter.Ping(ctx)
 		if err != nil {
@@ -146,7 +149,7 @@ func (s *BinaryStorage) StoreBinary(
 		return nil, err
 	}
 
-	return NewBinaryStorageWriter(buildID, commiter, s, writer)
+	return NewBinaryStorageWriter(ctx, buildID, commiter, s, writer)
 }
 
 func (s *BinaryStorage) loadBinaryMeta(
