@@ -3,5 +3,6 @@ RECURSE(
     grpcreg
     grpclog
     grpcmetrics
+    hostname
     interceptors
 )

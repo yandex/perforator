@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,9 +11,11 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/client/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/client/storage"
 	"github.com/yandex/perforator/perforator/pkg/endpointsetresolver"
+	"github.com/yandex/perforator/perforator/pkg/grpcutil/hostname"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/interceptors/rate_limit"
 	"github.com/yandex/perforator/perforator/pkg/storage/creds"
 	storagetvm "github.com/yandex/perforator/perforator/pkg/storage/tvm"
@@ -80,6 +83,13 @@ func NewGatewayClient(conf *Config, l xlog.Logger) (*GatewayClient, error) {
 
 	if creds != nil {
 		opts = append(opts, grpc.WithPerRPCCredentials(creds))
+	}
+
+	host, err := os.Hostname()
+	if err != nil {
+		l.Debug(context.TODO(), "Failed to resolve hostname for request metadata", log.Error(err))
+	} else if host != "" {
+		opts = append(opts, grpc.WithPerRPCCredentials(hostname.NewCredentials(host)))
 	}
 
 	rateLimitInterceptor := rate_limit.NewRateLimitInterceptor(conf.RateLimit)

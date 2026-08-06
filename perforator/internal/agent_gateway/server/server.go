@@ -17,6 +17,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/storage"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpcmetrics"
+	"github.com/yandex/perforator/perforator/pkg/grpcutil/hostname"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/creds"
 	storagetvm "github.com/yandex/perforator/perforator/pkg/storage/tvm"
@@ -174,6 +175,10 @@ func NewServer(
 
 	var unaryServerInterceptors []grpc.UnaryServerInterceptor
 	var streamServerInterceptors []grpc.StreamServerInterceptor
+
+	hostnameInterceptor := hostname.NewServerInterceptor()
+	unaryServerInterceptors = append(unaryServerInterceptors, hostnameInterceptor.Unary())
+	streamServerInterceptors = append(streamServerInterceptors, hostnameInterceptor.Stream())
 
 	credsInterceptor, err := getInterceptor(conf, logger)
 	if err != nil {
