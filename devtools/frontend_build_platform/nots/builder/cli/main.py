@@ -10,6 +10,7 @@ from build.plugins.lib.nots.package_manager import constants as pm_constants, ut
 from devtools.frontend_build_platform.libraries.logging import init_logging, timeit_options
 from devtools.frontend_build_platform.nots.builder.api import BuildError
 from devtools.frontend_build_platform.nots.builder.cli.cli_args import AllOptions, get_args_parser, parse_args
+from devtools.frontend_build_platform.nots.builder.cli.recipes import is_recipe_invocation, run_recipe
 
 
 def on_crash(exctype, value, traceback):
@@ -79,6 +80,10 @@ def _get_ouput_large_dirs(args: AllOptions) -> list[str]:
 
 # @timeit тут нельзя, т.к. измерение включается внутри
 def main():
+    if is_recipe_invocation(sys.argv[1:]):
+        run_recipe()
+        return
+
     args_parser = get_args_parser()
     args: AllOptions = parse_args(args_parser)
 

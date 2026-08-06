@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-04T23:16:17.886Z",
+    "created": "2026-08-06T12:49:20.632Z",
     "pr": {
-      "id": 14746534,
+      "id": 14848432,
       "author": "baymer",
-      "summary": "FBP-3198: Добавить в TS_BUILD_SCRIPT опциональный параметр со скриптом"
+      "summary": "FBP-3327: nots/builder: объединить рецепты с билдером"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13048023624"
+      "uri": "sbr:13073708105"
     },
     "darwin-arm64": {
-      "uri": "sbr:13048022294"
+      "uri": "sbr:13073702352"
     },
     "linux": {
-      "uri": "sbr:13048026256"
+      "uri": "sbr:13073719300"
     },
     "linux-aarch64": {
-      "uri": "sbr:13048024897"
+      "uri": "sbr:13073713220"
     }
   }
 }

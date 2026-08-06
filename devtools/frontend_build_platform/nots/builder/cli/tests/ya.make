@@ -5,6 +5,7 @@ TEST_SRCS(
     test_cli_args.py
     test_models.py
     test_output_meta.py
+    test_recipes.py
 )
 
 PEERDIR(
