@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-07T14:44:37Z",
+    "created": "2026-08-07T17:18:11.719Z",
     "pr": {
-      "id": 14886121,
+      "id": 14864676,
       "author": "baymer",
-      "summary": "FBP-3198: fix writing to package.json for autoproto"
+      "summary": "FBP-3313: Убрать промежуточный pre.pnpm-lock.yaml из TS_PREPARE_DEPS"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13093223039"
+      "uri": "sbr:13095479801"
     },
     "darwin-arm64": {
-      "uri": "sbr:13093219431"
+      "uri": "sbr:13095478024"
     },
     "linux": {
-      "uri": "sbr:13093229572"
+      "uri": "sbr:13095484158"
     },
     "linux-aarch64": {
-      "uri": "sbr:13093226135"
+      "uri": "sbr:13095482314"
     }
   }
 }
