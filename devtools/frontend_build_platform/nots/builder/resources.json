@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-06T12:49:20.632Z",
+    "created": "2026-08-07T14:44:37Z",
     "pr": {
-      "id": 14848432,
+      "id": 14886121,
       "author": "baymer",
-      "summary": "FBP-3327: nots/builder: объединить рецепты с билдером"
+      "summary": "FBP-3198: fix writing to package.json for autoproto"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13073708105"
+      "uri": "sbr:13093223039"
     },
     "darwin-arm64": {
-      "uri": "sbr:13073702352"
+      "uri": "sbr:13093219431"
     },
     "linux": {
-      "uri": "sbr:13073719300"
+      "uri": "sbr:13093229572"
     },
     "linux-aarch64": {
-      "uri": "sbr:13073713220"
+      "uri": "sbr:13093226135"
     }
   }
 }
