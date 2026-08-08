@@ -118,19 +118,19 @@ class BaseBuilder(object):
 
     @timeit
     def _prepare_dependencies(self):
-        # Auto-proto installs its injected workspace before generation. Repeating
-        # legacy peer-tar traversal here is redundant and generated proto peers
-        # do not expose package.json as a build output for that traversal.
-        if self.options.inject_peers and getattr(self.options, 'auto_deps_path', None):
-            return
-
-        # package.json should be in BINDIR in order for extract_peer_tars to work
-        source_package_json = pm_utils.build_pj_path(self.options.curdir)
         package_json_path = pm_utils.build_pj_path(self.options.bindir)
-        copy_writable_file(
-            source_package_json if os.path.exists(source_package_json) else package_json_path,
-            package_json_path,
-        )
+        required_paths = [package_json_path, pm_utils.build_lockfile_path(self.options.bindir)]
+        missing_paths = [path for path in required_paths if not os.path.exists(path)]
+        if missing_paths:
+            raise BuildError(
+                self.options.command,
+                1,
+                "",
+                "TS_PREPARE_DEPS did not materialize required files: {}".format(
+                    ", ".join(os.path.basename(path) for path in missing_paths)
+                ),
+            )
+        copy_writable_file(package_json_path, package_json_path)
         self.__extract_peer_tars(self.options.bindir, build_root=self.options.arcadia_build_root)
 
     def _get_base_env(self, extra_paths: list[str] = []) -> dict[str, str]:
@@ -239,6 +239,7 @@ class BaseLegacyBuilder(BaseBuilder):
             pm_constants.BUNDLE_DIRNAME,
             # Dependencies
             pm_constants.NODE_MODULES_DIRNAME,
+            pm_constants.PACKAGE_JSON_FILENAME,
             pm_constants.PNPM_LOCKFILE_FILENAME,
             # ya-make artifacts
             pm_constants.NODE_MODULES_WORKSPACE_BUNDLE_FILENAME,

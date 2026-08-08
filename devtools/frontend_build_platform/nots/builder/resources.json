@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-07T19:17:35Z",
+    "created": "2026-08-07T22:34:27.373Z",
     "pr": {
-      "id": 14864676,
+      "id": 14890689,
       "author": "baymer",
-      "summary": "FBP-3313: Убрать промежуточный pre.pnpm-lock.yaml из TS_PREPARE_DEPS"
+      "summary": "FBP-3329: use prepare-deps manifests in TS build nodes"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13096419247"
+      "uri": "sbr:13097669989"
     },
     "darwin-arm64": {
-      "uri": "sbr:13096418037"
+      "uri": "sbr:13097668965"
     },
     "linux": {
-      "uri": "sbr:13096421578"
+      "uri": "sbr:13097671805"
     },
     "linux-aarch64": {
-      "uri": "sbr:13096420170"
+      "uri": "sbr:13097670897"
     }
   }
 }

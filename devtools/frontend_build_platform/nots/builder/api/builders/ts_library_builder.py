@@ -146,17 +146,22 @@ class TsLibraryBuilder(BaseBuilder):
         else:
             super()._prepare_bindir()
 
-        exclude_globs = self.options.exclude_globs + [f"{o}/**/*" for o in self.options.outputs]
+        exclude_globs = self.options.exclude_globs + [
+            pm_constants.PACKAGE_JSON_FILENAME,
+            pm_constants.PNPM_LOCKFILE_FILENAME,
+            *[f"{o}/**/*" for o in self.options.outputs],
+        ]
         copy_files_with_exclusions(self.options.curdir, self.options.bindir, exclude_globs)
         if self._ram_disk_usage == RamDiskUsage.FULL_BUILD:
             self._copy_workspace_peer_package_jsons()
 
     def _copy_workspace_peer_package_jsons(self):
-        package_json = PackageJson.load(pm_utils.build_pj_path(self.options.curdir))
+        bindir = getattr(self, "_original_bindir", None) or self.options.bindir
+        package_json_path = pm_utils.build_pj_path(bindir)
+        package_json = PackageJson.load(package_json_path)
 
-        for peer_source_path in package_json.get_workspace_dep_paths():
-            peer_moddir = os.path.relpath(peer_source_path, self.options.arcadia_root)
-            source_package_json = pm_utils.build_pj_path(os.path.join(self.options.arcadia_build_root, peer_moddir))
+        for peer_build_path in package_json.get_workspace_dep_paths():
+            source_package_json = pm_utils.build_pj_path(peer_build_path)
             assert self._ram_disk is not None
             ram_package_json = self._ram_disk.path(self.options.arcadia_build_root, source_package_json)
             os.makedirs(os.path.dirname(ram_package_json), exist_ok=True)
