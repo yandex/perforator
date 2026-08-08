@@ -18495,7 +18495,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.22.5
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.146.3
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.147.1
 ## explicit; go 1.24.0
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
