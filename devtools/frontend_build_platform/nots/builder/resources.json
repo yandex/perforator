@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-07T22:34:27.373Z",
+    "created": "2026-08-08T13:15:43.959Z",
     "pr": {
-      "id": 14890689,
+      "id": 14896643,
       "author": "baymer",
-      "summary": "FBP-3329: use prepare-deps manifests in TS build nodes"
+      "summary": "FBP-3313: быстро фикс тестов"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13097669989"
+      "uri": "sbr:13101123818"
     },
     "darwin-arm64": {
-      "uri": "sbr:13097668965"
+      "uri": "sbr:13101122819"
     },
     "linux": {
-      "uri": "sbr:13097671805"
+      "uri": "sbr:13101126022"
     },
     "linux-aarch64": {
-      "uri": "sbr:13097670897"
+      "uri": "sbr:13101124952"
     }
   }
 }

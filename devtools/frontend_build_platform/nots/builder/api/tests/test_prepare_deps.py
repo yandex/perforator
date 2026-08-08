@@ -57,6 +57,7 @@ importers:
 def test_prepare_deps_accepts_dependency_free_lockfile(monkeypatch, tmp_path):
     args = _prepare_deps_args(tmp_path)
     (tmp_path / "project" / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\nimporters:\n  .: {}\n")
+    built_lockfile = tmp_path / "build" / "project" / "pnpm-lock.yaml"
 
     class PackageManager:
         def __init__(self, **kwargs):
@@ -69,7 +70,8 @@ def test_prepare_deps_accepts_dependency_free_lockfile(monkeypatch, tmp_path):
             return prepare_deps_module.Lockfile.load(path)
 
         def build_workspace(self, tarballs_store, local_cli):
-            pass
+            built_lockfile.parent.mkdir(parents=True)
+            built_lockfile.write_text("lockfileVersion: '9.0'\nimporters:\n  .: {}\n")
 
     monkeypatch.setattr(prepare_deps_module, "PackageManager", PackageManager)
     monkeypatch.setattr(
@@ -79,3 +81,5 @@ def test_prepare_deps_accepts_dependency_free_lockfile(monkeypatch, tmp_path):
     )
 
     prepare_deps_module.prepare_deps(args)
+
+    assert (built_lockfile.parent / "pre.pnpm-lock.yaml").read_text() == built_lockfile.read_text()
