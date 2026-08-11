@@ -1,93 +1,14 @@
-package profiler
+package agent
 
 import (
 	"fmt"
 	"strconv"
 
+	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
-	"github.com/yandex/perforator/perforator/internal/linguist/models"
-	python_models "github.com/yandex/perforator/perforator/internal/linguist/python/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
-
-type interpreterStackMetrics struct {
-	framesCount             uint32
-	unsymbolizedFramesCount uint32
-}
-
-type sampleStackProcessor struct {
-	interpreterSymbolizer *symbolizer.Symbolizer
-	langMapping           profile.SpecialMapping
-}
-
-func newPythonSampleStackProcessor(symbolizer *symbolizer.Symbolizer) *sampleStackProcessor {
-	return &sampleStackProcessor{
-		interpreterSymbolizer: symbolizer,
-		langMapping:           profile.PythonSpecialMapping,
-	}
-}
-
-func newPHPSampleStackProcessor(symbolizer *symbolizer.Symbolizer) *sampleStackProcessor {
-	return &sampleStackProcessor{
-		interpreterSymbolizer: symbolizer,
-		langMapping:           profile.PHPSpecialMapping,
-	}
-}
-
-func newLuaSampleStackProcessor(symbolizer *symbolizer.Symbolizer) *sampleStackProcessor {
-	return &sampleStackProcessor{
-		interpreterSymbolizer: symbolizer,
-		langMapping:           profile.LuaSpecialMapping,
-	}
-}
-
-func (s *sampleStackProcessor) Process(builder *profile.SampleBuilder, stack *unwinder.InterpreterStack) interpreterStackMetrics {
-	processFrame := s.getFrameProcessor()
-	mtr := interpreterStackMetrics{}
-
-	for i := 0; i < int(stack.Len); i++ {
-		loc := builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
-			ObjectAddress: stack.Frames[i].SymbolKey.ObjectAddr,
-			Linestart:     stack.Frames[i].SymbolKey.Linestart,
-		})
-
-		loc.SetMapping().SetPath(string(s.langMapping)).Finish()
-		processFrame(s, &mtr, loc, &stack.Frames[i])
-
-		loc.Finish()
-		mtr.framesCount++
-	}
-
-	return mtr
-}
-
-func processFrameCommon(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc *profile.LocationBuilder, frame *unwinder.InterpreterFrame) {
-	symbol, exists := s.interpreterSymbolizer.Symbolize(&frame.SymbolKey)
-	if !exists {
-		mtr.unsymbolizedFramesCount++
-		loc.AddFrame().
-			SetName(models.UnsymbolizedInterpreterLocation).
-			SetStartLine(int64(frame.SymbolKey.Linestart)).
-			Finish()
-		return
-	}
-
-	loc.AddFrame().
-		SetName(symbol.Name).
-		SetFilename(symbol.FileName).
-		SetStartLine(int64(frame.SymbolKey.Linestart)).
-		Finish()
-}
-
-func processPythonFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc *profile.LocationBuilder, frame *unwinder.InterpreterFrame) {
-	if frame.SymbolKey.Linestart == -1 {
-		loc.AddFrame().SetName(python_models.PythonTrampolineFrame).Finish()
-		return
-	}
-
-	processFrameCommon(s, mtr, loc, frame)
-}
 
 // Internal frame decoding errors, see lua_stack_walk_error at perforator/agent/collector/progs/unwinder/lua/stack/walk_error.h
 var luaStackWalkErrorDescriptions = []string{
@@ -172,7 +93,47 @@ func (ld *LuaData) GetFrameGct() uint8 {
 	return uint8((ld.getObjectAddress() >> LuaObjectAddressGctOffset) & LuaObjectAddressGctMask)
 }
 
-func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc *profile.LocationBuilder, frame *unwinder.InterpreterFrame) {
+// StackProcessor renders a Lua stack collected by the unwinder into pprof locations.
+type StackProcessor struct {
+	symbolizer             *symbolizer.Symbolizer
+	collectedFrameCount    metrics.Counter
+	unsymbolizedFrameCount metrics.Counter
+}
+
+func NewStackProcessor(symbolizer *symbolizer.Symbolizer, reg metrics.Registry) *StackProcessor {
+	return &StackProcessor{
+		symbolizer:             symbolizer,
+		collectedFrameCount:    reg.Counter("lua.frame.collected.count"),
+		unsymbolizedFrameCount: reg.Counter("lua.frame.unsymbolized.count"),
+	}
+}
+
+func (p *StackProcessor) Process(
+	builder *profile.SampleBuilder,
+	stack *unwinder.InterpreterStack,
+) {
+	var frames uint32
+	for i := 0; i < int(stack.Len); i++ {
+		frame := &stack.Frames[i]
+
+		loc := builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
+			ObjectAddress: frame.SymbolKey.ObjectAddr,
+			Linestart:     frame.SymbolKey.Linestart,
+		})
+		loc.SetMapping().SetPath(string(profile.LuaSpecialMapping)).Finish()
+
+		p.processFrame(loc, frame)
+
+		loc.Finish()
+		frames++
+	}
+	p.collectedFrameCount.Add(int64(frames))
+}
+
+func (p *StackProcessor) processFrame(
+	loc *profile.LocationBuilder,
+	frame *unwinder.InterpreterFrame,
+) {
 	name := "[lua] "
 	filename := ""
 
@@ -191,10 +152,10 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 		}
 	case LuaObjectAddressFfidLua:
 		// Lua frame
-		symbol, exists := s.interpreterSymbolizer.Symbolize(&frame.SymbolKey)
+		symbol, exists := p.symbolizer.Symbolize(&frame.SymbolKey)
 
 		if !exists {
-			mtr.unsymbolizedFramesCount++
+			p.unsymbolizedFrameCount.Inc()
 			name += fmt.Sprintf("unsymbolized lua function: 0x%x", luaData.GetPtr())
 		} else {
 			name += symbol.Name
@@ -225,15 +186,4 @@ func processLuaFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc 
 		SetLine(int64(frame.SymbolKey.Linestart)).
 		SetStartLine(int64(frame.SymbolKey.Linestart)).
 		Finish()
-}
-
-func (s *sampleStackProcessor) getFrameProcessor() func(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc *profile.LocationBuilder, frame *unwinder.InterpreterFrame) {
-	switch s.langMapping {
-	case profile.PythonSpecialMapping:
-		return processPythonFrame
-	case profile.LuaSpecialMapping:
-		return processLuaFrame
-	default:
-		return processFrameCommon
-	}
 }

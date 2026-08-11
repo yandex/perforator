@@ -31,6 +31,9 @@ import (
 	preprocessig_proto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmregistry"
+	lua_agent "github.com/yandex/perforator/perforator/internal/linguist/lua/agent"
+	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
+	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/logfield"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
@@ -106,6 +109,10 @@ type Profiler struct {
 	phpSymbolizer    *symbolizer.Symbolizer
 	luaSymbolizer    *symbolizer.Symbolizer
 
+	pythonProcessor *python_agent.StackProcessor
+	phpProcessor    *php_agent.StackProcessor
+	luaProcessor    *lua_agent.StackProcessor
+
 	jitSymbolizers []profilerext.JITSymbolizer
 
 	jvmRegistry *jvmregistry.Registry
@@ -136,11 +143,6 @@ type Profiler struct {
 	clockConverter *clock.MonotonicClockConverter
 }
 
-type languageCollectionMetrics struct {
-	unsymbolizedFrameCount metrics.Counter
-	collectedFrameCount    metrics.Counter
-}
-
 type profilerMetrics struct {
 	mappingsHit  metrics.Counter
 	mappingsMiss metrics.Counter
@@ -154,10 +156,6 @@ type profilerMetrics struct {
 	recordedTLSBytes           metrics.Counter
 
 	unresolvedPerfEventsForSamples metrics.Counter
-
-	pythonMetrics languageCollectionMetrics
-	phpMetrics    languageCollectionMetrics
-	luaMetrics    languageCollectionMetrics
 
 	droppedProfiles metrics.Counter
 
@@ -457,6 +455,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		if err != nil {
 			return err
 		}
+		p.pythonProcessor = python_agent.NewStackProcessor(p.pythonSymbolizer, r)
 	}
 
 	// Create PHP symbolizer
@@ -465,6 +464,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		if err != nil {
 			return err
 		}
+		p.phpProcessor = php_agent.NewStackProcessor(p.phpSymbolizer, r)
 	}
 
 	// Create Lua symbolizer
@@ -473,6 +473,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		if err != nil {
 			return err
 		}
+		p.luaProcessor = lua_agent.NewStackProcessor(p.luaSymbolizer, r)
 	}
 
 	p.enablePerfMaps = true
@@ -846,19 +847,6 @@ func (p *Profiler) registerMetrics(r metrics.Registry) error {
 	p.metrics.unresolvedPerfEventsForSamples = r.Counter("perf_event.unresolved.count")
 
 	p.metrics.droppedProfiles = r.WithTags(Labels{"kind": "dropped"}).Counter("profiles.count")
-
-	p.metrics.pythonMetrics = languageCollectionMetrics{
-		unsymbolizedFrameCount: r.Counter("python.frame.unsymbolized.count"),
-		collectedFrameCount:    r.Counter("python.frame.collected.count"),
-	}
-	p.metrics.phpMetrics = languageCollectionMetrics{
-		unsymbolizedFrameCount: r.Counter("php.frame.unsymbolized.count"),
-		collectedFrameCount:    r.Counter("php.frame.collected.count"),
-	}
-	p.metrics.luaMetrics = languageCollectionMetrics{
-		unsymbolizedFrameCount: r.Counter("lua.frame.unsymbolized.count"),
-		collectedFrameCount:    r.Counter("lua.frame.collected.count"),
-	}
 
 	r.WithTags(Labels{"kind": "tracked"}).FuncIntGauge("cgroup.count", func() int64 {
 		if p.cgroups == nil {

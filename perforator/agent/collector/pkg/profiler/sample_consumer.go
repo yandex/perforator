@@ -221,14 +221,9 @@ type oneShotSampleConsumer struct {
 	// sampleTime is the absolute wall-clock time of the sample, computed once and reused across the consumer.
 	sampleTime time.Time
 
-	stacklen  int
 	env       []formattedEnvVariable
 	tls       []formattedTLSVariable
 	cgroupRel string
-
-	pythonProcessor *sampleStackProcessor
-	phpProcessor    *sampleStackProcessor
-	luaProcessor    *sampleStackProcessor
 
 	workloadParts []string
 }
@@ -241,24 +236,19 @@ func newOneShotSampleConsumer(
 	sample *unwinder.RecordSampleParsed,
 ) *oneShotSampleConsumer {
 	return &oneShotSampleConsumer{
-		p:               p,
-		uprobeResolver:  uprobeResolver,
-		profileBuilder:  profileBuilder,
-		features:        features,
-		sample:          sample,
-		sampleTime:      p.clockConverter.MonotonicToTime(sample.CollectionTime),
-		envWhitelist:    p.envWhitelist,
-		pythonProcessor: newPythonSampleStackProcessor(p.pythonSymbolizer),
-		phpProcessor:    newPHPSampleStackProcessor(p.phpSymbolizer),
-		luaProcessor:    newLuaSampleStackProcessor(p.luaSymbolizer),
+		p:              p,
+		uprobeResolver: uprobeResolver,
+		profileBuilder: profileBuilder,
+		features:       features,
+		sample:         sample,
+		sampleTime:     p.clockConverter.MonotonicToTime(sample.CollectionTime),
+		envWhitelist:   p.envWhitelist,
 	}
 }
 
 func (c *oneShotSampleConsumer) countMetrics(ctx context.Context) {
 	for _, ip := range c.sample.UserStack {
 		if ip != 0 {
-			c.stacklen++
-
 			_, err := c.p.dsoStorage.ResolveAddress(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
 			if err == nil {
 				c.p.metrics.mappingsHit.Inc()
@@ -267,11 +257,14 @@ func (c *oneShotSampleConsumer) countMetrics(ctx context.Context) {
 			}
 		}
 	}
-	for _, ip := range c.sample.KernStack {
-		if ip != 0 {
-			c.stacklen++
-		}
-	}
+}
+
+func sampleStackLen(sample *unwinder.RecordSampleParsed) int {
+	return len(sample.UserStack) +
+		len(sample.KernStack) +
+		int(sample.PythonStack.Len) +
+		int(sample.PhpStack.Len) +
+		int(sample.LuaStack.Len)
 }
 
 func (c *oneShotSampleConsumer) prepareData(ctx context.Context) {
@@ -554,44 +547,17 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 	}
 }
 
-func (c *oneShotSampleConsumer) collectInterpreterStackInto(
-	langMtr *languageCollectionMetrics,
-	builder *profile.SampleBuilder,
-	stackProcessor *sampleStackProcessor,
-	stack *unwinder.InterpreterStack,
-) {
-	mtr := stackProcessor.Process(builder, stack)
-	c.stacklen += int(mtr.framesCount)
-	langMtr.collectedFrameCount.Add(int64(mtr.framesCount))
-	langMtr.unsymbolizedFrameCount.Add(int64(mtr.unsymbolizedFramesCount))
-}
-
 func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *profile.SampleBuilder) {
 	if enablePython := c.p.conf.BPF.TracePython; enablePython != nil && *enablePython {
-		c.collectInterpreterStackInto(
-			&c.p.metrics.pythonMetrics,
-			builder,
-			c.pythonProcessor,
-			&c.sample.PythonStack,
-		)
+		c.p.pythonProcessor.Process(builder, &c.sample.PythonStack)
 	}
 
 	if c.p.conf.FeatureFlagsConfig.PhpEnabled() {
-		c.collectInterpreterStackInto(
-			&c.p.metrics.phpMetrics,
-			builder,
-			c.phpProcessor,
-			&c.sample.PhpStack,
-		)
+		c.p.phpProcessor.Process(builder, &c.sample.PhpStack)
 	}
 
 	if c.p.conf.FeatureFlagsConfig.LuaEnabled() {
-		c.collectInterpreterStackInto(
-			&c.p.metrics.luaMetrics,
-			builder,
-			c.luaProcessor,
-			&c.sample.LuaStack,
-		)
+		c.p.luaProcessor.Process(builder, &c.sample.LuaStack)
 	}
 
 	c.collectKernelStackInto(builder)
@@ -699,7 +665,7 @@ func (c *oneShotSampleConsumer) logSample() {
 				"cgroup":              c.p.cgroups.CgroupFullName(c.sample.ParentCgroup),
 				"workload":            c.workloadParts,
 				"cgroup_id":           c.sample.ParentCgroup,
-				"stacklen":            c.stacklen,
+				"stacklen":            sampleStackLen(c.sample),
 				"runtime":             c.sample.Runtime,
 				"tlsvars":             len(c.tls),
 				"lbrvals":             len(c.sample.LBR),

@@ -12,11 +12,12 @@ SRCS(
     sample_consumer_registry.go
     sample_filter.go
     sample_processor.go
-    stack_processor.go
     uprobe_registry.go
 )
 
-GO_TEST_SRCS(sample_consumer_test.go)
+GO_TEST_SRCS(
+    sample_consumer_test.go
+)
 
 END()
 

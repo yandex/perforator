@@ -5,6 +5,7 @@ GO_EMBED_PATTERN(offsets/*.json)
 SRCS(
     offsets.go
     python.go
+    stackprocessor.go
     version.go
 )
 
