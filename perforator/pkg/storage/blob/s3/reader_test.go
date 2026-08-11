@@ -163,19 +163,26 @@ func TestRangedReader_CloseDuringRead(t *testing.T) {
 	require.ErrorIs(t, <-done, context.Canceled)
 }
 
-func TestContentRangeTotal(t *testing.T) {
-	total, ok := contentRangeTotal("bytes 0-1023/4096")
+func TestParseContentRange(t *testing.T) {
+	start, end, total, ok := parseContentRange("bytes 0-123/456")
 	require.True(t, ok)
-	require.Equal(t, int64(4096), total)
+	require.Equal(t, int64(0), start)
+	require.Equal(t, int64(123), end)
+	require.Equal(t, int64(456), total)
 
-	_, ok = contentRangeTotal("bytes 0-1023/*")
-	require.False(t, ok)
-
-	_, ok = contentRangeTotal("garbage")
-	require.False(t, ok)
-
-	_, ok = contentRangeTotal("bytes 0-10/-1")
-	require.False(t, ok) // a negative total must degrade, not panic downstream
+	for _, bad := range []string{
+		"bytes 0-123/*",
+		"garbage",
+		"bytes 0-10/-1",
+		"items 0-123/456",
+		"bytes 123/456",
+		"bytes 10-5/456",
+		"bytes 0-500/456",
+		"bytes -3-5/456",
+	} {
+		_, _, _, ok := parseContentRange(bad)
+		require.False(t, ok, "expected %q to be rejected", bad)
+	}
 }
 
 func TestRangedReaderPartitioning(t *testing.T) {

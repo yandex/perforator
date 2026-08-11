@@ -185,7 +185,7 @@ func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) 
 		s.degraded("range_ignored")
 		return &meteredReader{r: out.Body, counter: s.metrics.bytesDownloaded}, nil
 	}
-	total, ok := contentRangeTotal(*out.ContentRange)
+	start, end, total, ok := parseContentRange(*out.ContentRange)
 	if !ok {
 		// Unknown total (e.g. "bytes 0-N/*", the same case the aws
 		// downloader degrades on): one sequential unranged GET.
@@ -193,9 +193,24 @@ func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) 
 		_ = out.Body.Close()
 		return s.getSequential(ctx, key)
 	}
-	etag := out.ETag
-
 	firstLen := min(total, s.downloadCfg.PartSize)
+	if start != 0 || end != firstLen-1 {
+		// The response answers a different interval than requested; do not
+		// risk splicing it in as part zero.
+		s.degraded("interval_mismatch")
+		_ = out.Body.Close()
+		return s.getSequential(ctx, key)
+	}
+	etag := out.ETag
+	if etag == nil || *etag == "" {
+		// Without an ETag the later parts cannot be pinned to this object
+		// version, and a concurrent overwrite could splice two versions into
+		// one stream.
+		s.degraded("no_etag")
+		_ = out.Body.Close()
+		return s.getSequential(ctx, key)
+	}
+
 	first := make([]byte, firstLen)
 	_, err = io.ReadFull(out.Body, first)
 	_ = out.Body.Close()
@@ -254,20 +269,36 @@ func isInvalidRangeError(err error) bool {
 	return errors.As(err, &aerr) && aerr.Code() == "InvalidRange"
 }
 
-// contentRangeTotal extracts the total length from a Content-Range header
-// value of the form "bytes 0-123/456"; "*" means the server does not know the
-// total. Mirrors the aws downloader's private setTotalBytes:
+// parseContentRange parses a Content-Range header of the form
+// "bytes 0-123/456"; "*" as the total means the server does not know it.
+// Mirrors the aws downloader's private setTotalBytes:
 // https://github.com/aws/aws-sdk-go/blob/main/service/s3/s3manager/download.go
-func contentRangeTotal(contentRange string) (int64, bool) {
-	_, totalStr, found := strings.Cut(contentRange, "/")
+func parseContentRange(contentRange string) (start, end, total int64, ok bool) {
+	interval, totalStr, found := strings.Cut(contentRange, "/")
 	if !found || totalStr == "*" {
-		return 0, false
+		return 0, 0, 0, false
 	}
 	total, err := strconv.ParseInt(totalStr, 10, 64)
 	if err != nil || total < 0 {
-		return 0, false
+		return 0, 0, 0, false
 	}
-	return total, true
+	unit, rangeStr, found := strings.Cut(interval, " ")
+	if !found || unit != "bytes" {
+		return 0, 0, 0, false
+	}
+	startStr, endStr, found := strings.Cut(rangeStr, "-")
+	if !found {
+		return 0, 0, 0, false
+	}
+	start, err = strconv.ParseInt(startStr, 10, 64)
+	if err != nil || start < 0 {
+		return 0, 0, 0, false
+	}
+	end, err = strconv.ParseInt(endStr, 10, 64)
+	if err != nil || end < start || end >= total {
+		return 0, 0, 0, false
+	}
+	return start, end, total, true
 }
 
 func (s *S3Storage) getSequential(ctx context.Context, key string) (io.ReadCloser, error) {

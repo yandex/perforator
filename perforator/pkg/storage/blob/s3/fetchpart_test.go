@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -28,6 +29,9 @@ type fakeS3 struct {
 	blob          []byte
 	interruptions int
 	invalidRange  bool
+	omitETag      bool
+	shiftRange    int64
+	unrangedCalls int
 	headSize      *int64
 
 	mu          sync.Mutex
@@ -71,6 +75,10 @@ func (f *fakeS3) HeadObjectWithContext(_ aws.Context, _ *awss3.HeadObjectInput, 
 }
 
 func (f *fakeS3) GetObjectWithContext(_ aws.Context, in *awss3.GetObjectInput, _ ...request.Option) (*awss3.GetObjectOutput, error) {
+	var etag *string
+	if !f.omitETag {
+		etag = aws.String("test-etag")
+	}
 	if f.invalidRange && aws.StringValue(in.Range) != "" {
 		return nil, awserr.New("InvalidRange", "requested range not satisfiable", nil)
 	}
@@ -92,6 +100,7 @@ func (f *fakeS3) GetObjectWithContext(_ aws.Context, in *awss3.GetObjectInput, _
 	}()
 
 	if aws.StringValue(in.Range) == "" {
+		f.unrangedCalls++
 		return &awss3.GetObjectOutput{
 			Body:          &flakyBody{Reader: strings.NewReader(string(f.blob))},
 			ContentLength: aws.Int64(int64(len(f.blob))),
@@ -108,7 +117,8 @@ func (f *fakeS3) GetObjectWithContext(_ aws.Context, in *awss3.GetObjectInput, _
 	return &awss3.GetObjectOutput{
 		Body:          &flakyBody{Reader: strings.NewReader(string(body)), fail: interrupt},
 		ContentLength: aws.Int64(int64(len(body))),
-		ContentRange:  aws.String(fmt.Sprintf("bytes %d-%d/%d", start, end, len(f.blob))),
+		ContentRange:  aws.String(fmt.Sprintf("bytes %d-%d/%d", start+f.shiftRange, end+f.shiftRange, len(f.blob))),
+		ETag:          etag,
 	}, nil
 }
 
@@ -202,4 +212,38 @@ func TestFetchPart_ShortRangeFails(t *testing.T) {
 
 	_, err := s.fetchPart(context.Background(), "k", nil, 0, 999)
 	require.ErrorContains(t, err, "expected 1000 bytes")
+}
+
+// TestGet_NoETagFallsBackSequential pins that without an ETag the parallel
+// path is not used: parts could not be pinned to one object version.
+func TestGet_NoETagFallsBackSequential(t *testing.T) {
+	blob := bytes.Repeat([]byte("v"), 3*1024)
+	fake := &fakeS3{blob: blob, omitETag: true}
+	s := newTestS3Storage(fake)
+	s.downloadCfg.PartSize = 1024
+
+	r, err := s.Get(context.Background(), "k")
+	require.NoError(t, err)
+	defer r.Close()
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	require.Equal(t, blob, data)
+	require.Equal(t, 1, fake.unrangedCalls)
+}
+
+// TestGet_WrongIntervalFallsBackSequential pins that a response answering a
+// different interval than requested is not spliced in as part zero.
+func TestGet_WrongIntervalFallsBackSequential(t *testing.T) {
+	blob := bytes.Repeat([]byte("w"), 3*1024)
+	fake := &fakeS3{blob: blob, shiftRange: 1}
+	s := newTestS3Storage(fake)
+	s.downloadCfg.PartSize = 1024
+
+	r, err := s.Get(context.Background(), "k")
+	require.NoError(t, err)
+	defer r.Close()
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	require.Equal(t, blob, data)
+	require.Equal(t, 1, fake.unrangedCalls)
 }
