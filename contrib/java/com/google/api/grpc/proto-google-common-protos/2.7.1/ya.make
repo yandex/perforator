@@ -14,4 +14,6 @@ JAR_RESOURCE(2954040787)
 
 SRC_RESOURCE(2954029655)
 
+ORIGINAL_SOURCE(https://github.com/googleapis/java-common-protos/proto-google-common-protos)
+
 END()

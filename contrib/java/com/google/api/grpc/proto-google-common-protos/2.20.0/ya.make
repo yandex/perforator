@@ -14,4 +14,6 @@ JAR_RESOURCE(4971297527)
 
 SRC_RESOURCE(4971297472)
 
+ORIGINAL_SOURCE(https://github.com/googleapis/sdk-platform-java)
+
 END()

@@ -14,4 +14,6 @@ JAR_RESOURCE(4973851066)
 
 SRC_RESOURCE(4973851078)
 
+ORIGINAL_SOURCE(https://github.com/googleapis/gapic-generator-java)
+
 END()
