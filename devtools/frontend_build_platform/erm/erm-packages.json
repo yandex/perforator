@@ -6271,7 +6271,7 @@
     "title": "Prettier",
     "description": "Инструмент для форматирования файлов\n\nПоддерживает подавляющее большинство форматов файлов, использующихся в мире разработки фронтэнда.\n\nОчень opinionated, почти не настраивается, зато обеспечивает единое форматирование.\n\nИнтегрирован в `nots`: `ya tool nots fmt` (последний этап форматирования)\n\nВ перспективе будет использоваться в `ya style` для файлов типа `js`, `ts`, `css`, `scss`, `md?`\n\nМожет быть встроен в `eslint` плагином.",
     "type": "NPM_PACKAGE",
-    "default": "3.9.5",
+    "default": "3.9.6",
     "links": {
       "Home": "https://prettier.io/",
       "Sources": "https://github.com/prettier/prettier",
@@ -6280,6 +6280,16 @@
       "Linting in tier-0": "https://docs.yandex-team.ru/frontend-in-arcadia/index/quick-start#lint"
     },
     "versions": {
+      "3.9.6": {
+        "add_date": "2026-08-11T05:41:59",
+        "resources": [
+          {
+            "id": 13126250924,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
       "3.9.5": {
         "add_date": "2026-07-28T05:36:25",
         "resources": [
