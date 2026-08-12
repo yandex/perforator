@@ -3,6 +3,7 @@ package querylang
 import (
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/yandex/perforator/observability/lib/querylang/operator"
@@ -63,6 +64,10 @@ type Float struct {
 
 type Duration struct {
 	Value time.Duration
+}
+
+type Vector struct {
+	Values []Value
 }
 
 func (v Empty) Repr() string {
@@ -144,4 +149,32 @@ func (v Duration) raw() string {
 
 func (v Duration) clone() Value {
 	return Duration{Value: v.Value}
+}
+
+func (v Vector) Repr() string {
+	items := make([]string, len(v.Values))
+	for i, item := range v.Values {
+		items[i] = item.Repr()
+	}
+	return "[" + strings.Join(items, ", ") + "]"
+}
+
+func (v Vector) ToString() (string, error) {
+	items, err := arrayToString(v.Values)
+	if err != nil {
+		return "", err
+	}
+	return "[" + strings.Join(items, ", ") + "]", nil
+}
+
+func (v Vector) raw() string {
+	return v.Repr()
+}
+
+func (v Vector) clone() Value {
+	cloned := make([]Value, len(v.Values))
+	for i, item := range v.Values {
+		cloned[i] = item.clone()
+	}
+	return Vector{Values: cloned}
 }
