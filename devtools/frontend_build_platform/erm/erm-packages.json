@@ -3506,7 +3506,7 @@
     "title": "Node.js",
     "description": "Интерпретатор JS.\n\nНаравне с pnpm является основополагающими ресурсами.\nИменно он запускается во всех процессах сборки, линтинга и тестирования под капотом у `ya tool nots`.",
     "type": "NODE_JS",
-    "default": "24.18.0",
+    "default": "24.18.1",
     "links": {
       "Home": "https://nodejs.org/",
       "Sources": "https://github.com/nodejs/node",
@@ -3515,6 +3515,31 @@
       "Release schedule": "https://github.com/nodejs/Release#release-schedule"
     },
     "versions": {
+      "26.5.1": {
+        "add_date": "2026-08-11T05:38:18",
+        "resources": [
+          {
+            "id": 13126237778,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 13126239823,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 13126242936,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 13126246735,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "26.5.0": {
         "add_date": "2026-07-28T05:32:09",
         "resources": [
@@ -4010,6 +4035,31 @@
           },
           {
             "id": 10183573978,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "24.18.1": {
+        "add_date": "2026-08-11T05:35:15",
+        "resources": [
+          {
+            "id": 13126228596,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 13126230917,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 13126233003,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 13126234517,
             "platform": "darwin",
             "arch": "arm64"
           }
@@ -4885,6 +4935,31 @@
           },
           {
             "id": 7401173821,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "22.23.2": {
+        "add_date": "2026-08-11T05:31:52",
+        "resources": [
+          {
+            "id": 13126218170,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 13126220943,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 13126224137,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 13126225691,
             "platform": "darwin",
             "arch": "arm64"
           }
