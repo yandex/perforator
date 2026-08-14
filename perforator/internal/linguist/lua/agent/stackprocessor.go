@@ -102,7 +102,7 @@ func (p *StackProcessor) processFrame(
 
 		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
 			ObjectAddress: cFrame.ObjectAddr,
-			Linestart:     0,
+			Linestart:     int32(cFrame.Ffid),
 		})
 	case unwinder.LuaFrameTypeInvalid:
 		invalidFrame := frame.Value.GetInvalidFrame()
