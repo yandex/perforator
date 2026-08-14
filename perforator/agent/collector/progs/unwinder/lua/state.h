@@ -6,7 +6,7 @@
 
 #include "../arch/x86/regs.h"
 #include "../metrics.h"
-#include "../output.h"
+#include "../process.h"
 
 #include "luajit.h"
 #include "trace.h"
