@@ -11,6 +11,9 @@ PEERDIR(
 )
 
 JAR_RESOURCE(297855531)
+
 SRC_RESOURCE(297843746)
+
+ORIGINAL_SOURCE(https://github.com/googleapis/googleapis)
 
 END()

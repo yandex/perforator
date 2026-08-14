@@ -11,6 +11,9 @@ PEERDIR(
 )
 
 JAR_RESOURCE(947905250)
+
 SRC_RESOURCE(947906746)
+
+ORIGINAL_SOURCE(https://github.com/googleapis/common-protos-java)
 
 END()

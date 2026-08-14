@@ -10,9 +10,10 @@ PEERDIR(
     contrib/java/com/google/protobuf/protobuf-java/3.7.1
 )
 
-
-
 JAR_RESOURCE(1332188520)
+
 SRC_RESOURCE(1332188554)
+
+ORIGINAL_SOURCE(https://github.com/googleapis/api-client-staging)
 
 END()

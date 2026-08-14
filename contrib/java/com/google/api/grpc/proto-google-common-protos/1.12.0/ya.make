@@ -11,6 +11,9 @@ PEERDIR(
 )
 
 JAR_RESOURCE(805479550)
+
 SRC_RESOURCE(805477995)
+
+ORIGINAL_SOURCE(https://github.com/googleapis/api-client-staging)
 
 END()
