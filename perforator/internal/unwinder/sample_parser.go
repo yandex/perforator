@@ -23,6 +23,7 @@ var (
 	phpFrameSize           = int(unsafe.Sizeof(PhpFrame{}))
 	interpreterFrameSize   = int(unsafe.Sizeof(InterpreterFrame{}))
 	jvmLangEntrySize       = int(unsafe.Sizeof(JvmLangEntry{}))
+	luaFrameSize           = int(unsafe.Sizeof(LuaFrame{}))
 	langSectionHeaderSize  = int(unsafe.Sizeof(LanguageSectionHeader{}))
 )
 
@@ -175,7 +176,7 @@ func parseLangSections(data []byte, base int, off, size uint16, out *RecordSampl
 		case LanguageJvm:
 			decodeJvmEntries(frames, &out.JvmStack)
 		case LanguageLua:
-			decodeInterpreterFrames(frames, &out.LuaStack)
+			decodeLuaFrames(frames, &out.LuaStack)
 		}
 		pos += byteSize
 	}
@@ -224,6 +225,18 @@ func decodeInterpreterFrames(data []byte, stack *InterpreterStack) {
 		stack.Frames[i].SymbolKey.Pid = le.Uint32(data[off+8 : off+12])
 		stack.Frames[i].SymbolKey.Linestart = int32(le.Uint32(data[off+12 : off+16]))
 		stack.Frames[i].PositionInfo = le.Uint64(data[off+16 : off+24])
+	}
+}
+
+func decodeLuaFrames(data []byte, stack *LuaStack) {
+	n := len(data) / luaFrameSize
+	if n > len(stack.Frames) {
+		n = len(stack.Frames)
+	}
+	stack.Len = uint8(n)
+	for i := 0; i < n; i++ {
+		off := i * luaFrameSize
+		stack.Frames[i].UnmarshalBinary(data[off : off+luaFrameSize])
 	}
 }
 

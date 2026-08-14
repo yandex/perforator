@@ -1,14 +1,14 @@
 #pragma once
 
-#include "stack/walk_error.h"
-#include "state.h"
 #include "types.h"
 
 #ifdef __x86_64__
 
 #include "../metrics.h"
 #include "../process.h"
+
 #include "stack/stack.h"
+#include "state.h"
 
 /**
  * @brief Entry point for collecting stack info from Lua VM.

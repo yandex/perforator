@@ -7,6 +7,7 @@
 #include "../arch/x86/regs.h"
 #include "../metrics.h"
 #include "../output.h"
+
 #include "luajit.h"
 #include "trace.h"
 
@@ -39,33 +40,14 @@ BPF_MAP(lua_state_cache, BPF_MAP_TYPE_LRU_HASH, u32, u64, LUA_STATE_CACHE_SIZE);
 
 #endif
 
-/**
- * @brief Lua unwinder state.
- * Stored in `profiler_state`.
- */
-struct lua_state {
-    // Process info
-    u32 pid;                  // Current process ID.
-    struct lua_config config; // Config of LuaJIT binary found in this process.
-    u64 binary_start_address; // Base address of LuaJIT binary in memory.
-    u64 binary_end_address;   // Last address of LuaJIT binary in memory.
-
-    // Registers
-    u64 instruction_pointer; // Value of `rip`. Used to determine if we're executing in LuaJIT binary.
-    u64 dispatch_register;   // Value of `r14`. This register might hold pointer to `GG_State->dispatch`.
-    u64 lua_state_register;  // Value of register for C ABI first function argument. This register might hold pointer to `lua_State`.
-    u64 base_register;       // Value of `rdx`. This register might have a hint about the actual L->base value.
-
-    // Main structures
-    u64 current_lua_state; // Current `lua_State*`. Use `lua_state_get_lua_state`.
-    u64 global_state;      // Process `global_State*`. Use `lua_state_get_global_state`.
-
-    // Stack
-    struct interpreter_stack stack; // Call stack of current `lua_State`.
-};
-
 #ifdef __x86_64__
 
+/**
+ * @brief Save register values from `user_regs` to the Lua unwind state.
+ *
+ * @param state Lua unwind state.
+ * @param user_registers Snapshot of CPU registers at the moment of profiling.
+ */
 static ALWAYS_INLINE void lua_state_init_registers(struct lua_state* state, const struct user_regs* user_registers) {
     state->instruction_pointer = user_registers->rip;
     state->dispatch_register = user_registers->r14;
@@ -173,7 +155,7 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
  *
  * @param state Lua unwind state.
  * @param global_state Non-NULL but still potential state.
- * @return
+ * @return `true` if `global_state` is valid and states were saved.
  */
 [[nodiscard]] static ALWAYS_INLINE bool lua_state_test_and_set(struct lua_state* state, luajit_global_state* global_state) {
     luajit_state* L = luajit_global_state_get_current_lua_state(global_state, &state->config);
@@ -201,7 +183,6 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
  * This function caches found G and reuses it if it's valid. If no cache exists, function checks if current `rip` is inside LuaJIT binary to minimize CPU cost.
  * When in LuaJIT binary, function will try to find `G` from dispatch register (`r14`).
  *
- * @param process_info Information about the current process, and specifically the binary, where LuaJIT is, located.
  * @param state Lua unwind state.
  * @return `true` if G and L were found.
  */
