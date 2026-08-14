@@ -40,6 +40,26 @@ func putSectionDesc(buf []byte, headerOff int, offset, size uint16) {
 	le.PutUint16(buf[headerOff+2:], size)
 }
 
+func TestLanguageFrameSizes(t *testing.T) {
+	if pythonFrameSize != 32 {
+		t.Errorf("python_frame size = %d, want 32", pythonFrameSize)
+	}
+	if phpFrameSize != 16 {
+		t.Errorf("php_frame size = %d, want 16", phpFrameSize)
+	}
+	if interpreterFrameSize != 24 {
+		t.Errorf("interpreter_frame size = %d, want 24", interpreterFrameSize)
+	}
+	if pythonFrameSize+phpFrameSize != 2*interpreterFrameSize {
+		t.Errorf(
+			"combined Python/PHP frame storage changed: %d + %d != 2 * %d",
+			pythonFrameSize,
+			phpFrameSize,
+			interpreterFrameSize,
+		)
+	}
+}
+
 func TestParsePackedSampleMinimal(t *testing.T) {
 	data := buildMinimalPackedSample()
 	out := NewRecordSampleParsed()
@@ -170,22 +190,54 @@ func appendInterpreterFrame(dst []byte, objectAddr uint64, pid uint32, linestart
 	return append(dst, frame...)
 }
 
+// appendPythonFrame appends a python_frame. Layout:
+//
+//	u64 object_addr | u32 pid | i32 linestart | u64 instr_ptr | u64 co_linetable_ptr.
+func appendPythonFrame(dst []byte, objectAddr uint64, pid uint32, linestart int32, instrPtr, coLinetablePtr uint64) []byte {
+	frame := make([]byte, pythonFrameSize)
+	le.PutUint64(frame[0:8], objectAddr)
+	le.PutUint32(frame[8:12], pid)
+	le.PutUint32(frame[12:16], uint32(linestart))
+	le.PutUint64(frame[16:24], instrPtr)
+	le.PutUint64(frame[24:32], coLinetablePtr)
+	return append(dst, frame...)
+}
+
+// appendPhpFrame appends a php_frame. Layout:
+//
+//	u64 object_addr | u32 pid | i32 linestart.
+func appendPhpFrame(dst []byte, objectAddr uint64, pid uint32, linestart int32) []byte {
+	frame := make([]byte, phpFrameSize)
+	le.PutUint64(frame[0:8], objectAddr)
+	le.PutUint32(frame[8:12], pid)
+	le.PutUint32(frame[12:16], uint32(linestart))
+	return append(dst, frame...)
+}
+
+func appendLanguageSection(dst []byte, language LanguageId, frames []byte) []byte {
+	header := make([]byte, langSectionHeaderSize)
+	le.PutUint16(header, uint16(len(frames)))
+	header[2] = byte(language)
+	dst = append(dst, header...)
+	return append(dst, frames...)
+}
+
 func TestParsePackedSampleWithPythonStack(t *testing.T) {
 	le := binary.LittleEndian
 	data := buildMinimalPackedSample()
 
 	const numFrames = 2
-	langDataSize := langSectionHeaderSize + numFrames*interpreterFrameSize
+	langDataSize := langSectionHeaderSize + numFrames*pythonFrameSize
 	putSectionDesc(data, sdLangSect, 0, uint16(langDataSize))
 
 	// Language section header for Python.
 	lsh := make([]byte, langSectionHeaderSize)
-	le.PutUint16(lsh, uint16(numFrames*interpreterFrameSize))
+	le.PutUint16(lsh, uint16(numFrames*pythonFrameSize))
 	lsh[2] = byte(LanguagePython)
 	data = append(data, lsh...)
 
-	data = appendInterpreterFrame(data, 0xdeadbeef00000001, 42, 100, 0x7fff00000010)
-	data = appendInterpreterFrame(data, 0xdeadbeef00000002, 42, 200, 0x7fff00000020)
+	data = appendPythonFrame(data, 0xdeadbeef00000001, 42, 100, 0x7fff00000010, 0x7fff10000010)
+	data = appendPythonFrame(data, 0xdeadbeef00000002, 42, 200, 0x7fff00000020, 0x7fff10000020)
 
 	out := NewRecordSampleParsed()
 	if err := ParsePackedSample(data, out); err != nil {
@@ -197,12 +249,13 @@ func TestParsePackedSampleWithPythonStack(t *testing.T) {
 	}
 	f0 := out.PythonStack.Frames[0]
 	if f0.SymbolKey.ObjectAddr != 0xdeadbeef00000001 || f0.SymbolKey.Pid != 42 ||
-		f0.SymbolKey.Linestart != 100 || f0.PositionInfo != 0x7fff00000010 {
+		f0.SymbolKey.Linestart != 100 || f0.InstrPtr != 0x7fff00000010 ||
+		f0.CoLinetablePtr != 0x7fff10000010 {
 		t.Errorf("frame0 = %+v", f0)
 	}
 	f1 := out.PythonStack.Frames[1]
 	if f1.SymbolKey.ObjectAddr != 0xdeadbeef00000002 || f1.SymbolKey.Linestart != 200 ||
-		f1.PositionInfo != 0x7fff00000020 {
+		f1.InstrPtr != 0x7fff00000020 || f1.CoLinetablePtr != 0x7fff10000020 {
 		t.Errorf("frame1 = %+v", f1)
 	}
 }
@@ -211,16 +264,15 @@ func TestParsePackedSampleWithPhpStack(t *testing.T) {
 	le := binary.LittleEndian
 	data := buildMinimalPackedSample()
 
-	langDataSize := langSectionHeaderSize + interpreterFrameSize
+	langDataSize := langSectionHeaderSize + phpFrameSize
 	putSectionDesc(data, sdLangSect, 0, uint16(langDataSize))
 
 	lsh := make([]byte, langSectionHeaderSize)
-	le.PutUint16(lsh, uint16(interpreterFrameSize))
+	le.PutUint16(lsh, uint16(phpFrameSize))
 	lsh[2] = byte(LanguagePhp)
 	data = append(data, lsh...)
 
-	// PHP leaves position_info at 0.
-	data = appendInterpreterFrame(data, 0xc0ffee00, 7, 55, 0)
+	data = appendPhpFrame(data, 0xc0ffee00, 7, 55)
 
 	out := NewRecordSampleParsed()
 	if err := ParsePackedSample(data, out); err != nil {
@@ -232,8 +284,93 @@ func TestParsePackedSampleWithPhpStack(t *testing.T) {
 	}
 	got := out.PhpStack.Frames[0]
 	if got.SymbolKey.ObjectAddr != 0xc0ffee00 || got.SymbolKey.Pid != 7 ||
-		got.SymbolKey.Linestart != 55 || got.PositionInfo != 0 {
+		got.SymbolKey.Linestart != 55 {
 		t.Errorf("frame = %+v", got)
+	}
+}
+
+func TestParsePackedSampleWithLuaStack(t *testing.T) {
+	data := buildMinimalPackedSample()
+	frames := appendInterpreterFrame(nil, 0x1a2b3c, 11, 77, 0xabcdef)
+	langData := appendLanguageSection(nil, LanguageLua, frames)
+	putSectionDesc(data, sdLangSect, 0, uint16(len(langData)))
+	data = append(data, langData...)
+
+	out := NewRecordSampleParsed()
+	if err := ParsePackedSample(data, out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if out.LuaStack.Len != 1 {
+		t.Fatalf("LuaStack.Len = %d, want 1", out.LuaStack.Len)
+	}
+	got := out.LuaStack.Frames[0]
+	if got.SymbolKey.ObjectAddr != 0x1a2b3c || got.SymbolKey.Pid != 11 ||
+		got.SymbolKey.Linestart != 77 || got.PositionInfo != 0xabcdef {
+		t.Errorf("frame = %+v", got)
+	}
+}
+
+func buildPackedSampleWithMixedLanguageStacks() []byte {
+	pythonFrames := appendPythonFrame(nil, 0x1000, 10, 101, 0x1100, 0x1200)
+	phpFrames := appendPhpFrame(nil, 0x2000, 20, 202)
+
+	jvmFrames := make([]byte, jvmLangEntrySize)
+	le.PutUint16(jvmFrames[0:2], 3)
+	le.PutUint64(jvmFrames[8:16], 0x3000)
+
+	luaFrames := appendInterpreterFrame(nil, 0x4000, 40, 404, 0x4100)
+
+	var langData []byte
+	langData = appendLanguageSection(langData, LanguagePython, pythonFrames)
+	langData = appendLanguageSection(langData, LanguagePhp, phpFrames)
+	langData = appendLanguageSection(langData, LanguageJvm, jvmFrames)
+	langData = appendLanguageSection(langData, LanguageLua, luaFrames)
+
+	data := buildMinimalPackedSample()
+	putSectionDesc(data, sdLangSect, 0, uint16(len(langData)))
+	return append(data, langData...)
+}
+
+func TestParsePackedSampleWithMixedLanguageStacks(t *testing.T) {
+	out := NewRecordSampleParsed()
+	if err := ParsePackedSample(buildPackedSampleWithMixedLanguageStacks(), out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if out.PythonStack.Len != 1 || out.PythonStack.Frames[0].CoLinetablePtr != 0x1200 {
+		t.Errorf("PythonStack = %+v", out.PythonStack)
+	}
+	if out.PhpStack.Len != 1 || out.PhpStack.Frames[0].SymbolKey.ObjectAddr != 0x2000 {
+		t.Errorf("PhpStack = %+v", out.PhpStack)
+	}
+	if out.JvmStack.FramesLen != 1 || out.JvmStack.Frames[0].MethodAddr != 0x3000 {
+		t.Errorf("JvmStack = %+v", out.JvmStack)
+	}
+	if out.LuaStack.Len != 1 || out.LuaStack.Frames[0].PositionInfo != 0x4100 {
+		t.Errorf("LuaStack = %+v", out.LuaStack)
+	}
+}
+
+func TestParsePackedSampleReuseClearsLanguageStacks(t *testing.T) {
+	out := NewRecordSampleParsed()
+	if err := ParsePackedSample(buildPackedSampleWithMixedLanguageStacks(), out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := ParsePackedSample(buildMinimalPackedSample(), out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if out.PythonStack.Len != 0 || out.PhpStack.Len != 0 ||
+		out.JvmStack.FramesLen != 0 || out.LuaStack.Len != 0 {
+		t.Fatalf(
+			"language stacks not cleared: python=%d php=%d jvm=%d lua=%d",
+			out.PythonStack.Len,
+			out.PhpStack.Len,
+			out.JvmStack.FramesLen,
+			out.LuaStack.Len,
+		)
 	}
 }
 

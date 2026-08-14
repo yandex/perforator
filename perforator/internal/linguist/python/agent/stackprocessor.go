@@ -30,7 +30,7 @@ func NewStackProcessor(symbolizer *symbolizer.Symbolizer, reg metrics.Registry) 
 
 func (p *StackProcessor) Process(
 	builder *profile.SampleBuilder,
-	stack *unwinder.InterpreterStack,
+	stack *unwinder.PythonStack,
 ) {
 	var frames uint32
 	for i := 0; i < int(stack.Len); i++ {
@@ -52,7 +52,7 @@ func (p *StackProcessor) Process(
 
 func (p *StackProcessor) processFrame(
 	loc *profile.LocationBuilder,
-	frame *unwinder.InterpreterFrame,
+	frame *unwinder.PythonFrame,
 ) {
 	if frame.SymbolKey.Linestart == trampolineLinestart {
 		loc.AddFrame().SetName(python_models.PythonTrampolineFrame).Finish()

@@ -57,7 +57,22 @@ enum {
     PHP_MAX_STACK_DEPTH = 128,
 };
 
-#define PHP_FRAME_UNKNOWN (struct interpreter_frame){.symbol_key = {.object_addr = 0, .pid = 0, .linestart = 0}}
+struct php_frame {
+    struct symbol_key symbol_key;
+};
+
+_Static_assert(sizeof(struct php_frame) == 16, "Unexpected php_frame layout");
+
+struct php_stack {
+    struct php_frame frames[PHP_MAX_STACK_DEPTH];
+    u8 len;
+};
+
+// Keep this export on a different source line than python_stack: BTF_EXPORT
+// uses __LINE__ to generate its internal identifier.
+BTF_EXPORT(struct php_stack);
+
+#define PHP_FRAME_UNKNOWN (struct php_frame){.symbol_key = {.object_addr = 0, .pid = 0, .linestart = 0}}
 
 
 struct php_function_data {
@@ -72,7 +87,7 @@ struct php_state {
     u64 execute_data;
 
     u8 frame_count;
-    struct interpreter_frame frames[PHP_MAX_STACK_DEPTH];
+    struct php_frame frames[PHP_MAX_STACK_DEPTH];
 
     struct symbol symbol;
     struct symbol_key symbol_key;

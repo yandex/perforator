@@ -317,7 +317,26 @@ NOINLINE u64 python_read_instr_ptr(u64 frame, u32 instr_ptr_offset) {
     return instr_ptr;
 }
 
-static ALWAYS_INLINE bool python_process_frame(struct interpreter_frame* res_frame, void* frame, struct python_state* state) {
+NOINLINE u64 python_read_co_linetable_ptr(u64 code, u32 co_linetable_offset) {
+    if (code == 0 || co_linetable_offset == (u32)PYTHON_UNSPECIFIED_OFFSET) {
+        return 0;
+    }
+
+    u64 co_linetable_ptr = 0;
+    long err = bpf_probe_read_user(
+        &co_linetable_ptr,
+        sizeof(co_linetable_ptr),
+        (void*)(code + co_linetable_offset)
+    );
+    if (err != 0) {
+        metric_increment(METRIC_PYTHON_READ_CO_LINETABLE_ERROR_COUNT);
+        return 0;
+    }
+
+    return co_linetable_ptr;
+}
+
+static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, void* frame, struct python_state* state) {
     if (state == NULL || res_frame == NULL) {
         return false;
     }
@@ -348,9 +367,13 @@ static ALWAYS_INLINE bool python_process_frame(struct interpreter_frame* res_fra
 
     res_frame->symbol_key = state->symbol_key;
 
-    res_frame->position_info = python_read_instr_ptr(
+    res_frame->instr_ptr = python_read_instr_ptr(
         (u64)frame,
         state->config.offsets.py_frame_offsets.instr_ptr
+    );
+    res_frame->co_linetable_ptr = python_read_co_linetable_ptr(
+        (u64)code,
+        state->config.offsets.py_code_object_offsets.co_linetable
     );
 
     struct python_symbol* symbol = bpf_map_lookup_elem(&interpreter_symbols, &state->symbol_key);
@@ -414,7 +437,8 @@ static ALWAYS_INLINE void python_walk_stack(
             state->frames[cur_frame].symbol_key.linestart = PYTHON_CFRAME_LINENO_ID;
             state->frames[cur_frame].symbol_key.pid = 0;
             state->frames[cur_frame].symbol_key.object_addr = 0;
-            state->frames[cur_frame].position_info = 0;
+            state->frames[cur_frame].instr_ptr = 0;
+            state->frames[cur_frame].co_linetable_ptr = 0;
 
             ++state->frame_count;
             goto move_to_next_frame;

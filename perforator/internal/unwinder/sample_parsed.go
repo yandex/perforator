@@ -14,8 +14,8 @@ type RecordSampleParsed struct {
 	TLS       []ThreadLocalVariableCollectResult
 
 	// Interpreter stacks (decoded from language sections)
-	PythonStack InterpreterStack
-	PhpStack    InterpreterStack
+	PythonStack PythonStack
+	PhpStack    PhpStack
 	JvmStack    JvmStack
 	LuaStack    InterpreterStack
 }

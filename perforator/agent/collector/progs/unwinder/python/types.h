@@ -56,6 +56,21 @@ enum python_frame_owner : u8 {
     FRAME_OWNED_BY_CSTACK = 3,
 };
 
+struct python_frame {
+    struct symbol_key symbol_key;
+    u64 instr_ptr;
+    u64 co_linetable_ptr;
+};
+
+_Static_assert(sizeof(struct python_frame) == 32, "Unexpected python_frame layout");
+
+struct python_stack {
+    struct python_frame frames[PYTHON_MAX_STACK_DEPTH];
+    u8 len;
+};
+
+BTF_EXPORT(struct python_stack);
+
 // This struct stores offsets for:
 // CPython 3.3+ - PyASCIIObject
 // CPython 3.0-3.2 - PyUnicodeObject
@@ -82,7 +97,8 @@ struct python_code_object_offsets {
     // bytecode offset: offset = instr_ptr - (code_addr + co_code_adaptive).
     u32 co_code_adaptive;
     // co_linetable is the offset of the PyBytesObject* line table field within
-    // PyCodeObject (CPython 3.11+). Read in userspace via process_vm_readv.
+    // PyCodeObject (CPython 3.11+). The pointer is captured in BPF at sample
+    // time; userspace may later use it to read the line table bytes.
     u32 co_linetable;
 };
 
@@ -148,7 +164,7 @@ struct python_state {
     u64 py_runtime_address;
     u64 py_interp_head_address;
     u64 auto_tss_key_address;
-    struct interpreter_frame frames[PYTHON_MAX_STACK_DEPTH];
+    struct python_frame frames[PYTHON_MAX_STACK_DEPTH];
     u32 frame_count;
     struct symbol symbol;
     struct symbol_key symbol_key;

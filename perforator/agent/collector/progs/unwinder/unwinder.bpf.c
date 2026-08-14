@@ -331,7 +331,7 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
         .max       = PYTHON_MAX_STACK_DEPTH,
         .src       = state->python_state.frames,
         .src_size  = sizeof(state->python_state.frames),
-        .elem_size = sizeof(struct interpreter_frame),
+        .elem_size = sizeof(struct python_frame),
     });
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
@@ -340,7 +340,7 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
         .max       = PHP_MAX_STACK_DEPTH,
         .src       = state->php_state.frames,
         .src_size  = sizeof(state->php_state.frames),
-        .elem_size = sizeof(struct interpreter_frame),
+        .elem_size = sizeof(struct php_frame),
     });
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){

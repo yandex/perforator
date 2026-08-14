@@ -156,7 +156,7 @@ static ALWAYS_INLINE bool php_read_symbol(struct php_state* state) {
     return true;
 }
 
-static ALWAYS_INLINE bool php_process_frame(struct php_state* state, struct php_config* config, struct interpreter_frame* frame, void* execute_data, u32* type_info) {
+static ALWAYS_INLINE bool php_process_frame(struct php_state* state, struct php_config* config, struct php_frame* frame, void* execute_data, u32* type_info) {
     if (state == NULL || execute_data == NULL) {
         return false;
     }
@@ -222,7 +222,6 @@ static ALWAYS_INLINE bool php_process_frame(struct php_state* state, struct php_
     state->symbol_key.linestart = linestart;
 
     frame->symbol_key = state->symbol_key;
-    frame->position_info = 0;
 
     struct php_symbol* symbol = bpf_map_lookup_elem(&interpreter_symbols, &state->symbol_key);
     if (symbol != NULL) {

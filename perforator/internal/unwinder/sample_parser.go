@@ -19,6 +19,8 @@ var (
 	recordSampleHeaderSize = int(unsafe.Sizeof(RecordSampleHeader{}))
 	tlsResultSize          = int(unsafe.Sizeof(ThreadLocalVariableCollectResult{}))
 	branchRecordSize       = int(unsafe.Sizeof(BranchRecord{}))
+	pythonFrameSize        = int(unsafe.Sizeof(PythonFrame{}))
+	phpFrameSize           = int(unsafe.Sizeof(PhpFrame{}))
 	interpreterFrameSize   = int(unsafe.Sizeof(InterpreterFrame{}))
 	jvmLangEntrySize       = int(unsafe.Sizeof(JvmLangEntry{}))
 	langSectionHeaderSize  = int(unsafe.Sizeof(LanguageSectionHeader{}))
@@ -167,9 +169,9 @@ func parseLangSections(data []byte, base int, off, size uint16, out *RecordSampl
 		frames := raw[pos : pos+byteSize]
 		switch language {
 		case LanguagePython:
-			decodeInterpreterFrames(frames, &out.PythonStack)
+			decodePythonFrames(frames, &out.PythonStack)
 		case LanguagePhp:
-			decodeInterpreterFrames(frames, &out.PhpStack)
+			decodePhpFrames(frames, &out.PhpStack)
 		case LanguageJvm:
 			decodeJvmEntries(frames, &out.JvmStack)
 		case LanguageLua:
@@ -178,6 +180,36 @@ func parseLangSections(data []byte, base int, off, size uint16, out *RecordSampl
 		pos += byteSize
 	}
 	return nil
+}
+
+func decodePythonFrames(data []byte, stack *PythonStack) {
+	n := len(data) / pythonFrameSize
+	if n > len(stack.Frames) {
+		n = len(stack.Frames)
+	}
+	stack.Len = uint8(n)
+	for i := 0; i < n; i++ {
+		off := i * pythonFrameSize
+		stack.Frames[i].SymbolKey.ObjectAddr = le.Uint64(data[off : off+8])
+		stack.Frames[i].SymbolKey.Pid = le.Uint32(data[off+8 : off+12])
+		stack.Frames[i].SymbolKey.Linestart = int32(le.Uint32(data[off+12 : off+16]))
+		stack.Frames[i].InstrPtr = le.Uint64(data[off+16 : off+24])
+		stack.Frames[i].CoLinetablePtr = le.Uint64(data[off+24 : off+32])
+	}
+}
+
+func decodePhpFrames(data []byte, stack *PhpStack) {
+	n := len(data) / phpFrameSize
+	if n > len(stack.Frames) {
+		n = len(stack.Frames)
+	}
+	stack.Len = uint8(n)
+	for i := 0; i < n; i++ {
+		off := i * phpFrameSize
+		stack.Frames[i].SymbolKey.ObjectAddr = le.Uint64(data[off : off+8])
+		stack.Frames[i].SymbolKey.Pid = le.Uint32(data[off+8 : off+12])
+		stack.Frames[i].SymbolKey.Linestart = int32(le.Uint32(data[off+12 : off+16]))
+	}
 }
 
 func decodeInterpreterFrames(data []byte, stack *InterpreterStack) {
