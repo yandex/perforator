@@ -22,7 +22,10 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         /* nots required */
-        "rootDir": "src"
+        "rootDir": "src",
+        "paths": {
+            "src/*": ["./src/*"]
+        }
     },
     "include": ["src"]
 }

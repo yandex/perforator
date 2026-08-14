@@ -95,6 +95,7 @@
   "perforator/ui/packages/flamegraph/package.json":"perforator/ui/packages/flamegraph/external/package.json",
   "perforator/ui/union/ya.make":"perforator/ui/union/ya.make.external",
   "perforator/ui/viewer/package.json":"perforator/ui/viewer/external/package.json",
+  "perforator/ui/viewer/src/vite/setup.ts":"perforator/ui/viewer/src/vite/setup.external.ts",
   "ya":"devtools/ya/opensource/ya",
   "ya.conf":"devtools/ya/opensource/ya.conf"
 }

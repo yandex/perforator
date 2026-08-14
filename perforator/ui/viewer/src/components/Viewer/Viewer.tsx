@@ -8,8 +8,6 @@ import { Visualisation } from '../Visualisation/Visualisation';
 import { base64toUint8Array } from '../../utils/base64';
 import { decompressData } from '../../utils/decompressData';
 
-import '@gravity-ui/uikit/styles/styles.css';
-
 import './Viewer.css';
 
 const VisualisationImpl = () => {
