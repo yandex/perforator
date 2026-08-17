@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-08T13:15:43.959Z",
+    "created": "2026-08-14T12:16:45.081Z",
     "pr": {
-      "id": 14896643,
-      "author": "baymer",
-      "summary": "FBP-3313: быстро фикс тестов"
+      "id": 15030112,
+      "author": "zaverden",
+      "summary": "DEVTOOLSSUPPORT-93215: clean modeules.yaml as text"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13101123818"
+      "uri": "sbr:13189018786"
     },
     "darwin-arm64": {
-      "uri": "sbr:13101122819"
+      "uri": "sbr:13189014083"
     },
     "linux": {
-      "uri": "sbr:13101126022"
+      "uri": "sbr:13189027468"
     },
     "linux-aarch64": {
-      "uri": "sbr:13101124952"
+      "uri": "sbr:13189022374"
     }
   }
 }
