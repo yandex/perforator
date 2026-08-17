@@ -419,6 +419,7 @@ require (
 	github.com/fullstorydev/grpcurl v1.9.3
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/gabriel-vasile/mimetype v1.4.13
+	github.com/gaissmai/bart v0.26.1
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/getkin/kin-openapi v0.132.0
@@ -875,6 +876,7 @@ require (
 	github.com/tinylib/msgp v1.5.0
 	github.com/tmccombs/hcl2json v0.5.0
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1
+	github.com/trim21/go-phpserialize v0.1.4
 	github.com/trinodb/trino-go-client v0.313.0
 	github.com/tus/tusd v1.4.0
 	github.com/twmb/franz-go v1.17.0
@@ -1726,7 +1728,6 @@ require (
 	github.com/frederic-arr/rpsl-go v0.3.2 // indirect
 	github.com/fsnotify/fsevents v0.2.0 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
-	github.com/gaissmai/bart v0.26.1 // indirect
 	github.com/gavv/httpexpect v2.0.0+incompatible // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gertd/go-pluralize v0.2.1 // indirect
@@ -2598,7 +2599,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.5 // indirect
 	go4.org/intern v0.0.0-20220617035311-6925f38cc365 // indirect
-	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
+	go4.org/unsafe/assume-no-moving-gc v0.0.0-20231121144256-b99613f794b6 // indirect
 	golang.org/x/exp/shiny v0.0.0-20241009180824-f66d83c29e7c // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260611194520-c48552f49976 // indirect
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067 // indirect

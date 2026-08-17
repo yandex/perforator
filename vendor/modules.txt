@@ -17440,6 +17440,13 @@ github.com/tonistiigi/vt100
 github.com/toqueteos/webbrowser
 # github.com/transip/gotransip v5.8.2+incompatible
 ## explicit
+# github.com/trim21/go-phpserialize v0.1.4
+## explicit; go 1.25.0
+github.com/trim21/go-phpserialize
+github.com/trim21/go-phpserialize/internal/decoder
+github.com/trim21/go-phpserialize/internal/encoder
+github.com/trim21/go-phpserialize/internal/errors
+github.com/trim21/go-phpserialize/internal/runtime
 # github.com/trinodb/trino-go-client v0.313.0
 ## explicit; go 1.17
 github.com/trinodb/trino-go-client/trino
@@ -20841,8 +20848,9 @@ go.yaml.in/yaml/v4/internal/libyaml
 go.yaml.in/yaml/v4/plugin/limit
 # go4.org/intern v0.0.0-20220617035311-6925f38cc365
 ## explicit; go 1.13
-# go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760
+# go4.org/unsafe/assume-no-moving-gc v0.0.0-20231121144256-b99613f794b6
 ## explicit; go 1.11
+go4.org/unsafe/assume-no-moving-gc
 # gocloud.dev v0.46.0
 ## explicit; go 1.25.0
 gocloud.dev
