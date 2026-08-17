@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
+	"time"
 
+	clickhousego "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/Masterminds/squirrel"
 
@@ -24,8 +27,15 @@ type clusterTopRow struct {
 }
 
 type ClickhouseAggregationStorage struct {
-	l    xlog.Logger
-	conn *clickhouse.Connection
+	l                 xlog.Logger
+	conn              *clickhouse.Connection
+	asyncInsertConfig AsyncInsertConfig
+}
+
+type AsyncInsertConfig struct {
+	BusyTimeout    time.Duration `yaml:"busy_timeout"`
+	MaxDataSize    uint64        `yaml:"max_data_size"`
+	MaxQueryNumber uint64        `yaml:"max_query_number"`
 }
 
 type AggregationQuery struct {
@@ -37,12 +47,13 @@ var (
 	_ AggregationStorage = (*ClickhouseAggregationStorage)(nil)
 )
 
-func NewStorage(l xlog.Logger, conn *clickhouse.Connection) *ClickhouseAggregationStorage {
+func NewStorage(l xlog.Logger, conn *clickhouse.Connection, asyncInsertConfig AsyncInsertConfig) *ClickhouseAggregationStorage {
 	l = l.WithName("clustertop_clickhouse")
 
 	return &ClickhouseAggregationStorage{
-		l:    l,
-		conn: conn,
+		l:                 l,
+		conn:              conn,
+		asyncInsertConfig: asyncInsertConfig,
 	}
 }
 
@@ -213,35 +224,76 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 
 const kMaxFunctionNameLength = 512
 
-func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, servicePerfTop *ServicePerfTop) error {
-
-	batch, err := s.conn.PrepareBatch(
-		ctx,
-		fmt.Sprintf("INSERT INTO %s(generation, service, function, self_cycles, cumulative_cycles)", clusterTopTable),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to prepare clickhouse batch: %w", err)
+func buildClusterTopRows(servicePerfTop *ServicePerfTop) []clusterTopRow {
+	if servicePerfTop == nil || len(servicePerfTop.Functions) == 0 {
+		return nil
 	}
 
-	defer func() { _ = batch.Abort() }()
-
+	rows := make([]clusterTopRow, 0, len(servicePerfTop.Functions))
 	for _, function := range servicePerfTop.Functions {
-		lengthLimitedFunctionName := function.Name
-		if len(lengthLimitedFunctionName) > kMaxFunctionNameLength {
-			lengthLimitedFunctionName = lengthLimitedFunctionName[:kMaxFunctionNameLength]
+		functionName := function.Name
+		if len(functionName) > kMaxFunctionNameLength {
+			functionName = functionName[:kMaxFunctionNameLength]
 		}
-		clickhouseRow := clusterTopRow{
+
+		rows = append(rows, clusterTopRow{
 			Generation:       servicePerfTop.Generation,
 			Service:          servicePerfTop.ServiceName,
-			Function:         lengthLimitedFunctionName,
+			Function:         functionName,
 			SelfCycles:       function.SelfCycles,
 			CumulativeCycles: function.CumulativeCycles,
-		}
-		err := batch.AppendStruct(&clickhouseRow)
-		if err != nil {
-			return fmt.Errorf("failed to serialize clickhouse row: %w", err)
-		}
+		})
+	}
+	return rows
+}
+
+func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, servicePerfTop *ServicePerfTop) error {
+	rows := buildClusterTopRows(servicePerfTop)
+	if len(rows) == 0 {
+		return nil
 	}
 
-	return batch.Send()
+	const valuesPlaceholder = "(?, ?, ?, ?, ?)"
+	var query strings.Builder
+	query.Grow(len(rows) * (len(valuesPlaceholder) + 2))
+	args := make([]any, 0, len(rows)*5)
+	for i := range rows {
+		if i > 0 {
+			query.WriteString(", ")
+		}
+		query.WriteString(valuesPlaceholder)
+		args = append(args,
+			rows[i].Generation,
+			rows[i].Service,
+			rows[i].Function,
+			&rows[i].SelfCycles,
+			&rows[i].CumulativeCycles,
+		)
+	}
+
+	settings := clickhousego.Settings{}
+	if s.asyncInsertConfig.BusyTimeout > 0 {
+		settings["async_insert_busy_timeout_ms"] = s.asyncInsertConfig.BusyTimeout.Milliseconds()
+	}
+	if s.asyncInsertConfig.MaxDataSize > 0 {
+		settings["async_insert_max_data_size"] = s.asyncInsertConfig.MaxDataSize
+	}
+	if s.asyncInsertConfig.MaxQueryNumber > 0 {
+		settings["async_insert_max_query_number"] = s.asyncInsertConfig.MaxQueryNumber
+	}
+
+	ctx = clickhousego.Context(
+		ctx,
+		clickhousego.WithAsync(true),
+		clickhousego.WithSettings(settings),
+	)
+
+	if err := s.conn.Exec(
+		ctx,
+		fmt.Sprintf("INSERT INTO %s(generation, service, function, self_cycles, cumulative_cycles) VALUES %s", clusterTopTable, query.String()),
+		args...,
+	); err != nil {
+		return fmt.Errorf("failed to execute async cluster top insert: %w", err)
+	}
+	return nil
 }

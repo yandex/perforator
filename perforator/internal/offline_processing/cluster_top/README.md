@@ -84,6 +84,21 @@ The Workers are responsible for the actual data aggregation. They run concurrent
   5. Saves the aggregated result to ClickHouse in `cluster_top_v2` via [ClickhousePerfTopAggregator](./clickhouse_perf_top_aggregator.go).
   6. Updates the job status in PostgreSQL to `done` (or `failed` in case of an error, or `skipped` for services on the skip list).
 
+### Asynchronous ClickHouse inserts
+
+Cluster Top always buffers its per-job writes using ClickHouse asynchronous inserts. The configured busy timeout, maximum buffered data size, and maximum query count are attached only to `cluster_top_v2` INSERT queries. They do not change the shared ClickHouse connection defaults or the `profiles` write path. If a value is omitted, ClickHouse uses its server default.
+
+The worker always uses `wait_for_async_insert=1`. `SaveClusterTopEntry` therefore returns successfully only after ClickHouse has flushed the buffered INSERT, and only then can the PostgreSQL job be marked `done`.
+
+```yaml
+storage:
+  cluster_top:
+    async_insert:
+      busy_timeout: "10s"
+      max_data_size: 268435456
+      max_query_number: 100
+```
+
 ## Worker config
 
 ```yaml

@@ -14,6 +14,7 @@ import (
 type options struct {
 	postgresCluster      *hasql.Cluster
 	clickhouseConnection *clickhouse.Connection
+	asyncInsertConfig    clustertop.AsyncInsertConfig
 }
 
 type Option = func(*options)
@@ -34,6 +35,12 @@ func WithClickhouseConnection(connection *clickhouse.Connection) Option {
 	}
 }
 
+func WithAsyncInsertConfig(config clustertop.AsyncInsertConfig) Option {
+	return func(o *options) {
+		o.asyncInsertConfig = config
+	}
+}
+
 func NewStorage(
 	logger xlog.Logger,
 	optAppliers ...Option,
@@ -51,6 +58,6 @@ func NewStorage(
 		return nil, errors.New("clickhouse connection is not specified")
 	}
 
-	return combined.NewCombinedClusterTopStorage(logger, options.clickhouseConnection, options.postgresCluster), nil
+	return combined.NewCombinedClusterTopStorage(logger, options.clickhouseConnection, options.postgresCluster, options.asyncInsertConfig), nil
 
 }

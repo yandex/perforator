@@ -21,9 +21,12 @@ const (
 	Clickhouse AggregationStorageType = "clickhouse"
 )
 
+type AsyncInsertConfig = aggregated.AsyncInsertConfig
+
 type Config struct {
 	GenerationsStorage GenerationsStorageType `yaml:"generations_storage"`
 	AggregationStorage AggregationStorageType `yaml:"aggregation_storage"`
+	AsyncInsert        AsyncInsertConfig      `yaml:"async_insert"`
 }
 
 type Storage interface {

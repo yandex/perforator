@@ -262,7 +262,12 @@ func (b *StorageBundle) createOptsFromClusterTopGenerationsStorageType(config cl
 			return nil, ErrClickhouseConnNotSpecified
 		}
 
-		opts = append(opts, clustertop_factory.WithPostgresCluster(b.DBs.PostgresCluster), clustertop_factory.WithClickhouseConnection(b.DBs.ClickhouseConn))
+		opts = append(
+			opts,
+			clustertop_factory.WithPostgresCluster(b.DBs.PostgresCluster),
+			clustertop_factory.WithClickhouseConnection(b.DBs.ClickhouseConn),
+			clustertop_factory.WithAsyncInsertConfig(config.AsyncInsert),
+		)
 	}
 
 	return opts, nil
