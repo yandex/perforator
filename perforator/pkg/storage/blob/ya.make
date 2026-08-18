@@ -1,7 +1,6 @@
 GO_LIBRARY()
 
 SRCS(
-    handle.go
     opts.go
     storage.go
 )

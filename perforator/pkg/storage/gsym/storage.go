@@ -2,19 +2,26 @@ package gsym
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"time"
+
+	"github.com/klauspost/compress/zstd"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	gsymmeta "github.com/yandex/perforator/perforator/pkg/storage/gsym/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
+	"github.com/yandex/perforator/perforator/pkg/xio"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-type gsymStorage struct {
+var errNotFound = errors.New("gsym not found")
+
+type GSYMStorage struct {
 	logger      xlog.Logger
 	metaStorage gsymmeta.Storage
 	blobStorage blob.Storage
@@ -24,15 +31,15 @@ func NewStorage(
 	metaStorage gsymmeta.Storage,
 	blobStorage blob.Storage,
 	logger xlog.Logger,
-) Storage {
-	return &gsymStorage{
+) *GSYMStorage {
+	return &GSYMStorage{
 		metaStorage: metaStorage,
 		blobStorage: blobStorage,
 		logger:      logger,
 	}
 }
 
-func (s *gsymStorage) loadGSYMMeta(
+func (s *GSYMStorage) loadGSYMMeta(
 	ctx context.Context,
 	buildID string,
 ) (*gsymmeta.GSYMMeta, error) {
@@ -55,7 +62,9 @@ func (s *gsymStorage) loadGSYMMeta(
 	return metas[0], nil
 }
 
-func (s *gsymStorage) LoadGSYM(
+// LoadGSYM writes the decompressed GSYM for buildID into writer (blobs are
+// always zstd-compressed at rest).
+func (s *GSYMStorage) LoadGSYM(
 	ctx context.Context,
 	buildID string,
 	writer io.WriterAt,
@@ -64,6 +73,9 @@ func (s *gsymStorage) LoadGSYM(
 	if err != nil {
 		return nil, err
 	}
+	if meta.UncompressedSize == 0 || meta.UncompressedSize > math.MaxInt64 {
+		return nil, fmt.Errorf("gsym %s: implausible uncompressed_size %d", buildID, meta.UncompressedSize)
+	}
 
 	r, err := s.blobStorage.Get(ctx, buildID)
 	if err != nil {
@@ -71,22 +83,28 @@ func (s *gsymStorage) LoadGSYM(
 	}
 	defer r.Close()
 
-	_, err = io.Copy(io.NewOffsetWriter(writer, 0), r)
+	decoder, err := zstd.NewReader(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create zstd reader: %w", err)
+	}
+	defer decoder.Close()
+
+	sized := xio.NewSizedReader(decoder, int64(meta.UncompressedSize))
+	if _, err := io.Copy(io.NewOffsetWriter(writer, 0), sized); err != nil {
+		return nil, fmt.Errorf("gsym %s: %w", buildID, err)
 	}
 
 	return meta, nil
 }
 
-func (s *gsymStorage) GetGSYMs(
+func (s *GSYMStorage) GetGSYMs(
 	ctx context.Context,
 	buildIDs []string,
 ) ([]*gsymmeta.GSYMMeta, error) {
 	return s.metaStorage.GetGSYMs(ctx, buildIDs)
 }
 
-func (s *gsymStorage) CollectExpired(
+func (s *GSYMStorage) CollectExpired(
 	ctx context.Context,
 	ttl time.Duration,
 	pagination *util.Pagination,
@@ -108,7 +126,7 @@ func (s *gsymStorage) CollectExpired(
 	return result, nil
 }
 
-func (s *gsymStorage) Delete(
+func (s *GSYMStorage) Delete(
 	ctx context.Context,
 	IDs []string,
 ) error {

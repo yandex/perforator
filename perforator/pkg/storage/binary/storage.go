@@ -5,9 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"slices"
 	"sync/atomic"
 	"time"
+
+	"github.com/klauspost/compress/zstd"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
@@ -15,8 +18,20 @@ import (
 	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
+	"github.com/yandex/perforator/perforator/pkg/xio"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
+
+var (
+	ErrNotFound = errors.New("binary not found")
+)
+
+type TransactionalWriter interface {
+	io.Writer
+	Commit(ctx context.Context) error
+	Abort(ctx context.Context) error
+}
 
 type BinaryStorage struct {
 	logger xlog.Logger
@@ -175,6 +190,67 @@ func (s *BinaryStorage) loadBinaryMeta(
 	return metas[0], nil
 }
 
+// loadBlob writes the binary described by meta into w, decompressing it on
+// the fly when the blob is compressed at rest.
+func (s *BinaryStorage) loadBlob(
+	ctx context.Context,
+	meta *binarymeta.BinaryMeta,
+	w io.WriterAt,
+) error {
+	r, err := s.openBlob(ctx, meta)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	if _, err := io.Copy(io.NewOffsetWriter(w, 0), r); err != nil {
+		return fmt.Errorf("binary %s: %w", meta.BuildID, err)
+	}
+	return nil
+}
+
+// openBlob returns the binary's byte stream: the blob as stored, wrapped in a
+// decompressor when meta says it is compressed at rest. Compressed streams
+// are checked against the declared uncompressed size — consumers size caches
+// by it, so a deviating stream errors instead of ending.
+func (s *BinaryStorage) openBlob(ctx context.Context, meta *binarymeta.BinaryMeta) (io.ReadCloser, error) {
+	if meta.BlobInfo == nil {
+		return nil, fmt.Errorf("no blob for binary %s", meta.BuildID)
+	}
+
+	switch meta.Compression {
+	case compressionpb.CompressionMethod_None:
+		r, err := s.blobStorage.Get(ctx, meta.BlobInfo.ID)
+		if err != nil {
+			return nil, err
+		}
+		// The stream is the blob, so its length is the size recorded for the
+		// blob itself: uncompressed_size only mirrors it, and on rows written
+		// before that column existed it is zero.
+		return xio.NewReadMultiCloser(xio.NewSizedReader(r, int64(meta.BlobInfo.Size)), r), nil
+	case compressionpb.CompressionMethod_Zstd:
+		if meta.UncompressedSize == 0 || meta.UncompressedSize > math.MaxInt64 {
+			return nil, fmt.Errorf("binary %s: implausible uncompressed_size %d", meta.BuildID, meta.UncompressedSize)
+		}
+		r, err := s.blobStorage.Get(ctx, meta.BlobInfo.ID)
+		if err != nil {
+			return nil, err
+		}
+		decoder, err := zstd.NewReader(r)
+		if err != nil {
+			_ = r.Close()
+			return nil, fmt.Errorf("binary %s: failed to create zstd reader: %w", meta.BuildID, err)
+		}
+		// zstd's own Close does not close its source, so both are owned here.
+		decoded := decoder.IOReadCloser()
+		return xio.NewReadMultiCloser(xio.NewSizedReader(decoded, int64(meta.UncompressedSize)), decoded, r), nil
+	case compressionpb.CompressionMethod_Unknown:
+		return nil, fmt.Errorf("binary %s: compression is unknown", meta.BuildID)
+	default:
+		return nil, fmt.Errorf("binary %s: unsupported compression method: %s", meta.BuildID, meta.Compression)
+	}
+}
+
 func (s *BinaryStorage) LoadBinary(
 	ctx context.Context,
 	buildID string,
@@ -185,18 +261,7 @@ func (s *BinaryStorage) LoadBinary(
 		return nil, err
 	}
 
-	if meta.BlobInfo == nil {
-		return nil, fmt.Errorf("no blob for binary %s", meta.BuildID)
-	}
-
-	r, err := s.blobStorage.Get(ctx, meta.BlobInfo.ID)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	_, err = io.Copy(io.NewOffsetWriter(writer, 0), r)
-	if err != nil {
+	if err := s.loadBlob(ctx, meta, writer); err != nil {
 		return nil, err
 	}
 

@@ -2,15 +2,16 @@ GO_LIBRARY()
 
 SRCS(
     config.go
-    models.go
     storage.go
+)
+
+GO_TEST_SRCS(
+    storage_test.go
 )
 
 END()
 
 RECURSE(
-    compound
-    decompressing
+    gotest
     meta
-    mock
 )

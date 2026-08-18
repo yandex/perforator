@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -11,25 +12,50 @@ import (
 	"testing"
 	"time"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 	"golang.org/x/sync/errgroup"
 
 	metricsmock "github.com/yandex/perforator/library/go/core/metrics/mock"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/pkg/filecache"
+	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
-	mock_binary "github.com/yandex/perforator/perforator/pkg/storage/binary/mock"
+	blobfs "github.com/yandex/perforator/perforator/pkg/storage/blob/fs"
+	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
+	gsymstorage "github.com/yandex/perforator/perforator/pkg/storage/gsym"
+	gsymmeta "github.com/yandex/perforator/perforator/pkg/storage/gsym/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
 
-func newTestObjects(t *testing.T, maxSize string, config *Config) (
-	context.Context,
-	*mock_binary.MockStorage,
-	binaryprovider.BinaryProvider,
-) {
+// fakeStorage serves zero bytes for every known buildID; onDownload, when
+// set, replaces the default download body.
+type fakeStorage struct {
+	sizes      map[string]uint64
+	onDownload func(ctx context.Context, buildID string, w io.WriterAt) error
+	downloads  atomic.Int32
+}
+
+func (f *fakeStorage) size(ctx context.Context, buildID string) (uint64, error) {
+	size, ok := f.sizes[buildID]
+	if !ok {
+		return 0, fmt.Errorf("no binary %s", buildID)
+	}
+	return size, nil
+}
+
+func (f *fakeStorage) download(ctx context.Context, buildID string, w io.WriterAt) error {
+	f.downloads.Add(1)
+	if f.onDownload != nil {
+		return f.onDownload(ctx, buildID, w)
+	}
+	_, err := w.WriteAt(make([]byte, f.sizes[buildID]), 0)
+	return err
+}
+
+func newTestProvider(t *testing.T, maxSize string, config *Config, fake *fakeStorage) (context.Context, binaryprovider.BinaryProvider) {
 	l := xlog.ForTest(t)
 	reg := metricsmock.NewRegistry(nil)
 
@@ -39,45 +65,15 @@ func newTestObjects(t *testing.T, maxSize string, config *Config) (
 	)
 	require.NoError(t, err)
 
-	ctrl := gomock.NewController(t)
-	st := mock_binary.NewMockStorage(ctrl)
+	d := NewDownloader(l, reg, fileCache, *config)
+	provider := &artifactDownloader{downloader: d, storage: fake, prefix: binaryFilePrefix}
 
-	downloaderInstance := NewDownloader(l, reg, fileCache, *config)
-	provider := NewBinaryDownloader(downloaderInstance, st)
-
-	return context.Background(), st, provider
-}
-
-// expectBinary stubs an uncompressed binary of blobSize bytes. loadTimes < 0
-// means the download may happen any number of times (e.g. across evictions).
-func expectBinary(st *mock_binary.MockStorage, buildID string, blobSize uint64, loadTimes int) {
-	st.EXPECT().GetBinaries(gomock.Any(), []string{buildID}).Return(
-		[]*binarymeta.BinaryMeta{{
-			BuildID:     buildID,
-			Compression: compressionpb.CompressionMethod_None,
-			BlobInfo:    &storage.BlobInfo{Size: blobSize},
-		}},
-		nil,
-	).AnyTimes()
-
-	call := st.EXPECT().
-		LoadBinary(gomock.Any(), buildID, gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ string, w io.WriterAt) (*binarymeta.BinaryMeta, error) {
-			if _, err := w.WriteAt(make([]byte, blobSize), 0); err != nil {
-				return nil, err
-			}
-			return &binarymeta.BinaryMeta{BuildID: buildID, BlobInfo: &storage.BlobInfo{Size: blobSize}}, nil
-		})
-	if loadTimes < 0 {
-		call.AnyTimes()
-	} else {
-		call.Times(loadTimes)
-	}
+	return context.Background(), provider
 }
 
 func TestDownloader_Simple(t *testing.T) {
-	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
-	expectBinary(st, "a", 1, 1)
+	fake := &fakeStorage{sizes: map[string]uint64{"a": 1}}
+	ctx, provider := newTestProvider(t, "100G", &Config{MaxSimultaneousDownloads: 1}, fake)
 
 	handle, err := provider.Acquire(ctx, "a")
 	require.NoError(t, err)
@@ -91,8 +87,8 @@ func TestDownloader_Simple(t *testing.T) {
 }
 
 func TestDownloader_SameBinarySingleDownload(t *testing.T) {
-	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
-	expectBinary(st, "a", 1, 1) // exactly one download despite two acquires
+	fake := &fakeStorage{sizes: map[string]uint64{"a": 1}}
+	ctx, provider := newTestProvider(t, "100G", &Config{MaxSimultaneousDownloads: 1}, fake)
 
 	h1, err := provider.Acquire(ctx, "a")
 	require.NoError(t, err)
@@ -100,24 +96,21 @@ func TestDownloader_SameBinarySingleDownload(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, h1.Path(), h2.Path())
+	require.Equal(t, int32(1), fake.downloads.Load()) // exactly one download despite two acquires
 
 	h1.Close()
 	h2.Close()
 }
 
 func TestDownloader_DownloadErrorNotCached(t *testing.T) {
-	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
-	st.EXPECT().GetBinaries(gomock.Any(), []string{"a"}).Return(
-		[]*binarymeta.BinaryMeta{{
-			BuildID:     "a",
-			Compression: compressionpb.CompressionMethod_None,
-			BlobInfo:    &storage.BlobInfo{Size: 2},
-		}},
-		nil,
-	).AnyTimes()
 	downloadErr := errors.New("download failed")
-	st.EXPECT().LoadBinary(gomock.Any(), "a", gomock.Any()).
-		Return(nil, downloadErr).Times(2)
+	fake := &fakeStorage{
+		sizes: map[string]uint64{"a": 2},
+		onDownload: func(context.Context, string, io.WriterAt) error {
+			return downloadErr
+		},
+	}
+	ctx, provider := newTestProvider(t, "100G", &Config{MaxSimultaneousDownloads: 1}, fake)
 
 	_, err := provider.Acquire(ctx, "a")
 	require.ErrorIs(t, err, downloadErr)
@@ -125,30 +118,22 @@ func TestDownloader_DownloadErrorNotCached(t *testing.T) {
 	// Not cached: a second acquire retries the download.
 	_, err = provider.Acquire(ctx, "a")
 	require.ErrorIs(t, err, downloadErr)
+	require.Equal(t, int32(2), fake.downloads.Load())
 }
 
 func TestDownloader_FirstCallerCancelableWaiterGetsBinary(t *testing.T) {
-	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
-
-	st.EXPECT().GetBinaries(gomock.Any(), []string{"a"}).Return(
-		[]*binarymeta.BinaryMeta{{
-			BuildID:     "a",
-			Compression: compressionpb.CompressionMethod_None,
-			BlobInfo:    &storage.BlobInfo{Size: 1},
-		}},
-		nil,
-	).AnyTimes()
 	started := make(chan struct{})
 	proceed := make(chan struct{})
-	st.EXPECT().LoadBinary(gomock.Any(), "a", gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ string, w io.WriterAt) (*binarymeta.BinaryMeta, error) {
+	fake := &fakeStorage{
+		sizes: map[string]uint64{"a": 1},
+		onDownload: func(_ context.Context, _ string, w io.WriterAt) error {
 			close(started)
 			<-proceed
-			if _, err := w.WriteAt([]byte{0}, 0); err != nil {
-				return nil, err
-			}
-			return &binarymeta.BinaryMeta{BuildID: "a"}, nil
-		}).Times(1)
+			_, err := w.WriteAt([]byte{0}, 0)
+			return err
+		},
+	}
+	ctx, provider := newTestProvider(t, "100G", &Config{MaxSimultaneousDownloads: 1}, fake)
 
 	firstCtx, cancel := context.WithCancel(ctx)
 	firstDone := make(chan error, 1)
@@ -170,31 +155,23 @@ func TestDownloader_FirstCallerCancelableWaiterGetsBinary(t *testing.T) {
 
 	close(proceed)
 	require.NoError(t, <-waiterDone)
+	require.Equal(t, int32(1), fake.downloads.Load())
 	handle.Close()
 }
 
 func TestDownloader_WaiterCancelableWhileFillContinues(t *testing.T) {
-	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
-
-	st.EXPECT().GetBinaries(gomock.Any(), []string{"a"}).Return(
-		[]*binarymeta.BinaryMeta{{
-			BuildID:     "a",
-			Compression: compressionpb.CompressionMethod_None,
-			BlobInfo:    &storage.BlobInfo{Size: 1},
-		}},
-		nil,
-	).AnyTimes()
 	started := make(chan struct{})
 	proceed := make(chan struct{})
-	st.EXPECT().LoadBinary(gomock.Any(), "a", gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ string, w io.WriterAt) (*binarymeta.BinaryMeta, error) {
+	fake := &fakeStorage{
+		sizes: map[string]uint64{"a": 1},
+		onDownload: func(_ context.Context, _ string, w io.WriterAt) error {
 			close(started)
 			<-proceed
-			if _, err := w.WriteAt([]byte{0}, 0); err != nil {
-				return nil, err
-			}
-			return &binarymeta.BinaryMeta{BuildID: "a"}, nil
-		}).Times(1)
+			_, err := w.WriteAt([]byte{0}, 0)
+			return err
+		},
+	}
+	ctx, provider := newTestProvider(t, "100G", &Config{MaxSimultaneousDownloads: 1}, fake)
 
 	fillerDone := make(chan error, 1)
 	go func() {
@@ -228,47 +205,18 @@ func TestDownloader_WaiterCancelableWhileFillContinues(t *testing.T) {
 	// The shared fill survived the waiter's cancellation: the next acquire hits.
 	h, err := provider.Acquire(ctx, "a")
 	require.NoError(t, err)
+	require.Equal(t, int32(1), fake.downloads.Load())
 	h.Close()
 }
 
-func TestDownloader_ZstdAcquireSize(t *testing.T) {
-	const uncompressedSize = 1024 * 1024
-
-	ctx, st, provider := newTestObjects(t, "100G", &Config{MaxSimultaneousDownloads: 1})
-	st.EXPECT().GetBinaries(gomock.Any(), []string{"z"}).Return(
-		[]*binarymeta.BinaryMeta{{
-			BuildID:          "z",
-			Compression:      compressionpb.CompressionMethod_Zstd,
-			UncompressedSize: uncompressedSize,
-			BlobInfo:         &storage.BlobInfo{Size: 4096},
-		}},
-		nil,
-	).AnyTimes()
-	st.EXPECT().LoadBinary(gomock.Any(), "z", gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ string, w io.WriterAt) (*binarymeta.BinaryMeta, error) {
-			if _, err := w.WriteAt(make([]byte, uncompressedSize), 0); err != nil {
-				return nil, err
-			}
-			return &binarymeta.BinaryMeta{BuildID: "z"}, nil
-		}).Times(1)
-
-	handle, err := provider.Acquire(ctx, "z")
-	require.NoError(t, err)
-
-	fi, err := os.Stat(handle.Path())
-	require.NoError(t, err)
-	require.Equal(t, int64(uncompressedSize), fi.Size()) // charged the uncompressed size
-
-	handle.Close()
-}
-
 func TestDownloader_Concurrent(t *testing.T) {
-	ctx, st, provider := newTestObjects(t, "100B", &Config{MaxSimultaneousDownloads: 2})
-
 	const distinct = 20
+	sizes := make(map[string]uint64, distinct)
 	for i := 0; i < distinct; i++ {
-		expectBinary(st, fmt.Sprintf("b%d", i), 10, -1) // 10 bytes each; ~10 fit in 100B
+		sizes[fmt.Sprintf("b%d", i)] = 10 // 10 bytes each; ~10 fit in 100B
 	}
+	fake := &fakeStorage{sizes: sizes}
+	ctx, provider := newTestProvider(t, "100B", &Config{MaxSimultaneousDownloads: 2}, fake)
 
 	var succeeded atomic.Uint32
 	g, _ := errgroup.WithContext(ctx)
@@ -310,4 +258,143 @@ func TestEffectiveBinarySize(t *testing.T) {
 		})
 		require.Equal(t, uint64(500), size)
 	})
+}
+
+// fakeBinaryMeta and fakeGSYMMeta serve fixed metas; every other method panics
+// through the nil embedded interface.
+type fakeBinaryMeta struct {
+	binarymeta.Storage
+	metas map[string]*binarymeta.BinaryMeta
+}
+
+func (f *fakeBinaryMeta) GetBinaries(_ context.Context, buildIDs []string) ([]*binarymeta.BinaryMeta, error) {
+	res := make([]*binarymeta.BinaryMeta, 0, len(buildIDs))
+	for _, id := range buildIDs {
+		if meta, ok := f.metas[id]; ok {
+			res = append(res, meta)
+		}
+	}
+	return res, nil
+}
+
+type fakeGSYMMeta struct {
+	gsymmeta.Storage
+	metas map[string]*gsymmeta.GSYMMeta
+}
+
+func (f *fakeGSYMMeta) GetGSYMs(_ context.Context, buildIDs []string) ([]*gsymmeta.GSYMMeta, error) {
+	res := make([]*gsymmeta.GSYMMeta, 0, len(buildIDs))
+	for _, id := range buildIDs {
+		if meta, ok := f.metas[id]; ok {
+			res = append(res, meta)
+		}
+	}
+	return res, nil
+}
+
+func zstdCompress(t *testing.T, payload []byte) []byte {
+	var buf bytes.Buffer
+	enc, err := zstd.NewWriter(&buf, zstd.WithEncoderConcurrency(1))
+	require.NoError(t, err)
+	_, err = enc.Write(payload)
+	require.NoError(t, err)
+	require.NoError(t, enc.Close())
+	return buf.Bytes()
+}
+
+func newBlobStorageWith(t *testing.T, key string, content []byte) blob.Storage {
+	blobStorage, err := blobfs.NewFSStorage(blobfs.FSStorageConfig{Root: t.TempDir()}, xlog.ForTest(t))
+	require.NoError(t, err)
+
+	w, err := blobStorage.Put(context.Background(), key)
+	require.NoError(t, err)
+	_, err = w.Write(content)
+	require.NoError(t, err)
+	_, err = w.Commit()
+	require.NoError(t, err)
+
+	return blobStorage
+}
+
+func newTestDownloader(t *testing.T) *Downloader {
+	reg := metricsmock.NewRegistry(nil)
+	fileCache, err := filecache.NewFileCache(
+		&filecache.Config{MaxSize: "16MiB", RootPath: t.TempDir()},
+		reg,
+	)
+	require.NoError(t, err)
+	return NewDownloader(xlog.ForTest(t), reg, fileCache, Config{})
+}
+
+// TestBinaryDownloader_ZstdChargeMatchesFile drives the production adapter to
+// pin the cache accounting invariant: the size charged before the download
+// must be the number of bytes the download then writes. Charging the
+// compressed size would let the cache overshoot its budget on every
+// compressed binary.
+func TestBinaryDownloader_ZstdChargeMatchesFile(t *testing.T) {
+	ctx := context.Background()
+	payload := bytes.Repeat([]byte("binary payload "), 500)
+	blobStorage := newBlobStorageWith(t, "build-1", zstdCompress(t, payload))
+
+	binStorage := binarystorage.NewStorage(
+		&fakeBinaryMeta{metas: map[string]*binarymeta.BinaryMeta{
+			"build-1": {
+				BuildID:          "build-1",
+				BlobInfo:         &storage.BlobInfo{ID: "build-1"},
+				Compression:      compressionpb.CompressionMethod_Zstd,
+				UncompressedSize: uint64(len(payload)),
+			},
+		}},
+		blobStorage,
+		xlog.ForTest(t),
+		metricsmock.NewRegistry(nil),
+	)
+
+	charged, err := (&binaryDownloadAdapter{storage: binStorage}).size(ctx, "build-1")
+	require.NoError(t, err)
+	require.Equal(t, uint64(len(payload)), charged)
+
+	handle, err := NewBinaryDownloader(newTestDownloader(t), binStorage).Acquire(ctx, "build-1")
+	require.NoError(t, err)
+	defer handle.Close()
+
+	onDisk, err := os.ReadFile(handle.Path())
+	require.NoError(t, err)
+	require.Equal(t, int(charged), len(onDisk), "cache file size must match the charged size")
+	require.Equal(t, payload, onDisk)
+}
+
+// TestGSYMDownloader_DecompressesOnce pins that the GSYM adapter lands exactly
+// the decompressed bytes on disk — neither the compressed blob nor a
+// double-decompressed one.
+func TestGSYMDownloader_DecompressesOnce(t *testing.T) {
+	ctx := context.Background()
+	payload := bytes.Repeat([]byte("gsym payload "), 500)
+	compressed := zstdCompress(t, payload)
+	blobStorage := newBlobStorageWith(t, "build-2", compressed)
+
+	gsymStorage := gsymstorage.NewStorage(
+		&fakeGSYMMeta{metas: map[string]*gsymmeta.GSYMMeta{
+			"build-2": {
+				BuildID:          "build-2",
+				CompressedSize:   uint64(len(compressed)),
+				UncompressedSize: uint64(len(payload)),
+			},
+		}},
+		blobStorage,
+		xlog.ForTest(t),
+	)
+
+	charged, err := (&gsymDownloadAdapter{storage: gsymStorage}).size(ctx, "build-2")
+	require.NoError(t, err)
+	require.Equal(t, uint64(len(payload)), charged)
+
+	handle, err := NewGSYMDownloader(newTestDownloader(t), gsymStorage).Acquire(ctx, "build-2")
+	require.NoError(t, err)
+	defer handle.Close()
+
+	onDisk, err := os.ReadFile(handle.Path())
+	require.NoError(t, err)
+	require.Equal(t, int(charged), len(onDisk), "cache file size must match the charged size")
+	require.Equal(t, payload, onDisk)
 }

@@ -1,7 +1,6 @@
 GO_LIBRARY()
 
 SRCS(
-    download.go
     reader.go
     s3.go
 )

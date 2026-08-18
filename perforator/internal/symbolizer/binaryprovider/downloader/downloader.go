@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/klauspost/compress/zstd"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/yandex/perforator/library/go/core/log"
@@ -92,8 +90,7 @@ func (d *Downloader) registerMetrics() {
 }
 
 // runDownload performs the actual storage fetch for a single cache fill. The
-// semaphore bounds concurrent downloads (and thus peak memory, since gsym blobs
-// are decompressed in full); coalesced waiters never reach here.
+// semaphore bounds concurrent downloads; coalesced waiters never reach here.
 func (d *Downloader) runDownload(
 	ctx context.Context,
 	storage downloadableStorage,
@@ -156,9 +153,9 @@ func getBinaryFileEntryName(buildID string, prefix string) string {
 	return prefix + buildIDAsPath
 }
 
-// binaryDownloadAdapter adapts binary.Storage to downloadableStorage.
+// binaryDownloadAdapter adapts BinaryStorage to downloadableStorage.
 type binaryDownloadAdapter struct {
-	storage binarystorage.Storage
+	storage *binarystorage.BinaryStorage
 }
 
 func (a *binaryDownloadAdapter) size(ctx context.Context, buildID string) (uint64, error) {
@@ -190,11 +187,11 @@ func (a *binaryDownloadAdapter) download(ctx context.Context, buildID string, wr
 	return err
 }
 
-// gsymDownloadAdapter adapts gsym.Storage to downloadableStorage.
-// Size returns the uncompressed size (the final on-disk size after decompression).
-// Download fetches the compressed blob from storage and decompresses it with zstd before writing to writer.
+// gsymDownloadAdapter adapts GSYMStorage to downloadableStorage. Size returns
+// the uncompressed size — the final on-disk size after the storage's streaming
+// decompression.
 type gsymDownloadAdapter struct {
-	storage gsymstorage.Storage
+	storage *gsymstorage.GSYMStorage
 }
 
 func (a *gsymDownloadAdapter) size(ctx context.Context, buildID string) (uint64, error) {
@@ -209,25 +206,7 @@ func (a *gsymDownloadAdapter) size(ctx context.Context, buildID string) (uint64,
 }
 
 func (a *gsymDownloadAdapter) download(ctx context.Context, buildID string, writer io.WriterAt) error {
-	var buf aws.WriteAtBuffer
-	buf.GrowthCoeff = 1.5
-
-	_, err := a.storage.LoadGSYM(ctx, buildID, &buf)
-	if err != nil {
-		return err
-	}
-
-	decoder, err := zstd.NewReader(nil)
-	if err != nil {
-		return err
-	}
-
-	result, err := decoder.DecodeAll(buf.Bytes(), nil)
-	if err != nil {
-		return err
-	}
-
-	_, err = writer.WriteAt(result, 0)
+	_, err := a.storage.LoadGSYM(ctx, buildID, writer)
 	return err
 }
 
@@ -241,7 +220,7 @@ func (d *artifactDownloader) Acquire(ctx context.Context, buildID string) (binar
 	return d.downloader.acquire(ctx, d.storage, buildID, d.prefix)
 }
 
-func NewBinaryDownloader(downloader *Downloader, binaryStorage binarystorage.Storage) binaryprovider.BinaryProvider {
+func NewBinaryDownloader(downloader *Downloader, binaryStorage *binarystorage.BinaryStorage) binaryprovider.BinaryProvider {
 	return &artifactDownloader{
 		downloader: downloader,
 		storage:    &binaryDownloadAdapter{storage: binaryStorage},
@@ -249,7 +228,7 @@ func NewBinaryDownloader(downloader *Downloader, binaryStorage binarystorage.Sto
 	}
 }
 
-func NewGSYMDownloader(downloader *Downloader, gsymStorage gsymstorage.Storage) binaryprovider.BinaryProvider {
+func NewGSYMDownloader(downloader *Downloader, gsymStorage *gsymstorage.GSYMStorage) binaryprovider.BinaryProvider {
 	return &artifactDownloader{
 		downloader: downloader,
 		storage:    &gsymDownloadAdapter{storage: gsymStorage},
@@ -262,8 +241,8 @@ func CreateDownloaders(
 	maxSimultaneousDownloads uint32,
 	l xlog.Logger,
 	reg metrics.Registry,
-	binaryStorage binarystorage.Storage,
-	gsymStorage gsymstorage.Storage,
+	binaryStorage *binarystorage.BinaryStorage,
+	gsymStorage *gsymstorage.GSYMStorage,
 ) (binaryprovider.BinaryProvider, binaryprovider.BinaryProvider, error) {
 	fileCache, err := filecache.NewFileCache(fileCacheConfig, reg)
 	if err != nil {

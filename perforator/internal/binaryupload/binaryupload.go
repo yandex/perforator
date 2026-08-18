@@ -92,7 +92,7 @@ type Service struct {
 	perforatorstorage.UnimplementedPerforatorStorageServer
 
 	l       xlog.Logger
-	storage binarystorage.Storage
+	storage *binarystorage.BinaryStorage
 	limiter *semaphore.Weighted
 	known   *ccache.Cache[bool]
 	opts    Options
@@ -102,7 +102,7 @@ type Service struct {
 func NewService(
 	l xlog.Logger,
 	reg metrics.Registry,
-	storage binarystorage.Storage,
+	storage *binarystorage.BinaryStorage,
 	opts Options,
 ) *Service {
 	if opts.MaxConcurrentUploads <= 0 {

@@ -27,8 +27,9 @@ import (
 )
 
 const (
-	MaximumShards     = 256
-	UploadConcurrency = 20
+	defaultDownloadConcurrency = 20
+	MaximumShards              = 256
+	UploadConcurrency          = 20
 
 	AwsNotFoundCode = "NotFound"
 )
@@ -55,7 +56,8 @@ type S3Storage struct {
 	// keeping the SDK's interrupted-body retry loop.
 	downloader *s3manager.Downloader
 
-	downloadCfg models.ParallelDownloadConfig
+	downloadConcurrency int
+	downloadPartSize    int64
 
 	metrics *mdsStorageMetrics
 }
@@ -63,7 +65,6 @@ type S3Storage struct {
 type WriteAtBuffer = aws.WriteAtBuffer
 
 func NewS3Storage(l xlog.Logger, reg metrics.Registry, client *s3client.Client, bucket string) (*S3Storage, error) {
-	downloadCfg := defaultParallelDownloadConfig()
 	return &S3Storage{
 		bucket: bucket,
 		l:      l.WithName("s3storage"),
@@ -74,7 +75,8 @@ func NewS3Storage(l xlog.Logger, reg metrics.Registry, client *s3client.Client, 
 		downloader: s3manager.NewDownloaderWithClient(client, func(d *s3manager.Downloader) {
 			d.Concurrency = 1
 		}),
-		downloadCfg: downloadCfg,
+		downloadConcurrency: defaultDownloadConcurrency,
+		downloadPartSize:    s3manager.DefaultDownloadPartSize,
 		deleter: s3manager.NewBatchDeleteWithClient(client, func(d *s3manager.BatchDelete) {
 			d.BatchSize = s3manager.DefaultBatchSize
 		}),
@@ -161,7 +163,7 @@ func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) 
 	out, err := s.client.GetObjectWithContext(ctx, &s3.GetObjectInput{
 		Bucket: &s.bucket,
 		Key:    &key,
-		Range:  aws.String(fmt.Sprintf("bytes=0-%d", s.downloadCfg.PartSize-1)),
+		Range:  aws.String(fmt.Sprintf("bytes=0-%d", s.downloadPartSize-1)),
 	})
 	if err != nil {
 		if isInvalidRangeError(err) {
@@ -193,7 +195,7 @@ func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) 
 		_ = out.Body.Close()
 		return s.getSequential(ctx, key)
 	}
-	firstLen := min(total, s.downloadCfg.PartSize)
+	firstLen := min(total, s.downloadPartSize)
 	if start != 0 || end != firstLen-1 {
 		// The response answers a different interval than requested; do not
 		// risk splicing it in as part zero.
@@ -226,7 +228,7 @@ func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) 
 		s.metrics.bytesDownloaded.Add(firstLen)
 	}
 
-	if total <= s.downloadCfg.PartSize {
+	if total <= s.downloadPartSize {
 		return io.NopCloser(bytes.NewReader(first)), nil
 	}
 
@@ -234,7 +236,7 @@ func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) 
 		return s.fetchPart(ctx, key, etag, start, end)
 	}
 
-	return newRangedReader(ctx, fetch, first, total, s.downloadCfg.Concurrency, s.downloadCfg.PartSize), nil
+	return newRangedReader(ctx, fetch, first, total, s.downloadConcurrency, s.downloadPartSize), nil
 }
 
 // fetchPart downloads bytes [start, end] of the object through the SDK

@@ -1,13 +1,16 @@
 GO_LIBRARY()
 
 SRCS(
-    models.go
     storage.go
+)
+
+GO_TEST_SRCS(
+    storage_test.go
 )
 
 END()
 
 RECURSE(
-    compound
+    gotest
     meta
 )

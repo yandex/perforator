@@ -131,7 +131,8 @@ func newTestS3Storage(fake *fakeS3) *S3Storage {
 		downloader: s3manager.NewDownloaderWithClient(fake, func(d *s3manager.Downloader) {
 			d.Concurrency = 1
 		}),
-		downloadCfg: defaultParallelDownloadConfig(),
+		downloadConcurrency: defaultDownloadConcurrency,
+		downloadPartSize:    s3manager.DefaultDownloadPartSize,
 		metrics: &mdsStorageMetrics{
 			bytesDownloaded:   reg.Counter("downloaded.bytes"),
 			bytesUploaded:     reg.Counter("uploaded.bytes"),
@@ -220,7 +221,7 @@ func TestGet_NoETagFallsBackSequential(t *testing.T) {
 	blob := bytes.Repeat([]byte("v"), 3*1024)
 	fake := &fakeS3{blob: blob, omitETag: true}
 	s := newTestS3Storage(fake)
-	s.downloadCfg.PartSize = 1024
+	s.downloadPartSize = 1024
 
 	r, err := s.Get(context.Background(), "k")
 	require.NoError(t, err)
@@ -237,7 +238,7 @@ func TestGet_WrongIntervalFallsBackSequential(t *testing.T) {
 	blob := bytes.Repeat([]byte("w"), 3*1024)
 	fake := &fakeS3{blob: blob, shiftRange: 1}
 	s := newTestS3Storage(fake)
-	s.downloadCfg.PartSize = 1024
+	s.downloadPartSize = 1024
 
 	r, err := s.Get(context.Background(), "k")
 	require.NoError(t, err)

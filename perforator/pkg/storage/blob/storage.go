@@ -5,11 +5,12 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob/fs"
+	"github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob/s3"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func NewStorage(l xlog.Logger, reg metrics.Registry, opts ...Option) (Handle, error) {
+func NewStorage(l xlog.Logger, reg metrics.Registry, opts ...Option) (models.Storage, error) {
 	reg = reg.WithPrefix("blob")
 
 	options := defaultOpts()
@@ -19,24 +20,10 @@ func NewStorage(l xlog.Logger, reg metrics.Registry, opts ...Option) (Handle, er
 
 	switch {
 	case options.s3client != nil:
-		storage, err := s3.NewS3Storage(l, reg, options.s3client, options.s3bucket)
-		if err != nil {
-			return Handle{}, err
-		}
-		return Handle{
-			Storage:  storage,
-			Download: storage.ParallelDownloadConfig(),
-		}, nil
+		return s3.NewS3Storage(l, reg, options.s3client, options.s3bucket)
 	case options.fsPath != "":
-		storage, err := fs.NewFSStorage(fs.FSStorageConfig{Root: options.fsPath}, l)
-		if err != nil {
-			return Handle{}, err
-		}
-		return Handle{
-			Storage:  storage,
-			Download: storage.ParallelDownloadConfig(),
-		}, nil
+		return fs.NewFSStorage(fs.FSStorageConfig{Root: options.fsPath}, l)
 	default:
-		return Handle{}, errors.New("neither s3, nor fs storage is specified")
+		return nil, errors.New("neither s3, nor fs storage is specified")
 	}
 }

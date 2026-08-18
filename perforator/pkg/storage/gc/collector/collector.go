@@ -9,11 +9,8 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
-	"github.com/yandex/perforator/perforator/pkg/storage/binary"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/gc/config"
-	gsymstorage "github.com/yandex/perforator/perforator/pkg/storage/gsym"
-	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -160,50 +157,12 @@ func newGcStorageMetrics(r metrics.Registry) *collectorMetrics {
 	}
 }
 
-func NewProfileGC(l xlog.Logger, gcConf *config.StorageConfig, profileStorage profilestorage.Storage, r metrics.Registry) (Collector, error) {
-	r = r.WithTags(map[string]string{"storage_type": "profile"})
-
+func newGC(l xlog.Logger, gcConf *config.StorageConfig, kind string, st storage.Storage, r metrics.Registry) (Collector, error) {
 	gc := &collector{
-		l:       l.WithName("profile_gc"),
-		storage: profileStorage,
+		l:       l.WithName(kind + "_gc"),
+		storage: st,
 		gcConf:  gcConf,
-		metrics: newGcStorageMetrics(r),
-	}
-
-	err := gc.initConcurrency()
-	if err != nil {
-		return nil, err
-	}
-
-	return gc, nil
-}
-
-func NewBinaryGC(l xlog.Logger, gcConf *config.StorageConfig, binaryStorage binary.Storage, r metrics.Registry) (Collector, error) {
-	r = r.WithTags(map[string]string{"storage_type": "binary"})
-
-	gc := &collector{
-		l:       l.WithName("binary_gc"),
-		storage: binaryStorage,
-		gcConf:  gcConf,
-		metrics: newGcStorageMetrics(r),
-	}
-
-	err := gc.initConcurrency()
-	if err != nil {
-		return nil, err
-	}
-
-	return gc, nil
-}
-
-func NewGsymGC(l xlog.Logger, gcConf *config.StorageConfig, gsymStorage gsymstorage.Storage, r metrics.Registry) (Collector, error) {
-	r = r.WithTags(map[string]string{"storage_type": "gsym"})
-
-	gc := &collector{
-		l:       l.WithName("gsym_gc"),
-		storage: gsymStorage,
-		gcConf:  gcConf,
-		metrics: newGcStorageMetrics(r),
+		metrics: newGcStorageMetrics(r.WithTags(map[string]string{"storage_type": kind})),
 	}
 
 	err := gc.initConcurrency()
@@ -217,11 +176,11 @@ func NewGsymGC(l xlog.Logger, gcConf *config.StorageConfig, gsymStorage gsymstor
 func NewCollector(l xlog.Logger, r metrics.Registry, gcConf *config.StorageConfig, storageBundle *bundle.StorageBundle) (Collector, error) {
 	switch gcConf.Type {
 	case config.Profile:
-		return NewProfileGC(l, gcConf, storageBundle.ProfileStorage, r)
+		return newGC(l, gcConf, "profile", storageBundle.ProfileStorage, r)
 	case config.Binary:
-		return NewBinaryGC(l, gcConf, storageBundle.BinaryStorage, r)
+		return newGC(l, gcConf, "binary", storageBundle.BinaryStorage, r)
 	case config.GSYM:
-		return NewGsymGC(l, gcConf, storageBundle.GSYMStorage, r)
+		return newGC(l, gcConf, "gsym", storageBundle.GSYMStorage, r)
 	default:
 		return nil, fmt.Errorf("unsupported storage type %s", string(gcConf.Type))
 	}
