@@ -33,9 +33,9 @@ type ClickhouseAggregationStorage struct {
 }
 
 type AsyncInsertConfig struct {
-	BusyTimeout    time.Duration `yaml:"busy_timeout"`
+	BusyTimeoutMin time.Duration `yaml:"busy_timeout_min"`
+	BusyTimeoutMax time.Duration `yaml:"busy_timeout_max"`
 	MaxDataSize    uint64        `yaml:"max_data_size"`
-	MaxQueryNumber uint64        `yaml:"max_query_number"`
 }
 
 type AggregationQuery struct {
@@ -272,14 +272,14 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 	}
 
 	settings := clickhousego.Settings{}
-	if s.asyncInsertConfig.BusyTimeout > 0 {
-		settings["async_insert_busy_timeout_ms"] = s.asyncInsertConfig.BusyTimeout.Milliseconds()
+	if s.asyncInsertConfig.BusyTimeoutMin > 0 {
+		settings["async_insert_busy_timeout_min_ms"] = s.asyncInsertConfig.BusyTimeoutMin.Milliseconds()
+	}
+	if s.asyncInsertConfig.BusyTimeoutMax > 0 {
+		settings["async_insert_busy_timeout_max_ms"] = s.asyncInsertConfig.BusyTimeoutMax.Milliseconds()
 	}
 	if s.asyncInsertConfig.MaxDataSize > 0 {
 		settings["async_insert_max_data_size"] = s.asyncInsertConfig.MaxDataSize
-	}
-	if s.asyncInsertConfig.MaxQueryNumber > 0 {
-		settings["async_insert_max_query_number"] = s.asyncInsertConfig.MaxQueryNumber
 	}
 
 	ctx = clickhousego.Context(

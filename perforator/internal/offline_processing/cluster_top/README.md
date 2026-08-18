@@ -86,7 +86,9 @@ The Workers are responsible for the actual data aggregation. They run concurrent
 
 ### Asynchronous ClickHouse inserts
 
-Cluster Top always buffers its per-job writes using ClickHouse asynchronous inserts. The configured busy timeout, maximum buffered data size, and maximum query count are attached only to `cluster_top_v2` INSERT queries. They do not change the shared ClickHouse connection defaults or the `profiles` write path. If a value is omitted, ClickHouse uses its server default.
+Cluster Top always buffers its per-job writes using ClickHouse asynchronous inserts. The configured minimum and maximum adaptive busy timeouts and maximum buffered data size are attached only to `cluster_top_v2` INSERT queries. They do not change the shared ClickHouse connection defaults or the `profiles` write path. If a value is omitted, ClickHouse uses its server default.
+
+ClickHouse starts the adaptive timeout at `busy_timeout_min` and adjusts it up to `busy_timeout_max` based on the INSERT arrival rate. Cluster Top does not configure `async_insert_max_query_number`: in ClickHouse 25.8 that threshold only triggers when asynchronous insert deduplication is enabled, which is not used for these INSERTs.
 
 The worker always uses `wait_for_async_insert=1`. `SaveClusterTopEntry` therefore returns successfully only after ClickHouse has flushed the buffered INSERT, and only then can the PostgreSQL job be marked `done`.
 
@@ -94,9 +96,9 @@ The worker always uses `wait_for_async_insert=1`. `SaveClusterTopEntry` therefor
 storage:
   cluster_top:
     async_insert:
-      busy_timeout: "10s"
+      busy_timeout_min: "2s"
+      busy_timeout_max: "5s"
       max_data_size: 268435456
-      max_query_number: 100
 ```
 
 ## Worker config
