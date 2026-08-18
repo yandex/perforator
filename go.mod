@@ -148,6 +148,7 @@ require (
 	connectrpc.com/vanguard v0.3.0
 	cuelang.org/go v0.4.3
 	firebase.google.com/go v3.13.0+incompatible
+	fyne.io/systray v1.12.2
 	git.apache.org/thrift.git v0.13.0
 	github.com/99designs/gqlgen v0.17.90
 	github.com/AlecAivazis/survey/v2 v2.3.7

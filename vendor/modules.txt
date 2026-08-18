@@ -1513,6 +1513,13 @@ firebase.google.com/go/internal
 firebase.google.com/go/messaging
 firebase.google.com/go/snippets
 firebase.google.com/go/storage
+# fyne.io/systray v1.12.2
+## explicit; go 1.19
+fyne.io/systray
+fyne.io/systray/example
+fyne.io/systray/example/icon
+fyne.io/systray/internal/generated/menu
+fyne.io/systray/internal/generated/notifier
 # gioui.org v0.8.0
 ## explicit; go 1.21
 # gioui.org/cpu v0.0.0-20220412190645-f1e9e8c3b1f7
