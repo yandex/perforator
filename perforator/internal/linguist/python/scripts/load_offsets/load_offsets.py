@@ -42,7 +42,7 @@ def parse_arguments():
         "--output-dir",
         type=str,
         default=None,
-        help="Directory to save the JSON files (default: perforator/agent/offsets relative to arc root)"
+        help="Directory to save the JSON files (default: perforator/internal/linguist/python/offsets/offsets relative to arc root)"
     )
     parser.add_argument(
         "--cpython-repo",
@@ -182,7 +182,7 @@ def main():
 
     output_dir = args.output_dir
     if output_dir is None:
-        output_dir = os.path.join(arc_root, "perforator", "internal", "linguist", "python", "agent", "offsets")
+        output_dir = os.path.join(arc_root, "perforator", "internal", "linguist", "python", "offsets", "offsets")
 
     # Get the list of Python versions to process
     versions = get_python_versions(args.start_version, args.end_version, args.cpython_repo)

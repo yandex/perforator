@@ -16,7 +16,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/tls"
 	lua_agent "github.com/yandex/perforator/perforator/internal/linguist/lua/agent"
 	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
-	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
+	python_offsets "github.com/yandex/perforator/perforator/internal/linguist/python/offsets"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
 
@@ -236,7 +236,7 @@ func (m *BPFBinaryManager) convertToUnwindTLSConfig(config *tls.TLSConfig) *unwi
 }
 
 func convertToUnwindPythonConfig(config *python.PythonConfig) *unwinder.PythonConfig {
-	return python_agent.ParsePythonUnwinderConfig(config)
+	return python_offsets.ParsePythonUnwinderConfig(config)
 }
 
 func convertToUnwindPthreadConfig(config *pthread.PthreadConfig) *unwinder.PthreadConfig {

@@ -18,7 +18,7 @@ import (
 	preprocessig_proto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	lua_agent "github.com/yandex/perforator/perforator/internal/linguist/lua/agent"
 	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
-	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
+	python_offsets "github.com/yandex/perforator/perforator/internal/linguist/python/offsets"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -316,7 +316,7 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 		return
 	}
 
-	if analysis.PythonConfig != nil && !python_agent.IsVersionSupported(analysis.PythonConfig.Version) {
+	if analysis.PythonConfig != nil && !python_offsets.IsVersionSupported(analysis.PythonConfig.Version) {
 		if analysis.PythonConfig.Version != nil {
 			d.l.Debug(
 				ctx,

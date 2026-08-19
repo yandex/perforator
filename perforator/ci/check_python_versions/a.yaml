@@ -28,7 +28,7 @@ ci:
               config:
                   cmd_line: >
                     ya run perforator/internal/linguist/python/scripts/check_new_versions
-                    --offsets-dir perforator/internal/linguist/python/agent/offsets
+                    --offsets-dir perforator/internal/linguist/python/offsets/offsets
                     --monium-token $MONIUM_TOKEN
                     --monium-project perforator
                     --monium-cluster production

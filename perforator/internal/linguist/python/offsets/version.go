@@ -1,4 +1,4 @@
-package agent
+package offsets
 
 import (
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/python"
