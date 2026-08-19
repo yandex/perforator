@@ -466,6 +466,7 @@ func (b *FrameBuilder) Finish() *LocationBuilder {
 type InterpreterLocationKey struct {
 	ObjectAddress uint64
 	Linestart     int32
+	Line          int32
 }
 
 type functionKey struct {
