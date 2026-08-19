@@ -149,7 +149,7 @@ func (e *operationExecution) startOperation(ctx context.Context) (started bool) 
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	if e.status.State != cpo_proto.OperationState_Prepared {
+	if e.status.State != cpo_proto.OperationState_Prepared || ctx.Err() != nil {
 		return false
 	}
 
@@ -253,6 +253,8 @@ func (e *operationExecution) Run(ctx context.Context) {
 	g, gCtx := errgroup.WithContext(limitedCtx)
 
 	g.Go(func() error {
+		defer e.closeStatusChanSafe()
+
 		durationBeforeStart := time.Until(e.timeInterval.From.AsTime())
 		if durationBeforeStart > 0 {
 			select {
@@ -261,7 +263,6 @@ func (e *operationExecution) Run(ctx context.Context) {
 				return nil
 			}
 		}
-
 		started := e.startOperation(gCtx)
 		if !started {
 			return nil

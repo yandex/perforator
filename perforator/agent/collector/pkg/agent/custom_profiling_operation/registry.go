@@ -25,12 +25,13 @@ type execution struct {
 }
 
 type registry struct {
-	l          xlog.Logger
-	profiler   *profiler.Profiler
-	reporter   models.OperationReporter
-	reg        metrics.Registry
-	mutex      sync.Mutex
-	executions map[models.OperationID]*execution
+	l            xlog.Logger
+	profiler     *profiler.Profiler
+	reporter     models.OperationReporter
+	reg          metrics.Registry
+	mutex        sync.Mutex
+	executionsWG sync.WaitGroup
+	executions   map[models.OperationID]*execution
 }
 
 func NewOperationExecutionRegistry(
@@ -75,6 +76,13 @@ func (r *registry) releaseExecution(id models.OperationID) {
 	delete(r.executions, id)
 }
 
+// Wait blocks until all operation executions created by the registry finish
+// their cancellation teardown. Call it only after all calls to Ensure have
+// completed and no new calls can start.
+func (r *registry) Wait() {
+	r.executionsWG.Wait()
+}
+
 func (r *registry) Ensure(ctx context.Context, operation *cpo_proto.Operation) (cancelCtx context.CancelFunc, err error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -93,13 +101,15 @@ func (r *registry) Ensure(ctx context.Context, operation *cpo_proto.Operation) (
 
 	id := operation.ID
 
-	executionCtx, executionCtxCancel := context.WithCancel(context.Background())
+	executionCtx, executionCtxCancel := context.WithCancel(ctx)
 	r.executions[id] = &execution{
 		OperationExecution: operationExecution,
 		executionCtx:       executionCtx,
 		cancelExecutionCtx: executionCtxCancel,
 	}
+	r.executionsWG.Add(1)
 	go func() {
+		defer r.executionsWG.Done()
 		operationExecution.Run(executionCtx)
 		r.releaseExecution(id)
 		logger.Info(ctx, "Removed operation execution from registry")

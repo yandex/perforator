@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 
 	"golang.org/x/sync/errgroup"
 
@@ -120,9 +121,13 @@ func NewPerforatorAgent(
 	}
 
 	if options.cpoServiceConfig != nil {
-		registry := custom_profiling_operation.NewOperationExecutionRegistry(xLogger, r, agent.profiler, agent.agentGatewayClient.CustomProfilingOperationClient)
-		handler := custom_profiling_operation.NewHandler(xLogger, registry, agent.agentGatewayClient.CustomProfilingOperationClient)
-		agent.cpoService, err = custom_profiling_operation.NewService(xLogger, r, options.cpoServiceConfig, agent.agentGatewayClient.CustomProfilingOperationClient, handler)
+		agent.cpoService, err = custom_profiling_operation.NewService(
+			xLogger,
+			r,
+			options.cpoServiceConfig,
+			agent.agentGatewayClient.CustomProfilingOperationClient,
+			agent.profiler,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -156,5 +161,7 @@ func (a *PerforatorAgent) Run(ctx context.Context) error {
 		return a.profiler.Run(ctx)
 	})
 
-	return g.Wait()
+	runErr := g.Wait()
+	closeErr := a.profiler.Close()
+	return errors.Join(runErr, closeErr)
 }

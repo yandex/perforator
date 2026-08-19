@@ -9,6 +9,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/agent/custom_profiling_operation/models"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/client/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
@@ -40,6 +41,7 @@ type Service struct {
 	cpoClient             *custom_profiling_operation.Client
 	polledOperationsQueue chan *cpo_proto.Operation
 	handler               models.Handler
+	executionRegistry     *registry
 	metrics               serviceMetrics
 }
 
@@ -48,7 +50,7 @@ func NewService(
 	reg metrics.Registry,
 	config *ServiceConfig,
 	cpoClient *custom_profiling_operation.Client,
-	handler models.Handler,
+	p *profiler.Profiler,
 ) (*Service, error) {
 	if config.Host == "" {
 		var err error
@@ -58,6 +60,8 @@ func NewService(
 		}
 	}
 
+	executionRegistry := NewOperationExecutionRegistry(l, reg, p, cpoClient)
+	handler := NewHandler(l, executionRegistry, cpoClient)
 	reg = reg.WithPrefix("cpo_service")
 
 	return &Service{
@@ -66,6 +70,7 @@ func NewService(
 		cpoClient:             cpoClient,
 		polledOperationsQueue: make(chan *cpo_proto.Operation, config.PolledOperationsQueueSize),
 		handler:               handler,
+		executionRegistry:     executionRegistry,
 		metrics: serviceMetrics{
 			failedHandlesCount: reg.WithTags(map[string]string{"status": "fail"}).Counter("handles.count"),
 			successPollsCount:  reg.WithTags(map[string]string{"status": "success"}).Counter("polls.count"),
@@ -124,5 +129,7 @@ func (p *Service) Run(ctx context.Context) error {
 		return p.runHandleLoop(ctx)
 	})
 
-	return g.Wait()
+	runErr := g.Wait()
+	p.executionRegistry.Wait()
+	return runErr
 }

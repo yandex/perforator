@@ -313,3 +313,74 @@ func TestTimeBoundedOperationExecution_ImmediateStartAndCancel(t *testing.T) {
 	cancel()
 	waitForChan(t, done, time.Second)
 }
+
+func TestTimeBoundedOperationExecution_CancelBeforeStart(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockController := mocks.NewMockOperationController(ctrl)
+	reporter := newMockReporter()
+	logger := xlog.ForTest(t)
+	metricsRegistry := &nop.Registry{}
+
+	now := time.Now()
+	timeInterval := &time_interval.TimeInterval{
+		From: timestamppb.New(now.Add(time.Hour)),
+		To:   timestamppb.New(now.Add(2 * time.Hour)),
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	execution, err := newOperationExecution(logger, metricsRegistry, "test-operation-id", mockController, reporter, timeInterval)
+	require.NoError(t, err)
+
+	done := make(chan struct{})
+	go func() {
+		execution.Run(ctx)
+		close(done)
+	}()
+
+	status, ok := reporter.waitForStatus(100 * time.Millisecond)
+	require.True(t, ok, "Expected Prepared status")
+	assert.Equal(t, cpo_proto.OperationState_Prepared, status.State)
+
+	cancel()
+	waitForChan(t, done, time.Second)
+
+	statuses := reporter.getStatuses()
+	require.Len(t, statuses, 1)
+	assert.Equal(t, cpo_proto.OperationState_Prepared, statuses[0].State)
+}
+
+func TestTimeBoundedOperationExecution_CancelBeforeRun(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockController := mocks.NewMockOperationController(ctrl)
+	reporter := newMockReporter()
+	logger := xlog.ForTest(t)
+	metricsRegistry := &nop.Registry{}
+
+	now := time.Now()
+	timeInterval := &time_interval.TimeInterval{
+		From: timestamppb.New(now.Add(-time.Second)),
+		To:   timestamppb.New(now.Add(time.Hour)),
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	execution, err := newOperationExecution(logger, metricsRegistry, "test-operation-id", mockController, reporter, timeInterval)
+	require.NoError(t, err)
+
+	done := make(chan struct{})
+	go func() {
+		execution.Run(ctx)
+		close(done)
+	}()
+
+	waitForChan(t, done, time.Second)
+
+	statuses := reporter.getStatuses()
+	require.Len(t, statuses, 1)
+	assert.Equal(t, cpo_proto.OperationState_Prepared, statuses[0].State)
+}
