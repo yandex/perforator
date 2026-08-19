@@ -73,6 +73,23 @@ func TestInstrPtrToBytecodeOffset_OK(t *testing.T) {
 			wantOK:         false,
 		},
 		{
+			// CPython 3.11/3.12 prev_instr starts at co_code_adaptive-1.
+			name:           "prev_instr_one_codeunit_before_base",
+			instrPtr:       0x1000 + 0x80 - uint64(codeUnitBytes),
+			codeObjectAddr: 0x1000,
+			coCodeAdaptive: 0x80,
+			wantOffset:     0,
+			wantOK:         true,
+		},
+		{
+			name:           "instrPtr_two_codeunits_before_base",
+			instrPtr:       0x1000 + 0x80 - 2*uint64(codeUnitBytes),
+			codeObjectAddr: 0x1000,
+			coCodeAdaptive: 0x80,
+			wantOffset:     0,
+			wantOK:         false,
+		},
+		{
 			name:           "diff_exceeds_limit",
 			instrPtr:       0x1000 + 0x80 + uint64(1<<24) + 1,
 			codeObjectAddr: 0x1000,

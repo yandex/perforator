@@ -17,12 +17,6 @@ const (
 	maxLinetableSize = 1 << 20
 )
 
-// ErrCodeObjectChanged is returned by ReadCodeLinetable when the re-read
-// co_firstlineno does NOT match the expected value captured at BPF sample time
-// — meaning the PyCodeObject was freed/reused between sampling and userspace
-// processing. Userspace should fall back to no line number.
-var ErrCodeObjectChanged = errors.New("python: PyCodeObject co_firstlineno changed (object freed/reused)")
-
 // Reader reads Python objects from a target process via [procmem.Read].
 // It is stateless; New returns a zero-value struct so we can add fields
 // (e.g. metrics) later without breaking callers.
@@ -49,9 +43,11 @@ type CodeObjectOffsets struct {
 //
 //  1. Re-read co_firstlineno at codeObjectAddr+CoFirstlineno. If it does not
 //     match expectedFirstlineno → return ErrCodeObjectChanged (do not read further).
-//  2. Read co_linetable PyObject* at codeObjectAddr+CoLinetable. If null → error.
-//  3. Read PyBytesObject.ob_size at linetableAddr+BytesObSize (Py_ssize_t = int64).
-//  4. Read ob_size bytes starting at linetableAddr+BytesObSval.
+//  2. Re-read co_linetable PyObject* at codeObjectAddr+CoLinetable. If it does
+//     not match expectedLinetableAddr → return ErrCodeObjectChanged.
+//  3. Read PyBytesObject.ob_size at expectedLinetableAddr+BytesObSize
+//     (Py_ssize_t = int64).
+//  4. Read ob_size bytes starting at expectedLinetableAddr+BytesObSval.
 //  5. Unmarshal into LocationTable.
 //
 // Sanity-bound ob_size — refuse anything implausibly large (> 1<<20) or negative.
@@ -59,6 +55,7 @@ type CodeObjectOffsets struct {
 func (r *Reader) ReadCodeLinetable(
 	pid uint32,
 	codeObjectAddr uintptr,
+	expectedLinetableAddr uintptr,
 	offsets CodeObjectOffsets,
 	expectedFirstlineno int32,
 ) (linetable.LocationTable, error) {
@@ -72,16 +69,19 @@ func (r *Reader) ReadCodeLinetable(
 	}
 
 	// Step 2: read co_linetable PyObject*.
-	linetablePtr, err := procmem.ReadScalar[uintptr](int(pid), codeObjectAddr+uintptr(offsets.CoLinetable))
+	actualLinetableAddr, err := procmem.ReadScalar[uintptr](int(pid), codeObjectAddr+uintptr(offsets.CoLinetable))
 	if err != nil {
 		return linetable.LocationTable{}, fmt.Errorf("read co_linetable pointer: %w", err)
 	}
-	if linetablePtr == 0 {
+	if actualLinetableAddr != expectedLinetableAddr {
+		return linetable.LocationTable{}, ErrCodeObjectChanged
+	}
+	if expectedLinetableAddr == 0 {
 		return linetable.LocationTable{}, errors.New("python: co_linetable is NULL")
 	}
 
 	// Step 3: read PyBytesObject.ob_size (Py_ssize_t = int64 on amd64).
-	obSize, err := procmem.ReadScalar[int64](int(pid), linetablePtr+uintptr(offsets.BytesObSize))
+	obSize, err := procmem.ReadScalar[int64](int(pid), expectedLinetableAddr+uintptr(offsets.BytesObSize))
 	if err != nil {
 		return linetable.LocationTable{}, fmt.Errorf("read PyBytesObject.ob_size: %w", err)
 	}
@@ -96,7 +96,7 @@ func (r *Reader) ReadCodeLinetable(
 	var buf []byte
 	if obSize > 0 {
 		buf = make([]byte, obSize)
-		if err := procmem.Read(int(pid), linetablePtr+uintptr(offsets.BytesObSval), buf); err != nil {
+		if err := procmem.Read(int(pid), expectedLinetableAddr+uintptr(offsets.BytesObSval), buf); err != nil {
 			return linetable.LocationTable{}, fmt.Errorf("read PyBytesObject.ob_sval: %w", err)
 		}
 	}

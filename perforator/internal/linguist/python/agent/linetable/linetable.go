@@ -46,11 +46,20 @@ const bytecodeRangeLimit = int32(1 << 24)
 // a byte offset in the bytecode array. Returns (0, false) on negative or
 // implausibly large differences.
 //
+// On CPython 3.11/3.12 the BPF-captured value is `_PyInterpreterFrame.prev_instr`,
+// which is initialized to `co_code_adaptive - 1` (one code unit before the first
+// instruction) until the first opcode runs. That underflow of exactly
+// [codeUnitBytes] is mapped to bytecode offset 0 so short-lived callees still
+// resolve to a line. Larger underflows are rejected.
+//
 // Free-threaded CPython (3.13t+) is unsupported: instr_ptr may point into
 // TLBC rather than co_code_adaptive.
 func InstrPtrToBytecodeOffset(instrPtr, codeObjectAddr, coCodeAdaptive uint64) (int32, bool) {
 	base := codeObjectAddr + coCodeAdaptive
 	if instrPtr < base {
+		if base-instrPtr == uint64(codeUnitBytes) {
+			return 0, true
+		}
 		return 0, false
 	}
 	diff := instrPtr - base

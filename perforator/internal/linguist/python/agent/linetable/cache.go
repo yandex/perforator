@@ -3,18 +3,17 @@ package linetable
 import (
 	"encoding/binary"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/karlseguin/ccache/v3"
 )
 
-// CacheKey deduplicates parsed location tables per process.
-// CoLinetablePtr is the remote address of co_linetable bytes (stable for a
-// PyCodeObject's lifetime). CoFirstlineno disambiguates when that address is
-// later reused for a different bytes object.
+// CacheKey deduplicates parsed location tables per sampled code object state.
 type CacheKey struct {
 	Pid            uint32
+	CodeObjectPtr  uint64
 	CoLinetablePtr uint64
 	CoFirstlineno  int32
 }
@@ -48,9 +47,10 @@ func (v *cacheValue) Size() int64 {
 // Cache is a byte-budget LRU of LocationTable keyed by CacheKey, backed by
 // ccache, with per-entry TTL.
 type Cache struct {
-	inner  *ccache.Cache[*cacheValue]
-	budget int64
-	ttl    time.Duration
+	inner    *ccache.Cache[*cacheValue]
+	budget   int64
+	ttl      time.Duration
+	stopOnce sync.Once
 }
 
 // NewCache builds a cache from cfg. Invalid MaxSize returns an error.
@@ -93,10 +93,11 @@ func newCache(budget int64, ttl time.Duration) *Cache {
 
 func cacheKeyString(key CacheKey) string {
 	// Fixed-width binary key avoids fmt.Sprintf allocations on the hot path.
-	var b [16]byte
+	var b [24]byte
 	binary.LittleEndian.PutUint32(b[0:4], key.Pid)
-	binary.LittleEndian.PutUint64(b[4:12], key.CoLinetablePtr)
-	binary.LittleEndian.PutUint32(b[12:16], uint32(key.CoFirstlineno))
+	binary.LittleEndian.PutUint64(b[4:12], key.CodeObjectPtr)
+	binary.LittleEndian.PutUint64(b[12:20], key.CoLinetablePtr)
+	binary.LittleEndian.PutUint32(b[20:24], uint32(key.CoFirstlineno))
 	return string(b[:])
 }
 
@@ -129,9 +130,21 @@ func (c *Cache) AddTombstone(key CacheKey) {
 	c.Add(key, LocationTable{Unresolvable: true})
 }
 
+func (c *Cache) InvalidatePid(pid uint32) {
+	if c == nil {
+		return
+	}
+	var b [4]byte
+	binary.LittleEndian.PutUint32(b[:], pid)
+	c.inner.DeletePrefix(string(b[:]))
+}
+
 // Stop shuts down the ccache worker. The Cache must not be used afterward.
 func (c *Cache) Stop() {
-	c.inner.Stop()
+	if c == nil {
+		return
+	}
+	c.stopOnce.Do(c.inner.Stop)
 }
 
 func (c *Cache) Len() int {

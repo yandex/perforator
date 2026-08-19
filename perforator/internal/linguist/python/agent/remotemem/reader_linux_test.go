@@ -65,7 +65,7 @@ func TestReader_ReadCodeLinetable_OK(t *testing.T) {
 	}
 
 	r := New()
-	got, err := r.ReadCodeLinetable(selfPID(), codeObjAddr, offsets, firstlineno)
+	got, err := r.ReadCodeLinetable(selfPID(), codeObjAddr, bytesObjAddr, offsets, firstlineno)
 	require.NoError(t, err)
 	require.Equal(t, firstlineno, got.FirstLineno)
 	require.Equal(t, payload, got.Raw)
@@ -104,7 +104,37 @@ func TestReader_ReadCodeLinetable_FirstLinenoMismatch(t *testing.T) {
 	}
 
 	r := New()
-	got, err := r.ReadCodeLinetable(selfPID(), codeObjAddr, offsets, firstlineno+1)
+	got, err := r.ReadCodeLinetable(selfPID(), codeObjAddr, bytesObjAddr, offsets, firstlineno+1)
+	require.ErrorIs(t, err, ErrCodeObjectChanged)
+	require.Equal(t, linetable.LocationTable{}, got)
+
+	_ = bytesObjBuf
+	_ = codeObjBuf
+}
+
+// TestReader_ReadCodeLinetable_LinetablePointerMismatch verifies that a code
+// object whose co_linetable changed after sampling is rejected before reading
+// the captured PyBytesObject.
+func TestReader_ReadCodeLinetable_LinetablePointerMismatch(t *testing.T) {
+	const coFirstlinenoOff uint32 = 0
+	const coLinetableOff uint32 = 8
+	const firstlineno int32 = 10
+
+	bytesObjBuf := make([]byte, 16)
+	bytesObjAddr := uintptr(unsafe.Pointer(&bytesObjBuf[0]))
+	codeObjBuf := make([]byte, int(coLinetableOff)+8)
+	binary.LittleEndian.PutUint32(codeObjBuf[coFirstlinenoOff:], uint32(firstlineno))
+	binary.LittleEndian.PutUint64(codeObjBuf[coLinetableOff:], uint64(bytesObjAddr))
+	codeObjAddr := uintptr(unsafe.Pointer(&codeObjBuf[0]))
+
+	r := New()
+	got, err := r.ReadCodeLinetable(
+		selfPID(),
+		codeObjAddr,
+		bytesObjAddr+1,
+		CodeObjectOffsets{CoFirstlineno: coFirstlinenoOff, CoLinetable: coLinetableOff},
+		firstlineno,
+	)
 	require.ErrorIs(t, err, ErrCodeObjectChanged)
 	require.Equal(t, linetable.LocationTable{}, got)
 
@@ -133,7 +163,7 @@ func TestReader_ReadCodeLinetable_NullLinetablePtr(t *testing.T) {
 	}
 
 	r := New()
-	got, err := r.ReadCodeLinetable(selfPID(), codeObjAddr, offsets, firstlineno)
+	got, err := r.ReadCodeLinetable(selfPID(), codeObjAddr, 0, offsets, firstlineno)
 	require.Error(t, err)
 	require.False(t, errors.Is(err, ErrCodeObjectChanged))
 	require.Equal(t, linetable.LocationTable{}, got)
