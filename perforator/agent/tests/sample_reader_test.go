@@ -54,6 +54,7 @@ func startProfilerAndCollectRawSamples() [][]byte {
 		}
 	}
 	_, p := setupProfilerWithCallback(&simpleConfig, callback)
+	defer p.Close()
 	err := p.TraceWholeSystem(nil)
 	if err != nil {
 		panic(err)

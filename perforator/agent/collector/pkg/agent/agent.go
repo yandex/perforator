@@ -74,7 +74,7 @@ func NewPerforatorAgent(
 	r metrics.Registry,
 	profilerConfig *config.Config,
 	opts ...Option,
-) (*PerforatorAgent, error) {
+) (_ *PerforatorAgent, retErr error) {
 	options := &agentOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -84,6 +84,11 @@ func NewPerforatorAgent(
 	agent := &PerforatorAgent{
 		l: l,
 	}
+	defer func() {
+		if retErr != nil {
+			retErr = errors.Join(retErr, agent.close())
+		}
+	}()
 
 	xLogger := xlog.Wrap(l)
 
@@ -136,6 +141,17 @@ func NewPerforatorAgent(
 	return agent, nil
 }
 
+func (a *PerforatorAgent) close() error {
+	var err error
+	if a.profiler != nil {
+		err = a.profiler.Close()
+	}
+	if a.agentGatewayClient != nil {
+		a.agentGatewayClient.Destroy()
+	}
+	return err
+}
+
 func (a *PerforatorAgent) Run(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -162,6 +178,6 @@ func (a *PerforatorAgent) Run(ctx context.Context) error {
 	})
 
 	runErr := g.Wait()
-	closeErr := a.profiler.Close()
+	closeErr := a.close()
 	return errors.Join(runErr, closeErr)
 }

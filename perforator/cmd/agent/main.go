@@ -205,6 +205,11 @@ func run() error {
 
 	agentOpts = append(agentOpts, agent.WithProfilerOptions(profilerOpts...))
 
+	err = polyheapprof.StartHeapProfileRecording()
+	if err != nil {
+		return fmt.Errorf("failed to start heap profiling")
+	}
+
 	perforatorAgent, err := agent.NewPerforatorAgent(
 		l.Logger(),
 		r,
@@ -217,11 +222,6 @@ func run() error {
 
 	// Setup http puller server
 	http.Handle("/metrics", r.HTTPHandler(ctx, l))
-	err = polyheapprof.StartHeapProfileRecording()
-	if err != nil {
-		return fmt.Errorf("failed to start heap profiling")
-	}
-
 	http.HandleFunc("GET /debug/pprof/polyheap", polyheapprof.ServeCurrentHeapProfile)
 
 	// Run pprof server
