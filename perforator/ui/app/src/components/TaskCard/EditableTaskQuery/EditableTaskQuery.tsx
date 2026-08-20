@@ -122,6 +122,7 @@ export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, addi
     const controls = React.useMemo(() => (
         <div className="editable-task-query__controls">
             <Button
+                aria-label="Cancel changes"
                 className="editable-task-query__button"
                 onClick={handleCancel}
                 view="flat"
@@ -130,6 +131,7 @@ export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, addi
                 <Icon size={14} data={Xmark} />
             </Button>
             <Button
+                aria-label="Save changes"
                 className="editable-task-query__button"
                 disabled={!hasChanges}
                 onClick={handleSave}
