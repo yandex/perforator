@@ -549,7 +549,7 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 
 func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *profile.SampleBuilder) {
 	if enablePython := c.p.conf.BPF.TracePython; enablePython != nil && *enablePython {
-		c.p.pythonProcessor.Process(builder, &c.sample.PythonStack)
+		c.p.pythonProcessor.Process(builder, &c.sample.PythonStack, c.sample.Pid)
 	}
 
 	if c.p.conf.FeatureFlagsConfig.PhpEnabled() {

@@ -14,6 +14,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/upload"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
+	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 )
@@ -111,9 +112,9 @@ type PodsDeploySystemConfig struct {
 }
 
 type SymbolizerConfig struct {
-	Python symbolizer.SymbolizerConfig `yaml:"python"`
-	Php    symbolizer.SymbolizerConfig `yaml:"php"`
-	Lua    symbolizer.SymbolizerConfig `yaml:"lua"`
+	Python python_agent.SymbolizerConfig `yaml:"python"`
+	Php    symbolizer.SymbolizerConfig   `yaml:"php"`
+	Lua    symbolizer.SymbolizerConfig   `yaml:"lua"`
 }
 
 // FeatureFlagsConfig holds agent-side [feature-flags](https://trunkbaseddevelopment.com/feature-flags/)

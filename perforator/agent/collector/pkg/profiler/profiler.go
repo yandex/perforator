@@ -105,7 +105,7 @@ type Profiler struct {
 	dsoStorage *dso.Storage
 	procs      *process.ProcessRegistry
 
-	pythonSymbolizer *symbolizer.Symbolizer
+	pythonSymbolizer *python_agent.Symbolizer
 	phpSymbolizer    *symbolizer.Symbolizer
 	luaSymbolizer    *symbolizer.Symbolizer
 
@@ -451,7 +451,19 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 
 	// Create python symbolizer
 	if enabled := p.conf.BPF.TracePython; enabled == nil || *enabled {
-		p.pythonSymbolizer, err = symbolizer.NewPythonSymbolizer(&p.conf.Symbolizer.Python, p.bpf.State(), r)
+		pythonSymbols, err := symbolizer.NewPythonSymbolizer(
+			&p.conf.Symbolizer.Python.SymbolizerConfig,
+			p.bpf.State(),
+			r,
+		)
+		if err != nil {
+			return err
+		}
+		p.pythonSymbolizer, err = python_agent.NewSymbolizer(
+			pythonSymbols,
+			nil,
+			p.conf.Symbolizer.Python,
+		)
 		if err != nil {
 			return err
 		}
