@@ -2,7 +2,7 @@
     "include": [
         "lib/**/*"
     ],
-    "exclude": ["**/*.test.ts"],
+    "exclude": ["**/*.test.ts", "**/__test-helpers__/**"],
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "rootDir": "./lib",
     "compilerOptions": {

@@ -161,3 +161,5 @@ function calcTotalTime<K>(res: Map<K, FunctionTop>, rows: FormatNode[][], getNod
 
     walker(rootCoords[0], rootCoords[1], [rootCoords[1]]);
 }
+
+export const __test__ = { isSubpath, populateWithSelfEventCount };
