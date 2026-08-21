@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 )
 
@@ -59,13 +58,4 @@ func (t *trackedCgroup) Open(name string, freezerCgroupID uint64) error {
 	t.freezerCgroupID = freezerCgroupID
 
 	return nil
-}
-
-func (t *trackedCgroup) IsStale() bool {
-	id, err := cgroups.GetCgroupID(t.conf.Name)
-	if err != nil {
-		return false
-	}
-
-	return t.freezerCgroupID != id
 }

@@ -31,10 +31,8 @@ type testEvent struct {
 	alwaysStale bool
 }
 
-func newTestEvent(alwaysStale bool) *testEvent {
-	return &testEvent{
-		alwaysStale: alwaysStale,
-	}
+func newTestEvent() *testEvent {
+	return &testEvent{}
 }
 
 func (e *testEvent) Open(name string, cgroupID uint64) error {
@@ -53,10 +51,6 @@ func (e *testEvent) Close() {
 
 	e.Opened = false
 	e.CloseCalls++
-}
-
-func (e *testEvent) IsStale() bool {
-	return e.alwaysStale
 }
 
 type testNameCache struct {
@@ -135,9 +129,9 @@ func TestTracker_Simple(t *testing.T) {
 	tracker, err := newTrackerImpl(logger, nameCache)
 	require.NoError(t, err)
 
-	event1 := newTestEvent(false)
-	event2 := newTestEvent(false)
-	event3 := newTestEvent(true)
+	event1 := newTestEvent()
+	event2 := newTestEvent()
+	event3 := newTestEvent()
 	cgrpName1 := "/sys/fs/cgroup/freezer/porto/tier0-attr-base"
 	cgrpName2 := "/sys/fs/cgroup/freezer/porto/yt-arnold"
 	cgrpName3 := "/sys/fs/cgroup/freezer/porto/tier0-base"
@@ -199,7 +193,7 @@ func TestTracker_Simple(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, event3.Opened)
-	require.Equal(t, int(1), event3.CloseCalls)
+	require.Equal(t, int(0), event3.CloseCalls)
 	require.True(t, event1.Opened)
 	require.Equal(t, int(2), event1.OpenCalls)
 
@@ -208,7 +202,7 @@ func TestTracker_Simple(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, event3.Opened)
-	require.Equal(t, int(2), event3.CloseCalls)
+	require.Equal(t, int(0), event3.CloseCalls)
 	require.True(t, event1.Opened)
 	require.Equal(t, int(3), event1.OpenCalls)
 
@@ -237,7 +231,7 @@ func TestTracker_Concurrent(t *testing.T) {
 		g.Go(func() error {
 			for i := 0; i < 3*cgroupsCount; i++ {
 				idx := i % cgroupsCount
-				newEvent := newTestEvent(idx%2 == 0)
+				newEvent := newTestEvent()
 
 				eventsMu.Lock()
 				events = append(events, newEvent)

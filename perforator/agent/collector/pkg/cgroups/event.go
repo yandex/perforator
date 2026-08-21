@@ -2,8 +2,7 @@ package cgroups
 
 // CgroupEventListener is an interface for the event on cgroup which is tracked,
 
-// 	it is reopened either when IsStale() returns true (maybe not immediately)
-// 	or when cgroupID of freezer cgroup has changed (for example cgroup was recreated with the same name)
+// 	it is reopened when cgroupID of cgroup has changed (for example cgroup was recreated with the same name)
 
 type CgroupEventListener interface {
 	// Called on start of cgroup tracking.
@@ -13,8 +12,4 @@ type CgroupEventListener interface {
 	// Called on finish of cgroup tracking.
 	// May not be thread-safe, will be called under mutex.
 	Close()
-
-	// Determines if event needs to be reopened or not.
-	// Must be thread-safe relative to itself only.
-	IsStale() bool
 }

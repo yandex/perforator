@@ -44,7 +44,6 @@ type TrackedCgroup struct {
 // Tracks some event ...
 // For example if cgroup was deleted in freezer hierarchy
 //    and a new one was created with the same name. We continue to track it
-// Also tracked events and reopened when IsStale() returns true
 
 // One usecase for this is if we want to track perf events on cgroups.
 // 	We want to reopen perf event when either perf event cgroup was recreated
@@ -139,13 +138,7 @@ func (t *Tracker) getCgroupByID(id uint64, lock LockType) *cgroup {
 }
 
 func (t *Tracker) reopenCgroup(oldID uint64, newID uint64) error {
-	var cgrp *cgroup
-
-	if oldID != newID {
-		cgrp = t.updateCgroupID(oldID, newID, true)
-	} else {
-		cgrp = t.getCgroupByID(oldID, WLock)
-	}
+	cgrp := t.updateCgroupID(oldID, newID, true)
 
 	if cgrp == nil {
 		return fmt.Errorf("no cgroup with id %d found", oldID)
@@ -172,7 +165,7 @@ func (t *Tracker) checkUpdateCgroup(cgrp *cgroup) (needsUpdate bool, newID uint6
 		return false, cgrp.id, err
 	}
 
-	if newCgroupID == cgrp.id && !cgrp.event.IsStale() {
+	if newCgroupID == cgrp.id {
 		return false, cgrp.id, nil
 	}
 
