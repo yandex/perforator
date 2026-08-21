@@ -210,7 +210,7 @@ require (
 	github.com/MicahParks/keyfunc/v2 v2.1.0
 	github.com/MicahParks/keyfunc/v3 v3.6.2
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/NVIDIA/go-dcgm v0.0.0-20250401195952-7c92211ba301
+	github.com/NVIDIA/go-dcgm v1.4601.1
 	github.com/NVIDIA/go-nvlib v0.7.0
 	github.com/NVIDIA/go-nvml v0.13.0-1
 	github.com/NVIDIA/mig-parted v0.8.0
