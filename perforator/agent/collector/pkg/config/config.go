@@ -120,11 +120,12 @@ type SymbolizerConfig struct {
 // FeatureFlagsConfig holds agent-side [feature-flags](https://trunkbaseddevelopment.com/feature-flags/)
 // except old ones.
 type FeatureFlagsConfig struct {
-	EnableJVM         *bool `yaml:"enable_jvm"`
-	EnableJVMLineInfo *bool `yaml:"enable_jvm_line_info"`
-	EnablePHP         *bool `yaml:"enable_php"`
-	EnableLua         *bool `yaml:"enable_lua"`
-	EnableSframe      *bool `yaml:"enable_sframe"`
+	EnableJVM            *bool `yaml:"enable_jvm"`
+	EnableJVMLineInfo    *bool `yaml:"enable_jvm_line_info"`
+	EnablePHP            *bool `yaml:"enable_php"`
+	EnablePythonLineInfo *bool `yaml:"enable_python_line_info"`
+	EnableLua            *bool `yaml:"enable_lua"`
+	EnableSframe         *bool `yaml:"enable_sframe"`
 
 	// ProfileFormat controls which profile format the agent sends to storage.
 	// Possible values: "pprof" (default), "yaprof".
@@ -143,6 +144,14 @@ func (f *FeatureFlagsConfig) JVMLineInfoEnabled() bool {
 		return true
 	}
 	return *f.EnableJVMLineInfo
+}
+
+// PythonLineInfoEnabled gates userspace CPython line-number resolution (off by default).
+func (f *FeatureFlagsConfig) PythonLineInfoEnabled() bool {
+	if f.EnablePythonLineInfo == nil {
+		return false
+	}
+	return *f.EnablePythonLineInfo
 }
 
 func (f *FeatureFlagsConfig) PhpEnabled() bool {

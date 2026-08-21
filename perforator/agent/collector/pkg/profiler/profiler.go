@@ -105,13 +105,13 @@ type Profiler struct {
 	dsoStorage *dso.Storage
 	procs      *process.ProcessRegistry
 
-	pythonSymbolizer *python_agent.Symbolizer
-	phpSymbolizer    *symbolizer.Symbolizer
-	luaSymbolizer    *symbolizer.Symbolizer
+	phpSymbolizer *symbolizer.Symbolizer
+	luaSymbolizer *symbolizer.Symbolizer
 
-	pythonProcessor *python_agent.StackProcessor
-	phpProcessor    *php_agent.StackProcessor
-	luaProcessor    *lua_agent.StackProcessor
+	pythonRegistry *python_agent.Registry
+
+	phpProcessor *php_agent.StackProcessor
+	luaProcessor *lua_agent.StackProcessor
 
 	jitSymbolizers []profilerext.JITSymbolizer
 
@@ -449,25 +449,28 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		}
 	}
 
-	// Create python symbolizer
+	// Create python registry (BPF symbolization + optional lineno offsets).
 	if enabled := p.conf.BPF.TracePython; enabled == nil || *enabled {
-		pythonSymbols, err := symbolizer.NewPythonSymbolizer(
-			&p.conf.Symbolizer.Python.SymbolizerConfig,
+		var opts []python_agent.Option
+		if p.conf.FeatureFlagsConfig.PythonLineInfoEnabled() {
+			opts = append(opts, python_agent.WithLineInfo())
+		}
+		p.pythonRegistry, err = python_agent.NewRegistry(
+			xlog.Wrap(p.log),
+			p.conf.Symbolizer.Python,
 			p.bpf.State(),
 			r,
+			opts...,
 		)
 		if err != nil {
 			return err
 		}
-		p.pythonSymbolizer, err = python_agent.NewSymbolizer(
-			pythonSymbols,
-			nil,
-			p.conf.Symbolizer.Python,
-		)
-		if err != nil {
-			return err
-		}
-		p.pythonProcessor = python_agent.NewStackProcessor(p.pythonSymbolizer, r)
+		registry := p.pythonRegistry
+		defer func() {
+			if err != nil {
+				registry.Stop()
+			}
+		}()
 	}
 
 	// Create PHP symbolizer
@@ -538,6 +541,10 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	var binaryListeners []binary.Listener
 	if p.conf.FeatureFlagsConfig.JVMEnabled() {
 		binaryListeners = append(binaryListeners, p.jvmRegistry)
+	}
+	if p.pythonRegistry != nil && p.conf.FeatureFlagsConfig.PythonLineInfoEnabled() {
+		p.processListeners = append(p.processListeners, p.pythonRegistry)
+		binaryListeners = append(binaryListeners, p.pythonRegistry)
 	}
 
 	if p.enablePerfMaps {
@@ -1458,6 +1465,10 @@ func (p *Profiler) Storage() client.Storage {
 }
 
 func (p *Profiler) Close() error {
+	if p.pythonRegistry != nil {
+		defer p.pythonRegistry.Stop()
+	}
+
 	err := p.uprobeRegistry.detachAll()
 	if err != nil {
 		return fmt.Errorf("failed to detach uprobes: %w", err)
