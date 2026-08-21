@@ -177,6 +177,7 @@ func (p *Process) readStatusField(field string) (string, bool, error) {
 	if err != nil {
 		return "", false, fmt.Errorf("failed to open process status: %w", err)
 	}
+	defer statusF.Close()
 	status, err := io.ReadAll(statusF)
 	if err != nil {
 		return "", false, fmt.Errorf("failed to read process status: %w", err)
