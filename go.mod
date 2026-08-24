@@ -330,7 +330,7 @@ require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
 	github.com/container-storage-interface/spec v1.10.0
 	github.com/containerd/cgroups/v3 v3.1.0
-	github.com/containerd/containerd v1.7.32
+	github.com/containerd/containerd v1.7.34
 	github.com/containerd/continuity v0.4.5
 	github.com/containerd/go-cni v1.1.13
 	github.com/containernetworking/cni v1.3.0
@@ -1759,7 +1759,7 @@ require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20231223183121-56fa3ac82ce7 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.5 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-kit/kit v0.13.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect

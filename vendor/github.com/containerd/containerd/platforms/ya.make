@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.7.32)
+VERSION(v1.7.34)
 
 SRCS(
     platforms_deprecated.go
