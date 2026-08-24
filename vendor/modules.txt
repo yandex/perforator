@@ -18394,6 +18394,9 @@ github.com/yandex/pandora/lib/netutil/mocks
 github.com/yandex/pandora/lib/tag
 github.com/yandex/pandora/lib/testutil
 github.com/yandex/pandora/lib/zaputil
+# github.com/yanet-platform/xnetip v0.1.1
+## explicit; go 1.24
+github.com/yanet-platform/xnetip
 # github.com/yashtewari/glob-intersection v0.2.0
 ## explicit; go 1.17
 github.com/yashtewari/glob-intersection

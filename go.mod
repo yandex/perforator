@@ -930,6 +930,7 @@ require (
 	github.com/yandex-cloud/go-sdk v0.32.0
 	github.com/yandex-cloud/kms-clients-go/yckmstink v0.0.0-20200608135605-a61de9ba71a6
 	github.com/yandex/pandora v0.5.3
+	github.com/yanet-platform/xnetip v0.1.1
 	github.com/ybbus/jsonrpc/v3 v3.1.1
 	github.com/ydb-platform/fq-connector-go v0.9.3-rc.1
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20260810122915-65bfd5c4b705
