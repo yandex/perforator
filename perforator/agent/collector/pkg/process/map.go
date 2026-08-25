@@ -776,8 +776,8 @@ func (a *processAnalyzer) syncMaps(ctx context.Context) {
 	a.proc.mapslock.Lock()
 	defer a.proc.mapslock.Unlock()
 
-	toRemove := make([]processMap, 0)
-	toAdd := make([]*dso.Mapping, 0)
+	toRemove := make([]processMap, 0, len(a.proc.registeredmaps))
+	toAdd := make([]*dso.Mapping, 0, len(a.exemappings))
 
 	for _, m := range a.exemappings {
 		if m.DSO == nil {
