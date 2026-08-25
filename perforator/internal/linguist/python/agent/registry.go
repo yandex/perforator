@@ -60,11 +60,15 @@ func newRegistry(
 		opt(&o)
 	}
 
+	var sym *Symbolizer
+	var err error
 	var offsets *offsetsRegistry
 	if o.lineInfo {
 		offsets = newOffsetsRegistry(l)
+		sym, err = NewSymbolizer(symbols, offsets, cfg)
+	} else {
+		sym, err = NewSymbolizer(symbols, nil, cfg)
 	}
-	sym, err := NewSymbolizer(symbols, offsets, cfg)
 	if err != nil {
 		return nil, err
 	}
