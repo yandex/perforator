@@ -16,14 +16,6 @@ const (
 	CgroupScanPeriod = time.Minute
 )
 
-type LockType int
-
-const (
-	RLock LockType = iota
-	WLock
-	NoLock
-)
-
 type cgroupIDs struct {
 	id   uint64
 	name string
@@ -120,20 +112,6 @@ func (t *Tracker) updateCgroupID(oldID uint64, newID uint64, lock bool) *cgroup 
 	}
 
 	cgrp.id = newID
-	return cgrp
-}
-
-func (t *Tracker) getCgroupByID(id uint64, lock LockType) *cgroup {
-	t.mutex.RLock()
-	defer t.mutex.RUnlock()
-	cgrp := t.cgroupsByID[id]
-	if cgrp != nil {
-		if lock == WLock {
-			cgrp.mutex.Lock()
-		} else if lock == RLock {
-			cgrp.mutex.RLock()
-		}
-	}
 	return cgrp
 }
 
@@ -411,12 +389,15 @@ func (t *Tracker) TrackCgroups(cgrps []*TrackedCgroup) error {
 }
 
 func (t *Tracker) GetTrackedEvent(id uint64) CgroupEventListener {
-	cgrp := t.getCgroupByID(id, RLock)
-	if cgrp == nil {
-		return nil
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
+	cgrp := t.cgroupsByID[id]
+	if cgrp != nil {
+		cgrp.mutex.RLock()
+		defer cgrp.mutex.RUnlock()
+		return cgrp.event
 	}
-	defer cgrp.mutex.RUnlock()
-	return cgrp.event
+	return nil
 }
 
 func (t *Tracker) ForEachCgroup(callback func(event CgroupEventListener) error) error {
