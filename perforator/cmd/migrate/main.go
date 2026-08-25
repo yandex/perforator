@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
+	"strings"
 
 	"cuelang.org/go/pkg/strconv"
 	_ "github.com/ClickHouse/clickhouse-go/v2"
@@ -64,12 +66,13 @@ func (t *tlsConfig) validate(deprHandler func(string)) error {
 }
 
 var (
-	hosts    []string
-	port     uint16
-	database string
-	username string
-	password string
-	tls      tlsConfig
+	hosts        []string
+	port         uint16
+	database     string
+	username     string
+	password     string
+	passwordFile string
+	tls          tlsConfig
 
 	rootCmd = &cobra.Command{
 		Use:           "migrate",
@@ -95,7 +98,12 @@ func migrateCmdRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse version %s: %w", args[0], err)
 	}
 
-	return runMigrations(dbByCmd(cmd), hosts, port, database, username, password, tls, func(m *migrate.Migrate) error {
+	resolvedPassword, err := resolvePassword(password, passwordFile)
+	if err != nil {
+		return err
+	}
+
+	return runMigrations(dbByCmd(cmd), hosts, port, database, username, resolvedPassword, tls, func(m *migrate.Migrate) error {
 		return m.Migrate(uint(version))
 	})
 }
@@ -106,15 +114,43 @@ func forceCmdRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse version %s: %w", args[0], err)
 	}
 
-	return runMigrations(dbByCmd(cmd), hosts, port, database, username, password, tls, func(m *migrate.Migrate) error {
+	resolvedPassword, err := resolvePassword(password, passwordFile)
+	if err != nil {
+		return err
+	}
+
+	return runMigrations(dbByCmd(cmd), hosts, port, database, username, resolvedPassword, tls, func(m *migrate.Migrate) error {
 		return m.Force(int(version))
 	})
 }
 
 func upCmdRunE(cmd *cobra.Command, _ []string) error {
-	return runMigrations(dbByCmd(cmd), hosts, port, database, username, password, tls, func(m *migrate.Migrate) error {
+	resolvedPassword, err := resolvePassword(password, passwordFile)
+	if err != nil {
+		return err
+	}
+
+	return runMigrations(dbByCmd(cmd), hosts, port, database, username, resolvedPassword, tls, func(m *migrate.Migrate) error {
 		return m.Up()
 	})
+}
+
+func resolvePassword(value, path string) (string, error) {
+	if value != "" && path != "" {
+		return "", errors.New("--pass and --pass-file are mutually exclusive")
+	}
+	if path == "" {
+		return value, nil
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read password file: %w", err)
+	}
+
+	result := strings.TrimSuffix(string(data), "\n")
+	result = strings.TrimSuffix(result, "\r")
+	return result, nil
 }
 
 func dbByCmd(cmd *cobra.Command) DB {
@@ -156,6 +192,7 @@ func init() {
 			subcommand.Flags().StringVar(&database, "db", "perforator", "Database name")
 			subcommand.Flags().StringVar(&username, "user", "perforator", "Username")
 			subcommand.Flags().StringVar(&password, "pass", "", "Password")
+			subcommand.Flags().StringVar(&passwordFile, "pass-file", "", "Path to a file containing the password")
 			subcommand.Flags().BoolVar(&tls.deprecatedInsecure, "insecure", false, "(Deprecated) disable transport security")
 			subcommand.Flags().BoolVar(&tls.plaintext, "plaintext", false, "Use plaintext connection")
 			subcommand.Flags().BoolVar(&tls.skipTLSVerification, "tls-trust-all", false, "Skip TLS verification")
