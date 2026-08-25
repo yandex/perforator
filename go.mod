@@ -869,7 +869,7 @@ require (
 	github.com/temporalio/ui-server/v2 v2.42.1
 	github.com/terminalstatic/go-xsd-validate v0.1.6
 	github.com/testcontainers/testcontainers-go v0.40.0
-	github.com/tidwall/gjson v1.18.0
+	github.com/tidwall/gjson v1.19.0
 	github.com/tidwall/sjson v1.2.5
 	github.com/tiktoken-go/tokenizer v0.7.0
 	github.com/timakin/bodyclose v0.0.0-20230421092635-574207250966
