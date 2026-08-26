@@ -298,4 +298,32 @@ func (p *Process) Stat() (*ProcStat, error) {
 	}, nil
 }
 
+// Cgroups returns a cgroup the process is a member of.
+// On a system with cgroup v1 enabled, it will return freezer cgroup name.
+func (p *Process) Cgroup() (string, error) {
+	path := p.child("cgroup")
+	cgroup, err := p.fs.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to open %s: %w", path, err)
+	}
+	defer cgroup.Close()
+	data, err := io.ReadAll(cgroup)
+	if err != nil {
+		return "", fmt.Errorf("failed to read %s: %w", path, err)
+	}
+	for line := range strings.SplitSeq(string(data), "\n") {
+		if line == "" {
+			continue
+		}
+		elems := strings.Split(line, ":")
+		if len(elems) != 3 {
+			return "", fmt.Errorf("unexpected line %q (expected 3 :-separated fields)", line)
+		}
+		if elems[1] == "freezer" || elems[1] == "" {
+			return elems[2], nil
+		}
+	}
+	return "", nil
+}
+
 ////////////////////////////////////////////////////////////////////////////////

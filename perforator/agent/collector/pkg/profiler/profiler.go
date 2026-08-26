@@ -117,11 +117,13 @@ type Profiler struct {
 
 	jvmRegistry *jvmregistry.Registry
 
+	cgroups *cgroups.Tracker
+
 	// Profiling targets
-	wholeSystem SampleConsumer
-	cgroups     *cgroups.Tracker
-	pids        map[linux.CurrentNamespacePID]*trackedProcess
-	pidsmu      sync.RWMutex
+	wholeSystem   SampleConsumer
+	targetsmu     sync.RWMutex
+	cgroupTargets map[string]struct{}
+	pids          map[linux.CurrentNamespacePID]*trackedProcess
 
 	mainSampleConsumer SampleConsumer
 
@@ -289,6 +291,7 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 		mounts:         mountinfo.NewWatcher(l, r),
 		events:         make(map[perfevent.Type]*PerfEvent),
 		pids:           make(map[linux.CurrentNamespacePID]*trackedProcess),
+		cgroupTargets:  make(map[string]struct{}),
 		profileChan:    make(chan client.LabeledProfile, 64),
 		debugmode:      c.Debug,
 		envWhitelist:   envWhitelist,
@@ -328,16 +331,32 @@ func (p *Profiler) shouldDiscoverProcess(pid linux.CurrentNamespacePID) bool {
 		return true
 	}
 
-	// FIXME(sskvor): Check process cgroup.
-	if p.cgroups.NumCgroupNames() > 0 {
+	p.targetsmu.RLock()
+	defer p.targetsmu.RUnlock()
+
+	if _, found := p.pids[pid]; found {
 		return true
 	}
 
-	p.pidsmu.RLock()
-	_, found := p.pids[pid]
-	p.pidsmu.RUnlock()
+	if !p.conf.FeatureFlagsConfig.CgroupFilteringOnDiscoveryEnabled() {
+		return p.cgroups.NumCgroupNames() > 0
+	}
 
-	return found
+	group, err := procfs.FS().Process(pid).Cgroup()
+	if err != nil {
+		p.log.Warn("Failed to get cgroup for process", log.Error(err))
+		return false
+	}
+	for {
+		if _, found := p.cgroupTargets[group]; found {
+			return true
+		}
+		if group == "" || group == "/" {
+			break
+		}
+		group = path.Dir(group)
+	}
+	return false
 }
 
 func (p *Profiler) initializeStorage(r metrics.Registry) (err error) {
@@ -1130,8 +1149,8 @@ drainloop:
 		p.trySaveProfile(ctx, profile)
 	}
 
-	p.pidsmu.Lock()
-	defer p.pidsmu.Unlock()
+	p.targetsmu.Lock()
+	defer p.targetsmu.Unlock()
 
 	if p.mainSampleConsumer != nil {
 		p.log.Info("Flushing main sample consumer")
@@ -1262,6 +1281,9 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 		conf = &CgroupConfig{}
 	}
 
+	p.targetsmu.Lock()
+	defer p.targetsmu.Unlock()
+
 	conf.Labels = p.enrichProfileLabels(conf.Labels)
 
 	// TODO: For now we do not provide a way to enable features through AddCgroup
@@ -1269,6 +1291,8 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 	if err != nil {
 		return err
 	}
+
+	p.cgroupTargets[conf.Name] = struct{}{}
 
 	return p.cgroups.AddCgroup(&cgroups.TrackedCgroup{
 		Name:  conf.Name,
@@ -1346,9 +1370,9 @@ func (p *Profiler) TracePid(pid linux.CurrentNamespacePID, optAppliers ...TraceO
 		return nil, err
 	}
 
-	p.pidsmu.Lock()
+	p.targetsmu.Lock()
 	p.pids[pid] = trackedProcess
-	p.pidsmu.Unlock()
+	p.targetsmu.Unlock()
 
 	p.log.Info("Registered process", logfield.CurrentNamespacePID(pid))
 	return &pidTracingCloser{
@@ -1358,8 +1382,8 @@ func (p *Profiler) TracePid(pid linux.CurrentNamespacePID, optAppliers ...TraceO
 }
 
 func (p *Profiler) removeTracedPid(pid linux.CurrentNamespacePID) *trackedProcess {
-	p.pidsmu.Lock()
-	defer p.pidsmu.Unlock()
+	p.targetsmu.Lock()
+	defer p.targetsmu.Unlock()
 
 	trackedProcess, ok := p.pids[pid]
 	if !ok {
@@ -1371,10 +1395,15 @@ func (p *Profiler) removeTracedPid(pid linux.CurrentNamespacePID) *trackedProces
 }
 
 func (p *Profiler) DeleteCgroup(name string) error {
+	p.targetsmu.Lock()
+	defer p.targetsmu.Unlock()
+	delete(p.cgroupTargets, name)
 	return p.cgroups.Delete(name)
 }
 
 func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
+	p.targetsmu.Lock()
+	defer p.targetsmu.Unlock()
 	trackedCgroups := make([]*cgroups.TrackedCgroup, 0, len(configs))
 	for _, conf := range configs {
 		conf.Labels = p.enrichProfileLabels(conf.Labels)
@@ -1396,6 +1425,10 @@ func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
 
 	if err := p.cgroups.TrackCgroups(trackedCgroups); err != nil {
 		return fmt.Errorf("tracking cgroups: %w", err)
+	}
+	clear(p.cgroupTargets)
+	for _, g := range configs {
+		p.cgroupTargets[g.Name] = struct{}{}
 	}
 	return nil
 }

@@ -70,8 +70,8 @@ func newContinuousProfilingSampleConsumer(p *Profiler) *continuousProfilingSampl
 }
 
 func (c *continuousProfilingSampleConsumer) tryGetProcessSampleConsumer(sample *unwinder.RecordSampleParsed) SampleConsumer {
-	c.p.pidsmu.RLock()
-	defer c.p.pidsmu.RUnlock()
+	c.p.targetsmu.RLock()
+	defer c.p.targetsmu.RUnlock()
 	if trackedProcess := c.p.pids[linux.CurrentNamespacePID(sample.Pid)]; trackedProcess != nil {
 		return trackedProcess.sampleConsumer
 	}

@@ -120,12 +120,13 @@ type SymbolizerConfig struct {
 // FeatureFlagsConfig holds agent-side [feature-flags](https://trunkbaseddevelopment.com/feature-flags/)
 // except old ones.
 type FeatureFlagsConfig struct {
-	EnableJVM            *bool `yaml:"enable_jvm"`
-	EnableJVMLineInfo    *bool `yaml:"enable_jvm_line_info"`
-	EnablePHP            *bool `yaml:"enable_php"`
-	EnablePythonLineInfo *bool `yaml:"enable_python_line_info"`
-	EnableLua            *bool `yaml:"enable_lua"`
-	EnableSframe         *bool `yaml:"enable_sframe"`
+	EnableJVM                        *bool `yaml:"enable_jvm"`
+	EnableJVMLineInfo                *bool `yaml:"enable_jvm_line_info"`
+	EnablePHP                        *bool `yaml:"enable_php"`
+	EnablePythonLineInfo             *bool `yaml:"enable_python_line_info"`
+	EnableLua                        *bool `yaml:"enable_lua"`
+	EnableSframe                     *bool `yaml:"enable_sframe"`
+	EnableCgroupFilteringOnDiscovery *bool `yaml:"enable_cgroup_filtering_on_discovery"`
 
 	// ProfileFormat controls which profile format the agent sends to storage.
 	// Possible values: "pprof" (default), "yaprof".
@@ -173,6 +174,13 @@ func (f *FeatureFlagsConfig) SframeEnabled() bool {
 		return false
 	}
 	return *f.EnableSframe
+}
+
+func (f *FeatureFlagsConfig) CgroupFilteringOnDiscoveryEnabled() bool {
+	if f.EnableCgroupFilteringOnDiscovery == nil {
+		return true
+	}
+	return *f.EnableCgroupFilteringOnDiscovery
 }
 
 func (f *FeatureFlagsConfig) GetProfileFormat() profileformat.ProfileFormat {
