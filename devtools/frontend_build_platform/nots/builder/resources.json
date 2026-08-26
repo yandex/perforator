@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-14T12:16:45.081Z",
+    "created": "2026-08-26T16:15:54.414Z",
     "pr": {
-      "id": 15030112,
-      "author": "zaverden",
-      "summary": "DEVTOOLSSUPPORT-93215: clean modeules.yaml as text"
+      "id": 14746946,
+      "author": "baymer",
+      "summary": "FBP-3198: опциональный скрипт для TS_LINT и TS_TEST"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13189018786"
+      "uri": "sbr:13361667603"
     },
     "darwin-arm64": {
-      "uri": "sbr:13189014083"
+      "uri": "sbr:13361662677"
     },
     "linux": {
-      "uri": "sbr:13189027468"
+      "uri": "sbr:13361677353"
     },
     "linux-aarch64": {
-      "uri": "sbr:13189022374"
+      "uri": "sbr:13361672150"
     }
   }
 }
