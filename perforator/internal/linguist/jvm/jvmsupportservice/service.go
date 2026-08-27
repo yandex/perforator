@@ -66,7 +66,7 @@ func (s *Service) Scan(ctx context.Context, req *jvmsupp.ScanRequest) (*jvmsupp.
 		return nil, status.Errorf(codes.NotFound, "process %d not found", req.Pid)
 	}
 
-	scanned, err := s.scanner.ScanProcess(ctx, proc)
+	scanned, metrics, err := s.scanner.ScanProcess(ctx, proc)
 	if err != nil {
 		var pnfe *jvmscanner.ProcessNotFoundError
 		if errors.As(err, &pnfe) {
@@ -77,6 +77,7 @@ func (s *Service) Scan(ctx context.Context, req *jvmsupp.ScanRequest) (*jvmsupp.
 	}
 	res := &jvmsupp.ScanResponse{
 		Methods: scanned,
+		Metrics: metrics,
 	}
 	return res, nil
 }

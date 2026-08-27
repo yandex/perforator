@@ -548,6 +548,8 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 				InterpretedSymbolCacheTTL: p.conf.JVM.InterpretedMethodSymbolizationCacheTTL,
 
 				EnableLineInfoParsing: p.conf.FeatureFlagsConfig.JVMLineInfoEnabled(),
+
+				EnableScanMetrics: p.conf.JVM.EnableScanMetrics,
 			},
 		)
 		if err != nil {

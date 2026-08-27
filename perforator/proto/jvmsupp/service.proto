@@ -45,8 +45,13 @@ message MethodInfo {
     MethodSymbolizationTable symbolization_table = 7;
 }
 
+message ScanMetrics {
+    int64 method_name_reads = 1;
+}
+
 message ScanResponse {
     repeated MethodInfo methods = 1;
+    ScanMetrics metrics = 2;
     // TODO: replace with a delta-based streaming API
     // repeated MethodInfo new_methods = 1;
     // repeated int64 deleted_methods = 2;

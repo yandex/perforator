@@ -6,7 +6,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmbindings"
 )
 
-func readMethodName(method jvmbindings.Method, limit int) ([]byte, error) {
+func readMethodName(method jvmbindings.Method, nameLenLimit int) ([]byte, error) {
 	j := jvmbindings.ObjectPtr(method).JVM()
 
 	constMethod, err := method.ConstMethod()
@@ -39,11 +39,11 @@ func readMethodName(method jvmbindings.Method, limit int) ([]byte, error) {
 		return nil, fmt.Errorf("failed to get method name length: %w", err)
 	}
 	selfNamePtr := selfNameSym.Body()
-	selfName, err := j.ReadBytes(selfNamePtr, min(int(selfNameLen), limit))
+	selfName, err := j.ReadBytes(selfNamePtr, min(int(selfNameLen), nameLenLimit))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read method name: %w", err)
 	}
-	if int(selfNameLen)+1 >= limit {
+	if int(selfNameLen)+1 >= nameLenLimit {
 		return selfName, nil
 	}
 	klassNameLen, err := klassNameSym.Length()
@@ -52,10 +52,33 @@ func readMethodName(method jvmbindings.Method, limit int) ([]byte, error) {
 	}
 	klassNamePtr := klassNameSym.Body()
 	// TODO: we can be more flexible with limit here (i.e. read much more and then compress like j.u.c.Executor etc)
-	klassName, err := j.ReadBytes(klassNamePtr, min(int(klassNameLen), limit-1-int(selfNameLen)))
+	klassName, err := j.ReadBytes(klassNamePtr, min(int(klassNameLen), nameLenLimit-1-int(selfNameLen)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read class name: %w", err)
 	}
 	res := append(klassName, byte('.'))
 	return append(res, selfName...), nil
+}
+
+type cachingMethodNameParser struct {
+	nameLenLimit int
+	misses       int
+	cache        map[jvmbindings.Method][]byte
+}
+
+func (p *cachingMethodNameParser) read(method jvmbindings.Method) ([]byte, error) {
+	if p.cache == nil {
+		p.misses++
+		return readMethodName(method, p.nameLenLimit)
+	}
+	if name, ok := p.cache[method]; ok {
+		return name, nil
+	}
+	p.misses++
+	name, err := readMethodName(method, p.nameLenLimit)
+	if err != nil {
+		return nil, err
+	}
+	p.cache[method] = name
+	return name, nil
 }

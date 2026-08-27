@@ -23,6 +23,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/log/ctxlog"
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/library/go/core/metrics/nop"
 	"github.com/yandex/perforator/library/go/core/resource"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/unwindtable"
@@ -102,6 +103,11 @@ type Registry struct {
 
 	trackedProcessCount metrics.IntGauge
 
+	scanIterations metrics.Counter
+	processScans   metrics.Counter
+	// we track it separately because it is expensive leaf operation
+	methodNameReads metrics.Counter
+
 	compiledMethodCount    metrics.IntGauge
 	interpretedMethodCount metrics.FuncIntGauge
 
@@ -127,6 +133,9 @@ type Options struct {
 	InterpretedSymbolCacheTTL time.Duration
 
 	EnableLineInfoParsing bool
+
+	EnableScanMetrics  bool
+	EnableCacheMetrics bool
 }
 
 func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwindtable.BPFManager, opts Options) (*Registry, error) {
@@ -165,7 +174,8 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		cheatsheets: make(map[uint64]*binaryData),
 
 		trackedProcessCount: reg.IntGauge("tracked_processes.count"),
-		compiledMethodCount: reg.IntGauge("compiled_methods.cache.size"),
+
+		compiledMethodCount: reg.IntGauge("scan.compiled_methods.cache.size"),
 		interpretedMethodCount: reg.FuncIntGauge("interpreted_methods.cache.size", func() int64 {
 			return int64(interpretedSymsCache.Len())
 		}),
@@ -181,6 +191,18 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		invalidMethodSymbolizationTable:    reg.Counter("symbolization.invalid_table.count"),
 		methodSymbolizationTableLookupFail: reg.Counter("symbolization.table_lookup_fail.count"),
 	}, nil
+}
+
+func (r *Registry) initMetrics(reg metrics.Registry, opts Options) {
+	if opts.EnableScanMetrics {
+		r.scanIterations = reg.Counter("scan.iterations.count")
+		r.processScans = reg.Counter("scan.processes.count")
+		r.methodNameReads = reg.Counter("scan.method.name_reads.count")
+	} else {
+		r.scanIterations = &nop.Counter{}
+		r.processScans = &nop.Counter{}
+		r.methodNameReads = &nop.Counter{}
+	}
 }
 
 func (r *Registry) installBinaryConfig(binaryID uint64, cheatSheet *jvm.Cheatsheet) error {
@@ -434,6 +456,7 @@ func (r *Registry) scanSingleProcess(ctx context.Context, tp *trackedProcess) er
 		}
 		return nil
 	}
+	r.methodNameReads.Add(res.Metrics.MethodNameReads)
 	r.updateSymbols(ctx, tp.pid, res.Methods)
 	dwarf, err := synthesizeDWARF(res.Methods)
 	if err != nil {
@@ -472,6 +495,7 @@ func (r *Registry) listTargets() []*trackedProcess {
 }
 
 func (r *Registry) scanAll(ctx context.Context) error {
+	r.scanIterations.Add(1)
 	targets := r.listTargets()
 
 	r.l.Debug(ctx, "Scanning targets", log.Int("count", len(targets)))
@@ -479,6 +503,7 @@ func (r *Registry) scanAll(ctx context.Context) error {
 	r.trackedMu.Lock()
 	defer r.trackedMu.Unlock()
 	for _, tp := range targets {
+		r.processScans.Add(1)
 		err := r.scanSingleProcess(ctx, tp)
 		if err != nil {
 			return err

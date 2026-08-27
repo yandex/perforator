@@ -201,6 +201,8 @@ type JVM struct {
 	DisableInterpretedMethodSymbolization   bool          `yaml:"disable_interpreted_method_symbolization"`
 	InterpretedMethodSymbolizationCacheSize int           `yaml:"interpreted_method_symbolization_cache_size"`
 	InterpretedMethodSymbolizationCacheTTL  time.Duration `yaml:"interpreted_method_symbolization_cache_ttl"`
+
+	EnableScanMetrics bool `yaml:"enable_scan_metrics"`
 }
 
 func (c *JVM) FillDefault() {

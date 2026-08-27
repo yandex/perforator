@@ -30,9 +30,8 @@ type Scanner struct {
 
 func New(l xlog.Logger, bpf *programstate.State, conf Config) *Scanner {
 	return &Scanner{
-		l:   l,
-		bpf: bpf,
-
+		l:    l,
+		bpf:  bpf,
 		conf: conf,
 	}
 }
@@ -171,7 +170,8 @@ func (s *Scanner) Symbolize(ctx context.Context, ps *ProcessState, addr uint64) 
 	if err != nil {
 		return "", err
 	}
-	buf, err := readMethodName(jvmbindings.Method(jvm.MakeObjPointer(uintptr(addr))), 128)
+
+	buf, err := readMethodName(jvmbindings.Method(jvm.MakeObjPointer(uintptr(addr))), methodNameLimit)
 	return string(buf), err
 }
 
@@ -184,6 +184,7 @@ func (s *Scanner) Symbolize(ctx context.Context, ps *ProcessState, addr uint64) 
 func (s *Scanner) scanStep(
 	ctx context.Context,
 	jvm *jvmbindings.JVM,
+	nameParser *cachingMethodNameParser,
 	curHeap *heapInfo,
 	blockIndex uint32,
 ) (*jvmsupp.MethodInfo, bool, uint32, error) {
@@ -246,13 +247,13 @@ func (s *Scanner) scanStep(
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("failed to get method of nmethod %d: %w", blockIndex, err)
 		}
-		name, err = readMethodName(method, 128)
+		name, err = nameParser.read(method)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("failed to read method %d name: %w", blockIndex, err)
 		}
 
 		if s.conf.EnableLineInfoParsing {
-			symtab, err = s.parseInstructionInfo(ctx, jvm, codeBlob)
+			symtab, err = s.parseInstructionInfo(ctx, jvm, nameParser, codeBlob)
 			if err != nil {
 				// TODO: rather than logging, we should send this error as RPC response back to agent.
 				s.l.Warn(ctx, "Failed to parse instruction info for nmethod", log.String("name", string(name)), log.Error(err))
@@ -275,7 +276,7 @@ func (s *Scanner) scanStep(
 			if err != nil {
 				return nil, false, 0, fmt.Errorf("failed to get name pointer from code blob %d: %w", blockIndex, err)
 			}
-			blobName, err = jvm.ReadString(namePtr, 128)
+			blobName, err = jvm.ReadString(namePtr, methodNameLimit)
 			if err != nil {
 				return nil, false, 0, fmt.Errorf("failed to read code blob name: %w", err)
 			}
@@ -321,16 +322,21 @@ func (e *ProcessNotFoundError) Unwrap() error {
 	return e.inner
 }
 
-func (s *Scanner) ScanProcess(ctx context.Context, state *ProcessState) ([]*jvmsupp.MethodInfo, error) {
+func (s *Scanner) ScanProcess(ctx context.Context, state *ProcessState) ([]*jvmsupp.MethodInfo, *jvmsupp.ScanMetrics, error) {
+	metrics := new(jvmsupp.ScanMetrics)
 	jvm, err := s.prepare(state)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	methodNameParser := &cachingMethodNameParser{
+		nameLenLimit: methodNameLimit,
+		cache:        make(map[jvmbindings.Method][]byte),
 	}
 	var detectedMethods []*jvmsupp.MethodInfo
 	for heapIdx, heap := range state.heaps {
 		blockCount, err := heap.obj.NextSegment()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get current code heap size: %w", err)
+			return nil, nil, fmt.Errorf("failed to get current code heap size: %w", err)
 		}
 		s.l.Debug(ctx, "Scanning code cache heap", log.Int("heap", heapIdx), log.UInt64("block_count", blockCount))
 		var blockIndex uint64
@@ -339,12 +345,12 @@ func (s *Scanner) ScanProcess(ctx context.Context, state *ProcessState) ([]*jvms
 			segmentSizeLog2: uint8(heap.segmentSizeLog2),
 		}
 		for blockIndex < blockCount {
-			minfo, ok, len, err := s.scanStep(ctx, jvm, &curHeap, uint32(blockIndex))
+			minfo, ok, len, err := s.scanStep(ctx, jvm, methodNameParser, &curHeap, uint32(blockIndex))
 			if err != nil {
-				return nil, fmt.Errorf("failed to execute scan step: %w", err)
+				return nil, nil, fmt.Errorf("failed to execute scan step: %w", err)
 			}
 			if len == 0 {
-				return nil, fmt.Errorf("internal error: scan step resulted in zero-length block sequence")
+				return nil, nil, fmt.Errorf("internal error: scan step resulted in zero-length block sequence")
 			}
 			blockIndex += uint64(len)
 			if ok {
@@ -354,5 +360,6 @@ func (s *Scanner) ScanProcess(ctx context.Context, state *ProcessState) ([]*jvms
 		s.l.Debug(ctx, "Heap scan complete", log.Int("heap", heapIdx))
 	}
 	s.l.Info(ctx, "Scan complete", log.Int("methods", len(detectedMethods)))
-	return detectedMethods, nil
+	metrics.MethodNameReads = int64(methodNameParser.misses)
+	return detectedMethods, metrics, nil
 }

@@ -35,7 +35,12 @@ func (s *Scanner) parseSymbolizationNodeData(nmeta *jvmbindings.NmethodInfo, off
 	}, nil
 }
 
-func (s *Scanner) parseInstructionInfo(ctx context.Context, jvm *jvmbindings.JVM, nmethod jvmbindings.CodeBlob) (*jvmsupp.MethodSymbolizationTable, error) {
+func (s *Scanner) parseInstructionInfo(
+	ctx context.Context,
+	jvm *jvmbindings.JVM,
+	nameParser *cachingMethodNameParser,
+	nmethod jvmbindings.CodeBlob,
+) (*jvmsupp.MethodSymbolizationTable, error) {
 	nmeta, err := nmethod.NmethodInfo()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nmethod metadata: %w", err)
@@ -141,7 +146,7 @@ func (s *Scanner) parseInstructionInfo(ctx context.Context, jvm *jvmbindings.JVM
 
 		methodObj := jvmbindings.Method(jvm.MakeObjPointer(uintptr(methodAddr)))
 
-		nameBytes, err := readMethodName(methodObj, methodNameLimit)
+		nameBytes, err := nameParser.read(methodObj)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read method name for method %d (%x): %w", methodName, methodAddr, err)
 		}
