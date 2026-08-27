@@ -942,7 +942,7 @@ require (
 	github.com/ydb-platform/ydb-go-sdk-prometheus/v2 v2.0.1
 	github.com/ydb-platform/ydb-go-sdk-zap v0.16.2
 	github.com/ydb-platform/ydb-go-sdk-zerolog v0.14.1
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.150.1
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.151.1
 	github.com/ydb-platform/ydb-go-yc v0.12.3
 	github.com/ydb-platform/ydb-go-yc-metadata v0.6.1
 	github.com/ydb-platform/ydbops v0.0.25
