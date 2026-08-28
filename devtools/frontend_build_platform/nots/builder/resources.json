@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-26T16:15:54.414Z",
+    "created": "2026-08-26T22:03:58.353Z",
     "pr": {
-      "id": 14746946,
+      "id": 14891229,
       "author": "baymer",
-      "summary": "FBP-3198: опциональный скрипт для TS_LINT и TS_TEST"
+      "summary": "FBP-3326: перевести TS_PROTO на фасад TS_LIBRARY"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13361667603"
+      "uri": "sbr:13366492696"
     },
     "darwin-arm64": {
-      "uri": "sbr:13361662677"
+      "uri": "sbr:13366490681"
     },
     "linux": {
-      "uri": "sbr:13361677353"
+      "uri": "sbr:13366497885"
     },
     "linux-aarch64": {
-      "uri": "sbr:13361672150"
+      "uri": "sbr:13366495378"
     }
   }
 }

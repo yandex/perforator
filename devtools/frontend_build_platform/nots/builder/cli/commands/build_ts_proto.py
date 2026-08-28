@@ -1,22 +1,24 @@
+import os
 from argparse import ArgumentParser
-from dataclasses import dataclass
 
 from devtools.frontend_build_platform.libraries.logging import timeit
-from devtools.frontend_build_platform.nots.builder.api import (
-    bundle_workspace_node_modules,
-    create_node_modules,
-    TscBuilder,
-    TscBuilderOptions,
-    TsProtoAutoTscBuilder,
-    TsProtoGenerator,
-    TsProtoGeneratorOptions,
+from devtools.frontend_build_platform.nots.builder.api import TsLibraryBuilderOptions
+from devtools.frontend_build_platform.nots.builder.api.generators.ts_proto_generator import (
+    make_ts_proto_build_command,
 )
-from .build_tsc import add_tsc_parser_args, get_output_dirs
+from devtools.frontend_build_platform.nots.builder.api.utils import extract_output_tar
+from .build_library import build_library_func
+from .build_tsc import add_tsc_parser_args
 
 
-@dataclass
-class TsProtoBuilderOptions(TscBuilderOptions, TsProtoGeneratorOptions):
-    pass
+class TsProtoBuilderOptions(TsLibraryBuilderOptions):
+    protoc_bin: str
+    proto_paths: list[str]
+    proto_srcs: list[str]
+    ts_proto_opt: list[str]
+    tsconfigs: list[str]
+    auto_package_name: str | None
+    auto_deps_path: str | None
 
 
 def build_ts_proto_parser(subparsers) -> ArgumentParser:
@@ -42,36 +44,28 @@ def build_ts_proto_parser(subparsers) -> ArgumentParser:
 
 @timeit
 def build_ts_proto_func(args: TsProtoBuilderOptions):
-    generator = TsProtoGenerator(options=args)
-
-    # Step 0 - copy generated-package tsconfigs
-    generator.copy_auto_tsconfigs()
-
-    # Step 1 - install node_modules
-    node_modules_context = create_node_modules(args)
-
-    # Step 2 - run generate script
-    generator.generate()
-
-    # Step 3 - run build script
-    if generator.is_auto_package:
-        ts_config_names = ["tsconfig.cjs.json", "tsconfig.esm.json"]
-        ts_configs = [TscBuilder.load_ts_config(tc, args.bindir) for tc in ts_config_names]
-        for ts_config in ts_configs:
-            builder = TsProtoAutoTscBuilder(options=args, ts_config=ts_config)
-            builder.build()
-        generator.generate_cjs_pj()
-    else:
-        ts_configs = [TscBuilder.load_ts_config(tc, args.curdir) for tc in args.tsconfigs]
-        for ts_config in ts_configs:
-            builder = TscBuilder(options=args, ts_config=ts_config)
-            builder.build()
-
-    out_dirs = get_output_dirs(ts_configs)
-
-    bundle_workspace_node_modules(args, node_modules_context)
-
-    # Step 4 - create 'output.tar'
-    builder.bundle()
-
-    return out_dirs
+    is_auto_package = args.auto_package_name is not None and args.auto_deps_path is not None
+    if is_auto_package:
+        extract_output_tar(os.path.join(args.arcadia_build_root, args.auto_deps_path))
+    args.env.extend(
+        [
+            'PROTOC={}'.format(args.protoc_bin),
+            'ARCADIA_ROOT={}'.format(args.arcadia_root),
+            'ARCADIA_BUILD_ROOT={}'.format(args.arcadia_build_root),
+        ]
+    )
+    args.build_command = make_ts_proto_build_command(
+        args.arcadia_root,
+        args.arcadia_build_root,
+        args.curdir,
+        args.proto_paths,
+        args.proto_srcs,
+        args.ts_proto_opt,
+        args.tsconfigs,
+        is_auto_package,
+        args.auto_deps_path,
+    )
+    args.build_script = 'nots:build'
+    args.outputs = ['build']
+    args.exclude_globs = ['.npmrc']
+    return build_library_func(args)

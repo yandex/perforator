@@ -2,10 +2,11 @@ import json
 
 from devtools.frontend_build_platform.nots.builder.api.generators.ts_proto_generator import (
     generate_ts_proto_auto_package,
+    make_ts_proto_build_command,
 )
 
 
-def test_generate_ts_proto_auto_package_does_not_copy_tsconfigs(tmp_path):
+def test_generate_ts_proto_auto_package(tmp_path):
     build_root = tmp_path / "build"
     bindir = build_root / "project" / "proto"
     deps_bindir = build_root / "library" / "typescript" / "ts-proto-deps"
@@ -19,8 +20,6 @@ def test_generate_ts_proto_auto_package_does_not_copy_tsconfigs(tmp_path):
             }
         )
     )
-    (deps_bindir / "tsconfig.json").write_text("{}")
-
     generate_ts_proto_auto_package(
         str(build_root),
         str(bindir),
@@ -33,4 +32,30 @@ def test_generate_ts_proto_auto_package_does_not_copy_tsconfigs(tmp_path):
     assert package_json["name"] == "@yandex-proto/project-proto"
     assert package_json["dependencies"] == {"runtime": "1.0.0"}
     assert package_json["devDependencies"] == {"compiler": "2.0.0"}
-    assert not (bindir / "tsconfig.json").exists()
+    assert "scripts" not in package_json
+
+
+def test_make_ts_proto_build_command_for_auto_package(tmp_path):
+    source_root = tmp_path / "source"
+    build_root = tmp_path / "build"
+    moddir = "project/proto"
+
+    command = make_ts_proto_build_command(
+        str(source_root),
+        str(build_root),
+        str(source_root / moddir),
+        [str(source_root), str(build_root)],
+        [str(source_root / moddir / "input.proto")],
+        ["env=browser"],
+        ["ignored.json"],
+        True,
+        "library/typescript/ts-proto-deps",
+    )
+
+    assert '"$PROTOC"' in command
+    assert "env=browser" in command
+    assert '"$ARCADIA_ROOT/project/proto/input.proto"' in command
+    assert '"$ARCADIA_BUILD_ROOT/library/typescript/ts-proto-deps/tsconfig.cjs.json"' in command
+    assert "--project tsconfig.cjs.json" in command
+    assert "--project tsconfig.esm.json" in command
+    assert "ignored.json" not in command
