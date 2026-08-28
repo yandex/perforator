@@ -1,6 +1,7 @@
 package processors
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -87,20 +88,8 @@ func (p *GsymProcessor) ProcessBinary(ctx context.Context, trx models.Processing
 }
 
 func (p *GsymProcessor) uploadGsym(ctx context.Context, id string, gsym []byte) error {
-	w, err := p.s3.Put(ctx, id)
-	if err != nil {
-		return fmt.Errorf("failed to start s3 gsym writer: %w", err)
-	}
-
-	_, err = w.Write(gsym)
-	if err != nil {
+	if err := p.s3.Put(ctx, id, bytes.NewReader(gsym)); err != nil {
 		return fmt.Errorf("failed to upload gsym to s3: %w", err)
 	}
-
-	_, err = w.Commit()
-	if err != nil {
-		return fmt.Errorf("failed to commit s3 gsym upload: %w", err)
-	}
-
 	return nil
 }

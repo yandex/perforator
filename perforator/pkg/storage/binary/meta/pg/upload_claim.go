@@ -12,14 +12,14 @@ import (
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
 )
 
-type committer struct {
+type uploadClaim struct {
 	l           xlog.Logger
 	cluster     *hasql.Cluster
 	buildID     string
 	compression compressionpb.CompressionMethod
 }
 
-func (c *committer) Commit(ctx context.Context, blobInfo *storage.BlobInfo) error {
+func (c *uploadClaim) Commit(ctx context.Context, blobInfo *storage.BlobInfo) error {
 	primary, err := c.cluster.WaitForPrimary(ctx)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (c *committer) Commit(ctx context.Context, blobInfo *storage.BlobInfo) erro
 	return nil
 }
 
-func (c *committer) Ping(ctx context.Context) error {
+func (c *uploadClaim) Ping(ctx context.Context) error {
 	primary, err := c.cluster.WaitForPrimary(ctx)
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (c *committer) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (c *committer) Abort(ctx context.Context) error {
+func (c *uploadClaim) Abort(ctx context.Context) error {
 	primary, err := c.cluster.WaitForPrimary(ctx)
 	if err != nil {
 		return err

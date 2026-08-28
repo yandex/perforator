@@ -21,11 +21,6 @@ func (e *ErrNoExist) Unwrap() error {
 	return e.Err
 }
 
-type Writer interface {
-	io.Writer
-	Commit() (string, error)
-}
-
 type Pagination struct {
 	KeyFrom string
 
@@ -34,7 +29,7 @@ type Pagination struct {
 }
 
 type Storage interface {
-	Put(ctx context.Context, key string) (Writer, error)
+	Put(ctx context.Context, key string, src io.Reader) error
 
 	// Get streams the blob sequentially. Implementations are free to fetch
 	// ahead in parallel under the hood.

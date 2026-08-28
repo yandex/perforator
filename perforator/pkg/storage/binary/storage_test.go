@@ -27,10 +27,11 @@ func bg() context.Context { return context.Background() }
 
 type fakeMetaStorage struct {
 	metas map[string]*binarymeta.BinaryMeta
+	begin func(context.Context, string, time.Time, ...binarymeta.Option) (binarymeta.UploadClaim, error)
 }
 
-func (f *fakeMetaStorage) StoreBinary(context.Context, string, time.Time, ...binarymeta.Option) (binarymeta.Commiter, error) {
-	panic("unused")
+func (f *fakeMetaStorage) BeginUpload(ctx context.Context, buildID string, timestamp time.Time, opts ...binarymeta.Option) (binarymeta.UploadClaim, error) {
+	return f.begin(ctx, buildID, timestamp, opts...)
 }
 
 func (f *fakeMetaStorage) GetBinaries(_ context.Context, buildIDs []string) ([]*binarymeta.BinaryMeta, error) {
@@ -48,6 +49,21 @@ func (f *fakeMetaStorage) CollectExpiredBinaries(context.Context, time.Duration,
 }
 
 func (f *fakeMetaStorage) RemoveBinaries(context.Context, []string) error { return nil }
+
+type fakeUploadClaim struct {
+	commit func(context.Context, *storage.BlobInfo) error
+	abort  func(context.Context) error
+}
+
+func (f *fakeUploadClaim) Commit(ctx context.Context, blobInfo *storage.BlobInfo) error {
+	return f.commit(ctx, blobInfo)
+}
+
+func (f *fakeUploadClaim) Ping(context.Context) error { return nil }
+
+func (f *fakeUploadClaim) Abort(ctx context.Context) error {
+	return f.abort(ctx)
+}
 
 // memWriterAt collects concurrent WriteAts into a growing buffer.
 type memWriterAt struct {
@@ -74,12 +90,7 @@ func newTestStorage(t *testing.T, metas map[string]*binarymeta.BinaryMeta) *Bina
 }
 
 func putBlob(t *testing.T, s *BinaryStorage, key string, content []byte) {
-	w, err := s.blobStorage.Put(bg(), key)
-	require.NoError(t, err)
-	_, err = w.Write(content)
-	require.NoError(t, err)
-	_, err = w.Commit()
-	require.NoError(t, err)
+	require.NoError(t, s.blobStorage.Put(bg(), key, bytes.NewReader(content)))
 }
 
 func compress(t *testing.T, payload []byte) []byte {
@@ -97,6 +108,73 @@ func testMeta(buildID, blobID string, method compressionpb.CompressionMethod, un
 		Compression:      method,
 		UncompressedSize: uncompressedSize,
 	}
+}
+
+func newStoreTestStorage(t *testing.T, claim binarymeta.UploadClaim, blobStorage blobmodels.Storage) *BinaryStorage {
+	metaStorage := &fakeMetaStorage{begin: func(context.Context, string, time.Time, ...binarymeta.Option) (binarymeta.UploadClaim, error) {
+		return claim, nil
+	}}
+	return NewStorage(metaStorage, blobStorage, xlog.ForTest(t), metricsmock.NewRegistry(nil))
+}
+
+func TestStoreBinary_PutAndAbortFailureReturnsPutError(t *testing.T) {
+	putErr := errors.New("put failed")
+	abortErr := errors.New("abort failed")
+	events := []string{}
+	claim := &fakeUploadClaim{abort: func(ctx context.Context) error {
+		require.NoError(t, ctx.Err())
+		events = append(events, "abort")
+		return abortErr
+	}}
+	blobStorage := &fakeBlobStorage{put: func(context.Context, string, io.Reader) error {
+		events = append(events, "put")
+		return putErr
+	}}
+
+	_, err := newStoreTestStorage(t, claim, blobStorage).StoreBinary(bg(), "a", time.Now(), bytes.NewReader([]byte("data")))
+	require.ErrorIs(t, err, putErr)
+	require.NotErrorIs(t, err, abortErr)
+	require.Equal(t, []string{"put", "abort"}, events)
+}
+
+func TestStoreBinary_CancelledCommitCleanupOrder(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	payload := []byte("data")
+	events := []string{}
+	claim := &fakeUploadClaim{
+		commit: func(ctx context.Context, blobInfo *storage.BlobInfo) error {
+			events = append(events, "commit")
+			require.ErrorIs(t, ctx.Err(), context.Canceled)
+			require.Equal(t, &storage.BlobInfo{ID: "a", Size: uint64(len(payload))}, blobInfo)
+			return ctx.Err()
+		},
+		abort: func(ctx context.Context) error {
+			events = append(events, "abort")
+			require.NoError(t, ctx.Err())
+			return nil
+		},
+	}
+	blobStorage := &fakeBlobStorage{
+		put: func(_ context.Context, _ string, src io.Reader) error {
+			events = append(events, "put")
+			data, err := io.ReadAll(src)
+			require.NoError(t, err)
+			require.Equal(t, payload, data)
+			cancel()
+			return nil
+		},
+		delete: func(ctx context.Context, _ string) error {
+			events = append(events, "delete")
+			require.ErrorIs(t, ctx.Err(), context.Canceled)
+			return ctx.Err()
+		},
+	}
+
+	_, err := newStoreTestStorage(t, claim, blobStorage).StoreBinary(ctx, "a", time.Now(), bytes.NewReader(payload))
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, []string{"put", "commit", "delete", "abort"}, events)
 }
 
 func TestLoadBinary_Uncompressed(t *testing.T) {
@@ -245,9 +323,19 @@ func TestLoadBlob_BlobLoadErrorPropagates(t *testing.T) {
 // embedded interface.
 type fakeBlobStorage struct {
 	blobmodels.Storage
-	get func(ctx context.Context, key string) (io.ReadCloser, error)
+	put    func(ctx context.Context, key string, src io.Reader) error
+	get    func(ctx context.Context, key string) (io.ReadCloser, error)
+	delete func(ctx context.Context, key string) error
+}
+
+func (f *fakeBlobStorage) Put(ctx context.Context, key string, src io.Reader) error {
+	return f.put(ctx, key, src)
 }
 
 func (f *fakeBlobStorage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	return f.get(ctx, key)
+}
+
+func (f *fakeBlobStorage) Delete(ctx context.Context, key string) error {
+	return f.delete(ctx, key)
 }

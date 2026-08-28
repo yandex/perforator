@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	"github.com/yandex/perforator/perforator/pkg/atomicfs"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -71,38 +72,8 @@ func (s *FSStorage) Size(ctx context.Context, key string) (uint64, error) {
 	return uint64(info.Size()), nil
 }
 
-type fswriter struct {
-	file *os.File
-	log  xlog.Logger
-	key  string
-	err  error
-}
-
-func (w *fswriter) Write(p []byte) (int, error) {
-	if w.err != nil {
-		return 0, w.err
-	}
-	n, err := w.file.Write(p)
-	if err != nil {
-		w.err = err
-		return 0, err
-	}
-	return n, nil
-}
-
-func (w *fswriter) Commit() (string, error) {
-	if w.err != nil {
-		return "", w.err
-	}
-	err := w.file.Close()
-	if err != nil {
-		return "", err
-	}
-	return w.key, nil
-}
-
 // Put implements Storage
-func (s *FSStorage) Put(ctx context.Context, key string) (w models.Writer, err error) {
+func (s *FSStorage) Put(ctx context.Context, key string, src io.Reader) (err error) {
 	path := s.makepath(key)
 
 	l := s.keylog(key)
@@ -115,15 +86,20 @@ func (s *FSStorage) Put(ctx context.Context, key string) (w models.Writer, err e
 	}()
 
 	if err = ensurepath(path); err != nil {
-		return nil, fmt.Errorf("failed to create directories: %w", err)
+		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_EXCL|os.O_CREATE, 0666)
+	file, err := atomicfs.Create(path, atomicfs.WithMode(0644))
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Discard()
+
+	if _, err = io.Copy(file, src); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
 	}
 
-	return &fswriter{file, l, key, nil}, nil
+	return file.Close()
 }
 
 func (s *FSStorage) List(ctx context.Context, pagination *models.Pagination, shards *storage.ShardParams) ([]string, error) {

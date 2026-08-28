@@ -306,12 +306,7 @@ func newBlobStorageWith(t *testing.T, key string, content []byte) blob.Storage {
 	blobStorage, err := blobfs.NewFSStorage(blobfs.FSStorageConfig{Root: t.TempDir()}, xlog.ForTest(t))
 	require.NoError(t, err)
 
-	w, err := blobStorage.Put(context.Background(), key)
-	require.NoError(t, err)
-	_, err = w.Write(content)
-	require.NoError(t, err)
-	_, err = w.Commit()
-	require.NoError(t, err)
+	require.NoError(t, blobStorage.Put(context.Background(), key, bytes.NewReader(content)))
 
 	return blobStorage
 }

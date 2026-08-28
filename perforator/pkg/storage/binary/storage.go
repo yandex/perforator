@@ -7,7 +7,6 @@ import (
 	"io"
 	"math"
 	"slices"
-	"sync/atomic"
 	"time"
 
 	"github.com/klauspost/compress/zstd"
@@ -27,11 +26,7 @@ var (
 	ErrNotFound = errors.New("binary not found")
 )
 
-type TransactionalWriter interface {
-	io.Writer
-	Commit(ctx context.Context) error
-	Abort(ctx context.Context) error
-}
+const uploadCleanupTimeout = 6 * time.Second
 
 type BinaryStorage struct {
 	logger xlog.Logger
@@ -60,111 +55,84 @@ func NewStorage(
 	}
 }
 
-type BinaryStorageWriter struct {
-	written    atomic.Uint64
-	buildID    string
-	storage    *BinaryStorage
-	commiter   binarymeta.Commiter
-	blobWriter blob.Writer
-	lastPing   time.Time
-	logger     xlog.Logger
-	ctx        context.Context
+type leaseReader struct {
+	// Keepalive pings stop with the upload request so abandoned claims can expire.
+	ctx       context.Context
+	src       io.Reader
+	claim     binarymeta.UploadClaim
+	bytesRead uint64
+	lastPing  time.Time
+	logger    xlog.Logger
 }
 
-func NewBinaryStorageWriter(
-	ctx context.Context,
-	buildID string,
-	commiter binarymeta.Commiter,
-	storage *BinaryStorage,
-	writer blob.Writer,
-) (*BinaryStorageWriter, error) {
-	return &BinaryStorageWriter{
-		buildID:    buildID,
-		storage:    storage,
-		commiter:   commiter,
-		blobWriter: writer,
-		lastPing:   time.Now(),
-		logger:     storage.logger.With(log.String("build_id", buildID)),
-		ctx:        ctx,
-	}, nil
-}
-
-func (w *BinaryStorageWriter) maybePing() {
-	if time.Since(w.lastPing) > 30*time.Second {
-		ctx, cancel := context.WithTimeout(w.ctx, 5*time.Second)
+func (r *leaseReader) maybePing() {
+	if time.Since(r.lastPing) > 30*time.Second {
+		ctx, cancel := context.WithTimeout(r.ctx, 5*time.Second)
 		defer cancel()
-		err := w.commiter.Ping(ctx)
+		err := r.claim.Ping(ctx)
 		if err != nil {
-			w.logger.Warn(ctx,
+			r.logger.Warn(ctx,
 				"Failed ping for binary in upload progress",
 				log.Error(err),
 			)
 		} else {
-			w.lastPing = time.Now()
+			r.lastPing = time.Now()
 		}
 	}
 }
 
-func (w *BinaryStorageWriter) Write(p []byte) (int, error) {
-	w.maybePing()
-	n, err := w.blobWriter.Write(p)
-	w.written.Add(uint64(n))
+func (r *leaseReader) Read(p []byte) (int, error) {
+	r.maybePing()
+	n, err := r.src.Read(p)
+	r.bytesRead += uint64(n)
 	return n, err
-}
-
-func (w *BinaryStorageWriter) Abort(ctx context.Context) error {
-	// TODO: abort blob.Writer
-	return w.commiter.Abort(ctx)
-}
-
-func (w *BinaryStorageWriter) Commit(ctx context.Context) error {
-	blobID, err := w.blobWriter.Commit()
-	if err != nil {
-		return err
-	}
-
-	w.logger.Debug(ctx, "Uploaded binary blob")
-
-	err = w.commiter.Commit(ctx, &storage.BlobInfo{ID: blobID, Size: w.written.Load()})
-	if err != nil {
-		deleteErr := w.storage.blobStorage.Delete(ctx, blobID)
-		if deleteErr != nil {
-			w.logger.Error(ctx,
-				"Failed to delete blob after unsuccessful commit attempt",
-				log.Error(deleteErr),
-			)
-		}
-		return err
-	}
-
-	w.logger.Info(ctx, "Successfully stored binary")
-
-	return nil
 }
 
 func (s *BinaryStorage) StoreBinary(
 	ctx context.Context,
 	buildID string,
 	timestamp time.Time,
+	src io.Reader,
 	opts ...binarymeta.Option,
-) (TransactionalWriter, error) {
-	commiter, err := s.metaStorage.StoreBinary(ctx, buildID, timestamp, opts...)
+) (size uint64, err error) {
+	claim, err := s.metaStorage.BeginUpload(ctx, buildID, timestamp, opts...)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
+	// TODO: Fence Abort/Delete with an upload generation; build-ID-only cleanup can remove a successor after lease takeover.
 	defer func() {
 		if err != nil {
-			_ = commiter.Abort(ctx)
+			abortCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), uploadCleanupTimeout)
+			defer cancel()
+			if abortErr := claim.Abort(abortCtx); abortErr != nil {
+				s.logger.Error(abortCtx, "Failed to abort binary upload", log.String("build_id", buildID), log.Error(abortErr))
+			}
 		}
 	}()
 
-	writer, err := s.blobStorage.Put(ctx, buildID)
-	if err != nil {
-		return nil, err
+	logger := s.logger.With(log.String("build_id", buildID))
+	counted := &leaseReader{
+		ctx:      ctx,
+		src:      src,
+		claim:    claim,
+		lastPing: time.Now(),
+		logger:   logger,
+	}
+	if err = s.blobStorage.Put(ctx, buildID, counted); err != nil {
+		return 0, fmt.Errorf("failed to upload binary blob: %w", err)
+	}
+	logger.Debug(ctx, "Uploaded binary blob")
+
+	if err = claim.Commit(ctx, &storage.BlobInfo{ID: buildID, Size: counted.bytesRead}); err != nil {
+		if deleteErr := s.blobStorage.Delete(ctx, buildID); deleteErr != nil {
+			logger.Error(ctx, "Failed to delete blob after unsuccessful commit attempt", log.Error(deleteErr))
+		}
+		return 0, fmt.Errorf("failed to commit binary: %w", err)
 	}
 
-	return NewBinaryStorageWriter(ctx, buildID, commiter, s, writer)
+	logger.Info(ctx, "Successfully stored binary")
+	return counted.bytesRead, nil
 }
 
 func (s *BinaryStorage) loadBinaryMeta(

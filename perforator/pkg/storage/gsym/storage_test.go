@@ -58,12 +58,7 @@ func newTestStorage(t *testing.T, metas map[string]*gsymmeta.GSYMMeta) *GSYMStor
 }
 
 func putBlob(t *testing.T, s *GSYMStorage, key string, content []byte) {
-	w, err := s.blobStorage.Put(context.Background(), key)
-	require.NoError(t, err)
-	_, err = w.Write(content)
-	require.NoError(t, err)
-	_, err = w.Commit()
-	require.NoError(t, err)
+	require.NoError(t, s.blobStorage.Put(context.Background(), key, bytes.NewReader(content)))
 }
 
 func compress(t *testing.T, payload []byte) []byte {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -1276,19 +1277,8 @@ func (s *PerforatorServer) maybeUploadProfileWithID(ctx context.Context, profile
 		return "", nil
 	}
 
-	w, err := s.renderedProfiles.Put(ctx, id)
-	if err != nil {
-		return "", fmt.Errorf("failed to start rendered profile writer: %w", err)
-	}
-
-	_, err = w.Write(profile)
-	if err != nil {
+	if err := s.renderedProfiles.Put(ctx, id, bytes.NewReader(profile)); err != nil {
 		return "", fmt.Errorf("failed to upload rendered profile: %w", err)
-	}
-
-	_, err = w.Commit()
-	if err != nil {
-		return "", fmt.Errorf("failed to commit rendered profile upload: %w", err)
 	}
 
 	return fmt.Sprintf("%s%s", s.c.RenderedProfiles.URLPrefix, id), nil

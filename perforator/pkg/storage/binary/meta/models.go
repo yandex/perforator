@@ -15,6 +15,8 @@ var (
 	ErrAlreadyUploaded  = errors.New("already uploaded")
 )
 
+const DefaultUploadClaimStaleAfter = 5 * time.Minute
+
 type UploadStatus string
 
 const (
@@ -23,7 +25,7 @@ const (
 	NotStarted UploadStatus = "not_started"
 )
 
-type Commiter interface {
+type UploadClaim interface {
 	Commit(ctx context.Context, blobInfo *storage.BlobInfo) error
 	Ping(ctx context.Context) error
 	Abort(ctx context.Context) error
@@ -100,12 +102,12 @@ type (
 )
 
 type Storage interface {
-	StoreBinary(
+	BeginUpload(
 		ctx context.Context,
 		buildID string,
 		timestamp time.Time,
 		opts ...Option,
-	) (Commiter, error)
+	) (UploadClaim, error)
 
 	GetBinaries(
 		ctx context.Context,

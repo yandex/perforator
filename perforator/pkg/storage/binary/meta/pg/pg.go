@@ -40,7 +40,7 @@ type Options struct {
 
 func (o *Options) fillDefault() {
 	if o.DropStuckUploadPeriod == time.Duration(0) {
-		o.DropStuckUploadPeriod = 5 * time.Minute
+		o.DropStuckUploadPeriod = binarymeta.DefaultUploadClaimStaleAfter
 	}
 	if o.LastUsedTimestampUpdateInterval == time.Duration(0) {
 		o.LastUsedTimestampUpdateInterval = time.Hour
@@ -132,12 +132,12 @@ func (s *Storage) storeBinary(
 	return err
 }
 
-func (s *Storage) StoreBinary(
+func (s *Storage) BeginUpload(
 	ctx context.Context,
 	buildID string,
 	timestamp time.Time,
 	opts ...binarymeta.Option,
-) (binarymeta.Commiter, error) {
+) (binarymeta.UploadClaim, error) {
 	primary, err := s.cluster.WaitForPrimary(ctx)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ func (s *Storage) StoreBinary(
 
 	s.l.Info(ctx, "Saved binary meta", log.String("build_id", buildID))
 
-	return &committer{
+	return &uploadClaim{
 		l:           s.l,
 		buildID:     buildID,
 		cluster:     s.cluster,

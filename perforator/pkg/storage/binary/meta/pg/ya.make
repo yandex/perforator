@@ -1,7 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
-    committer.go
+    upload_claim.go
     pg.go
     row.go
 )

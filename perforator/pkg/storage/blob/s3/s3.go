@@ -8,14 +8,12 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"sync/atomic"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
@@ -353,88 +351,19 @@ func (s *S3Storage) Size(ctx context.Context, key string) (uint64, error) {
 	return uint64(*res.ContentLength), nil
 }
 
-type s3writer struct {
-	key string
-	l   xlog.Logger
-
-	w    io.WriteCloser
-	werr error
-
-	uploadedBytes        atomic.Uint64
-	uploadedBytesCounter metrics.Counter
-
-	g        errgroup.Group
-	uploader *s3manager.Uploader
+type uploadCountingReader struct {
+	r         io.Reader
+	bytesRead int64
 }
 
-func (s *S3Storage) newS3Writer(key string, uploader *s3manager.Uploader, l xlog.Logger) *s3writer {
-	return &s3writer{
-		key:                  key,
-		uploader:             uploader,
-		l:                    l.WithName("s3writer"),
-		uploadedBytes:        atomic.Uint64{},
-		uploadedBytesCounter: s.metrics.bytesUploaded,
-	}
-}
-
-func (w *s3writer) start(ctx context.Context, bucket string) {
-	rd, wr := io.Pipe()
-
-	w.g.SetLimit(1)
-	w.g.Go(func() error {
-		w.l.Debug(ctx, "Starting s3 uploader")
-		_, err := w.uploader.UploadWithContext(ctx, &s3manager.UploadInput{
-			Key:    &w.key,
-			Body:   rd,
-			Bucket: &bucket,
-		})
-		w.l.Debug(ctx, "Finished s3 uploader")
-		if err != nil {
-			_ = rd.CloseWithError(err)
-		} else {
-			_ = rd.Close()
-		}
-		return err
-	})
-
-	w.w = wr
-}
-
-func (w *s3writer) Write(p []byte) (int, error) {
-	if w.werr != nil {
-		return 0, w.werr
-	}
-	n, err := w.w.Write(p)
-	w.uploadedBytes.Add(uint64(n))
-	if err != nil {
-		w.werr = err
-		return 0, err
-	}
-	return n, nil
-}
-
-func (w *s3writer) Commit() (string, error) {
-	if w.werr != nil {
-		return "", w.werr
-	}
-
-	err := w.w.Close()
-	if err != nil {
-		return "", err
-	}
-
-	err = w.g.Wait()
-	if err != nil {
-		return "", err
-	}
-
-	w.uploadedBytesCounter.Add(int64(w.uploadedBytes.Load()))
-
-	return w.key, nil
+func (r *uploadCountingReader) Read(p []byte) (int, error) {
+	n, err := r.r.Read(p)
+	r.bytesRead += int64(n)
+	return n, err
 }
 
 // Put implements Storage
-func (s *S3Storage) Put(ctx context.Context, key string) (wr models.Writer, err error) {
+func (s *S3Storage) Put(ctx context.Context, key string, src io.Reader) (err error) {
 	l := s.keylog(key)
 
 	defer func() {
@@ -443,10 +372,16 @@ func (s *S3Storage) Put(ctx context.Context, key string) (wr models.Writer, err 
 		}
 	}()
 
-	uploader := s.newS3Writer(key, s.uploader, l)
-	uploader.start(ctx, s.bucket)
-
-	return uploader, nil
+	counted := &uploadCountingReader{r: src}
+	_, err = s.uploader.UploadWithContext(ctx, &s3manager.UploadInput{
+		Bucket: &s.bucket,
+		Key:    &key,
+		Body:   counted,
+	})
+	if err == nil {
+		s.metrics.bytesUploaded.Add(counted.bytesRead)
+	}
+	return err
 }
 
 func getShardPrefix(shardParams *storage.ShardParams) (string, error) {

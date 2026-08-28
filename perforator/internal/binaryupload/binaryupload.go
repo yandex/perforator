@@ -27,12 +27,6 @@ import (
 const (
 	defaultKnownCacheTTL  = 10 * time.Minute
 	defaultKnownCacheSize = 100000
-
-	abortTimeout = 6 * time.Second
-
-	// staleUploadAge is how long an in-progress upload is trusted before its
-	// binary is announced as unknown again (so a crashed upload can be retried).
-	staleUploadAge = 5 * time.Minute
 )
 
 type Options struct {
@@ -51,8 +45,6 @@ type serviceMetrics struct {
 	uploadsRejected  metrics.Counter
 	uploadedBytes    metrics.Counter
 	uploadTimer      metrics.Timer
-	abortsSucceeded  metrics.Counter
-	abortsFailed     metrics.Counter
 
 	announcesSucceeded metrics.Counter
 	announcesFailed    metrics.Counter
@@ -78,8 +70,6 @@ func newServiceMetrics(reg metrics.Registry) serviceMetrics {
 		uploadsRejected:  reg.Counter("rejected_uploads.count"),
 		uploadedBytes:    reg.Counter("uploaded_bytes.count"),
 		uploadTimer:      reg.Timer("upload_duration.timer"),
-		abortsSucceeded:  reg.WithTags(map[string]string{"status": "success"}).Counter("aborts.count"),
-		abortsFailed:     reg.WithTags(map[string]string{"status": "failed"}).Counter("aborts.count"),
 
 		announcesSucceeded: announces("success"),
 		announcesFailed:    announces("failed"),
@@ -144,7 +134,7 @@ func (s *Service) unknownBinaries(ctx context.Context, buildIDs []string) ([]str
 	known := make(map[string]bool, len(binaries))
 	for _, binary := range binaries {
 		if binary.Status == binarymeta.InProgress {
-			if time.Since(binary.LastUsedTimestamp) > staleUploadAge {
+			if time.Since(binary.LastUsedTimestamp) >= binarymeta.DefaultUploadClaimStaleAfter {
 				continue
 			}
 			// Fresh in-progress uploads must stay uncached so they are
@@ -228,51 +218,69 @@ func receiveHead(stream perforatorstorage.PerforatorStorage_PushBinaryServer) (*
 	return head, nil
 }
 
-func copyBody(writer binarystorage.TransactionalWriter, stream perforatorstorage.PerforatorStorage_PushBinaryServer) (uint64, error) {
-	var bytesTransmitted uint64
-	for {
-		chunk, err := stream.Recv()
-		if err == io.EOF {
-			return bytesTransmitted, nil
-		}
+var errEmptyBody = errors.New("no binary data received")
+
+type bodyReader struct {
+	stream    perforatorstorage.PerforatorStorage_PushBinaryServer
+	pending   []byte
+	bytesRead uint64
+	streamErr error
+}
+
+func (r *bodyReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+	if r.streamErr != nil {
+		return 0, r.streamErr
+	}
+	for len(r.pending) == 0 {
+		chunk, err := r.stream.Recv()
 		if err != nil {
-			return bytesTransmitted, err
+			if errors.Is(err, io.EOF) {
+				if r.bytesRead == 0 {
+					r.streamErr = errEmptyBody
+					return 0, r.streamErr
+				}
+				return 0, io.EOF
+			}
+			r.streamErr = err
+			return 0, err
 		}
 
 		body := chunk.GetBodyChunk()
 		if body == nil {
-			return bytesTransmitted, status.Error(codes.InvalidArgument, "chunks after the first must be body chunks")
+			r.streamErr = status.Error(codes.InvalidArgument, "chunks after the first must be body chunks")
+			return 0, r.streamErr
 		}
-
-		written, err := writer.Write(body.GetBinary())
-		if err != nil {
-			return bytesTransmitted, status.Errorf(codes.Internal, "failed to write chunk: %v", err)
-		}
-		bytesTransmitted += uint64(written)
+		r.pending = body.GetBinary()
 	}
+
+	n := copy(p, r.pending)
+	r.pending = r.pending[n:]
+	r.bytesRead += uint64(n)
+	return n, nil
 }
 
-// push aborts the pending upload on any error before the commit; a response
-// failure after the commit leaves the binary stored.
 func (s *Service) push(stream perforatorstorage.PerforatorStorage_PushBinaryServer) (err error) {
 	ctx := stream.Context()
 
 	start := time.Now()
-	committed := false
+	stored := false
 	var buildID string
 	var compression compressionpb.CompressionMethod
-	var bytes uint64
+	var uploadedBytes uint64
 	defer func() {
 		switch {
-		case committed:
+		case stored:
 			s.markKnown(buildID)
 			s.metrics.uploadsSucceeded.Inc()
-			s.metrics.uploadedBytes.Add(int64(bytes))
+			s.metrics.uploadedBytes.Add(int64(uploadedBytes))
 			s.metrics.uploadTimer.RecordDuration(time.Since(start))
 			s.l.Info(ctx, "Uploaded binary",
 				log.String("build_id", buildID),
 				log.String("compression", compression.String()),
-				log.UInt64("bytes", bytes),
+				log.UInt64("bytes", uploadedBytes),
 			)
 		case status.Code(err) == codes.AlreadyExists || status.Code(err) == codes.Aborted:
 			s.metrics.uploadsRaced.Inc()
@@ -295,7 +303,8 @@ func (s *Service) push(stream perforatorstorage.PerforatorStorage_PushBinaryServ
 		opts = append(opts, binarymeta.WithCompression(compression, head.GetUncompressedSize()))
 	}
 
-	writer, err := s.storage.StoreBinary(ctx, buildID, start, opts...)
+	body := &bodyReader{stream: stream}
+	uploadedBytes, err = s.storage.StoreBinary(ctx, buildID, start, body, opts...)
 	if err != nil {
 		switch {
 		case errors.Is(err, binarymeta.ErrAlreadyUploaded):
@@ -303,34 +312,15 @@ func (s *Service) push(stream perforatorstorage.PerforatorStorage_PushBinaryServ
 		case errors.Is(err, binarymeta.ErrUploadInProgress):
 			return status.Errorf(codes.Aborted, "binary %s upload is already in progress", buildID)
 		}
-		return status.Errorf(codes.Internal, "failed to start binary upload: %v", err)
-	}
-	defer func() {
-		if err == nil || committed {
-			return
+		if body.streamErr != nil {
+			if errors.Is(body.streamErr, errEmptyBody) {
+				return status.Error(codes.InvalidArgument, body.streamErr.Error())
+			}
+			return body.streamErr
 		}
-		abortCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), abortTimeout)
-		defer cancel()
-		if abortErr := writer.Abort(abortCtx); abortErr != nil {
-			s.metrics.abortsFailed.Inc()
-			err = errors.Join(err, abortErr)
-		} else {
-			s.metrics.abortsSucceeded.Inc()
-		}
-	}()
-
-	bytes, err = copyBody(writer, stream)
-	if err != nil {
-		return err
+		return status.Errorf(codes.Internal, "failed to store binary: %v", err)
 	}
-	if bytes == 0 {
-		return status.Error(codes.InvalidArgument, "no binary data received")
-	}
-
-	if err = writer.Commit(ctx); err != nil {
-		return status.Errorf(codes.Internal, "failed to commit binary: %v", err)
-	}
-	committed = true
+	stored = true
 
 	return stream.SendAndClose(&perforatorstorage.PushBinaryResponse{})
 }

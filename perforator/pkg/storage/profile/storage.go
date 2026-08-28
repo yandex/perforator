@@ -46,18 +46,8 @@ type ProfileStorage struct {
 	log xlog.Logger
 }
 
-func (s *ProfileStorage) putBlob(ctx context.Context, id string, bytes []byte) error {
-	writer, err := s.BlobStorage.Put(ctx, id)
-	if err != nil {
-		return err
-	}
-	_, err = writer.Write(bytes)
-	if err != nil {
-		return err
-	}
-
-	_, err = writer.Commit()
-	return err
+func (s *ProfileStorage) putBlob(ctx context.Context, id string, data []byte) error {
+	return s.BlobStorage.Put(ctx, id, bytes.NewReader(data))
 }
 
 // implements profilestorage.Storage

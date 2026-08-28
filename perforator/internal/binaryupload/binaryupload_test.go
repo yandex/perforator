@@ -1,7 +1,6 @@
 package binaryupload
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -24,35 +23,42 @@ import (
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
-type fakeCommiter struct {
+type fakeUploadClaim struct {
 	committed bool
 	aborted   bool
+	commitErr error
+	blobInfo  *storage.BlobInfo
 }
 
-func (c *fakeCommiter) Commit(context.Context, *storage.BlobInfo) error {
+func (c *fakeUploadClaim) Commit(_ context.Context, blobInfo *storage.BlobInfo) error {
+	if c.commitErr != nil {
+		return c.commitErr
+	}
+	c.blobInfo = blobInfo
 	c.committed = true
 	return nil
 }
-func (c *fakeCommiter) Ping(context.Context) error  { return nil }
-func (c *fakeCommiter) Abort(context.Context) error { c.aborted = true; return nil }
+func (c *fakeUploadClaim) Ping(context.Context) error  { return nil }
+func (c *fakeUploadClaim) Abort(context.Context) error { c.aborted = true; return nil }
 
 type fakeMetaStorage struct {
 	metas     []*binarymeta.BinaryMeta
-	storeErr  error
+	beginErr  error
+	commitErr error
 	getErr    error
 	getCalls  int
-	commiters map[string]*fakeCommiter
+	claims    map[string]*fakeUploadClaim
 }
 
-func (f *fakeMetaStorage) StoreBinary(_ context.Context, buildID string, _ time.Time, _ ...binarymeta.Option) (binarymeta.Commiter, error) {
-	if f.storeErr != nil {
-		return nil, f.storeErr
+func (f *fakeMetaStorage) BeginUpload(_ context.Context, buildID string, _ time.Time, _ ...binarymeta.Option) (binarymeta.UploadClaim, error) {
+	if f.beginErr != nil {
+		return nil, f.beginErr
 	}
-	c := &fakeCommiter{}
-	if f.commiters == nil {
-		f.commiters = map[string]*fakeCommiter{}
+	c := &fakeUploadClaim{commitErr: f.commitErr}
+	if f.claims == nil {
+		f.claims = map[string]*fakeUploadClaim{}
 	}
-	f.commiters[buildID] = c
+	f.claims[buildID] = c
 	return c, nil
 }
 
@@ -67,32 +73,30 @@ func (f *fakeMetaStorage) CollectExpiredBinaries(context.Context, time.Duration,
 
 func (f *fakeMetaStorage) RemoveBinaries(context.Context, []string) error { return nil }
 
-type fakeBlobWriter struct {
-	key string
-	buf bytes.Buffer
-}
-
-func (w *fakeBlobWriter) Write(p []byte) (int, error) { return w.buf.Write(p) }
-func (w *fakeBlobWriter) Commit() (string, error)     { return w.key, nil }
-
 type fakeBlobStorage struct {
-	writers map[string]*fakeBlobWriter
+	blobs map[string][]byte
 }
 
-func (f *fakeBlobStorage) Put(_ context.Context, key string) (blobmodels.Writer, error) {
-	w := &fakeBlobWriter{key: key}
-	if f.writers == nil {
-		f.writers = map[string]*fakeBlobWriter{}
+func (f *fakeBlobStorage) Put(_ context.Context, key string, src io.Reader) error {
+	data, err := io.ReadAll(src)
+	if err != nil {
+		return err
 	}
-	f.writers[key] = w
-	return w, nil
+	if f.blobs == nil {
+		f.blobs = map[string][]byte{}
+	}
+	f.blobs[key] = data
+	return nil
 }
 
 func (f *fakeBlobStorage) Get(context.Context, string) (io.ReadCloser, error) { panic("unused") }
 
 func (f *fakeBlobStorage) Size(context.Context, string) (uint64, error) { panic("unused") }
 
-func (f *fakeBlobStorage) Delete(context.Context, string) error { return nil }
+func (f *fakeBlobStorage) Delete(_ context.Context, key string) error {
+	delete(f.blobs, key)
+	return nil
+}
 
 func (f *fakeBlobStorage) DeleteObjects(context.Context, []string) error { return nil }
 
@@ -177,11 +181,12 @@ func TestPushBinary_Simple(t *testing.T) {
 	require.NoError(t, svc.PushBinary(stream))
 	require.NotNil(t, stream.response)
 
-	c := fake.meta.commiters["abc"]
+	c := fake.meta.claims["abc"]
 	require.NotNil(t, c)
 	require.True(t, c.committed)
 	require.False(t, c.aborted)
-	require.Equal(t, "hello world", fake.blobs.writers["abc"].buf.String())
+	require.Equal(t, &storage.BlobInfo{ID: "abc", Size: uint64(len("hello world"))}, c.blobInfo)
+	require.Equal(t, []byte("hello world"), fake.blobs.blobs["abc"])
 }
 
 func TestPushBinary_HeadValidation(t *testing.T) {
@@ -202,7 +207,7 @@ func TestPushBinary_HeadValidation(t *testing.T) {
 
 func TestPushBinary_AlreadyUploaded(t *testing.T) {
 	fake := newFakeStorage()
-	fake.meta.storeErr = binarymeta.ErrAlreadyUploaded
+	fake.meta.beginErr = binarymeta.ErrAlreadyUploaded
 
 	err := newTestService(t, fake, Options{}).PushBinary(&fakePushStream{reqs: []*perforatorstorage.PushBinaryRequest{
 		headChunk("abc", compressionpb.CompressionMethod_None, 0),
@@ -210,7 +215,7 @@ func TestPushBinary_AlreadyUploaded(t *testing.T) {
 	require.Equal(t, codes.AlreadyExists, status.Code(err))
 }
 
-func TestPushBinary_WriteErrorAborts(t *testing.T) {
+func TestPushBinary_InvalidBodyAborts(t *testing.T) {
 	fake := newFakeStorage()
 
 	stream := &fakePushStream{reqs: []*perforatorstorage.PushBinaryRequest{
@@ -219,8 +224,9 @@ func TestPushBinary_WriteErrorAborts(t *testing.T) {
 	}}
 	err := newTestService(t, fake, Options{}).PushBinary(stream)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.NotContains(t, fake.blobs.blobs, "abc")
 
-	c := fake.meta.commiters["abc"]
+	c := fake.meta.claims["abc"]
 	require.NotNil(t, c)
 	require.False(t, c.committed)
 	require.True(t, c.aborted)
@@ -291,10 +297,28 @@ func TestPushBinary_ResponseFailureKeepsCommit(t *testing.T) {
 	}
 	require.Error(t, svc.PushBinary(stream))
 
-	c := fake.meta.commiters["abc"]
+	c := fake.meta.claims["abc"]
 	require.NotNil(t, c)
 	require.True(t, c.committed)
-	require.False(t, c.aborted) // the upload is stored; a response failure must not destroy it
+	require.False(t, c.aborted)
+}
+
+func TestPushBinary_CommitFailureIsInternal(t *testing.T) {
+	fake := newFakeStorage()
+	fake.meta.commitErr = errors.New("pg down")
+
+	err := newTestService(t, fake, Options{}).PushBinary(&fakePushStream{reqs: []*perforatorstorage.PushBinaryRequest{
+		headChunk("abc", compressionpb.CompressionMethod_None, 0),
+		bodyChunk([]byte("data")),
+	}})
+	require.Equal(t, codes.Internal, status.Code(err))
+	require.ErrorContains(t, err, "pg down")
+	require.NotContains(t, fake.blobs.blobs, "abc")
+
+	c := fake.meta.claims["abc"]
+	require.NotNil(t, c)
+	require.False(t, c.committed)
+	require.True(t, c.aborted)
 }
 
 func TestPushBinary_EmptyBodyRejected(t *testing.T) {
@@ -305,8 +329,9 @@ func TestPushBinary_EmptyBodyRejected(t *testing.T) {
 		headChunk("abc", compressionpb.CompressionMethod_None, 0),
 	}})
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.NotContains(t, fake.blobs.blobs, "abc")
 
-	c := fake.meta.commiters["abc"]
+	c := fake.meta.claims["abc"]
 	require.NotNil(t, c)
 	require.False(t, c.committed)
 	require.True(t, c.aborted)
