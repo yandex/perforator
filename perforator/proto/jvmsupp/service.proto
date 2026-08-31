@@ -9,8 +9,13 @@ option go_package = "github.com/yandex/perforator/perforator/proto/jvmsupp";
 
 // Note that all APIs defined in this file are strictly internal and any
 // version skew is unsupported.
+
+
 message ScanRequest {
     int64 pid = 1;
+    // List of bookmarks returned from the previous scan, in any order.
+    // if this is first scan for the process, list must be empty.
+    repeated string bookmarks = 2;
 }
 
 message InstructionRange {
@@ -34,6 +39,9 @@ message MethodSymbolizationTable {
 }
 
 message MethodInfo {
+    // opaque string, to be passed into subsequent Scan calls for this process.
+    string bookmark = 9;
+
     string name = 2;
 
     bool is_jit = 6;
@@ -52,10 +60,10 @@ message ScanMetrics {
 message ScanResponse {
     repeated MethodInfo methods = 1;
     ScanMetrics metrics = 2;
-    // TODO: replace with a delta-based streaming API
-    // repeated MethodInfo new_methods = 1;
-    // repeated int64 deleted_methods = 2;
-    // int64 continuation_token = 3;
+    // Bookmarks of methods that have not changed compared to previous scan.
+    // Each returned string is present in `request.bookmarks`.
+    // No method in `methods` list has bookmark from this list.
+    repeated string unchanged_methods = 3;
 }
 
 message KeepAliveRequest {}

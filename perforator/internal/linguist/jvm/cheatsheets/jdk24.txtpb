@@ -39,4 +39,5 @@ nmethod_data_offset: 40
 nmethod_metadata_offset: 180
 nmethod_jvmci_data_offset: 182
 code_blob_code_offset: 36
+nmethod_compile_id: 204
 

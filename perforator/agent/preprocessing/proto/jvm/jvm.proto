@@ -12,8 +12,7 @@ message Cheatsheet {
     optional int64 code_blob_kind = 5 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 22];
     optional int64 code_blob_kind_nmethod = 6 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 22];
     optional int64 code_blob_code_offset = 49 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 23];
-    optional int64 code_blob_code_begin = 50 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 21];
-    
+    optional int64 code_blob_code_begin = 50 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 21];    
 
     optional int64 code_heap_log2_segment_size = 7;
     optional int64 code_heap_memory = 8;
@@ -47,6 +46,7 @@ message Cheatsheet {
     optional int64 nmethod_relocation_size = 42 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 22];
     optional int64 nmethod_dependencies_offset = 47 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 21];
     optional int64 nmethod_frame_complete_offset = 51 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_lte) = 25];
+    optional int64 nmethod_compile_id = 52;
 
     optional int64 pc_desc_size = 34;
     optional int64 pc_desc_pc_offset = 39;

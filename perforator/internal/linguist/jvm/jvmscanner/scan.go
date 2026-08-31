@@ -2,6 +2,7 @@ package jvmscanner
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"unsafe"
 
@@ -37,6 +38,7 @@ func New(l xlog.Logger, bpf *programstate.State, conf Config) *Scanner {
 }
 
 type heapInfo struct {
+	index           int
 	segmentSizeLog2 uint8
 	begin           uintptr
 }
@@ -177,6 +179,7 @@ func (s *Scanner) Symbolize(ctx context.Context, ps *ProcessState, addr uint64) 
 
 type scanStepResult struct {
 	methodInfo *jvmsupp.MethodInfo
+	unchanged  bool
 	used       bool
 	length     uint32
 }
@@ -188,6 +191,7 @@ func (s *Scanner) scanStep(
 	nameParser *cachingMethodNameParser,
 	curHeap *heapInfo,
 	blockIndex uint32,
+	reqBookmark *bookmark,
 ) (scanStepResult, error) {
 	var result scanStepResult
 	heapBlock := jvmbindings.HeapBlock(jvm.MakeObjPointer(uintptr(curHeap.begin) + (uintptr(blockIndex) << curHeap.segmentSizeLog2)))
@@ -230,6 +234,17 @@ func (s *Scanner) scanStep(
 		}
 		name := string(blobName)
 		isJIT = (name == "native nmethod" || name == "nmethod")
+	}
+	var compileID int32
+	if isJIT {
+		compileID, err = codeBlob.NmethodCompileID()
+		if err != nil {
+			return result, fmt.Errorf("failed to read nmethod compile ID: %w", err)
+		}
+		if reqBookmark != nil && reqBookmark.CompileID == compileID {
+			result.unchanged = true
+			return result, nil
+		}
 	}
 	var name []byte
 	var frameSize int32 = -1
@@ -302,7 +317,17 @@ func (s *Scanner) scanStep(
 		}
 		codeBegin = uint64(cb)
 	}
+	bmData := bookmark{
+		HeapIndex:  curHeap.index,
+		BlockIndex: blockIndex,
+		CompileID:  compileID,
+	}
+	bm, err := json.Marshal(bmData)
+	if err != nil {
+		return result, fmt.Errorf("failed to serialize bookmark: %w", err)
+	}
 	result.methodInfo = &jvmsupp.MethodInfo{
+		Bookmark:            string(bm),
 		Name:                string(name),
 		FrameSizeBytes:      int64(frameSize) * 8,
 		FrameCompleteOffset: int64(frameCompleteOffset),
@@ -327,9 +352,15 @@ func (e *ProcessNotFoundError) Unwrap() error {
 	return e.inner
 }
 
+type bookmarkKey struct {
+	heap  int
+	block uint32
+}
+
 func (s *Scanner) ScanProcess(
 	ctx context.Context,
 	state *ProcessState,
+	bookmarks []string,
 ) (*jvmsupp.ScanResponse, error) {
 	metrics := new(jvmsupp.ScanMetrics)
 	jvm, err := s.prepare(state)
@@ -340,7 +371,17 @@ func (s *Scanner) ScanProcess(
 		nameLenLimit: methodNameLimit,
 		cache:        make(map[jvmbindings.Method][]byte),
 	}
+	bookmarksMap := make(map[bookmarkKey]*bookmark)
+	for _, bmString := range bookmarks {
+		var bmData bookmark
+		if err := json.Unmarshal([]byte(bmString), &bmData); err != nil {
+			return nil, fmt.Errorf("failed to parse bookmark: %w", err)
+		}
+		bmData.raw = bmString
+		bookmarksMap[bookmarkKey{heap: bmData.HeapIndex, block: bmData.BlockIndex}] = &bmData
+	}
 	var detectedMethods []*jvmsupp.MethodInfo
+	var unchangedMethods []string
 	for heapIdx, heap := range state.heaps {
 		blockCount, err := heap.obj.NextSegment()
 		if err != nil {
@@ -349,11 +390,13 @@ func (s *Scanner) ScanProcess(
 		s.l.Debug(ctx, "Scanning code cache heap", log.Int("heap", heapIdx), log.UInt64("block_count", blockCount))
 		var blockIndex uint64
 		curHeap := heapInfo{
+			index:           heapIdx,
 			begin:           uintptr(heap.begin),
 			segmentSizeLog2: uint8(heap.segmentSizeLog2),
 		}
 		for blockIndex < blockCount {
-			res, err := s.scanStep(ctx, jvm, methodNameParser, &curHeap, uint32(blockIndex))
+			reqBM := bookmarksMap[bookmarkKey{heap: heapIdx, block: uint32(blockIndex)}]
+			res, err := s.scanStep(ctx, jvm, methodNameParser, &curHeap, uint32(blockIndex), reqBM)
 			if err != nil {
 				// TODO: if res.length is non-zero, we can try to continue
 				return nil, fmt.Errorf("failed to execute scan step: %w", err)
@@ -363,16 +406,24 @@ func (s *Scanner) ScanProcess(
 			}
 			blockIndex += uint64(res.length)
 			if res.used {
-				detectedMethods = append(detectedMethods, res.methodInfo)
+				if res.unchanged {
+					unchangedMethods = append(unchangedMethods, reqBM.raw)
+				} else {
+					detectedMethods = append(detectedMethods, res.methodInfo)
+				}
 			}
 		}
 		s.l.Debug(ctx, "Heap scan complete", log.Int("heap", heapIdx))
 	}
-	s.l.Info(ctx, "Scan complete", log.Int("methods", len(detectedMethods)))
+	s.l.Info(ctx, "Scan complete",
+		log.Int("scannedMethods", len(detectedMethods)),
+		log.Int("unchangedMethods", len(unchangedMethods)),
+	)
 	metrics.MethodNameReads = int64(methodNameParser.misses)
 	resp := &jvmsupp.ScanResponse{
-		Methods: detectedMethods,
-		Metrics: metrics,
+		Methods:          detectedMethods,
+		UnchangedMethods: unchangedMethods,
+		Metrics:          metrics,
 	}
 	return resp, nil
 }

@@ -54,6 +54,7 @@ type trackedProcess struct {
 	pid         linux.CurrentNamespacePID
 	mu          sync.Mutex
 	initialized bool
+	curMethods  map[string]*jvmsupp.MethodInfo
 	alloc       *unwindtable.Allocation
 }
 
@@ -88,6 +89,7 @@ type Registry struct {
 	helperSocketPath string
 
 	enableLineInfoParsing bool
+	enableBookmarks       bool
 
 	mapPrefix  string
 	grpcClient *grpc.ClientConn
@@ -105,6 +107,7 @@ type Registry struct {
 
 	scanIterations metrics.Counter
 	processScans   metrics.Counter
+	methodScans    metrics.Counter
 	// we track it separately because it is expensive leaf operation
 	methodNameReads metrics.Counter
 
@@ -132,7 +135,8 @@ type Options struct {
 	InterpetedSymbolCacheSize int
 	InterpretedSymbolCacheTTL time.Duration
 
-	EnableLineInfoParsing bool
+	EnableLineInfoParsing     bool
+	EnableIncrementalScanning bool
 
 	EnableScanMetrics  bool
 	EnableCacheMetrics bool
@@ -166,6 +170,7 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		helperSocketPath: opts.SocketPath,
 
 		enableLineInfoParsing: opts.EnableLineInfoParsing,
+		enableBookmarks:       opts.EnableIncrementalScanning,
 
 		mapPrefix:  opts.MapPrefix,
 		grpcClient: client,
@@ -201,10 +206,12 @@ func (r *Registry) initMetrics(reg metrics.Registry, opts Options) {
 	if opts.EnableScanMetrics {
 		r.scanIterations = reg.Counter("scan.iterations.count")
 		r.processScans = reg.Counter("scan.processes.count")
+		r.methodScans = reg.Counter("scan.methods.count")
 		r.methodNameReads = reg.Counter("scan.method.name_reads.count")
 	} else {
 		r.scanIterations = &nop.Counter{}
 		r.processScans = &nop.Counter{}
+		r.methodScans = &nop.Counter{}
 		r.methodNameReads = &nop.Counter{}
 	}
 }
@@ -446,8 +453,15 @@ func (r *Registry) scanSingleProcess(ctx context.Context, tp *trackedProcess) er
 	if !tp.initialized {
 		return nil
 	}
+	var bookmarks []string
+	if r.enableBookmarks {
+		for bookmark := range tp.curMethods {
+			bookmarks = append(bookmarks, bookmark)
+		}
+	}
 	res, err := r.helper.Scan(ctx, &jvmsupp.ScanRequest{
-		Pid: int64(tp.pid),
+		Pid:       int64(tp.pid),
+		Bookmarks: bookmarks,
 	})
 	if err != nil {
 		status, ok := status.FromError(err)
@@ -461,8 +475,24 @@ func (r *Registry) scanSingleProcess(ctx context.Context, tp *trackedProcess) er
 		return nil
 	}
 	r.methodNameReads.Add(res.Metrics.MethodNameReads)
-	r.updateSymbols(ctx, tp.pid, res.Methods)
-	dwarf, err := synthesizeDWARF(res.Methods)
+	r.methodScans.Add(int64(len(res.Methods)))
+	fullMethods := slices.Clone(res.Methods)
+	for _, b := range res.UnchangedMethods {
+		m, ok := tp.curMethods[b]
+		if !ok {
+			return fmt.Errorf("scanner response mentions unknown string %q as an unchanged method bookmark", b)
+		}
+		fullMethods = append(fullMethods, m)
+	}
+	if r.enableBookmarks {
+		clear(tp.curMethods)
+		for _, m := range fullMethods {
+			tp.curMethods[m.Bookmark] = m
+		}
+	}
+
+	r.updateSymbols(ctx, tp.pid, fullMethods)
+	dwarf, err := synthesizeDWARF(fullMethods)
 	if err != nil {
 		return fmt.Errorf("failed to synthesize dwarf for detected method: %w", err)
 	}
@@ -593,7 +623,8 @@ func (r *Registry) ensureRegistered(ctx context.Context, pid linux.CurrentNamesp
 	tp, ok = r.tracked[pid]
 	if !ok {
 		tp = &trackedProcess{
-			pid: pid,
+			pid:        pid,
+			curMethods: make(map[string]*jvmsupp.MethodInfo),
 		}
 		r.tracked[pid] = tp
 		r.trackedProcessCount.Add(1)

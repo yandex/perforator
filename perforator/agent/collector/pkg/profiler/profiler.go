@@ -547,7 +547,8 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 				InterpetedSymbolCacheSize: p.conf.JVM.InterpretedMethodSymbolizationCacheSize,
 				InterpretedSymbolCacheTTL: p.conf.JVM.InterpretedMethodSymbolizationCacheTTL,
 
-				EnableLineInfoParsing: p.conf.FeatureFlagsConfig.JVMLineInfoEnabled(),
+				EnableLineInfoParsing:     p.conf.FeatureFlagsConfig.JVMLineInfoEnabled(),
+				EnableIncrementalScanning: p.conf.FeatureFlagsConfig.JVMIncrementalScanningEnabled(),
 
 				EnableScanMetrics: p.conf.JVM.EnableScanMetrics,
 			},

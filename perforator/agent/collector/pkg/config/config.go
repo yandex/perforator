@@ -122,6 +122,7 @@ type SymbolizerConfig struct {
 type FeatureFlagsConfig struct {
 	EnableJVM                        *bool `yaml:"enable_jvm"`
 	EnableJVMLineInfo                *bool `yaml:"enable_jvm_line_info"`
+	EnableJVMIncrementalScanning     *bool `yaml:"enable_jvm_incremental_scanning"`
 	EnablePHP                        *bool `yaml:"enable_php"`
 	EnablePythonLineInfo             *bool `yaml:"enable_python_line_info"`
 	EnableLua                        *bool `yaml:"enable_lua"`
@@ -145,6 +146,13 @@ func (f *FeatureFlagsConfig) JVMLineInfoEnabled() bool {
 		return true
 	}
 	return *f.EnableJVMLineInfo
+}
+
+func (f *FeatureFlagsConfig) JVMIncrementalScanningEnabled() bool {
+	if f.EnableJVMIncrementalScanning == nil {
+		return true
+	}
+	return *f.EnableJVMIncrementalScanning
 }
 
 // PythonLineInfoEnabled gates userspace CPython line-number resolution (off by default).

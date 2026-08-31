@@ -258,6 +258,10 @@ func (cb CodeBlob) NmethodInfo() (NmethodInfo, error) {
 	}
 }
 
+func (cb CodeBlob) NmethodCompileID() (int32, error) {
+	return ReadScalar[int32](cb.j, cb.addr+uintptr(*cb.j.jc.NmethodCompileId))
+}
+
 func (m Method) ConstMethod() (ConstMethod, error) {
 	return ReadObjPtr[ConstMethod](m.j, m.addr+uintptr(*m.j.jc.MethodConstMethod))
 }

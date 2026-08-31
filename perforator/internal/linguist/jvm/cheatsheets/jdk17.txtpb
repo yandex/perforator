@@ -36,4 +36,5 @@ nmethod_jvmci_data_offset: -1
 nmethod_dependencies_offset: 272
 nmethod_scopes_data_addr: 120
 code_blob_code_begin: 32
+nmethod_compile_id: 304
 
