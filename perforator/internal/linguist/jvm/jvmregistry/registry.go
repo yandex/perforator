@@ -153,7 +153,7 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		},
 		opts.InterpretedSymbolCacheTTL,
 	)
-	return &Registry{
+	registry := &Registry{
 		l:                       log.WithName("jvmregistry"),
 		tracked:                 make(map[linux.CurrentNamespacePID]*trackedProcess),
 		bpf:                     bpf.State(),
@@ -190,7 +190,11 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 
 		invalidMethodSymbolizationTable:    reg.Counter("symbolization.invalid_table.count"),
 		methodSymbolizationTableLookupFail: reg.Counter("symbolization.table_lookup_fail.count"),
-	}, nil
+	}
+
+	registry.initMetrics(reg, opts)
+
+	return registry, nil
 }
 
 func (r *Registry) initMetrics(reg metrics.Registry, opts Options) {
