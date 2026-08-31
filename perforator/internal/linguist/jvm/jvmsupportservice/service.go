@@ -66,18 +66,13 @@ func (s *Service) Scan(ctx context.Context, req *jvmsupp.ScanRequest) (*jvmsupp.
 		return nil, status.Errorf(codes.NotFound, "process %d not found", req.Pid)
 	}
 
-	scanned, metrics, err := s.scanner.ScanProcess(ctx, proc)
+	res, err := s.scanner.ScanProcess(ctx, proc)
 	if err != nil {
-		var pnfe *jvmscanner.ProcessNotFoundError
-		if errors.As(err, &pnfe) {
+		if _, ok := errors.AsType[*jvmscanner.ProcessNotFoundError](err); ok {
 			return nil, status.Errorf(codes.FailedPrecondition, "scan error (probably process does not exist anymore): %v", err)
 		}
 
 		return nil, status.Errorf(codes.Internal, "scan error: %v", err)
-	}
-	res := &jvmsupp.ScanResponse{
-		Methods: scanned,
-		Metrics: metrics,
 	}
 	return res, nil
 }
