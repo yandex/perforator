@@ -39,7 +39,7 @@ func main() {
 func getEnvOrDie(name string) string {
 	val, ok := os.LookupEnv(name)
 	if !ok {
-		fmt.Fprintf(os.Stderr, name+" could not be found in environment")
+		fmt.Fprintln(os.Stderr, name, "could not be found in environment")
 		os.Exit(1)
 	}
 	return val

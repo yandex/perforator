@@ -1129,7 +1129,7 @@ require (
 	google.golang.org/grpc/gcp/observability v1.0.1
 	google.golang.org/grpc/security/advancedtls v1.0.0
 	google.golang.org/grpc/stats/opencensus v1.0.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	gopkg.in/bluesuncorp/validator.v9 v9.10.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/gographics/imagick.v2 v2.5.0
@@ -1152,18 +1152,18 @@ require (
 	honnef.co/go/tools v0.7.0
 	k8s.io/api v0.35.2
 	k8s.io/apiextensions-apiserver v0.34.1
-	k8s.io/apimachinery v0.35.2
+	k8s.io/apimachinery v0.36.0-beta.0
 	k8s.io/apiserver v0.34.1
 	k8s.io/cli-runtime v0.34.1
 	k8s.io/client-go v0.35.2
 	k8s.io/component-base v0.34.1
 	k8s.io/cri-api v0.34.1
-	k8s.io/klog/v2 v2.130.1
+	k8s.io/klog/v2 v2.140.0
 	k8s.io/kube-aggregator v0.34.1
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
 	k8s.io/kubelet v0.32.3
 	k8s.io/kubernetes v1.26.1
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
+	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	mvdan.cc/gofumpt v0.10.0
 	mvdan.cc/xurls/v2 v2.6.0
 	nhooyr.io/websocket v1.8.17
@@ -2624,7 +2624,7 @@ require (
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 	gopkg.in/dutchcoders/goftp.v1 v1.0.0-20170301105846-ed59a591ce14 // indirect
 	gopkg.in/errgo.v2 v2.1.0 // indirect
-	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
+	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/fsnotify/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/gcfg.v1 v1.2.3 // indirect
@@ -2723,7 +2723,7 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff v1.0.2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.1 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
 	sigs.k8s.io/testing_frameworks v0.1.2 // indirect
 	sourcegraph.com/sourcegraph/appdash v0.0.0-20211028080628-e2786a622600 // indirect
 	sourcegraph.com/sourcegraph/appdash-data v0.0.0-20151005221446-73f23eafcf67 // indirect

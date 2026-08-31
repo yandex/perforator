@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.130.1)
+VERSION(v2.140.0)
 
 SRCS(
     options.go
@@ -10,16 +10,8 @@ SRCS(
     testinglogger.go
 )
 
-GO_XTEST_SRCS(
-    contextual_test.go
-    example_test.go
-    testinglogger_test.go
-)
-
 END()
 
 RECURSE(
-    example
-    gotest
     init
 )

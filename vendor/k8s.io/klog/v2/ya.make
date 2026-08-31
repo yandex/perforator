@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.130.1)
+VERSION(v2.140.0)
 
 SRCS(
     contextual.go
@@ -17,23 +17,6 @@ SRCS(
     klogr.go
     klogr_slog.go
     safeptr.go
-)
-
-GO_TEST_SRCS(
-    # klog_test.go
-    # klog_wrappers_test.go
-)
-
-GO_XTEST_SRCS(
-    contextual_slog_example_test.go
-    contextual_test.go
-    exit_test.go
-    format_test.go
-    klogr_helper_test.go
-    klogr_slog_test.go
-    klogr_test.go
-    output_test.go
-    safeptr_test.go
 )
 
 IF (OS_LINUX)
@@ -69,7 +52,6 @@ ENDIF()
 END()
 
 RECURSE(
-    gotest
     integration_tests
     internal
     klogr

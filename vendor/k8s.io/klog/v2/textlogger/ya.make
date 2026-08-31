@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.130.1)
+VERSION(v2.140.0)
 
 SRCS(
     options.go
@@ -10,15 +10,4 @@ SRCS(
     textlogger_slog.go
 )
 
-GO_XTEST_SRCS(
-    example_test.go
-    output_test.go
-    textlogger_slog_test.go
-    textlogger_test.go
-)
-
 END()
-
-RECURSE(
-    gotest
-)

@@ -138,11 +138,11 @@ func (l *klogger) Info(level int, msg string, kvList ...interface{}) {
 	switch l.format {
 	case FormatSerialize:
 		msgStr := flatten("msg", msg)
-		merged := serialize.MergeKVs(l.values, kvList)
+		merged := serialize.WithValues(l.values, kvList)
 		kvStr := flatten(merged...)
 		klog.VDepth(l.callDepth+1, klog.Level(level)).InfoDepth(l.callDepth+1, msgStr, " ", kvStr)
 	case FormatKlog:
-		merged := serialize.MergeKVs(l.values, kvList)
+		merged := serialize.WithValues(l.values, kvList)
 		klog.VDepth(l.callDepth+1, klog.Level(level)).InfoSDepth(l.callDepth+1, msg, merged...)
 	}
 }
@@ -160,11 +160,11 @@ func (l *klogger) Error(err error, msg string, kvList ...interface{}) {
 	switch l.format {
 	case FormatSerialize:
 		errStr := flatten("error", loggableErr)
-		merged := serialize.MergeKVs(l.values, kvList)
+		merged := serialize.WithValues(l.values, kvList)
 		kvStr := flatten(merged...)
 		klog.ErrorDepth(l.callDepth+1, msgStr, " ", errStr, " ", kvStr)
 	case FormatKlog:
-		merged := serialize.MergeKVs(l.values, kvList)
+		merged := serialize.WithValues(l.values, kvList)
 		klog.ErrorSDepth(l.callDepth+1, err, msg, merged...)
 	}
 }

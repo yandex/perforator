@@ -22122,17 +22122,20 @@ google.golang.org/grpc/security/advancedtls/testdata
 # google.golang.org/grpc/stats/opencensus v1.0.0
 ## explicit; go 1.17
 google.golang.org/grpc/stats/opencensus
-# google.golang.org/protobuf v1.36.11
+# google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 ## explicit; go 1.23
 google.golang.org/protobuf
 google.golang.org/protobuf/cmd/protoc-gen-go
 google.golang.org/protobuf/cmd/protoc-gen-go/builder_test
 google.golang.org/protobuf/cmd/protoc-gen-go/descriptor_test
+google.golang.org/protobuf/cmd/protoc-gen-go/feature_resolution_test
 google.golang.org/protobuf/cmd/protoc-gen-go/internal_gengo
 google.golang.org/protobuf/cmd/protoc-gen-go/name_clash_test
 google.golang.org/protobuf/cmd/protoc-gen-go/opaque_default_test
 google.golang.org/protobuf/cmd/protoc-gen-go/opaque_map_test
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/enumprefix
+google.golang.org/protobuf/cmd/protoc-gen-go/testdata/featureresolution
+google.golang.org/protobuf/cmd/protoc-gen-go/testdata/features
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/import_option
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/import_option_custom
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/nameclash/test_name_clash_hybrid
@@ -22200,6 +22203,7 @@ google.golang.org/protobuf/internal/testprotos/benchmarks/micro
 google.golang.org/protobuf/internal/testprotos/conformance
 google.golang.org/protobuf/internal/testprotos/conformance/editions
 google.golang.org/protobuf/internal/testprotos/conformance/editionsmigration
+google.golang.org/protobuf/internal/testprotos/conformance/editionunstable
 google.golang.org/protobuf/internal/testprotos/editionsfuzztest
 google.golang.org/protobuf/internal/testprotos/enums
 google.golang.org/protobuf/internal/testprotos/enums/enums_hybrid
@@ -22314,7 +22318,7 @@ gopkg.in/check.v1
 ## explicit
 # gopkg.in/errgo.v2 v2.1.0
 ## explicit
-# gopkg.in/evanphx/json-patch.v4 v4.12.0
+# gopkg.in/evanphx/json-patch.v4 v4.13.0
 ## explicit
 gopkg.in/evanphx/json-patch.v4
 # gopkg.in/fsnotify.v1 v1.4.7
@@ -22952,7 +22956,7 @@ k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/conversion
 k8s.io/apiextensions-apiserver/test/integration/fixtures
 k8s.io/apiextensions-apiserver/test/integration/storage
-# k8s.io/apimachinery v0.35.2 => k8s.io/apimachinery v0.33.0
+# k8s.io/apimachinery v0.36.0-beta.0 => k8s.io/apimachinery v0.33.0
 ## explicit; go 1.24.0
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/apitesting/fuzzer
@@ -23703,8 +23707,8 @@ k8s.io/gengo/v2/types
 # k8s.io/klog v1.0.0
 ## explicit; go 1.12
 k8s.io/klog
-# k8s.io/klog/v2 v2.130.1
-## explicit; go 1.18
+# k8s.io/klog/v2 v2.140.0
+## explicit; go 1.21
 k8s.io/klog/v2
 k8s.io/klog/v2/integration_tests
 k8s.io/klog/v2/integration_tests/internal
@@ -23840,8 +23844,8 @@ k8s.io/kubernetes/pkg/kubelet/cri/streaming/remotecommand
 ## explicit; go 1.19
 # k8s.io/sample-apiserver v0.26.1 => k8s.io/sample-apiserver v0.26.1
 ## explicit; go 1.19
-# k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
-## explicit; go 1.18
+# k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
+## explicit; go 1.23
 k8s.io/utils/buffer
 k8s.io/utils/clock
 k8s.io/utils/clock/testing
@@ -24288,7 +24292,7 @@ sigs.k8s.io/structured-merge-diff/v4/merge
 sigs.k8s.io/structured-merge-diff/v4/schema
 sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
-# sigs.k8s.io/structured-merge-diff/v6 v6.3.1
+# sigs.k8s.io/structured-merge-diff/v6 v6.3.2
 ## explicit; go 1.23
 # sigs.k8s.io/testing_frameworks v0.1.2
 ## explicit; go 1.13
