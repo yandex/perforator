@@ -1,5 +1,6 @@
 # TS_TSC()
 TS_LIBRARY()
+TS_LINT(lint)
 # TS_FILES_GLOB(lib/components/**/*.css)
 # RUN_JAVASCRIPT_AFTER_BUILD(scripts/copy-through.mjs)
 

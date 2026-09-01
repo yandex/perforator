@@ -1,5 +1,4 @@
 import * as fc from 'fast-check';
-import { isDeepStrictEqual } from 'node:util';
 
 import { describe, expect, it } from '@jest/globals';
 
