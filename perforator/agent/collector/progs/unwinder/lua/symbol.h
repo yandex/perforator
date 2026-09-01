@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include <bpf/bpf.h>
 
 // namespace lua::symbol
 

@@ -358,7 +358,7 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
         .max       = LUA_MAX_STACK_DEPTH,
         .src       = state->lua_state.stack.frames,
         .src_size  = sizeof(state->lua_state.stack.frames),
-        .elem_size = sizeof(struct interpreter_frame),
+        .elem_size = sizeof(struct lua_frame),
     });
 
     set_section(&packed->header.language_sections, lang_start, offset - lang_start);

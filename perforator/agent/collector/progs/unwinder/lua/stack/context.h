@@ -3,8 +3,9 @@
 #include <bpf/bpf.h>
 
 #include "../../interpreter/types.h"
+
+#include "../types.h"
 #include "../luajit.h"
-#include "../state.h"
 
 // namespace lua::stack::context
 
@@ -12,12 +13,13 @@
  * @brief Stack context used to communicate between BPF functions.
  */
 struct lua_stack_context {
-    u64 frame;                                  // Current frame.
-    u64 max_stack;                              // Last free slot in the stack.
-    u64 bottom;                                 // Last frame in the stack.
-    u64 current_lua_state;                      // Current `lua_State*`.
-    struct interpreter_frame interpreter_frame; // Current interpreter frame.
-    struct symbol symbol;                       // Temporary buffer for frame information.
+    u64 frame;                  // Current frame.
+    u64 max_stack;              // Last free slot in the stack.
+    u64 bottom;                 // Last frame in the stack.
+    u64 current_lua_state;      // Current `lua_State*`.
+    struct lua_frame lua_frame; // Current interpreter frame.
+    u32 pid;                    // Current PID.
+    struct symbol symbol;       // Temporary buffer for frame information.
 };
 
 BPF_MAP(lua_stack_context, BPF_MAP_TYPE_PERCPU_ARRAY, u32, struct lua_stack_context, 1);
@@ -50,6 +52,13 @@ static ALWAYS_INLINE void lua_stack_context_init(
     context->max_stack = (u64)max_stack;
     context->bottom = (u64)bottom;
     context->current_lua_state = state->current_lua_state;
-    context->interpreter_frame.symbol_key.pid = state->pid;
+    context->lua_frame = (struct lua_frame) {
+        .type = LUA_FRAME_TYPE_C,
+        .value.c_frame = {
+            .object_addr = (u64)NULL,
+            .ffid = 0,
+        },
+    };
+    context->pid = state->pid;
     context->symbol.codepoint_size = 1; // Lua strings are always utf-8
 }

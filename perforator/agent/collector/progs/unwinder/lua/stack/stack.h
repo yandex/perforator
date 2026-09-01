@@ -1,8 +1,11 @@
 #pragma once
 
-#include "../frame/frame.h"
-#include "../state.h"
+#include "../../metrics.h"
+
 #include "../types.h"
+#include "../frame.h"
+#include "../state.h"
+
 #include "context.h"
 
 // namespace lua::stack
@@ -20,37 +23,36 @@ enum lua_stack_step_result {
  * @brief Process valid frame.
  *
  * At this stage frame is known to be useful. Function checks what type of frame it is and pushes info in proper format.
- * Stack context will be modified to pass filled information about the `interpreter_frame`.
+ * Stack context will be modified to pass filled information about the `lua_frame`.
  *
  * @param context Lua stack context.
  * @param frame Current frame. Not NULL.
- * @param frame_gc `frame_gc(frame)`.
- * @return bool
+ * @param frame_function `frame_gc(frame)`.
+ * @return `true` if frame was processed successfully, `false` on failure.
  */
-[[nodiscard]] static ALWAYS_INLINE bool lua_stack_process_frame(struct lua_stack_context* context, const luajit_tvalue* frame, luajit_gc_obj* frame_gc) {
-    struct interpreter_frame* interpreter_frame = &context->interpreter_frame;
+[[nodiscard]] static ALWAYS_INLINE bool lua_stack_process_frame(struct lua_stack_context* context, const luajit_tvalue* frame, luajit_gc_func* frame_function) {
+    struct lua_frame* lua_frame = &context->lua_frame;
 
-    luajit_gc_func* fn = (luajit_gc_func*)frame_gc;
-    if (!fn) {
+    if (!frame_function) {
         LUA_TRACE("[error] lua_stack_process_frame: invalid frame=%px, GCfunc is NULL.", frame);
-        lua_frame_set_invalid(interpreter_frame, LUA_STACK_WALK_ERROR_GCFUNC_IS_NULL, 0);
+        lua_frame_set_invalid(lua_frame, LUA_FRAME_ERROR_GCFUNC_IS_NULL);
         return false;
     }
 
-    // Probably it's impossible to cover every possible case to always get valid top frame.
+    // Probably it's impossible to cover every possible case to always get a valid top frame.
     // Probably the top frame is invalid, but others below are valid. Continue, mark frame as invalid.
     if (!luajit_tvisfunc(frame - LUAJIT_LJ_FR2)) {
         LUA_TRACE("[error] lua_stack_process_frame: invalid frame=%px, frame doesn't contain a function, got %d", frame, ~luajit_itype(frame - LUAJIT_LJ_FR2));
-        lua_frame_set_invalid(interpreter_frame, LUA_STACK_WALK_ERROR_FRAME_IS_NOT_FUNC, (u8)~luajit_itype(frame - LUAJIT_LJ_FR2));
+        lua_frame_set_invalid(lua_frame, LUA_FRAME_ERROR_GCFUNC_WRONG_TYPE);
         return true;
     }
 
-    if (luajit_isluafunc(fn)) {
-        return lua_frame_set_lua(interpreter_frame, &context->symbol, fn);
+    if (luajit_isluafunc(frame_function)) {
+        return lua_frame_set_lua(lua_frame, &context->symbol, context->pid, frame_function);
     }
 
     // C and FF functions are handled in the same way
-    lua_frame_set_c(interpreter_frame, fn);
+    lua_frame_set_c(lua_frame, frame_function);
     return true;
 }
 
@@ -109,15 +111,15 @@ enum lua_stack_step_result {
 
     context->frame = (u64)lua_stack_next_frame(frame);
 
-    luajit_gc_obj* frame_gc = luajit_frame_gc(frame);
+    luajit_gc_func* frame_function = (luajit_gc_func*)luajit_frame_gc(frame);
 
     // Skip dummy frames. See lj_err_optype_call().
-    bool is_dummy_frame = frame_gc == (luajit_gc_obj*)(context->current_lua_state);
+    bool is_dummy_frame = frame_function == (void*)(context->current_lua_state);
     if (is_dummy_frame) {
         return LUA_STACK_STEP_RESULT_CONTINUE;
     }
 
-    if (!lua_stack_process_frame(context, frame, frame_gc)) {
+    if (!lua_stack_process_frame(context, frame, frame_function)) {
         metric_increment(METRIC_LUA_PROCESSED_FRAMES_FAIL_COUNT);
         return LUA_STACK_STEP_RESULT_STOP | LUA_STACK_STEP_RESULT_HAS_FRAME;
     }
@@ -141,9 +143,9 @@ static ALWAYS_INLINE void lua_stack_reset(struct lua_state* state) {
  * @param state Lua unwind state.
  * @param frame Interpreter frame.
  */
-static NOINLINE void lua_stack_push(struct lua_state* state, struct interpreter_frame* frame) {
+static NOINLINE void lua_stack_push(struct lua_state* state, struct lua_frame* lua_frame) {
     state->stack.len &= LUA_MAX_STACK_DEPTH_VERIFIER_MASK;
-    state->stack.frames[state->stack.len] = *frame;
+    state->stack.frames[state->stack.len] = *lua_frame;
     ++state->stack.len;
 }
 
@@ -184,6 +186,11 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
         frame = luajit_frame_prevd(frame);
     }
 
+    if (frame >= max_stack) {
+        LUA_TRACE("[error] lua_stack_walk: broken frame");
+        return;
+    }
+
     struct lua_stack_context* context = lua_stack_context_get();
     if (context == NULL) {
         LUA_TRACE("[error] lua_stack_walk: failed to get lua_stack_context");
@@ -195,10 +202,10 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
         enum lua_stack_step_result status = lua_stack_step();
 
         if (status & LUA_STACK_STEP_RESULT_HAS_FRAME) {
-            lua_stack_push(state, &context->interpreter_frame);
+            lua_stack_push(state, &context->lua_frame);
         }
 
-        if ((status & LUA_STACK_STEP_RESULT_CONTINUE) == 0) {
+        if (!(status & LUA_STACK_STEP_RESULT_CONTINUE)) {
             return;
         }
     }

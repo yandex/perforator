@@ -39,11 +39,6 @@ enum sample_type : u32 {
     SAMPLE_TYPE_UPROBE,
 };
 
-struct interpreter_stack {
-    struct interpreter_frame frames[COMMON_MAX_STACK_DEPTH];
-    u8 len;
-};
-
 struct perf_event_attr_subset {
     u32 type;
     u64 config;
@@ -138,7 +133,6 @@ struct record_sample_header {
 
 // Export types used by the Go parser (btf2go generates Go structs + GetSection
 // accessor + compile-time offset assertions from these).
-BTF_EXPORT(struct interpreter_stack);
 BTF_EXPORT(struct jvm_stack);
 BTF_EXPORT(struct tls_collect_result);
 BTF_EXPORT(struct last_branch_records);
