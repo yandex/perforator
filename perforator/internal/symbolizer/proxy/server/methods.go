@@ -498,7 +498,13 @@ func (s *PerforatorServer) processLBRProfiles(
 	datas []profilestorage.ProfileData,
 	buildID string,
 ) (autofdo.ProcessedLBRData, error) {
-	builder, err := autofdo.NewBatchInputBuilder(PGODegreeOfParallelism, buildID)
+	binary, err := s.llvmTools.binaryProvider.Acquire(ctx, buildID)
+	if err != nil {
+		return autofdo.ProcessedLBRData{}, err
+	}
+	defer binary.Close()
+
+	builder, err := autofdo.NewBatchInputBuilder(PGODegreeOfParallelism, buildID, binary.Path())
 	if err != nil {
 		return autofdo.ProcessedLBRData{}, err
 	}
@@ -525,6 +531,7 @@ func (s *PerforatorServer) processLBRProfiles(
 	if err != nil {
 		return autofdo.ProcessedLBRData{}, err
 	}
+
 	return builder.Finalize()
 }
 
@@ -547,7 +554,7 @@ func (s *PerforatorServer) generateAutofdoInput(
 		return autofdoInput{}, err
 	}
 
-	datas, err := s.fetchProfiles(ctx, metas, 256, &profilesToProcessTotalSizeLimit)
+	datas, err := s.fetchProfiles(ctx, metas, 256, &profilesToProcessTotalSizeLimit, true)
 	if err != nil {
 		return autofdoInput{}, err
 	}
@@ -861,6 +868,7 @@ func (s *PerforatorServer) fetchProfiles(
 	metas []*meta.ProfileMetadata,
 	downloadConcurrency int,
 	totalSizeSoftLimit *uint64,
+	asYaprof bool,
 ) (datas []profilestorage.ProfileData, err error) {
 	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.fetchProfiles")
 	defer span.End()
@@ -895,7 +903,12 @@ func (s *PerforatorServer) fetchProfiles(
 				return err
 			}
 
-			data, err := profileBundle.GetOrConvertPprof()
+			var data []byte
+			if asYaprof {
+				data, err = profileBundle.GetOrConvertYaprof()
+			} else {
+				data, err = profileBundle.GetOrConvertPprof()
+			}
 			if err != nil {
 				return err
 			}

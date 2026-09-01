@@ -1,5 +1,6 @@
 #include "autofdo_input_builder.h"
 
+#include <limits>
 #include <string_view>
 #include <stdexcept>
 
@@ -9,12 +10,11 @@
 #include <llvm/Object/ELFObjectFile.h>
 #include <llvm/Object/ObjectFile.h>
 
-#include <library/cpp/containers/absl/flat_hash_set.h>
 #include <library/cpp/yt/compact_containers/compact_vector.h>
 
-#include <perforator/proto/pprofprofile/lightweightprofile.pb.h>
+#include <perforator/lib/profile/profile.h>
+#include <perforator/proto/profile/profile.pb.h>
 #include <perforator/lib/llvmex/llvm_elf.h>
-#include <perforator/symbolizer/lib/utils/profile_maps.h>
 
 namespace NPerforator::NAutofdo {
 
@@ -27,7 +27,101 @@ void MergeMap(Map& destination, const Map& source) {
     }
 }
 
-const std::string kEmptyString{};
+struct TLoadSegment final {
+    ui64 Vaddr{};
+    ui64 FileOffset{};
+    ui64 FileSize{};
+};
+
+class TBinaryAddressConverter final {
+public:
+    explicit TBinaryAddressConverter(TStringBuf binaryPath) {
+        auto binary = llvm::object::ObjectFile::createObjectFile(binaryPath);
+        if (!binary) {
+            throw std::runtime_error{fmt::format(
+                "Failed to read ELF binary '{}': {}",
+                binaryPath,
+                llvm::toString(binary.takeError())
+            )};
+        }
+
+        const auto isElf = NLLVM::VisitELF(binary->getBinary(), [this] (const auto& elf) {
+            BinarySize_ = elf.getELFFile().getBufSize();
+            auto programHeaders = elf.getELFFile().program_headers();
+            if (!programHeaders) {
+                throw std::runtime_error{fmt::format(
+                    "Failed to read ELF program headers: {}",
+                    llvm::toString(programHeaders.takeError())
+                )};
+            }
+
+            bool foundFirstLoad = false;
+            for (const auto& phdr : *programHeaders) {
+                if (phdr.p_type != llvm::ELF::PT_LOAD) {
+                    continue;
+                }
+                if (!foundFirstLoad) {
+                    FirstLoadVaddr_ = phdr.p_vaddr;
+                    foundFirstLoad = true;
+                }
+                if ((phdr.p_flags & llvm::ELF::PF_X) != 0) {
+                    ExecutableSegments_.push_back({phdr.p_vaddr, phdr.p_offset, phdr.p_filesz});
+                }
+            }
+
+            if (!foundFirstLoad) {
+                throw std::runtime_error{"ELF binary has no PT_LOAD segments"};
+            }
+            if (ExecutableSegments_.empty()) {
+                throw std::runtime_error{"ELF binary has no executable PT_LOAD segments"};
+            }
+
+            return true;
+        });
+        if (!isElf) {
+            throw std::runtime_error{"Profiled binary is not an ELF file"};
+        }
+    }
+
+    ui64 GetFirstLoadVaddr() const {
+        return FirstLoadVaddr_;
+    }
+
+    ui64 ToFileOffset(ui64 elfVaddr) const {
+        for (const auto& segment : ExecutableSegments_) {
+            if (elfVaddr < segment.Vaddr) {
+                continue;
+            }
+
+            const ui64 delta = elfVaddr - segment.Vaddr;
+            if (delta >= segment.FileSize ||
+                delta > std::numeric_limits<ui64>::max() - segment.FileOffset) {
+                continue;
+            }
+
+            const ui64 fileOffset = segment.FileOffset + delta;
+            if (fileOffset >= BinarySize_) {
+                throw std::runtime_error{fmt::format(
+                    "ELF file offset {:#x} is outside binary of size {:#x}",
+                    fileOffset,
+                    BinarySize_
+                )};
+            }
+
+            return fileOffset;
+        }
+
+        throw std::runtime_error{fmt::format(
+            "ELF virtual address {:#x} is outside executable file data",
+            elfVaddr
+        )};
+    }
+
+private:
+    ui64 BinarySize_{};
+    ui64 FirstLoadVaddr_{};
+    std::vector<TLoadSegment> ExecutableSegments_;
+};
 
 template <typename ELFT>
 ui64 GetExecutableSectionsTotalSize(llvm::object::ObjectFile* file) {
@@ -48,45 +142,8 @@ ui64 GetExecutableSectionsTotalSize(llvm::object::ObjectFile* file) {
     return totalSize;
 }
 
-using TPerforatorProfile = NPerforator::NProto::NPProf::ProfileLight;
-
-using TLocationByIdMap = NUtils::TItemByIdMap<NUtils::LocationByIdTraits<TPerforatorProfile>>;
-using TMappingByIdMap = NUtils::TItemByIdMap<NUtils::MappingByIdTraits<TPerforatorProfile>>;
-
-const std::string& GetBuildId(
-    const TMappingByIdMap& mappingById,
-    const TPerforatorProfile& profile,
-    ui64 mappingId) {
-    if (mappingId == 0) {
-        return kEmptyString;
-    }
-
-    const auto& mapping = mappingById.At(mappingId);
-    return profile.string_table(mapping.build_id());
-};
-
-TMappingByIdMap PrepareProfileMappings(const TPerforatorProfile& profile) {
-    return TMappingByIdMap{profile};
-}
-
-TLocationByIdMap PrepareProfileLocations(const TPerforatorProfile& profile) {
-    return TLocationByIdMap{profile};
-}
-
-// Collect all mapping IDs that match the given build ID.
-// A binary (especially a BOLT-optimized one) may have multiple executable
-// LOAD segments, each producing a separate mapping at runtime, all sharing
-// the same build ID.
-absl::flat_hash_set<ui64> PrepareMainMappingIds(const TPerforatorProfile& profile, const std::string& buildId) {
-    absl::flat_hash_set<ui64> result;
-    for (std::size_t i = 0; i < profile.mappingSize(); ++i) {
-        const auto& mapping = profile.mapping(i);
-        if (profile.string_table(mapping.build_id()) == buildId) {
-            result.insert(mapping.id());
-        }
-    }
-    return result;
-}
+using TPerforatorProfile = NPerforator::NProto::NProfile::Profile;
+using TProfileReader = NPerforator::NProfile::TProfile;
 
 [[noreturn]] void ThrowInvalidSampleError() {
     throw std::logic_error{"Invalid sample encountered, locations count is not even"};
@@ -111,23 +168,38 @@ ui64 GetBinaryInstructionsBytesSize(TStringBuf binaryPath) {
     return 0;
 }
 
-std::string SerializeAutofdoInput(const TAutofdoInputData& data) {
+namespace {
+
+template <typename ConvertAddress>
+std::string SerializeAutofdoInputImpl(const TAutofdoInputData& data, ConvertAddress&& convertAddress) {
     std::string result{};
     result.reserve(16 * 1024 * 1024);
 
     fmt::format_to(std::back_inserter(result), "{}\n", data.RangeCountMap.size());
     for (const auto& [range, count] : data.RangeCountMap) {
-        fmt::format_to(std::back_inserter(result), "{:#x}-{:#x}:{}\n", range.From, range.To, count);
+        fmt::format_to(
+            std::back_inserter(result),
+            "{:#x}-{:#x}:{}\n",
+            convertAddress(range.From),
+            convertAddress(range.To),
+            count
+        );
     }
 
     fmt::format_to(std::back_inserter(result), "{}\n", data.AddressCountMap.size());
     for (const auto& [address, count] : data.AddressCountMap) {
-        fmt::format_to(std::back_inserter(result), "{:#x}:{}\n", address, count);
+        fmt::format_to(std::back_inserter(result), "{:#x}:{}\n", convertAddress(address), count);
     }
 
     fmt::format_to(std::back_inserter(result), "{}\n", data.BranchCountMap.size());
     for (const auto& [branch, count] : data.BranchCountMap) {
-        fmt::format_to(std::back_inserter(result), "{:#x}->{:#x}:{}\n", branch.From, branch.To, count);
+        fmt::format_to(
+            std::back_inserter(result),
+            "{:#x}->{:#x}:{}\n",
+            convertAddress(branch.From),
+            convertAddress(branch.To),
+            count
+        );
     }
 
     return result;
@@ -138,27 +210,43 @@ std::string SerializeAutofdoInput(const TAutofdoInputData& data) {
 //
 // TODO : PERFORATOR-910, the format should be improved.
 // See https://github.com/llvm/llvm-project/issues/149382#issuecomment-3085289377
-std::string SerializeAutofdoInputInBoltPreaggregatedFormat(const TAutofdoInputData& data) {
+std::string SerializeBoltInput(const TAutofdoInputData& data) {
     std::string result{};
     result.reserve(16 * 1024 * 1024);
 
     for (const auto& [branch, count] : data.BranchCountMap) {
         // Unfortunately we don't have "mispred_count" available, so set it to zero.
         fmt::format_to(std::back_inserter(result), "B {:x} {:x} {} 0\n",
-            branch.From + branch.MappingOffset,
-            branch.To + branch.MappingOffset,
+            branch.From,
+            branch.To,
             count
         );
     }
     for (const auto& [range, count] : data.RangeCountMap) {
         fmt::format_to(std::back_inserter(result), "F {:x} {:x} {}\n",
-            range.From + range.MappingOffset,
-            range.To + range.MappingOffset,
+            range.From,
+            range.To,
             count
         );
     }
 
     return result;
+}
+
+}
+
+std::pair<std::string, std::string> SerializePGOInputsForBinary(
+    const TAutofdoInputData& data,
+    TStringBuf binaryPath
+) {
+    const TBinaryAddressConverter converter{binaryPath};
+
+    return {
+        SerializeAutofdoInputImpl(data, [&] (ui64 address) {
+            return converter.ToFileOffset(address);
+        }),
+        SerializeBoltInput(data),
+    };
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -179,7 +267,23 @@ TAutofdoInputData::TMetadata& TAutofdoInputData::TMetadata::operator+=(const TMe
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-TInputBuilder::TInputBuilder(const std::string& buildId) : BuildId_{buildId} {}
+TInputBuilder::TInputBuilder(std::string buildId, ui64 skewedAddressAdjustment)
+    : BuildId_{std::move(buildId)}
+    , SkewedAddressAdjustment_{skewedAddressAdjustment}
+{}
+
+ui64 TInputBuilder::NormalizeAddress(ui64 address, bool isSkewed) const {
+    if (!isSkewed) {
+        return address;
+    }
+    if (address > std::numeric_limits<ui64>::max() - SkewedAddressAdjustment_) {
+        throw std::runtime_error{fmt::format(
+            "Profile address {:#x} overflows ELF virtual address",
+            address
+        )};
+    }
+    return address + SkewedAddressAdjustment_;
+}
 
 void TInputBuilder::AddProfile(std::string_view serviceName, TArrayRef<const char> profileBytes) {
     if (profileBytes.data() == nullptr || profileBytes.size() == 0) {
@@ -195,71 +299,64 @@ void TInputBuilder::AddProfile(std::string_view serviceName, TArrayRef<const cha
 }
 
 void TInputBuilder::AddProfile(std::string_view serviceName, const TPerforatorProfile& profile) {
-    const auto locationById = PrepareProfileLocations(profile);
-    const auto mappingById = PrepareProfileMappings(profile);
-    const auto mainMappingIds = PrepareMainMappingIds(profile, BuildId_);
-    if (mainMappingIds.empty()) {
+    const TProfileReader profileReader{&profile};
+
+    bool hasMainBinary = false;
+    for (const auto binary : profileReader.Binaries()) {
+        if (binary.GetBuildId().View() == BuildId_) {
+            hasMainBinary = true;
+            break;
+        }
+    }
+    if (!hasMainBinary) {
         return;
     }
-
-    // Compute the mapping offset for a given location.
-    // Each mapping (executable segment) has its own memory_start and file_offset,
-    // so the offset to convert file offsets back to virtual addresses differs per segment.
-    const auto calcMappingOffset = [&mappingById] (const NPerforator::NProto::NPProf::Location& loc) -> ui64 {
-        if (loc.mapping_id() == 0) {
-            return 0;
-        }
-        const auto& mapping = mappingById.At(loc.mapping_id());
-        return mapping.memory_start() - mapping.file_offset();
-    };
-
-    const auto calcLocationAddress = [&mappingById] (const NPerforator::NProto::NPProf::Location& loc) -> ui64 {
-        if (loc.mapping_id() == 0) {
-            return 0;
-        }
-
-        const auto& mapping = mappingById.At(loc.mapping_id());
-        return static_cast<ui64>(mapping.file_offset()) + (loc.address() - mapping.memory_start());
-    };
+    auto& data = Data_;
 
     // The code below is an adaptation of how autofdo parses perf.data
     // https://github.com/google/autofdo/blob/3dafe34db0eb53af146cf782124f788ceaf6a9aa/sample_reader.cc#L292
     NYT::TCompactVector<TAutofdoInputData::TTakenBranch, 64> branchStack;
-    for (std::size_t i = 0; i < profile.sampleSize(); ++i) {
-        const auto& sample = profile.sample(i);
-        if (sample.location_idSize() % 2 != 0) {
-            ThrowInvalidSampleError();
-        }
-
-        ++Data_.Meta.TotalSamples;
+    for (const auto sample : profileReader.Samples()) {
+        ++data.Meta.TotalSamples;
 
         branchStack.resize(0);
-        for (std::size_t j = 0; j < sample.location_idSize(); j += 2) {
-            const auto& locFrom = locationById.At(sample.location_id(j));
-            const auto& locTo = locationById.At(sample.location_id(j + 1));
-
-            if (mainMappingIds.contains(locFrom.mapping_id()) && mainMappingIds.contains(locTo.mapping_id())) {
-                branchStack.push_back(TAutofdoInputData::TTakenBranch{
-                    .From = calcLocationAddress(locFrom),
-                    .To = calcLocationAddress(locTo),
-                    .MappingOffset = calcMappingOffset(locFrom),
-                });
-            } else {
-                branchStack.push_back(TAutofdoInputData::TTakenBranch{0, 0, 0});
+        TAutofdoInputData::TTakenBranch branch{};
+        std::size_t frameIndex = 0;
+        bool fromMainBinary = false;
+        for (const auto stack : sample.GetKey().GetStacks()) {
+            for (const auto frame : stack.GetFrames()) {
+                const auto binary = frame.GetBinary();
+                const bool mainBinary = binary.GetBuildId().View() == BuildId_;
+                if (frameIndex++ % 2 == 0) {
+                    fromMainBinary = mainBinary;
+                    branch.From = mainBinary
+                        ? NormalizeAddress(frame.GetAddress(), binary.HasSkewedAddresses())
+                        : 0;
+                } else {
+                    if (fromMainBinary && mainBinary) {
+                        branch.To = NormalizeAddress(frame.GetAddress(), binary.HasSkewedAddresses());
+                    } else {
+                        branch = {};
+                    }
+                    branchStack.push_back(branch);
+                }
             }
+        }
+        if (frameIndex % 2 != 0) {
+            ThrowInvalidSampleError();
         }
         if (branchStack.empty()) {
             continue;
         }
 
         if (branchStack[0].To != 0) {
-            ++Data_.AddressCountMap[branchStack[0].To];
+            ++data.AddressCountMap[branchStack[0].To];
         }
 
         for (const auto& branch : branchStack) {
             if (branch.From != 0 && branch.To != 0) {
-                ++Data_.BranchCountMap[branch];
-                ++Data_.Meta.TotalBranches;
+                ++data.BranchCountMap[branch];
+                ++data.Meta.TotalBranches;
             }
         }
 
@@ -271,27 +368,25 @@ void TInputBuilder::AddProfile(std::string_view serviceName, const TPerforatorPr
             }
             // The interval between two taken branches shouldn't be too large
             if (end < begin || (end - begin > (1UL << 20))) {
-                ++Data_.Meta.BogusLbrEntries;
+                ++data.Meta.BogusLbrEntries;
                 continue;
             }
 
-            ++Data_.RangeCountMap[TAutofdoInputData::TRange{
+            ++data.RangeCountMap[TAutofdoInputData::TRange{
                 .From = begin,
                 .To = end,
-                .MappingOffset = branchStack[i].MappingOffset,
             }];
         }
     }
 
-    ++Data_.Meta.TotalProfiles;
-    ++Data_.Meta.ProfilesCountByService[TString{serviceName}];
+    ++data.Meta.TotalProfiles;
+    ++data.Meta.ProfilesCountByService[TString{serviceName}];
 }
 
 void TInputBuilder::AddData(TAutofdoInputData&& otherData) {
     MergeMap(Data_.BranchCountMap, otherData.BranchCountMap);
     MergeMap(Data_.RangeCountMap, otherData.RangeCountMap);
     MergeMap(Data_.AddressCountMap, otherData.AddressCountMap);
-
     Data_.Meta += otherData.Meta;
 }
 
@@ -301,10 +396,11 @@ TAutofdoInputData&& TInputBuilder::Finalize() && {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-TBatchInputBuilder::TBatchInputBuilder(ui64 buildersCount, std::string buildId) {
+TBatchInputBuilder::TBatchInputBuilder(ui64 buildersCount, std::string buildId, TStringBuf binaryPath) {
+    const auto skewedAddressAdjustment = TBinaryAddressConverter{binaryPath}.GetFirstLoadVaddr();
     Builders_.reserve(buildersCount);
     for (std::size_t i = 0; i < buildersCount; ++i) {
-        Builders_.emplace_back(buildId);
+        Builders_.emplace_back(buildId, skewedAddressAdjustment);
     }
 }
 
@@ -322,51 +418,6 @@ TAutofdoInputData TBatchInputBuilder::Finalize() && {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-namespace {
-
-class TMappingsCounter final {
-public:
-    explicit TMappingsCounter(const TPerforatorProfile& profile) : Profile_{profile} {
-        SmallIdCounter_.assign(Profile_.mappingSize() + 1, 0);
-    }
-
-    void Increment(ui64 mappingId) {
-        if (mappingId < SmallIdCounter_.size()) {
-            ++SmallIdCounter_[mappingId];
-        } else {
-            ++BigIdCounter_[mappingId];
-        }
-    }
-
-    void SinkBuildIdFrequenciesInto(absl::flat_hash_map<std::string, ui64>& dst) && {
-        const auto mappingById = PrepareProfileMappings(Profile_);
-        const auto getBuildId = [&mappingById, this] (ui64 mappingId) -> const std::string& {
-            return GetBuildId(mappingById, Profile_, mappingId);
-        };
-
-        for (std::size_t mappingId = 0; mappingId < SmallIdCounter_.size(); ++mappingId) {
-            const auto count = SmallIdCounter_[mappingId];
-            if (count == 0) {
-                continue;
-            }
-
-            dst[getBuildId(mappingId)] += count;
-        }
-
-        for (const auto& [mappingId, count] : BigIdCounter_) {
-            dst[getBuildId(mappingId)] += count;
-        }
-    }
-
-private:
-    const TPerforatorProfile& Profile_;
-
-    std::vector<ui64> SmallIdCounter_;
-    absl::flat_hash_map<ui64, ui64> BigIdCounter_;
-};
-
-}
-
 void TBuildIdGuesser::FeedProfile(TArrayRef<const char> profileBytes) {
     if (profileBytes.data() == nullptr || profileBytes.size() == 0) {
         return;
@@ -381,24 +432,14 @@ void TBuildIdGuesser::FeedProfile(TArrayRef<const char> profileBytes) {
 }
 
 void TBuildIdGuesser::FeedProfile(const TPerforatorProfile& profile) {
-    TMappingsCounter mappingsCounter{profile};
-
-    const auto locationById = PrepareProfileLocations(profile);
-
-    for (std::size_t i = 0; i < profile.sampleSize(); ++i) {
-        const auto& sample = profile.sample(i);
-        if (sample.location_idSize() % 2 != 0) {
-            ThrowInvalidSampleError();
-        }
-
-        for (std::size_t j = 0; j < sample.location_idSize(); ++j) {
-            const auto& loc = locationById.At(sample.location_id(j));
-
-            mappingsCounter.Increment(loc.mapping_id());
+    const TProfileReader profileReader{&profile};
+    for (const auto sample : profileReader.Samples()) {
+        for (const auto stack : sample.GetKey().GetStacks()) {
+            for (const auto frame : stack.GetFrames()) {
+                ++BuildIdCount_[std::string{frame.GetBinary().GetBuildId().View()}];
+            }
         }
     }
-
-    std::move(mappingsCounter).SinkBuildIdFrequenciesInto(BuildIdCount_);
 }
 
 const absl::flat_hash_map<std::string, ui64>& TBuildIdGuesser::GetFrequencyMap() const {

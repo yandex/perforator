@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <library/cpp/containers/absl/flat_hash_map.h>
@@ -9,8 +10,8 @@
 #include <util/digest/multi.h>
 #include <util/generic/array_ref.h>
 
-namespace NPerforator::NProto::NPProf {
-class ProfileLight;
+namespace NPerforator::NProto::NProfile {
+class Profile;
 }
 
 namespace NPerforator::NAutofdo {
@@ -23,8 +24,6 @@ struct TAutofdoInputData final {
     struct TTakenBranch final {
         ui64 From;
         ui64 To;
-
-        ui64 MappingOffset;
 
         bool operator==(const TTakenBranch& other) const noexcept {
             return From == other.From && To == other.To;
@@ -41,8 +40,6 @@ struct TAutofdoInputData final {
     struct TRange final {
         ui64 From;
         ui64 To;
-
-        ui64 MappingOffset;
 
         bool operator==(const TRange& other) const noexcept {
             return From == other.From && To == other.To;
@@ -74,27 +71,25 @@ struct TAutofdoInputData final {
     TMetadata Meta{};
 };
 
-// Given the structured input data, serialize it into "text" format
-// consumed by create_llvm_prof (--profile="text" option).
-std::string SerializeAutofdoInput(const TAutofdoInputData& data);
-
-// Given the structured input data, serialize it into pre-aggregated format
-// consumed by llvm-bolt (-pa option).
-std::string SerializeAutofdoInputInBoltPreaggregatedFormat(const TAutofdoInputData& data);
+// Serializes ELF virtual addresses for AutoFDO and BOLT.
+std::pair<std::string, std::string> SerializePGOInputsForBinary(
+    const TAutofdoInputData& data,
+    TStringBuf binaryPath
+);
 
 // Class that aggregates lbr-profiles into structured create_llvm_prof's input.
 // One should call `AddProfile`/`AddData` to feed profiles into the builder,
 // and then `Finalize` it to extract the aggregated input.
 class TInputBuilder final {
 public:
-    // Constructs the builder for this buildId (readelf -n <binary>),
-    // samples not belonging to the buildId will be filtered out.
-    explicit TInputBuilder(const std::string& buildId);
+    // Constructs the builder for this buildId and the adjustment used by skewed addresses.
+    // Samples not belonging to the buildId will be filtered out.
+    TInputBuilder(std::string buildId, ui64 skewedAddressAdjustment);
 
     // Parses the raw profile bytes and adds the profile into builder.
     void AddProfile(std::string_view serviceName, TArrayRef<const char> profileBytes);
     // Adds the profile into builder.
-    void AddProfile(std::string_view serviceName, const NPerforator::NProto::NPProf::ProfileLight& profile);
+    void AddProfile(std::string_view serviceName, const NPerforator::NProto::NProfile::Profile& profile);
 
     // Add the pre-aggregated data into builder.
     void AddData(TAutofdoInputData&& otherData);
@@ -104,7 +99,10 @@ public:
     TAutofdoInputData&& Finalize() &&;
 
 private:
+    ui64 NormalizeAddress(ui64 address, bool isSkewed) const;
+
     std::string BuildId_;
+    ui64 SkewedAddressAdjustment_;
     TAutofdoInputData Data_;
 };
 
@@ -114,8 +112,8 @@ private:
 class TBatchInputBuilder final {
 public:
     // Constructs the builder with `buildersCount` inner builders, each filtering profiles
-    // by `buildId`.
-    TBatchInputBuilder(ui64 buildersCount, std::string buildId);
+    // by `buildId`. The binary is used to normalize skewed addresses on input.
+    TBatchInputBuilder(ui64 buildersCount, std::string buildId, TStringBuf binaryPath);
 
     // Acquire a reference to the builder at index `builderIndex`.
     TInputBuilder& GetBuilder(ui64 builderIndex);
@@ -138,7 +136,7 @@ public:
     void FeedProfile(TArrayRef<const char> profileBytes);
 
     // Aggregates BuildID frequencies from the profile.
-    void FeedProfile(const NPerforator::NProto::NPProf::ProfileLight& profile);
+    void FeedProfile(const NPerforator::NProto::NProfile::Profile& profile);
 
     // Returns a reference to the frequency map of Feed-ed buildIDs.
     const absl::flat_hash_map<std::string, ui64>& GetFrequencyMap() const;
@@ -167,4 +165,3 @@ private:
 };
 
 }
-

@@ -9,19 +9,24 @@
 #include <util/stream/file.h>
 #include <util/stream/zlib.h>
 
-#include <perforator/proto/pprofprofile/lightweightprofile.pb.h>
+#include <perforator/lib/profile/pprof.h>
+#include <perforator/proto/profile/profile.pb.h>
 #include <perforator/symbolizer/lib/autofdo/autofdo_input_builder.h>
 
 namespace {
 
 constexpr std::string_view kPlaceholderServiceName{"serviceName"};
 
-void ProcessProfile(const NPerforator::NProto::NPProf::ProfileLight& profile, const std::string& buildId) {
-    NPerforator::NAutofdo::TInputBuilder builder{buildId};
-    builder.AddProfile(kPlaceholderServiceName, profile);
+void ProcessProfile(
+    const NPerforator::NProto::NProfile::Profile& profile,
+    const std::string& buildId,
+    const std::string& binaryPath
+) {
+    NPerforator::NAutofdo::TBatchInputBuilder builder{1, buildId, binaryPath};
+    builder.GetBuilder(0).AddProfile(kPlaceholderServiceName, profile);
 
-    const auto autofdoInputData = std::move(builder).Finalize();
-    const auto autofdoInput = NPerforator::NAutofdo::SerializeAutofdoInput(autofdoInputData);
+    auto autofdoInputData = std::move(builder).Finalize();
+    const auto [autofdoInput, _] = NPerforator::NAutofdo::SerializePGOInputsForBinary(autofdoInputData, binaryPath);
 
     std::cout << autofdoInput << std::endl;
 }
@@ -31,6 +36,7 @@ void ProcessProfile(const NPerforator::NProto::NPProf::ProfileLight& profile, co
 int main(int argc, const char *argv[]) {
     TFsPath profilePath;
     std::string buildId{};
+    std::string binaryPath{};
 
     NLastGetopt::TOpts opts;
     opts.AddLongOption('p', "profile-path", "Input profile path")
@@ -39,19 +45,25 @@ int main(int argc, const char *argv[]) {
     opts.AddLongOption('b', "build-id", "Binary Build ID")
         .Required()
         .StoreResult(&buildId);
+    opts.AddLongOption("binary-path", "Profiled ELF binary path")
+        .Required()
+        .StoreResult(&binaryPath);
 
     NLastGetopt::TOptsParseResult res(&opts, argc, argv);
 
     TFileInput profileProto(profilePath);
-    NPerforator::NProto::NPProf::ProfileLight profile;
+    NPerforator::NProto::NPProf::Profile pprof;
     if (TString{profilePath}.EndsWith(".tar.gz")) {
         TZLibDecompress decompresedInput(&profileProto);
-        profile.ParseFromArcadiaStream(&decompresedInput);
+        pprof.ParseFromArcadiaStream(&decompresedInput);
     } else {
-        profile.ParseFromArcadiaStream(&profileProto);
+        pprof.ParseFromArcadiaStream(&profileProto);
     }
 
-    ProcessProfile(profile, buildId);
+    NPerforator::NProto::NProfile::Profile profile;
+    NPerforator::NProfile::ConvertFromPProf(pprof, &profile);
+
+    ProcessProfile(profile, buildId, binaryPath);
 
     return 0;
 }

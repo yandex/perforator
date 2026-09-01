@@ -128,7 +128,7 @@ func (s *PerforatorServer) fetchAndMergeProfilesLegacy(
 			return nil, nil, err
 		}
 	} else {
-		datas, err = s.fetchProfiles(ctx, metas, kDefaultDownloadConcurrency, nil)
+		datas, err = s.fetchProfiles(ctx, metas, kDefaultDownloadConcurrency, nil, false)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -392,7 +392,7 @@ func (s *PerforatorServer) sampleProfiles(
 			defer sampler.Destroy()
 
 			for metasBatch := range metasBatches {
-				datas, err := s.fetchProfiles(ctx, metasBatch, kBatchSize, nil)
+				datas, err := s.fetchProfiles(ctx, metasBatch, kBatchSize, nil, false)
 				if err != nil {
 					return err
 				}

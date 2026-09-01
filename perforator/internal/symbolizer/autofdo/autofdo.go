@@ -9,7 +9,8 @@ import (
 )
 
 type BatchInputBuilder struct {
-	builder unsafe.Pointer
+	builder    unsafe.Pointer
+	binaryPath string
 }
 
 type AutofdoMetadata struct {
@@ -32,14 +33,23 @@ type ProcessedLBRData struct {
 	MetaData     AutofdoMetadata
 }
 
-func NewBatchInputBuilder(builders uint64, buildID string) (*BatchInputBuilder, error) {
+func NewBatchInputBuilder(builders uint64, buildID, binaryPath string) (*BatchInputBuilder, error) {
 	cBuildID := C.CString(buildID)
 	defer C.free(unsafe.Pointer(cBuildID))
+	cBinaryPath := C.CString(binaryPath)
+	defer C.free(unsafe.Pointer(cBinaryPath))
 
-	builder := C.MakeBatchBuilder(C.ui64(builders), cBuildID)
+	var cError C.TPerforatorError
+	builder := C.MakeBatchBuilder(C.ui64(builders), cBuildID, cBinaryPath, &cError)
+	if cError != nil {
+		message := C.GoString(C.PerforatorErrorString(cError))
+		C.PerforatorErrorDispose(cError)
+		return nil, fmt.Errorf("failed to initialize profile address conversion: %s", message)
+	}
 
 	return &BatchInputBuilder{
-		builder: builder,
+		builder:    builder,
+		binaryPath: binaryPath,
 	}, nil
 }
 
@@ -55,13 +65,18 @@ func (b *BatchInputBuilder) AddProfile(builderIndex uint64, serviceName string, 
 	cServiceName := C.CString(serviceName)
 	defer C.free(unsafe.Pointer(cServiceName))
 
-	C.AddProfile(
+	cError := C.AddProfile(
 		b.builder,
 		C.ui64(builderIndex),
 		cServiceName,
 		(*C.char)(unsafe.Pointer(&profileBytes[0])),
 		C.ui64(len(profileBytes)),
 	)
+	if cError != nil {
+		message := C.GoString(C.PerforatorErrorString(cError))
+		C.PerforatorErrorDispose(cError)
+		return fmt.Errorf("failed to process profile addresses: %s", message)
+	}
 
 	return nil
 }
@@ -91,7 +106,11 @@ func consumeProfilesByServiceMap(
 	return result
 }
 
+// Finalize converts addresses produced from Perforator pprof/yaprof
+// into the coordinate systems expected by AutoFDO and BOLT.
 func (b *BatchInputBuilder) Finalize() (ProcessedLBRData, error) {
+	cBinaryPath := C.CString(b.binaryPath)
+	defer C.free(unsafe.Pointer(cBinaryPath))
 	var totalProfiles C.ui64
 	var totalBranches, totalSamples, bogusLbrEntries C.ui64
 	var branchCountMapSize, rangeCountMapSize, addressCountMapSize C.ui64
@@ -102,8 +121,9 @@ func (b *BatchInputBuilder) Finalize() (ProcessedLBRData, error) {
 
 	var cAutofdoInput, cBoltInput *C.char
 
-	C.Finalize(
+	cError := C.Finalize(
 		b.builder,
+		cBinaryPath,
 		// metadata
 		&totalProfiles,
 		&totalBranches,
@@ -119,6 +139,11 @@ func (b *BatchInputBuilder) Finalize() (ProcessedLBRData, error) {
 		// output
 		&cAutofdoInput, &cBoltInput,
 	)
+	if cError != nil {
+		message := C.GoString(C.PerforatorErrorString(cError))
+		C.PerforatorErrorDispose(cError)
+		return ProcessedLBRData{}, fmt.Errorf("failed to convert profile addresses: %s", message)
+	}
 	defer C.free(unsafe.Pointer(cAutofdoInput))
 	defer C.free(unsafe.Pointer(cBoltInput))
 

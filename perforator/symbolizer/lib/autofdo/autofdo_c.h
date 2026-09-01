@@ -1,16 +1,18 @@
 #pragma once
 
+#include <perforator/lib/profile/c/error.h>
+
 #include <util/system/types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void* MakeBatchBuilder(ui64 buildersCount, const char* buildId);
+void* MakeBatchBuilder(ui64 buildersCount, const char* buildId, const char* binaryPath, TPerforatorError* error);
 
 void DestroyBatchBuilder(void* builder);
 
-void AddProfile(
+TPerforatorError AddProfile(
     void* builder,
     ui64 builderIndex,
     const char* serviceName,
@@ -18,8 +20,9 @@ void AddProfile(
     ui64 profileBytesLen
 );
 
-void Finalize(
+TPerforatorError Finalize(
     void* builder,
+    const char* binaryPath,
     ui64* totalProfiles,
     ui64* totalBranches, ui64* totalSamples, ui64* bogusLbrEntries,
     ui64* branchCountMapSize, ui64* rangeCountMapSize, ui64* addressCountMapSize,
@@ -45,4 +48,3 @@ const char* TryGuessBuildID(void* guesser);
 #ifdef __cplusplus
 }
 #endif
-

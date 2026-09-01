@@ -3,8 +3,10 @@ LIBRARY()
 PEERDIR(
     contrib/libs/llvm18/lib/Object
 
-    perforator/proto/pprofprofile
     perforator/lib/llvmex
+    perforator/lib/profile
+    perforator/lib/profile/c
+    perforator/proto/profile
 
     contrib/libs/fmt
 
