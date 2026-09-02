@@ -86,6 +86,7 @@ func compressionConfigFromString(compression string) (*compressionConfig, error)
 
 type pushBinaryParams struct {
 	uncompressedSize uint64
+	attributes       map[string]string
 }
 
 type PushBinaryOption func(*pushBinaryParams)
@@ -93,6 +94,12 @@ type PushBinaryOption func(*pushBinaryParams)
 func WithUncompressedSize(size uint64) PushBinaryOption {
 	return func(p *pushBinaryParams) {
 		p.uncompressedSize = size
+	}
+}
+
+func WithBinaryAttributes(attributes map[string]string) PushBinaryOption {
+	return func(p *pushBinaryParams) {
+		p.attributes = maps.Clone(attributes)
 	}
 }
 
@@ -394,6 +401,7 @@ func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBin
 					BuildID:          buildID,
 					Compression:      compression,
 					UncompressedSize: uncompressedSize,
+					Attributes:       params.attributes,
 				},
 			},
 		},

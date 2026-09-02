@@ -3,7 +3,9 @@ package binaryupload
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -48,11 +50,16 @@ type fakeMetaStorage struct {
 	getErr    error
 	getCalls  int
 	claims    map[string]*fakeUploadClaim
+	options   *binarymeta.BinaryMetaOptions
 }
 
-func (f *fakeMetaStorage) BeginUpload(_ context.Context, buildID string, _ time.Time, _ ...binarymeta.Option) (binarymeta.UploadClaim, error) {
+func (f *fakeMetaStorage) BeginUpload(_ context.Context, buildID string, _ time.Time, opts ...binarymeta.Option) (binarymeta.UploadClaim, error) {
 	if f.beginErr != nil {
 		return nil, f.beginErr
+	}
+	f.options = binarymeta.DefaultBinaryMetaOptions()
+	for _, opt := range opts {
+		opt.Apply(f.options)
 	}
 	c := &fakeUploadClaim{commitErr: f.commitErr}
 	if f.claims == nil {
@@ -189,7 +196,28 @@ func TestPushBinary_Simple(t *testing.T) {
 	require.Equal(t, []byte("hello world"), fake.blobs.blobs["abc"])
 }
 
+func TestPushBinary_Attributes(t *testing.T) {
+	fake := newFakeStorage()
+	head := headChunk("abc", compressionpb.CompressionMethod_None, 0)
+	head.GetHeadChunk().Attributes = map[string]string{
+		"build.commit_id":   "0123456789abcdef",
+		"build.binary_path": "path/to/target",
+	}
+
+	stream := &fakePushStream{reqs: []*perforatorstorage.PushBinaryRequest{
+		head,
+		bodyChunk([]byte("binary")),
+	}}
+	require.NoError(t, newTestService(t, fake, Options{}).PushBinary(stream))
+	require.Equal(t, head.GetHeadChunk().Attributes, fake.meta.options.Attributes.Attributes)
+}
+
 func TestPushBinary_HeadValidation(t *testing.T) {
+	headWithOversizedAttributes := headChunk("abc", compressionpb.CompressionMethod_None, 0)
+	headWithOversizedAttributes.GetHeadChunk().Attributes = map[string]string{
+		"key": strings.Repeat("x", maxAttributesJSONBytes),
+	}
+
 	for _, tc := range []struct {
 		name string
 		head *perforatorstorage.PushBinaryRequest
@@ -197,12 +225,27 @@ func TestPushBinary_HeadValidation(t *testing.T) {
 		{"missing build id", headChunk("", compressionpb.CompressionMethod_None, 0)},
 		{"compressed without size", headChunk("abc", compressionpb.CompressionMethod_Zstd, 0)},
 		{"body first", bodyChunk([]byte("data"))},
+		{"attributes JSON is too large", headWithOversizedAttributes},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			err := newTestService(t, newFakeStorage(), Options{}).PushBinary(&fakePushStream{reqs: []*perforatorstorage.PushBinaryRequest{tc.head}})
 			require.Equal(t, codes.InvalidArgument, status.Code(err))
 		})
 	}
+}
+
+func TestValidateAttributesOnlyLimitsSerializedSize(t *testing.T) {
+	attributes := make(map[string]string, 130)
+	for i := 0; i < 129; i++ {
+		attributes[fmt.Sprintf("key-%d", i)] = "value"
+	}
+	attributes[""] = strings.Repeat("x", 16*1024+1)
+	attributes[strings.Repeat("k", 129)] = "value"
+
+	require.NoError(t, validateAttributes(attributes))
+	require.Error(t, validateAttributes(map[string]string{
+		"key": strings.Repeat("x", maxAttributesJSONBytes),
+	}))
 }
 
 func TestPushBinary_AlreadyUploaded(t *testing.T) {

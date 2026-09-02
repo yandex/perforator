@@ -63,6 +63,16 @@ func TestCompressionConfigFromStringInvalidCodec(t *testing.T) {
 	require.Nil(t, conf)
 }
 
+func TestWithBinaryAttributesCopiesInput(t *testing.T) {
+	attributes := map[string]string{"build.commit_id": "before"}
+	params := &pushBinaryParams{}
+
+	WithBinaryAttributes(attributes)(params)
+	attributes["build.commit_id"] = "after"
+
+	require.Equal(t, map[string]string{"build.commit_id": "before"}, params.attributes)
+}
+
 func TestCompressionConfigCompressBytes(t *testing.T) {
 	conf, err := compressionConfigFromString("zstd_3")
 	require.NoError(t, err)

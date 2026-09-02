@@ -70,6 +70,8 @@ message PushBinaryRequestHead {
     // UncompressedSize is the original size of the binary before compression.
     // Must be set when Compression != COMPRESSION_METHOD_NONE.
     uint64 UncompressedSize = 3;
+    // Optional metadata associated with the binary.
+    map<string, string> Attributes = 4;
 }
 
 message PushBinaryRequestBody {

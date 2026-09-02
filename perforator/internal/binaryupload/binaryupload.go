@@ -6,8 +6,11 @@ package binaryupload
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"maps"
 	"time"
 
 	"github.com/karlseguin/ccache/v3"
@@ -25,8 +28,9 @@ import (
 )
 
 const (
-	defaultKnownCacheTTL  = 10 * time.Minute
-	defaultKnownCacheSize = 100000
+	defaultKnownCacheTTL   = 10 * time.Minute
+	defaultKnownCacheSize  = 100000
+	maxAttributesJSONBytes = 64 * 1024
 )
 
 type Options struct {
@@ -215,7 +219,22 @@ func receiveHead(stream perforatorstorage.PerforatorStorage_PushBinaryServer) (*
 	case isCompressed(head.GetCompression()) && head.GetUncompressedSize() == 0:
 		return nil, status.Errorf(codes.InvalidArgument, "uncompressed size is required when compression is %s", head.GetCompression())
 	}
+	if err := validateAttributes(head.GetAttributes()); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid binary attributes: %v", err)
+	}
 	return head, nil
+}
+
+func validateAttributes(attributes map[string]string) error {
+	data, err := json.Marshal(attributes)
+	if err != nil {
+		return fmt.Errorf("serialize attributes: %w", err)
+	}
+	if len(data) > maxAttributesJSONBytes {
+		return fmt.Errorf("attributes JSON is too large: %d > %d bytes", len(data), maxAttributesJSONBytes)
+	}
+
+	return nil
 }
 
 var errEmptyBody = errors.New("no binary data received")
@@ -301,6 +320,9 @@ func (s *Service) push(stream perforatorstorage.PerforatorStorage_PushBinaryServ
 	var opts []binarymeta.Option
 	if isCompressed(compression) {
 		opts = append(opts, binarymeta.WithCompression(compression, head.GetUncompressedSize()))
+	}
+	if len(head.GetAttributes()) > 0 {
+		opts = append(opts, binarymeta.WithAttributes(maps.Clone(head.GetAttributes())))
 	}
 
 	body := &bodyReader{stream: stream}
