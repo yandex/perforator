@@ -4,10 +4,9 @@ import type { TextShortener } from './TextShortener';
 // Performance-sensitive implementation choices below were measured on the
 // full LLVM demangler corpus and on production flamegraphs in SpiderMonkey and
 // Chromium. In particular, keep the numeric UTF-16 scanner, indexed traversal,
-// primitive parallel arrays, lazy engine-selected pair table, formatter fast path,
+// primitive parallel arrays, lazily allocated pair table, formatter fast path,
 // declarative dispatcher guard, and operator-only conversion-separator post-pass.
-// Int32Array was 19.44% faster in SpiderMonkey, while Array was 20.73% faster in
-// Chrome, so choose the representation once per runtime. Conversely, moving the
+// Array was 20.73% faster than Int32Array in Chrome. Conversely, moving the
 // conversion post-pass into the main scanner improved one Firefox dataset by
 // 1.61 percentage points but worsened Chrome by 15.27 points. Please benchmark
 // both engines and both datasets before replacing these choices with code that
@@ -22,9 +21,8 @@ const UNICODE_WHITESPACE = /\s/u;
 const CPP_PARSER_TRIGGER = /[<()\s]/u;
 const REJECTED_NAMES = ['decltype', 'noexcept', 'sizeof', 'alignof', 'typeid', 'requires', 'throw', 'const', 'volatile', 'override', 'final'];
 const SHORT_GO_RECEIVER = /\.\([^)]*\)\./;
-const USE_TYPED_PAIR_OFFSETS = typeof navigator !== 'undefined' && navigator.userAgent.includes('Firefox/');
 
-type PairOffsets = Int32Array | number[];
+type PairOffsets = number[];
 
 const enum CharacterCode {
     HorizontalTab = 9,
@@ -296,7 +294,7 @@ function scanStructure(text: string): Structure {
             opening = true;
         }
         if (opening) {
-            pairOffsets ??= USE_TYPED_PAIR_OFFSETS ? new Int32Array(text.length) : new Array<number>(text.length);
+            pairOffsets ??= new Array<number>(text.length);
             const group = groupOpens.length;
             const parent = stack.length === 0 ? -1 : stack[stack.length - 1];
             groupOpens.push(index);
