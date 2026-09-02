@@ -3,6 +3,7 @@ import type { TextShortener } from './TextShortener';
 
 const GO_VERSION_REGEX = /^(.*?)\/v(?:[2-9]|[1-9][0-9]+)([./].*)$/;
 const GO_REGEX = /^(?:[\w-.]+\/)+([^.]+\..+).*$/;
+const GO_PARSER_TRIGGER = /\//;
 
 
 const shorten = (text: string): Optional<string> => {
@@ -88,6 +89,7 @@ const testCases = [
 ];
 
 export const go: TextShortener = {
+    mayShorten: GO_PARSER_TRIGGER,
     shorten,
     testCases,
 };
