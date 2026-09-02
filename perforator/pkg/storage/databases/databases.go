@@ -41,7 +41,7 @@ func NewDatabases(ctx context.Context, bgCtx context.Context, l xlog.Logger, c *
 	}
 
 	if c.ClickhouseConfig != nil {
-		res.ClickhouseConn, err = clickhouse.Connect(ctx, c.ClickhouseConfig)
+		res.ClickhouseConn, err = clickhouse.Connect(ctx, c.ClickhouseConfig, reg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init clickhouse conn: %w", err)
 		}

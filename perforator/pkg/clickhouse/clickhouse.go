@@ -2,8 +2,11 @@ package clickhouse
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -11,6 +14,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/certifi"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -28,6 +32,7 @@ type Config struct {
 	PasswordEnvironmentVariable string                  `yaml:"password_env"`
 	TLS                         certifi.ClientTLSConfig `yaml:"tls"`
 	ReadRetry                   RetryConfig             `yaml:"read_retry"`
+	ExecRetry                   ExecRetryConfig         `yaml:"exec_retry"`
 
 	// TODO: all the followng fields should be replaced with
 	// TLSConfig (https://github.com/yandex/perforator/blob/283248e4d7c0bd8c66c9ff28178fb635be5581ab/perforator/pkg/storage/client/client.go#L114)
@@ -77,8 +82,14 @@ func (c *Config) FillDefault() {
 	}
 }
 
-func Connect(ctx context.Context, conf *Config) (*Connection, error) {
+func Connect(ctx context.Context, conf *Config, reg metrics.Registry) (*Connection, error) {
 	conf.FillDefault()
+	if err := conf.ExecRetry.validate(); err != nil {
+		return nil, fmt.Errorf("invalid Exec retry config: %w", err)
+	}
+	if reg == nil {
+		return nil, errors.New("metrics registry is nil")
+	}
 	password := os.Getenv(conf.PasswordEnvironmentVariable)
 
 	tlsConf, err := conf.TLS.BuildTLSConfig()
@@ -117,18 +128,38 @@ func Connect(ctx context.Context, conf *Config) (*Connection, error) {
 		return nil, fmt.Errorf("failed to ping clickhouse cluster: %w", err)
 	}
 
-	return newConnection(conn, conf.ReadRetry), nil
+	return newConnection(conn, conf.ReadRetry, conf.ExecRetry, reg), nil
 }
 
 type Connection struct {
 	driver.Conn
-	readRetryConf RetryConfig
+	readRetryConf      RetryConfig
+	execRetryConf      ExecRetryConfig
+	execRetryableCodes map[int32]struct{}
+	execRetryRegistry  metrics.Registry
+	execRetryMetrics   map[string]*execRetryMetrics
+	execRetryMetricsMu sync.Mutex
 }
 
-func newConnection(conn driver.Conn, readRetryConf RetryConfig) *Connection {
+func newConnection(
+	conn driver.Conn,
+	readRetryConf RetryConfig,
+	execRetryConf ExecRetryConfig,
+	reg metrics.Registry,
+) *Connection {
+	execRetryConf.RetryableErrorCodes = slices.Clone(execRetryConf.RetryableErrorCodes)
+	retryableCodes := make(map[int32]struct{}, len(execRetryConf.RetryableErrorCodes))
+	for _, code := range execRetryConf.RetryableErrorCodes {
+		retryableCodes[code] = struct{}{}
+	}
+
 	return &Connection{
-		Conn:          conn,
-		readRetryConf: readRetryConf,
+		Conn:               conn,
+		readRetryConf:      readRetryConf,
+		execRetryConf:      execRetryConf,
+		execRetryableCodes: retryableCodes,
+		execRetryRegistry:  reg,
+		execRetryMetrics:   make(map[string]*execRetryMetrics),
 	}
 }
 
