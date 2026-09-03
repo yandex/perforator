@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-08-28T00:37:48Z",
+    "created": "2026-09-03T13:01:55Z",
     "pr": {
-      "id": 15302532,
+      "id": 15488078,
       "author": "baymer",
-      "summary": "DEVTOOLSSUPPORT-94180: убрать pnpm install из TS_PACKAGE"
+      "summary": "FBP-3363 Log package script commands and duration"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13389096329"
+      "uri": "sbr:13488010877"
     },
     "darwin-arm64": {
-      "uri": "sbr:13389095338"
+      "uri": "sbr:13488006340"
     },
     "linux": {
-      "uri": "sbr:13389098318"
+      "uri": "sbr:13488021219"
     },
     "linux-aarch64": {
-      "uri": "sbr:13389097465"
+      "uri": "sbr:13488015890"
     }
   }
 }
