@@ -92,6 +92,8 @@ ClickHouse starts the adaptive timeout at `busy_timeout_min` and adjusts it up t
 
 The worker always uses `wait_for_async_insert=1`. `SaveClusterTopEntry` therefore returns successfully only after ClickHouse has flushed the buffered INSERT, and only then can the PostgreSQL job be marked `done`.
 
+INSERT retries are disabled unless `retryable_error_codes` is configured. Production and prestable retry only error code 252 (`Too many parts`) with bounded exponential backoff and jitter. Other errors are returned immediately because their insert outcome may be ambiguous.
+
 ```yaml
 storage:
   cluster_top:
@@ -99,6 +101,11 @@ storage:
       busy_timeout_min: "2s"
       busy_timeout_max: "5s"
       max_data_size: 268435456
+      insert_retries:
+        initial_backoff: "1s"
+        max_backoff: "30s"
+        max_elapsed_time: "30m"
+        retryable_error_codes: [252]
 ```
 
 ## Worker config

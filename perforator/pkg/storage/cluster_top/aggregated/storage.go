@@ -288,8 +288,11 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 		clickhousego.WithSettings(settings),
 	)
 
-	if err := s.conn.Exec(
+	if err := clickhouse.ExecWithRetries(
+		s.l,
 		ctx,
+		s.conn,
+		"cluster_top_insert",
 		fmt.Sprintf("INSERT INTO %s(generation, service, function, self_cycles, cumulative_cycles) VALUES %s", clusterTopTable, query.String()),
 		args...,
 	); err != nil {
