@@ -374,5 +374,5 @@ func (s *Storage) sendBatchImpl(ctx context.Context, rows []*ProfileRow) error {
 
 	s.l.Debug(ctx, "Executing batch insert", log.String("query", query))
 
-	return s.conn.Exec(ctx, query)
+	return clickhouse.ExecWithRetries(s.l, ctx, s.conn, "profile_insert", query)
 }

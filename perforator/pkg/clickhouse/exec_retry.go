@@ -107,7 +107,9 @@ func newExecRetryBackOff(config ExecRetryConfig) backoff.BackOff {
 	retryBackOff := backoff.NewExponentialBackOff()
 	retryBackOff.InitialInterval = config.InitialBackoff
 	retryBackOff.MaxInterval = config.MaxBackoff
-	retryBackOff.MaxElapsedTime = config.MaxElapsedTime
+	// The total elapsed time is enforced through the context in ExecWithRetries,
+	// so it also interrupts an attempt that is currently running.
+	retryBackOff.MaxElapsedTime = 0
 	retryBackOff.Reset()
 
 	if config.MaxAttempts > 0 {
@@ -129,6 +131,7 @@ func (c *Connection) getExecRetryMetrics(operation string) *execRetryMetrics {
 }
 
 // ExecWithRetries executes a statement using the retry policy configured for the connection.
+// A non-zero MaxElapsedTime bounds the total time spent on attempts and backoffs.
 func ExecWithRetries(
 	l xlog.Logger,
 	ctx context.Context,
@@ -144,6 +147,11 @@ func ExecWithRetries(
 		return errors.New("operation is empty")
 	}
 	config := conn.execRetryConf
+	if config.MaxElapsedTime > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, config.MaxElapsedTime)
+		defer cancel()
+	}
 	if len(config.RetryableErrorCodes) == 0 {
 		return conn.Exec(ctx, query, args...)
 	}

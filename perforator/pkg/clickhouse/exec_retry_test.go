@@ -15,7 +15,10 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-const testRetryableCode int32 = 252
+const (
+	testRetryableCode      int32 = 252
+	testContextWaitTimeout       = time.Second
+)
 
 type testExecFunc func(ctx context.Context, query string, args ...any) error
 
@@ -73,17 +76,54 @@ func newRetryableException() error {
 	return &clickhousego.Exception{Code: testRetryableCode, Message: "Too many parts"}
 }
 
+func waitForContextDone(t *testing.T, ctx context.Context) error {
+	t.Helper()
+
+	timer := time.NewTimer(testContextWaitTimeout)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		t.Fatal("context was not cancelled")
+		return nil
+	}
+}
+
+func TestExecWithRetriesSucceedsOnFirstAttemptWithinMaxElapsedTime(t *testing.T) {
+	attempts := 0
+	config := testExecRetryConfig()
+	config.MaxElapsedTime = time.Second
+	runner := newTestExecRunner(t, func(ctx context.Context, _ string, _ ...any) error {
+		attempts++
+		if _, ok := ctx.Deadline(); !ok {
+			t.Fatal("expected deadline")
+		}
+		return nil
+	}, config)
+
+	if err := runner.Exec(t.Context(), "INSERT"); err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts: got %d, want 1", attempts)
+	}
+}
+
 func TestExecWithRetriesEventuallySucceeds(t *testing.T) {
 	attempts := 0
+	config := testExecRetryConfig()
+	config.MaxElapsedTime = time.Second
 	runner := newTestExecRunner(t, func(context.Context, string, ...any) error {
 		attempts++
 		if attempts < 3 {
 			return fmt.Errorf("wrapped: %w", newRetryableException())
 		}
 		return nil
-	}, testExecRetryConfig())
+	}, config)
 
-	err := runner.Exec(context.Background(), "secret query", "secret argument")
+	err := runner.Exec(t.Context(), "secret query", "secret argument")
 	if err != nil {
 		t.Fatalf("Exec: %v", err)
 	}
@@ -109,7 +149,7 @@ func TestExecWithRetriesReusesOperationMetrics(t *testing.T) {
 	}, testExecRetryConfig())
 
 	for i := 0; i < 2; i++ {
-		if err := runner.Exec(context.Background(), "INSERT"); err != nil {
+		if err := runner.Exec(t.Context(), "INSERT"); err != nil {
 			t.Fatalf("Exec: %v", err)
 		}
 	}
@@ -129,7 +169,7 @@ func TestExecWithRetriesStopsAtMaxAttempts(t *testing.T) {
 		return newRetryableException()
 	}, testExecRetryConfig())
 
-	err := runner.Exec(context.Background(), "INSERT")
+	err := runner.Exec(t.Context(), "INSERT")
 	if _, ok := runner.retryableErrorCode(err); !ok {
 		t.Fatalf("error: got %v, want retryable ClickHouse exception", err)
 	}
@@ -142,23 +182,109 @@ func TestExecWithRetriesStopsAtMaxAttempts(t *testing.T) {
 }
 
 func TestExecWithRetriesStopsAtMaxElapsedTime(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
 	attempts := 0
 	config := testExecRetryConfig()
-	config.InitialBackoff = 10 * time.Millisecond
-	config.MaxBackoff = 10 * time.Millisecond
-	config.MaxAttempts = 0
-	config.MaxElapsedTime = time.Millisecond
+	config.InitialBackoff = time.Second
+	config.MaxBackoff = time.Second
+	config.MaxAttempts = 2
+	config.MaxElapsedTime = 10 * time.Millisecond
 	runner := newTestExecRunner(t, func(context.Context, string, ...any) error {
 		attempts++
 		return newRetryableException()
 	}, config)
 
+	err := runner.Exec(t.Context(), "INSERT")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("error: got %v, want context.DeadlineExceeded", err)
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts: got %d, want 1", attempts)
+	}
+}
+
+func TestExecWithRetriesMaxElapsedTimeCancelsRunningAttempt(t *testing.T) {
+	attempts := 0
+	config := testExecRetryConfig()
+	config.MaxElapsedTime = 10 * time.Millisecond
+	runner := newTestExecRunner(t, func(ctx context.Context, _ string, _ ...any) error {
+		attempts++
+		return waitForContextDone(t, ctx)
+	}, config)
+
+	err := runner.Exec(t.Context(), "INSERT")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("error: got %v, want context.DeadlineExceeded", err)
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts: got %d, want 1", attempts)
+	}
+}
+
+func TestExecWithRetriesDeadlineWinsOverRetryableErrorFromRunningAttempt(t *testing.T) {
+	attempts := 0
+	config := testExecRetryConfig()
+	config.MaxElapsedTime = 10 * time.Millisecond
+	runner := newTestExecRunner(t, func(ctx context.Context, _ string, _ ...any) error {
+		attempts++
+		_ = waitForContextDone(t, ctx)
+		return newRetryableException()
+	}, config)
+
+	err := runner.Exec(t.Context(), "INSERT")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("error: got %v, want context.DeadlineExceeded", err)
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts: got %d, want 1", attempts)
+	}
+}
+
+func TestExecWithRetriesHonorsEarlierParentDeadline(t *testing.T) {
+	attempts := 0
+	config := testExecRetryConfig()
+	config.MaxElapsedTime = time.Hour
+	runner := newTestExecRunner(t, func(ctx context.Context, _ string, _ ...any) error {
+		attempts++
+		return waitForContextDone(t, ctx)
+	}, config)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
+	defer cancel()
+
 	err := runner.Exec(ctx, "INSERT")
-	if _, ok := runner.retryableErrorCode(err); !ok {
-		t.Fatalf("error: got %v, want retryable ClickHouse exception", err)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("error: got %v, want context.DeadlineExceeded", err)
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts: got %d, want 1", attempts)
+	}
+}
+
+func TestExecWithRetriesZeroMaxElapsedTimeDoesNotAddDeadline(t *testing.T) {
+	config := testExecRetryConfig()
+	config.MaxElapsedTime = 0
+	runner := newTestExecRunner(t, func(ctx context.Context, _ string, _ ...any) error {
+		if deadline, ok := ctx.Deadline(); ok {
+			t.Fatalf("unexpected deadline: %s", deadline)
+		}
+		return nil
+	}, config)
+
+	if err := runner.Exec(t.Context(), "INSERT"); err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+}
+
+func TestExecWithRetriesMaxElapsedTimeWithoutRetries(t *testing.T) {
+	attempts := 0
+	runner := newTestExecRunner(t, func(ctx context.Context, _ string, _ ...any) error {
+		attempts++
+		return waitForContextDone(t, ctx)
+	}, ExecRetryConfig{MaxElapsedTime: 10 * time.Millisecond})
+
+	err := runner.Exec(t.Context(), "INSERT")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("error: got %v, want context.DeadlineExceeded", err)
 	}
 	if attempts != 1 {
 		t.Fatalf("attempts: got %d, want 1", attempts)
@@ -173,7 +299,7 @@ func TestExecWithRetriesStopsOnUnlistedClickHouseCode(t *testing.T) {
 		return wantErr
 	}, testExecRetryConfig())
 
-	err := runner.Exec(context.Background(), "INSERT")
+	err := runner.Exec(t.Context(), "INSERT")
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("error: got %v, want %v", err, wantErr)
 	}
@@ -199,7 +325,7 @@ func TestExecWithRetriesClassifiesNonRetryableErrorAfterRetry(t *testing.T) {
 		return wantErr
 	}, testExecRetryConfig())
 
-	err := runner.Exec(context.Background(), "INSERT")
+	err := runner.Exec(t.Context(), "INSERT")
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("error: got %v, want %v", err, wantErr)
 	}
@@ -225,7 +351,7 @@ func TestExecWithRetriesDoesNotRetryUnconfiguredError(t *testing.T) {
 		return wantErr
 	}, testExecRetryConfig())
 
-	err := runner.Exec(context.Background(), "INSERT")
+	err := runner.Exec(t.Context(), "INSERT")
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("error: got %v, want %v", err, wantErr)
 	}
@@ -242,7 +368,7 @@ func TestExecWithRetriesEmptyAllowlistDisablesRetries(t *testing.T) {
 		return wantErr
 	}, ExecRetryConfig{})
 
-	err := runner.Exec(context.Background(), "INSERT")
+	err := runner.Exec(t.Context(), "INSERT")
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("error: got %v, want %v", err, wantErr)
 	}
@@ -252,7 +378,8 @@ func TestExecWithRetriesEmptyAllowlistDisablesRetries(t *testing.T) {
 }
 
 func TestExecWithRetriesHonorsContextCancellation(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
 	attempts := 0
 	runner := newTestExecRunner(t, func(context.Context, string, ...any) error {
 		attempts++
@@ -313,7 +440,7 @@ func TestExecRetryConfigValidation(t *testing.T) {
 }
 
 func TestConnectValidatesExecRetryConfig(t *testing.T) {
-	_, err := Connect(context.Background(), &Config{
+	_, err := Connect(t.Context(), &Config{
 		ExecRetry: ExecRetryConfig{
 			InitialBackoff:      time.Second,
 			MaxBackoff:          time.Second,
@@ -328,7 +455,7 @@ func TestConnectValidatesExecRetryConfig(t *testing.T) {
 func TestExecWithRetriesRejectsNilConnection(t *testing.T) {
 	err := ExecWithRetries(
 		xlog.ForTest(t),
-		context.Background(),
+		t.Context(),
 		nil,
 		"test_insert",
 		"INSERT",
