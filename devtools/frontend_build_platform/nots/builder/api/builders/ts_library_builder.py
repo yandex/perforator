@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 import textwrap
+import time
 from dataclasses import dataclass
 
 import click
@@ -173,12 +174,17 @@ class TsLibraryBuilder(BaseBuilder):
         package_json_path = None
         package_json_backup_path = None
         inline_package_json = None
+        build_command = self.options.build_command
         if self.options.build_command:
             package_json_path = pm_utils.build_pj_path(self.options.bindir)
             with open(package_json_path, "rb") as package_json_file:
                 package_json = json.load(package_json_file)
             package_json.setdefault("scripts", {})[self.options.build_script] = self.options.build_command
             inline_package_json = json.dumps(package_json).encode("utf-8")
+        else:
+            with open(pm_utils.build_pj_path(self.options.bindir), "rb") as package_json_file:
+                package_json = json.load(package_json_file)
+            build_command = package_json.get("scripts", {}).get(self.options.build_script)
 
         args = [self.options.nodejs_bin, '--run', self.options.build_script]
         env = self._get_envs()
@@ -195,7 +201,21 @@ class TsLibraryBuilder(BaseBuilder):
                 package_json_backup_path = backup_path
                 with open(package_json_path, "wb") as package_json_file:
                     package_json_file.write(inline_package_json)
-            return_code, stdout, stderr = popen(args, env=env, cwd=self.options.bindir, verbose=self.options.verbose)
+            started_at = time.monotonic()
+            try:
+                return_code, stdout, stderr = popen(
+                    args,
+                    env=env,
+                    cwd=self.options.bindir,
+                    verbose=self.options.verbose,
+                    command_comment=build_command,
+                )
+            finally:
+                logger.debug(
+                    "Package.json script %r completed in %.3f s",
+                    self.options.build_script,
+                    time.monotonic() - started_at,
+                )
         finally:
             if package_json_path is not None and package_json_backup_path is not None:
                 shutil.copyfile(package_json_backup_path, package_json_path)

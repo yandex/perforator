@@ -236,14 +236,19 @@ def simplify_colors(data):
     return data
 
 
-def print_cmd_info(cmd: list[str], cwd: str, env: dict[str, str]):
+def print_cmd_info(cmd: list[str], cwd: str, env: dict[str, str], command_comment: str | None = None):
     sys.stderr.write("\n")
     export = click.style("export", fg="green")
     for key, value in env.items():
         escaped_value = value.replace('"', '\\"').replace("$", "\\$")
         sys.stderr.write(f'{export} {key}="{escaped_value}"\n')
 
-    sys.stderr.write(f"cd {click.style(cwd, fg='cyan')} && {click.style(' '.join(cmd), fg='magenta')}\n\n")
+    rendered_comment = ""
+    if command_comment:
+        rendered_comment = click.style(f" # ({' '.join(command_comment.splitlines())})", dim=True)
+    sys.stderr.write(
+        f"cd {click.style(cwd, fg='cyan')} && {click.style(' '.join(cmd), fg='magenta')}{rendered_comment}\n\n"
+    )
 
 
 def print_cmd_output(stdout: str, stderr: str):
@@ -254,9 +259,9 @@ def print_cmd_output(stdout: str, stderr: str):
 
 
 @timeit
-def popen(args: list[str], env: dict[str, str], cwd: str, verbose: bool = False):
+def popen(args: list[str], env: dict[str, str], cwd: str, verbose: bool = False, command_comment: str | None = None):
     if verbose:
-        print_cmd_info(args, cwd, env)
+        print_cmd_info(args, cwd, env, command_comment)
 
     p = subprocess.Popen(
         args,

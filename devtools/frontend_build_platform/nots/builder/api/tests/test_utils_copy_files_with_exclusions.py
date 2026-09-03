@@ -3,8 +3,13 @@ import stat
 import tempfile
 
 import pytest
+from click.utils import strip_ansi
 
-from devtools.frontend_build_platform.nots.builder.api.utils import copy_files_with_exclusions, copy_writable_file
+from devtools.frontend_build_platform.nots.builder.api.utils import (
+    copy_files_with_exclusions,
+    copy_writable_file,
+    print_cmd_info,
+)
 
 TEST_FILE_STRUCTURE = {
     'src': {
@@ -32,6 +37,14 @@ TEST_FILE_STRUCTURE = {
     'package.json': '{"name": "test"}',
     'README.md': '# Test',
 }
+
+
+def test_print_cmd_info_appends_command_comment(capsys):
+    print_cmd_info(["/node", "--run", "nots:build"], "/build/module", {}, "next build\n--config config.js")
+
+    assert "cd /build/module && /node --run nots:build # (next build --config config.js)" in strip_ansi(
+        capsys.readouterr().err
+    )
 
 
 def test_copy_writable_file_does_not_hardlink_source(tmp_path):
