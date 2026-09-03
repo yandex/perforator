@@ -18394,6 +18394,10 @@ github.com/yandex/pandora/lib/netutil/mocks
 github.com/yandex/pandora/lib/tag
 github.com/yandex/pandora/lib/testutil
 github.com/yandex/pandora/lib/zaputil
+# github.com/yanet-platform/ipfw-go v0.1.0
+## explicit; go 1.24
+github.com/yanet-platform/ipfw-go
+github.com/yanet-platform/ipfw-go/vm
 # github.com/yanet-platform/xnetip v0.1.1
 ## explicit; go 1.24
 github.com/yanet-platform/xnetip
@@ -24037,6 +24041,8 @@ oras.land/oras-go/v2/registry/remote/internal/errutil
 oras.land/oras-go/v2/registry/remote/retry
 # pack.ag/amqp v0.12.5
 ## explicit
+# pgregory.net/rapid v1.3.0
+## explicit; go 1.23
 # resenje.org/singleflight v0.4.3
 ## explicit; go 1.18
 # rsc.io/binaryregexp v0.2.0

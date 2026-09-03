@@ -930,6 +930,7 @@ require (
 	github.com/yandex-cloud/go-sdk v0.32.0
 	github.com/yandex-cloud/kms-clients-go/yckmstink v0.0.0-20200608135605-a61de9ba71a6
 	github.com/yandex/pandora v0.5.3
+	github.com/yanet-platform/ipfw-go v0.1.0
 	github.com/yanet-platform/xnetip v0.1.1
 	github.com/ybbus/jsonrpc/v3 v3.1.1
 	github.com/ydb-platform/fq-connector-go v0.9.3-rc.1
@@ -2707,6 +2708,7 @@ require (
 	moul.io/http2curl/v2 v2.3.0 // indirect
 	oras.land/oras-go v1.2.5 // indirect
 	pack.ag/amqp v0.12.5 // indirect
+	pgregory.net/rapid v1.3.0 // indirect
 	resenje.org/singleflight v0.4.3 // indirect
 	rsc.io/binaryregexp v0.2.0 // indirect
 	rsc.io/letsencrypt v0.0.3 // indirect
