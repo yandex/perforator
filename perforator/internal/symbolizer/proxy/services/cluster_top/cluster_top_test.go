@@ -2,6 +2,8 @@ package cluster_top
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
@@ -11,8 +13,52 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/aggregated"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	"github.com/yandex/perforator/perforator/proto/lib/pagination"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 )
+
+func TestMapEntriesWithZeroTotals(t *testing.T) {
+	entries := MapEntries(big.NewInt(0), big.NewInt(0), []*aggregated.AggregationValue{
+		{Name: "empty", CpuCycles: *big.NewInt(0), CumulativeCpuCycles: *big.NewInt(0)},
+		{Name: "nonzero", CpuCycles: *big.NewInt(1), CumulativeCpuCycles: *big.NewInt(2)},
+	})
+	for _, entry := range entries {
+		for _, percent := range []float64{entry.Count.SelfPct, entry.Count.CumulativePct} {
+			if math.IsNaN(percent) || math.IsInf(percent, 0) || percent != 0 {
+				t.Fatalf("%s: expected zero percent with zero denominator, got %v", entry.Name, percent)
+			}
+		}
+	}
+}
+
+func TestClusterTopPagination(t *testing.T) {
+	for _, count := range []int{0, 1, 2} {
+		t.Run(fmt.Sprint(count), func(t *testing.T) {
+			storage := mocks.NewMockStorage(gomock.NewController(t))
+			entries := make([]*aggregated.AggregationValue, count)
+			for i := range entries {
+				entries[i] = &aggregated.AggregationValue{Name: fmt.Sprint(i)}
+			}
+			storage.EXPECT().AggregateClusterTop(gomock.Any(), uint32(42), gomock.Any(),
+				aggregated.GroupByFunction, util.Pagination{Offset: 2, Limit: 2}, aggregated.SelfTimeSortOrder).
+				Return(entries, nil)
+			storage.EXPECT().CountTotalSelfCycles(gomock.Any(), uint32(42)).Return(big.NewInt(0), nil)
+			resp, err := NewService(xlog.ForTest(t), storage).GetClusterTopAggregatedByFunction(t.Context(), &perforator.ClusterTopRequest{
+				Generation: 42,
+				Pagination: &pagination.Paginated{Offset: 2, Limit: 1},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(resp.Instances) != min(count, 1) || resp.HasMore != (count > 1) {
+				t.Fatalf("unexpected pagination response: %v", resp)
+			}
+			if count > 0 && resp.Instances[0].Name != "0" {
+				t.Fatalf("pagination discarded the first entry: %v", resp)
+			}
+		})
+	}
+}
 
 // oneCpuHourCycles is the minimum CPU cycle count that produces exactly 1.0 cpu-hour
 // when passed through fromCpuCyclesToCpuHours. The function uses two integer big.Int

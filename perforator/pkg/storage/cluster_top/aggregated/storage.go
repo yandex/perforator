@@ -97,10 +97,9 @@ func getComparisonOperator(mode MatchMode) string {
 }
 
 const (
-	clusterTopWriteTable            = "cluster_top_v3"
-	clusterTopTable                 = "cluster_top_v2"
-	clusterTopByFunctionTable       = "cluster_top_by_function_v2"
-	clusterTopGenerationTotalsTable = "cluster_top_generation_totals_v2"
+	clusterTopTable           = "cluster_top_v3"
+	clusterTopByFunctionTable = "cluster_top_by_function_v3"
+	clusterTopEventType       = "cpu.cycles"
 )
 
 func (s *ClickhouseAggregationStorage) CountTotalSelfCycles(ctx context.Context, generation uint32, options ...CountTotalSelfCyclesOption) (*big.Int, error) {
@@ -109,16 +108,12 @@ func (s *ClickhouseAggregationStorage) CountTotalSelfCycles(ctx context.Context,
 		option(optionsObject)
 	}
 
-	var builder squirrel.SelectBuilder
+	builder := squirrel.Select("sum(self_cycles) as total_self_cycles").
+		From(clusterTopByFunctionTable).
+		Where("generation = ?", generation).
+		Where("event_type = ?", clusterTopEventType)
 	if optionsObject.function != "" {
-		builder = squirrel.Select("sum(self_cycles) as total_self_cycles").
-			From(clusterTopByFunctionTable).
-			Where("generation = ?", generation).
-			Where("function = ?", optionsObject.function)
-	} else {
-		builder = squirrel.Select("sum(total_self_cycles) as total_self_cycles").
-			From(clusterTopGenerationTotalsTable).
-			Where("generation = ?", generation)
+		builder = builder.Where("function = ?", optionsObject.function)
 	}
 
 	return s.countTotal(ctx, builder)
@@ -127,7 +122,8 @@ func (s *ClickhouseAggregationStorage) CountTotalSelfCycles(ctx context.Context,
 func (s *ClickhouseAggregationStorage) CountTotalCumulativeCycles(ctx context.Context, generation uint32, totalFunctionName string) (*big.Int, error) {
 	builder := squirrel.Select("sum(cumulative_cycles) as total_cumulative_cycles").
 		From(clusterTopByFunctionTable).
-		Where("generation = ?", generation)
+		Where("generation = ?", generation).
+		Where("event_type = ?", clusterTopEventType)
 
 	if totalFunctionName == "" {
 		return nil, errors.New("total function name is empty")
@@ -190,13 +186,14 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 	if aggregationType == GroupByFunction {
 		fromTable = clusterTopByFunctionTable
 	}
-	// GroupByService with exact function filter reads clusterTopTable;
-	// ClickHouse uses proj_by_function_service projection automatically.
+	// Sum across buckets and unmerged rows; background merges are not required
+	// for correct results from SummingMergeTree tables.
 
 	builder := squirrel.
 		Select(fmt.Sprintf("%s AS name, sum(self_cycles) AS cpu_cycles, sum(cumulative_cycles) as sum_cumulative_cycles", groupBy)).
 		From(fromTable).
 		Where("generation = ?", generation).
+		Where("event_type = ?", clusterTopEventType).
 		OrderBy(orderByCycles).
 		Limit(limit).
 		Offset(offset).
@@ -261,7 +258,7 @@ func buildClusterTopRows(result *JobResult, bucket uint16) []clusterTopRow {
 		rows = append(rows, clusterTopRow{
 			Generation:       result.Generation,
 			PartitionBucket:  bucket,
-			EventType:        "cpu.cycles",
+			EventType:        clusterTopEventType,
 			Service:          result.ServiceName,
 			Function:         functionName,
 			SelfCycles:       function.SelfCycles,
@@ -337,7 +334,7 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 		ctx,
 		s.conn,
 		"cluster_top_v3_insert",
-		fmt.Sprintf("INSERT INTO %s(generation, partition_bucket, event_type, service, function, self_cycles, cumulative_cycles) VALUES %s", clusterTopWriteTable, query.String()),
+		fmt.Sprintf("INSERT INTO %s(generation, partition_bucket, event_type, service, function, self_cycles, cumulative_cycles) VALUES %s", clusterTopTable, query.String()),
 		args...,
 	); err != nil {
 		return fmt.Errorf("failed to execute async cluster top insert: %w", err)

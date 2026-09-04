@@ -62,6 +62,9 @@ func fromCpuCyclesToCpuHours(cpuCycles *big.Int) float64 {
 }
 
 func fromCpuCyclesToPercent(total *big.Int, current *big.Int) float64 {
+	if total.Sign() == 0 {
+		return 0
+	}
 	curr, _ := current.Float64()
 	t, _ := total.Float64()
 	return curr * 100 / t

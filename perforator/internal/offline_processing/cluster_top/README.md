@@ -23,7 +23,7 @@ A **job** is one `(service, workload)` pair within a generation:
 
 **Workload key** = `coalesce(nullIf(pod_id, ''), node_id)` — used for discovery grouping and the unique index on `cluster_top_jobs`.
 
-Multiple jobs for the same service (one per pod) write **partial** tops to `cluster_top_v3` (`SummingMergeTree`). This is a shadow write path; the UI still reads v2.
+Multiple jobs for the same service (one per pod) write **partial** tops to `cluster_top_v3` (`SummingMergeTree`). Reads sum these contributions across buckets and unmerged rows.
 
 ## Architecture and Databases
 
@@ -40,7 +40,7 @@ The Cluster Top relies on two main databases:
 2. **ClickHouse** — acts as the source of data about existing profiles and the target storage for the aggregated results:
 
    - The initial data is taken from the profile metadata table `profiles`.
-   - Results are written to `cluster_top_v3`; its materialized view updates `cluster_top_by_function_v3`. Existing read APIs continue to use the v2 tables.
+   - Results are written to `cluster_top_v3`; its materialized view updates `cluster_top_by_function_v3`. Reads use only these two tables.
 
 ## Main Components
 
@@ -98,7 +98,7 @@ Each non-empty job makes one source INSERT with `async_insert_deduplicate=1` and
 
 The partition bucket is FNV-1a 64-bit over the service string bytes, modulo the generation's bucket count. It is computed, not stored in PostgreSQL jobs. Current writes contain `event_type = 'cpu.cycles'`; language, binary/build/commit and source coordinates retain empty/zero defaults until the processing pipeline provides them.
 
-This is a write-only transition: there is no dual-write, existing read APIs still query v2, and job locking, statuses and the finisher are unchanged. Inspect v3 shadow results directly in ClickHouse. Deploy the bucket-count scheduler first, and handle old generations with missing counts before starting v3 workers; no automatic backfill or cleanup is performed.
+The bucket-count scheduler must precede the workers. Handle old generations with missing counts before starting workers; no automatic backfill or cleanup is performed. Job locking, statuses and the finisher are unchanged.
 
 A pending job with invalid generation metadata is rejected, not skipped. If it sorts first, it prevents selection of later valid jobs until the old generation is handled.
 
@@ -113,10 +113,18 @@ storage:
         retryable_error_codes: [252]
   cluster_top:
     async_insert:
-      busy_timeout_min: "2s"
       busy_timeout_max: "5s"
       max_data_size: 268435456
 ```
+
+### Read API
+
+- Global function tops and function-name searches read `cluster_top_by_function_v3`.
+- Service breakdowns for an exact function read `cluster_top_v3`.
+- Totals read `cluster_top_by_function_v3`; all queries filter `event_type = 'cpu.cycles'` and sum across buckets and unmerged rows.
+- Empty totals produce zero percentages.
+
+There is no fallback to legacy tables. Historical migrations remain unchanged; deleting old data is a separate operation.
 
 ## Worker config
 
