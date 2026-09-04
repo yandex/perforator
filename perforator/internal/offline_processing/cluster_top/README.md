@@ -57,7 +57,7 @@ The [Scheduler](./scheduler/scheduler.go) is responsible for regularly creating 
     - continuous CPU only: `custom_profiling_operation_id = ''`
     - non-empty workload: `coalesce(nullIf(pod_id, ''), node_id) != ''`
   - **Pod vs host normalization:** if any profile in the group has non-empty `pod_id`, the job is pod-scoped (`pod_id` set, `node_id` empty); otherwise it is host-scoped (`node_id` set, `pod_id` empty).
-  - Creates a new record in PostgreSQL in the `cluster_top_generations` table with the `scheduled` status.
+  - Creates a new record in PostgreSQL in the `cluster_top_generations` table with the `scheduled` status. The scheduler freezes `bucket_count` from `--partition-bucket-count` (default 16, range 1..65535; 0 selects the default) for future v3 writes; changing the flag affects only new generations.
   - Populates the `cluster_top_jobs` table with jobs (status `pending`).
   - **Backpressure:** does not schedule a new generation while any generation remains in `scheduled` status (previous generation not yet `finished`).
 - **Generation Finisher:** a background process in the scheduler that checks every 30 seconds if all jobs in a generation have been processed (no records with the `pending` status). Jobs in `skipped` do not block finishing. If all jobs are processed, the generation's status is changed to `finished`. Also updates queue-depth gauges (`jobs.pending.count`, `generations.scheduled.count`).

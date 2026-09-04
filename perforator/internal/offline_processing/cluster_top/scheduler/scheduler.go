@@ -24,6 +24,8 @@ const clusterTopSystemName = "perforator"
 
 const maxJobsInsertBatchSize = 10000
 
+const DefaultBucketCount uint16 = 16
+
 type generationStatus string
 
 const (
@@ -44,9 +46,13 @@ type Config struct {
 	ProfileLag         time.Duration
 	LeaseTTL           time.Duration
 	MaxConflictErrors  uint32
+	BucketCount        uint16
 }
 
 func (c *Config) FillDefault() {
+	if c.BucketCount == 0 {
+		c.BucketCount = DefaultBucketCount
+	}
 	if c.LeaseTTL == 0 {
 		c.LeaseTTL = 30 * time.Second
 	}
@@ -84,6 +90,7 @@ func NewScheduler(
 	storage *bundle.StorageBundle,
 	conf *Config,
 ) *Scheduler {
+	conf.FillDefault()
 	r := reg.WithPrefix("cluster_top_scheduler")
 
 	return &Scheduler{
@@ -189,11 +196,11 @@ func (s *Scheduler) createGeneration(ctx context.Context, generationID int32, st
 	}
 
 	err = tx.QueryRowContext(ctx,
-		`INSERT INTO cluster_top_generations (id, from_ts, to_ts, status) 
-		 VALUES ($1, $2, $3, $4) 
+		`INSERT INTO cluster_top_generations (id, from_ts, to_ts, status, bucket_count) 
+		 VALUES ($1, $2, $3, $4, $5) 
 		 ON CONFLICT (id) DO NOTHING 
 		 RETURNING id`,
-		generationID, start, end, generationStatusScheduled,
+		generationID, start, end, generationStatusScheduled, s.conf.BucketCount,
 	).Scan(&generationID)
 
 	if err != nil {
@@ -321,6 +328,7 @@ func (s *Scheduler) tryScheduleGeneration(ctx context.Context) error {
 	}
 
 	s.l.Info(ctx, "Successfully created new generation",
+		log.UInt32("bucket_count", uint32(s.conf.BucketCount)),
 		log.Time("start", targetStart),
 		log.Time("end", targetEnd),
 		log.Int("services_count", countUniqueServices(jobs)),

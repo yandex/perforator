@@ -50,6 +50,7 @@ var (
 	clusterTopSchedulerGenerationInterval time.Duration
 	clusterTopSchedulerProfileLag         time.Duration
 	clusterTopSchedulerMaxConflictErrors  uint32
+	clusterTopSchedulerBucketCount        uint16
 
 	clusterTopCommand = &cobra.Command{
 		Use:   "cluster-top",
@@ -135,7 +136,14 @@ var (
 		Use:   "scheduler",
 		Short: "Run the cluster-top generation scheduler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
+			schedulerConf := &scheduler.Config{
+				GenerationInterval: clusterTopSchedulerGenerationInterval,
+				ProfileLag:         clusterTopSchedulerProfileLag,
+				MaxConflictErrors:  clusterTopSchedulerMaxConflictErrors,
+				BucketCount:        clusterTopSchedulerBucketCount,
+			}
+
+			ctx := cmd.Context()
 
 			logLevel, err := log.ParseLevel(clusterTopLogLevelStr)
 			if err != nil {
@@ -161,13 +169,6 @@ var (
 			if err != nil {
 				return err
 			}
-
-			schedulerConf := &scheduler.Config{
-				GenerationInterval: clusterTopSchedulerGenerationInterval,
-				ProfileLag:         clusterTopSchedulerProfileLag,
-				MaxConflictErrors:  clusterTopSchedulerMaxConflictErrors,
-			}
-			schedulerConf.FillDefault()
 
 			s := scheduler.NewScheduler(logger, reg, storageBundle, schedulerConf)
 
@@ -271,6 +272,12 @@ func init() {
 		"Maximum number of consecutive concurrent schedulers errors before shutting down",
 	)
 
+	clusterTopSchedulerCommand.Flags().Uint16Var(
+		&clusterTopSchedulerBucketCount,
+		"partition-bucket-count",
+		scheduler.DefaultBucketCount,
+		"Partition bucket count frozen for each new generation",
+	)
 	clusterTopCommand.AddCommand(clusterTopSchedulerCommand)
 
 	rootCmd.AddCommand(clusterTopCommand)
