@@ -21,8 +21,8 @@ type ClickhousePerfTopAggregator struct {
 
 const kMaxFunctionNameLength = 512
 
-func (a *ClickhousePerfTopAggregator) Save(ctx context.Context, servicePerfTop *ServicePerfTop) error {
-	return a.aggregatedStorage.SaveClusterTopEntry(ctx, servicePerfTop)
+func (a *ClickhousePerfTopAggregator) Save(ctx context.Context, result *JobResult) error {
+	return a.aggregatedStorage.SaveClusterTopEntry(ctx, result)
 }
 
 func (a *ClickhousePerfTopAggregator) Print(context.Context) error {

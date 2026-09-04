@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"math"
 	"math/big"
 	"strings"
 	"time"
@@ -20,6 +22,8 @@ import (
 
 type clusterTopRow struct {
 	Generation       int     `ch:"generation"`
+	PartitionBucket  uint16  `ch:"partition_bucket"`
+	EventType        string  `ch:"event_type"`
 	Service          string  `ch:"service"`
 	Function         string  `ch:"function"`
 	SelfCycles       big.Int `ch:"self_cycles"`
@@ -93,6 +97,7 @@ func getComparisonOperator(mode MatchMode) string {
 }
 
 const (
+	clusterTopWriteTable            = "cluster_top_v3"
 	clusterTopTable                 = "cluster_top_v2"
 	clusterTopByFunctionTable       = "cluster_top_by_function_v2"
 	clusterTopGenerationTotalsTable = "cluster_top_generation_totals_v2"
@@ -224,21 +229,40 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 
 const kMaxFunctionNameLength = 512
 
-func buildClusterTopRows(servicePerfTop *ServicePerfTop) []clusterTopRow {
-	if servicePerfTop == nil || len(servicePerfTop.Functions) == 0 {
+// The hash and service encoding are part of the v3 storage contract. Changing
+// either would route retries to different partitions and break deduplication.
+func partitionBucket(service string, bucketCount uint16) (uint16, error) {
+	if bucketCount == 0 {
+		return 0, fmt.Errorf("partition bucket count must be positive")
+	}
+	hash := fnv.New64a()
+	_, _ = hash.Write([]byte(service))
+	return uint16(hash.Sum64() % uint64(bucketCount)), nil
+}
+
+// One job produces one logical source INSERT. The output identity must change
+// if the computation or batching contract changes; attempts reuse this token.
+func insertDeduplicationToken(generation int, jobID int64) string {
+	return fmt.Sprintf("cluster-top:v3:%d:%d:primary-v1:0", generation, jobID)
+}
+
+func buildClusterTopRows(result *JobResult, bucket uint16) []clusterTopRow {
+	if result == nil || len(result.Functions) == 0 {
 		return nil
 	}
 
-	rows := make([]clusterTopRow, 0, len(servicePerfTop.Functions))
-	for _, function := range servicePerfTop.Functions {
+	rows := make([]clusterTopRow, 0, len(result.Functions))
+	for _, function := range result.Functions {
 		functionName := function.Name
 		if len(functionName) > kMaxFunctionNameLength {
 			functionName = functionName[:kMaxFunctionNameLength]
 		}
 
 		rows = append(rows, clusterTopRow{
-			Generation:       servicePerfTop.Generation,
-			Service:          servicePerfTop.ServiceName,
+			Generation:       result.Generation,
+			PartitionBucket:  bucket,
+			EventType:        "cpu.cycles",
+			Service:          result.ServiceName,
 			Function:         functionName,
 			SelfCycles:       function.SelfCycles,
 			CumulativeCycles: function.CumulativeCycles,
@@ -247,16 +271,29 @@ func buildClusterTopRows(servicePerfTop *ServicePerfTop) []clusterTopRow {
 	return rows
 }
 
-func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, servicePerfTop *ServicePerfTop) error {
-	rows := buildClusterTopRows(servicePerfTop)
+func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, result *JobResult) error {
+	if result == nil {
+		return nil
+	}
+	if result.JobID <= 0 {
+		return fmt.Errorf("invalid cluster top job ID: %d", result.JobID)
+	}
+	if result.Generation < 0 || uint64(result.Generation) > math.MaxUint32 {
+		return fmt.Errorf("invalid cluster top generation: %d", result.Generation)
+	}
+	bucket, err := partitionBucket(result.ServiceName, result.BucketCount)
+	if err != nil {
+		return err
+	}
+	rows := buildClusterTopRows(result, bucket)
 	if len(rows) == 0 {
 		return nil
 	}
 
-	const valuesPlaceholder = "(?, ?, ?, ?, ?)"
+	const valuesPlaceholder = "(?, ?, ?, ?, ?, ?, ?)"
 	var query strings.Builder
 	query.Grow(len(rows) * (len(valuesPlaceholder) + 2))
-	args := make([]any, 0, len(rows)*5)
+	args := make([]any, 0, len(rows)*7)
 	for i := range rows {
 		if i > 0 {
 			query.WriteString(", ")
@@ -264,6 +301,8 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 		query.WriteString(valuesPlaceholder)
 		args = append(args,
 			rows[i].Generation,
+			rows[i].PartitionBucket,
+			rows[i].EventType,
 			rows[i].Service,
 			rows[i].Function,
 			&rows[i].SelfCycles,
@@ -271,7 +310,10 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 		)
 	}
 
-	settings := clickhousego.Settings{}
+	settings := clickhousego.Settings{
+		"async_insert_deduplicate":   1,
+		"insert_deduplication_token": insertDeduplicationToken(result.Generation, result.JobID),
+	}
 	if s.asyncInsertConfig.BusyTimeoutMin > 0 {
 		settings["async_insert_busy_timeout_min_ms"] = s.asyncInsertConfig.BusyTimeoutMin.Milliseconds()
 	}
@@ -288,12 +330,14 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 		clickhousego.WithSettings(settings),
 	)
 
+	// Omitted build, language and source dimensions use the table's empty/zero
+	// defaults until they are available from the processing pipeline.
 	if err := clickhouse.ExecWithRetries(
 		s.l,
 		ctx,
 		s.conn,
-		"cluster_top_insert",
-		fmt.Sprintf("INSERT INTO %s(generation, service, function, self_cycles, cumulative_cycles) VALUES %s", clusterTopTable, query.String()),
+		"cluster_top_v3_insert",
+		fmt.Sprintf("INSERT INTO %s(generation, partition_bucket, event_type, service, function, self_cycles, cumulative_cycles) VALUES %s", clusterTopWriteTable, query.String()),
 		args...,
 	); err != nil {
 		return fmt.Errorf("failed to execute async cluster top insert: %w", err)

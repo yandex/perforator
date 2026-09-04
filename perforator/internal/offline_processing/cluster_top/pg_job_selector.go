@@ -11,14 +11,15 @@ import (
 )
 
 type jobQueueItem struct {
-	ID         int64     `db:"id"`
-	Service    string    `db:"service"`
-	Generation uint32    `db:"generation"`
-	PodID      string    `db:"pod_id"`
-	NodeID     string    `db:"node_id"`
-	From       time.Time `db:"from_ts"`
-	To         time.Time `db:"to_ts"`
-	CreatedAt  time.Time `db:"created_at"`
+	ID          int64     `db:"id"`
+	Service     string    `db:"service"`
+	Generation  uint32    `db:"generation"`
+	BucketCount uint16    `db:"bucket_count"`
+	PodID       string    `db:"pod_id"`
+	NodeID      string    `db:"node_id"`
+	From        time.Time `db:"from_ts"`
+	To          time.Time `db:"to_ts"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 type PgJobSelector struct {
@@ -54,7 +55,8 @@ func (s *PgJobSelector) SelectJob(ctx context.Context) (*SelectedJob, error) {
 			j.node_id,
 			j.created_at,
 			g.from_ts,
-			g.to_ts
+			g.to_ts,
+			g.bucket_count
 		FROM cluster_top_jobs AS j
 		INNER JOIN cluster_top_generations AS g ON g.id = j.generation
 		WHERE
@@ -68,6 +70,10 @@ func (s *PgJobSelector) SelectJob(ctx context.Context) (*SelectedJob, error) {
 	if err != nil {
 		_ = tx.Rollback()
 		return nil, err
+	}
+	if queueItem.BucketCount == 0 {
+		_ = tx.Rollback()
+		return nil, fmt.Errorf("generation %d has zero bucket_count", queueItem.Generation)
 	}
 
 	var startedAt time.Time
@@ -86,11 +92,12 @@ func (s *PgJobSelector) SelectJob(ctx context.Context) (*SelectedJob, error) {
 	}
 
 	job := Job{
-		ID:         queueItem.ID,
-		Generation: int(queueItem.Generation),
-		Service:    queueItem.Service,
-		PodID:      queueItem.PodID,
-		NodeID:     queueItem.NodeID,
+		ID:          queueItem.ID,
+		Generation:  int(queueItem.Generation),
+		BucketCount: queueItem.BucketCount,
+		Service:     queueItem.Service,
+		PodID:       queueItem.PodID,
+		NodeID:      queueItem.NodeID,
 		TimeRange: TimeRange{
 			From: queueItem.From,
 			To:   queueItem.To,

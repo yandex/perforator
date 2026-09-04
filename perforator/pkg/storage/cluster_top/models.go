@@ -32,7 +32,7 @@ type Config struct {
 type Storage interface {
 	ListGenerations(ctx context.Context) ([]*perforator.ClusterTopGeneration, error)
 	AggregateClusterTop(ctx context.Context, generation uint32, filter *aggregated.Filter, aggregationType aggregated.GroupByMode, pagination util.Pagination, sortOrder aggregated.SortOrder) ([]*aggregated.AggregationValue, error)
-	SaveClusterTopEntry(ctx context.Context, servicePerfTop *aggregated.ServicePerfTop) error
+	SaveClusterTopEntry(ctx context.Context, result *aggregated.JobResult) error
 	CountTotalCumulativeCycles(ctx context.Context, generation uint32, totalFunctionName string) (*big.Int, error)
 	CountTotalSelfCycles(ctx context.Context, generation uint32, options ...aggregated.CountTotalSelfCyclesOption) (*big.Int, error)
 }

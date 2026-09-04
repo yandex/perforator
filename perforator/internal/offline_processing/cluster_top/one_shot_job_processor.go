@@ -118,8 +118,10 @@ func (p *oneShotJobProcessor) run(ctx context.Context) (result oneShotJobResult,
 	p.stats.Metrics.ProfilesProcessed = len(profileMetas)
 
 	saveStart := time.Now()
-	err = p.aggregator.Save(ctx, &ServicePerfTop{
+	err = p.aggregator.Save(ctx, &JobResult{
+		JobID:       p.job.ID,
 		Generation:  p.job.Generation,
+		BucketCount: p.job.BucketCount,
 		ServiceName: p.job.Service,
 		Functions:   processed.functions,
 	})

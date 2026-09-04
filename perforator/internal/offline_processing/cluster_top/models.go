@@ -20,14 +20,15 @@ func workloadKey(podID, nodeID string) string {
 }
 
 type Job struct {
-	ID         int64
-	Generation int
-	Service    string
-	PodID      string
-	NodeID     string
-	TimeRange  TimeRange
-	CreatedAt  time.Time
-	StartedAt  time.Time
+	ID          int64
+	Generation  int
+	BucketCount uint16
+	Service     string
+	PodID       string
+	NodeID      string
+	TimeRange   TimeRange
+	CreatedAt   time.Time
+	StartedAt   time.Time
 }
 
 func (j Job) WorkloadKey() string {
@@ -52,10 +53,10 @@ type JobSelector interface {
 
 type Function = aggregated.Function
 
-type ServicePerfTop = aggregated.ServicePerfTop
+type JobResult = aggregated.JobResult
 
 type ClusterPerfTopAggregator interface {
-	Save(ctx context.Context, servicePerfTop *ServicePerfTop) error
+	Save(ctx context.Context, result *JobResult) error
 
 	Print(ctx context.Context) error
 }

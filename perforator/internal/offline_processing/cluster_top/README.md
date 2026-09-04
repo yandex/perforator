@@ -23,7 +23,7 @@ A **job** is one `(service, workload)` pair within a generation:
 
 **Workload key** = `coalesce(nullIf(pod_id, ''), node_id)` — used for discovery grouping and the unique index on `cluster_top_jobs`.
 
-Multiple jobs for the same service (one per pod) write **partial** tops to ClickHouse. `cluster_top_v2` uses `SummingMergeTree`, so the UI reads the merged service-level top after all pod jobs complete.
+Multiple jobs for the same service (one per pod) write **partial** tops to `cluster_top_v3` (`SummingMergeTree`). This is a shadow write path; the UI still reads v2.
 
 ## Architecture and Databases
 
@@ -40,7 +40,7 @@ The Cluster Top relies on two main databases:
 2. **ClickHouse** — acts as the source of data about existing profiles and the target storage for the aggregated results:
 
    - The initial data is taken from the profile metadata table `profiles`.
-   - The results are written to `cluster_top_v2` (SummingMergeTree), which stores pre-calculated values (generation, service, function, self cycles, cumulative cycles). Materialized views `cluster_top_by_function_v2` and `cluster_top_generation_totals_v2` are updated automatically.
+   - Results are written to `cluster_top_v3`; its materialized view updates `cluster_top_by_function_v3`. Existing read APIs continue to use the v2 tables.
 
 ## Main Components
 
@@ -66,7 +66,7 @@ The [Scheduler](./scheduler/scheduler.go) is responsible for regularly creating 
 
 The Workers are responsible for the actual data aggregation. They run concurrently in a single pool, taking jobs from PostgreSQL. The main logic is located in [cluster_top.go](./cluster_top.go).
 
-- **Job selection:** a worker takes a job from the `cluster_top_jobs` queue using `SELECT ... FOR UPDATE OF j SKIP LOCKED` with a join to `cluster_top_generations` for the time window, preferring jobs with more profiles (`profiles_count DESC`). See [PgJobSelector](./pg_job_selector.go).
+- **Job selection:** a worker takes a job from the `cluster_top_jobs` queue using `SELECT ... FOR UPDATE OF j SKIP LOCKED` with a join to `cluster_top_generations` for the time window and frozen `bucket_count`, preferring jobs with more profiles (`profiles_count DESC`). A missing count or a value outside 1..65535 is rejected without claiming the job. See [PgJobSelector](./pg_job_selector.go).
 - **Profile fetch filters** (via `ProfileStorage` selector in `buildSelector`):
   - same continuous-CPU CPO filter as the scheduler
   - scope by `pod_id` or `node_id` depending on job type
@@ -81,31 +81,41 @@ The Workers are responsible for the actual data aggregation. They run concurrent
   2. Downloads the necessary symbol files (GSYM) for the binaries found in the profiles via `ClusterTopSymbolizer`.
   3. Downloads the raw profiles in batches from Blob Storage.
   4. Aggregates the profiles in parallel within the job: builds call trees and extracts the top functions, calculating `self_cycles` and `cumulative_cycles`.
-  5. Saves the aggregated result to ClickHouse in `cluster_top_v2` via [ClickhousePerfTopAggregator](./clickhouse_perf_top_aggregator.go).
+  5. Saves the aggregated result to ClickHouse in `cluster_top_v3` via [ClickhousePerfTopAggregator](./clickhouse_perf_top_aggregator.go); its materialized view populates `cluster_top_by_function_v3`.
   6. Updates the job status in PostgreSQL to `done` (or `failed` in case of an error, or `skipped` for services on the skip list).
 
 ### Asynchronous ClickHouse inserts
 
-Cluster Top always buffers its per-job writes using ClickHouse asynchronous inserts. The configured minimum and maximum adaptive busy timeouts and maximum buffered data size are attached only to `cluster_top_v2` INSERT queries. They do not change the shared ClickHouse connection defaults or the `profiles` write path. If a value is omitted, ClickHouse uses its server default.
+Cluster Top always buffers its per-job writes using ClickHouse asynchronous inserts. The configured minimum and maximum adaptive busy timeouts and maximum buffered data size are attached only to `cluster_top_v3` INSERT queries. They do not change the shared ClickHouse connection defaults or the `profiles` write path. If a value is omitted, ClickHouse uses its server default.
 
-ClickHouse starts the adaptive timeout at `busy_timeout_min` and adjusts it up to `busy_timeout_max` based on the INSERT arrival rate. Cluster Top does not configure `async_insert_max_query_number`: in ClickHouse 25.8 that threshold only triggers when asynchronous insert deduplication is enabled, which is not used for these INSERTs.
+ClickHouse starts the adaptive timeout at `busy_timeout_min` and adjusts it up to `busy_timeout_max` based on the INSERT arrival rate. Cluster Top does not override `async_insert_max_query_number`; with deduplication enabled, this server-side threshold can also trigger a flush before the timeout or size limit.
 
 The worker always uses `wait_for_async_insert=1`. `SaveClusterTopEntry` therefore returns successfully only after ClickHouse has flushed the buffered INSERT, and only then can the PostgreSQL job be marked `done`.
 
 INSERT retries are disabled unless `retryable_error_codes` is configured. Production and prestable retry only error code 252 (`Too many parts`) with bounded exponential backoff and jitter. Other errors are returned immediately because their insert outcome may be ambiguous.
 
+Each non-empty job makes one source INSERT with `async_insert_deduplicate=1` and token `cluster-top:v3:<generation>:<job-id>:primary-v1:0`. Retries use `ExecWithRetries` with operation `cluster_top_v3_insert` and reuse this token. Change the output identity if the computation or batching contract changes. Deduplication is bounded by ClickHouse's time/count windows; configure them to cover the retry horizon and use a patched 26.3 LTS build as described in the v3 RFC.
+
+The partition bucket is FNV-1a 64-bit over the service string bytes, modulo the generation's bucket count. It is computed, not stored in PostgreSQL jobs. Current writes contain `event_type = 'cpu.cycles'`; language, binary/build/commit and source coordinates retain empty/zero defaults until the processing pipeline provides them.
+
+This is a write-only transition: there is no dual-write, existing read APIs still query v2, and job locking, statuses and the finisher are unchanged. Inspect v3 shadow results directly in ClickHouse. Deploy the bucket-count scheduler first, and handle old generations with missing counts before starting v3 workers; no automatic backfill or cleanup is performed.
+
+A pending job with invalid generation metadata is rejected, not skipped. If it sorts first, it prevents selection of later valid jobs until the old generation is handled.
+
 ```yaml
 storage:
+  databases:
+    clickhouse:
+      exec_retry:
+        initial_backoff: "1s"
+        max_backoff: "30s"
+        max_elapsed_time: "30m"
+        retryable_error_codes: [252]
   cluster_top:
     async_insert:
       busy_timeout_min: "2s"
       busy_timeout_max: "5s"
       max_data_size: 268435456
-      insert_retries:
-        initial_backoff: "1s"
-        max_backoff: "30s"
-        max_elapsed_time: "30m"
-        retryable_error_codes: [252]
 ```
 
 ## Worker config
@@ -128,7 +138,7 @@ flowchart LR
 
     subgraph Storage
         CH_PROFILES[(ClickHouse: profiles)]
-        CH_TOP[(ClickHouse: cluster_top_v2)]
+        CH_TOP[(ClickHouse: cluster_top_v3)]
         PG[(PostgreSQL: Queue & State)]
         BLOB[Blob Storage: Profiles & Symbols]
     end
