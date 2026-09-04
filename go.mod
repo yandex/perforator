@@ -626,7 +626,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/keybase/go-keychain v0.0.1
 	github.com/kisielk/og-rek v1.3.0
-	github.com/klauspost/compress v1.18.4
+	github.com/klauspost/compress v1.18.5
 	github.com/klauspost/cpuid/v2 v2.3.0
 	github.com/klauspost/reedsolomon v1.10.1-0.20220820100202-797d62e03058
 	github.com/kolesa-team/go-webp v1.0.5
@@ -685,8 +685,8 @@ require (
 	github.com/mrknow-all/go-oae v0.0.0-20221221002406-36600e4f6b43
 	github.com/nathan-osman/go-sunrise v1.1.0
 	github.com/nats-io/jwt/v2 v2.8.0
-	github.com/nats-io/nats.go v1.36.0
-	github.com/nats-io/nkeys v0.4.12
+	github.com/nats-io/nats.go v1.52.0
+	github.com/nats-io/nkeys v0.4.15
 	github.com/nats-io/nuid v1.0.1
 	github.com/ncruces/go-proxied v0.1.6
 	github.com/neo4j/neo4j-go-driver/v5 v5.6.0

@@ -638,3 +638,153 @@ func TestDecoderRawDict(t *testing.T) {
 		t.Errorf("mismatch: got %q, wanted %q", out, ref)
 	}
 }
+
+// TestEncoderDictResetDifferentContent verifies that ResetWithOptions correctly
+// handles switching between raw dicts that share the same ID but have different
+// content lengths. Previously, the encoder cached dict tables by ID only, so a
+// shorter dict reusing the same ID would leave stale table entries pointing
+// beyond the new (shorter) history, causing an out-of-bounds panic in matchlen.
+func TestEncoderDictResetDifferentContent(t *testing.T) {
+	// Two raw dicts: same ID, different content lengths.
+	longDict := make([]byte, 700)
+	for i := range longDict {
+		longDict[i] = byte(i * 3)
+	}
+	shortDict := make([]byte, 120)
+	for i := range shortDict {
+		shortDict[i] = byte(i * 7)
+	}
+
+	const dictID = 42
+	// Payload reuses bytes from the tail of longDict (beyond shortDict's length).
+	// This makes stale dict table entries match during encoding, triggering the
+	// out-of-bounds access when the encoder uses the stale offset.
+	payload := make([]byte, 200)
+	copy(payload, longDict[500:])
+
+	for level := SpeedFastest; level < speedLast; level++ {
+		t.Run(level.String(), func(t *testing.T) {
+			enc, err := NewWriter(nil, WithEncoderConcurrency(1), WithEncoderLevel(level), WithEncoderDictRaw(dictID, longDict))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Encode with long dict first to populate table entries at high offsets.
+			enc.EncodeAll(payload, nil)
+
+			// Switch to shorter dict with same ID. This must rebuild the tables.
+			if err := enc.ResetWithOptions(nil, WithEncoderDictRaw(dictID, shortDict)); err != nil {
+				t.Fatal(err)
+			}
+			compressed := enc.EncodeAll(payload, nil)
+
+			// Verify round-trip with matching dict.
+			dec, err := NewReader(nil, WithDecoderConcurrency(1), WithDecoderDictRaw(dictID, shortDict))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer dec.Close()
+			got, err := dec.DecodeAll(compressed, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, payload) {
+				t.Errorf("round-trip mismatch: got %q, want %q", got, payload)
+			}
+		})
+	}
+}
+
+// TestEncoderDictAddViaReset verifies that adding/removing a dict via
+// ResetWithOptions works (requires recreating the encoder type).
+func TestEncoderDictAddViaReset(t *testing.T) {
+	dict := make([]byte, 120)
+	for i := range dict {
+		dict[i] = byte(i)
+	}
+	payload := []byte("hello world, this is a test payload!!")
+
+	for level := SpeedFastest; level < speedLast; level++ {
+		t.Run("nil-to-dict/"+level.String(), func(t *testing.T) {
+			enc, err := NewWriter(nil, WithEncoderConcurrency(1), WithEncoderLevel(level))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := enc.ResetWithOptions(nil, WithEncoderDictRaw(42, dict)); err != nil {
+				t.Fatal(err)
+			}
+			compressed := enc.EncodeAll(payload, nil)
+
+			dec, err := NewReader(nil, WithDecoderConcurrency(1), WithDecoderDictRaw(42, dict))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer dec.Close()
+			got, err := dec.DecodeAll(compressed, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, payload) {
+				t.Errorf("round-trip mismatch: got %q, want %q", got, payload)
+			}
+		})
+
+		t.Run("dict-to-nil/"+level.String(), func(t *testing.T) {
+			enc, err := NewWriter(nil, WithEncoderConcurrency(1), WithEncoderLevel(level), WithEncoderDictRaw(42, dict))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := enc.ResetWithOptions(nil, WithEncoderDictDelete()); err != nil {
+				t.Fatal(err)
+			}
+			compressed := enc.EncodeAll(payload, nil)
+
+			dec, err := NewReader(nil, WithDecoderConcurrency(1))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer dec.Close()
+			got, err := dec.DecodeAll(compressed, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, payload) {
+				t.Errorf("round-trip mismatch: got %q, want %q", got, payload)
+			}
+		})
+
+		t.Run("streaming-dict-to-nil/"+level.String(), func(t *testing.T) {
+			var buf bytes.Buffer
+			enc, err := NewWriter(&buf, WithEncoderConcurrency(2), WithEncoderLevel(level), WithEncoderDictRaw(42, dict))
+			if err != nil {
+				t.Fatal(err)
+			}
+			enc.Close()
+
+			buf.Reset()
+			if err := enc.ResetWithOptions(&buf, WithEncoderDictDelete()); err != nil {
+				t.Fatal(err)
+			}
+			_, err = enc.Write(payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := enc.Close(); err != nil {
+				t.Fatal(err)
+			}
+
+			dec, err := NewReader(nil, WithDecoderConcurrency(1))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer dec.Close()
+			got, err := dec.DecodeAll(buf.Bytes(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, payload) {
+				t.Errorf("round-trip mismatch: got %q, want %q", got, payload)
+			}
+		})
+	}
+}
