@@ -6,4 +6,10 @@ SRCS(
     shard.go
 )
 
+GO_TEST_SRCS(
+    gc_test.go
+)
+
 END()
+
+RECURSE(gotest)
