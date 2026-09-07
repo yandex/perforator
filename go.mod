@@ -1150,7 +1150,7 @@ require (
 	gorm.io/gorm v1.25.12
 	gorm.io/plugin/dbresolver v1.5.3
 	helm.sh/helm/v3 v3.11.3
-	honnef.co/go/tools v0.7.0
+	honnef.co/go/tools v0.8.1
 	k8s.io/api v0.35.2
 	k8s.io/apiextensions-apiserver v0.34.1
 	k8s.io/apimachinery v0.36.0-beta.0
