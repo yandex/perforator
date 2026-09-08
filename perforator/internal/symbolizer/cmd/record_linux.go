@@ -49,6 +49,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/perforator"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 	symbolizerClient "github.com/yandex/perforator/perforator/symbolizer/pkg/client"
 )
 
@@ -659,7 +660,7 @@ func newBinaryStorage(ctx context.Context, logger xlog.Logger) (*binaryStorage, 
 	}, nil
 }
 
-func (s *binaryStorage) StoreBinary(ctx context.Context, buildID string, file binary.SealedFile) error {
+func (s *binaryStorage) StoreBinary(ctx context.Context, buildID string, _ *perforatorstorage.BinaryAttributes, file binary.SealedFile) error {
 	s.binariesmu.Lock()
 	defer s.binariesmu.Unlock()
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -86,7 +87,7 @@ func compressionConfigFromString(compression string) (*compressionConfig, error)
 
 type pushBinaryParams struct {
 	uncompressedSize uint64
-	attributes       map[string]string
+	metadata         *perforatorstorage.BinaryAttributes
 }
 
 type PushBinaryOption func(*pushBinaryParams)
@@ -97,9 +98,10 @@ func WithUncompressedSize(size uint64) PushBinaryOption {
 	}
 }
 
-func WithBinaryAttributes(attributes map[string]string) PushBinaryOption {
+// WithBinaryMetadata snapshots the supplied metadata, including nested messages.
+func WithBinaryMetadata(metadata *perforatorstorage.BinaryAttributes) PushBinaryOption {
 	return func(p *pushBinaryParams) {
-		p.attributes = maps.Clone(attributes)
+		p.metadata = proto.CloneOf(metadata)
 	}
 }
 
@@ -401,7 +403,7 @@ func (c *Client) PushBinary(ctx context.Context, buildID string, opts ...PushBin
 					BuildID:          buildID,
 					Compression:      compression,
 					UncompressedSize: uncompressedSize,
-					Attributes:       params.attributes,
+					Attributes:       params.metadata,
 				},
 			},
 		},

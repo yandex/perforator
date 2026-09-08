@@ -6,17 +6,16 @@ package binaryupload
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"time"
 
 	"github.com/karlseguin/ccache/v3"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
@@ -225,15 +224,17 @@ func receiveHead(stream perforatorstorage.PerforatorStorage_PushBinaryServer) (*
 	return head, nil
 }
 
-func validateAttributes(attributes map[string]string) error {
-	data, err := json.Marshal(attributes)
+func validateAttributes(attributes *perforatorstorage.BinaryAttributes) error {
+	if attributes == nil {
+		return nil
+	}
+	data, err := protojson.Marshal(attributes)
 	if err != nil {
 		return fmt.Errorf("serialize attributes: %w", err)
 	}
 	if len(data) > maxAttributesJSONBytes {
 		return fmt.Errorf("attributes JSON is too large: %d > %d bytes", len(data), maxAttributesJSONBytes)
 	}
-
 	return nil
 }
 
@@ -321,8 +322,8 @@ func (s *Service) push(stream perforatorstorage.PerforatorStorage_PushBinaryServ
 	if isCompressed(compression) {
 		opts = append(opts, binarymeta.WithCompression(compression, head.GetUncompressedSize()))
 	}
-	if len(head.GetAttributes()) > 0 {
-		opts = append(opts, binarymeta.WithAttributes(maps.Clone(head.GetAttributes())))
+	if head.GetAttributes() != nil {
+		opts = append(opts, binarymeta.WithAttributes(head.GetAttributes()))
 	}
 
 	body := &bodyReader{stream: stream}

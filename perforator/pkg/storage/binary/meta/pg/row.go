@@ -1,14 +1,17 @@
 package pg
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
+
+	"google.golang.org/protobuf/encoding/protojson"
 
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 const (
@@ -69,7 +72,6 @@ func RowToBinaryMeta(row *BinaryRow) (*binarymeta.BinaryMeta, error) {
 		Timestamp:         row.Timestamp,
 		LastUsedTimestamp: row.LastUsedTimestamp,
 		Status:            binarymeta.UploadStatus(row.UploadStatus),
-		Attributes:        make(map[string]string),
 		Compression:       compression,
 		UncompressedSize:  uncompressedSize,
 	}
@@ -88,10 +90,15 @@ func RowToBinaryMeta(row *BinaryRow) (*binarymeta.BinaryMeta, error) {
 		}
 	}
 
-	if len(row.Attributes) > 0 {
-		_ = json.Unmarshal(row.Attributes, &res.Attributes)
+	// Older rows may contain JSON null or arbitrary string-map attributes.
+	// Ignore fields outside the typed schema so those rows remain readable.
+	data := bytes.TrimSpace(row.Attributes)
+	if len(data) != 0 && !bytes.Equal(data, []byte("null")) {
+		res.Attributes = &perforatorstorage.BinaryAttributes{}
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(data, res.Attributes); err != nil {
+			return nil, fmt.Errorf("decode binary attributes: %w", err)
+		}
 	}
-
 	return res, nil
 }
 
@@ -114,12 +121,21 @@ func BinaryMetaToRow(ctx context.Context, meta *binarymeta.BinaryMeta) (*BinaryR
 		row.Size = meta.BlobInfo.Size
 	}
 
-	if len(meta.Attributes) > 0 {
-		attributes, err := json.Marshal(meta.Attributes)
-		if err == nil {
-			row.Attributes = attributes
-		}
+	row.Attributes, err = marshalAttributes(meta.Attributes)
+	if err != nil {
+		return nil, err
 	}
 
 	return row, nil
+}
+
+func marshalAttributes(attributes *perforatorstorage.BinaryAttributes) ([]byte, error) {
+	if attributes == nil {
+		return nil, nil
+	}
+	data, err := protojson.Marshal(attributes)
+	if err != nil {
+		return nil, fmt.Errorf("encode binary attributes: %w", err)
+	}
+	return data, nil
 }

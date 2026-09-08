@@ -9,6 +9,7 @@ SRCS(
 )
 
 GO_TEST_SRCS(
+    map_test.go
     process_info_test.go
 )
 

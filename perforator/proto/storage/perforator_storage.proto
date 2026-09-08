@@ -63,6 +63,17 @@ message AnnounceBinariesResponse {
     repeated string UnknownBuildIDs = 1;
 }
 
+// Metadata describing the upload that supplied this binary.
+message BinaryUploadMetadata {
+    string Host = 1;
+    string Path = 2;
+    string Filename = 3;
+}
+
+message BinaryAttributes {
+    optional BinaryUploadMetadata Upload = 1;
+}
+
 message PushBinaryRequestHead {
     string BuildID = 1;
     // Compression codec used to compress the binary blob.
@@ -70,8 +81,9 @@ message PushBinaryRequestHead {
     // UncompressedSize is the original size of the binary before compression.
     // Must be set when Compression != COMPRESSION_METHOD_NONE.
     uint64 UncompressedSize = 3;
-    // Optional metadata associated with the binary.
-    map<string, string> Attributes = 4;
+    reserved 4;
+    // Optional typed metadata associated with the binary.
+    BinaryAttributes Attributes = 5;
 }
 
 message PushBinaryRequestBody {

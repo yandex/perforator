@@ -17,6 +17,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 type storageMetrics struct {
@@ -69,9 +70,14 @@ func (s *Storage) updateInactiveUpload(
 	timestamp time.Time,
 	uncompressedSize uint64,
 	compression compressionpb.CompressionMethod,
-	attributes map[string]string,
+	attributes *perforatorstorage.BinaryAttributes,
 ) error {
 	compressionStr, err := compressionMethodToString(ctx, compression)
+	if err != nil {
+		return err
+	}
+
+	attributesJSON, err := marshalAttributes(attributes)
 	if err != nil {
 		return err
 	}
@@ -91,7 +97,7 @@ func (s *Storage) updateInactiveUpload(
 		timestamp,
 		binarymeta.InProgress,
 		compressionStr,
-		attributes,
+		attributesJSON,
 		buildID,
 	)
 
@@ -105,9 +111,14 @@ func (s *Storage) storeBinary(
 	timestamp time.Time,
 	uncompressedSize uint64,
 	compression compressionpb.CompressionMethod,
-	attributes map[string]string,
+	attributes *perforatorstorage.BinaryAttributes,
 ) error {
 	compressionStr, err := compressionMethodToString(ctx, compression)
+	if err != nil {
+		return err
+	}
+
+	attributesJSON, err := marshalAttributes(attributes)
 	if err != nil {
 		return err
 	}
@@ -119,7 +130,7 @@ func (s *Storage) storeBinary(
 		buildID,
 		uncompressedSize,
 		timestamp,
-		attributes,
+		attributesJSON,
 		binarymeta.InProgress,
 		compressionStr,
 	)

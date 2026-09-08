@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 func TestCompressionConfigFromString(t *testing.T) {
@@ -63,16 +64,6 @@ func TestCompressionConfigFromStringInvalidCodec(t *testing.T) {
 	require.Nil(t, conf)
 }
 
-func TestWithBinaryAttributesCopiesInput(t *testing.T) {
-	attributes := map[string]string{"build.commit_id": "before"}
-	params := &pushBinaryParams{}
-
-	WithBinaryAttributes(attributes)(params)
-	attributes["build.commit_id"] = "after"
-
-	require.Equal(t, map[string]string{"build.commit_id": "before"}, params.attributes)
-}
-
 func TestCompressionConfigCompressBytes(t *testing.T) {
 	conf, err := compressionConfigFromString("zstd_3")
 	require.NoError(t, err)
@@ -112,4 +103,14 @@ func TestCompressionConfigZstdWriter(t *testing.T) {
 	decompressed, err := io.ReadAll(reader)
 	require.NoError(t, err)
 	require.Equal(t, []byte("hello compressed binary"), decompressed)
+}
+
+func TestWithBinaryMetadataCopiesNestedFields(t *testing.T) {
+	metadata := &perforatorstorage.BinaryAttributes{Upload: &perforatorstorage.BinaryUploadMetadata{Path: "/lib/libc.so.6"}}
+	params := &pushBinaryParams{}
+	WithBinaryMetadata(metadata)(params)
+	metadata.Upload.Path = "changed"
+	require.Equal(t, "/lib/libc.so.6", params.metadata.GetUpload().GetPath())
+	WithBinaryMetadata(nil)(params)
+	require.Nil(t, params.metadata)
 }

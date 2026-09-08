@@ -5,9 +5,12 @@ import (
 	"errors"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 var (
@@ -37,7 +40,7 @@ type CompressionOption struct {
 }
 
 type AttributesOption struct {
-	Attributes map[string]string
+	Attributes *perforatorstorage.BinaryAttributes
 }
 
 type Option interface {
@@ -83,8 +86,8 @@ func (o attributesOptionSetter) Apply(opts *BinaryMetaOptions) {
 	o.apply(opts)
 }
 
-func WithAttributes(attrs map[string]string) Option {
-	return attributesOptionSetter{Attributes: attrs}
+func WithAttributes(attrs *perforatorstorage.BinaryAttributes) Option {
+	return attributesOptionSetter{Attributes: proto.CloneOf(attrs)}
 }
 
 type (
@@ -95,7 +98,7 @@ type (
 		Timestamp         time.Time
 		LastUsedTimestamp time.Time
 		Status            UploadStatus
-		Attributes        map[string]string
+		Attributes        *perforatorstorage.BinaryAttributes
 		Compression       compressionpb.CompressionMethod
 		UncompressedSize  uint64
 	}

@@ -9,11 +9,13 @@ import (
 
 	"github.com/karlseguin/ccache/v3"
 	"golang.org/x/sync/semaphore"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 const (
@@ -61,8 +63,9 @@ func (c *SchedulerConfig) fillDefault() {
 }
 
 type ClosedBinary struct {
-	BuildID string
-	Handle  binary.SealedFile
+	BuildID    string
+	Handle     binary.SealedFile
+	Attributes *perforatorstorage.BinaryAttributes
 }
 
 type uploadSchedulerMetrics struct {
@@ -131,14 +134,14 @@ func NewUploadScheduler(
 }
 
 // thread safe
-func (u *Scheduler) ScheduleBinary(buildID string, handle binary.SealedFile) error {
+func (u *Scheduler) ScheduleBinary(buildID string, handle binary.SealedFile, attributes *perforatorstorage.BinaryAttributes) error {
 	if item := u.uploadedBinariesCache.Get(buildID); item != nil && !item.Expired() {
 		u.metrics.uploadedBinariesCacheHits.Inc()
 		return nil
 	}
 
 	select {
-	case u.binariesQueue <- ClosedBinary{BuildID: buildID, Handle: handle}:
+	case u.binariesQueue <- ClosedBinary{BuildID: buildID, Handle: handle, Attributes: proto.CloneOf(attributes)}:
 	default:
 		return ErrBinariesQueueFull
 	}
@@ -155,7 +158,7 @@ func (u *Scheduler) uploadBinaryImpl(ctx context.Context, buildID string, closed
 	}
 	defer u.simultaneousUploadsSem.Release(1)
 
-	err = u.storage.StoreBinary(ctx, buildID, closedBinary.Handle)
+	err = u.storage.StoreBinary(ctx, buildID, closedBinary.Attributes, closedBinary.Handle)
 	if err != nil {
 		return
 	}

@@ -20,6 +20,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 func profileToBytes(profile *profile.Profile) ([]byte, error) {
@@ -247,7 +248,7 @@ func unsealBinarySafe(binary binary.SealedFile, expectedBuildID string) (f binar
 	return
 }
 
-func (s *RemoteStorage) StoreBinary(ctx context.Context, buildID string, binary binary.SealedFile) error {
+func (s *RemoteStorage) StoreBinary(ctx context.Context, buildID string, attributes *perforatorstorage.BinaryAttributes, binary binary.SealedFile) error {
 	l := s.logger.WithContext(ctx)
 	start := time.Now()
 	s.metrics.binariesUploadsInProgress.Add(1)
@@ -268,7 +269,10 @@ func (s *RemoteStorage) StoreBinary(ctx context.Context, buildID string, binary 
 		return err
 	}
 
-	w, err := s.client.PushBinary(ctx, buildID, storage.WithUncompressedSize(uint64(fi.Size())))
+	w, err := s.client.PushBinary(ctx, buildID,
+		storage.WithUncompressedSize(uint64(fi.Size())),
+		storage.WithBinaryMetadata(attributes),
+	)
 	if err != nil {
 		l.Error("Failed to start binary writer", log.String("build_id", buildID), log.Error(err))
 		return err

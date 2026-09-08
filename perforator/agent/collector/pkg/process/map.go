@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"math"
 	"math/bits"
+	"os"
+	"path"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,6 +33,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/linux/vdso"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -52,7 +56,8 @@ type ProcessRegistry struct {
 	state      *programstate.State
 	mounts     *mountinfo.Watcher
 
-	uploader *upload.Scheduler
+	uploader   *upload.Scheduler
+	uploadHost string
 
 	metrics        processRegistryMetrics
 	processScanner ProcessScanner
@@ -206,6 +211,12 @@ func NewProcessRegistry(
 		return nil, err
 	}
 
+	uploadHost, err := os.Hostname()
+	if err != nil {
+		l.Logger().Warn("Failed to resolve binary upload hostname", log.Error(err))
+		uploadHost = ""
+	}
+
 	p := &ProcessRegistry{
 		log:               l,
 		procs:             make(map[linux.CurrentNamespacePID]*processInfo),
@@ -214,6 +225,7 @@ func NewProcessRegistry(
 		procchan:          make(chan *processInfo, 8192),
 		buildids:          NewBuildIDCache(),
 		uploader:          uploader,
+		uploadHost:        uploadHost,
 		mounts:            mounts,
 		pidNamespaceIndex: newPidNamespaceIndex(),
 		metrics: processRegistryMetrics{
@@ -569,6 +581,15 @@ func (a *processAnalyzer) loadMaps(ctx context.Context) error {
 	})
 }
 
+func getBinaryAttributes(mappingPath, uploadHost string) *perforatorstorage.BinaryAttributes {
+	mappingPath = strings.TrimSuffix(mappingPath, " (deleted)")
+	upload := &perforatorstorage.BinaryUploadMetadata{Host: uploadHost, Path: mappingPath}
+	if mappingPath != "" {
+		upload.Filename = path.Base(mappingPath)
+	}
+	return &perforatorstorage.BinaryAttributes{Upload: upload}
+}
+
 func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping) error {
 	mapping := dso.Mapping{Mapping: *m}
 	if mapping.Path == "" {
@@ -687,7 +708,7 @@ func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping)
 
 	a.reg.dsoStorage.Compactify(ctx, a.proc.currentNamespaceID)
 
-	err = a.uploader.ScheduleBinary(buildid, handle)
+	err = a.uploader.ScheduleBinary(buildid, handle, getBinaryAttributes(mapping.Path, a.reg.uploadHost))
 	if err != nil {
 		a.reg.metrics.mappingsFailedScheduleUpload.Inc()
 		l.Debug(ctx, "Failed to schedule binary for upload", log.String("build_id", buildid), log.Error(err))

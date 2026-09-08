@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -18,7 +19,7 @@ func (s *DummyStorage) StoreProfile(ctx context.Context, _ LabeledProfile) error
 	return nil
 }
 
-func (s *DummyStorage) StoreBinary(ctx context.Context, buildID string, binary binary.SealedFile) error {
+func (s *DummyStorage) StoreBinary(ctx context.Context, buildID string, attributes *perforatorstorage.BinaryAttributes, binary binary.SealedFile) error {
 	return nil
 }
 

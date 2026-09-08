@@ -5,10 +5,11 @@ import (
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 type BinaryStorage interface {
-	StoreBinary(ctx context.Context, buildID string, binary binary.SealedFile) error
+	StoreBinary(ctx context.Context, buildID string, attributes *perforatorstorage.BinaryAttributes, binary binary.SealedFile) error
 	AnnounceBinaries(ctx context.Context, buildIDs []string) ([]string, error)
 }
 

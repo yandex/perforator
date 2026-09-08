@@ -14,6 +14,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	"github.com/yandex/perforator/perforator/pkg/atomicfs"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -121,7 +122,7 @@ func (s *LocalStorage) binaryPath(buildID string) string {
 	return filepath.Join(s.conf.BinaryDir, fmt.Sprintf("binary_%s", strings.ReplaceAll(buildID, "/", "%")))
 }
 
-func (s *LocalStorage) StoreBinary(ctx context.Context, buildID string, binary binary.SealedFile) error {
+func (s *LocalStorage) StoreBinary(ctx context.Context, buildID string, attributes *perforatorstorage.BinaryAttributes, binary binary.SealedFile) error {
 	if s.conf.skipBinaries() {
 		return nil
 	}
