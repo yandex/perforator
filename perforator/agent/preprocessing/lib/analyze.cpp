@@ -124,17 +124,17 @@ TMaybe<NPerforator::NBinaryProcessing::NPhp::PhpConfig> BuildPhpConfig(llvm::obj
     }
     conf.SetZtsEnabled(*ztsEnabled);
 
-    auto vmKind = analyzer.ParseZendVmKind();
-    if (!vmKind) {
-        return MakeMaybe(conf);
-    }
-    conf.SetZendVmKind(static_cast<ui32>(*vmKind));
-
     auto executorGlobalsAddress = analyzer.ParseExecutorGlobals();
     if (!executorGlobalsAddress) {
         return MakeMaybe(conf);
     }
     conf.SetExecutorGlobalsELFVaddr(*executorGlobalsAddress);
+
+    auto vmKind = analyzer.ParseZendVmKind();
+    if (!vmKind) {
+        return MakeMaybe(conf);
+    }
+    conf.SetZendVmKind(static_cast<ui32>(*vmKind));
 
     return MakeMaybe(conf);
 }
