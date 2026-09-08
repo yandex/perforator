@@ -15,6 +15,7 @@ var (
 		Short:         "Calculate buildids",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		Args:          cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return run(args[0])
 		},
