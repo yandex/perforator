@@ -4,22 +4,11 @@ LIBRARY()
 LICENSE(GPL-2.0)
 
 
-INCLUDE(gen.inc)
 SRCS(
+    offsets.cpp
+    parser.cpp
     static_analysis.cpp
 )
-IF (DEFINED JDK_NOT_CONFIGURED)
-    SRCS(
-        fallback.cpp
-    )
-ELSE()
-    SRCS(
-        offsets.cpp
-    )
-
-    # TODO: get rid of this
-    NO_COMPILER_WARNINGS()
-ENDIF()
 
 PEERDIR(
     perforator/internal/linguist/jvm/analysis/offset_registry

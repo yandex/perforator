@@ -42,10 +42,10 @@ size_t IntsLength(const char* ptr, TIntEntryLayout layout) {
 
 };
 
-TJvmAnalysis ProcessJVMHeaders() {
+TJvmAnalysis ProcessJVMDwarf(std::string_view path, ui32 version) {
     TJvmAnalysis analysis;
 
-    TOffsets offsets = TOffsets::Get();
+    TOffsets offsets = TOffsets::Get(path, version);
 
     if (offsets.KindInfo) {
         analysis.Cheatsheet.set_code_blob_kind(offsets.KindInfo->CodeBlobKindOffset);

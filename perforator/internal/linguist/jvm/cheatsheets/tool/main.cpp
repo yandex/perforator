@@ -6,6 +6,7 @@
 #include <library/cpp/json/json_writer.h>
 
 #include <contrib/libs/protobuf/src/google/protobuf/text_format.h>
+#include <contrib/libs/protobuf/src/google/protobuf/util/message_differencer.h>
 
 #include <util/stream/file.h>
 
@@ -70,12 +71,20 @@ NPerforator::NLinguist::NJvm::TJvmAnalysis DumpDynamic(std::string libjvmPath) {
     return NPerforator::NLinguist::NJvm::ProcessDynamicLinkedJVM(addresses);
 }
 
-void Write(NPerforator::NBinaryProcessing::NJvm::Cheatsheet cheatsheet, const TString& path) {
+void Write(NPerforator::NBinaryProcessing::NJvm::Cheatsheet cheatsheet, const std::string& path) {
     TProtoStringType repr;
     google::protobuf::TextFormat::PrintToString(cheatsheet, &repr);
     TUnbufferedFileOutput out{path};
     out << repr << Endl;
     out.Finish();
+}
+
+bool Validate(NPerforator::NBinaryProcessing::NJvm::Cheatsheet cheatsheet, const std::string& path) {
+    TUnbufferedFileInput in{path};
+    std::string data = in.ReadAll();
+    NPerforator::NBinaryProcessing::NJvm::Cheatsheet actual;
+    google::protobuf::TextFormat::ParseFromString(data, &actual);
+    return google::protobuf::util::MessageDifferencer::Equals(cheatsheet, actual);
 }
 
 }
@@ -84,30 +93,40 @@ int main(int argc, char** argv) {
     using namespace std::literals;
     using namespace NPerforator::NLinguist::NJvm;
 
+    bool validateOnly = false;
     NLastGetopt::TOpts opts;
     opts.AddLongOption("jvm-path").Required().Help("Path to libjvm.so");
+    opts.AddLongOption("dbg-path").Required().Help("Path to libjvm debuginfo");
     opts.AddLongOption("out-dir").DefaultValue("..").Help("output directory");
+    opts.AddLongOption("validate").SetFlag(&validateOnly).Help("Check that output file is up-to-date instead of updating it");
 
 
     NLastGetopt::TOptsParseResult parsed{&opts, argc, argv};
 
     TString out = parsed.Get("out-dir");
     TString libjvmPath = parsed.Get("jvm-path");
+    TString dbgPath = parsed.Get("dbg-path");
 
-    TJvmAnalysis spec = NPerforator::NLinguist::NJvm::ProcessJVMHeaders();
-
-    int version = spec.Version;
 
     TJvmAnalysis dynamic = DumpDynamic(libjvmPath);
 
-    if (static_cast<int64_t>(dynamic.Version) != version) {
-        throw yexception() << "This tool was compiled against " << version << " but input version is " << dynamic.Version;
-    }
+    TJvmAnalysis spec = NPerforator::NLinguist::NJvm::ProcessJVMDwarf(dbgPath, dynamic.Version);
 
-    Cout << "Writing cheatsheets for JDK " << version << Endl;
+    spec.Version = dynamic.Version;
+
+    Cout << "Writing cheatsheets for JDK " << spec.Version << Endl;
 
     spec.Cheatsheet.MergeFrom(dynamic.Cheatsheet);
-    Write(spec.Cheatsheet, out + std::format("/jdk{}.txtpb", version));
+    std::string path = out + std::format("/jdk{}.txtpb", spec.Version);
+    if (validateOnly) {
+        bool ok = Validate(spec.Cheatsheet, path);
+        if (!ok) {
+            Cout << "Cheatsheet " << path << " is outdated" << Endl;
+            return 1;
+        }
+    } else {
+        Write(spec.Cheatsheet, path);
+    }
 
     Cout << "OK" << Endl;
 }

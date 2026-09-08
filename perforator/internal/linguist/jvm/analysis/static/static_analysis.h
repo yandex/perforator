@@ -57,7 +57,7 @@ struct TVMStructsAddresses {
 
 TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses);
 
-TJvmAnalysis ProcessJVMHeaders();
+TJvmAnalysis ProcessJVMDwarf(std::string_view path, ui32 version);
 
 
 } // namespace NPerforator::NLinguist::NJvm

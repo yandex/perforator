@@ -1,5 +1,12 @@
 RECURSE(tool)
 
+IF (NOT OPENSOURCE)
+    RECURSE(
+        yandex-specific/test
+        yandex-specific/testdata
+    )
+ENDIF()
+
 GO_LIBRARY()
 RESOURCE(
     perforator/internal/linguist/jvm/cheatsheets/jdk17.txtpb jvm-cheatsheets/jdk17.txtpb

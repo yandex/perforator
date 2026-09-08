@@ -6,5 +6,4 @@ RECURSE(
     jvmregistry
     jvmscanner
     jvmsupportservice
-    unwind
 )
