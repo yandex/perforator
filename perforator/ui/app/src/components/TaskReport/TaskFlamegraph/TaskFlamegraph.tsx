@@ -32,7 +32,6 @@ export interface TaskFlamegraphProps {
 export type Tab = 'flame' | 'top' | 'sbs'
 
 export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, format, lineNumbers, onLineNumbersChange }: TaskFlamegraphProps) => {
-    const isMounted = React.useRef(false);
     const theme = useThemeType();
     const { userSettings } = useUserSettings();
 
@@ -61,11 +60,8 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, for
     }, [pageName, url]);
 
     const onStartRequest = useCallback(() => {
-        if (!isMounted.current) {
-            uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, { flamegraphFormat: format });
-            isMounted.current = true;
-        }
-    }, [format]);
+        uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, { flamegraphFormat: format });
+    }, [pageName, format]);
 
     const { data: profileData, error } = useFetchResult<ProfileData>({ url: url, extractData: extractData,
         onFinishDataLoading: onFinishDataLoading,

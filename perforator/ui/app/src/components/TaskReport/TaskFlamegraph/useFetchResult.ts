@@ -11,6 +11,7 @@ type UseFetchArgs<D> = {
 }
 export function useFetchResult<D>(args: UseFetchArgs<D>) {
     const getData = useCallback(async ({ signal }: {signal: AbortSignal}) => {
+        args.onStartRequest?.();
         const fetchingStart = performance.now();
         const res = await fetch(args.url, { signal });
         const fetchingFinish = performance.now();
@@ -20,7 +21,7 @@ export function useFetchResult<D>(args: UseFetchArgs<D>) {
         const extracted = await args.extractData(res);
         args?.onFinishDataLoading?.();
         return extracted;
-    }, [args.url, args.extractData, args?.onFinishDataLoading]);
+    }, [args.url, args.extractData, args.onFinishDataLoading, args.onStartRequest]);
 
     return useAsyncResult<D>({ getData });
 }
