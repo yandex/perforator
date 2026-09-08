@@ -20,6 +20,8 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
+const defaultTTL = 60 * 24 * time.Hour
+
 func runGC(
 	ctx context.Context,
 	l xlog.Logger,
@@ -51,33 +53,15 @@ var (
 
 	profileGCConfig = gcconfig.StorageConfig{
 		Type: gcconfig.Profile,
-		TTL: gcconfig.TTLConfig{
-			TTL: 1440 * time.Hour,
-		},
-		Concurrency: &gcconfig.ConcurrencyConfig{
-			Shards:      1,
-			Concurrency: 1,
-		},
+		TTL:  defaultTTL,
 	}
 	binaryGCConfig = gcconfig.StorageConfig{
 		Type: gcconfig.Binary,
-		TTL: gcconfig.TTLConfig{
-			TTL: 1440 * time.Hour,
-		},
-		Concurrency: &gcconfig.ConcurrencyConfig{
-			Shards:      1,
-			Concurrency: 1,
-		},
+		TTL:  defaultTTL,
 	}
 	gsymGCConfig = gcconfig.StorageConfig{
 		Type: gcconfig.GSYM,
-		TTL: gcconfig.TTLConfig{
-			TTL: 1440 * time.Hour,
-		},
-		Concurrency: &gcconfig.ConcurrencyConfig{
-			Shards:      1,
-			Concurrency: 1,
-		},
+		TTL:  defaultTTL,
 	}
 
 	iterationInterval *time.Duration
@@ -102,14 +86,6 @@ var (
 				return err
 			}
 			defer stopLogger()
-
-			if profileGCConfig.Concurrency.Concurrency <= 0 {
-				return fmt.Errorf("%d profile concurrency must be positive", profileGCConfig.Concurrency.Concurrency)
-			}
-
-			if profileGCConfig.Concurrency.Shards <= 0 {
-				return fmt.Errorf("%d profile shards must be positive", profileGCConfig.Concurrency.Shards)
-			}
 
 			conf, err := bundle.ParseConfig(storageConfigPath, false /* strict */)
 			if err != nil {
@@ -164,21 +140,21 @@ var (
 
 func init() {
 	gcCmd.Flags().DurationVar(
-		&binaryGCConfig.TTL.TTL,
+		&binaryGCConfig.TTL,
 		"binary-ttl",
-		time.Hour*1440,
+		defaultTTL,
 		"Binary TTL, unwind table TTL is set the same",
 	)
 	gcCmd.Flags().DurationVar(
-		&profileGCConfig.TTL.TTL,
+		&profileGCConfig.TTL,
 		"profile-ttl",
-		time.Hour*1440,
+		defaultTTL,
 		"Profile TTL",
 	)
 	gcCmd.Flags().DurationVar(
-		&gsymGCConfig.TTL.TTL,
+		&gsymGCConfig.TTL,
 		"gsym-ttl",
-		time.Hour*1440,
+		defaultTTL,
 		"GSYM TTL",
 	)
 
@@ -198,18 +174,10 @@ func init() {
 	)
 
 	gcCmd.Flags().Uint32Var(&profileGCConfig.DeletePageSize, "delete-page-size", 500, "How many objects will be deleted in one try")
-	gcCmd.Flags().Uint32Var(
-		&profileGCConfig.Concurrency.Concurrency,
-		"profile-concurrency",
-		1,
-		"Level of concurrency for profile GC (must be not greater than profile shards)",
-	)
-	gcCmd.Flags().Uint32Var(
-		&profileGCConfig.Concurrency.Shards,
-		"profile-shards",
-		1,
-		"Number of shards for concurrenct garbage collection (must be 2^x)",
-	)
+	for _, name := range []string{"profile-concurrency", "profile-shards"} {
+		gcCmd.Flags().Func(name, "Deprecated; ignored", func(string) error { return nil })
+		must.Must(gcCmd.Flags().MarkDeprecated(name, "ignored; GC runs one independent loop per storage"))
+	}
 	gcCmd.Flags().StringVar(
 		&logLevel,
 		"log-level",

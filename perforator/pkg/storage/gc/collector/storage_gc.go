@@ -3,10 +3,10 @@ package collector
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/storage/gc/config"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
@@ -17,28 +17,55 @@ const (
 	PageErrorsIterationLimit = 5
 )
 
-type ShardCollector interface {
-	Collect(ctx context.Context) error
-	LastCollection() time.Time
-	InProgress() bool
+type storageGC struct {
+	l        xlog.Logger
+	storage  storage.Storage
+	ttl      time.Duration
+	pageSize uint64
+	metrics  *collectorMetrics
 }
 
-type shardCollector struct {
-	l    xlog.Logger
-	conf *config.StorageConfig
-
-	shardIndex uint32
-	numShards  uint32
-	lastGC     time.Time
-
-	storage storage.Storage
-
-	metrics *collectorMetrics
-
-	mutex sync.RWMutex
+func newStorageGC(l xlog.Logger, r metrics.Registry, conf config.StorageConfig, st storage.Storage) *storageGC {
+	pageSize := uint64(conf.DeletePageSize)
+	if pageSize == 0 {
+		pageSize = 100
+	}
+	kind := string(conf.Type)
+	return &storageGC{
+		l: l.WithName(kind + "_gc").With(
+			log.Duration("ttl", conf.TTL),
+		),
+		storage:  st,
+		ttl:      conf.TTL,
+		pageSize: pageSize,
+		metrics:  newGcStorageMetrics(r.WithTags(map[string]string{"storage_type": kind})),
+	}
 }
 
-func (c *shardCollector) processPage(
+func (c *storageGC) run(ctx context.Context, interval time.Duration) error {
+	for {
+		if err := context.Cause(ctx); err != nil {
+			return err
+		}
+		err := c.collect(ctx)
+		if err := context.Cause(ctx); err != nil {
+			return err
+		}
+		if err != nil {
+			c.l.Error(ctx, "Failed to collect expired objects", log.Error(err))
+		}
+		c.l.Info(ctx, "Waiting before next GC iteration", log.Duration("interval", interval))
+		timer := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return context.Cause(ctx)
+		case <-timer.C:
+		}
+	}
+}
+
+func (c *storageGC) processPage(
 	ctx context.Context,
 	pagination *util.Pagination,
 ) (emptyPage bool, err error) {
@@ -46,12 +73,8 @@ func (c *shardCollector) processPage(
 
 	metas, err := c.storage.CollectExpired(
 		ctx,
-		c.conf.TTL.TTL,
+		c.ttl,
 		pagination,
-		&storage.ShardParams{
-			ShardIndex: c.shardIndex,
-			NumShards:  c.numShards,
-		},
 	)
 	if err != nil {
 		return false, err
@@ -60,6 +83,10 @@ func (c *shardCollector) processPage(
 
 	if len(metas) == 0 {
 		return true, nil
+	}
+
+	if err := context.Cause(ctx); err != nil {
+		return false, err
 	}
 
 	IDs := make([]string, 0, len(metas))
@@ -76,7 +103,7 @@ func (c *shardCollector) processPage(
 	c.metrics.deletedObjects.Add(int64(len(metas)))
 
 	for _, meta := range metas {
-		if meta.LastUsedTimestamp.Add(c.conf.TTL.TTL).After(time.Now()) {
+		if meta.LastUsedTimestamp.Add(c.ttl).After(time.Now()) {
 			c.l.Error(ctx, "Deleted object which is not expired")
 		}
 
@@ -91,33 +118,26 @@ func (c *shardCollector) processPage(
 	return false, nil
 }
 
-func (c *shardCollector) Collect(ctx context.Context) error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	c.metrics.busyShards.Add(1)
-	defer c.metrics.busyShards.Add(-1)
+func (c *storageGC) collect(ctx context.Context) error {
+	c.metrics.busy.Add(1)
+	defer c.metrics.busy.Add(-1)
 	defer func() {
-		c.lastGC = time.Now()
-		c.l.Info(ctx, "Finished collecting shard")
+		c.l.Info(ctx, "Finished collecting expired objects")
 	}()
 
 	var err error
 	tm := time.Now()
 	defer func() {
 		if err != nil {
-			c.metrics.failedShardIterationsTimer.RecordDuration(time.Since(tm))
+			c.metrics.failedIterationsTimer.RecordDuration(time.Since(tm))
 		} else {
-			c.metrics.successShardIterationsTimer.RecordDuration(time.Since(tm))
+			c.metrics.successIterationsTimer.RecordDuration(time.Since(tm))
 		}
 	}()
 
-	c.l.Info(ctx, "Collecting shard")
+	c.l.Info(ctx, "Collecting expired objects")
 
-	pageSize := uint64(c.conf.DeletePageSize)
-	if pageSize == 0 {
-		pageSize = 100
-	}
+	pageSize := c.pageSize
 	pagination := &util.Pagination{Offset: 0, Limit: pageSize}
 	pageErrors := 0
 
@@ -125,7 +145,7 @@ func (c *shardCollector) Collect(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return context.Cause(ctx)
 		default:
 		}
 
@@ -154,41 +174,4 @@ func (c *shardCollector) Collect(ctx context.Context) error {
 	}
 
 	return deleteError
-}
-
-func (c *shardCollector) LastCollection() time.Time {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	return c.lastGC
-}
-
-func (c *shardCollector) InProgress() bool {
-	locked := c.mutex.TryLock()
-	if locked {
-		c.mutex.Unlock()
-		return false
-	}
-
-	return true
-}
-
-func newGCShard(
-	l xlog.Logger,
-	shardIndex, numShards uint32,
-	conf *config.StorageConfig,
-	storage storage.Storage,
-	metrics *collectorMetrics,
-) (*shardCollector, error) {
-	return &shardCollector{
-		l: l.With(
-			log.UInt32("shard_index", shardIndex),
-			log.UInt32("num_shards", numShards),
-			log.Duration("ttl", conf.TTL.TTL),
-		),
-		conf:       conf,
-		shardIndex: shardIndex,
-		numShards:  numShards,
-		storage:    storage,
-		metrics:    metrics,
-	}, nil
 }

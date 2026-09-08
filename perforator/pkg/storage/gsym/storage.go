@@ -108,7 +108,6 @@ func (s *GSYMStorage) CollectExpired(
 	ctx context.Context,
 	ttl time.Duration,
 	pagination *util.Pagination,
-	shardParams *storage.ShardParams,
 ) ([]*storage.ObjectMeta, error) {
 	metas, err := s.metaStorage.CollectExpiredGSYMs(ctx, ttl, pagination)
 	if err != nil {

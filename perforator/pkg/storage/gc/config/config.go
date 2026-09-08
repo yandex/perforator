@@ -12,31 +12,12 @@ const (
 	GSYM    StorageType = "gsym"
 )
 
-type TTLConfig struct {
-	TTL          time.Duration            `yaml:"ttl"`
-	ServicesTTLs map[string]time.Duration `yaml:"services_ttls"`
-}
-
-type ConcurrencyConfig struct {
-	Concurrency uint32 `yaml:"concurrency,omitempty"`
-	Shards      uint32 `yaml:"shards,omitempty"`
-}
-
 type StorageConfig struct {
-	Type           StorageType        `yaml:"type"`
-	TTL            TTLConfig          `yaml:"ttl_config"`
-	DeletePageSize uint32             `yaml:"delete_page_size,omitempty"`
-	Concurrency    *ConcurrencyConfig `yaml:"concurrency,omitempty"`
+	Type           StorageType   `yaml:"type"`
+	TTL            time.Duration `yaml:"ttl"`
+	DeletePageSize uint32        `yaml:"delete_page_size,omitempty"`
 }
 
 type Config struct {
 	Storages []StorageConfig `yaml:"storages,omitempty"`
-}
-
-func (c *Config) FillDefault() {
-	for _, conf := range c.Storages {
-		if conf.DeletePageSize == 0 {
-			conf.DeletePageSize = 500
-		}
-	}
 }

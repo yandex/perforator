@@ -2,6 +2,7 @@ package collector
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -9,23 +10,29 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/gc/config"
+	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
 type GC struct {
-	collectors []Collector
+	collectors []*storageGC
 }
 
 func NewGC(l xlog.Logger, r metrics.Registry, gcConf config.Config, storageBundle *bundle.StorageBundle) (*GC, error) {
-	gcConf.FillDefault()
-
-	collectors := make([]Collector, 0, len(gcConf.Storages))
+	collectors := make([]*storageGC, 0, len(gcConf.Storages))
 	for _, conf := range gcConf.Storages {
-		collector, err := NewCollector(l, r, &conf, storageBundle)
-		if err != nil {
-			return nil, err
+		var st storage.Storage
+		switch conf.Type {
+		case config.Profile:
+			st = storageBundle.ProfileStorage
+		case config.Binary:
+			st = storageBundle.BinaryStorage
+		case config.GSYM:
+			st = storageBundle.GSYMStorage
+		default:
+			return nil, fmt.Errorf("unsupported storage type %s", conf.Type)
 		}
-		collectors = append(collectors, collector)
+		collectors = append(collectors, newStorageGC(l, r, conf, st))
 	}
 
 	return &GC{
@@ -37,9 +44,8 @@ func (g *GC) Run(ctx context.Context, interval time.Duration) error {
 	gr, ctx := errgroup.WithContext(ctx)
 
 	for _, collector := range g.collectors {
-		collectorCopy := collector
 		gr.Go(func() error {
-			return collectorCopy.Run(ctx, interval)
+			return collector.run(ctx, interval)
 		})
 	}
 

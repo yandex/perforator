@@ -1,13 +1,14 @@
 GO_LIBRARY()
 
 SRCS(
-    collector.go
+    metrics.go
     gc.go
-    shard.go
+    storage_gc.go
 )
 
 GO_TEST_SRCS(
     gc_test.go
+    run_test.go
 )
 
 END()

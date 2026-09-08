@@ -29,7 +29,6 @@ type Storage interface {
 		ctx context.Context,
 		ttl time.Duration,
 		pagination *util.Pagination,
-		shardParams *ShardParams,
 	) ([]*ObjectMeta, error)
 
 	Delete(ctx context.Context, IDs []string) error

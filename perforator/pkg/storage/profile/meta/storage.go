@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/yandex/perforator/observability/lib/querylang"
-	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 )
 
@@ -105,7 +104,6 @@ type Storage interface {
 		ctx context.Context,
 		ttl time.Duration,
 		pagination *util.Pagination,
-		shardParams storage.ShardParams,
 	) ([]*ProfileMetadata, error)
 
 	RemoveProfiles(ctx context.Context, profileIDs []ProfileID) error

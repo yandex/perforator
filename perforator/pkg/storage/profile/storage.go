@@ -289,9 +289,8 @@ func (s *ProfileStorage) CollectExpired(
 	ctx context.Context,
 	ttl time.Duration,
 	pagination *util.Pagination,
-	shardParams *storage.ShardParams,
 ) ([]*storage.ObjectMeta, error) {
-	profiles, err := s.MetaStorage.CollectExpiredProfiles(ctx, ttl, pagination, *shardParams)
+	profiles, err := s.MetaStorage.CollectExpiredProfiles(ctx, ttl, pagination)
 	if err != nil {
 		return nil, err
 	}

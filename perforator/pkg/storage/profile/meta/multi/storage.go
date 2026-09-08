@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
-	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 )
 
@@ -28,9 +27,8 @@ func (s *MultiStorage) CollectExpiredProfiles(
 	ctx context.Context,
 	ttl time.Duration,
 	pagination *util.Pagination,
-	shardParams storage.ShardParams,
 ) ([]*meta.ProfileMetadata, error) {
-	return s.primary.CollectExpiredProfiles(ctx, ttl, pagination, shardParams)
+	return s.primary.CollectExpiredProfiles(ctx, ttl, pagination)
 }
 
 // GetProfiles implements meta.Storage.

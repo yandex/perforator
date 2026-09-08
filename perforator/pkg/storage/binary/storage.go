@@ -285,7 +285,6 @@ func (s *BinaryStorage) CollectExpired(
 	ctx context.Context,
 	ttl time.Duration,
 	pagination *util.Pagination,
-	shardParams *storage.ShardParams,
 ) ([]*storage.ObjectMeta, error) {
 	metas, err := s.metaStorage.CollectExpiredBinaries(ctx, ttl, pagination)
 	if err != nil {

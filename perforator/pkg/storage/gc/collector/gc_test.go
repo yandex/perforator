@@ -27,18 +27,16 @@ type scriptedStorage struct {
 	next       int
 	ttls       []time.Duration
 	pagination []util.Pagination
-	shards     []storage.ShardParams
 	deletes    [][]string
 }
 
-func (s *scriptedStorage) CollectExpired(_ context.Context, ttl time.Duration, pagination *util.Pagination, shard *storage.ShardParams) ([]*storage.ObjectMeta, error) {
+func (s *scriptedStorage) CollectExpired(_ context.Context, ttl time.Duration, pagination *util.Pagination) ([]*storage.ObjectMeta, error) {
 	s.t.Helper()
 	require.Less(s.t, s.next, len(s.pages), "unexpected extra page read")
 	page := s.pages[s.next]
 	s.next++
 	s.ttls = append(s.ttls, ttl)
 	s.pagination = append(s.pagination, *pagination)
-	s.shards = append(s.shards, *shard)
 	metas := make([]*storage.ObjectMeta, 0, len(page.ids))
 	for _, id := range page.ids {
 		metas = append(metas, &storage.ObjectMeta{ID: id, LastUsedTimestamp: time.Now().Add(-ttl - time.Hour)})
@@ -54,16 +52,14 @@ func (s *scriptedStorage) Delete(_ context.Context, ids []string) error {
 	return page.deleteErr
 }
 
-func testShard(t *testing.T, s storage.Storage, kind config.StorageType, pageSize uint32) (*shardCollector, *metricsmock.Registry) {
+func testStorageGC(t *testing.T, s storage.Storage, kind config.StorageType, pageSize uint32) (*storageGC, *metricsmock.Registry) {
 	t.Helper()
-	conf := config.Config{Storages: []config.StorageConfig{{Type: kind, TTL: config.TTLConfig{TTL: 24 * time.Hour}, DeletePageSize: pageSize}}}
-	conf.FillDefault()
+	conf := config.Config{Storages: []config.StorageConfig{{Type: kind, TTL: 24 * time.Hour, DeletePageSize: pageSize}}}
 	registry := metricsmock.NewRegistry(nil)
-	c, err := newGC(xlog.ForTest(t), &conf.Storages[0], string(kind), s, registry)
-	require.NoError(t, err)
+	c := newStorageGC(xlog.ForTest(t), registry, conf.Storages[0], s)
 	tagged, ok := registry.GetWithTags(map[string]string{"storage_type": string(kind)})
 	require.True(t, ok)
-	return c.(*collector).shards[0].(*shardCollector), tagged
+	return c, tagged
 }
 
 func testTimer(t *testing.T, r *metricsmock.Registry, name string) *metricsmock.Timer {
@@ -97,19 +93,19 @@ func TestCollectPages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &scriptedStorage{t: t, pages: tt.pages}
-			c, registry := testShard(t, s, config.Binary, 2)
+			c, registry := testStorageGC(t, s, config.Binary, 2)
 			readTimer := testTimer(t, registry, "collect_expired.timer")
 			deleteTimer := testTimer(t, registry, "delete.timer")
 			successRegistry, ok := registry.GetWithTags(map[string]string{"status": "success"})
 			require.True(t, ok)
 			failureRegistry, ok := registry.GetWithTags(map[string]string{"status": "failed"})
 			require.True(t, ok)
-			successTimer := testTimer(t, successRegistry, "shard_iterations.timer")
-			failureTimer := testTimer(t, failureRegistry, "shard_iterations.timer")
+			successTimer := testTimer(t, successRegistry, "iterations.timer")
+			failureTimer := testTimer(t, failureRegistry, "iterations.timer")
 			for _, timer := range []*metricsmock.Timer{readTimer, deleteTimer, successTimer, failureTimer} {
 				timer.Value.Store(-1)
 			}
-			err := c.Collect(t.Context())
+			err := c.collect(t.Context())
 			switch {
 			case tt.limit:
 				require.EqualError(t, err, "exceeded page errors iteration limit 5")
@@ -123,7 +119,6 @@ func TestCollectPages(t *testing.T) {
 			for i := range s.pagination {
 				require.Equal(t, 24*time.Hour, s.ttls[i])
 				require.Equal(t, util.Pagination{Offset: 0, Limit: 2}, s.pagination[i])
-				require.Equal(t, storage.ShardParams{NumShards: 1}, s.shards[i])
 			}
 			deletedRegistry, ok := registry.GetWithTags(map[string]string{"kind": "deleted"})
 			require.True(t, ok)
@@ -133,7 +128,7 @@ func TestCollectPages(t *testing.T) {
 			failures, ok := registry.GetCounter("delete_error.count")
 			require.True(t, ok)
 			require.Equal(t, tt.failures, failures.Value.Load())
-			busy, ok := registry.GetIntGauge("busy_shards.gauge")
+			busy, ok := registry.GetIntGauge("busy.gauge")
 			require.True(t, ok)
 			require.Zero(t, busy.Value.Load())
 			hasReadSuccess, hasDeleteSuccess := false, false
@@ -155,8 +150,8 @@ func TestCollectPageSize(t *testing.T) {
 		for _, size := range []uint32{0, 7, 500} {
 			t.Run(string(kind)+"/"+time.Duration(size).String(), func(t *testing.T) {
 				s := &scriptedStorage{t: t, pages: []pageResult{{}}}
-				c, _ := testShard(t, s, kind, size)
-				require.NoError(t, c.Collect(t.Context()))
+				c, _ := testStorageGC(t, s, kind, size)
+				require.NoError(t, c.collect(t.Context()))
 				expected := uint64(size)
 				if size == 0 {
 					expected = 100

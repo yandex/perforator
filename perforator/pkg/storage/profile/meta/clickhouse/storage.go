@@ -14,7 +14,6 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
-	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -305,7 +304,6 @@ func (s *Storage) CollectExpiredProfiles(
 	ctx context.Context,
 	ttl time.Duration,
 	pagination *util.Pagination,
-	shardParams storage.ShardParams,
 ) ([]*meta.ProfileMetadata, error) {
 	return nil, fmt.Errorf("clickhouse storage does not support profile removing")
 }
