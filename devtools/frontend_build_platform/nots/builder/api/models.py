@@ -56,6 +56,9 @@ class BaseOptions:
     nm_bundle = False
     """Bundle node_modules into a tar archive"""
 
+    nm_bundle_prod = False
+    """Prune dev dependencies before bundling injected node_modules"""
+
     trace = False
     """storing execution time, build the Chrome Tools compatible trace file"""
 

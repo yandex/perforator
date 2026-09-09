@@ -55,6 +55,7 @@ def test_create_node_modules_args():
         # Flags
         local_cli=False,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -102,6 +103,7 @@ def test_create_node_modules_bundle_args():
         # Flags
         local_cli=False,
         nm_bundle=True,
+        nm_bundle_prod=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -164,6 +166,7 @@ def test_build_library_args(build_command_arg, expected_build_command):
         # Flags
         local_cli=False,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/library',
@@ -215,6 +218,7 @@ def test_build_package_args():
         # Flags
         local_cli=False,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -269,6 +273,7 @@ def test_build_package_nm_args():
         # Flags
         local_cli=False,
         nm_bundle=True,
+        nm_bundle_prod=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -325,6 +330,7 @@ def test_build_tsc_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -381,6 +387,7 @@ def test_build_tsc_nm_args():
         # Flags
         local_cli=True,
         nm_bundle=True,
+        nm_bundle_prod=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -439,6 +446,7 @@ def test_build_next_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13',
@@ -500,6 +508,7 @@ def test_build_vite_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project',
@@ -561,6 +570,7 @@ def test_build_webpack_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
@@ -626,6 +636,7 @@ def test_build_webpack_with_env_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
@@ -693,6 +704,7 @@ def test_build_webpack_with_after_build():
         # Flags
         local_cli=True,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
@@ -756,6 +768,7 @@ def test_build_rspack_args():
         # Flags
         local_cli=True,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
@@ -812,6 +825,7 @@ def test_build_verbose_args():
         # Flags
         local_cli=False,
         nm_bundle=False,
+        nm_bundle_prod=False,
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple',
@@ -829,3 +843,13 @@ def test_build_verbose_args():
         exclude_globs=[],
         outputs=[],
     )
+
+
+@pytest.mark.parametrize("value,expected", [("yes", True), ("no", False)])
+def test_nm_bundle_prod_arg(value, expected):
+    args = __convert_args_to_dict(
+        f"--arcadia-root /source --arcadia-build-root /build --moddir project "
+        f"--nodejs-bin /node --pm-script /pnpm.cjs --pm-type pnpm "
+        f"--nm-bundle yes --nm-bundle-prod {value} --inject-peers yes create-node-modules --moddir project"
+    )
+    assert args["nm_bundle_prod"] is expected

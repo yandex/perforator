@@ -72,6 +72,12 @@ def register_base_args(parser: ArgumentParser) -> None:
         '--local-cli', action=YesNoAction, default=False, help="Is run locally (from `nots`) or on the distbuild"
     )
     parser.add_argument('--nm-bundle', action=YesNoAction, default=False, help="Bundle node_modules into a tar archive")
+    parser.add_argument(
+        '--nm-bundle-prod',
+        action=YesNoAction,
+        default=False,
+        help="Prune dev dependencies before bundling injected node_modules",
+    )
 
     parser.add_argument('--verbose', action=YesNoAction, default=False, help="Use logging")
 
