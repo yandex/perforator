@@ -1,3 +1,4 @@
+lease: postgres
 databases:
   postgres:
     auth:

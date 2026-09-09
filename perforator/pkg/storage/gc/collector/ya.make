@@ -8,6 +8,7 @@ SRCS(
 
 GO_TEST_SRCS(
     gc_test.go
+    lease_test.go
     run_test.go
 )
 
