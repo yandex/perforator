@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-09-09T20:03:49Z",
+    "created": "2026-09-10T15:49:42.322Z",
     "pr": {
-      "id": 15607597,
+      "id": 15655095,
       "author": "baymer",
-      "summary": "FBP-3380: WITH_NODE_MODULES(PROD) — архив production-зависимостей"
+      "summary": "FBP-3392: Ограничить пул воркеров pnpm через PNPM_MAX_WORKERS=4 в NOTS"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13583637721"
+      "uri": "sbr:13600642004"
     },
     "darwin-arm64": {
-      "uri": "sbr:13583633807"
+      "uri": "sbr:13600637092"
     },
     "linux": {
-      "uri": "sbr:13583644111"
+      "uri": "sbr:13600651188"
     },
     "linux-aarch64": {
-      "uri": "sbr:13583640797"
+      "uri": "sbr:13600646485"
     }
   }
 }
