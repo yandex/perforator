@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-09-03T13:01:55Z",
+    "created": "2026-09-09T20:03:49Z",
     "pr": {
-      "id": 15488078,
+      "id": 15607597,
       "author": "baymer",
-      "summary": "FBP-3363 Log package script commands and duration"
+      "summary": "FBP-3380: WITH_NODE_MODULES(PROD) — архив production-зависимостей"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13488010877"
+      "uri": "sbr:13583637721"
     },
     "darwin-arm64": {
-      "uri": "sbr:13488006340"
+      "uri": "sbr:13583633807"
     },
     "linux": {
-      "uri": "sbr:13488021219"
+      "uri": "sbr:13583644111"
     },
     "linux-aarch64": {
-      "uri": "sbr:13488015890"
+      "uri": "sbr:13583640797"
     }
   }
 }
