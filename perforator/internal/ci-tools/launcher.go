@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -471,6 +472,18 @@ func mainImpl(ctx context.Context) error {
 	}
 	if !ok {
 		return fmt.Errorf("failed to download build artifacts: retry attempts exhausted")
+	}
+
+	exitCodeS, err := os.ReadFile(fmt.Sprintf("%s/job-exit-code", config.localWorkDir))
+	if err != nil {
+		return fmt.Errorf("failed to read job exit code: %w", err)
+	}
+	exitCode, err := strconv.Atoi(string(exitCodeS))
+	if err != nil {
+		return fmt.Errorf("failed to parse job exit code %q: %w", exitCodeS, err)
+	}
+	if exitCode != 0 {
+		return fmt.Errorf("job exited with code %d", exitCode)
 	}
 
 	return nil
