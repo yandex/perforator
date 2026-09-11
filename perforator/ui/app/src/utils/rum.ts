@@ -4,7 +4,7 @@ import type { Memory } from './performance';
 export interface Rum {
     finishDataLoading?: (value: string) => void;
     finishDataRendering?: (value: string) => void;
-    makeSpaSubPage?: (value: string, options?: object, isBlock?: boolean, params?: Record<any, any>) => void;
+    makeSpaSubPage?: (value: string, options?: object, isBlock?: boolean, shouldFinalizePageMetrics?: boolean, params?: Record<string, unknown>) => Record<string, any> | undefined;
     startDataRendering?: (value: string, renderType: string, shouldCall: boolean) => void;
     logMemory?: (zone: string, value: Memory) => void;
     logInt?: (name: string, value: number) => void;

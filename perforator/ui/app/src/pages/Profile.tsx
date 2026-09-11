@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { Loader } from '@gravity-ui/uikit';
 
@@ -14,6 +14,8 @@ export interface ProfileProps {}
 export const Profile: React.FC<ProfileProps> = () => {
     const { profileId } = useParams();
     const navigate = useNavigate();
+    const { key } = useLocation();
+    const redirectedKey = React.useRef<string>();
 
     const [searchParams] = useSearchParams();
     const timestamp = Number(searchParams.get('timestamp') ?? 0);
@@ -22,9 +24,11 @@ export const Profile: React.FC<ProfileProps> = () => {
 
 
     React.useEffect(() => {
-        if (!timestamp) {
+        if (!timestamp || redirectedKey.current === key) {
             return ;
         }
+        // Strict Mode replays effects; redirect each profile navigation once.
+        redirectedKey.current = key;
         const query: ProfileTaskQuery = {
             from: new Date(timestamp - 1).toISOString(),
             to: new Date(timestamp + 1).toISOString(),
@@ -34,7 +38,7 @@ export const Profile: React.FC<ProfileProps> = () => {
 
 
         redirectToTaskPage(navigate, query, true);
-    });
+    }, [key, timestamp, profileId, eventType, serviceName, navigate]);
 
     if (!timestamp) {
         return <ErrorPanel message="No timestamp was specified" />;

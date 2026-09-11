@@ -87,11 +87,12 @@ export interface VisualisationProps extends Pick<FlamegraphProps,
  | 'setShowLineNumbers'
  > {
     loading: boolean;
+    onFinishRendering?: () => void;
 }
 
 const RUM_BASE_NAME = 'flamegraph-render';
 
-export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...props }) => {
+export const Visualisation: React.FC<VisualisationProps> = ({ profileData, onFinishRendering, ...props }) => {
     const navigate = useNavigate();
     const [getQuery, setQuery] = useTypedQuery<'tab' | QueryKeys>();
     const tab: Tab = getQuery('tab', 'flame') as Tab;
@@ -163,7 +164,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             useSelfAsScrollParent: true,
             onFinishRendering: (opts) => {
                 const size = getFlamegraphSize(totalFrames ?? 0);
-                uiFactory().rum()?.finishDataRendering?.('task-flamegraph');
+                onFinishRendering?.();
                 const memory = measureBrowserMemory();
                 function sendWithMetric(metricId: string) {
                     if (opts?.delta && opts?.textNodesCount) {
@@ -193,7 +194,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             getState: getQuery,
             setState: setQuery,
             onFinishRendering: () => {
-                uiFactory().rum()?.finishDataRendering?.('top-table');
+                onFinishRendering?.();
                 const memory = measureBrowserMemory();
                 if (memory) {
                     uiFactory().rum()?.logMemory?.('top-table', memory);

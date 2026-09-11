@@ -25,7 +25,7 @@ export const getRouter = (pageProps: PagePublicProps) => {
         />
     );
 
-    return createBrowserRouter([
+    const router = createBrowserRouter([
         {
             path: '/',
             element: <Outlet />,
@@ -70,4 +70,5 @@ export const getRouter = (pageProps: PagePublicProps) => {
             ],
         },
     ]);
+    return router;
 };

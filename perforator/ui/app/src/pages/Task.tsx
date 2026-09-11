@@ -12,6 +12,8 @@ import { TaskReport } from 'src/components/TaskReport/TaskReport';
 import type { TaskResult } from 'src/models/Task';
 import { TaskState } from 'src/models/Task';
 import { apiClient } from 'src/utils/api';
+import { buildProfileRum } from 'src/utils/buildProfileRum';
+import { getFormat } from 'src/utils/renderingFormat';
 
 import type { Page } from './Page';
 
@@ -19,36 +21,59 @@ import type { Page } from './Page';
 const POLLING_PERIOD = 1000;  // 1s
 
 
-export const Task: Page = ({ embed, header }) => {
+export const Task: Page = (props) => {
+    const { taskId } = useParams();
+    // Reset polling and rendered data together so an old task cannot finish
+    // the new task's build measurement while its first response is pending.
+    return <TaskPage key={taskId} {...props} />;
+};
+
+const TaskPage: Page = ({ embed, header }) => {
     const pollingInterval = React.useRef<number | undefined>(undefined);
 
     const { taskId } = useParams();
     const [task, setTask] = React.useState<TaskResult | null>(null);
     const [error, setError] = React.useState<Error | undefined>(undefined);
+    const attempt = buildProfileRum.forTask(taskId);
 
-    const getTask = async () => {
+    const getTask = async (isActive: () => boolean) => {
         if (!pollingInterval.current) {
             return;
         }
         try {
             const response = await apiClient.getTask(taskId!);
+            if (!isActive() || !pollingInterval.current) {
+                return;
+            }
+            attempt?.setTaskFormat(getFormat(response.data.Spec?.MergeProfiles?.Format)
+                ?? getFormat(response.data.Spec?.DiffProfiles?.RenderFormat));
+            if (response.data.Status?.State === TaskState.Failed) {
+                attempt?.finish('error');
+            }
             setTask(response?.data);
         } catch (e) {
-            if (e instanceof Error) {
-                setError(e);
+            if (isActive() && pollingInterval.current) {
+                attempt?.finish('error');
+                if (e instanceof Error) {
+                    setError(e);
+                }
             }
         }
     };
 
     React.useEffect(() => {
-        // @ts-ignore
-        pollingInterval.current = setInterval(() => {
-            getTask();
+        let active = true;
+        const isActive = () => active;
+        pollingInterval.current = window.setInterval(() => {
+            getTask(isActive);
         }, POLLING_PERIOD);
 
-        getTask();
+        getTask(isActive);
 
-        return () => { clearInterval(pollingInterval.current); };
+        return () => {
+            active = false;
+            clearInterval(pollingInterval.current);
+        };
     }, [taskId]);
 
     const state = task?.Status?.State;

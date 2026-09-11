@@ -3,6 +3,7 @@ import React from 'react';
 import { InternalError } from '@gravity-ui/illustrations';
 
 import { uiFactory } from 'src/factory';
+import { buildProfileRum } from 'src/utils/buildProfileRum';
 
 import { ErrorPage } from '../ErrorPage/ErrorPage';
 
@@ -26,6 +27,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     };
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+        buildProfileRum.error();
         uiFactory().logError(error, { errorInfo });
     }
 

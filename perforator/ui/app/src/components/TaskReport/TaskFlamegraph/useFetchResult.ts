@@ -41,7 +41,9 @@ export function useAsyncResult<D>({ getData, clearPrevResult }: UseAsyncArgs<D>)
                 setData(undefined);
             }
             const res = await getData({ signal });
-            setData(res);
+            if (!signal.aborted) {
+                setData(res);
+            }
         } catch (e) {
             if (e instanceof AxiosError && e.code === 'ERR_CANCELED') {
                 return;
@@ -50,7 +52,9 @@ export function useAsyncResult<D>({ getData, clearPrevResult }: UseAsyncArgs<D>)
                 return;
             }
 
-            setError(e as Error);
+            if (!signal.aborted) {
+                setError(e as Error);
+            }
         }
     };
 

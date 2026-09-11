@@ -7,6 +7,7 @@ import { Alert, Button, Loader } from '@gravity-ui/uikit';
 import { uiFactory } from 'src/factory';
 import type { ProfileTaskQuery, TaskResult } from 'src/models/Task';
 import { boolToString } from 'src/utils/bool';
+import { buildProfileRum } from 'src/utils/buildProfileRum';
 import { cn } from 'src/utils/cn';
 import { getFormat, isDiffTaskResult } from 'src/utils/renderingFormat';
 
@@ -57,6 +58,12 @@ export const TaskReport: React.FC<TaskReportProps> = ({ task, taskId }: TaskRepo
             taskId,
             );
         }, [areLineNumbersEnabled, navigate, taskId, query?.Selector, spec?.MaxSamples]);
+
+    React.useEffect(() => {
+        if (!url || format !== 'JSONFlamegraph') {
+            buildProfileRum.forTask(taskId)?.finish('error');
+        }
+    }, [taskId, url, format]);
 
     const renderContent = () => {
         if (!url) {

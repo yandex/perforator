@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 
+import { useParams } from 'react-router-dom';
+
 import { parseFromWebStream } from '@discoveryjs/json-ext';
 import type { QueryKeys } from '@perforator/flamegraph';
 import { prerenderColors as prerenderColorsOriginal } from '@perforator/flamegraph';
@@ -10,6 +12,7 @@ import { ErrorPanel } from 'src/components/ErrorPanel/ErrorPanel';
 import { uiFactory } from 'src/factory';
 import type { ProfileData } from 'src/models/Profile';
 import { useUserSettings } from 'src/providers/UserSettingsProvider/UserSettingsContext.ts';
+import { buildProfileRum } from 'src/utils/buildProfileRum';
 import { withMeasureTime } from 'src/utils/logging';
 import { useTypedQuery } from 'src/utils/query';
 
@@ -32,12 +35,15 @@ export interface TaskFlamegraphProps {
 export type Tab = 'flame' | 'top' | 'sbs'
 
 export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, format, lineNumbers, onLineNumbersChange }: TaskFlamegraphProps) => {
+    const { taskId } = useParams();
+    const attempt = buildProfileRum.forTask(taskId);
     const theme = useThemeType();
     const { userSettings } = useUserSettings();
 
     const [getQuery] = useTypedQuery<QueryKeys>();
     const tab = getQuery('tab') ?? 'flame' as Tab;
     const pageName = tab === 'flame' ? 'task-flamegraph' : 'top-table';
+    const renderingPage = React.useRef<string | undefined>(undefined);
 
     const extractData = useMemo(() => {
         return async (req: Response) => {
@@ -57,10 +63,13 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, for
     const onFinishDataLoading = useCallback(() => {
         uiFactory().rum()?.finishDataLoading?.(pageName);
         uiFactory().rum()?.sendResTiming?.(url);
+        uiFactory().rum()?.startDataRendering?.(pageName, '', false);
+        renderingPage.current = pageName;
     }, [pageName, url]);
 
     const onStartRequest = useCallback(() => {
-        uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, { flamegraphFormat: format });
+        renderingPage.current = undefined;
+        uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, false, { flamegraphFormat: format });
     }, [pageName, format]);
 
     const { data: profileData, error } = useFetchResult<ProfileData>({ url: url, extractData: extractData,
@@ -68,9 +77,14 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, for
         onStartRequest: onStartRequest,
     });
 
+    React.useEffect(() => {
+        if (error) {
+            attempt?.finish('error');
+        }
+    }, [attempt, error]);
+
     const prerenderedNewData = React.useMemo(() => {
         if (profileData) {
-            uiFactory().rum()?.startDataRendering?.(pageName, '', false);
             const framesCount = profileData?.rows?.reduce((acc, row) => acc + row.length, 0);
 
             const prerenderColors = withMeasureTime(prerenderColorsOriginal, 'prerenderColors', (ms) => uiFactory().rum()?.sendDelta?.('prerenderColors', ms, { additional: { framesCount } }));
@@ -83,6 +97,14 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, for
 
     const loading = !prerenderedNewData;
 
+    const onFinishRendering = useCallback(() => {
+        if (renderingPage.current) {
+            uiFactory().rum()?.finishDataRendering?.(renderingPage.current);
+            renderingPage.current = undefined;
+            attempt?.finish();
+        }
+    }, [attempt]);
+
 
     if (error) {
         return <ErrorPanel message={error.message}/>;
@@ -90,6 +112,7 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, for
 
     return (
         <Visualisation
+            onFinishRendering={onFinishRendering}
             loading={loading}
             isDiff={isDiff}
             theme={theme}
