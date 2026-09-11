@@ -13003,8 +13003,8 @@ github.com/m3db/prometheus_procfs
 ## explicit; go 1.19
 github.com/magiconair/properties
 github.com/magiconair/properties/assert
-# github.com/magnetde/starlark-re v0.1.2
-## explicit; go 1.18
+# github.com/magnetde/starlark-re v0.1.4
+## explicit; go 1.21
 github.com/magnetde/starlark-re
 github.com/magnetde/starlark-re/regex
 github.com/magnetde/starlark-re/test
@@ -20176,8 +20176,9 @@ go.opentelemetry.io/proto/slim/otlp/collector/profiles/v1development
 # go.opentelemetry.io/proto/slim/otlp/profiles/v1development v0.2.0
 ## explicit; go 1.23.0
 go.opentelemetry.io/proto/slim/otlp/profiles/v1development
-# go.starlark.net v0.0.0-20250701195324-d457b4515e0e
+# go.starlark.net v0.0.0-20260210143700-b62fd896b91b
 ## explicit; go 1.19
+go.starlark.net
 go.starlark.net/cmd/starlark
 go.starlark.net/internal/chunkedfile
 go.starlark.net/internal/compile

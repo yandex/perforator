@@ -645,7 +645,7 @@ require (
 	github.com/lufeee/execinquery v1.2.1
 	github.com/lukasjarosch/go-docx v0.5.0
 	github.com/magiconair/properties v1.8.10
-	github.com/magnetde/starlark-re v0.1.2
+	github.com/magnetde/starlark-re v0.1.4
 	github.com/mailru/easyjson v0.9.0
 	github.com/makiuchi-d/gozxing v0.1.1
 	github.com/mandykoh/prism v0.35.3
@@ -1073,7 +1073,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.43.0
 	go.opentelemetry.io/otel/trace v1.44.0
 	go.opentelemetry.io/proto/otlp v1.10.0
-	go.starlark.net v0.0.0-20250701195324-d457b4515e0e
+	go.starlark.net v0.0.0-20260210143700-b62fd896b91b
 	go.step.sm/cli-utils v0.8.0
 	go.step.sm/crypto v0.38.0
 	go.temporal.io/api v1.53.0
