@@ -478,7 +478,7 @@ func mainImpl(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to read job exit code: %w", err)
 	}
-	exitCode, err := strconv.Atoi(string(exitCodeS))
+	exitCode, err := strconv.Atoi(strings.TrimSpace(string(exitCodeS)))
 	if err != nil {
 		return fmt.Errorf("failed to parse job exit code %q: %w", exitCodeS, err)
 	}
