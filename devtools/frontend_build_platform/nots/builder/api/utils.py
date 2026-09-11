@@ -147,47 +147,6 @@ def copy_writable_file(src, dst):
             os.remove(tmp_path)
 
 
-def __copy_file_with_write_permissions(src, dst):
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
-    shutil.copy(src, dst, follow_symlinks=False)
-    add_write_permissions(dst)
-
-
-@timeit
-def copy_if_not_exists(src: str, dst: str):
-    """Copy file/directory skipping existing. Makes them writable."""
-    if os.path.exists(dst):
-        return
-
-    if os.path.isdir(src):
-        shutil.copytree(src, dst, ignore_dangling_symlinks=True, copy_function=__copy_file_with_write_permissions)
-
-    if os.path.isfile(src):
-        __copy_file_with_write_permissions(src, dst)
-
-
-def recursive_copy_impl(src: str, dest: str, overwrite: bool, recurse_level=0):
-    # just for avoiding extra tracing with @timeit decorator
-    copy_fn = recursive_copy_impl if recurse_level >= 1 else recursive_copy
-
-    add_write_permissions(os.path.dirname(dest))
-
-    if os.path.isdir(src):
-        os.makedirs(dest, exist_ok=True)
-        files = os.listdir(src)
-        for f in files:
-            copy_fn(os.path.join(src, f), os.path.join(dest, f), overwrite, recurse_level=recurse_level + 1)
-
-    if os.path.isfile(src):
-        if not os.path.exists(dest) or overwrite:
-            __copy_file_with_write_permissions(src, dest)
-
-
-@timeit
-def recursive_copy(src, dest, overwrite=False, recurse_level=0):
-    recursive_copy_impl(src, dest, overwrite, recurse_level=recurse_level)
-
-
 @timeit
 def copy_files_with_exclusions(src_dir: str, dst_dir: str, exclude_globs: list[str]):
     """

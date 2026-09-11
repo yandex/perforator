@@ -4,13 +4,8 @@ STYLE_PYTHON()
 
 PY_SRCS(
     commands/build_library.py
-    commands/build_next.py
     commands/build_package.py
     commands/build_ts_proto.py
-    commands/build_tsc.py
-    commands/build_vite.py
-    commands/build_webpack.py
-    commands/build_rspack.py
     commands/create_node_modules.py
     commands/extract_node_modules.py
     commands/extract_output_tars.py

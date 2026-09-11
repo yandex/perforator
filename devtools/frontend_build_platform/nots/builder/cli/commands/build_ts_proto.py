@@ -8,7 +8,6 @@ from devtools.frontend_build_platform.nots.builder.api.generators.ts_proto_gener
 )
 from devtools.frontend_build_platform.nots.builder.api.utils import extract_output_tar
 from .build_library import build_library_func
-from .build_tsc import add_tsc_parser_args
 
 
 class TsProtoBuilderOptions(TsLibraryBuilderOptions):
@@ -26,7 +25,7 @@ def build_ts_proto_parser(subparsers) -> ArgumentParser:
         "build-ts-proto", help="Build .js and .d.ts from .proto with protoc + ts-proto plugin and tcs"
     )
 
-    add_tsc_parser_args(subparser)
+    subparser.add_argument("--tsconfigs", required=True, nargs="+", help="TypeScript configs for proto compilation")
 
     subparser.add_argument('--protoc-bin', required=True, help="Path to protoc binary")
     subparser.add_argument('--proto-paths', required=True, nargs='+', help="List for --proto-path (-I) argument")

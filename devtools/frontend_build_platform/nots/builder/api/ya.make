@@ -6,14 +6,8 @@ PY_SRCS(
     __init__.py
     builders/__init__.py
     builders/base_builder.py
-    builders/next_builder.py
     builders/package_builder.py
-    builders/rspack_builder.py
     builders/ts_library_builder.py
-    builders/ts_proto_auto_tsc_builder.py
-    builders/tsc_builder.py
-    builders/vite_builder.py
-    builders/webpack_builder.py
     generators/default_ts_proto_opt.py
     generators/ts_proto_generator.py
     create_node_modules.py

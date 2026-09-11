@@ -102,39 +102,6 @@ class BaseBuildersOptions(BaseOptions):
     """Environment variables lint in VAR format"""
 
 
-@dataclass
-class CommonBuildersOptions(BaseBuildersOptions):
-    with_after_build: bool
-    """Shows if should run after build script"""
-
-    after_build_js: str | None
-    """Path of the script to run after build"""
-
-    after_build_args: str | None
-    """List of args for the script to run after build"""
-
-    after_build_outdir: str | None
-    """Path to folder to add in output.tar"""
-
-
-@dataclass
-class CommonTsBuildersOptions(CommonBuildersOptions):
-    tsconfigs: list[str]
-    """list of the tsconfig files. For bundlers only the first record used."""
-
-
-@dataclass
-class CommonBundlersOptions(CommonTsBuildersOptions):
-    output_dirs: list[str]
-    """output directories for the bundler"""
-
-    bundler_config_path: str
-    """path to the bundler config (vite.config.ts, webpack.config.js, etc...)"""
-
-    bundler_configs: list[str]
-    """path relative to curdir (vite.config.ts, webpack.config.js, etc...)"""
-
-
 class BuildError(TsError):
     def __init__(self, command: str, code: int, stdout: str, stderr: str):
         self.command = command

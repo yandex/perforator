@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-09-11T10:40:26.722Z",
+    "created": "2026-09-11T17:14:20.256Z",
     "pr": {
-      "id": 15678123,
+      "id": 15630419,
       "author": "baymer",
-      "summary": "FBP-3385 FBP-3386: префикс output.tar и отдельные runtime-зависимости"
+      "summary": "FBP-3381: Очистка старых модулей сборки в nots/builder"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13614215346"
+      "uri": "sbr:13622024781"
     },
     "darwin-arm64": {
-      "uri": "sbr:13614209951"
+      "uri": "sbr:13622021043"
     },
     "linux": {
-      "uri": "sbr:13614225596"
+      "uri": "sbr:13622032254"
     },
     "linux-aarch64": {
-      "uri": "sbr:13614220474"
+      "uri": "sbr:13622028347"
     }
   }
 }

@@ -1,7 +1,6 @@
 import json
 import os
 import stat
-import textwrap
 import sys
 from abc import ABCMeta, abstractmethod
 from six import add_metaclass
@@ -12,12 +11,10 @@ from build.plugins.lib.nots.package_manager import (
     PackageJson,
     utils as pm_utils,
 )
-from build.plugins.lib.nots.typescript import TsConfig
 from devtools.frontend_build_platform.libraries.logging import timeit
-from ..models import BuildError, BaseBuildersOptions, CommonBuildersOptions, CommonTsBuildersOptions
+from ..models import BuildError, BaseBuildersOptions
 from ..utils import (
     copy_writable_file,
-    recursive_copy,
     extract_peer_tars,
     popen,
     bundle_fs_entries,
@@ -212,192 +209,3 @@ class BaseBuilder(object):
                 os.chmod(bin_path, bin_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
             except FileNotFoundError:
                 sys.stderr.write(f"Bin file does not exist: {click.style(bin_tool, fg='red')}\n")
-
-
-@add_metaclass(ABCMeta)
-class BaseLegacyBuilder(BaseBuilder):
-    def __init__(self, options: CommonBuildersOptions):
-        super(BaseLegacyBuilder, self).__init__(options)
-        self.options = options  # this is for type hints to understand real options' type
-
-    @timeit
-    def build(self):
-        super(BaseLegacyBuilder, self).build()
-        self._run_javascript_after_build()
-
-    @timeit
-    def _prepare_bindir(self):
-        super(BaseLegacyBuilder, self)._prepare_bindir()
-        self._copy_src_files_to_bindir()
-
-    def _get_copy_ignore_list(self) -> set[str]:
-        return {
-            # IDE's
-            ".idea",
-            ".vscode",
-            # Output dirs
-            "dist",
-            pm_constants.BUILD_DIRNAME,
-            pm_constants.BUNDLE_DIRNAME,
-            # Dependencies
-            pm_constants.NODE_MODULES_DIRNAME,
-            pm_constants.PACKAGE_JSON_FILENAME,
-            pm_constants.PNPM_LOCKFILE_FILENAME,
-            # ya-make artifacts
-            pm_constants.NODE_MODULES_WORKSPACE_BUNDLE_FILENAME,
-            pm_constants.OUTPUT_TAR_FILENAME,
-            pm_constants.OUTPUT_TAR_UUID_FILENAME,
-            # Other
-            "a.yaml",
-            self.options.after_build_outdir,
-        }
-
-    @timeit
-    def _copy_src_files_to_bindir(self):
-        ignore_list = self._get_copy_ignore_list()
-        for entry in os.scandir(self.options.curdir):
-            if entry.name in ignore_list:
-                continue
-
-            dst = os.path.normpath(os.path.join(self.options.bindir, entry.name))
-            recursive_copy(entry.path, dst)
-
-    @timeit
-    def _exec_nodejs_script(self, script_path: str, script_args: list[str], env: dict):
-        args = [self.options.nodejs_bin, script_path] + script_args
-        return_code, stdout, stderr = popen(args, env=env, cwd=self.options.bindir, verbose=self.options.verbose)
-
-        if return_code != 0:
-            raise BuildError(self.options.command, return_code, stdout, stderr)
-
-    @timeit
-    def _run_javascript_after_build(self):
-        if not self.options.with_after_build:
-            return
-
-        self._exec_nodejs_script(
-            script_path=self.options.after_build_js,
-            script_args=self.options.after_build_args.split("<~~~>"),
-            env=self._get_envs(),
-        )
-
-
-@add_metaclass(ABCMeta)
-class BaseTsBuilder(BaseLegacyBuilder):
-    @staticmethod
-    @timeit
-    def load_ts_config(ts_config_file: str, sources_path: str) -> TsConfig:
-        ts_config_curdir = os.path.normpath(os.path.join(sources_path, ts_config_file))
-        ts_config = TsConfig.load(ts_config_curdir, sources_path)
-
-        pj = PackageJson.load(pm_utils.build_pj_path(sources_path))
-        ts_config.inline_extend(pj.get_dep_paths_by_names())
-
-        return ts_config
-
-    @timeit
-    def __init__(
-        self,
-        options: CommonTsBuildersOptions,
-        # TODO consider using self.options.output_dir or removing CommonBundlersOptions.output_dir at all
-        output_dirs: list[str],
-        # TODO consider supporting multiple ts_config_path?
-        ts_config_path: str,
-    ):
-        """
-        :param output_dirs: output directory names
-        :type output_dirs: str
-        :param ts_config_path: path to tsconfig.json (in srcdir)
-        :type ts_config_path: str
-        """
-        super(BaseTsBuilder, self).__init__(options)
-        self.options = options  # this is for type hints to understand real options' type
-        self.output_dirs = output_dirs
-        self.ts_config_path = ts_config_path
-
-    def _get_copy_ignore_list(self) -> set[str]:
-        ignored = super(BaseTsBuilder, self)._get_copy_ignore_list()
-        return ignored.union(self.output_dirs + [self.ts_config_path])
-
-    @property
-    def ts_config_binpath(self) -> str:
-        """tsconfig.json in $BINDIR (with expanding 'extends')"""
-        return os.path.join(self.options.bindir, self.ts_config_path)
-
-    @timeit
-    def get_bin_path(self, binfile: str) -> str:
-        return os.path.join(self.options.bindir, pm_constants.NODE_MODULES_DIRNAME, ".bin", binfile)
-
-    @timeit
-    def _prepare_bindir(self):
-        super(BaseTsBuilder, self)._prepare_bindir()
-        self._create_bin_tsconfig()
-
-    @abstractmethod
-    def _output_macro(self) -> str | None:
-        pass
-
-    @abstractmethod
-    def _config_filename(self) -> str:
-        pass
-
-    @timeit
-    def _assert_output_dirs_exists(self):
-        for output_dir in self.output_dirs:
-            if os.path.exists(os.path.join(self.options.bindir, output_dir)):
-                continue
-
-            output_dir_styled = click.style(output_dir, fg="green")
-            missing = click.style("missing", fg="red", bold=True)
-            config_filename = click.style(self._config_filename(), fg="blue")
-            message = f"""
-                We expected to get output directory '{output_dir_styled}' but it is {missing}.
-                Probably, you set another output directory in {config_filename}.
-            """
-
-            output_macro = self._output_macro()
-            if output_macro:
-                output_macro_styled = click.style(output_macro + "(output_dir)", fg="green", bold=True)
-                message += f"            Add macro {output_macro_styled} to ya.make to configure your output directory."
-
-            raise BuildError(self.options.command, 1, "", textwrap.dedent(message))
-
-    @timeit
-    def _load_ts_config(self):
-        return self.load_ts_config(self.ts_config_path, self.options.curdir)
-
-    @timeit
-    def _create_bin_tsconfig(self):
-        ts_config = self._load_ts_config()
-
-        opts = ts_config.get_or_create_compiler_options()
-        opts["skipLibCheck"] = True
-
-        ts_config.write(self.ts_config_binpath, indent=2)
-
-    @abstractmethod
-    def _get_script_path(self) -> str:
-        """
-        Should return path to the build script (.js file)
-        """
-        pass
-
-    @abstractmethod
-    def _get_exec_args(self) -> list[str]:
-        """
-        Should return arguments for the build script
-        """
-        pass
-
-    @timeit
-    def _build(self):
-        # Action (building)
-        self._exec_nodejs_script(
-            script_path=self._get_script_path(),
-            script_args=self._get_exec_args(),
-            env=self._get_envs(),
-        )
-
-        # Post-operations
-        self._assert_output_dirs_exists()
-        self._make_bins_executable()
