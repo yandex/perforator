@@ -86,6 +86,9 @@ class BaseOptions:
 
 @dataclass
 class BaseBuildersOptions(BaseOptions):
+    output_prefix = ""
+    """Prefix applied to every entry in output.tar"""
+
     output_file: str
     """Absolute path to `output.tar`, expecting to be after building"""
 

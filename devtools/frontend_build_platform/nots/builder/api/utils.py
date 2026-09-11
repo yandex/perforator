@@ -1,4 +1,6 @@
+import json
 import logging
+import posixpath
 import os
 from pathlib import Path
 import shutil
@@ -85,7 +87,31 @@ def extract_output_tar(moddir_abs: str):
     if not os.path.exists(output_tar_path):
         raise FileNotFoundError(output_tar_path)
 
+    meta_path = os.path.join(moddir_abs, pm_constants.OUTPUT_TAR_UUID_FILENAME)
+    try:
+        with open(meta_path) as meta_file:
+            meta = json.load(meta_file)
+    except (FileNotFoundError, ValueError):
+        meta = {}
+    output_tar = meta.get("outputTar", {}) if isinstance(meta, dict) else {}
+    prefix = normalize_output_prefix(output_tar.get("prefix", "")) if isinstance(output_tar, dict) else ""
+
+    def strip_prefix(name):
+        name = os.fsdecode(name)
+        if name.rstrip('/') == prefix:
+            return ""
+        if not name.startswith(prefix + '/'):
+            raise ValueError(f"Archive entry {name!r} is outside output prefix {prefix!r}")
+        return name[len(prefix) + 1 :]
+
     def pj_filter(e: libarchive.Entry):
+        if prefix:
+            # Strip entry paths and hardlink targets, but preserve relative symlink targets.
+            e.pathname = strip_prefix(e.pathname)
+            if not e.pathname:
+                return False
+            if e.ishardlink():
+                e.hardlink = os.fsencode(strip_prefix(e.hardlink))
         return not os.path.exists(os.path.join(moddir_abs, e.pathname))
 
     archive.extract_tar(output_tar_path, moddir_abs, fail_on_duplicates=False, entry_filter=pj_filter)
@@ -296,11 +322,21 @@ def dict_to_ts_proto_opt(d: dict[str, str]) -> str:
     return ','.join(f'{key}={value}' for key, value in d.items())
 
 
+def normalize_output_prefix(prefix: str) -> str:
+    if not isinstance(prefix, str) or '\\' in prefix or any(ord(c) < 32 for c in prefix):
+        raise ValueError("Output prefix must be a POSIX path")
+    if '..' in prefix.split('/'):
+        raise ValueError("Output prefix must not contain '..' components")
+    normalized = posixpath.normpath(prefix.strip('/'))
+    return '' if normalized == '.' else normalized
+
+
 @timeit
-def bundle_fs_entries(dirs_and_files: list[str], build_path: str, bundle_path: str):
+def bundle_fs_entries(dirs_and_files: list[str], build_path: str, bundle_path: str, output_prefix: str = ''):
     if not dirs_and_files:
         raise RuntimeError("Please define `output_dirs`")
 
+    output_prefix = normalize_output_prefix(output_prefix)
     paths_to_pack = {}
     build_path_obj = Path(build_path)
 
@@ -324,7 +360,7 @@ def bundle_fs_entries(dirs_and_files: list[str], build_path: str, bundle_path: s
                 )
                 continue
 
-        paths_to_pack[path_to_pack] = arcname
+        paths_to_pack[path_to_pack] = posixpath.join(output_prefix, arcname) if output_prefix else arcname
 
     archive.tar(
         list(paths_to_pack.items()),

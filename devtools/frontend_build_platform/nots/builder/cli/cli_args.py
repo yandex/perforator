@@ -19,6 +19,7 @@ from .commands.build_rspack import build_rspack_parser, RspackBuilderOptions
 from .commands.create_node_modules import create_node_modules_parser, CreateNodeModulesOptions
 from .commands.prepare_deps import prepare_deps_parser, PrepareDepsOptions
 from .models import YesNoAction
+from ..api.utils import normalize_output_prefix
 
 
 @timeit
@@ -86,6 +87,12 @@ def register_base_args(parser: ArgumentParser) -> None:
 def __with_base_builders_options(parser: ArgumentParser) -> ArgumentParser:
     """Arguments for BaseBuildersOptions"""
 
+    parser.add_argument(
+        '--output-prefix',
+        type=normalize_output_prefix,
+        default=argparse.SUPPRESS,
+        help="Prefix for all output.tar entries",
+    )
     parser.add_argument(
         '--output-file',
         required=True,

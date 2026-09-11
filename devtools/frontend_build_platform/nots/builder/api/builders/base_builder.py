@@ -42,7 +42,9 @@ class BaseBuilder(object):
     def bundle(self):
         """Create output archive from files listed by pnpm pack"""
         file_paths = self._get_pack_files()
-        bundle_fs_entries(file_paths, self.options.bindir, self.options.output_file)
+        bundle_fs_entries(
+            file_paths, self.options.bindir, self.options.output_file, getattr(self.options, "output_prefix", "")
+        )
 
     @timeit
     def _get_pack_files(self) -> list[str]:

@@ -19,3 +19,12 @@ def test_write_output_meta(tmp_path):
         "outputTar": {"sha256": hashlib.sha256(b"archive contents").hexdigest()},
         "buildOutputs": ["build", "nested/dist"],
     }
+
+
+def test_write_prefixed_output_meta(tmp_path):
+    output_tar = tmp_path / "output.tar"
+    output_tar.write_bytes(b"prefixed archive")
+    __write_output_meta(str(tmp_path), str(output_tar), ["dist", "types"], "app/service")
+    meta = json.loads((tmp_path / "output.tar.uuid").read_text())
+    assert meta["outputTar"]["prefix"] == "app/service"
+    assert meta["buildOutputs"] == ["dist", "types"]

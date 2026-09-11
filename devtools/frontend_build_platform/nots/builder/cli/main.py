@@ -27,7 +27,7 @@ sys.excepthook = on_crash
 HASH_CHUNK_SIZE = 1024 * 1024
 
 
-def __write_output_meta(bindir: str, output_file: str, outputs: list[str] | None):
+def __write_output_meta(bindir: str, output_file: str, outputs: list[str] | None, output_prefix: str = ""):
     file_hash = hashlib.sha256()
     with open(output_file, 'rb') as output_f:
         for chunk in iter(lambda: output_f.read(HASH_CHUNK_SIZE), b''):
@@ -39,7 +39,7 @@ def __write_output_meta(bindir: str, output_file: str, outputs: list[str] | None
     with open(meta_path, 'w') as f:
         json.dump(
             {
-                "outputTar": {"sha256": file_hash.hexdigest()},
+                "outputTar": {"sha256": file_hash.hexdigest(), **({"prefix": output_prefix} if output_prefix else {})},
                 "buildOutputs": build_outputs,
             },
             f,
@@ -57,7 +57,7 @@ def _postprocess_output(args: AllOptions, outputs: list[str]) -> None:
         outputs.append(after_build_outdir)
 
     if output_file and output_file != args.node_modules_bundle and os.path.isfile(output_file):
-        __write_output_meta(args.bindir, output_file, outputs)
+        __write_output_meta(args.bindir, output_file, outputs, getattr(args, "output_prefix", ""))
 
 
 def _get_ouput_large_dirs(args: AllOptions) -> list[str]:
