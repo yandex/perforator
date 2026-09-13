@@ -19,6 +19,13 @@ def prepare_deps_parser(subparsers) -> ArgumentParser:
         '--ts-proto-auto-deps-path', required=False, help="Arcadia relative path to ts-proto deps module"
     )
     subparser.add_argument('--ts-proto-auto-package-name', required=False, help="Generated TS_PROTO package name")
+    subparser.add_argument(
+        '--ts-proto-workspace-peers',
+        dest='proto_peers',
+        default=[],
+        nargs='*',
+        help="Arcadia-relative built TS_PROTO peers to include in generated workspace metadata",
+    )
 
     subparser.set_defaults(func=prepare_deps_func)
 

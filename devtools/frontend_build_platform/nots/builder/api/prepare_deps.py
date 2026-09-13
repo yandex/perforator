@@ -13,7 +13,7 @@ from build.plugins.lib.nots.package_manager import (
 from yalibrary.fetcher.uri_parser import parse_resource_uri
 
 from .models import BaseOptions
-from .generators.ts_proto_generator import generate_ts_proto_auto_package
+from .generators.ts_proto_generator import TsProtoGenerator, generate_ts_proto_auto_package
 
 
 @dataclass
@@ -29,6 +29,9 @@ class PrepareDepsOptions(BaseOptions):
 
     ts_proto_auto_package_name: str | None
     """Generated TS_PROTO package name"""
+
+    proto_peers: list[str]
+    """Arcadia-relative TS_PROTO peers to include in the generated workspace package"""
 
 
 def prepare_deps(args: PrepareDepsOptions):
@@ -50,6 +53,7 @@ def prepare_deps(args: PrepareDepsOptions):
             args.ts_proto_auto_deps_path,
         )
         pm.build_ts_proto_auto_workspace(args.ts_proto_auto_deps_path)
+        TsProtoGenerator(args).prepare_peer_libraries()
     else:
         has_dependencies = pm.load_package_json_from_dir(args.curdir).has_dependencies()
         lockfile_path = pm_utils.build_lockfile_path(args.curdir)
@@ -57,6 +61,8 @@ def prepare_deps(args: PrepareDepsOptions):
             _validate_dependency_free_lockfile(pm.load_lockfile(lockfile_path))
 
         pm.build_workspace(args.tarballs_store, args.local_cli)
+        if args.inject_peers:
+            TsProtoGenerator(args).refresh_generated_peer_lockfile()
         if has_dependencies and not args.local_cli and os.path.exists(lockfile_path):
             _copy_tarballs(args, pm.load_lockfile(lockfile_path))
 

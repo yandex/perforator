@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from devtools.frontend_build_platform.libraries.logging import timeit
 from devtools.frontend_build_platform.nots.builder.api import TsLibraryBuilderOptions
 from devtools.frontend_build_platform.nots.builder.api.generators.ts_proto_generator import (
+    TsProtoGenerator,
     make_ts_proto_build_command,
 )
 from devtools.frontend_build_platform.nots.builder.api.utils import extract_output_tar
@@ -13,6 +14,7 @@ from .build_library import build_library_func
 class TsProtoBuilderOptions(TsLibraryBuilderOptions):
     protoc_bin: str
     proto_paths: list[str]
+    proto_peers: list[str]
     proto_srcs: list[str]
     ts_proto_opt: list[str]
     tsconfigs: list[str]
@@ -30,6 +32,12 @@ def build_ts_proto_parser(subparsers) -> ArgumentParser:
     subparser.add_argument('--protoc-bin', required=True, help="Path to protoc binary")
     subparser.add_argument('--proto-paths', required=True, nargs='+', help="List for --proto-path (-I) argument")
     subparser.add_argument('--proto-srcs', required=True, nargs='+', help="List of .proto sources")
+    subparser.add_argument(
+        '--proto-peers',
+        default=[],
+        nargs='*',
+        help="Arcadia-relative PEERDIR candidates; built TS_PROTO peers are consumed as libraries",
+    )
     subparser.add_argument('--ts-proto-opt', default=[], action='append', help="List for --ts_proto_opt")
     subparser.add_argument('--auto-package-name', required=False, help="Name for TS_PROTO_AUTO package")
     subparser.add_argument(
@@ -53,6 +61,9 @@ def build_ts_proto_func(args: TsProtoBuilderOptions):
             'ARCADIA_BUILD_ROOT={}'.format(args.arcadia_build_root),
         ]
     )
+    generator = TsProtoGenerator(args)
+    import_mappings = generator.get_import_mappings()
+    peer_reexports_file = generator.write_peer_reexports()
     args.build_command = make_ts_proto_build_command(
         args.arcadia_root,
         args.arcadia_build_root,
@@ -63,6 +74,8 @@ def build_ts_proto_func(args: TsProtoBuilderOptions):
         args.tsconfigs,
         is_auto_package,
         args.auto_deps_path,
+        import_mappings=import_mappings,
+        peer_reexports_file=peer_reexports_file,
     )
     args.build_script = 'nots:build'
     args.outputs = ['build']
