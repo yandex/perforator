@@ -659,6 +659,7 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.1+incompatible
 	github.com/max-messenger/max-bot-api-client-go v1.6.4
 	github.com/maxence-charriere/go-app/v9 v9.8.0
+	github.com/maypok86/otter/v2 v2.3.0
 	github.com/mdlayher/netlink v1.7.3-0.20250113171957-fbb4dce95f42
 	github.com/mdlayher/vsock v1.2.1
 	github.com/mennanov/fieldmask-utils v1.1.4

@@ -13209,6 +13209,21 @@ github.com/maxatome/go-testdeep/td
 github.com/maxence-charriere/go-app/v9/pkg/app
 github.com/maxence-charriere/go-app/v9/pkg/errors
 github.com/maxence-charriere/go-app/v9/pkg/logs
+# github.com/maypok86/otter/v2 v2.3.0
+## explicit; go 1.24.0
+github.com/maypok86/otter/v2
+github.com/maypok86/otter/v2/cmd/generator
+github.com/maypok86/otter/v2/internal/deque
+github.com/maypok86/otter/v2/internal/deque/queue
+github.com/maypok86/otter/v2/internal/expiration
+github.com/maypok86/otter/v2/internal/generated/node
+github.com/maypok86/otter/v2/internal/hashmap
+github.com/maypok86/otter/v2/internal/lossy
+github.com/maypok86/otter/v2/internal/xiter
+github.com/maypok86/otter/v2/internal/xmath
+github.com/maypok86/otter/v2/internal/xruntime
+github.com/maypok86/otter/v2/internal/xsync
+github.com/maypok86/otter/v2/stats
 # github.com/mccutchen/go-httpbin/v2 v2.14.0
 ## explicit; go 1.18
 # github.com/mdlayher/ethernet v0.0.0-20220221185849-529eae5b6118
