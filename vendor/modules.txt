@@ -6089,6 +6089,9 @@ github.com/cenkalti/backoff/v4
 # github.com/cenkalti/backoff/v5 v5.0.3
 ## explicit; go 1.23
 github.com/cenkalti/backoff/v5
+# github.com/cenkalti/backoff/v7 v7.0.0
+## explicit; go 1.23
+github.com/cenkalti/backoff/v7
 # github.com/census-instrumentation/opencensus-proto v0.4.1
 ## explicit; go 1.18
 github.com/census-instrumentation/opencensus-proto/gen-go/agent/common/v1

@@ -312,6 +312,7 @@ require (
 	github.com/caarlos0/env/v11 v11.2.2
 	github.com/casbin/casbin/v2 v2.47.3
 	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/cenkalti/backoff/v7 v7.0.0
 	github.com/cep21/circuit/v4 v4.0.0
 	github.com/cert-manager/cert-manager v1.11.5
 	github.com/cespare/xxhash v1.1.0
