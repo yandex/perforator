@@ -18056,7 +18056,7 @@ github.com/xuri/nfp
 # github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0
 ## explicit
 github.com/yalp/jsonpath
-# github.com/yandex-cloud/go-genproto v0.93.0
+# github.com/yandex-cloud/go-genproto v0.115.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-genproto
 github.com/yandex-cloud/go-genproto/yandex/cloud
@@ -18174,6 +18174,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/spqr/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/sqlserver/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/sqlserver/v1/config
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/zonalshift/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/metastore/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/monitoring/v3
 github.com/yandex-cloud/go-genproto/yandex/cloud/oauth
@@ -18196,13 +18197,16 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/functions/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/mcpgateway/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/mdbproxy/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/triggers/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/triggers/v2
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/workflows/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartcaptcha/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/advanced_rate_limiter
+github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/load_balancer
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/match_list
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/waf
 github.com/yandex-cloud/go-genproto/yandex/cloud/spark/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/spark/v1/environment
 github.com/yandex-cloud/go-genproto/yandex/cloud/speechsense/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/speechsense/v1/analysis
 github.com/yandex-cloud/go-genproto/yandex/cloud/storage/v1
