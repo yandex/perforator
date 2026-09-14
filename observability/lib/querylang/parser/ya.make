@@ -1,3 +1,4 @@
 RECURSE(
+    exp
     v2
 )
