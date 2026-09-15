@@ -5,7 +5,7 @@ LICENSE(
     MIT
 )
 
-VERSION(v3.0.4)
+VERSION(v3.0.5)
 
 SRCS(
     apic.go
@@ -29,7 +29,6 @@ GO_XTEST_SRCS(
     example_embedded_test.go
     limit_test.go
     node_test.go
-    suite_test.go
 )
 
 END()

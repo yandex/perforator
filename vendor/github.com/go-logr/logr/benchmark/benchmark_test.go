@@ -41,6 +41,23 @@ func doInfoSeveralArgs(b *testing.B, log logr.Logger) {
 }
 
 //go:noinline
+func doInfoPointerArgs(b *testing.B, log logr.Logger) {
+	vBool := true
+	vString := "string"
+	vInt := 42
+	vFloat := 3.14
+	vStruct := struct {
+		X *int
+		Y *string
+	}{&vInt, &vString}
+	for i := 0; i < b.N; i++ {
+		log.Info("multi",
+			"bool", &vBool, "string", &vString, "int", &vInt,
+			"float", &vFloat, "struct", &vStruct)
+	}
+}
+
+//go:noinline
 func doInfoWithValues(b *testing.B, log logr.Logger) {
 	log = log.WithValues("k1", "str", "k2", 222, "k3", true, "k4", 1.0)
 	for i := 0; i < b.N; i++ {
@@ -155,6 +172,11 @@ func BenchmarkDiscardLogInfoSeveralArgs(b *testing.B) {
 	doInfoSeveralArgs(b, log)
 }
 
+func BenchmarkDiscardLogInfoPointerArgs(b *testing.B) {
+	var log logr.Logger = logr.Discard() //nolint:staticcheck
+	doInfoPointerArgs(b, log)
+}
+
 func BenchmarkDiscardLogInfoWithValues(b *testing.B) {
 	var log logr.Logger = logr.Discard() //nolint:staticcheck
 	doInfoWithValues(b, log)
@@ -205,6 +227,11 @@ func BenchmarkFuncrJSONLogInfoOneArg(b *testing.B) {
 func BenchmarkFuncrLogInfoSeveralArgs(b *testing.B) {
 	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
 	doInfoSeveralArgs(b, log)
+}
+
+func BenchmarkFuncrLogInfoPointerArgs(b *testing.B) {
+	var log logr.Logger = funcr.New(noopKV, funcr.Options{}) //nolint:staticcheck
+	doInfoPointerArgs(b, log)
 }
 
 func BenchmarkFuncrJSONLogInfoSeveralArgs(b *testing.B) {

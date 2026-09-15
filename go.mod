@@ -449,7 +449,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.6.2
 	github.com/go-git/go-git/v5 v5.14.0
 	github.com/go-ldap/ldap/v3 v3.4.5
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/go-mysql-org/go-mysql v1.14.0
 	github.com/go-ole/go-ole v1.3.0
@@ -853,7 +853,7 @@ require (
 	github.com/sqlc-dev/sqlc v1.30.0
 	github.com/ssgreg/nlreturn/v2 v2.2.1
 	github.com/streadway/amqp v1.0.0
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.1
 	github.com/stripe/krl v0.0.0-20220202203423-9dc12b164150
 	github.com/strongswan/govici v0.8.2
 	github.com/swaggo/echo-swagger v1.4.1
@@ -1049,7 +1049,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0
 	go.opentelemetry.io/contrib/propagators/b3 v1.41.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.41.0
-	go.opentelemetry.io/otel v1.44.0
+	go.opentelemetry.io/otel v1.46.0
 	go.opentelemetry.io/otel/bridge/opencensus v0.45.0
 	go.opentelemetry.io/otel/bridge/opentracing v1.28.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
@@ -1068,12 +1068,12 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.41.0
 	go.opentelemetry.io/otel/log v0.19.0
 	go.opentelemetry.io/otel/log/logtest v0.15.0
-	go.opentelemetry.io/otel/metric v1.44.0
+	go.opentelemetry.io/otel/metric v1.46.0
 	go.opentelemetry.io/otel/sdk v1.43.0
 	go.opentelemetry.io/otel/sdk/log v0.19.0
 	go.opentelemetry.io/otel/sdk/log/logtest v0.17.0
 	go.opentelemetry.io/otel/sdk/metric v1.43.0
-	go.opentelemetry.io/otel/trace v1.44.0
+	go.opentelemetry.io/otel/trace v1.46.0
 	go.opentelemetry.io/proto/otlp v1.10.0
 	go.starlark.net v0.0.0-20260210143700-b62fd896b91b
 	go.step.sm/cli-utils v0.8.0
@@ -1096,7 +1096,7 @@ require (
 	go.uber.org/zap v1.27.1
 	go.uber.org/zap/exp v0.3.0
 	go.withmatt.com/connect-brotli v0.4.0
-	go.yaml.in/yaml/v3 v3.0.4
+	go.yaml.in/yaml/v3 v3.0.5
 	gocloud.dev v0.46.0
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0

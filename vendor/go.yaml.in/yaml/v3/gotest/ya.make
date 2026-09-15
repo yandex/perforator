@@ -5,6 +5,6 @@ LICENSE(
     MIT
 )
 
-VERSION(v3.0.4)
+VERSION(v3.0.5)
 
 END()

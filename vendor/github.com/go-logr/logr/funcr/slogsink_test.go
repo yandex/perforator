@@ -1,5 +1,4 @@
 //go:build go1.21
-// +build go1.21
 
 /*
 Copyright 2021 The logr Authors.
@@ -25,6 +24,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -230,5 +230,25 @@ func TestLogrSlogConversion(t *testing.T) {
 	if want, got := f, f2; got != want {
 		t.Helper()
 		t.Errorf("Expected %T %+v, got instead: %T %+v", want, want, got, got)
+	}
+}
+
+func TestSlogSinkGroupMaxDepth(t *testing.T) {
+	// A deeply-nested slog.Group must not recurse without bound while building
+	// the kvList — that would eventually overflow the goroutine stack (a fatal,
+	// unrecoverable crash). attrToKVs stops at MaxLogDepth and emits a truncation
+	// marker, matching how the formatter truncates deep nesting when rendering.
+	attr := slog.Int("leaf", 1)
+	for i := 0; i < 1000; i++ { // far deeper than the default MaxLogDepth
+		attr = slog.Group("g", attr)
+	}
+
+	capt := &capture{}
+	logger := logr.New(newSink(capt.Func, NewFormatterJSON(Options{})))
+	slogger := slog.New(logr.ToSlogHandler(logger))
+	slogger.Info("msg", attr)
+
+	if !strings.Contains(capt.log, "<max-log-depth-exceeded>") {
+		t.Errorf("expected deep group nesting to be truncated, got: %s", capt.log)
 	}
 }

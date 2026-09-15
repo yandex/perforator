@@ -2,7 +2,7 @@ GO_TEST()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.4.3)
+VERSION(v1.4.4)
 
 GO_TEST_SRCS(
     benchmark_slog_test.go

@@ -1,0 +1,10 @@
+GO_TEST_FOR(vendor/go.opentelemetry.io/otel/semconv/internal/metricpool)
+
+LICENSE(
+    Apache-2.0 AND
+    BSD-3-Clause
+)
+
+VERSION(v1.46.0)
+
+END()

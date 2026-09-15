@@ -106,103 +106,127 @@ func (t Terrorpanic) Error() string {
 }
 
 type TjsontagsString struct {
-	String0 string `json:"-"`                 // first field ignored
-	String1 string `json:"string1"`           // renamed
-	String2 string `json:"-"`                 // ignored
+	String0 string `json:"-"`       // first field ignored
+	String1 string `json:"string1"` // renamed
+	String2 string `json:"-"`       // ignored
+	// "'_'" is what staticcheck suggests:
+	// should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
+	// However, json.Marshal then uses "String3" as name, so this is a wrong suggestion?!
+	//
+	//nolint:staticcheck
 	String3 string `json:"-,"`                // named "-"
 	String4 string `json:"string4,omitempty"` // renamed, ignore if empty
-	String5 string `json:","`                 // no-op
-	String6 string `json:",omitempty"`        // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	String5 string `json:","`          // no-op
+	String6 string `json:",omitempty"` // ignore if empty
 }
 
 type TjsontagsBool struct {
-	Bool0 bool `json:"-"`               // first field ignored
-	Bool1 bool `json:"bool1"`           // renamed
-	Bool2 bool `json:"-"`               // ignored
+	Bool0 bool `json:"-"`     // first field ignored
+	Bool1 bool `json:"bool1"` // renamed
+	Bool2 bool `json:"-"`     // ignored
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Bool3 bool `json:"-,"`              // named "-"
 	Bool4 bool `json:"bool4,omitempty"` // renamed, ignore if empty
-	Bool5 bool `json:","`               // no-op
-	Bool6 bool `json:",omitempty"`      // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	Bool5 bool `json:","`          // no-op
+	Bool6 bool `json:",omitempty"` // ignore if empty
 }
 
 type TjsontagsInt struct {
-	Int0 int `json:"-"`              // first field ignored
-	Int1 int `json:"int1"`           // renamed
-	Int2 int `json:"-"`              // ignored
+	Int0 int `json:"-"`    // first field ignored
+	Int1 int `json:"int1"` // renamed
+	Int2 int `json:"-"`    // ignored
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Int3 int `json:"-,"`             // named "-"
 	Int4 int `json:"int4,omitempty"` // renamed, ignore if empty
-	Int5 int `json:","`              // no-op
-	Int6 int `json:",omitempty"`     // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	Int5 int `json:","`          // no-op
+	Int6 int `json:",omitempty"` // ignore if empty
 }
 
 type TjsontagsUint struct {
-	Uint0 int  `json:"-"`               // first field ignored
-	Uint1 uint `json:"uint1"`           // renamed
-	Uint2 uint `json:"-"`               // ignored
+	Uint0 int  `json:"-"`     // first field ignored
+	Uint1 uint `json:"uint1"` // renamed
+	Uint2 uint `json:"-"`     // ignored
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Uint3 uint `json:"-,"`              // named "-"
 	Uint4 uint `json:"uint4,omitempty"` // renamed, ignore if empty
-	Uint5 uint `json:","`               // no-op
-	Uint6 uint `json:",omitempty"`      // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	Uint5 uint `json:","`          // no-op
+	Uint6 uint `json:",omitempty"` // ignore if empty
 }
 
 type TjsontagsFloat struct {
-	Float0 float64 `json:"-"`                // first field ignored
-	Float1 float64 `json:"float1"`           // renamed
-	Float2 float64 `json:"-"`                // ignored
+	Float0 float64 `json:"-"`      // first field ignored
+	Float1 float64 `json:"float1"` // renamed
+	Float2 float64 `json:"-"`      // ignored
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Float3 float64 `json:"-,"`               // named "-"
 	Float4 float64 `json:"float4,omitempty"` // renamed, ignore if empty
-	Float5 float64 `json:","`                // no-op
-	Float6 float64 `json:",omitempty"`       // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	Float5 float64 `json:","`          // no-op
+	Float6 float64 `json:",omitempty"` // ignore if empty
 }
 
 type TjsontagsComplex struct {
-	Complex0 complex128 `json:"-"`                  // first field ignored
-	Complex1 complex128 `json:"complex1"`           // renamed
-	Complex2 complex128 `json:"-"`                  // ignored
+	Complex0 complex128 `json:"-"`        // first field ignored
+	Complex1 complex128 `json:"complex1"` // renamed
+	Complex2 complex128 `json:"-"`        // ignored
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Complex3 complex128 `json:"-,"`                 // named "-"
 	Complex4 complex128 `json:"complex4,omitempty"` // renamed, ignore if empty
-	Complex5 complex128 `json:","`                  // no-op
-	Complex6 complex128 `json:",omitempty"`         // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	Complex5 complex128 `json:","`          // no-op
+	Complex6 complex128 `json:",omitempty"` // ignore if empty
 }
 
 type TjsontagsPtr struct {
-	Ptr0 *string `json:"-"`              // first field ignored
-	Ptr1 *string `json:"ptr1"`           // renamed
-	Ptr2 *string `json:"-"`              // ignored
+	Ptr0 *string `json:"-"`    // first field ignored
+	Ptr1 *string `json:"ptr1"` // renamed
+	Ptr2 *string `json:"-"`    // ignored
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Ptr3 *string `json:"-,"`             // named "-"
 	Ptr4 *string `json:"ptr4,omitempty"` // renamed, ignore if empty
-	Ptr5 *string `json:","`              // no-op
-	Ptr6 *string `json:",omitempty"`     // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	Ptr5 *string `json:","`          // no-op
+	Ptr6 *string `json:",omitempty"` // ignore if empty
 }
 
 type TjsontagsArray struct {
-	Array0 [2]string `json:"-"`                // first field ignored
-	Array1 [2]string `json:"array1"`           // renamed
-	Array2 [2]string `json:"-"`                // ignored
+	Array0 [2]string `json:"-"`      // first field ignored
+	Array1 [2]string `json:"array1"` // renamed
+	Array2 [2]string `json:"-"`      // ignored
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Array3 [2]string `json:"-,"`               // named "-"
 	Array4 [2]string `json:"array4,omitempty"` // renamed, ignore if empty
-	Array5 [2]string `json:","`                // no-op
-	Array6 [2]string `json:",omitempty"`       // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	Array5 [2]string `json:","`          // no-op
+	Array6 [2]string `json:",omitempty"` // ignore if empty
 }
 
 type TjsontagsSlice struct {
-	Slice0 []string `json:"-"`                // first field ignored
-	Slice1 []string `json:"slice1"`           // renamed
-	Slice2 []string `json:"-"`                // ignored
+	Slice0 []string `json:"-"`      // first field ignored
+	Slice1 []string `json:"slice1"` // renamed
+	Slice2 []string `json:"-"`      // ignored
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Slice3 []string `json:"-,"`               // named "-"
 	Slice4 []string `json:"slice4,omitempty"` // renamed, ignore if empty
-	Slice5 []string `json:","`                // no-op
-	Slice6 []string `json:",omitempty"`       // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	Slice5 []string `json:","`          // no-op
+	Slice6 []string `json:",omitempty"` // ignore if empty
 }
 
 type TjsontagsMap struct {
-	Map0 map[string]string `json:"-"`              // first field ignored
-	Map1 map[string]string `json:"map1"`           // renamed
-	Map2 map[string]string `json:"-"`              // ignored
+	Map0 map[string]string `json:"-"`    // first field ignored
+	Map1 map[string]string `json:"map1"` // renamed
+	Map2 map[string]string `json:"-"`    // ignored
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Map3 map[string]string `json:"-,"`             // named "-"
 	Map4 map[string]string `json:"map4,omitempty"` // renamed, ignore if empty
-	Map5 map[string]string `json:","`              // no-op
-	Map6 map[string]string `json:",omitempty"`     // ignore if empty
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
+	Map5 map[string]string `json:","`          // no-op
+	Map6 map[string]string `json:",omitempty"` // ignore if empty
 }
 
 type Tinnerstruct struct {
@@ -234,14 +258,32 @@ type Tembedjsontags struct {
 	Outer   string
 	Tinner1 `json:"inner1"`
 	Tinner2 `json:"-"`
+	//nolint:staticcheck  // SA5008: should encoding/json ignore this field or name it "-"? Either use `json:"-"` to ignore the field or use `json:"'-',"` to specify "-" as the name
 	Tinner3 `json:"-,"`
 	Tinner4 `json:"inner4,omitempty"`
+	//nolint:staticcheck // SA5008: malformed `json` tag: invalid trailing ',' character
 	Tinner5 `json:","`
 	Tinner6 `json:"inner6,omitempty"`
 }
 
 type Trawjson struct {
 	Message json.RawMessage `json:"message"`
+}
+
+type Trecursive struct {
+	Ptr *Trecursive `json:"ptr"`
+}
+
+// line returns the line number of the caller, if possible.  This is useful in
+// tests with a large number of cases - when something goes wrong you can find
+// which case more easily.
+func line() string {
+	_, _, line, ok := runtime.Caller(1)
+	var s string
+	if ok {
+		s = fmt.Sprintf("%d", line)
+	}
+	return s
 }
 
 func TestPretty(t *testing.T) {
@@ -251,84 +293,122 @@ func TestPretty(t *testing.T) {
 	}
 
 	cases := []struct {
-		val any
-		exp string // used in cases where JSON can't handle it
+		val  any
+		exp  string // used in cases where JSON can't handle it
+		line string
 	}{{
-		val: "strval",
+		line: line(),
+		val:  "strval",
 	}, {
-		val: "strval\nwith\t\"escapes\"",
+		line: line(),
+		val:  "strval\nwith\t\"escapes\"",
 	}, {
-		val: substr("substrval"),
+		line: line(),
+		val:  substr("substrval"),
 	}, {
-		val: substr("substrval\nwith\t\"escapes\""),
+		line: line(),
+		val:  substr("substrval\nwith\t\"escapes\""),
 	}, {
-		val: true,
+		line: line(),
+		val:  true,
 	}, {
-		val: false,
+		line: line(),
+		val:  false,
 	}, {
-		val: int(93),
+		line: line(),
+		val:  int(93),
 	}, {
-		val: int8(93),
+		line: line(),
+		val:  int8(93),
 	}, {
-		val: int16(93),
+		line: line(),
+		val:  int16(93),
 	}, {
-		val: int32(93),
+		line: line(),
+		val:  int32(93),
 	}, {
-		val: int64(93),
+		line: line(),
+		val:  int64(93),
 	}, {
-		val: int(-93),
+		line: line(),
+		val:  int(-93),
 	}, {
-		val: int8(-93),
+		line: line(),
+		val:  int8(-93),
 	}, {
-		val: int16(-93),
+		line: line(),
+		val:  int16(-93),
 	}, {
-		val: int32(-93),
+		line: line(),
+		val:  int32(-93),
 	}, {
-		val: int64(-93),
+		line: line(),
+		val:  int64(-93),
 	}, {
-		val: uint(93),
+		line: line(),
+		val:  uint(93),
 	}, {
-		val: uint8(93),
+		line: line(),
+		val:  uint8(93),
 	}, {
-		val: uint16(93),
+		line: line(),
+		val:  uint16(93),
 	}, {
-		val: uint32(93),
+		line: line(),
+		val:  uint32(93),
 	}, {
-		val: uint64(93),
+		line: line(),
+		val:  uint64(93),
 	}, {
-		val: uintptr(93),
+		line: line(),
+		val:  uintptr(93),
 	}, {
-		val: float32(93.76),
+		line: line(),
+		val:  float32(93.76),
 	}, {
-		val: float64(93.76),
+		line: line(),
+		val:  float64(93.76),
 	}, {
-		val: complex64(93i),
-		exp: `"(0+93i)"`,
+		line: line(),
+		val:  complex64(93i),
+		exp:  `"(0+93i)"`,
 	}, {
-		val: complex128(93i),
-		exp: `"(0+93i)"`,
+		line: line(),
+		val:  complex128(93i),
+		exp:  `"(0+93i)"`,
 	}, {
-		val: ptrint(93),
+		line: line(),
+		val:  ptrint(93),
 	}, {
-		val: ptrstr("pstrval"),
+		line: line(),
+		val:  ptrstr("pstrval"),
 	}, {
-		val: []int{},
+		line: line(),
+		val:  []int{},
 	}, {
-		val: []int(nil),
-		exp: `[]`,
+		line: line(),
+		val:  []int(nil),
+		exp:  `[]`,
 	}, {
-		val: []int{9, 3, 7, 6},
+		line: line(),
+		val:  []int{9, 3, 7, 6},
 	}, {
-		val: []string{"str", "with\tescape"},
+		line: line(),
+		val:  []string{"str", "with\tescape"},
 	}, {
-		val: []substr{"substr", "with\tescape"},
+		line: line(),
+		val:  []substr{"substr", "with\tescape"},
 	}, {
-		val: [4]int{9, 3, 7, 6},
+		line: line(),
+		val:  [4]int{9, 3, 7, 6},
 	}, {
-		val: [2]string{"str", "with\tescape"},
+		line: line(),
+		val:  [2]string{"str", "with\tescape"},
 	}, {
-		val: [2]substr{"substr", "with\tescape"},
+		line: line(),
+		val:  [2]substr{"substr", "with\tescape"},
 	}, {
+		line: line(),
 		val: struct {
 			Int         int
 			notExported string
@@ -337,45 +417,56 @@ func TestPretty(t *testing.T) {
 			93, "you should not see this", "seventy-six",
 		},
 	}, {
-		val: map[string]int{},
+		line: line(),
+		val:  map[string]int{},
 	}, {
-		val: map[string]int(nil),
-		exp: `{}`,
+		line: line(),
+		val:  map[string]int(nil),
+		exp:  `{}`,
 	}, {
+		line: line(),
 		val: map[string]int{
 			"nine": 3,
 		},
 	}, {
+		line: line(),
 		val: map[string]int{
 			"with\tescape": 76,
 		},
 	}, {
+		line: line(),
 		val: map[substr]int{
 			"nine": 3,
 		},
 	}, {
+		line: line(),
 		val: map[substr]int{
 			"with\tescape": 76,
 		},
 	}, {
+		line: line(),
 		val: map[int]int{
 			9: 3,
 		},
 	}, {
+		line: line(),
 		val: map[float64]int{
 			9.5: 3,
 		},
 		exp: `{"9.5":3}`,
 	}, {
+		line: line(),
 		val: map[point]int{
 			{x: 1, y: 2}: 3,
 		},
 	}, {
+		line: line(),
 		val: map[pointErr]int{
 			{x: 1, y: 2}: 3,
 		},
 		exp: `{"<error-MarshalText: uh oh: 1, 2>":3}`,
 	}, {
+		line: line(),
 		val: struct {
 			X int `json:"x"`
 			Y int `json:"y"`
@@ -383,6 +474,7 @@ func TestPretty(t *testing.T) {
 			93, 76,
 		},
 	}, {
+		line: line(),
 		val: struct {
 			X []int
 			Y map[int]int
@@ -393,12 +485,14 @@ func TestPretty(t *testing.T) {
 			struct{ P, Q int }{9, 3},
 		},
 	}, {
+		line: line(),
 		val: []struct{ X, Y string }{
 			{"nine", "three"},
 			{"seven", "six"},
 			{"with\t", "\tescapes"},
 		},
 	}, {
+		line: line(),
 		val: struct {
 			A *int
 			B *int
@@ -409,42 +503,55 @@ func TestPretty(t *testing.T) {
 			D: any(2),
 		},
 	}, {
-		val: Tmarshaler{"foobar"},
-		exp: `{"Inner":"I am a logr.Marshaler"}`,
+		line: line(),
+		val:  Tmarshaler{"foobar"},
+		exp:  `{"Inner":"I am a logr.Marshaler"}`,
 	}, {
-		val: &Tmarshaler{"foobar"},
-		exp: `{"Inner":"I am a logr.Marshaler"}`,
+		line: line(),
+		val:  &Tmarshaler{"foobar"},
+		exp:  `{"Inner":"I am a logr.Marshaler"}`,
 	}, {
-		val: (*Tmarshaler)(nil),
-		exp: `"<panic: value method github.com/go-logr/logr/funcr.Tmarshaler.MarshalLog called using nil *Tmarshaler pointer>"`,
+		line: line(),
+		val:  (*Tmarshaler)(nil),
+		exp:  `"<panic: value method github.com/go-logr/logr/funcr.Tmarshaler.MarshalLog called using nil *Tmarshaler pointer>"`,
 	}, {
-		val: Tmarshalerpanic{"foobar"},
-		exp: `"<panic: Tmarshalerpanic>"`,
+		line: line(),
+		val:  Tmarshalerpanic{"foobar"},
+		exp:  `"<panic: Tmarshalerpanic>"`,
 	}, {
-		val: Tstringer{"foobar"},
-		exp: `"I am a fmt.Stringer"`,
+		line: line(),
+		val:  Tstringer{"foobar"},
+		exp:  `"I am a fmt.Stringer"`,
 	}, {
-		val: &Tstringer{"foobar"},
-		exp: `"I am a fmt.Stringer"`,
+		line: line(),
+		val:  &Tstringer{"foobar"},
+		exp:  `"I am a fmt.Stringer"`,
 	}, {
-		val: (*Tstringer)(nil),
-		exp: `"<panic: value method github.com/go-logr/logr/funcr.Tstringer.String called using nil *Tstringer pointer>"`,
+		line: line(),
+		val:  (*Tstringer)(nil),
+		exp:  `"<panic: value method github.com/go-logr/logr/funcr.Tstringer.String called using nil *Tstringer pointer>"`,
 	}, {
-		val: Tstringerpanic{"foobar"},
-		exp: `"<panic: Tstringerpanic>"`,
+		line: line(),
+		val:  Tstringerpanic{"foobar"},
+		exp:  `"<panic: Tstringerpanic>"`,
 	}, {
-		val: Terror{"foobar"},
-		exp: `"I am an error"`,
+		line: line(),
+		val:  Terror{"foobar"},
+		exp:  `"I am an error"`,
 	}, {
-		val: &Terror{"foobar"},
-		exp: `"I am an error"`,
+		line: line(),
+		val:  &Terror{"foobar"},
+		exp:  `"I am an error"`,
 	}, {
-		val: (*Terror)(nil),
-		exp: `"<panic: value method github.com/go-logr/logr/funcr.Terror.Error called using nil *Terror pointer>"`,
+		line: line(),
+		val:  (*Terror)(nil),
+		exp:  `"<panic: value method github.com/go-logr/logr/funcr.Terror.Error called using nil *Terror pointer>"`,
 	}, {
-		val: Terrorpanic{"foobar"},
-		exp: `"<panic: Terrorpanic>"`,
+		line: line(),
+		val:  Terrorpanic{"foobar"},
+		exp:  `"<panic: Terrorpanic>"`,
 	}, {
+		line: line(),
 		val: TjsontagsString{
 			String1: "v1",
 			String2: "v2",
@@ -454,8 +561,10 @@ func TestPretty(t *testing.T) {
 			String6: "v6",
 		},
 	}, {
-		val: TjsontagsString{},
+		line: line(),
+		val:  TjsontagsString{},
 	}, {
+		line: line(),
 		val: TjsontagsBool{
 			Bool1: true,
 			Bool2: true,
@@ -465,8 +574,10 @@ func TestPretty(t *testing.T) {
 			Bool6: true,
 		},
 	}, {
-		val: TjsontagsBool{},
+		line: line(),
+		val:  TjsontagsBool{},
 	}, {
+		line: line(),
 		val: TjsontagsInt{
 			Int1: 1,
 			Int2: 2,
@@ -476,8 +587,10 @@ func TestPretty(t *testing.T) {
 			Int6: 6,
 		},
 	}, {
-		val: TjsontagsInt{},
+		line: line(),
+		val:  TjsontagsInt{},
 	}, {
+		line: line(),
 		val: TjsontagsUint{
 			Uint1: 1,
 			Uint2: 2,
@@ -487,8 +600,10 @@ func TestPretty(t *testing.T) {
 			Uint6: 6,
 		},
 	}, {
-		val: TjsontagsUint{},
+		line: line(),
+		val:  TjsontagsUint{},
 	}, {
+		line: line(),
 		val: TjsontagsFloat{
 			Float1: 1.1,
 			Float2: 2.2,
@@ -498,8 +613,10 @@ func TestPretty(t *testing.T) {
 			Float6: 6.6,
 		},
 	}, {
-		val: TjsontagsFloat{},
+		line: line(),
+		val:  TjsontagsFloat{},
 	}, {
+		line: line(),
 		val: TjsontagsComplex{
 			Complex1: 1i,
 			Complex2: 2i,
@@ -510,9 +627,11 @@ func TestPretty(t *testing.T) {
 		},
 		exp: `{"complex1":"(0+1i)","-":"(0+3i)","complex4":"(0+4i)","Complex5":"(0+5i)","Complex6":"(0+6i)"}`,
 	}, {
-		val: TjsontagsComplex{},
-		exp: `{"complex1":"(0+0i)","-":"(0+0i)","Complex5":"(0+0i)"}`,
+		line: line(),
+		val:  TjsontagsComplex{},
+		exp:  `{"complex1":"(0+0i)","-":"(0+0i)","Complex5":"(0+0i)"}`,
 	}, {
+		line: line(),
 		val: TjsontagsPtr{
 			Ptr1: newStr("1"),
 			Ptr2: newStr("2"),
@@ -522,8 +641,10 @@ func TestPretty(t *testing.T) {
 			Ptr6: newStr("6"),
 		},
 	}, {
-		val: TjsontagsPtr{},
+		line: line(),
+		val:  TjsontagsPtr{},
 	}, {
+		line: line(),
 		val: TjsontagsArray{
 			Array1: [2]string{"v1", "v1"},
 			Array2: [2]string{"v2", "v2"},
@@ -533,8 +654,10 @@ func TestPretty(t *testing.T) {
 			Array6: [2]string{"v6", "v6"},
 		},
 	}, {
-		val: TjsontagsArray{},
+		line: line(),
+		val:  TjsontagsArray{},
 	}, {
+		line: line(),
 		val: TjsontagsSlice{
 			Slice1: []string{"v1", "v1"},
 			Slice2: []string{"v2", "v2"},
@@ -544,9 +667,11 @@ func TestPretty(t *testing.T) {
 			Slice6: []string{"v6", "v6"},
 		},
 	}, {
-		val: TjsontagsSlice{},
-		exp: `{"slice1":[],"-":[],"Slice5":[]}`,
+		line: line(),
+		val:  TjsontagsSlice{},
+		exp:  `{"slice1":[],"-":[],"Slice5":[]}`,
 	}, {
+		line: line(),
 		val: TjsontagsMap{
 			Map1: map[string]string{"k1": "v1"},
 			Map2: map[string]string{"k2": "v2"},
@@ -556,37 +681,47 @@ func TestPretty(t *testing.T) {
 			Map6: map[string]string{"k6": "v6"},
 		},
 	}, {
-		val: TjsontagsMap{},
-		exp: `{"map1":{},"-":{},"Map5":{}}`,
+		line: line(),
+		val:  TjsontagsMap{},
+		exp:  `{"map1":{},"-":{},"Map5":{}}`,
 	}, {
-		val: Tembedstruct{},
+		line: line(),
+		val:  Tembedstruct{},
 	}, {
-		val: Tembednonstruct{},
-		exp: `{"Tinnerint":0,"Tinnermap":{},"Tinnerslice":[]}`,
+		line: line(),
+		val:  Tembednonstruct{},
+		exp:  `{"Tinnerint":0,"Tinnermap":{},"Tinnerslice":[]}`,
 	}, {
-		val: Tembedjsontags{},
+		line: line(),
+		val:  Tembedjsontags{},
 	}, {
-		val: PseudoStruct(makeKV("f1", 1, "f2", true, "f3", []int{})),
-		exp: `{"f1":1,"f2":true,"f3":[]}`,
+		line: line(),
+		val:  PseudoStruct(makeKV("f1", 1, "f2", true, "f3", []int{})),
+		exp:  `{"f1":1,"f2":true,"f3":[]}`,
 	}, {
+		line: line(),
 		val: map[TjsontagsString]int{
 			{String1: `"quoted"`, String4: `unquoted`}: 1,
 		},
 		exp: `{"{\"string1\":\"\\\"quoted\\\"\",\"-\":\"\",\"string4\":\"unquoted\",\"String5\":\"\"}":1}`,
 	}, {
+		line: line(),
 		val: map[TjsontagsInt]int{
 			{Int1: 1, Int2: 2}: 3,
 		},
 		exp: `{"{\"int1\":1,\"-\":0,\"Int5\":0}":3}`,
 	}, {
+		line: line(),
 		val: map[[2]struct{ S string }]int{
 			{{S: `"quoted"`}, {S: "unquoted"}}: 1,
 		},
 		exp: `{"[{\"S\":\"\\\"quoted\\\"\"},{\"S\":\"unquoted\"}]":1}`,
 	}, {
-		val: TjsontagsComplex{},
-		exp: `{"complex1":"(0+0i)","-":"(0+0i)","Complex5":"(0+0i)"}`,
+		line: line(),
+		val:  TjsontagsComplex{},
+		exp:  `{"complex1":"(0+0i)","-":"(0+0i)","Complex5":"(0+0i)"}`,
 	}, {
+		line: line(),
 		val: TjsontagsPtr{
 			Ptr1: newStr("1"),
 			Ptr2: newStr("2"),
@@ -596,8 +731,10 @@ func TestPretty(t *testing.T) {
 			Ptr6: newStr("6"),
 		},
 	}, {
-		val: TjsontagsPtr{},
+		line: line(),
+		val:  TjsontagsPtr{},
 	}, {
+		line: line(),
 		val: TjsontagsArray{
 			Array1: [2]string{"v1", "v1"},
 			Array2: [2]string{"v2", "v2"},
@@ -607,8 +744,10 @@ func TestPretty(t *testing.T) {
 			Array6: [2]string{"v6", "v6"},
 		},
 	}, {
-		val: TjsontagsArray{},
+		line: line(),
+		val:  TjsontagsArray{},
 	}, {
+		line: line(),
 		val: TjsontagsSlice{
 			Slice1: []string{"v1", "v1"},
 			Slice2: []string{"v2", "v2"},
@@ -618,9 +757,11 @@ func TestPretty(t *testing.T) {
 			Slice6: []string{"v6", "v6"},
 		},
 	}, {
-		val: TjsontagsSlice{},
-		exp: `{"slice1":[],"-":[],"Slice5":[]}`,
+		line: line(),
+		val:  TjsontagsSlice{},
+		exp:  `{"slice1":[],"-":[],"Slice5":[]}`,
 	}, {
+		line: line(),
 		val: TjsontagsMap{
 			Map1: map[string]string{"k1": "v1"},
 			Map2: map[string]string{"k2": "v2"},
@@ -630,50 +771,131 @@ func TestPretty(t *testing.T) {
 			Map6: map[string]string{"k6": "v6"},
 		},
 	}, {
-		val: TjsontagsMap{},
-		exp: `{"map1":{},"-":{},"Map5":{}}`,
+		line: line(),
+		val:  TjsontagsMap{},
+		exp:  `{"map1":{},"-":{},"Map5":{}}`,
 	}, {
-		val: Tembedstruct{},
+		line: line(),
+		val:  Tembedstruct{},
 	}, {
-		val: Tembednonstruct{},
-		exp: `{"Tinnerint":0,"Tinnermap":{},"Tinnerslice":[]}`,
+		line: line(),
+		val:  Tembednonstruct{},
+		exp:  `{"Tinnerint":0,"Tinnermap":{},"Tinnerslice":[]}`,
 	}, {
-		val: Tembedjsontags{},
+		line: line(),
+		val:  Tembedjsontags{},
 	}, {
-		val: PseudoStruct(makeKV("f1", 1, "f2", true, "f3", []int{})),
-		exp: `{"f1":1,"f2":true,"f3":[]}`,
+		line: line(),
+		val:  PseudoStruct(makeKV("f1", 1, "f2", true, "f3", []int{})),
+		exp:  `{"f1":1,"f2":true,"f3":[]}`,
 	}, {
+		line: line(),
 		val: map[TjsontagsString]int{
 			{String1: `"quoted"`, String4: `unquoted`}: 1,
 		},
 		exp: `{"{\"string1\":\"\\\"quoted\\\"\",\"-\":\"\",\"string4\":\"unquoted\",\"String5\":\"\"}":1}`,
 	}, {
+		line: line(),
 		val: map[TjsontagsInt]int{
 			{Int1: 1, Int2: 2}: 3,
 		},
 		exp: `{"{\"int1\":1,\"-\":0,\"Int5\":0}":3}`,
 	}, {
+		line: line(),
 		val: map[[2]struct{ S string }]int{
 			{{S: `"quoted"`}, {S: "unquoted"}}: 1,
 		},
 		exp: `{"[{\"S\":\"\\\"quoted\\\"\"},{\"S\":\"unquoted\"}]":1}`,
+	}, {
+		line: line(),
+		val: func() any {
+			v := &Trecursive{}
+			v.Ptr = v
+			return v
+		}(),
+		exp: `{"ptr":{"ptr":{"ptr":{"ptr":{"ptr":"<max-log-depth-exceeded>"}}}}}`,
+	}, {
+		line: line(),
+		val: func() any {
+			v := make([]any, 1)
+			v[0] = v
+			return v
+		}(),
+		exp: `[[[[["<max-log-depth-exceeded>"]]]]]`,
+	}, {
+		line: line(),
+		val: func() any {
+			type T []T
+			v := make(T, 1)
+			v[0] = v
+			return v
+		}(),
+		exp: `[[[[["<max-log-depth-exceeded>"]]]]]`,
+	}, {
+		line: line(),
+		val: func() any {
+			v := make(map[string]any)
+			v["v"] = v
+			return v
+		}(),
+		exp: `{"v":{"v":{"v":{"v":{"v":"<max-log-depth-exceeded>"}}}}}`,
+	}, {
+		line: line(),
+		val: func() any {
+			type T map[string]T
+			v := make(T)
+			v["v"] = v
+			return v
+		}(),
+		exp: `{"v":{"v":{"v":{"v":{"v":"<max-log-depth-exceeded>"}}}}}`,
+	}, {
+		line: line(),
+		val: func() any {
+			v := make(map[any]string)
+			k := &Trecursive{}
+			k.Ptr = k
+			v[k] = "v"
+			return v
+		}(),
+		exp: `{"{\"ptr\":{\"ptr\":{\"ptr\":{\"ptr\":{\"ptr\":\"<max-log-depth-exceeded>\"}}}}}":"v"}`,
+	}, {
+		line: line(),
+		val: func() any {
+			var v any
+			v = &v
+			return v
+		}(),
+		exp: `"<max-log-depth-exceeded>"`,
+	}, {
+		line: line(),
+		val: func() any {
+			type P *P
+			var a, b P
+			a, b = &b, &a
+			return a
+		}(),
+		exp: `"<max-log-depth-exceeded>"`,
 	}}
 
-	f := NewFormatterJSON(Options{})
+	f := NewFormatterJSON(Options{MaxLogDepth: 4})
 	for i, tc := range cases {
 		ours := f.pretty(tc.val)
 		want := ""
+		if tc.line == "" {
+			t.Fatalf("testcase %d has no line number", i)
+		}
+		loc := "case @L" + tc.line
 		if tc.exp != "" {
 			want = tc.exp
 		} else {
 			jb, err := json.Marshal(tc.val)
 			if err != nil {
-				t.Fatalf("[%d]: unexpected error: %v\ngot: %q", i, err, ours)
+				t.Fatalf("%s: unexpected error: %v\ngot: %q", loc, err, ours)
 			}
 			want = string(jb)
 		}
 		if ours != want {
-			t.Errorf("[%d]:\n\texpected %q\n\tgot      %q", i, want, ours)
+			t.Errorf("%s:\n\texpected %q\n\tgot      %q", loc, want, ours)
 		}
 	}
 }
