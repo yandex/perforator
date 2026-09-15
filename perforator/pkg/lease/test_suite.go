@@ -78,6 +78,17 @@ func RunTests(t *testing.T, factory func() (Storage, error)) {
 		renewed, err := s.Renew(ctx, name, holderA, ttl)
 		require.NoError(t, err)
 		require.False(t, renewed)
+
+		logger.Info(ctx, "Holder A releasing lost lease (must preserve holder B)")
+		require.NoError(t, s.Release(ctx, name, holderA))
+
+		acquired, err = s.Acquire(ctx, name, holderA, ttl)
+		require.NoError(t, err)
+		require.False(t, acquired, "stale release must not make holder B's lease available")
+
+		renewed, err = s.Renew(ctx, name, holderB, ttl)
+		require.NoError(t, err)
+		require.True(t, renewed, "holder B must retain its lease after holder A releases")
 	})
 
 	t.Run("LeaseHolder", func(t *testing.T) {

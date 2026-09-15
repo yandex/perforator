@@ -6,8 +6,13 @@ SRCS(
     test_suite.go
 )
 
+GO_TEST_SRCS(
+    lease_test.go
+)
+
 END()
 
 RECURSE(
+    gotest
     postgres
 )
