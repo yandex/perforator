@@ -352,7 +352,7 @@ type formattedTLSVariable struct {
 }
 
 func (c *oneShotSampleConsumer) collectTLS(ctx context.Context) {
-	c.tls = make([]formattedTLSVariable, 0)
+	c.tls = make([]formattedTLSVariable, 0, len(c.sample.TlsValues.Values))
 
 	for _, variable := range c.sample.TLS {
 		var value string
