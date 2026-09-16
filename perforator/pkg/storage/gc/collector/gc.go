@@ -10,12 +10,14 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/lease"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
+	clustertopgc "github.com/yandex/perforator/perforator/pkg/storage/cluster_top/gc"
 	"github.com/yandex/perforator/perforator/pkg/storage/gc/config"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
 type GC struct {
+	clusterTop   *clusterTopGC
 	collectors   []*storageGC
 	l            xlog.Logger
 	registry     metrics.Registry
@@ -46,7 +48,18 @@ func NewGC(l xlog.Logger, r metrics.Registry, gcConf config.Config, storageBundl
 		collectors = append(collectors, newStorageGC(l, r, conf, st))
 	}
 
+	var clusterTop *clusterTopGC
+	if gcConf.ClusterTop.Enabled {
+		if storageBundle.LeaseStorage == nil {
+			return nil, fmt.Errorf("Cluster Top GC requires shared lease storage")
+		}
+		if storageBundle.DBs == nil || storageBundle.DBs.PostgresCluster == nil || storageBundle.DBs.ClickhouseConn == nil {
+			return nil, fmt.Errorf("Cluster Top GC requires PostgreSQL and ClickHouse")
+		}
+		clusterTop = newClusterTopGC(l, r, gcConf.ClusterTop, clustertopgc.NewStorage(storageBundle.DBs.PostgresCluster, storageBundle.DBs.ClickhouseConn, gcConf.ClusterTop.OperationTimeout))
+	}
 	return &GC{
+		clusterTop:   clusterTop,
 		collectors:   collectors,
 		l:            l,
 		registry:     r,
@@ -91,5 +104,8 @@ func (g *GC) runCollectors(ctx context.Context, interval time.Duration) error {
 		})
 	}
 
+	if g.clusterTop != nil {
+		gr.Go(func() error { return g.clusterTop.run(ctx) })
+	}
 	return gr.Wait()
 }

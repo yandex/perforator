@@ -21,8 +21,8 @@ const (
 
 var (
 	generationStatusMap = map[string]perforator.ClusterTopGenerationStatus{
-		"finished":  perforator.ClusterTopGenerationStatus_COMPLETED,
-		"scheduled": perforator.ClusterTopGenerationStatus_IN_PROGRESS,
+		StatusFinished:  perforator.ClusterTopGenerationStatus_COMPLETED,
+		StatusScheduled: perforator.ClusterTopGenerationStatus_IN_PROGRESS,
 	}
 )
 
@@ -62,12 +62,13 @@ func mapToProto(rows []*clusterTopGenerationRow) []*perforator.ClusterTopGenerat
 var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
 func (s *PostgresGenerationsStorage) ListGenerations(ctx context.Context) ([]*perforator.ClusterTopGeneration, error) {
-	alive, err := s.cluster.WaitForAlive(ctx)
+	primary, err := s.cluster.WaitForPrimary(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to wait for alive replica: %w", err)
+		return nil, fmt.Errorf("failed to wait for primary: %w", err)
 	}
 	query := psql.Select("id", "from_ts", "to_ts", coalescedStatusColumn).
 		From("cluster_top_generations").
+		Where("status IS DISTINCT FROM 'deleting'").
 		OrderBy("id DESC")
 
 	sql, args, err := query.ToSql()
@@ -79,10 +80,23 @@ func (s *PostgresGenerationsStorage) ListGenerations(ctx context.Context) ([]*pe
 	s.logger.Debug(ctx, "Listing generations in postgres", log.String("sql", sql))
 
 	var rows []*clusterTopGenerationRow
-	err = alive.DBx().SelectContext(ctx, &rows, sql, args...)
+	err = primary.DBx().SelectContext(ctx, &rows, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("can't list generations: %w", err)
 	}
 
 	return mapToProto(rows), nil
+}
+
+func (s *PostgresGenerationsStorage) Exists(ctx context.Context, id uint32) (bool, error) {
+	primary, err := s.cluster.WaitForPrimary(ctx)
+	if err != nil {
+		return false, err
+	}
+	var exists bool
+	err = primary.DBx().GetContext(ctx, &exists, `
+SELECT EXISTS (
+    SELECT 1 FROM cluster_top_generations WHERE id = $1 AND status IS DISTINCT FROM 'deleting'
+)`, id)
+	return exists, err
 }

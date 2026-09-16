@@ -25,9 +25,10 @@ type StorageConfig struct {
 }
 
 type Config struct {
-	Storages  []StorageConfig `yaml:"storages,omitempty"`
-	LeaseName string          `yaml:"lease_name,omitempty"`
-	LeaseTTL  time.Duration   `yaml:"lease_ttl,omitempty"`
+	ClusterTop ClusterTopConfig `yaml:"-"`
+	Storages   []StorageConfig  `yaml:"storages,omitempty"`
+	LeaseName  string           `yaml:"lease_name,omitempty"`
+	LeaseTTL   time.Duration    `yaml:"lease_ttl,omitempty"`
 }
 
 func (c *Config) FillDefault() {
@@ -43,5 +44,5 @@ func (c Config) Validate() error {
 	if c.LeaseTTL <= 0 {
 		return errors.New("GC lease TTL must be positive")
 	}
-	return nil
+	return c.ClusterTop.Validate()
 }

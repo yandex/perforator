@@ -110,6 +110,14 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 		return nil, status.Errorf(codes.InvalidArgument, "Unknown order by: %s", req.GetOrderBy())
 	}
 
+	exists, err := s.clusterTopGenerationStorage.Exists(ctx, generation)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, status.Error(codes.NotFound, "Cluster Top generation is unavailable")
+	}
+
 	offset := req.GetPagination().GetOffset()
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -151,7 +159,7 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 		})
 	}
 
-	err := g.Wait()
+	err = g.Wait()
 
 	if err != nil {
 		return nil, err

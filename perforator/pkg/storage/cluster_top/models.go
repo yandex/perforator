@@ -30,6 +30,7 @@ type Config struct {
 }
 
 type Storage interface {
+	Exists(ctx context.Context, id uint32) (bool, error)
 	ListGenerations(ctx context.Context) ([]*perforator.ClusterTopGeneration, error)
 	AggregateClusterTop(ctx context.Context, generation uint32, filter *aggregated.Filter, aggregationType aggregated.GroupByMode, pagination util.Pagination, sortOrder aggregated.SortOrder) ([]*aggregated.AggregationValue, error)
 	SaveClusterTopEntry(ctx context.Context, result *aggregated.JobResult) error

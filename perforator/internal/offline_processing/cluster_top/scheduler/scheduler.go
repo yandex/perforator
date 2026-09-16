@@ -15,6 +15,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/lease"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
+	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/generations"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -25,13 +26,6 @@ const clusterTopSystemName = "perforator"
 const maxJobsInsertBatchSize = 10000
 
 const DefaultBucketCount uint16 = 16
-
-type generationStatus string
-
-const (
-	generationStatusScheduled generationStatus = "scheduled"
-	generationStatusFinished  generationStatus = "finished"
-)
 
 var errGenerationAlreadyExists = errors.New("generation already exists")
 
@@ -123,7 +117,7 @@ func hasScheduledGeneration(ctx context.Context, q sqlGetter) (bool, error) {
 		ctx,
 		&exists,
 		`SELECT EXISTS(SELECT 1 FROM cluster_top_generations WHERE status = $1)`,
-		generationStatusScheduled,
+		generations.StatusScheduled,
 	)
 	if err != nil {
 		return false, fmt.Errorf("failed to check scheduled generations: %w", err)
@@ -200,7 +194,7 @@ func (s *Scheduler) createGeneration(ctx context.Context, generationID int32, st
 		 VALUES ($1, $2, $3, $4, $5) 
 		 ON CONFLICT (id) DO NOTHING 
 		 RETURNING id`,
-		generationID, start, end, generationStatusScheduled, s.conf.BucketCount,
+		generationID, start, end, generations.StatusScheduled, s.conf.BucketCount,
 	).Scan(&generationID)
 
 	if err != nil {
@@ -353,7 +347,7 @@ func (s *Scheduler) finishGenerations(ctx context.Context) error {
 	var scheduledIDs []int
 	query, args, err := sq.Select("id").
 		From("cluster_top_generations").
-		Where(sq.Eq{"status": generationStatusScheduled}).
+		Where(sq.Eq{"status": generations.StatusScheduled}).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
@@ -385,7 +379,7 @@ func (s *Scheduler) finishGenerations(ctx context.Context) error {
 		if pendingCount == 0 {
 			_, err = tx.ExecContext(ctx,
 				`UPDATE cluster_top_generations SET status = $1 WHERE id = $2`,
-				generationStatusFinished, id,
+				generations.StatusFinished, id,
 			)
 			if err != nil {
 				s.l.Error(ctx, "Failed to update generation status to finished", log.Int("id", id), log.Error(err))

@@ -33,19 +33,19 @@ func runGC(
 	gc *collector.GC,
 	iterationInterval time.Duration,
 ) error {
-	g, ctx := errgroup.WithContext(ctx)
+	g, runCtx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		return gc.Run(ctx, iterationInterval)
+		return gc.Run(runCtx, iterationInterval)
 	})
 
 	g.Go(func() error {
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", metricsHandler)
 		server := &http.Server{Addr: fmt.Sprintf(":%d", metricsPort), Handler: mux}
-		stop := context.AfterFunc(ctx, func() { _ = server.Close() })
+		stop := context.AfterFunc(runCtx, func() { _ = server.Close() })
 		defer stop()
-		l.Info(ctx, "Starting metrics server", log.UInt32("port", metricsPort))
+		l.Info(runCtx, "Starting metrics server", log.UInt32("port", metricsPort))
 
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			return err
@@ -53,7 +53,11 @@ func runGC(
 		return nil
 	})
 
-	return g.Wait()
+	err := g.Wait()
+	if ctx.Err() != nil && (errors.Is(err, ctx.Err()) || errors.Is(err, context.Cause(ctx))) {
+		return nil
+	}
+	return err
 }
 
 var (
@@ -73,6 +77,8 @@ var (
 		Type: gcconfig.GSYM,
 		TTL:  defaultTTL,
 	}
+
+	clusterTopGCConfig = gcconfig.DefaultClusterTopConfig()
 
 	iterationInterval *time.Duration
 	gcLeaseName       string
@@ -105,6 +111,14 @@ var (
 				logger.Fatal(ctx, "Failed to parse gc config", log.Error(err))
 			}
 
+			clusterTopGCConfig.Enabled = conf.ClusterTopStorage != nil
+			if err := clusterTopGCConfig.Validate(); err != nil {
+				return err
+			}
+			if clusterTopGCConfig.Enabled && (conf.DBs.ClickhouseConfig == nil || len(conf.DBs.ClickhouseConfig.Replicas) == 0) {
+				return fmt.Errorf("Cluster Top GC requires a ClickHouse replica in storage config")
+			}
+
 			initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 			defer cancel()
 
@@ -116,9 +130,10 @@ var (
 			}
 
 			gcConfig := gcconfig.Config{
-				Storages:  []gcconfig.StorageConfig{},
-				LeaseName: gcLeaseName,
-				LeaseTTL:  gcLeaseTTL,
+				ClusterTop: clusterTopGCConfig,
+				Storages:   []gcconfig.StorageConfig{},
+				LeaseName:  gcLeaseName,
+				LeaseTTL:   gcLeaseTTL,
 			}
 			if conf.BinaryStorage != nil {
 				gcConfig.Storages = append(gcConfig.Storages, binaryGCConfig)
@@ -153,6 +168,11 @@ var (
 )
 
 func init() {
+	gcCmd.Flags().DurationVar(&clusterTopGCConfig.TTL, "cluster-top-ttl", clusterTopGCConfig.TTL, "Retention from the end of a Cluster Top generation")
+	gcCmd.Flags().DurationVar(&clusterTopGCConfig.Interval, "cluster-top-interval", clusterTopGCConfig.Interval, "Interval between Cluster Top GC iterations")
+	gcCmd.Flags().Uint32Var(&clusterTopGCConfig.JobsBatchSize, "cluster-top-jobs-batch-size", clusterTopGCConfig.JobsBatchSize, "Maximum jobs deleted per transaction")
+	gcCmd.Flags().DurationVar(&clusterTopGCConfig.JobsInterval, "cluster-top-jobs-interval", clusterTopGCConfig.JobsInterval, "Pause between job deletion batches")
+	gcCmd.Flags().DurationVar(&clusterTopGCConfig.OperationTimeout, "cluster-top-operation-timeout", clusterTopGCConfig.OperationTimeout, "Timeout for each Cluster Top GC database operation")
 	gcCmd.Flags().StringVar(&gcLeaseName, "lease-name", gcconfig.DefaultLeaseName, "Shared lease name for GC processes using the same storage config")
 	gcCmd.Flags().DurationVar(&gcLeaseTTL, "lease-ttl", gcconfig.DefaultLeaseTTL, "GC lease TTL")
 	gcCmd.Flags().DurationVar(
@@ -208,7 +228,7 @@ func init() {
 }
 
 func main() {
-	if err := gcCmd.Execute(); err != nil && !errors.Is(err, context.Canceled) {
+	if err := gcCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %+v\n", err)
 		os.Exit(1)
 	}

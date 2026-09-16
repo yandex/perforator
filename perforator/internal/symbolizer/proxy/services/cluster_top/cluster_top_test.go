@@ -2,12 +2,16 @@ package cluster_top
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/services/cluster_top/mocks"
 	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/aggregated"
@@ -35,6 +39,7 @@ func TestClusterTopPagination(t *testing.T) {
 	for _, count := range []int{0, 1, 2} {
 		t.Run(fmt.Sprint(count), func(t *testing.T) {
 			storage := mocks.NewMockStorage(gomock.NewController(t))
+			storage.EXPECT().Exists(gomock.Any(), uint32(42)).Return(true, nil)
 			entries := make([]*aggregated.AggregationValue, count)
 			for i := range entries {
 				entries[i] = &aggregated.AggregationValue{Name: fmt.Sprint(i)}
@@ -109,6 +114,7 @@ func TestFromCpuCyclesToCpuHours(t *testing.T) {
 func TestGetClusterTopByFunction(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	storageMock := mocks.NewMockStorage(ctrl)
+	storageMock.EXPECT().Exists(gomock.Any(), uint32(42)).Return(true, nil)
 
 	svc := NewService(xlog.ForTest(t), storageMock)
 	ctx := context.Background()
@@ -183,6 +189,7 @@ func TestGetClusterTopByFunction(t *testing.T) {
 func TestGetClusterTopByServiceForFunction(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	storageMock := mocks.NewMockStorage(ctrl)
+	storageMock.EXPECT().Exists(gomock.Any(), uint32(42)).Return(true, nil)
 
 	svc := NewService(xlog.ForTest(t), storageMock)
 	ctx := context.Background()
@@ -258,5 +265,21 @@ func TestGetClusterTopByServiceForFunction(t *testing.T) {
 	// 6/12*100 = 50%.  If totalSelf were used instead: 6/10*100 = 60%.
 	if got.Count.CumulativePct != 50.0 {
 		t.Errorf("CumulativePct = %v, want 50.0 (denominator must be totalCumulative=12, not totalSelf=10)", got.Count.CumulativePct)
+	}
+}
+
+func TestUnavailableGenerationIsNotRead(t *testing.T) {
+	for _, readErr := range []error{nil, errors.New("postgres unavailable")} {
+		t.Run(fmt.Sprint(readErr), func(t *testing.T) {
+			storage := mocks.NewMockStorage(gomock.NewController(t))
+			storage.EXPECT().Exists(gomock.Any(), uint32(42)).Return(false, readErr)
+			_, err := NewService(xlog.ForTest(t), storage).GetClusterTopAggregatedByFunction(t.Context(), &perforator.ClusterTopRequest{Generation: 42})
+			if readErr == nil {
+				require.Equal(t, codes.NotFound, status.Code(err))
+			} else {
+				require.ErrorIs(t, err, readErr)
+			}
+			// No aggregation calls are expected for a deleting/missing generation or a failed visibility check.
+		})
 	}
 }
