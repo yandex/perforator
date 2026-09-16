@@ -1,6 +1,6 @@
 PROTO_LIBRARY()
 
-INCLUDE_TAGS(GO_PROTO)
+INCLUDE(${ARCADIA_ROOT}/perforator/proto/tags.inc)
 
 PEERDIR(
     perforator/agent/preprocessing/proto/jvm

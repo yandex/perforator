@@ -2,11 +2,7 @@ PROTO_LIBRARY()
 
 GRPC()
 
-INCLUDE_TAGS(GO_PROTO)
-
-IF (OPENSOURCE)
-    EXCLUDE_TAGS(JAVA_PROTO)
-ENDIF()
+INCLUDE(${ARCADIA_ROOT}/perforator/proto/tags.inc)
 
 PEERDIR(
     perforator/proto/lib/time_interval

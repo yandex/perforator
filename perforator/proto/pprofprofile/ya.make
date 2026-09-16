@@ -2,7 +2,7 @@ PROTO_LIBRARY()
 
 GRPC()
 
-INCLUDE_TAGS(GO_PROTO)
+INCLUDE(${ARCADIA_ROOT}/perforator/proto/tags.inc)
 
 SRCS(
     profile.proto

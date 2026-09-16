@@ -1,8 +1,6 @@
 PROTO_LIBRARY()
 
-IF (OPENSOURCE)
-    EXCLUDE_TAGS(JAVA_PROTO)
-ENDIF()
+INCLUDE(${ARCADIA_ROOT}/perforator/proto/tags.inc)
 
 PEERDIR(perforator/agent/preprocessing/proto/jvm)
 
