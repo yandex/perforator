@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v2.3.2)
+VERSION(v2.3.3)
 
 SRCS(
     authentication_cleartext_password.go
@@ -65,12 +65,15 @@ SRCS(
 GO_TEST_SRCS(
     function_call_test.go
     json_test.go
+    pgproto3_private_test.go
 )
 
 GO_XTEST_SRCS(
     backend_test.go
+    bind_test.go
     copy_both_response_test.go
     frontend_test.go
+    query_test.go
 )
 
 END()

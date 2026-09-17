@@ -11971,8 +11971,8 @@ github.com/jackc/chunkreader/v2
 # github.com/jackc/fake v0.0.0-20150926172116-812a484cc733
 ## explicit
 github.com/jackc/fake
-# github.com/jackc/pgconn v1.14.3 => github.com/jackc/pgconn v1.14.0
-## explicit; go 1.12
+# github.com/jackc/pgconn v1.14.3 => github.com/jackc/pgconn v1.14.3
+## explicit; go 1.17
 github.com/jackc/pgconn
 github.com/jackc/pgconn/internal/ctxwatch
 github.com/jackc/pgconn/stmtcache
@@ -11993,7 +11993,7 @@ github.com/jackc/pgmock
 # github.com/jackc/pgpassfile v1.0.0
 ## explicit; go 1.12
 github.com/jackc/pgpassfile
-# github.com/jackc/pgproto3/v2 v2.3.3 => github.com/jackc/pgproto3/v2 v2.3.2
+# github.com/jackc/pgproto3/v2 v2.3.3 => github.com/jackc/pgproto3/v2 v2.3.3
 ## explicit; go 1.12
 github.com/jackc/pgproto3/v2
 github.com/jackc/pgproto3/v2/example/pgfortune
@@ -24490,8 +24490,8 @@ www.velocidex.com/golang/regparser
 # github.com/google/go-tpm-tools => github.com/google/go-tpm-tools v0.4.2
 # github.com/grpc-ecosystem/go-grpc-middleware/v2 => github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
 # github.com/insomniacslk/dhcp => github.com/insomniacslk/dhcp v0.0.0-20210120172423-cc9239ac6294
-# github.com/jackc/pgconn => github.com/jackc/pgconn v1.14.0
-# github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.2
+# github.com/jackc/pgconn => github.com/jackc/pgconn v1.14.3
+# github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.3
 # github.com/jackc/pgtype => github.com/jackc/pgtype v1.12.0
 # github.com/jarcoal/httpmock => github.com/jarcoal/httpmock v1.3.1
 # github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24

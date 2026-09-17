@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v1.14.0)
+VERSION(v1.14.3)
 
 SRCS(
     context_watcher.go

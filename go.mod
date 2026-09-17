@@ -2853,9 +2853,9 @@ replace github.com/prometheus/client_model => github.com/prometheus/client_model
 
 replace github.com/distribution/reference => github.com/distribution/reference v0.5.0
 
-replace github.com/jackc/pgconn => github.com/jackc/pgconn v1.14.0
+replace github.com/jackc/pgconn => github.com/jackc/pgconn v1.14.3
 
-replace github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.2
+replace github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.3
 
 replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
 
