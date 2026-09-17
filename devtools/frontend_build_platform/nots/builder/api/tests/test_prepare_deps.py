@@ -82,4 +82,4 @@ def test_prepare_deps_accepts_dependency_free_lockfile(monkeypatch, tmp_path):
 
     prepare_deps_module.prepare_deps(args)
 
-    assert (built_lockfile.parent / "pre.pnpm-lock.yaml").read_text() == built_lockfile.read_text()
+    assert (built_lockfile.parent / "pnpm-lock.yaml").read_text() == built_lockfile.read_text()

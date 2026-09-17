@@ -1,5 +1,4 @@
 import os
-import shutil
 from dataclasses import dataclass
 
 import library.python.fs
@@ -65,15 +64,6 @@ def prepare_deps(args: PrepareDepsOptions):
             TsProtoGenerator(args).refresh_generated_peer_lockfile()
         if has_dependencies and not args.local_cli and os.path.exists(lockfile_path):
             _copy_tarballs(args, pm.load_lockfile(lockfile_path))
-
-    # todo: удалить после релиза yabin
-    # links:
-    # - https://a.yandex-team.ru/arcadia/commit/r20601207
-    # - https://a.yandex-team.ru/services/ya_make/ci/releases/timeline?dir=devtools%2Fya&id=release-ya-bin2-ya-bin3-tts
-    shutil.copyfile(
-        pm_utils.build_lockfile_path(args.bindir),
-        os.path.join(args.bindir, "pre.pnpm-lock.yaml"),
-    )
 
 
 def _validate_dependency_free_lockfile(lockfile: Lockfile) -> None:
