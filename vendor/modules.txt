@@ -4630,10 +4630,11 @@ github.com/andybalholm/cascadia/fuzz
 # github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 ## explicit; go 1.13
 github.com/anmitsu/go-shlex
-# github.com/annetutil/gnetcli v1.3.11
+# github.com/annetutil/gnetcli v1.3.15
 ## explicit; go 1.25.0
 github.com/annetutil/gnetcli
 github.com/annetutil/gnetcli/cmd/cli
+github.com/annetutil/gnetcli/cmd/gconsolecheck
 github.com/annetutil/gnetcli/cmd/gnetcli_server
 github.com/annetutil/gnetcli/cmd/gswitch
 github.com/annetutil/gnetcli/cmd/gvendor
@@ -4641,6 +4642,7 @@ github.com/annetutil/gnetcli/examples/exec_with_question
 github.com/annetutil/gnetcli/examples/forward
 github.com/annetutil/gnetcli/examples/simple_exec
 github.com/annetutil/gnetcli/internal/gvendor
+github.com/annetutil/gnetcli/internal/listenermux
 github.com/annetutil/gnetcli/internal/tls_hack
 github.com/annetutil/gnetcli/internal/tssh
 github.com/annetutil/gnetcli/pkg/cmd
