@@ -2,23 +2,23 @@
   "info": {
     "created": "2026-09-11T21:35:19.533Z",
     "pr": {
-      "id": 14754111,
+      "id": 15779248,
       "author": "baymer",
-      "summary": "FBP-1268: генерация деревьев прото-пакетов"
+      "summary": "fde84c2a0451556da581af6ca57c0cffa5e7b6a0"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13624689892"
+      "uri": "sbr:13704720274"
     },
     "darwin-arm64": {
-      "uri": "sbr:13624688249"
+      "uri": "sbr:13704713940"
     },
     "linux": {
-      "uri": "sbr:13624693616"
+      "uri": "sbr:13704733522"
     },
     "linux-aarch64": {
-      "uri": "sbr:13624691873"
+      "uri": "sbr:13704726013"
     }
   }
 }
