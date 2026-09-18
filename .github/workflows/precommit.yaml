@@ -16,14 +16,14 @@ jobs:
         with:
           script: |
             const prId = context.payload.pull_request.number;
-            const labels = octokit.rest.issues.listLabelsOnIssue({
-                context.payload.repository.owner.login,
-                context.payload.repository.name,
-                prId,
+            const labels = await octokit.rest.issues.listLabelsOnIssue({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                issue_number: prId,
             });
             
             if (!labels.includes('ok-to-test')) {
-                throw new Exception("Pull request is missing ok-to-test label, precommit checks are disabled");
+                throw new Error("Pull request is missing ok-to-test label, precommit checks are disabled");
             }
       - uses: actions/checkout@v4
         with:
