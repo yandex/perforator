@@ -995,7 +995,9 @@ require (
 	go.opentelemetry.io/collector/config/configtls v1.50.0
 	go.opentelemetry.io/collector/config/internal v0.82.0
 	go.opentelemetry.io/collector/confmap v1.50.0
+	go.opentelemetry.io/collector/confmap/provider/envprovider v1.50.0
 	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.50.0
+	go.opentelemetry.io/collector/confmap/provider/httpprovider v1.50.0
 	go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.50.0
 	go.opentelemetry.io/collector/confmap/xconfmap v0.144.0
 	go.opentelemetry.io/collector/connector v0.144.0
@@ -1003,11 +1005,15 @@ require (
 	go.opentelemetry.io/collector/connector/xconnector v0.144.0
 	go.opentelemetry.io/collector/consumer v1.50.0
 	go.opentelemetry.io/collector/consumer/consumererror v0.144.0
+	go.opentelemetry.io/collector/consumer/consumererror/xconsumererror v0.144.0
 	go.opentelemetry.io/collector/consumer/consumertest v0.144.0
 	go.opentelemetry.io/collector/consumer/xconsumer v0.144.0
 	go.opentelemetry.io/collector/exporter v1.50.0
+	go.opentelemetry.io/collector/exporter/debugexporter v0.144.0
 	go.opentelemetry.io/collector/exporter/exporterhelper v0.144.0
+	go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper v0.144.0
 	go.opentelemetry.io/collector/exporter/exportertest v0.144.0
+	go.opentelemetry.io/collector/exporter/otlpexporter v0.144.0
 	go.opentelemetry.io/collector/exporter/xexporter v0.144.0
 	go.opentelemetry.io/collector/extension v1.50.0
 	go.opentelemetry.io/collector/extension/auth v0.82.0
@@ -1022,10 +1028,12 @@ require (
 	go.opentelemetry.io/collector/featuregate v1.50.0
 	go.opentelemetry.io/collector/internal/componentalias v0.144.0
 	go.opentelemetry.io/collector/internal/fanoutconsumer v0.144.0
+	go.opentelemetry.io/collector/internal/memorylimiter v0.144.0
 	go.opentelemetry.io/collector/internal/sharedcomponent v0.144.0
 	go.opentelemetry.io/collector/internal/telemetry v0.144.0
 	go.opentelemetry.io/collector/internal/testutil v0.144.0
 	go.opentelemetry.io/collector/otelcol v0.144.0
+	go.opentelemetry.io/collector/otelcol/otelcoltest v0.144.0
 	go.opentelemetry.io/collector/pdata v1.50.0
 	go.opentelemetry.io/collector/pdata/pprofile v0.144.0
 	go.opentelemetry.io/collector/pdata/testdata v0.144.0
@@ -1033,7 +1041,10 @@ require (
 	go.opentelemetry.io/collector/pipeline v1.50.0
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.144.0
 	go.opentelemetry.io/collector/processor v1.50.0
+	go.opentelemetry.io/collector/processor/batchprocessor v0.144.0
+	go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.144.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.144.0
+	go.opentelemetry.io/collector/processor/processorhelper/xprocessorhelper v0.144.0
 	go.opentelemetry.io/collector/processor/processortest v0.144.0
 	go.opentelemetry.io/collector/processor/xprocessor v0.144.0
 	go.opentelemetry.io/collector/receiver v1.50.0
@@ -1041,6 +1052,8 @@ require (
 	go.opentelemetry.io/collector/receiver/receiverhelper v0.144.0
 	go.opentelemetry.io/collector/receiver/receivertest v0.144.0
 	go.opentelemetry.io/collector/receiver/xreceiver v0.144.0
+	go.opentelemetry.io/collector/scraper v0.144.0
+	go.opentelemetry.io/collector/scraper/scraperhelper v0.144.0
 	go.opentelemetry.io/collector/semconv v0.128.0
 	go.opentelemetry.io/collector/service v0.144.0
 	go.opentelemetry.io/collector/service/hostcapabilities v0.144.0
@@ -1727,6 +1740,7 @@ require (
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
+	github.com/foxboron/go-tpm-keyfiles v0.0.0-20251226215517-609e4778396f // indirect
 	github.com/foxcpp/go-mockdns v1.1.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/franela/goblin v0.0.0-20211003143422-0a4f594942bf // indirect
@@ -1848,7 +1862,7 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/go-replayers/grpcreplay v1.3.0 // indirect
 	github.com/google/go-replayers/httpreplay v1.2.0 // indirect
-	github.com/google/go-tpm-tools v0.4.2 // indirect
+	github.com/google/go-tpm-tools v0.4.4 // indirect
 	github.com/google/go-tspi v0.3.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/licenseclassifier v0.0.0-20250213175939-b5d1a3369749 // indirect
@@ -2032,8 +2046,8 @@ require (
 	github.com/klauspost/asmfmt v1.3.2 // indirect
 	github.com/klauspost/cpuid v1.3.1 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
-	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
+	github.com/knadh/koanf/providers/confmap v1.0.1 // indirect
 	github.com/knadh/koanf/v2 v2.3.0 // indirect
 	github.com/knqyf263/go-plugin v0.9.0 // indirect
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b // indirect
