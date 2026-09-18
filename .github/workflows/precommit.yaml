@@ -20,10 +20,10 @@ jobs:
                 owner: context.payload.repository.owner.login,
                 repo: context.payload.repository.name,
                 issue_number: prId,
-            });
-            console.log(typeof(labels.data));
-            console.log(labels.data.constructor.name);
-            console.log(Object.keys(labels.data));
+            }).data;
+            //console.log(typeof(labels.data));
+            //console.log(labels.data.constructor.name);
+            //console.log(Object.keys(labels.data));
             
             if (!labels.includes('ok-to-test')) {
                 throw new Error("Pull request is missing ok-to-test label, precommit checks are disabled");
