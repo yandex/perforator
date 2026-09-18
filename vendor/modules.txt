@@ -17300,6 +17300,16 @@ github.com/timakin/bodyclose
 github.com/timakin/bodyclose/passes/bodyclose
 # github.com/timewasted/linode v0.0.0-20160829202747-37e84520dcf7
 ## explicit
+# github.com/timonwong/loggercheck v0.11.0
+## explicit; go 1.22.0
+github.com/timonwong/loggercheck
+github.com/timonwong/loggercheck/cmd/loggercheck
+github.com/timonwong/loggercheck/internal/checkers
+github.com/timonwong/loggercheck/internal/checkers/printf
+github.com/timonwong/loggercheck/internal/rules
+github.com/timonwong/loggercheck/internal/sets
+github.com/timonwong/loggercheck/internal/stringutil
+github.com/timonwong/loggercheck/plugin
 # github.com/tink-crypto/tink-go/v2 v2.6.0
 ## explicit; go 1.24.0
 github.com/tink-crypto/tink-go/v2
