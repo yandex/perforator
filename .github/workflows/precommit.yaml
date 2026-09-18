@@ -25,7 +25,14 @@ jobs:
             //console.log(labels.data.constructor.name);
             //console.log(Object.keys(labels.data));
             
-            if (!labels.data.includes('ok-to-test')) {
+            let ok = false;
+            for (const label in labels.data) {
+                console.log(typeof(label));
+                console.log(label.constructor.name);
+                console.log(Object.keys(label));
+            }
+            
+            if (!ok) {
                 throw new Error("Pull request is missing ok-to-test label, precommit checks are disabled");
             }
       - uses: actions/checkout@v4
