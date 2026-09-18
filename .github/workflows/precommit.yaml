@@ -1,5 +1,5 @@
 on:
-  - pull_request_target
+  - pull_request
 permissions: {} # disable all by default
 jobs:
   run-build:
@@ -13,8 +13,6 @@ jobs:
         with:
           path: configs
       - uses: actions/github-script@v9
-        env:
-          {}
         with:
           script: |
             const prId = context.payload.pull_request.number;
