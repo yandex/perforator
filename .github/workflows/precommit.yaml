@@ -1,5 +1,5 @@
 on:
-  - workflow_dispatch # TODO(mikailbag): address approval concerns and bring this back
+  - pull_request_target
 permissions: {} # disable all by default
 jobs:
   run-build:
@@ -12,6 +12,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: configs
+      - uses: actions/github-script@v9
+        env:
+          {}
+        with:
+          script: |
+            const prId = context.payload.pull_request.number;
+            const labels = octokit.rest.issues.listLabelsOnIssue({
+                context.payload.repository.owner.login,
+                context.payload.repository.name,
+                prId,
+            });
+            
+            if (!labels.includes('ok-to-test')) {
+                throw new Exception("Pull request is missing ok-to-test label, precommit checks are disabled");
+            }
       - uses: actions/checkout@v4
         with:
           path: code
@@ -43,3 +58,9 @@ jobs:
           env_file_path: ${{ github.workspace }}/job-env
           local_out_path: ${{ github.workspace }}/out
           remote_out_path: /home/builder/.ya/logs
+      - name: Upload logs
+        if: "${{ !cancelled() }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: ${{ github.workspace }}/out
