@@ -30,6 +30,7 @@ jobs:
                 console.log(typeof(label));
                 console.log(label.constructor.name);
                 console.log(Object.keys(label));
+                console.log(label);
             }
             
             if (!ok) {
