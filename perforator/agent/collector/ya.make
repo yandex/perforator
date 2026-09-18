@@ -1,5 +1,6 @@
 RECURSE(
     cmd
+    perfbuffer
     pkg
     progs
 )
