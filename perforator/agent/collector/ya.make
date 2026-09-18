@@ -1,5 +1,6 @@
 RECURSE(
     cmd
+    nativepipeline
     perfbuffer
     pkg
     progs

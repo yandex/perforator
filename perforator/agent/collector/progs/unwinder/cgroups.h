@@ -1,18 +1,13 @@
 #pragma once
 
 #include "core.h"
+#include "contract/wire_types.inc"
 
 #include <bpf/bpf.h>
 
 // A lot of CO-RE magic to find top-level cgroup id.
 
-enum cgroup_limits { PARENT_CGROUP_MAX_LEVELS = 16 };
-
 BTF_EXPORT(enum cgroup_limits);
-
-enum cgroup_consts : u64 {
-    END_OF_CGROUP_LIST = -1
-};
 
 enum {
     MAX_TRACED_CGROUPS = 16 * 1024,

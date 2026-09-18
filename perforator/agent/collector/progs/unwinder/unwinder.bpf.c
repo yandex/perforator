@@ -183,7 +183,7 @@ static ALWAYS_INLINE void try_get_stack(void* ctx, struct stack* stack, u64 flag
 
 // Copy `bytes` from src into packed->data at offset.
 static NOINLINE u32 pack_copy(struct packed_sample* packed, u32 offset, void* src, u32 bytes) {
-    if (bytes == 0) return 0;
+    if (bytes == 0 || offset >= PACKED_SAMPLE_MAX_DATA) return 0;
     BPF_VALUE_BARRIER(bytes);
     BPF_VALUE_BARRIER(offset);
     bytes = bytes & (PACKED_SAMPLE_MAX_DATA - 1);
@@ -202,6 +202,14 @@ static ALWAYS_INLINE void set_section(struct section_desc* desc, u32 offset, u32
 #define CLAMP_OFFSET(off) do { \
     BPF_VALUE_BARRIER(off); \
     (off) &= (PACKED_SAMPLE_MAX_DATA - 1); \
+} while (0)
+
+// Preserve the valid one-past-the-end offset when the buffer is full.
+_Static_assert((PACKED_SAMPLE_MAX_DATA & (PACKED_SAMPLE_MAX_DATA - 1)) == 0,
+               "packed sample capacity must be a power of two");
+#define NARROW_LOGICAL_OFFSET(off) do { \
+    BPF_VALUE_BARRIER(off); \
+    (off) &= (2 * PACKED_SAMPLE_MAX_DATA - 1); \
 } while (0)
 
 // Pack kern/user stack, LBR, TLS, cgroups.
@@ -226,7 +234,7 @@ static NOINLINE u32 pack_sample_core(struct packed_sample* packed, struct profil
     written = pack_copy(packed, offset, state->kernstack.ips, kbytes);
     set_section(&hdr->kern_stack, offset, written);
     offset += written;
-    CLAMP_OFFSET(offset);
+    NARROW_LOGICAL_OFFSET(offset);
 
     // User stack
     u32 ulen = state->userstack.len;
@@ -236,7 +244,7 @@ static NOINLINE u32 pack_sample_core(struct packed_sample* packed, struct profil
     written = pack_copy(packed, offset, state->userstack.ips, ubytes);
     set_section(&hdr->user_stack, offset, written);
     offset += written;
-    CLAMP_OFFSET(offset);
+    NARROW_LOGICAL_OFFSET(offset);
 
     // LBR
     u32 lbr_nr = state->lbr.nr;
@@ -246,7 +254,7 @@ static NOINLINE u32 pack_sample_core(struct packed_sample* packed, struct profil
     written = pack_copy(packed, offset, state->lbr.entries, lbr_bytes);
     set_section(&hdr->lbr, offset, written);
     offset += written;
-    CLAMP_OFFSET(offset);
+    NARROW_LOGICAL_OFFSET(offset);
 
     // TLS: direct stores instead of pack_copy to keep the verifier budget low.
     u32 tls_start = offset;
@@ -257,7 +265,7 @@ static NOINLINE u32 pack_sample_core(struct packed_sample* packed, struct profil
         CLAMP_OFFSET(tls_off);
         *(struct thread_local_variable_collect_result*)(packed->data + tls_off) = state->tls.values[i];
         offset += sizeof(struct thread_local_variable_collect_result);
-        CLAMP_OFFSET(offset);
+        NARROW_LOGICAL_OFFSET(offset);
     }
     set_section(&hdr->tls, tls_start, offset - tls_start);
 
@@ -271,7 +279,7 @@ static NOINLINE u32 pack_sample_core(struct packed_sample* packed, struct profil
         CLAMP_OFFSET(cg_off);
         *(u64*)(packed->data + cg_off) = cg;
         offset += sizeof(u64);
-        CLAMP_OFFSET(offset);
+        NARROW_LOGICAL_OFFSET(offset);
     }
     set_section(&hdr->cgroups, cg_start, offset - cg_start);
 
@@ -281,6 +289,7 @@ static NOINLINE u32 pack_sample_core(struct packed_sample* packed, struct profil
 // Descriptor for a single language section to be packed.
 struct lang_section_desc {
     u8 lang_id;
+    u8 payload_kind;
     u32 count;
     u32 max;
     void* src;
@@ -304,18 +313,24 @@ static ALWAYS_INLINE void pack_lang_section(
     BPF_VALUE_BARRIER(bytes);
     bytes &= (PACKED_SAMPLE_MAX_DATA - 1);
     u32 off = *offset;
+    if (off >= PACKED_SAMPLE_MAX_DATA) {
+        metric_increment(METRIC_ERROR_STAGE_PACK_SAMPLE_LANG_COUNT);
+        return;
+    }
     CLAMP_OFFSET(off);
     if (off + sizeof(struct language_section_header) + bytes <= PACKED_SAMPLE_MAX_DATA) {
         struct language_section_header* lsh =
             (struct language_section_header*)(packed->data + off);
         lsh->byte_size = bytes;
         lsh->language = desc->lang_id;
+        lsh->payload_kind = desc->payload_kind;
+        lsh->element_size = desc->elem_size;
         __builtin_memset(lsh->_pad, 0, sizeof(lsh->_pad));
         off += sizeof(struct language_section_header);
         CLAMP_OFFSET(off);
         pack_copy(packed, off, desc->src, bytes);
         off += bytes;
-        CLAMP_OFFSET(off);
+        NARROW_LOGICAL_OFFSET(off);
         *offset = off;
     } else {
         metric_increment(METRIC_ERROR_STAGE_PACK_SAMPLE_LANG_COUNT);
@@ -327,6 +342,7 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_PYTHON,
+        .payload_kind = LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
         .count     = state->python_state.frame_count,
         .max       = PYTHON_MAX_STACK_DEPTH,
         .src       = state->python_state.frames,
@@ -336,6 +352,7 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_PHP,
+        .payload_kind = LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
         .count     = state->php_state.frame_count,
         .max       = PHP_MAX_STACK_DEPTH,
         .src       = state->php_state.frames,
@@ -345,6 +362,7 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_JVM,
+        .payload_kind = LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS,
         .count     = state->jvm_frames_count,
         .max       = MAX_JVM_FRAMES,
         .src       = state->jvm_entries,
@@ -354,6 +372,7 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_LUA,
+        .payload_kind = LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
         .count     = state->lua_state.stack.len,
         .max       = LUA_MAX_STACK_DEPTH,
         .src       = state->lua_state.stack.frames,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "contract/wire_types.inc"
 #include "binary.h"
 #include "process.h"
 #include "thread.h"
@@ -10,14 +11,7 @@
 enum {
     MAX_TRACKED_THREAD_LOCALS_PER_BINARY = 4,
     THREAD_LOCAL_TYPE_ENUM_OFFSET = 7,
-    THREAD_LOCAL_MAGIC_BYTES = 8,
-
-    MAX_THREAD_LOCAL_STRING_LENGTH = 128
-};
-
-enum tls_variable_type : u8 {
-    THREAD_LOCAL_UINT64_TYPE = 1,
-    THREAD_LOCAL_STRING_TYPE = 2,
+    THREAD_LOCAL_MAGIC_BYTES = 8
 };
 
 struct tls_binary_config {
@@ -25,22 +19,6 @@ struct tls_binary_config {
 };
 
 BPF_MAP(tls_storage, BPF_MAP_TYPE_HASH, binary_id, struct tls_binary_config, MAX_BINARIES);
-
-struct thread_local_string {
-    u64 len;
-    char string[MAX_THREAD_LOCAL_STRING_LENGTH];
-};
-
-union thread_local_variable {
-    struct thread_local_string string;
-    u64 number;
-};
-
-struct thread_local_variable_collect_result {
-    u64 offset;
-    enum tls_variable_type type;
-    union thread_local_variable value;
-};
 
 struct tls_collect_result {
     struct thread_local_variable_collect_result values[MAX_TRACKED_THREAD_LOCALS_PER_BINARY];

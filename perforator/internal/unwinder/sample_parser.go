@@ -9,9 +9,9 @@ import (
 
 var le = binary.LittleEndian
 
-// Sizes derived from generated types — no hand-maintained constants needed.
-// The btf2go-generated layout-check var block in unwinder.go enforces that
-// these match the BPF C struct sizes at Go compile time.
+// Must match PACKED_SAMPLE_MAX_DATA in the shared BPF wire contract.
+const maxPackedDataSize = 8192
+
 // Sizes derived from generated types — no hand-maintained constants needed.
 // The btf2go-generated layout-check var block in unwinder.go enforces that
 // these match the BPF C struct sizes at Go compile time.
@@ -49,8 +49,41 @@ func ParsePackedSample(data []byte, out *RecordSampleParsed) error {
 		return fmt.Errorf("%w: need %d bytes, got %d", errTooShort, recordSampleHeaderSize, len(data))
 	}
 
+	if len(data) > recordSampleHeaderSize+maxPackedDataSize+4 {
+		return fmt.Errorf("packed sample too large: %d", len(data))
+	}
+
 	if err := out.RecordSampleHeader.UnmarshalBinaryUnsafe(data); err != nil {
 		return err
+	}
+
+	if out.Tag != RecordTagSample || out.SampleType <= SampleTypeUndefined || out.SampleType > SampleTypeUprobe {
+		return fmt.Errorf("invalid sample tag/type: %d/%d", out.Tag, out.SampleType)
+	}
+
+	// PERF_SAMPLE_RAW may append transport padding; it is never section data.
+	data = data[:recordSampleHeaderSize+(len(data)-recordSampleHeaderSize)/8*8]
+	sections := [...]struct {
+		desc        SectionDesc
+		elementSize int
+	}{
+		{out.RecordSampleHeader.KernStack, 8},
+		{out.RecordSampleHeader.UserStack, 8},
+		{out.RecordSampleHeader.Lbr, branchRecordSize},
+		{out.RecordSampleHeader.Tls, tlsResultSize},
+		{out.RecordSampleHeader.Cgroups, 8},
+		{out.RecordSampleHeader.LanguageSections, 1},
+	}
+	expectedOffset := 0
+	for _, section := range sections {
+		offset, size := int(section.desc.Offset), int(section.desc.Size)
+		if offset != expectedOffset || offset%8 != 0 || size%section.elementSize != 0 {
+			return fmt.Errorf("invalid section offset/size: %d/%d", offset, size)
+		}
+		if offset+size > len(data)-recordSampleHeaderSize {
+			return errTooShort
+		}
+		expectedOffset += size
 	}
 
 	// Clear slices to avoid leaking data from previous samples when reusing `out`.
@@ -159,9 +192,29 @@ func parseLangSections(data []byte, base int, off, size uint16, out *RecordSampl
 		return err
 	}
 	pos := 0
-	for pos+langSectionHeaderSize <= len(raw) {
+	var seen [4]bool
+	for pos < len(raw) {
+		if len(raw)-pos < langSectionHeaderSize {
+			return errTooShort
+		}
 		byteSize := int(le.Uint16(raw[pos:]))
 		language := LanguageId(raw[pos+2])
+		kind := LanguagePayloadKind(raw[pos+3])
+		elementSize := int(le.Uint16(raw[pos+4:]))
+		if int(language) >= len(seen) || seen[language] {
+			return fmt.Errorf("unknown or duplicate language: %d", language)
+		}
+		seen[language] = true
+		expectedSize := [...]int{pythonFrameSize, phpFrameSize, jvmLangEntrySize, luaFrameSize}[language]
+		expectedKind := LanguagePayloadInterpreterFrames
+		if language == LanguageJvm {
+			expectedKind = LanguagePayloadNativeAnnotations
+		}
+		// Go materializes known frames, while the native parser can retain
+		// opaque interpreter payloads for a future resolver.
+		if kind != expectedKind || elementSize != expectedSize || byteSize == 0 || byteSize%elementSize != 0 {
+			return fmt.Errorf("unsupported language payload layout: %d/%d/%d", language, kind, elementSize)
+		}
 		pos += langSectionHeaderSize
 		if pos+byteSize > len(raw) {
 			return fmt.Errorf("%w: byte_size=%d", errBadSectionLen, byteSize)

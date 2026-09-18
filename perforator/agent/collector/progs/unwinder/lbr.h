@@ -1,17 +1,11 @@
 #pragma once
 
+#include "contract/wire_types.inc"
 #include <bpf/bpf.h>
 
 enum {
     // At the time of writing Intel processors support up to 32 LBR entries
     MAX_BRANCH_RECORDS = 32
-};
-
-// Mimics struct perf_branch_entry
-struct branch_record {
-    u64 from;
-    u64 to;
-    u64 flags;
 };
 
 struct last_branch_records {

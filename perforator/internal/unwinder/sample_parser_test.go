@@ -38,6 +38,10 @@ func putSectionDesc(buf []byte, headerOff int, offset, size uint16) {
 	le := binary.LittleEndian
 	le.PutUint16(buf[headerOff:], offset)
 	le.PutUint16(buf[headerOff+2:], size)
+	// The producer emits contiguous descriptors even for empty sections.
+	for next := headerOff + 4; next < recordSampleHeaderSize; next += 4 {
+		le.PutUint16(buf[next:], offset+size)
+	}
 }
 
 func TestLanguageFrameSizes(t *testing.T) {
@@ -144,6 +148,7 @@ func TestParsePackedSampleWithJVM(t *testing.T) {
 	lsh := make([]byte, langSectionHeaderSize)
 	le.PutUint16(lsh, uint16(jvmLangEntrySize)) // byte_size
 	lsh[2] = 2                                  // language = JVM
+	setLanguageLayout(lsh, LanguageJvm)
 	data = append(data, lsh...)
 
 	// JVM entry
@@ -208,6 +213,7 @@ func appendLanguageSection(dst []byte, language LanguageId, frames []byte) []byt
 	header := make([]byte, langSectionHeaderSize)
 	le.PutUint16(header, uint16(len(frames)))
 	header[2] = byte(language)
+	setLanguageLayout(header, language)
 	dst = append(dst, header...)
 	return append(dst, frames...)
 }
@@ -224,6 +230,7 @@ func TestParsePackedSampleWithPythonStack(t *testing.T) {
 	lsh := make([]byte, langSectionHeaderSize)
 	le.PutUint16(lsh, uint16(numFrames*pythonFrameSize))
 	lsh[2] = byte(LanguagePython)
+	setLanguageLayout(lsh, LanguagePython)
 	data = append(data, lsh...)
 
 	data = appendPythonFrame(data, 0xdeadbeef00000001, 42, 100, 0x7fff00000010, 0x7fff10000010)
@@ -260,6 +267,7 @@ func TestParsePackedSampleWithPhpStack(t *testing.T) {
 	lsh := make([]byte, langSectionHeaderSize)
 	le.PutUint16(lsh, uint16(phpFrameSize))
 	lsh[2] = byte(LanguagePhp)
+	setLanguageLayout(lsh, LanguagePhp)
 	data = append(data, lsh...)
 
 	data = appendPhpFrame(data, 0xc0ffee00, 7, 55)
@@ -454,4 +462,13 @@ func BenchmarkParsePackedSampleMinimal(b *testing.B) {
 	for b.Loop() {
 		_ = ParsePackedSample(data, out)
 	}
+}
+
+func setLanguageLayout(header []byte, language LanguageId) {
+	header[3] = byte(LanguagePayloadInterpreterFrames)
+	if language == LanguageJvm {
+		header[3] = byte(LanguagePayloadNativeAnnotations)
+	}
+	size := [...]int{pythonFrameSize, phpFrameSize, jvmLangEntrySize, luaFrameSize}[language]
+	le.PutUint16(header[4:], uint16(size))
 }

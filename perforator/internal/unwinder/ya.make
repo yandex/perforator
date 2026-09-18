@@ -44,7 +44,10 @@ SRCS(
     sample_parser.go
 )
 
-GO_TEST_SRCS(sample_parser_test.go)
+GO_TEST_SRCS(
+    sample_parser_test.go
+    wire_fixtures_test.go
+)
 
 END()
 
