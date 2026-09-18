@@ -21,7 +21,9 @@ jobs:
                 repo: context.payload.repository.name,
                 issue_number: prId,
             });
-            console.log(Object.keys(labels));
+            console.log(typeof(labels.data));
+            console.log(labels.data.constructor.name);
+            console.log(Object.keys(labels.data));
             
             if (!labels.includes('ok-to-test')) {
                 throw new Error("Pull request is missing ok-to-test label, precommit checks are disabled");
