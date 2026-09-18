@@ -10,7 +10,6 @@ TS_BUILD_SCRIPT(nots:build)
 
 TS_BUILD_OUTPUTS(dist)
 
-USE_LEGACY_LINKED_PEERS()
 
 END()
 
