@@ -26,10 +26,10 @@ func RenderFlameGraph(profile *Profile, opts *profilepb.RenderOptions) ([]byte, 
 	}
 	defer C.PerforatorStringDispose(str)
 
-	return C.GoBytes(
+	return copyCBytes(
 		unsafe.Pointer(C.PerforatorStringData(str)),
-		C.int(C.PerforatorStringSize(str)),
-	), nil
+		uintptr(C.PerforatorStringSize(str)),
+	)
 }
 
 func RenderFlameGraphFromPProf(data []byte, opts *profilepb.RenderOptions) ([]byte, error) {
@@ -46,10 +46,10 @@ func RenderFlameGraphFromPProf(data []byte, opts *profilepb.RenderOptions) ([]by
 	}
 	defer C.PerforatorStringDispose(str)
 
-	return C.GoBytes(
+	return copyCBytes(
 		unsafe.Pointer(C.PerforatorStringData(str)),
-		C.int(C.PerforatorStringSize(str)),
-	), nil
+		uintptr(C.PerforatorStringSize(str)),
+	)
 }
 
 func marshalOptions(opts *profilepb.RenderOptions) (*C.char, C.size_t, func()) {

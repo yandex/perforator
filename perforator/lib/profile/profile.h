@@ -535,8 +535,8 @@ public:
 
         i64 seconds = start.seconds() + deltaSeconds;
         i64 nanos = i64{start.nanos()} + deltaNanoseconds;
-        if (nanos >= deltaNanoseconds) {
-            nanos -= deltaNanoseconds;
+        if (nanos >= nanosecondsInSecond) {
+            nanos -= nanosecondsInSecond;
             seconds += 1;
         }
         Y_ASSERT(nanos >= 0);

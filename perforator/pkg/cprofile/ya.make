@@ -14,6 +14,14 @@ IF (CGO_ENABLED)
         merge_cgo.go
         profile_cgo.go
     )
+
+    SRCS(
+        bytes_cgo.go
+    )
+
+    GO_TEST_SRCS(
+        bytes_cgo_test.go
+    )
 ELSE()
     SRCS(
         flamegraph_nocgo.go
@@ -23,3 +31,7 @@ ELSE()
 ENDIF()
 
 END()
+
+RECURSE_FOR_TESTS(
+    gotest
+)

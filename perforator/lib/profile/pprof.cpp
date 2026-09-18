@@ -37,6 +37,60 @@ static constexpr TStringBuf KernelSpecialMapping{"[kernel]"};
 static constexpr TStringBuf PythonSpecialMapping{"[python]"};
 static constexpr TStringBuf LuaSpecialMapping{"[lua]"};
 
+static constexpr TStringBuf PidLabel{"pid"};
+static constexpr TStringBuf TidLabel{"tid"};
+static constexpr TStringBuf InnermostPidnsTidLabel{"innermost_pidns_tid"};
+static constexpr TStringBuf InnermostPidnsPidLabel{"innermost_pidns_pid"};
+static constexpr TStringBuf AbsoluteTimestampLabel{"absolute_timestamp"};
+
+static constexpr TStringBuf IdUnit{"id"};
+static constexpr TStringBuf NanosecondsUnit{"ns"};
+
+// Yaprof does not store numeric label units. Restore the units used by the agent.
+static TStringBuf GetNumericLabelUnit(TStringBuf key) {
+    if (key == PidLabel || key == TidLabel) {
+        return key;
+    }
+    if (key == InnermostPidnsTidLabel || key == InnermostPidnsPidLabel) {
+        return IdUnit;
+    }
+    if (key == AbsoluteTimestampLabel) {
+        return NanosecondsUnit;
+    }
+    return {};
+}
+
+class TPProfStringTable {
+public:
+    explicit TPProfStringTable(const TProfile& profile) {
+        Strings_.reserve(profile.Strings().size());
+        Indices_.reserve(profile.Strings().size());
+        for (auto str : profile.Strings()) {
+            // Keep every original index, including duplicate strings.
+            Indices_.try_emplace(str.View(), Strings_.size());
+            Strings_.push_back(str.View());
+        }
+        Y_ENSURE(!Strings_.empty() && Strings_.front().empty());
+    }
+
+    // The source profile and added string views must outlive this table.
+    i64 GetOrAdd(TStringBuf value) {
+        auto [it, inserted] = Indices_.try_emplace(value, Strings_.size());
+        if (inserted) {
+            Strings_.push_back(value);
+        }
+        return it->second;
+    }
+
+    const TVector<TStringBuf>& Strings() const {
+        return Strings_;
+    }
+
+private:
+    TVector<TStringBuf> Strings_;
+    absl::flat_hash_map<TStringBuf, i64> Indices_;
+};
+
 // Simple helper to prevent lossy implicit conversions.
 // Profiles are represented as a bunch of integers of different bit width,
 // and it is very error-prone to work with integers in C++ when implicit
@@ -694,13 +748,14 @@ public:
     TToPProfBytesConverterContext(const NProto::NProfile::Profile& from, google::protobuf::io::CodedOutputStream* to)
         : Profile_(&from)
         , Out_(to)
+        , Strings_(Profile_)
     {}
 
     void WriteStrings() {
         using NProto::NPProf::Profile;
 
-        for (auto&& str : Profile_.Strings()) {
-            TValueTraits<Profile::kStringTableFieldNumber, WireFormatLite::TYPE_STRING>::Write(str.View(), Out_);
+        for (TStringBuf str : Strings_.Strings()) {
+            TValueTraits<Profile::kStringTableFieldNumber, WireFormatLite::TYPE_STRING>::Write(str, Out_);
         }
     }
 
@@ -873,6 +928,13 @@ public:
                     TValue<Label::kNumFieldNumber, WireFormatLite::TYPE_INT64>{num},
                 };
             };
+            auto numLabelFieldsWithUnit = [](i64 key, i64 num, i64 unit) {
+                return std::tuple{
+                    TValue<Label::kKeyFieldNumber, WireFormatLite::TYPE_INT64>{key},
+                    TValue<Label::kNumFieldNumber, WireFormatLite::TYPE_INT64>{num},
+                    TValue<Label::kNumUnitFieldNumber, WireFormatLite::TYPE_INT64>{unit},
+                };
+            };
 
             auto key = sample.GetKey();
             auto visitLabels = [&](auto&& visitor) {
@@ -880,7 +942,12 @@ public:
                     if (label.IsString()) {
                         visitor(strLabelFields(*label.GetKey().GetIndex(), *label.GetString().GetIndex()));
                     } else {
-                        visitor(numLabelFields(*label.GetKey().GetIndex(), label.GetNumber()));
+                        i64 unit = Strings_.GetOrAdd(GetNumericLabelUnit(label.GetKey().View()));
+                        if (unit != 0) {
+                            visitor(numLabelFieldsWithUnit(*label.GetKey().GetIndex(), label.GetNumber(), unit));
+                        } else {
+                            visitor(numLabelFields(*label.GetKey().GetIndex(), label.GetNumber()));
+                        }
                     }
                 }
             };
@@ -932,7 +999,6 @@ public:
     }
 
     void Convert() {
-        WriteStrings();
         WriteBinaries();
         WriteFunctions();
         WriteStackFrames();
@@ -940,11 +1006,14 @@ public:
         WriteMetadata();
         WriteSampleTypes();
         WriteSamples();
+        // Samples may add strings. Protobuf permits the string table to follow them.
+        WriteStrings();
     }
 
 private:
     TProfile Profile_;
     google::protobuf::io::CodedOutputStream* Out_;
+    TPProfStringTable Strings_;
 };
 
 class TFromPProfConverterContext {
@@ -1224,10 +1293,10 @@ public:
     )
         : SourceProfile_{&newProfile}
         , OldProfile_{*oldProfile}
+        , Strings_{SourceProfile_}
     {}
 
     void Convert() && {
-        ConvertStringTable();
         ConvertValueTypes();
         ConvertComments();
         ConvertMetadata();
@@ -1235,24 +1304,14 @@ public:
         ConvertFunctions();
         ConvertLocations();
         ConvertSamples();
+        ConvertStringTable();
     }
 
 private:
     void ConvertStringTable() {
-        for (auto str : SourceProfile_.Strings()) {
-            TStringBuf view = str.View();
-
-            OldProfile_.add_string_table(view);
+        for (TStringBuf str : Strings_.Strings()) {
+            OldProfile_.add_string_table(str);
         }
-
-        Y_ENSURE(OldProfile_.string_table_size() > 0);
-        Y_ENSURE(OldProfile_.string_table(0).empty());
-    }
-
-    int GetStringIndex(TStringBuf key) {
-        int id = OldProfile_.string_table_size();
-        *OldProfile_.add_string_table() = key;
-        return id;
     }
 
     void ConvertValueTypes() {
@@ -1405,6 +1464,10 @@ private:
             if (newLabel.IsNumber()) {
                 label->set_key(*newLabel.GetKey().GetIndex());
                 label->set_num(newLabel.GetNumber());
+                i64 unit = Strings_.GetOrAdd(GetNumericLabelUnit(newLabel.GetKey().View()));
+                if (unit != 0) {
+                    label->set_num_unit(unit);
+                }
             } else {
                 label->set_key(*newLabel.GetKey().GetIndex());
                 label->set_str(*newLabel.GetString().GetIndex());
@@ -1414,7 +1477,7 @@ private:
 
     NProto::NPProf::Label* AddLabel(NProto::NPProf::Sample* sample, TStringBuf key) {
         auto* label = sample->add_label();
-        label->set_key(GetStringIndex(key));
+        label->set_key(Strings_.GetOrAdd(key));
         return label;
     }
 
@@ -1429,6 +1492,7 @@ private:
 private:
     const NProfile::TProfile SourceProfile_;
     NProto::NPProf::Profile& OldProfile_;
+    TPProfStringTable Strings_;
 };
 
 } // namespace NDetail

@@ -75,11 +75,10 @@ func (p *Profile) marshalVia(marshaller func(profile C.TPerforatorProfile, resul
 	}
 	defer C.PerforatorStringDispose(str)
 
-	res := C.GoBytes(
+	return copyCBytes(
 		unsafe.Pointer(C.PerforatorStringData(str)),
-		C.int(C.PerforatorStringSize(str)),
+		uintptr(C.PerforatorStringSize(str)),
 	)
-	return res, nil
 }
 
 func YaprofToPProf(data []byte) ([]byte, error) {
