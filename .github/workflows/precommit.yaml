@@ -1,5 +1,5 @@
 on:
-  - pull_request
+  - pull_request_target
 permissions: {} # disable all by default
 jobs:
   run-build:
@@ -21,10 +21,7 @@ jobs:
                 repo: context.payload.repository.name,
                 issue_number: prId,
             });
-            //console.log(typeof(labels.data));
-            //console.log(labels.data.constructor.name);
-            //console.log(Object.keys(labels.data));
-            
+
             let ok = false;
             for (const label of labels.data) {
                 if (label.name == 'ok-to-test') {
@@ -32,7 +29,7 @@ jobs:
                     break;
                 }
             }
-            
+
             if (!ok) {
                 throw new Error("Pull request is missing ok-to-test label, precommit checks are disabled");
             }
