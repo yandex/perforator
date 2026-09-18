@@ -5363,6 +5363,8 @@ github.com/aws/aws-sdk-go-v2/service/s3/types
 github.com/aws/aws-sdk-go-v2/service/secretsmanager
 github.com/aws/aws-sdk-go-v2/service/secretsmanager/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/secretsmanager/types
+# github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.39.22
+## explicit; go 1.23
 # github.com/aws/aws-sdk-go-v2/service/sfn v1.19.4
 ## explicit; go 1.15
 # github.com/aws/aws-sdk-go-v2/service/signin v1.1.1
