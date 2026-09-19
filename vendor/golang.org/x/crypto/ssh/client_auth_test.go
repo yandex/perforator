@@ -7,10 +7,12 @@ package ssh
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"net"
 	"os"
 	"runtime"
@@ -166,6 +168,40 @@ func TestClientAuthThirdKey(t *testing.T) {
 	}
 	if err := tryAuth(t, config); err != nil {
 		t.Fatalf("unable to dial remote side: %s", err)
+	}
+}
+
+// invalidRSASigner offers an RSA public key the server cannot parse: its public
+// exponent is even, which parseRSA rejects regardless of any key size limit.
+// The key is intentionally invalid for a structural reason rather than for its
+// size, so the test stays meaningful even if the accepted modulus size changes.
+// Its Sign method is never reached, because the key is rejected during the
+// initial public key query.
+type invalidRSASigner struct{}
+
+func (invalidRSASigner) PublicKey() PublicKey {
+	n := new(big.Int).Lsh(big.NewInt(1), 2048)
+	pub, err := NewPublicKey(&rsa.PublicKey{N: n, E: 2}) // incorrect exponent.
+	if err != nil {
+		panic(err)
+	}
+	return pub
+}
+
+func (invalidRSASigner) Sign(rand io.Reader, data []byte) (*Signature, error) {
+	return nil, errors.New("ssh: invalid test key must not be used to sign")
+}
+
+func TestClientAuthInvalidPublicKey(t *testing.T) {
+	config := &ClientConfig{
+		User: "testuser",
+		Auth: []AuthMethod{
+			PublicKeys(invalidRSASigner{}, testSigners["rsa"]),
+		},
+		HostKeyCallback: InsecureIgnoreHostKey(),
+	}
+	if err := tryAuth(t, config); err != nil {
+		t.Fatalf("client auth failed but should have fallen back to a valid key: %s", err)
 	}
 }
 

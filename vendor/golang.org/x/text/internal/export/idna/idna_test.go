@@ -153,18 +153,18 @@ func TestLabelErrors(t *testing.T) {
 		want    string
 		wantErr string
 	}{
-		{lengthU, "", "", code16("A4", "X4_2")}, // From UTS 46 conformance test.
+		{lengthU, "", "", "X4_2"}, // From UTS 46 conformance test.
 		{lengthA, "", "", "A4"},
 
-		{lengthU, "xn--", "", code16("A4", "X4_2")},
-		{lengthU, "foo.xn--", "foo.", code16("A4", "X4_2")}, // TODO: is dropping xn-- correct?
-		{lengthU, "xn--.foo", ".foo", code16("A4", "X4_2")},
-		{lengthU, "foo.xn--.bar", "foo..bar", code16("A4", "X4_2")},
+		{lengthU, "xn--", "", "P4"},
+		{lengthU, "foo.xn--", "foo.", "P4"},
+		{lengthU, "xn--.foo", ".foo", "P4"},
+		{lengthU, "foo.xn--.bar", "foo..bar", "P4"},
 
-		{display, "xn--", "", ""},
-		{display, "foo.xn--", "foo.", ""}, // TODO: is dropping xn-- correct?
-		{display, "xn--.foo", ".foo", ""},
-		{display, "foo.xn--.bar", "foo..bar", ""},
+		{display, "xn--", "", "P4"},
+		{display, "foo.xn--", "foo.", "P4"},
+		{display, "xn--.foo", ".foo", "P4"},
+		{display, "foo.xn--.bar", "foo..bar", "P4"},
 
 		{lengthA, "a..b", "a..b", "A4"},
 		{punyA, ".b", ".b", ""},

@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"encoding/asn1"
 	"fmt"
 	"testing"
 )
@@ -14,6 +15,34 @@ func TestParseGSSAPIPayload(t *testing.T) {
 	}
 	if ok := res.OIDS[0].Equal(krb5Mesh); !ok {
 		t.Fatalf("got %v, want %v", res, krb5Mesh)
+	}
+}
+
+func TestParseGSSAPIPayloadMultipleMechs(t *testing.T) {
+	// A payload offering two mechanisms: Kerberos V5 (1.2.840.113554.1.2.2)
+	// followed by SPNEGO (1.3.6.1.5.5.2). The parser must track the
+	// remaining payload across loop iterations, not the trailing bytes
+	// returned by asn1.Unmarshal.
+	payload := []byte{
+		0x00, 0x00, 0x00, 0x02, // two mechanisms
+		0x00, 0x00, 0x00, 0x0b, // length of the first OID
+		0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x12, 0x01, 0x02, 0x02,
+		0x00, 0x00, 0x00, 0x08, // length of the second OID
+		0x06, 0x06, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x02,
+	}
+	res, err := parseGSSAPIPayload(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.OIDS) != 2 {
+		t.Fatalf("got %d OIDs, want 2", len(res.OIDS))
+	}
+	if !res.OIDS[0].Equal(krb5Mesh) {
+		t.Errorf("OIDS[0]: got %v, want %v", res.OIDS[0], krb5Mesh)
+	}
+	spnego := asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 2}
+	if !res.OIDS[1].Equal(spnego) {
+		t.Errorf("OIDS[1]: got %v, want %v", res.OIDS[1], spnego)
 	}
 }
 

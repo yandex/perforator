@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"strings"
 	"testing"
 	"testing/quick"
 )
@@ -262,6 +263,31 @@ func TestDecode(t *testing.T) {
 	}
 }
 
+func TestDisconnectMsgSanitizesMessage(t *testing.T) {
+	for _, tc := range []struct {
+		in   string
+		want string
+	}{
+		{"clean message", `"clean message"`},
+		{"line1\nline2\nline3", `"line1\nline2\nline3"`},
+		{"has\x00null\x00bytes", `"has\x00null\x00bytes"`},
+		{"\x1b[31mred\x1b[0m", `"\x1b[31mred\x1b[0m"`},
+		{"newline\r\nCRLF", `"newline\r\nCRLF"`},
+		{"tab\there", `"tab\there"`},
+	} {
+		t.Run(tc.in, func(t *testing.T) {
+			d := &disconnectMsg{Reason: 11, Message: tc.in}
+			got := d.Error()
+			if !strings.Contains(got, tc.want) {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+			if bad := "\n\r\x00\x1b"; strings.ContainsAny(got, bad) {
+				t.Errorf("got %q, want none of %q", got, bad)
+			}
+		})
+	}
+}
+
 func randomBytes(out []byte, rand *rand.Rand) {
 	for i := 0; i < len(out); i++ {
 		out[i] = byte(rand.Int31())
@@ -318,7 +344,7 @@ var (
 )
 
 func BenchmarkMarshalKexInitMsg(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		Marshal(_kexInitMsg)
 	}
 }
@@ -331,7 +357,7 @@ func BenchmarkUnmarshalKexInitMsg(b *testing.B) {
 }
 
 func BenchmarkMarshalKexDHInitMsg(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		Marshal(_kexDHInitMsg)
 	}
 }

@@ -26,7 +26,7 @@ const (
 	tmin        int32 = 1
 )
 
-func punyError(s string) error { return &labelError{s, code16("A3", "P4")} }
+func punyError(s string) error { return &labelError{s, "P4"} }
 
 // decode decodes a string as specified in section 6.2.
 func decode(encoded string) (string, error) {

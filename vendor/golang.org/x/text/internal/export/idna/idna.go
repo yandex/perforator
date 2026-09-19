@@ -91,7 +91,6 @@ func ValidateLabels(enable bool) Option {
 		if o.mapping == nil && enable {
 			o.mapping = normalize
 		}
-		o.trie = trie
 		o.checkJoiners = enable
 		o.checkHyphens = enable
 		if enable {
@@ -122,7 +121,6 @@ func CheckHyphens(enable bool) Option {
 // This option corresponds to the CheckJoiners flag in UTS #46.
 func CheckJoiners(enable bool) Option {
 	return func(o *options) {
-		o.trie = trie
 		o.checkJoiners = enable
 	}
 }
@@ -187,8 +185,6 @@ type options struct {
 	checkJoiners      bool
 	verifyDNSLength   bool
 	removeLeadingDots bool
-
-	trie *idnaTrie
 
 	// fromPuny calls validation rules when converting A-labels to U-labels.
 	fromPuny func(p *Profile, s string) error
@@ -297,7 +293,6 @@ var (
 		useSTD3Rules: true,
 		checkHyphens: true,
 		checkJoiners: true,
-		trie:         trie,
 		fromPuny:     validateFromPunycode,
 		mapping:      validateAndMap,
 		bidirule:     bidirule.ValidString,
@@ -306,7 +301,6 @@ var (
 		useSTD3Rules: true,
 		checkHyphens: true,
 		checkJoiners: true,
-		trie:         trie,
 		fromPuny:     validateFromPunycode,
 		mapping:      validateAndMap,
 		bidirule:     bidirule.ValidString,
@@ -316,7 +310,6 @@ var (
 		verifyDNSLength: true,
 		checkHyphens:    true,
 		checkJoiners:    true,
-		trie:            trie,
 		fromPuny:        validateFromPunycode,
 		mapping:         validateRegistration,
 		bidirule:        bidirule.ValidString,
@@ -373,7 +366,7 @@ func (p *Profile) process(s string, toASCII bool) (string, error) {
 	// It seems like we should only create this error on ToASCII, but the
 	// UTS 46 conformance tests suggests we should always check this.
 	labelCode := "X4_2"
-	if !unicode16 || toASCII {
+	if toASCII {
 		labelCode = "A4"
 	}
 	if err == nil && p.verifyDNSLength && s == "" {
@@ -400,7 +393,11 @@ func (p *Profile) process(s string, toASCII bool) (string, error) {
 				// Spec says keep the old label.
 				continue
 			}
-			if unicode16 && err == nil && len(u) > 0 && isASCII(u) {
+			if err == nil && isASCII(u) {
+				// UTS #46 pre-revision 33 doesn't classify a xn-- label
+				// which contains only ASCII characters as an error,
+				// but that's a specification bug and a security issue.
+				// Always return an error in this case.
 				err = punyError(enc)
 			}
 			isBidi = isBidi || bidirule.DirectionString(u) != bidi.LeftToRight
@@ -773,7 +770,7 @@ func allowedSTD3(r rune) bool {
 	return r >= 0x80 || 'a' <= r && r <= 'z' || '0' <= r && r <= '9' || r == '-' || r == '.'
 }
 
-// validateLabel validates the criteria from Section 4.1. Item 1, 4, and 6 are
+// validateLabel validates the criteria from Section 4.1. Item 1 is
 // already implicitly satisfied by the overall implementation.
 func (p *Profile) validateLabel(s string, labelCode string) (err error) {
 	if s == "" {
@@ -788,6 +785,10 @@ func (p *Profile) validateLabel(s string, labelCode string) (err error) {
 		}
 		if s[0] == '-' || s[len(s)-1] == '-' {
 			return labelError{s, "V3"}
+		}
+	} else {
+		if strings.HasPrefix(s, acePrefix) {
+			return labelError{s, "V4"}
 		}
 	}
 
@@ -810,15 +811,14 @@ func (p *Profile) validateLabel(s string, labelCode string) (err error) {
 		}
 	}
 
-	if !p.checkJoiners {
-		return nil
-	}
-	trie := p.trie // p.checkJoiners is only set if trie is set.
-	// TODO: merge the use of this in the trie.
 	v, sz := trie.lookupString(s)
 	x := info(v)
 	if x.isModifier() {
 		return labelError{s, code16("V5", "V6")}
+	}
+
+	if !p.checkJoiners {
+		return nil
 	}
 	// Quickly return in the absence of zero-width (non) joiners.
 	if strings.Index(s, zwj) == -1 && strings.Index(s, zwnj) == -1 {

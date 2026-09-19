@@ -9,10 +9,12 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"math/big"
 	pseudorand "math/rand"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -88,6 +90,96 @@ func TestSetupForwardAgent(t *testing.T) {
 	conn.Close()
 }
 
+func TestForwardAgentDiscardsStderr(t *testing.T) {
+	a, b, err := netPipe()
+	if err != nil {
+		t.Fatalf("netPipe: %v", err)
+	}
+	defer a.Close()
+	defer b.Close()
+
+	serverConf := ssh.ServerConfig{
+		NoClientAuth: true,
+	}
+	serverConf.AddHostKey(testSigners["rsa"])
+	incoming := make(chan *ssh.ServerConn, 1)
+	go func() {
+		conn, _, _, err := ssh.NewServerConn(a, &serverConf)
+		incoming <- conn
+		if err != nil {
+			t.Errorf("NewServerConn error: %v", err)
+			return
+		}
+	}()
+
+	conf := ssh.ClientConfig{
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+	conn, chans, reqs, err := ssh.NewClientConn(b, "", &conf)
+	if err != nil {
+		t.Fatalf("NewClientConn: %v", err)
+	}
+	client := ssh.NewClient(conn, chans, reqs)
+	defer client.Close()
+
+	if err := ForwardToAgent(client, NewKeyring()); err != nil {
+		t.Fatalf("ForwardToAgent: %v", err)
+	}
+
+	server := <-incoming
+	if server == nil {
+		t.Fatal("Unable to get server")
+	}
+	defer server.Close()
+
+	ch, chanReqs, err := server.OpenChannel(channelType, nil)
+	if err != nil {
+		t.Fatalf("OpenChannel(%q): %v", channelType, err)
+	}
+	go ssh.DiscardRequests(chanReqs)
+	defer ch.Close()
+
+	// Write more than the default channel receive window (2 MiB) on the
+	// stderr stream. If the forwarder did not drain it the remote window
+	// would be exhausted and this write would block forever, because no
+	// window-adjust messages are emitted for an extended stream that is
+	// never read.
+	const payload = 4 * 1024 * 1024
+	done := make(chan error, 1)
+	go func() {
+		buf := make([]byte, 32*1024)
+		remaining := payload
+		for remaining > 0 {
+			n := len(buf)
+			if remaining < n {
+				n = remaining
+			}
+			w, err := ch.Stderr().Write(buf[:n])
+			if err != nil {
+				done <- err
+				return
+			}
+			remaining -= w
+		}
+		done <- nil
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("write to stderr: %v", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("write to stderr blocked: ForwardToAgent is not draining channel.Stderr()")
+	}
+
+	// The agent must still be reachable on the main stream after the
+	// stderr traffic.
+	if _, err := NewClient(ch).List(); err != nil {
+		t.Fatalf("List after stderr flood: %v", err)
+	}
+}
+
 func TestV1ProtocolMessages(t *testing.T) {
 	c1, c2, err := netPipe()
 	if err != nil {
@@ -152,6 +244,75 @@ func addKeyToAgent(key crypto.PrivateKey) error {
 		return fmt.Errorf("add: %v", err)
 	}
 	return verifyKey(sshAgent)
+}
+
+func TestParseDSAKeyHugeQ(t *testing.T) {
+	P := new(big.Int).Lsh(big.NewInt(1), 1023)
+	Q := new(big.Int).Lsh(big.NewInt(1), 20000) // very large
+	// G and Y: dummy values, just needs to be < P to pass that specific check.
+	G := big.NewInt(2)
+	Y := big.NewInt(5)
+
+	req := ssh.Marshal(dsaKeyMsg{
+		Type: ssh.InsecureKeyAlgoDSA,
+		P:    P,
+		Q:    Q,
+		G:    G,
+		Y:    Y,
+		X:    big.NewInt(1),
+	})
+
+	_, err := parseDSAKey(req)
+	if err == nil {
+		t.Fatal("parseDSAKey accepted a DSA key with large Q")
+	}
+
+	expectedError := "unsupported DSA sub-prime size"
+	if !strings.Contains(err.Error(), expectedError) {
+		t.Errorf("unexpected error message: got %q, want substring %q", err.Error(), expectedError)
+	}
+}
+
+func TestParseDSAKeyYOutOfRange(t *testing.T) {
+	// Valid 1024/160 parameters (values don't need to be a real DSA group,
+	// they only need to pass the checkDSAParams bit-length checks and the
+	// G < P / G > 0 checks).
+	P := new(big.Int).Lsh(big.NewInt(1), 1023)
+	P.SetBit(P, 0, 1) // make P odd so it can pass as a prime candidate shape
+	Q := new(big.Int).Lsh(big.NewInt(1), 159)
+	Q.SetBit(Q, 0, 1)
+	G := big.NewInt(2)
+
+	for _, tc := range []struct {
+		name string
+		Y    *big.Int
+	}{
+		{"Y_zero", big.NewInt(0)},
+		{"Y_negative", big.NewInt(-1)},
+		{"Y_equals_P", new(big.Int).Set(P)},
+		{"Y_greater_than_P", new(big.Int).Add(P, big.NewInt(1))},
+		{"Y_much_greater_than_P", new(big.Int).Lsh(big.NewInt(1), 20000)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := ssh.Marshal(dsaKeyMsg{
+				Type: ssh.InsecureKeyAlgoDSA,
+				P:    P,
+				Q:    Q,
+				G:    G,
+				Y:    tc.Y,
+				X:    big.NewInt(1),
+			})
+
+			_, err := parseDSAKey(req)
+			if err == nil {
+				t.Fatalf("parseDSAKey accepted a DSA key with Y=%s (P=%s)", tc.Y, P)
+			}
+			expectedError := "DSA public value Y out of range"
+			if !strings.Contains(err.Error(), expectedError) {
+				t.Errorf("unexpected error message: got %q, want substring %q", err.Error(), expectedError)
+			}
+		})
+	}
 }
 
 func TestKeyTypes(t *testing.T) {

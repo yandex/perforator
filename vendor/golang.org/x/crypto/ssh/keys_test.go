@@ -218,21 +218,32 @@ func TestParseRSAPrivateKey(t *testing.T) {
 	}
 }
 
-func TestParseRSAModulusTooLarge(t *testing.T) {
+func TestParseRSAModulusLimit(t *testing.T) {
+	// A 16384-bit modulus is the largest OpenSSH will generate and must be
+	// accepted.
 	rsa16384 := "ssh-rsa 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"
-	_, _, _, _, err := ParseAuthorizedKey([]byte(rsa16384))
-
-	if err == nil {
-		t.Fatal("ParseAuthorizedKey accepted a 16384-bit modulus; expected it to be rejected")
+	if _, _, _, _, err := ParseAuthorizedKey([]byte(rsa16384)); err != nil {
+		t.Fatalf("ParseAuthorizedKey rejected a 16384-bit modulus: %v", err)
 	}
 
+	// A modulus larger than 16384 bits must be rejected to bound the cost of
+	// verifying an attacker-supplied key.
+	n := new(big.Int).Lsh(big.NewInt(1), 16384) // 16385 bits
+	pub, err := NewPublicKey(&rsa.PublicKey{N: n, E: 65537})
+	if err != nil {
+		t.Fatalf("NewPublicKey: %v", err)
+	}
+	_, err = ParsePublicKey(pub.Marshal())
+	if err == nil {
+		t.Fatal("ParsePublicKey accepted a modulus larger than 16384 bits; expected it to be rejected")
+	}
 	expectedError := "rsa modulus too large"
 	if !strings.Contains(err.Error(), expectedError) {
 		t.Errorf("unexpected error message: got %q, want substring %q", err.Error(), expectedError)
 	}
 }
 
-func TestParsePrivateKeyRSAModulusTooLarge(t *testing.T) {
+func TestParsePrivateKeyRSAModulus16384(t *testing.T) {
 	rsa16384 := []byte(`-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAIFwAAAAdzc2gtcn
 NhAAAAAwEAAQAACAEAy58lBbrFRB4r18MqVA625r4nzxjTkMlN5LxoG7ARC9L7px5lPs4o
@@ -415,14 +426,10 @@ OthateBQGfnsGpTLxkpydh4jlYzTCp9bVRK8YXwsocglOcaRQH5ghfmgsAAAALbmljb2xh
 QHAxNnM=
 -----END OPENSSH PRIVATE KEY-----
 `)
-	_, err := ParseRawPrivateKey(rsa16384)
-	if err == nil {
-		t.Fatal("ParseRawPrivateKey accepted a 16384-bit modulus; expected it to be rejected")
-	}
-
-	expectedError := "rsa modulus too large"
-	if !strings.Contains(err.Error(), expectedError) {
-		t.Errorf("unexpected error message: got %q, want substring %q", err.Error(), expectedError)
+	// A 16384-bit modulus is the largest OpenSSH will generate and must be
+	// accepted.
+	if _, err := ParseRawPrivateKey(rsa16384); err != nil {
+		t.Fatalf("ParseRawPrivateKey rejected a 16384-bit modulus: %v", err)
 	}
 }
 
@@ -848,6 +855,65 @@ func TestInvalidEntry(t *testing.T) {
 	}
 }
 
+func TestAuthorizedKeyOptionWithoutKeyType(t *testing.T) {
+	_, pubSerialized := getTestKey()
+	for _, opt := range []string{"restrict", "no-pty", "no-port-forwarding", "no-agent-forwarding"} {
+		// The key type ("ssh-rsa") is intentionally omitted.
+		line := opt + " " + pubSerialized
+		testAuthorizedKeys(t, []byte(line), []testAuthResult{
+			{nil, nil, "", "", false},
+		})
+	}
+}
+
+func TestAuthorizedKeyTypeMismatch(t *testing.T) {
+	_, pubSerialized := getTestKey() // an ssh-rsa key
+	lines := []string{
+		"ssh-ed25519 " + pubSerialized + " user@host",
+		"restrict ssh-ed25519 " + pubSerialized + " user@host",
+		"rsa-sha2-512 " + pubSerialized + " user@host",
+	}
+	for _, line := range lines {
+		testAuthorizedKeys(t, []byte(line), []testAuthResult{
+			{nil, nil, "", "", false},
+		})
+	}
+}
+
+func TestAuthorizedKeyCertificate(t *testing.T) {
+	certLine := testdata.SSHCertificates["rsa-user-testcertificate"]
+
+	key, _, options, _, err := ParseAuthorizedKey(certLine)
+	if err != nil {
+		t.Fatalf("ParseAuthorizedKey on certificate: %v", err)
+	}
+	if _, ok := key.(*Certificate); !ok {
+		t.Fatalf("got %T, want *Certificate", key)
+	}
+	if len(options) != 0 {
+		t.Errorf("got options %v, want none", options)
+	}
+
+	key, _, options, _, err = ParseAuthorizedKey(append([]byte("cert-authority "), certLine...))
+	if err != nil {
+		t.Fatalf("ParseAuthorizedKey on cert-authority certificate: %v", err)
+	}
+	if _, ok := key.(*Certificate); !ok {
+		t.Fatalf("got %T, want *Certificate", key)
+	}
+	if !reflect.DeepEqual(options, []string{"cert-authority"}) {
+		t.Errorf("got options %v, want [cert-authority]", options)
+	}
+}
+
+func TestAuthorizedKeyOptionWithKeyType(t *testing.T) {
+	pub, pubSerialized := getTestKey()
+	line := "restrict ssh-rsa " + pubSerialized + " user@host"
+	testAuthorizedKeys(t, []byte(line), []testAuthResult{
+		{pub, []string{"restrict"}, "user@host", "", true},
+	})
+}
+
 var knownHostsParseTests = []struct {
 	input string
 	err   string
@@ -929,6 +995,13 @@ var knownHostsParseTests = []struct {
 
 		"", "", nil, "",
 	},
+	{
+		// Declared key type does not match the type embedded in the blob.
+		"localhost ssh-ed25519 {RSAPUB}",
+		"key type mismatch",
+
+		"", "", nil, "",
+	},
 }
 
 func TestKnownHostsParsing(t *testing.T) {
@@ -941,7 +1014,7 @@ func TestKnownHostsParsing(t *testing.T) {
 		input := test.input
 		if strings.Contains(input, rsaKeyToken) {
 			expectedKey = rsaPub
-			input = strings.Replace(test.input, rsaKeyToken, rsaPubSerialized, -1)
+			input = strings.ReplaceAll(test.input, rsaKeyToken, rsaPubSerialized)
 		}
 
 		marker, hosts, pubKey, comment, rest, err := ParseKnownHosts([]byte(input))

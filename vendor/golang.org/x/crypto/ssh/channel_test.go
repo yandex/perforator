@@ -5,6 +5,8 @@
 package ssh
 
 import (
+	"encoding/binary"
+	"io"
 	"math/bits"
 	"testing"
 	"time"
@@ -136,5 +138,113 @@ func TestWriteExtendedNoInfiniteLoopOnLargeWrite(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("WriteExtended did not return after closing the window")
+	}
+}
+
+func TestDiscardedExtendedDataReturnsWindowCredit(t *testing.T) {
+	client, _, serverChans := forwardingPair(t)
+
+	clientCh, reqs, err := client.OpenChannel("test", nil)
+	if err != nil {
+		t.Fatalf("OpenChannel: %v", err)
+	}
+	go DiscardRequests(reqs)
+	defer clientCh.Close()
+
+	serverCh := (<-serverChans).(*channel)
+	defer serverCh.Close()
+
+	// Write more than the default channel receive window (2 MiB) of
+	// extended data with a type code other than stderr. The peer
+	// discards such data: if it did not return the window credit the
+	// write would block forever once the window is exhausted.
+	const payload = 4 * 1024 * 1024
+	done := make(chan error, 1)
+	go func() {
+		buf := make([]byte, 32*1024)
+		remaining := payload
+		for remaining > 0 {
+			n := min(len(buf), remaining)
+			nw, err := serverCh.WriteExtended(buf[:n], 2)
+			if err != nil {
+				done <- err
+				return
+			}
+			remaining -= nw
+		}
+		done <- nil
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("write of discarded extended data: %v", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("write of discarded extended data blocked: window credit is not returned")
+	}
+
+	// The main stream must still be usable.
+	want := []byte("main stream after extended data")
+	if _, err := serverCh.Write(want); err != nil {
+		t.Fatalf("write to main stream: %v", err)
+	}
+	got := make([]byte, len(want))
+	if _, err := io.ReadFull(clientCh, got); err != nil {
+		t.Fatalf("read from main stream: %v", err)
+	}
+	if string(got) != string(want) {
+		t.Fatalf("read %q from main stream, want %q", got, want)
+	}
+
+	// Reading the main stream payload above orders the test after all
+	// preceding packets: everything received has now been either read or
+	// discarded, so the full window credit must have been accounted.
+	// Anything less indicates a partial-credit leak that the liveness
+	// check above would not detect.
+	cc := clientCh.(*channel)
+	cc.windowMu.Lock()
+	window := cc.myWindow + cc.myConsumed
+	cc.windowMu.Unlock()
+	if window != channelWindowSize {
+		t.Errorf("myWindow+myConsumed = %d, want %d", window, channelWindowSize)
+	}
+}
+
+func TestDiscardedExtendedDataAfterClose(t *testing.T) {
+	client, _, serverChans := forwardingPair(t)
+
+	clientCh, reqs, err := client.OpenChannel("test", nil)
+	if err != nil {
+		t.Fatalf("OpenChannel: %v", err)
+	}
+	go DiscardRequests(reqs)
+	serverCh := <-serverChans
+	defer serverCh.Close()
+
+	ch := clientCh.(*channel)
+	// Close the channel locally: sentClose is now set, but the channel
+	// stays in the mux chanList until the peer's close arrives, so
+	// in-flight data packets are still dispatched to handleData.
+	if err := ch.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	// Deliver extended data packets with an unknown type code, enough to
+	// cross the adjustWindow send threshold of 3*maxIncomingPayload.
+	// The window adjust message cannot be sent after the close and
+	// adjustWindow fails with io.EOF: handleData must swallow that
+	// error, since any error it returns terminates the mux read loop
+	// and tears down every channel on the connection.
+	const packetLen = 32 * 1024
+	packet := make([]byte, 13+packetLen)
+	packet[0] = msgChannelExtendedData
+	binary.BigEndian.PutUint32(packet[1:], ch.localId)
+	binary.BigEndian.PutUint32(packet[5:], 2)
+	binary.BigEndian.PutUint32(packet[9:], packetLen)
+	for range 5 {
+		if err := ch.handleData(packet); err != nil {
+			t.Fatalf("handleData after local close: %v", err)
+		}
 	}
 }

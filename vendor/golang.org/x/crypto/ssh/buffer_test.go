@@ -38,7 +38,7 @@ func TestBufferReadwrite(t *testing.T) {
 	b.write(alphabet[5:15])
 	r, _ = b.Read(make([]byte, 10))
 	r2, _ := b.Read(make([]byte, 10))
-	if r != 10 || r2 != 5 || 15 != r+r2 {
+	if r != 10 || r2 != 5 || r+r2 != 15 {
 		t.Fatal("Expected written == read == 15")
 	}
 }

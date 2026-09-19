@@ -104,56 +104,172 @@ func TestTransformMallocs(t *testing.T) {
 // transformation, the end result is identical to one Transform call with
 // sufficiently long buffers.
 func TestTransformerShortBuffers(t *testing.T) {
-	srcUnit := []byte("a\u0300cce\u0301nts") // NFD normalization form.
-	wantUnit := []byte("àccénts")            // NFC normalization form.
-	src := bytes.Repeat(srcUnit, 16)
-	want := bytes.Repeat(wantUnit, 16)
-	const long = 4096
-	dst := make([]byte, long)
-
-	// 5, 7, 9, 11, 13, 16 and 17 are all pair-wise co-prime, which means that
-	// slicing the dst and src buffers into 5, 7, 13 and 17 byte chunks will
-	// fall at different places inside the repeated srcUnit's and wantUnit's.
-	if len(srcUnit) != 11 || len(wantUnit) != 9 || len(src) > long || len(want) > long {
-		t.Fatal("inconsistent lengths")
+	testCases := []struct {
+		name       string
+		srcUnit    []byte
+		wantUnit   []byte
+		srcRepeat  int
+		wantRepeat int
+		srcLen     int
+		wantLen    int
+		wantErr    error
+		tr         *Transformer
+	}{
+		{
+			name:       "Freeform",
+			srcUnit:    []byte("a\u0300cce\u0301nts"), // NFD normalization form
+			wantUnit:   []byte("àccénts"),             // NFC normalization form
+			srcRepeat:  16,
+			wantRepeat: 16,
+			srcLen:     11,
+			wantLen:    9,
+			tr:         NewFreeform().NewTransformer(),
+		},
+		{
+			name:       "Nickname1",
+			srcUnit:    []byte("a\u0300cce\u0301nts"),
+			wantUnit:   []byte("àccénts"),
+			srcRepeat:  16,
+			wantRepeat: 16,
+			srcLen:     11,
+			wantLen:    9,
+			tr:         Nickname.NewTransformer(),
+		},
+		{
+			name:       "Nickname2",
+			srcUnit:    []byte("ﷺ"), // U+FDFA
+			wantUnit:   []byte("صلى الله عليه وسلم"),
+			srcRepeat:  16,
+			wantRepeat: 16,
+			srcLen:     3,
+			wantLen:    33,
+			tr:         Nickname.NewTransformer(),
+		},
+		{
+			name:       "incomplete 3-byte rune",
+			srcUnit:    []byte("a\xef\xb7"), // input ends in an incomplete 3-byte rune
+			wantUnit:   []byte("a"),
+			srcRepeat:  1,
+			wantRepeat: 1,
+			srcLen:     3,
+			wantLen:    1,
+			wantErr:    errDisallowedRune,
+			tr:         Nickname.NewTransformer(),
+		},
+		{
+			name:       "bad utf8",
+			srcUnit:    []byte("a\xff"), // \xff is never valid
+			wantUnit:   []byte("a"),
+			srcRepeat:  1,
+			wantRepeat: 1,
+			srcLen:     2,
+			wantLen:    1,
+			wantErr:    errDisallowedRune,
+			tr:         Nickname.NewTransformer(),
+		},
+		{
+			name:       "Nickname space",
+			srcUnit:    []byte("abcd b"),
+			wantUnit:   []byte("abcd b"),
+			srcRepeat:  16,
+			wantRepeat: 16,
+			srcLen:     6,
+			wantLen:    6,
+			tr:         Nickname.NewTransformer(),
+		},
+		{
+			name:       "Nickname return nil",
+			srcUnit:    []byte("a b"),
+			wantUnit:   []byte("a b"),
+			srcRepeat:  10,
+			wantRepeat: 10,
+			srcLen:     3,
+			wantLen:    3,
+			tr:         Nickname.NewTransformer(),
+		},
+		{
+			name:       "Nickname partial",
+			srcUnit:    []byte("ﷺ"), // U+FDFA (3 bytes)
+			wantUnit:   []byte("ﷺ"),
+			srcRepeat:  16,
+			wantRepeat: 16,
+			srcLen:     3,
+			wantLen:    3,
+			tr:         &Transformer{&nickAdditionalMapping{}},
+		},
+		{
+			name:       "context boundary",
+			srcUnit:    []byte("\u0628\u200c\u0627"), // JoiningD + ZWNJ + JoiningR (2+3+2=7 bytes)
+			wantUnit:   []byte("\u0628\u200c\u0627"),
+			srcRepeat:  16,
+			wantRepeat: 16,
+			srcLen:     7,
+			wantLen:    7,
+			tr:         NewFreeform().NewTransformer(),
+		},
 	}
 
-	tr := NewFreeform().NewTransformer()
-	for _, deltaD := range []int{5, 7, 13, 17, long} {
-	loop:
-		for _, deltaS := range []int{5, 7, 13, 17, long} {
-			tr.Reset()
-			d0 := 0
-			s0 := 0
-			for {
-				d1 := min(len(dst), d0+deltaD)
-				s1 := min(len(src), s0+deltaS)
-				nDst, nSrc, err := tr.Transform(dst[d0:d1:d1], src[s0:s1:s1], s1 == len(src))
-				d0 += nDst
-				s0 += nSrc
-				if err == nil {
-					break
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			src := bytes.Repeat(tc.srcUnit, tc.srcRepeat)
+			want := bytes.Repeat(tc.wantUnit, tc.wantRepeat)
+			const long = 4096
+			dst := make([]byte, long)
+
+			// 5, 7, 9, 11, 13, 16 and 17 are all pair-wise co-prime, which means that
+			// slicing the dst and src buffers into 5, 7, 13 and 17 byte chunks will
+			// fall at different places inside the repeated srcUnit's and wantUnit's.
+			if len(tc.srcUnit) != tc.srcLen || len(tc.wantUnit) != tc.wantLen || len(src) > long || len(want) > long {
+				t.Fatal("inconsistent lengths")
+			}
+			for _, deltaD := range []int{5, 7, 13, 17, long} {
+			loop:
+				for _, deltaS := range []int{5, 7, 13, 17, long} {
+					tc.tr.Reset()
+					d0 := 0
+					s0 := 0
+					var nDst, nSrc int
+					var err error
+					for {
+						d1 := min(len(dst), d0+deltaD)
+						s1 := min(len(src), s0+deltaS)
+						nDst, nSrc, err = tc.tr.Transform(dst[d0:d1:d1], src[s0:s1:s1], s1 == len(src))
+						d0 += nDst
+						s0 += nSrc
+						if err == nil && s0 == len(src) {
+							break
+						}
+						if err == nil {
+							continue
+						}
+						if err == transform.ErrShortDst || (err == transform.ErrShortSrc && s1 < len(src)) {
+							continue
+						}
+						if err == tc.wantErr && (s1 == len(src) || tc.wantErr != transform.ErrShortSrc) {
+							break
+						}
+						t.Errorf("deltaD=%d, deltaS=%d: %v", deltaD, deltaS, err)
+						continue loop
+					}
+					if tc.wantErr == nil && s0 != len(src) {
+						t.Errorf("deltaD=%d, deltaS=%d: s0: got %d, want %d", deltaD, deltaS, s0, len(src))
+						continue
+					}
+					if d0 != len(want) {
+						t.Errorf("deltaD=%d, deltaS=%d: d0: got %d, want %d", deltaD, deltaS, d0, len(want))
+						continue
+					}
+					got := dst[:d0]
+					if !bytes.Equal(got, want) {
+						t.Errorf("deltaD=%d, deltaS=%d:\ngot  %q\nwant %q", deltaD, deltaS, got, want)
+						continue
+					}
+					if err != tc.wantErr {
+						t.Errorf("incorrect error: got %t, want %t", err, tc.wantErr)
+					}
 				}
-				if err == transform.ErrShortDst || err == transform.ErrShortSrc {
-					continue
-				}
-				t.Errorf("deltaD=%d, deltaS=%d: %v", deltaD, deltaS, err)
-				continue loop
 			}
-			if s0 != len(src) {
-				t.Errorf("deltaD=%d, deltaS=%d: s0: got %d, want %d", deltaD, deltaS, s0, len(src))
-				continue
-			}
-			if d0 != len(want) {
-				t.Errorf("deltaD=%d, deltaS=%d: d0: got %d, want %d", deltaD, deltaS, d0, len(want))
-				continue
-			}
-			got := dst[:d0]
-			if !bytes.Equal(got, want) {
-				t.Errorf("deltaD=%d, deltaS=%d:\ngot  %q\nwant %q", deltaD, deltaS, got, want)
-				continue
-			}
-		}
+		})
 	}
 }
 

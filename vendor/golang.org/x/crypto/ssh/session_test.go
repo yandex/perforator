@@ -745,7 +745,7 @@ func TestSessionID(t *testing.T) {
 
 	s := <-serverID
 	c := <-clientID
-	if bytes.Compare(s, c) != 0 {
+	if !bytes.Equal(s, c) {
 		t.Errorf("server session ID (%x) != client session ID (%x)", s, c)
 	} else if len(s) == 0 {
 		t.Errorf("client and server SessionID were empty.")

@@ -13,7 +13,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -24,8 +23,6 @@ import (
 	"golang.org/x/tools/internal/gocommand"
 	"golang.org/x/tools/internal/gopathwalk"
 	"golang.org/x/tools/internal/stdlib"
-
-	"github.com/yandex/perforator/library/go/yatool"
 )
 
 // Notes(rfindley): ModuleResolver appears to be heavily optimized for scanning
@@ -169,10 +166,7 @@ func newModuleResolver(e *ProcessEnv, moduleCacheCache *DirInfoCache) (*ModuleRe
 		}
 	}
 
-	r.moduleCacheDir = gomodcacheForEnv(goenv)
-	if r.moduleCacheDir == "" {
-		return nil, fmt.Errorf("cannot resolve GOMODCACHE")
-	}
+	r.moduleCacheDir = goenv["GOMODCACHE"]
 
 	sort.Slice(r.modsByModPath, func(i, j int) bool {
 		count := func(x int) int {
@@ -234,38 +228,11 @@ func newModuleResolver(e *ProcessEnv, moduleCacheCache *DirInfoCache) (*ModuleRe
 	}
 
 	r.scannedRoots = map[gopathwalk.Root]bool{}
-	arcRoot, arcErr := yatool.FindRepositoryGoModDir()
-	if arcErr == nil && runtime.GOOS == "windows" {
-		arcRoot, arcErr = filepath.EvalSymlinks(arcRoot)
-	}
-	if arcErr == nil {
-		r.scannedRoots[gopathwalk.Root{Path: arcRoot, Type: gopathwalk.RootCurrentModule}] = true
-	}
 	if r.moduleCacheCache == nil {
 		r.moduleCacheCache = NewDirInfoCache()
 	}
 	r.otherCache = NewDirInfoCache()
 	return r, nil
-}
-
-// gomodcacheForEnv returns the GOMODCACHE value to use based on the given env
-// map, which must have GOMODCACHE and GOPATH populated.
-//
-// TODO(rfindley): this is defensive refactoring.
-//  1. Is this even relevant anymore? Can't we just read GOMODCACHE.
-//  2. Use this to separate module cache scanning from other scanning.
-func gomodcacheForEnv(goenv map[string]string) string {
-	if gmc := goenv["GOMODCACHE"]; gmc != "" {
-		// golang/go#67156: ensure that the module cache is clean, since it is
-		// assumed as a prefix to directories scanned by gopathwalk, which are
-		// themselves clean.
-		return filepath.Clean(gmc)
-	}
-	gopaths := filepath.SplitList(goenv["GOPATH"])
-	if len(gopaths) == 0 {
-		return ""
-	}
-	return filepath.Join(gopaths[0], "/pkg/mod")
 }
 
 func (r *ModuleResolver) initAllMods() error {
@@ -324,13 +291,6 @@ func (r *ModuleResolver) ClearForNewScan() Resolver {
 	//
 	// Scanning for new directories in GOMODCACHE should be handled elsewhere,
 	// via a call to ScanModuleCache.
-	arcRoot, arcErr := yatool.FindRepositoryGoModDir()
-	if arcErr == nil && runtime.GOOS == "windows" {
-		arcRoot, arcErr = filepath.EvalSymlinks(arcRoot)
-	}
-	if arcErr == nil {
-		r2.scannedRoots[gopathwalk.Root{Path: arcRoot, Type: gopathwalk.RootCurrentModule}] = true
-	}
 	for _, root := range r.roots {
 		if root.Type == gopathwalk.RootModuleCache && r.scannedRoots[root] {
 			r2.scannedRoots[root] = true

@@ -2,9 +2,10 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.45.0)
+VERSION(v0.49.0)
 
 SRCS(
+    assignedaddress.go
     classify_call.go
     element.go
     errorcode.go

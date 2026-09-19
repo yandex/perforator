@@ -11,7 +11,6 @@ import (
 	"go/token"
 	"strings"
 
-	"golang.org/x/tools/go/ast/edge"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/internal/moreiters"
 )
@@ -45,16 +44,6 @@ func NodeContainsPos(n ast.Node, pos token.Pos) bool {
 func EnclosingFile(c inspector.Cursor) *ast.File {
 	c, _ = moreiters.First(c.Enclosing((*ast.File)(nil)))
 	return c.Node().(*ast.File)
-}
-
-// IsChildOf reports whether the cursor is under the given edge.
-func IsChildOf(cur inspector.Cursor, ek edge.Kind) bool {
-	got, _ := cur.ParentEdge()
-	return got == ek
-}
-
-func CursorValid(cur inspector.Cursor) bool {
-	return cur.Inspector() != nil
 }
 
 // DocComment returns the doc comment for a node, if any.

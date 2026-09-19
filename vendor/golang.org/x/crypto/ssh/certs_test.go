@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"net"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -42,6 +43,34 @@ func TestParseCert(t *testing.T) {
 	marshaled = marshaled[:len(marshaled)-1]
 	if !bytes.Equal(authKeyBytes, marshaled) {
 		t.Errorf("marshaled certificate does not match original: got %q, want %q", marshaled, authKeyBytes)
+	}
+}
+
+func TestParseCertNestedSignatureKey(t *testing.T) {
+	signer, err := NewSignerFromKey(testPrivateKeys["ed25519"])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cert := &Certificate{
+		Key:         signer.PublicKey(),
+		CertType:    UserCert,
+		ValidBefore: CertTimeInfinity,
+	}
+	if err := cert.SignCert(rand.Reader, signer); err != nil {
+		t.Fatal(err)
+	}
+
+	inner := *cert
+	cert.SignatureKey = &inner
+	blob := cert.Marshal()
+
+	_, err = ParsePublicKey(blob)
+	if err == nil {
+		t.Fatal("ParsePublicKey: expected error for certificate signed by a certificate, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid for certificates") {
+		t.Errorf("ParsePublicKey: got error %q, want it to mention the signature key is invalid for certificates", err)
 	}
 }
 

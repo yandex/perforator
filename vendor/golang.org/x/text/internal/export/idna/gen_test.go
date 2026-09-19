@@ -15,6 +15,9 @@ import (
 
 func TestTables(t *testing.T) {
 	testtext.SkipIfNotLong(t)
+	if UnicodeVersion == "15.0.0" {
+		t.Skipf("test not supported for Unicode version %v", UnicodeVersion)
+	}
 
 	lookup := func(r rune) info {
 		v, _ := trie.lookupString(string(r))

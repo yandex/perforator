@@ -53,6 +53,7 @@ func TestTransform(t *testing.T) {
 		{NFD, "éfff", "", false, 2, transform.ErrShortDst},
 		{NFC, "e\u0301fffff", "\u00e9fff", false, 6, transform.ErrShortDst},
 		{NFD, "ééééé", "e\u0301e\u0301e\u0301", false, 15, transform.ErrShortDst},
+		{NFC, "abca\u0308\u0304a\u0308\u0304fg", "abc\u01df\u01dffg", true, 11, nil},
 
 		{NFC, "a\u0300", "", true, 1, transform.ErrShortDst},
 		// Theoretically could fit, but won't due to simplified checks.

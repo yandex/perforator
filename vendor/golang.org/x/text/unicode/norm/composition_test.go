@@ -4,7 +4,11 @@
 
 package norm
 
-import "testing"
+import (
+	"testing"
+	"unicode"
+	"unicode/utf8"
+)
 
 // TestCase is used for most tests.
 type TestCase struct {
@@ -127,4 +131,98 @@ var compositionTest = []TestCase{
 
 func TestComposition(t *testing.T) {
 	runTests(t, "TestComposition", NFC, compositionTest)
+}
+
+// TestCompositionAfterHangul tests that a Hangul syllable at the start of a
+// segment does not disable regular canonical composition for the rest of the
+// segment. The reorderBuffer switches to Hangul mode as soon as it sees a Jamo,
+// and used to drop every non-Hangul composition after it. See go.dev/issue/81021.
+func TestCompositionAfterHangul(t *testing.T) {
+	prefixes := []string{
+		"\u1100\u1161",       // Jamo L V
+		"\u1100\u1161\u11a8", // Jamo L V T
+		"\uac00",             // Hangul syllable LV
+		"\uac01",             // Hangul syllable LVT
+		"\ud7a3",             // last Hangul syllable
+	}
+	forms := []struct {
+		name string
+		c, d Form
+	}{
+		{"NFC", NFC, NFD},
+		{"NFKC", NFKC, NFKD},
+	}
+	for _, p := range prefixes {
+		for _, f := range forms {
+			for r := rune(0); r <= unicode.MaxRune; r++ {
+				s := string(r)
+				if !utf8.ValidString(s) {
+					continue
+				}
+				want := f.c.String(s)
+				in := f.d.String(s)
+				if in == want {
+					continue // nothing to recompose
+				}
+				// Skip characters that may legitimately merge with the
+				// Hangul prefix rather than recompose among themselves.
+				if c, _ := utf8.DecodeRuneInString(in); c >= jamoLBase && c <= 0x11ff ||
+					c >= hangulBase && c < hangulEnd {
+					continue
+				}
+				in, want = p+in, f.c.String(p)+want
+				if got := f.c.String(in); got != want {
+					t.Errorf("%s(%+q) = %+q; want %+q", f.name, in, got, want)
+				}
+			}
+		}
+	}
+}
+
+// TestCompositionBlockedByStarter tests that a starter blocks composition
+// across it even when the starter itself takes no part in any composition and
+// the runes between it and the following mark never combine backward.
+// See go.dev/issue/81001.
+func TestCompositionBlockedByStarter(t *testing.T) {
+	tests := []struct {
+		name    string
+		f       Form
+		in, out string
+	}{
+		// U+113C2 is a starter (ccc 0), so it blocks U+0300 from
+		// composing with the "i" of the U+FB01 expansion.
+		{"NFKC", NFKC, "\U00016d68\ufb01\U000113c2\u0300\u0316", "\U00016d68fi\U000113c2\u0316\u0300"},
+		{"NFC", NFC, "i\U000113c2\u0300\u0316", "i\U000113c2\u0316\u0300"},
+		// Without the intervening starter the composition must still happen.
+		{"NFC", NFC, "i\u0300\u0316", "\u00ec\u0316"},
+	}
+	for _, test := range tests {
+		if got := test.f.String(test.in); got != test.out {
+			t.Errorf("%s.String(%+q) = %+q; want %+q", test.name, test.in, got, test.out)
+		}
+	}
+}
+
+// TestCompositionSupplementaryPlane tests that the recomposition map
+// distinguishes runes outside the BMP. The map key used to truncate both
+// runes to 16 bits, so supplementary-plane runes aliased BMP entries and
+// composition invented characters unrelated to the input.
+func TestCompositionSupplementaryPlane(t *testing.T) {
+	for r := rune(0); r <= unicode.MaxRune; r++ {
+		if !utf8.ValidRune(r) {
+			continue
+		}
+		for _, m := range []rune{0x0300, 0x0307, 0x093C, 0x11F41, 0x16D67} {
+			in := string(r) + string(m)
+			for _, f := range []struct {
+				name string
+				c, d Form
+			}{{"NFC", NFC, NFD}, {"NFKC", NFKC, NFKD}} {
+				// Normalization must preserve equivalence.
+				if got := f.c.String(in); f.d.String(got) != f.d.String(in) {
+					t.Errorf("%s(%+q) = %+q; not equivalent to input", f.name, in, got)
+				}
+			}
+		}
+	}
 }

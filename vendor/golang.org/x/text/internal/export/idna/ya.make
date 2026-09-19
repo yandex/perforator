@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v0.38.0)
+VERSION(v0.42.0)
 
 SRCS(
     idna.go
@@ -14,7 +14,7 @@ SRCS(
 
 GO_TEST_SRCS(
     common_test.go
-    conformance_test.go
+    conformancev2_test.go
     gen_test.go
     idna_test.go
     punycode_test.go

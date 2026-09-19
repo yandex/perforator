@@ -544,6 +544,62 @@ func TestVerifiedPublicKeyCallback(t *testing.T) {
 	<-done
 }
 
+func TestVerifiedPublicKeyCallbackSignatureFormat(t *testing.T) {
+	c1, c2, err := netPipe()
+	if err != nil {
+		t.Fatalf("netPipe: %v", err)
+	}
+	defer c1.Close()
+	defer c2.Close()
+
+	var gotSignatureAlgorithm string
+	serverConf := &ServerConfig{
+		PublicKeyCallback: func(conn ConnMetadata, key PublicKey) (*Permissions, error) {
+			return nil, nil
+		},
+		VerifiedPublicKeyCallback: func(conn ConnMetadata, key PublicKey, permissions *Permissions, signatureAlgorithm string) (*Permissions, error) {
+			gotSignatureAlgorithm = signatureAlgorithm
+			return permissions, nil
+		},
+	}
+	serverConf.AddHostKey(testSigners["rsa"])
+
+	serverDone := make(chan error, 1)
+	go func() {
+		conn, _, _, err := NewServerConn(c1, serverConf)
+		if err == nil {
+			conn.Close()
+		}
+		serverDone <- err
+	}()
+
+	clientConf := &ClientConfig{
+		User: "user",
+		Auth: []AuthMethod{
+			// The selected algorithm and signature format differ for
+			// compatibility with old RSA clients.
+			configurablePublicKeyCallback{
+				signer:          testSigners["rsa"].(AlgorithmSigner),
+				signatureAlgo:   KeyAlgoRSASHA256,
+				signatureFormat: KeyAlgoRSA,
+			},
+		},
+		HostKeyCallback: InsecureIgnoreHostKey(),
+	}
+
+	clientConn, _, _, clientErr := NewClientConn(c2, "", clientConf)
+	if clientErr == nil {
+		clientConn.Close()
+	}
+	serverErr := <-serverDone
+	if clientErr != nil || serverErr != nil {
+		t.Fatalf("connection failed: client error: %v; server error: %v", clientErr, serverErr)
+	}
+	if gotSignatureAlgorithm != KeyAlgoRSA {
+		t.Errorf("signature algorithm = %q; want verified signature format %q", gotSignatureAlgorithm, KeyAlgoRSA)
+	}
+}
+
 func TestVerifiedPublicCallbackPartialSuccess(t *testing.T) {
 	c1, c2, err := netPipe()
 	if err != nil {
@@ -757,6 +813,107 @@ func TestVerifiedPubKeyCallbackSourceAddress(t *testing.T) {
 	_, _, _, err = NewClientConn(c2, "", &clientConf)
 	if err == nil {
 		t.Fatal("client login succeed with VerifiedPublicKeyCallback returning mismatching source-address")
+	}
+}
+
+func TestAuthCallbacksSourceAddress(t *testing.T) {
+	permsWithSourceAddress := func(sourceAddress string) *Permissions {
+		return &Permissions{
+			CriticalOptions: map[string]string{
+				sourceAddressCriticalOption: sourceAddress,
+			},
+		}
+	}
+	methods := []struct {
+		name         string
+		serverConfig func(sourceAddress string) *ServerConfig
+		clientAuth   []AuthMethod
+	}{
+		{
+			name: "password",
+			serverConfig: func(sourceAddress string) *ServerConfig {
+				return &ServerConfig{
+					PasswordCallback: func(conn ConnMetadata, password []byte) (*Permissions, error) {
+						return permsWithSourceAddress(sourceAddress), nil
+					},
+				}
+			},
+			clientAuth: []AuthMethod{Password(clientPassword)},
+		},
+		{
+			name: "keyboard-interactive",
+			serverConfig: func(sourceAddress string) *ServerConfig {
+				return &ServerConfig{
+					KeyboardInteractiveCallback: func(conn ConnMetadata, challenge KeyboardInteractiveChallenge) (*Permissions, error) {
+						return permsWithSourceAddress(sourceAddress), nil
+					},
+				}
+			},
+			clientAuth: []AuthMethod{
+				KeyboardInteractive(func(name, instruction string, questions []string, echos []bool) ([]string, error) {
+					return nil, nil
+				}),
+			},
+		},
+		{
+			name: "none",
+			serverConfig: func(sourceAddress string) *ServerConfig {
+				return &ServerConfig{
+					NoClientAuth: true,
+					NoClientAuthCallback: func(conn ConnMetadata) (*Permissions, error) {
+						return permsWithSourceAddress(sourceAddress), nil
+					},
+				}
+			},
+		},
+	}
+	for _, method := range methods {
+		for _, tc := range []struct {
+			name          string
+			sourceAddress string
+			wantErr       bool
+		}{
+			{"mismatching", "192.168.99.99", true},
+			{"matching", "127.0.0.0/8,::1/128", false},
+			{"present but empty", "", true},
+		} {
+			t.Run(method.name+"/"+tc.name, func(t *testing.T) {
+				clientConf := &ClientConfig{
+					User:            "user",
+					Auth:            method.clientAuth,
+					HostKeyCallback: InsecureIgnoreHostKey(),
+				}
+				serverAuthErrors, err := doClientServerAuth(t, method.serverConfig(tc.sourceAddress), clientConf)
+				if tc.wantErr {
+					if err == nil {
+						t.Fatalf("client login succeeded with %s callback returning mismatching source-address", method.name)
+					}
+					var sourceAddressErrors int
+					for _, err := range serverAuthErrors {
+						if err != nil && strings.Contains(err.Error(), "source-address restriction") {
+							sourceAddressErrors++
+						}
+					}
+					if sourceAddressErrors == 0 {
+						t.Fatalf("no server auth error mentions the source-address restriction, got %v", serverAuthErrors)
+					}
+				} else if err != nil {
+					t.Fatalf("client login failed with matching source-address: %v", err)
+				}
+			})
+		}
+	}
+}
+
+func TestCheckSourceAddressNonIP(t *testing.T) {
+	for _, addr := range []net.Addr{
+		&net.UnixAddr{Name: "/run/test.sock", Net: "unix"},
+		&net.UnixAddr{},
+		nil,
+	} {
+		if err := checkSourceAddress(addr, "127.0.0.0/8,::1/128"); err == nil {
+			t.Errorf("source-address check succeeded for non-IP remote address %v", addr)
+		}
 	}
 }
 
