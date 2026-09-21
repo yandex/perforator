@@ -802,6 +802,8 @@ require (
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
 	github.com/projectcalico/api v0.0.0-20220722155641-439a754a988b
 	github.com/prometheus-community/pro-bing v0.6.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.79.2
+	github.com/prometheus-operator/prometheus-operator/pkg/client v0.79.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_golang/exp v0.0.0-20260101091701-2cd067eb23c9
 	github.com/prometheus/client_model v0.6.2
@@ -2364,8 +2366,6 @@ require (
 	github.com/prashantv/gostub v1.1.0 // indirect
 	github.com/prashantv/protectmem v0.0.0-20171002184600-e20412882b3a // indirect
 	github.com/pressly/goose/v3 v3.24.2 // indirect
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.79.2 // indirect
-	github.com/prometheus-operator/prometheus-operator/pkg/client v0.79.2 // indirect
 	github.com/prometheus/alertmanager v0.30.0 // indirect
 	github.com/prometheus/exporter-toolkit v0.15.1 // indirect
 	github.com/prometheus/sigv4 v0.3.0 // indirect

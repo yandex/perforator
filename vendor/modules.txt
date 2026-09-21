@@ -15583,8 +15583,36 @@ github.com/prometheus-community/pro-bing
 github.com/prometheus-community/pro-bing/cmd/ping
 # github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.79.2
 ## explicit; go 1.23.0
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1alpha1
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1beta1
 # github.com/prometheus-operator/prometheus-operator/pkg/client v0.79.2
 ## explicit; go 1.23.0
+github.com/prometheus-operator/prometheus-operator/pkg/client
+github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration
+github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/internal
+github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/monitoring/v1
+github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/monitoring/v1alpha1
+github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/monitoring/v1beta1
+github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions
+github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/internalinterfaces
+github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring
+github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring/v1
+github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring/v1alpha1
+github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring/v1beta1
+github.com/prometheus-operator/prometheus-operator/pkg/client/listers/monitoring/v1
+github.com/prometheus-operator/prometheus-operator/pkg/client/listers/monitoring/v1alpha1
+github.com/prometheus-operator/prometheus-operator/pkg/client/listers/monitoring/v1beta1
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/fake
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/scheme
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1/fake
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1alpha1
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1alpha1/fake
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1beta1
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1beta1/fake
 # github.com/prometheus/alertmanager v0.30.0
 ## explicit; go 1.24.0
 github.com/prometheus/alertmanager/api/v2/models
