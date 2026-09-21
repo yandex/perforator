@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-09-17T17:03:09Z",
+    "created": "2026-09-20T20:01:17.480Z",
     "pr": {
-      "id": 15816274,
-      "author": "baymer",
-      "summary": "FBP-3313: Убрать промежуточный pre.pnpm-lock.yaml из TS_PREPARE_DEPS"
+      "id": 15850287,
+      "author": "zaverden",
+      "summary": "FBP-3417: Генерировать настройки pnpm 11 в pnpm-workspace.yaml"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13716638405"
+      "uri": "sbr:13746875780"
     },
     "darwin-arm64": {
-      "uri": "sbr:13716636402"
+      "uri": "sbr:13746874671"
     },
     "linux": {
-      "uri": "sbr:13716643132"
+      "uri": "sbr:13746877587"
     },
     "linux-aarch64": {
-      "uri": "sbr:13716640824"
+      "uri": "sbr:13746876715"
     }
   }
 }
