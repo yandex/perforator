@@ -202,7 +202,7 @@ require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
-	github.com/KimMachineGun/automemlimit v0.7.4
+	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/Masterminds/squirrel v1.5.4
@@ -455,17 +455,29 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/go-mysql-org/go-mysql v1.14.0
 	github.com/go-ole/go-ole v1.3.0
-	github.com/go-openapi/analysis v0.23.0
-	github.com/go-openapi/errors v0.22.3
+	github.com/go-openapi/analysis v0.24.1
+	github.com/go-openapi/errors v0.22.4
 	github.com/go-openapi/inflect v0.21.2
-	github.com/go-openapi/jsonpointer v0.21.0
-	github.com/go-openapi/jsonreference v0.21.0
-	github.com/go-openapi/loads v0.22.0
-	github.com/go-openapi/runtime v0.28.0
-	github.com/go-openapi/spec v0.21.0
-	github.com/go-openapi/strfmt v0.24.0
-	github.com/go-openapi/swag v0.23.0
-	github.com/go-openapi/validate v0.24.0
+	github.com/go-openapi/jsonpointer v0.22.1
+	github.com/go-openapi/jsonreference v0.21.3
+	github.com/go-openapi/loads v0.23.2
+	github.com/go-openapi/runtime v0.29.2
+	github.com/go-openapi/spec v0.22.1
+	github.com/go-openapi/strfmt v0.25.0
+	github.com/go-openapi/swag v0.25.4
+	github.com/go-openapi/swag/cmdutils v0.25.4
+	github.com/go-openapi/swag/conv v0.25.4
+	github.com/go-openapi/swag/fileutils v0.25.4
+	github.com/go-openapi/swag/jsonname v0.25.4
+	github.com/go-openapi/swag/jsonutils v0.25.4
+	github.com/go-openapi/swag/jsonutils/fixtures_test v0.25.4
+	github.com/go-openapi/swag/loading v0.25.4
+	github.com/go-openapi/swag/mangling v0.25.4
+	github.com/go-openapi/swag/netutils v0.25.4
+	github.com/go-openapi/swag/stringutils v0.25.4
+	github.com/go-openapi/swag/typeutils v0.25.4
+	github.com/go-openapi/swag/yamlutils v0.25.4
+	github.com/go-openapi/validate v0.25.1
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/go-playground/form/v4 v4.2.0
 	github.com/go-playground/validator/v10 v10.22.0
@@ -475,7 +487,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-redis/redis_rate/v10 v10.0.1
 	github.com/go-redsync/redsync/v4 v4.8.1
-	github.com/go-resty/resty/v2 v2.16.5
+	github.com/go-resty/resty/v2 v2.17.1
 	github.com/go-rod/rod v0.116.2
 	github.com/go-routeros/routeros/v3 v3.0.1
 	github.com/go-shiori/go-readability v0.0.0-20230421032831-c66949dfc0ad
@@ -521,7 +533,7 @@ require (
 	github.com/google/nftables v0.3.0
 	github.com/google/osv-scalibr v0.2.0
 	github.com/google/osv-scanner v1.8.1
-	github.com/google/pprof v0.0.0-20250923004556-9e5a51aed1e8
+	github.com/google/pprof v0.0.0-20260111202518-71be6bfdd440
 	github.com/google/renameio/v2 v2.0.0
 	github.com/google/safehtml v0.1.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -557,7 +569,7 @@ require (
 	github.com/haproxytech/client-native/v5 v5.0.0
 	github.com/haproxytech/config-parser/v5 v5.0.0
 	github.com/haproxytech/go-logger v1.1.0
-	github.com/hashicorp/consul/api v1.32.0
+	github.com/hashicorp/consul/api v1.32.1
 	github.com/hashicorp/cronexpr v1.1.3
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
@@ -567,7 +579,7 @@ require (
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/hashicorp/hcl/v2 v2.24.0
-	github.com/hashicorp/memberlist v0.5.1
+	github.com/hashicorp/memberlist v0.5.3
 	github.com/hashicorp/terraform-exec v0.23.1
 	github.com/hashicorp/terraform-json v0.26.0
 	github.com/hashicorp/terraform-plugin-docs v0.15.0
@@ -669,7 +681,7 @@ require (
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.1.0
 	github.com/micromdm/plist v0.2.1
-	github.com/miekg/dns v1.1.68
+	github.com/miekg/dns v1.1.69
 	github.com/miekg/pkcs11 v1.1.1
 	github.com/mikespook/gorbac v2.3.0+incompatible
 	github.com/milvus-io/milvus-sdk-go/v2 v2.4.2
@@ -776,13 +788,14 @@ require (
 	github.com/projectcalico/api v0.0.0-20220722155641-439a754a988b
 	github.com/prometheus-community/pro-bing v0.6.1
 	github.com/prometheus/client_golang v1.23.2
+	github.com/prometheus/client_golang/exp v0.0.0-20260101091701-2cd067eb23c9
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.67.5
 	github.com/prometheus/common/assets v0.2.0
 	github.com/prometheus/common/sigv4 v0.1.0
 	github.com/prometheus/otlptranslator v1.0.0
 	github.com/prometheus/procfs v0.19.2
-	github.com/prometheus/prometheus v0.307.0
+	github.com/prometheus/prometheus v0.309.2-0.20260113170727-c7bc56cf6c8f
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20240116145035-ef3ab179eed6
 	github.com/proxy-wasm/proxy-wasm-go-sdk v0.0.0-20260105142703-44c7d5847745
 	github.com/pseudomuto/protoc-gen-doc v1.5.1
@@ -974,7 +987,7 @@ require (
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0
 	go.lsp.dev/uri v0.3.0
-	go.mongodb.org/mongo-driver v1.17.4
+	go.mongodb.org/mongo-driver v1.17.6
 	go.mongodb.org/mongo-driver/v2 v2.4.0
 	go.mozilla.org/pkcs7 v0.9.0
 	go.opentelemetry.io/collector v0.144.0
@@ -1054,14 +1067,14 @@ require (
 	go.opentelemetry.io/collector/receiver/xreceiver v0.144.0
 	go.opentelemetry.io/collector/scraper v0.144.0
 	go.opentelemetry.io/collector/scraper/scraperhelper v0.144.0
-	go.opentelemetry.io/collector/semconv v0.128.0
+	go.opentelemetry.io/collector/semconv v0.128.1-0.20250610090210-188191247685
 	go.opentelemetry.io/collector/service v0.144.0
 	go.opentelemetry.io/collector/service/hostcapabilities v0.144.0
 	go.opentelemetry.io/collector/service/telemetry/telemetrytest v0.144.0
 	go.opentelemetry.io/contrib/bridges/otelzap v0.13.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws v0.68.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.67.0
-	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.63.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.64.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0
 	go.opentelemetry.io/contrib/propagators/b3 v1.41.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.41.0
@@ -1420,7 +1433,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.32.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.13.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.68.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.70.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.20.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/glue v1.137.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.10 // indirect
@@ -1429,7 +1442,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.25 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.25 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.18.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/lightsail v1.50.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/lightsail v1.50.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.39.22 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.19.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.1.1 // indirect
@@ -1664,7 +1677,7 @@ require (
 	github.com/dgryski/trifles v0.0.0-20230903005119-f50d829f2e54 // indirect
 	github.com/di-wu/parser v0.3.0 // indirect
 	github.com/di-wu/xsd-datetime v1.0.0 // indirect
-	github.com/digitalocean/godo v1.165.1 // indirect
+	github.com/digitalocean/godo v1.171.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/djherbis/atime v1.1.0 // indirect
@@ -1704,7 +1717,7 @@ require (
 	github.com/elazarl/goproxy/ext v0.0.0-20220901064549-fbd10ff4f5a1 // indirect
 	github.com/eliben/go-sentencepiece v0.6.0 // indirect
 	github.com/emersion/go-message v0.16.0 // indirect
-	github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21 // indirect
+	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6 // indirect
 	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594 // indirect
 	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
 	github.com/emicklei/go-restful-swagger12 v0.0.0-20201014110547-68ccff494617 // indirect
@@ -1791,6 +1804,8 @@ require (
 	github.com/go-logr/zerologr v1.2.3 // indirect
 	github.com/go-mail/mail v2.3.1+incompatible // indirect
 	github.com/go-martini/martini v0.0.0-20170121215854-22fa46961aab // indirect
+	github.com/go-openapi/testify/enable/yaml/v2 v2.0.2 // indirect
+	github.com/go-openapi/testify/v2 v2.0.2 // indirect
 	github.com/go-piv/piv-go v1.11.0 // indirect
 	github.com/go-playground/assert/v2 v2.2.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -1885,7 +1900,7 @@ require (
 	github.com/gookit/assert v0.1.1 // indirect
 	github.com/gookit/color v1.6.0 // indirect
 	github.com/gophercloud/gophercloud v1.1.1 // indirect
-	github.com/gophercloud/gophercloud/v2 v2.8.0 // indirect
+	github.com/gophercloud/gophercloud/v2 v2.9.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/goreleaser/goreleaser v0.134.0 // indirect
 	github.com/goreleaser/nfpm v1.2.1 // indirect
@@ -1917,6 +1932,7 @@ require (
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-immutable-radix/v2 v2.1.0 // indirect
 	github.com/hashicorp/go-memdb v1.3.3 // indirect
+	github.com/hashicorp/go-metrics v0.5.4 // indirect
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-msgpack/v2 v2.1.2 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
@@ -1932,7 +1948,7 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/mdns v1.0.5 // indirect
-	github.com/hashicorp/nomad/api v0.0.0-20250930071859-eaa0fe0e27af // indirect
+	github.com/hashicorp/nomad/api v0.0.0-20260106084653-e8f2200c7039 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.5 // indirect
@@ -1941,7 +1957,7 @@ require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.6.0 // indirect
 	github.com/hashicorp/vault/sdk v0.9.2 // indirect
 	github.com/heetch/avro v0.4.4 // indirect
-	github.com/hetznercloud/hcloud-go/v2 v2.25.1 // indirect
+	github.com/hetznercloud/hcloud-go/v2 v2.33.0 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/hhrutter/lzw v1.0.0 // indirect
 	github.com/hhrutter/pkcs7 v0.2.0 // indirect
@@ -1970,7 +1986,7 @@ require (
 	github.com/inhies/go-bytesize v0.0.0-20220417184213-4913239db9cf // indirect
 	github.com/intel/goresctrl v0.10.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect
-	github.com/ionos-cloud/sdk-go/v6 v6.3.4 // indirect
+	github.com/ionos-cloud/sdk-go/v6 v6.3.6 // indirect
 	github.com/iris-contrib/blackfriday v2.0.0+incompatible // indirect
 	github.com/iris-contrib/go.uuid v2.0.0+incompatible // indirect
 	github.com/iris-contrib/httpexpect/v2 v2.15.2 // indirect
@@ -1988,6 +2004,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle v1.3.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/jaegertracing/jaeger-idl v0.6.0 // indirect
 	github.com/jba/printsrc v0.2.2 // indirect
 	github.com/jba/templatecheck v0.7.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
@@ -2077,9 +2094,10 @@ require (
 	github.com/lestrrat-go/xstrings v0.0.0-20220901080742-cacb16b8ddb7 // indirect
 	github.com/lib/pq v1.12.0 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
+	github.com/lightstep/go-expohisto v1.0.0 // indirect
 	github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20210210170715-a8dfcb80d3a7 // indirect
 	github.com/lightstep/lightstep-tracer-go v0.26.0 // indirect
-	github.com/linode/linodego v1.59.0 // indirect
+	github.com/linode/linodego v1.63.0 // indirect
 	github.com/liquidweb/liquidweb-go v1.6.3 // indirect
 	github.com/lithammer/dedent v1.1.0 // indirect
 	github.com/lithammer/fuzzysearch v1.1.8 // indirect
@@ -2233,17 +2251,35 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/olivere/elastic v6.2.37+incompatible // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/internal/common v0.85.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/common v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/internal/exp/metrics v0.136.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/exp/metrics v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/healthcheck v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/pdatautil v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/sharedcomponent v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/batchpersignal v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/core/xidutils v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry v0.71.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/status v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/jaeger v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/opencensus v0.60.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheus v0.71.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/zipkin v0.85.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.136.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheus v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/zipkin v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jaegerreceiver v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver v0.144.0 // indirect
 	github.com/openconfig/gribi v1.0.0 // indirect
 	github.com/openconfig/grpctunnel v0.0.0-20220819142823-6f5422b8ca70 // indirect
 	github.com/opencontainers/cgroups v0.0.6 // indirect
@@ -2325,9 +2361,9 @@ require (
 	github.com/prashantv/gostub v1.1.0 // indirect
 	github.com/prashantv/protectmem v0.0.0-20171002184600-e20412882b3a // indirect
 	github.com/pressly/goose/v3 v3.24.2 // indirect
-	github.com/prometheus/alertmanager v0.28.1 // indirect
-	github.com/prometheus/exporter-toolkit v0.14.1 // indirect
-	github.com/prometheus/sigv4 v0.2.1 // indirect
+	github.com/prometheus/alertmanager v0.30.0 // indirect
+	github.com/prometheus/exporter-toolkit v0.15.1 // indirect
+	github.com/prometheus/sigv4 v0.3.0 // indirect
 	github.com/prometheus/statsd_exporter v0.22.7 // indirect
 	github.com/prometheus/tsdb v0.10.0 // indirect
 	github.com/pseudomuto/protokit v0.2.0 // indirect
@@ -2381,7 +2417,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.5 // indirect
 	github.com/sassoftware/go-rpmutils v0.2.0 // indirect
 	github.com/savsgio/gotils v0.0.0-20220323135742-7576ce6963fd // indirect
-	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.35 // indirect
+	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.36 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 	github.com/schollz/jsonstore v1.1.0 // indirect
 	github.com/sclevine/agouti v3.0.0+incompatible // indirect
@@ -2437,7 +2473,7 @@ require (
 	github.com/spiral/errors v1.0.12 // indirect
 	github.com/src-d/gcfg v1.4.0 // indirect
 	github.com/ssgreg/nlreturn v1.0.5 // indirect
-	github.com/stackitcloud/stackit-sdk-go/core v0.17.3 // indirect
+	github.com/stackitcloud/stackit-sdk-go/core v0.20.1 // indirect
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.1 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
@@ -2642,6 +2678,7 @@ require (
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
+	gopkg.in/dnaeon/go-vcr.v4 v4.0.6 // indirect
 	gopkg.in/dutchcoders/goftp.v1 v1.0.0-20170301105846-ed59a591ce14 // indirect
 	gopkg.in/errgo.v2 v2.1.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect

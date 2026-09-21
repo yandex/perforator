@@ -5,7 +5,7 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v0.63.0)
+VERSION(v0.64.0)
 
 SRCS(
     api.go
