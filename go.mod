@@ -600,6 +600,7 @@ require (
 	github.com/icholy/digest v1.1.0
 	github.com/icza/bitio v1.1.0
 	github.com/imdario/mergo v0.3.16
+	github.com/improbable-eng/grpc-web v0.12.0
 	github.com/insomniacslk/dhcp v0.0.0-20240829085014-a3a4c1f04475
 	github.com/intel/govmm v0.0.0-20200602145448-7cc469641b7b
 	github.com/invopop/jsonschema v0.14.0
@@ -1657,6 +1658,7 @@ require (
 	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba // indirect
 	github.com/derekparker/trie v0.0.0-20230829180723-39f4de51ef7d // indirect
 	github.com/derekparker/trie/v3 v3.2.0 // indirect
+	github.com/desertbit/timer v1.0.1 // indirect
 	github.com/devigned/tab v0.1.1 // indirect
 	github.com/dghubble/trie v0.1.0 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
@@ -2236,6 +2238,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/mwitkow/go-proto-validators v0.2.0 // indirect
+	github.com/mwitkow/grpc-proxy v0.0.0-20250813121105-2866842de9a5 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/namedotcom/go v0.0.0-20180403034216-08470befbe04 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
