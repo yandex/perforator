@@ -726,6 +726,19 @@ require (
 	github.com/onsi/ginkgo/v2 v2.25.1
 	github.com/onsi/gomega v1.38.1
 	github.com/open-policy-agent/opa v1.8.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/batchpersignal v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/core/xidutils v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/jaeger v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jaegerreceiver v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver v0.144.0
 	github.com/openai/openai-go v1.12.0
 	github.com/openconfig/gnmi v0.10.0
 	github.com/openconfig/goyang v1.4.3
@@ -2252,11 +2265,8 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/olivere/elastic v6.2.37+incompatible // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/common v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/exp/metrics v0.144.0 // indirect
@@ -2264,23 +2274,16 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/healthcheck v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/pdatautil v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/sharedcomponent v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/batchpersignal v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/core/xidutils v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/status v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/jaeger v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/opencensus v0.60.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheus v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/zipkin v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor v0.144.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jaegerreceiver v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.144.0 // indirect
 	github.com/openconfig/gribi v1.0.0 // indirect
 	github.com/openconfig/grpctunnel v0.0.0-20220819142823-6f5422b8ca70 // indirect
 	github.com/opencontainers/cgroups v0.0.6 // indirect
