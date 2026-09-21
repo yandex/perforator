@@ -6731,7 +6731,10 @@ github.com/containerd/containerd/v2/core/introspection
 github.com/containerd/containerd/v2/core/introspection/proxy
 github.com/containerd/containerd/v2/core/leases
 github.com/containerd/containerd/v2/core/leases/proxy
+github.com/containerd/containerd/v2/core/metadata
+github.com/containerd/containerd/v2/core/metadata/boltutil
 github.com/containerd/containerd/v2/core/mount
+github.com/containerd/containerd/v2/core/mount/manager
 github.com/containerd/containerd/v2/core/mount/proxy
 github.com/containerd/containerd/v2/core/remotes
 github.com/containerd/containerd/v2/core/remotes/docker
@@ -6763,6 +6766,7 @@ github.com/containerd/containerd/v2/pkg/cio
 github.com/containerd/containerd/v2/pkg/dialer
 github.com/containerd/containerd/v2/pkg/epoch
 github.com/containerd/containerd/v2/pkg/filters
+github.com/containerd/containerd/v2/pkg/gc
 github.com/containerd/containerd/v2/pkg/identifiers
 github.com/containerd/containerd/v2/pkg/kernelversion
 github.com/containerd/containerd/v2/pkg/labels
