@@ -362,6 +362,7 @@ require (
 	github.com/dchest/siphash v1.2.3
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1
 	github.com/deepmap/oapi-codegen v1.9.0
+	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/devsisters/go-applereceipt v0.0.0-20230806051143-d8eef1e6126b
 	github.com/dgraph-io/ristretto v0.1.1

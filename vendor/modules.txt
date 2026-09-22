@@ -7313,6 +7313,10 @@ github.com/deepmap/oapi-codegen/pkg/util
 github.com/deitch/magic/pkg/magic
 github.com/deitch/magic/pkg/magic/internal
 github.com/deitch/magic/pkg/magic/parser
+# github.com/denisbrodbeck/machineid v1.0.1
+## explicit
+github.com/denisbrodbeck/machineid
+github.com/denisbrodbeck/machineid/cmd/machineid
 # github.com/denisenkom/go-mssqldb v0.12.2
 ## explicit; go 1.13
 github.com/denisenkom/go-mssqldb
