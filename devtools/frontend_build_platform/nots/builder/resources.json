@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-09-20T20:01:17.480Z",
+    "created": "2026-09-21T07:34:06.892Z",
     "pr": {
-      "id": 15850287,
+      "id": 15857833,
       "author": "zaverden",
-      "summary": "FBP-3417: Генерировать настройки pnpm 11 в pnpm-workspace.yaml"
+      "summary": "FBP-2783: Move builder runtime out of build plugins"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13746875780"
+      "uri": "sbr:13750200463"
     },
     "darwin-arm64": {
-      "uri": "sbr:13746874671"
+      "uri": "sbr:13750197125"
     },
     "linux": {
-      "uri": "sbr:13746877587"
+      "uri": "sbr:13750206714"
     },
     "linux-aarch64": {
-      "uri": "sbr:13746876715"
+      "uri": "sbr:13750203460"
     }
   }
 }

@@ -8,13 +8,13 @@ from devtools.frontend_build_platform.libraries.logging import timeit
 from build.plugins.lib.nots.package_manager import (
     Lockfile,
     PackageJson,
-    PackageManager,
-    PnpmWorkspace,
     constants as pm_constants,
     utils as pm_utils,
 )
 
 from ..models import BaseOptions
+from ..package_manager import PackageManager
+from ..pnpm_workspace import PnpmWorkspace
 from ..utils import (
     dict_to_ts_proto_opt,
     extract_all_output_tars,

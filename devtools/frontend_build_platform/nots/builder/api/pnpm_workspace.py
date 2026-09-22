@@ -1,7 +1,7 @@
 import copy
 import os
 
-from .common_config import merge_config_sources
+from build.plugins.lib.nots.package_manager.common_config import merge_config_sources
 
 try:
     import ymakeyaml as yaml

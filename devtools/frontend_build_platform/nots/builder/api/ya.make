@@ -14,6 +14,10 @@ PY_SRCS(
     globs.py
     models.py
     node_modules_layer.py
+    node_modules_bundler.py
+    node_modules_utils.py
+    package_manager.py
+    pnpm_workspace.py
     prepare_deps.py
     ram_disk.py
     utils.py
@@ -22,6 +26,7 @@ PY_SRCS(
 PEERDIR(
     build/plugins/lib/nots/package_manager
     build/plugins/lib/nots/typescript
+    contrib/python/PyYAML
     contrib/python/click
     devtools/frontend_build_platform/libraries/logging
     devtools/ya/yalibrary/fetcher/uri_parser

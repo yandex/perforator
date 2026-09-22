@@ -3,7 +3,11 @@ import os
 
 import fcntl
 
-package_manager_module = importlib.import_module("build.plugins.lib.nots.package_manager.package_manager")
+from build.plugins.lib.nots.package_manager import PackageJson
+
+package_manager_module = importlib.import_module(
+    "devtools.frontend_build_platform.nots.builder.api.package_manager"
+)
 
 
 def test_sync_mutex_file_uses_four_slots_by_default(monkeypatch, tmp_path):
@@ -325,7 +329,7 @@ def test_rebase_file_tarball_resolutions(tmp_path):
 
 
 def _load_package_json(path):
-    package_json = package_manager_module.PackageJson(path)
+    package_json = PackageJson(path)
     package_json.read()
     return package_json
 

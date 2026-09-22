@@ -1,5 +1,5 @@
 from build.plugins.lib.nots.package_manager import PackageJson
-from build.plugins.lib.nots.package_manager.pnpm_workspace import PnpmWorkspace
+from devtools.frontend_build_platform.nots.builder.api.pnpm_workspace import PnpmWorkspace
 
 
 def test_workspace_get_paths():

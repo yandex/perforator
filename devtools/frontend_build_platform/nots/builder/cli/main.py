@@ -27,6 +27,14 @@ sys.excepthook = on_crash
 HASH_CHUNK_SIZE = 1024 * 1024
 
 
+def _build_traces_store_path(build_root: str, moddir: str, arc_root: str | None = None) -> str:
+    base = pm_utils.build_nots_path(build_root)
+    if arc_root:
+        arc_root_folder = arc_root.replace(os.sep, "-").replace(".", "-")
+        return os.path.join(base, "traces", arc_root_folder, moddir)
+    return os.path.join(base, "traces", moddir)
+
+
 def __write_output_meta(bindir: str, output_file: str, outputs: list[str] | None, output_prefix: str = ""):
     file_hash = hashlib.sha256()
     with open(output_file, 'rb') as output_f:
@@ -103,7 +111,7 @@ def main():
     _postprocess_output(args, output_dirs)
 
     if args.local_cli:
-        dir_name = pm_utils.build_traces_store_path(args.arcadia_build_root, args.moddir, args.arcadia_root)
+        dir_name = _build_traces_store_path(args.arcadia_build_root, args.moddir, args.arcadia_root)
         trace_file = os.path.join(dir_name, f'{args.command}.builder.trace.json')
         timeit_options.dump_trace(trace_file, otherData=dict(moddir=args.moddir))
         if args.verbose:

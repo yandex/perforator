@@ -5,13 +5,13 @@ import library.python.fs
 from build.plugins.lib.nots.package_manager import (
     Lockfile,
     PackageJson,
-    PackageManager,
     PackageManagerError,
     utils as pm_utils,
 )
 from yalibrary.fetcher.uri_parser import parse_resource_uri
 
 from .models import BaseOptions
+from .package_manager import PackageManager
 from .generators.ts_proto_generator import TsProtoGenerator, generate_ts_proto_auto_package
 
 
