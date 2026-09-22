@@ -4199,19 +4199,24 @@ github.com/Microsoft/hcsshim/pkg/ociwclayer
 # github.com/NVIDIA/go-dcgm v1.4601.1
 ## explicit; go 1.23
 github.com/NVIDIA/go-dcgm/pkg/dcgm
-# github.com/NVIDIA/go-nvlib v0.7.0
-## explicit; go 1.20
+# github.com/NVIDIA/go-nvlib v0.12.0
+## explicit; go 1.25.0
 github.com/NVIDIA/go-nvlib/pkg/nvlib/device
 github.com/NVIDIA/go-nvlib/pkg/nvpci
 github.com/NVIDIA/go-nvlib/pkg/nvpci/bytes
 github.com/NVIDIA/go-nvlib/pkg/nvpci/mmio
 github.com/NVIDIA/go-nvlib/pkg/pciids
-# github.com/NVIDIA/go-nvml v0.13.0-1
+# github.com/NVIDIA/go-nvml v0.13.4-0
 ## explicit; go 1.20
 github.com/NVIDIA/go-nvml/pkg/dl
 github.com/NVIDIA/go-nvml/pkg/nvml
 github.com/NVIDIA/go-nvml/pkg/nvml/mock
 github.com/NVIDIA/go-nvml/pkg/nvml/mock/dgxa100
+github.com/NVIDIA/go-nvml/pkg/nvml/mock/dgxb200
+github.com/NVIDIA/go-nvml/pkg/nvml/mock/dgxh100
+github.com/NVIDIA/go-nvml/pkg/nvml/mock/dgxh200
+github.com/NVIDIA/go-nvml/pkg/nvml/mock/gpus
+github.com/NVIDIA/go-nvml/pkg/nvml/mock/server
 # github.com/NVIDIA/mig-parted v0.8.0
 ## explicit; go 1.22.0
 github.com/NVIDIA/mig-parted/api/spec/v1
