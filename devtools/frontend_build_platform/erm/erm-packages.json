@@ -2450,7 +2450,7 @@
     "title": "@yatool/prebuilder",
     "description": "Сборщик нативных зависимостей, поставляющий на проект уже готовые, собранные под нужную платформу пакеты.",
     "type": "NPM_PACKAGE",
-    "default": "1.14.0",
+    "default": "1.15.0",
     "links": {
       "Home": "https://a.yandex-team.ru/arcadia/devtools/frontend_build_platform/prebuilder/cli",
       "Sources": "https://a.yandex-team.ru/arcadia/devtools/frontend_build_platform/prebuilder/cli",
@@ -2459,6 +2459,16 @@
     },
     "internal": true,
     "versions": {
+      "1.15.0": {
+        "add_date": "2026-09-22T12:46:13",
+        "resources": [
+          {
+            "id": 13772357558,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
       "1.14.0": {
         "add_date": "2026-03-19T11:50:56",
         "resources": [
