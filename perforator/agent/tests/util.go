@@ -16,7 +16,9 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
+	agentprofile "github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
+	storage "github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/internal/logfield"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -267,4 +269,21 @@ func setupProfiler(t testing.TB, c config.Config) (xlog.Logger, xmetrics.Registr
 	require.NoError(t, err)
 
 	return l, r, el, pl, p
+}
+
+// decodedProfile keeps test assertions independent of the storage representation.
+type decodedProfile struct {
+	Profile *agentprofile.Profile
+	Labels  map[string]string
+}
+
+func decodeStoredProfiles(t *testing.T, stored []storage.LabeledProfile) []decodedProfile {
+	t.Helper()
+	result := make([]decodedProfile, 0, len(stored))
+	for _, p := range stored {
+		parsed, err := p.Profile.ParsePprof()
+		require.NoError(t, err)
+		result = append(result, decodedProfile{Profile: &agentprofile.Profile{Profile: parsed}, Labels: p.Labels})
+	}
+	return result
 }

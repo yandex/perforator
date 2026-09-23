@@ -12,6 +12,7 @@ RECURSE(
     profile
     profileformat
     profiler
+    profileresult
     profilerext
     storage
     uprobe

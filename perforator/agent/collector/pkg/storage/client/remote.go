@@ -1,35 +1,23 @@
 package client
 
 import (
-	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"slices"
 	"time"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileresult"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/client/storage"
-	"github.com/yandex/perforator/perforator/pkg/env"
-	"github.com/yandex/perforator/perforator/pkg/profile/bundle"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
-	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
-
-func profileToBytes(profile *profile.Profile) ([]byte, error) {
-	profileBytes := bytes.NewBuffer(nil)
-	if err := profile.WriteUncompressed(profileBytes); err != nil {
-		return nil, err
-	}
-	return profileBytes.Bytes(), nil
-}
 
 type remoteStorageClientMetrics struct {
 	profilesUploaded         metrics.Counter
@@ -74,141 +62,51 @@ func NewRemoteStorage(l xlog.Logger, r metrics.Registry, client *storage.Client,
 	}
 }
 
-func getProfileBuildIDs(profile *profile.Profile) []string {
-	ids := make([]string, 0, len(profile.Mapping))
-	known := make(map[string]bool)
-	for _, m := range profile.Mapping {
-		if m == nil || m.BuildID == "" {
-			continue
-		}
-
-		id := m.BuildID
-		if known[id] {
-			continue
-		}
-
-		known[id] = true
-		ids = append(ids, id)
-	}
-	slices.Sort(ids)
-	return ids
-}
-
-func getProfileEnvs(profile *profile.Profile) []string {
-	res := make([]string, 0)
-	seenEnvs := make(map[string]struct{})
-	for _, s := range profile.Sample {
-		if s == nil {
-			continue
-		}
-		for key, values := range s.Label {
-			if len(values) == 0 {
-				continue
-			}
-			value := values[0]
-			if envKey, ok := env.BuildEnvKeyFromLabelKey(key); ok {
-				concatenatedEnv := env.BuildConcatenatedEnv(envKey, value)
-				if _, seen := seenEnvs[concatenatedEnv]; !seen {
-					seenEnvs[concatenatedEnv] = struct{}{}
-					res = append(res, concatenatedEnv)
-				}
-			}
-		}
-	}
-	return res
-}
-
-func getProfileEventTypes(profile *profile.Profile) []string {
-	if len(profile.SampleType) == 0 {
-		return []string{sampletype.SampleTypeCPUCycles}
-	}
-
-	res := make([]string, 0, len(profile.SampleType))
-	for _, sampleType := range profile.SampleType {
-		res = append(res, sampletype.SampleTypeToString(sampleType))
-	}
-
-	return res
-}
-
-// getProfileSignalTypes returns a slice of unique signal names that were present in a profile.
-func getProfileSignalTypes(profile *profile.Profile) []string {
-	signalSet := make(map[string]struct{})
-
-	for _, sample := range profile.Sample {
-		if values, exists := sample.Label["signal:name"]; exists {
-			for _, value := range values {
-				signalSet[value] = struct{}{}
-			}
-		}
-	}
-
-	result := make([]string, len(signalSet))
-	for signal := range signalSet {
-		result = append(result, signal)
-	}
-	return result
-}
-
-func getTimeInterval(profile *profile.Profile) (time.Time, time.Duration) {
-	if profile.TimeNanos == 0 {
+func getTimeInterval(meta *profileresult.Meta) (time.Time, time.Duration) {
+	if meta.StartTimestamp.IsZero() {
 		return time.Time{}, time.Duration(0)
 	}
 
-	return time.Unix(0, profile.TimeNanos), time.Duration(profile.DurationNanos) * time.Nanosecond
+	return meta.StartTimestamp, meta.EndTimestamp.Sub(meta.StartTimestamp)
 }
 
 func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile) error {
-	err := profile.Profile.CheckValid()
-	if err != nil {
-		return err
+	if profile.Profile == nil || profile.Profile.Bundle == nil {
+		return errors.New("profile has no serialized body")
 	}
-
+	meta := &profile.Profile.Meta
 	cpoID := profile.Labels[profilequerylang.CPOIDLabel]
-
-	buildIDs := getProfileBuildIDs(profile.Profile)
-
-	envs := getProfileEnvs(profile.Profile)
-
-	eventTypes := getProfileEventTypes(profile.Profile)
-
-	signalTypes := getProfileSignalTypes(profile.Profile)
-
-	startTimestamp, duration := getTimeInterval(profile.Profile)
+	buildIDs := meta.BuildIDs
+	startTimestamp, duration := getTimeInterval(meta)
 
 	pushProfile := &storage.Profile{
 		Labels:                     profile.Labels,
 		BuildIDs:                   buildIDs,
-		Envs:                       envs,
-		EventTypes:                 eventTypes,
-		SignalTypes:                signalTypes,
+		Envs:                       meta.Envs,
+		EventTypes:                 meta.EventTypes,
+		SignalTypes:                meta.SignalTypes,
 		CustomProfilingOperationID: cpoID,
 		StartTimestamp:             startTimestamp,
 		Duration:                   duration,
 	}
 
 	profileBundle := profile.Profile.Bundle
-	if profileBundle == nil {
-		profileBytes, err := profileToBytes(profile.Profile)
-		if err != nil {
-			return err
-		}
-		profileBundle = bundle.NewPprofBundle(profileBytes)
-	}
 
-	if s.profileFormat == profileformat.Pprof {
+	switch s.profileFormat {
+	case profileformat.Pprof:
 		pprofBytes, err := profileBundle.GetOrConvertPprof()
 		if err != nil {
 			return fmt.Errorf("failed to get pprof profile: %w", err)
 		}
 		pushProfile.Raw = pprofBytes
-	}
-	if s.profileFormat == profileformat.Yaprof {
+	case profileformat.Yaprof:
 		yaprofBytes, err := profileBundle.GetOrConvertYaprof()
 		if err != nil {
 			return fmt.Errorf("failed to get yaprof profile: %w", err)
 		}
 		pushProfile.YaprofRaw = yaprofBytes
+	default:
+		return fmt.Errorf("unsupported profile format %q", s.profileFormat)
 	}
 
 	sz, err := s.client.PushProfile(ctx, pushProfile)

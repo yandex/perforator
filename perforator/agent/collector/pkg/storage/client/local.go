@@ -2,14 +2,13 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-
-	pprof "github.com/google/pprof/profile"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
@@ -87,35 +86,29 @@ func NewLocalStorage(conf *LocalStorageConfig, l log.Logger) (*LocalStorage, err
 	}, nil
 }
 
-func sampleTypesToString(sampleTypes []*pprof.ValueType) string {
-	strs := make([]string, 0, len(sampleTypes))
-	for _, sampleType := range sampleTypes {
-		strs = append(strs, sampleType.Type+"."+sampleType.Unit)
-	}
-
-	sort.Slice(strs, func(i, j int) bool {
-		return strs[i] < strs[j]
-	})
-
+// eventTypesToString joins sorted event types with dots without modifying the input.
+func eventTypesToString(eventTypes []string) string {
+	strs := append([]string(nil), eventTypes...)
+	sort.Strings(strs)
 	return strings.Join(strs, ".")
 }
 
 func (s *LocalStorage) StoreProfile(ctx context.Context, profile LabeledProfile) error {
-	err := profile.Profile.CheckValid()
+	if profile.Profile == nil || profile.Profile.Bundle == nil {
+		return errors.New("profile has no serialized body")
+	}
+	// Local profiles use pprof for compatibility with debugging tools.
+	body, err := profile.Profile.Bundle.GetOrConvertPprof()
 	if err != nil {
 		return err
 	}
-
-	samplesTypeString := sampleTypesToString(profile.Profile.SampleType)
-	profileName := fmt.Sprintf("profile.%s.%d.tar.gz", samplesTypeString, s.counter%s.ringBufferSize)
-
-	f, err := atomicfs.Create(filepath.Join(s.conf.ProfileDir, profileName))
-	if err != nil {
+	types := eventTypesToString(profile.Profile.Meta.EventTypes)
+	name := fmt.Sprintf("profile.%s.%d.tar.gz", types, s.counter%s.ringBufferSize)
+	if err := atomicfs.WriteFile(filepath.Join(s.conf.ProfileDir, name), body); err != nil {
 		return err
 	}
-	defer f.Close()
 	s.counter++
-	return profile.Profile.WriteUncompressed(f)
+	return nil
 }
 
 func (s *LocalStorage) binaryPath(buildID string) string {

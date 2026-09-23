@@ -250,3 +250,32 @@ TEST(PProfConverterTest, DoesNotAddUnusedNumericLabelUnits) {
         }
     }
 }
+
+TEST(PProfConverterTest, PreservesCommentStringReferences) {
+    using namespace NPerforator::NProfile;
+    NPerforator::NProto::NProfile::Profile profile;
+    TProfileBuilder builder{&profile};
+    builder.AddString("unrelated string");
+    builder.AddValueType("cpu", "cycles");
+    const TStringBuf comments[] = {"service:test", "", "second comment", "service:test"};
+    for (TStringBuf comment : comments) {
+        builder.AddComment(comment);
+    }
+    std::move(builder).Finish();
+
+    for (bool viaBytes : {false, true}) {
+        SCOPED_TRACE(viaBytes);
+        NPerforator::NProto::NPProf::Profile converted;
+        if (viaBytes) {
+            TString bytes;
+            ConvertToPProf(profile, &bytes);
+            ASSERT_TRUE(converted.ParseFromString(bytes));
+        } else {
+            ConvertToPProf(profile, &converted);
+        }
+        ASSERT_EQ(converted.comment_size(), std::size(comments));
+        for (size_t i = 0; i < std::size(comments); ++i) {
+            EXPECT_EQ(converted.string_table(converted.comment(i)), comments[i]);
+        }
+    }
+}

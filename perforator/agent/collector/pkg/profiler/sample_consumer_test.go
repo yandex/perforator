@@ -44,7 +44,8 @@ func TestEnvWhitelist(t *testing.T) {
 	profile := sampleConsumer.profileBuilder.RestartProfiles()
 	require.NotEmpty(t, profile.Profiles)
 
-	firstProfile := profile.Profiles[0].Profile
+	firstProfile, err := profile.Profiles[0].ParsePprof()
+	require.NoError(t, err)
 
 	require.Equal(t, 1, len(firstProfile.Sample))
 	writtenSample := firstProfile.Sample[0]
@@ -79,6 +80,7 @@ func TestNoEmptySamples(t *testing.T) {
 	profile := sampleConsumer.profileBuilder.RestartProfiles()
 	require.Equal(t, 1, len(profile.Profiles))
 
-	firstProfile := profile.Profiles[0].Profile
+	firstProfile, err := profile.Profiles[0].ParsePprof()
+	require.NoError(t, err)
 	require.Equal(t, 0, len(firstProfile.Sample))
 }

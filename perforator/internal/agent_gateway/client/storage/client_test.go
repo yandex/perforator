@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"testing"
 
@@ -113,4 +114,56 @@ func TestWithBinaryMetadataCopiesNestedFields(t *testing.T) {
 	require.Equal(t, "/lib/libc.so.6", params.metadata.GetUpload().GetPath())
 	WithBinaryMetadata(nil)(params)
 	require.Nil(t, params.metadata)
+}
+
+func TestCompressionEncoderReuse(t *testing.T) {
+	for _, codec := range []string{"zstd", "zstd_1", "zstd_9"} {
+		t.Run(codec, func(t *testing.T) {
+			conf, err := compressionConfigFromString(codec)
+			require.NoError(t, err)
+			reference, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(conf.zstdLevel)))
+			require.NoError(t, err)
+			defer reference.Close()
+			var reused *zstd.Encoder
+			for i := range 3 {
+				input := bytes.Repeat([]byte("profile sample values and labels"), 1000+i)
+				compressed, err := conf.compressBytes(input)
+				require.NoError(t, err)
+				encoder := <-conf.zstdPool
+				if reused != nil {
+					require.Same(t, reused, encoder)
+				}
+				reused = encoder
+				conf.zstdPool <- encoder
+				require.Equal(t, reference.EncodeAll(input, nil), compressed)
+				reader, err := zstd.NewReader(nil)
+				require.NoError(t, err)
+				decoded, err := reader.DecodeAll(compressed, nil)
+				reader.Close()
+				require.NoError(t, err)
+				require.Equal(t, input, decoded)
+			}
+		})
+	}
+}
+
+func TestCompressionConcurrent(t *testing.T) {
+	conf, err := compressionConfigFromString("zstd_3")
+	require.NoError(t, err)
+	for i := range 8 {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			t.Parallel()
+			reader, err := zstd.NewReader(nil)
+			require.NoError(t, err)
+			defer reader.Close()
+			for j := range 5 {
+				input := bytes.Repeat([]byte(fmt.Sprintf("profile-%d-%d", i, j)), 1000)
+				compressed, err := conf.compressBytes(input)
+				require.NoError(t, err)
+				decoded, err := reader.DecodeAll(compressed, nil)
+				require.NoError(t, err)
+				require.Equal(t, input, decoded)
+			}
+		})
+	}
 }

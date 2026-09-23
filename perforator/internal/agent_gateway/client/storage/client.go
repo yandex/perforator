@@ -23,26 +23,40 @@ import (
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
-func compressZstd(byteString []byte, level int) ([]byte, error) {
-	encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(level)))
-	if err != nil {
-		return nil, err
-	}
-	defer encoder.Close()
-	result := []byte{}
-	return encoder.EncodeAll(byteString, result), nil
-}
-
 type compressionConfig struct {
 	codec     compressionpb.CompressionMethod
 	codecName string
 	zstdLevel int
+	zstdPool  chan *zstd.Encoder
 }
 
 func (c *compressionConfig) compressBytes(data []byte) ([]byte, error) {
 	switch c.codec {
 	case compressionpb.CompressionMethod_Zstd:
-		return compressZstd(data, c.zstdLevel)
+		var encoder *zstd.Encoder
+		select {
+		case encoder = <-c.zstdPool:
+		default:
+			var err error
+			// The outer pool lends each encoder to one caller at a time.
+			// Avoid retaining a separate history buffer per internal worker.
+			encoder, err = zstd.NewWriter(nil,
+				zstd.WithEncoderConcurrency(1),
+				zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(c.zstdLevel)),
+			)
+			if err != nil {
+				return nil, err
+			}
+		}
+		result := encoder.EncodeAll(data, nil)
+		select {
+		case c.zstdPool <- encoder:
+		default:
+			if err := encoder.Close(); err != nil {
+				return nil, err
+			}
+		}
+		return result, nil
 	default:
 		return nil, fmt.Errorf("unsupported compression codec %s", c.codec.String())
 	}
@@ -79,6 +93,7 @@ func compressionConfigFromString(compression string) (*compressionConfig, error)
 			codec:     compressionpb.CompressionMethod_Zstd,
 			codecName: compression,
 			zstdLevel: level,
+			zstdPool:  make(chan *zstd.Encoder, 1),
 		}, nil
 	}
 

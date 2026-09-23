@@ -19,8 +19,8 @@ type (
 	Line      = gprofile.Line
 )
 
-// TODO: while deleting pprof make sure that this struct contains only bytes (Bundle),
-// and all other metadata is extracted from them instead of keeping *gprofile.Profile
+// Profile is the mutable model used by the Go builder and its consumers.
+// ToResult adapts a completed profile to the serialized Result sent to storage.
 type Profile struct {
 	*gprofile.Profile
 	Bundle *bundle.ProfileBundle

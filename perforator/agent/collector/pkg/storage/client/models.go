@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileresult"
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
@@ -14,7 +14,7 @@ type BinaryStorage interface {
 }
 
 type LabeledProfile struct {
-	Profile *profile.Profile
+	Profile *profileresult.Result
 	Labels  map[string]string
 }
 

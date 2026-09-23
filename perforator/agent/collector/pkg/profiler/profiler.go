@@ -1167,7 +1167,7 @@ drainloop:
 func (p *Profiler) flushProfile(profile client.LabeledProfile) bool {
 	p.log.Debug("Flushing profile",
 		log.Any("labels", profile.Labels),
-		log.Int("samples", len(profile.Profile.Sample)),
+		log.Int("samples", profile.Profile.Meta.SampleCount),
 	)
 	select {
 	case p.profileChan <- profile:
@@ -1210,7 +1210,7 @@ func (p *Profiler) trySaveProfiles(ctx context.Context, profiles labeledAgentPro
 }
 
 func (p *Profiler) trySaveProfile(ctx context.Context, profile client.LabeledProfile) {
-	if len(profile.Profile.Sample) == 0 {
+	if profile.Profile.Meta.SampleCount == 0 {
 		p.log.Debug("Skipping empty profile", log.Any("labels", profile.Labels))
 		return
 	}
@@ -1222,21 +1222,13 @@ func (p *Profiler) trySaveProfile(ctx context.Context, profile client.LabeledPro
 	}
 	p.log.Info("Saved profile",
 		log.Any("labels", profile.Labels),
-		log.Int("samples", len(profile.Profile.Sample)),
+		log.Int("samples", profile.Profile.Meta.SampleCount),
 	)
 	if p.eventListener != nil {
-		for _, s := range profile.Profile.Sample {
-			pidList, ok := s.NumLabel["pid"]
-			if !ok {
-				p.log.Error("Missing pid label in profile", log.Any("actual", s.NumLabel))
-				continue
+		for pid, count := range profile.Profile.Meta.PIDSampleCounts {
+			for range count {
+				p.eventListener.OnSampleStored(linux.CurrentNamespacePID(pid))
 			}
-			if len(pidList) != 1 {
-				p.log.Error("Unexpected pid label count", log.Int64s("actual", pidList))
-				continue
-			}
-			pid := pidList[0]
-			p.eventListener.OnSampleStored(linux.CurrentNamespacePID(pid))
 		}
 	}
 }

@@ -471,7 +471,7 @@ public:
     using TBase::TBase;
 
     TProfileString GetString() const {
-        return {Profile_, static_cast<ui32>(*Index_)};
+        return {Profile_, Profile_->comments().comment(*Index_)};
     }
 };
 

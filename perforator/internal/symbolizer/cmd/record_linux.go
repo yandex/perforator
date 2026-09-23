@@ -542,22 +542,26 @@ func symbolizeProfile(ctx context.Context, logger xlog.Logger, storage *binarySt
 
 	profiles := make([]*pprof.Profile, 0, len(storage.profiles))
 	for i, profile := range storage.profiles {
-		_, err := profile.Profile.SampleIndexByName(sampleType)
+		parsed, err := profile.Profile.ParsePprof()
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode collected profile: %w", err)
+		}
+		_, err = parsed.SampleIndexByName(sampleType)
 		if err != nil {
 			logger.Debug(ctx, "Skipped profile",
 				log.Int("index", i),
 				log.Any("labels", profile.Labels),
-				log.Any("header", profile.Profile.SampleType),
+				log.Any("header", parsed.SampleType),
 			)
 			continue
 		}
 
-		profile.Profile.PeriodType = &pprof.ValueType{}
-		profiles = append(profiles, profile.Profile.Profile)
+		parsed.PeriodType = &pprof.ValueType{}
+		profiles = append(profiles, parsed)
 		logger.Debug(ctx, "Collected profile",
 			log.Int("index", i),
 			log.Any("labels", profile.Labels),
-			log.Any("header", profile.Profile.SampleType),
+			log.Any("header", parsed.SampleType),
 		)
 	}
 

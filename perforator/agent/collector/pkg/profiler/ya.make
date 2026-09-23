@@ -16,6 +16,7 @@ SRCS(
 )
 
 GO_TEST_SRCS(
+    profile_builder_test.go
     sample_consumer_test.go
 )
 
