@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { AxiosError } from 'axios';
+import { generatePath } from 'react-router-dom';
 
 import { ArrowUpRightFromSquare } from '@gravity-ui/icons';
 import type { PaginationProps, TableSortState } from '@gravity-ui/uikit';
@@ -14,6 +15,7 @@ import {
     withTableSorting,
 } from '@gravity-ui/uikit';
 
+import { routes } from 'src/const/routes';
 import { uiFactory } from 'src/factory';
 import type { ListProfilesRequest, ProfileMeta } from 'src/generated/perforator/proto/perforator/perforator';
 import { SortDirection } from 'src/models/Sort';
@@ -129,7 +131,7 @@ const prepareProfileColumns = ({ compact }: { compact?: boolean } = {}) => {
             id: 'ProfileID',
             name: 'Profile ID',
             template: (profile: Profile) => {
-                const href = `/profile/${profile.ProfileID}?timestamp=${parseDate(profile.Timestamp ?? '')!.valueOf()}&event_type=${profile.EventType}&service=${profile.Service}`;
+                const href = `${generatePath(routes.profile, { profileId: profile.ProfileID })}?timestamp=${parseDate(profile.Timestamp ?? '')!.valueOf()}&event_type=${profile.EventType}&service=${profile.Service}`;
                 return renderLink(href, profile.ProfileID, true);
             },
         },

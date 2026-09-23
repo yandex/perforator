@@ -17,6 +17,18 @@ class IntersectionObserverMock implements IntersectionObserver {
 
 globalThis.IntersectionObserver = IntersectionObserverMock;
 
+// Gravity UI's modal and menu hooks use matchMedia, which jsdom does not implement.
+window.matchMedia ??= (media: string): MediaQueryList => ({
+    media,
+    matches: false,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => false,
+});
+
 afterEach(() => {
     localStorage.clear();
 });

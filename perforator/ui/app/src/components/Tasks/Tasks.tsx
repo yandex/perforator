@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { generatePath, useNavigate, useSearchParams } from 'react-router-dom';
 
 // import type { ActionItem } from '@gravity-ui/components/build/esm/components/ActionsPanel/types';
 import type {
@@ -24,6 +24,7 @@ import { ActionsPanel,
     withTableSettings,
 } from '@gravity-ui/uikit';
 
+import { routes } from 'src/const/routes';
 import { uiFactory } from 'src/factory';
 import type { RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
 import type {
@@ -190,11 +191,11 @@ const getColumnsConfig = (): TableColumnConfig<Task>[] => [
     },
     {
         id: 'ID',
-        template: (profileData) => (
-            <Link href={`/task/${profileData?.Meta?.ID}`}>
-                {profileData?.Meta?.ID}
+        template: (profileData) => profileData?.Meta?.ID ? (
+            <Link href={generatePath(routes.task, { taskId: profileData.Meta.ID })}>
+                {profileData.Meta.ID}
             </Link>
-        ),
+        ) : null,
     },
     {
         id: 'Type',

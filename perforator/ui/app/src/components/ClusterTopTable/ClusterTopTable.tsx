@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { generatePath } from 'react-router-dom';
+
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Flame } from '@gravity-ui/icons';
@@ -10,6 +12,7 @@ import { getCoreRowModel, getExpandedRowModel, getSortedRowModel } from '@gravit
 import type { ProgressColorStops } from '@gravity-ui/uikit';
 import { Button, ClipboardButton, HelpMark, Icon, Loader, Progress, TextInput, Tooltip } from '@gravity-ui/uikit';
 
+import { routes } from 'src/const/routes';
 import { uiFactory } from 'src/factory';
 import type { ClusterTopEntry, ClusterTopGenerationStatus } from 'src/generated/perforator/proto/perforator/perforator';
 import { apiClient } from 'src/utils/api';
@@ -121,7 +124,7 @@ const getColumns: (args: Pick<ClusterTopTableProps, 'timeIntervalFrom' | 'timeIn
                     <span className={b('service-name', nameColumn)}>{getValue<string>()}
                         <ClipboardButton text={row.original.Name} size="xs"/>
                         <Tooltip content="Build a service flamegraph and search for this function">
-                            <Button onClick={() => {uiFactory().reachGoal('FLAME_FROM_CLUSTER_TOP');}} target={'_blank'} view={'flat'} size={'xs'} href={`/build?${query.toString()}`}>
+                            <Button onClick={() => {uiFactory().reachGoal('FLAME_FROM_CLUSTER_TOP');}} target={'_blank'} view={'flat'} size={'xs'} href={`${generatePath(routes.build)}?${query.toString()}`}>
                                 <Icon height={14} size={14} data={Flame} className={b('icon', { flamegraph: true })}/>
                             </Button>
                         </Tooltip>

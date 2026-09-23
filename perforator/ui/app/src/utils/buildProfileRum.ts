@@ -1,6 +1,7 @@
 import type { Location } from 'react-router-dom';
 import { matchPath } from 'react-router-dom';
 
+import { routes } from 'src/const/routes';
 import { uiFactory } from 'src/factory';
 
 import type { Rum } from './rum';
@@ -34,11 +35,11 @@ export class BuildProfileRum {
             return;
         }
         this.locationKey = location.key;
-        if (this.active?.taskId && matchPath('/task/:taskId', location.pathname)?.params.taskId === this.active.taskId) {
+        if (this.active?.taskId && matchPath(routes.task, location.pathname)?.params.taskId === this.active.taskId) {
             return;
         }
         this.active?.finish('abandoned');
-        this.active = matchPath('/build', location.pathname) ? this.start(location) : undefined;
+        this.active = matchPath(routes.build, location.pathname) ? this.start(location) : undefined;
     }
 
     forBuild(key: string) {

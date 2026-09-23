@@ -1,11 +1,12 @@
 import React from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import { generatePath, useNavigate } from 'react-router-dom';
 
 import { CircleInfo } from '@gravity-ui/icons';
 import type { DropdownMenuItem } from '@gravity-ui/uikit';
 import { Button, DropdownMenu, Icon } from '@gravity-ui/uikit';
 
+import { routes } from 'src/const/routes';
 import type { ProfileTaskQuery, TaskResult } from 'src/models/Task';
 import { cn } from 'src/utils/cn';
 import { redirectToTaskPage } from 'src/utils/profileTask';
@@ -101,7 +102,11 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
             items.push({
                 text: 'Compare with',
                 action: () => {
-                    navigate(`/diff?selector=${query!.Selector}&maxProfiles=${spec?.MaxSamples}`);
+                    const search = new URLSearchParams({
+                        selector: query?.Selector ?? '',
+                        maxProfiles: String(spec?.MaxSamples),
+                    });
+                    navigate(`${generatePath(routes.diff)}?${search}`);
                 },
             });
         }
@@ -123,6 +128,6 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
             <Icon data={CircleInfo}/>
                 Info
         </Button>
-        {items.length > 0 ? <DropdownMenu items={items}/> : null}
+        {items.length > 0 ? <DropdownMenu items={items} defaultSwitcherProps={{ 'aria-label': 'Task actions' }}/> : null}
     </>;
 };

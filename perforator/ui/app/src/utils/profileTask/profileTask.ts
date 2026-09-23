@@ -1,6 +1,7 @@
-import { createSearchParams } from 'react-router-dom';
+import { createSearchParams, generatePath } from 'react-router-dom';
 
 import { LocalStorageKey } from 'src/const/localStorage';
+import { routes } from 'src/const/routes';
 import { uiFactory } from 'src/factory';
 import type { FlamegraphOptions, PostprocessOptions, RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
 import { PythonStackPrettifyLevel } from 'src/generated/perforator/proto/perforator/perforator';
@@ -141,7 +142,7 @@ export function redirectToTaskPage<Q extends ProfileTaskQuery> (
 ) {
     return navigate(
         {
-            pathname: '/build',
+            pathname: generatePath(routes.build),
             search: createSearchParams(taskQueryToSearchParams(query)).toString(),
         },
         { replace },

@@ -2,6 +2,7 @@ import { createBrowserRouter, Outlet } from 'react-router-dom';
 
 import type { PageComponent, PagePublicProps } from 'src/components/Page/Page';
 import { PageContainer } from 'src/components/Page/PageContainer/PageContainer';
+import { routes } from 'src/const/routes';
 import { DemoPage } from 'src/pages/DemoPage';
 
 import {
@@ -27,7 +28,7 @@ export const getRouter = (pageProps: PagePublicProps) => {
 
     const router = createBrowserRouter([
         {
-            path: '/',
+            path: routes.home,
             element: <Outlet />,
             errorElement: makePage(NotFound, 'Not found'),
             children: [
@@ -36,35 +37,35 @@ export const getRouter = (pageProps: PagePublicProps) => {
                     element: makePage(ProfileList, undefined),
                 },
                 {
-                    path: 'profiles',
+                    path: routes.profiles,
                     element: makePage(ProfileList, 'Profiles'),
                 },
                 {
-                    path: 'diff',
+                    path: routes.diff,
                     element: makePage(DiffLists, 'Diff'),
                 },
                 {
-                    path: 'task/:taskId',
+                    path: routes.task,
                     element: makePage(Task, 'Profile'),
                 },
                 {
-                    path: 'profile/:profileId',
+                    path: routes.profile,
                     element: makePage(Profile, 'Profile'),
                 },
                 {
-                    path: 'build',
+                    path: routes.build,
                     element: makePage(BuildProfile, 'Profile'),
                 },
                 {
-                    path: 'tasks',
+                    path: routes.tasks,
                     element: makePage(History, 'History'),
                 },
                 {
-                    path: '/tutorials/basics',
+                    path: routes.tutorialBasics,
                     element: makePage(DemoPage, 'Demo'),
                 },
                 {
-                    path: 'cluster-top',
+                    path: routes.clusterTop,
                     element: makePage(ClusterTop, 'Cluster Top'),
                 },
             ],

@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { generatePath, Route, Routes, useLocation } from 'react-router-dom';
 
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { routes } from 'src/const/routes';
 import type { TaskResult } from 'src/models/Task';
+import { renderWithRouter } from 'src/test/renderWithRouter';
 
 import type * as EditableTaskQueryModule from './EditableTaskQuery';
 
@@ -19,7 +21,7 @@ interface TaskOptions {
     lineNumbers: boolean;
 }
 
-const BUILD_PATH = '/build';
+const BUILD_PATH = routes.build;
 const HEADER_TEXT = 'Profile';
 const DEFAULT_TASK_OPTIONS: TaskOptions = {
     profileId: 'profile-1',
@@ -216,16 +218,15 @@ describe('EditableTaskQuery', () => {
 // Helpers
 
 function renderEditableTaskQuery(task: TaskResult | null) {
-    return render(
-        <MemoryRouter initialEntries={['/task/task-1']}>
-            <Routes>
-                <Route
-                    path="/task/:taskId"
-                    element={<EditableTaskQuery task={task} header={<h1>{HEADER_TEXT}</h1>} />}
-                />
-                <Route path={BUILD_PATH} element={<LocationOutput />} />
-            </Routes>
-        </MemoryRouter>,
+    return renderWithRouter(
+        <Routes>
+            <Route
+                path={routes.task}
+                element={<EditableTaskQuery task={task} header={<h1>{HEADER_TEXT}</h1>} />}
+            />
+            <Route path={BUILD_PATH} element={<LocationOutput />} />
+        </Routes>,
+        [generatePath(routes.task, { taskId: 'task-1' })],
     );
 }
 

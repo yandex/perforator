@@ -1,11 +1,12 @@
 import React from 'react';
 
 import { AxiosError } from 'axios';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { generatePath, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Loader } from '@gravity-ui/uikit';
 
 import { ErrorPanel } from 'src/components/ErrorPanel/ErrorPanel';
+import { routes } from 'src/const/routes';
 import type { ProfileTaskQuery } from 'src/models/Task';
 import { useUserSettings } from 'src/providers/UserSettingsProvider';
 import { buildProfileRum } from 'src/utils/buildProfileRum';
@@ -51,7 +52,7 @@ export const BuildProfile: React.FC<BuildProfileProps> = () => {
                 attempt.taskId = taskId;
             }
             const q = preserveWellKnownQueryParams(searchParams);
-            navigate(`/task/${taskId}?${q.toString()}`, { replace: true });
+            navigate(`${generatePath(routes.task, { taskId })}?${q.toString()}`, { replace: true });
         }).catch(e => {
             if (active) {
                 attempt?.finish('error');

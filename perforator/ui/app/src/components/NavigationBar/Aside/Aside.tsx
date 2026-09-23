@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useLocation } from 'react-router-dom';
+import { generatePath, useLocation } from 'react-router-dom';
 
 import BarsDescendingAlignLeftIcon from '@gravity-ui/icons/svgs/bars-descending-align-left.svg?raw';
 import ClockArrowRotateLeftIcon from '@gravity-ui/icons/svgs/clock-arrow-rotate-left.svg?raw';
@@ -14,6 +14,7 @@ import PerforatorLogo from 'src/assets/perforator.svg?raw';
 import { Link } from 'src/components/Link/Link';
 import { Tutorials } from 'src/components/Tutorials/Tutorials';
 import { LocalStorageKey } from 'src/const/localStorage';
+import { routes } from 'src/const/routes';
 import { uiFactory } from 'src/factory';
 
 import { NavigationFooter } from '../NavigationFooter/NavigationFooter';
@@ -34,22 +35,22 @@ const menuLinks: MenuLink[] = [
     {
         title: 'Profiles',
         icon: BarsDescendingAlignLeftIcon,
-        link: '/',
+        link: generatePath(routes.home),
     },
     ...(isClusterTopEnabled ? [{
         title: 'Cluster Top',
         icon: ServerIcon,
-        link: '/cluster-top',
+        link: generatePath(routes.clusterTop),
     }] : []),
     {
         title: 'History',
         icon: ClockArrowRotateLeftIcon,
-        link: '/tasks',
+        link: generatePath(routes.tasks),
     },
     {
         title: 'Diff',
         icon: ScalesUnbalancedIcon,
-        link: '/diff',
+        link: generatePath(routes.diff),
     },
 ];
 
@@ -94,7 +95,7 @@ export const Aside: React.FC<AsideProps> = ({ setCompact }: AsideProps) => {
             title: 'Learn',
             icon: GraduationCapIcon,
             id: 'tutorials',
-            current: showPanel === 'tutorials' || pathname.startsWith('/tutorials'),
+            current: showPanel === 'tutorials' || pathname.startsWith(routes.tutorialBasics),
             onItemClick: () => setShowPanel(
                 showPanel ? null : 'tutorials',
             ),
@@ -109,7 +110,7 @@ export const Aside: React.FC<AsideProps> = ({ setCompact }: AsideProps) => {
                 icon: PerforatorLogo,
                 text: 'Perforator',
                 iconSize: 32,
-                href: '/',
+                href: generatePath(routes.home),
             }}
             multipleTooltip
             headerDecoration

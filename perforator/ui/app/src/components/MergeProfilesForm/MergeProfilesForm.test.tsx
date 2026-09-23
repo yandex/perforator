@@ -1,13 +1,16 @@
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { generatePath, Route, Routes, useLocation } from 'react-router-dom';
 
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+import { routes } from 'src/const/routes';
+import { renderWithRouter } from 'src/test/renderWithRouter';
 
 import type * as MergeProfilesFormModule from './MergeProfilesForm';
 
 
-const BUILD_PATH = '/build';
+const BUILD_PATH = routes.build;
 const mockService = 'perforator';
 const mockTokens = `[["service","=","${mockService}"]]`;
 const mockSelector = `{service="${mockService}"}`;
@@ -106,13 +109,12 @@ describe('MergeProfilesForm', () => {
 // Helpers
 
 function renderMergeProfilesForm() {
-    return render(
-        <MemoryRouter initialEntries={['/']}>
-            <Routes>
-                <Route path="/" element={<MergeProfilesForm />} />
-                <Route path={BUILD_PATH} element={<LocationOutput />} />
-            </Routes>
-        </MemoryRouter>,
+    return renderWithRouter(
+        <Routes>
+            <Route path={routes.home} element={<MergeProfilesForm />} />
+            <Route path={BUILD_PATH} element={<LocationOutput />} />
+        </Routes>,
+        [generatePath(routes.home)],
     );
 }
 

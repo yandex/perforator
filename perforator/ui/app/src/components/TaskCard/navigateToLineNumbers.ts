@@ -1,6 +1,8 @@
 import type { NavigateFunction } from 'react-router-dom';
+import { generatePath } from 'react-router-dom';
 
 import { LocalStorageKey } from 'src/const/localStorage';
+import { routes } from 'src/const/routes';
 import { uiFactory } from 'src/factory';
 import type { ProfileTaskQuery } from 'src/models/Task';
 import { redirectToTaskPage } from 'src/utils/profileTask';
@@ -17,7 +19,7 @@ export function navigateToLineNumbers(navigate: NavigateFunction, query: Profile
     }
     const q = preserveWellKnownQueryParams(new URLSearchParams(window.location.search));
     if (localCache[currentTaskId]) {
-        navigate(`/task/${localCache[currentTaskId]}?${q.toString()}`);
+        navigate(`${generatePath(routes.task, { taskId: localCache[currentTaskId] })}?${q.toString()}`);
     } else {
         query.prevTask = currentTaskId;
         query = {
