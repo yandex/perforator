@@ -4,11 +4,7 @@
 #include <perforator/lib/llvmex/llvm_exception.h>
 #include <llvm/ADT/StringExtras.h>
 
-#if LLVM_VERSION_MAJOR < 22
-    #include "llvm/SFrameParser.h"
-#else
-    #error "You should use <llvm/Object/SFrameParser.h>"
-#endif
+#include <llvm/Object/SFrameParser.h>
 
 namespace {
     struct TFunctionDescriptionEntry {

@@ -246,7 +246,7 @@ UnwindTable BuildUnwindTableFromEhFrame(llvm::object::ObjectFile* objectFile, co
         const llvm::dwarf::CIE* cie = fde->getLinkedCIE();
         Y_ENSURE(cie, "Empty CIE for FDE at " << fde->getOffset());
 
-        llvm::dwarf::UnwindTable table = Y_LLVM_RAISE(llvm::dwarf::UnwindTable::create(fde));
+        llvm::dwarf::UnwindTable table = Y_LLVM_RAISE(llvm::dwarf::createUnwindTable(fde));
 
         for (const auto& [i, row] : Enumerate(table)) {
             auto rowAddressRange = [&]() -> TMaybe<llvm::AddressRange> {

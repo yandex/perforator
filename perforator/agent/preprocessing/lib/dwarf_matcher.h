@@ -1,7 +1,7 @@
 #pragma once
 
 #include <llvm/BinaryFormat/Dwarf.h>
-#include <llvm/DebugInfo/DWARF/DWARFExpression.h>
+#include <llvm/DebugInfo/DWARF/LowLevel/DWARFExpression.h>
 
 #include <util/system/types.h>
 #include <util/generic/scope.h>

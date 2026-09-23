@@ -4,7 +4,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
-#include <contrib/libs/llvm18/lib/Target/X86/X86InstrInfo.h>
+#include <contrib/libs/llvm22/lib/Target/X86/X86InstrInfo.h>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif

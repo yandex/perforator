@@ -4,7 +4,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
-#include <contrib/libs/llvm18/lib/Target/X86/X86InstrInfo.h>
+#include <contrib/libs/llvm22/lib/Target/X86/X86InstrInfo.h>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -102,7 +102,7 @@ TMaybe<i64> DecodeLuaClose(const llvm::Triple& triple, ui64, TConstArrayRef<ui8>
     TMaybe<i64> result;
 
     std::string error;
-    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple.getTriple(), error);
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, error);
     if (!target) {
         return Nothing();
     }
@@ -296,7 +296,7 @@ TMaybe<i64> DecodeLuaOpenJit(const llvm::Triple& triple, ui64, TConstArrayRef<ui
     TMaybe<i64> result;
 
     std::string error;
-    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple.getTriple(), error);
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, error);
     if (!target) {
         return Nothing();
     }
@@ -557,7 +557,7 @@ TMaybe<i64> DecodeLjDispatchUpdate(const llvm::Triple& triple, ui64, TConstArray
     TMaybe<i64> result;
 
     std::string error;
-    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple.getTriple(), error);
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, error);
     if (!target) {
         return Nothing();
     }
@@ -638,7 +638,7 @@ TMaybe<i64> DecodeLuaGc(const llvm::Triple& triple, ui64, TConstArrayRef<ui8> by
     TMaybe<i64> result;
 
     std::string error;
-    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple.getTriple(), error);
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, error);
     if (!target) {
         return Nothing();
     }
@@ -709,7 +709,7 @@ TMaybe<i64> DecodeLjGcStep(const llvm::Triple& triple, ui64, TConstArrayRef<ui8>
     TMaybe<i64> result;
 
     std::string error;
-    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple.getTriple(), error);
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, error);
     if (!target) {
         return Nothing();
     }

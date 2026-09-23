@@ -2,9 +2,9 @@
 
 #include <perforator/lib/llvmex/llvm_exception.h>
 
-#include <contrib/libs/llvm18/include/llvm/DebugInfo/DWARF/DWARFContext.h>
-#include <contrib/libs/llvm18/include/llvm/DebugInfo/DWARF/DWARFDie.h>
-#include <contrib/libs/llvm18/include/llvm/DebugInfo/DWARF/DWARFFormValue.h>
+#include <contrib/libs/llvm22/include/llvm/DebugInfo/DWARF/DWARFContext.h>
+#include <contrib/libs/llvm22/include/llvm/DebugInfo/DWARF/DWARFDie.h>
+#include <contrib/libs/llvm22/include/llvm/DebugInfo/DWARF/DWARFFormValue.h>
 
 #include <limits>
 

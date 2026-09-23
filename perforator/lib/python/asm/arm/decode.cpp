@@ -5,7 +5,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 // FIXME: This import is broken somehow
-// #include <contrib/libs/llvm18/lib/Target/ARM/ARMInstrInfo.h>
+// #include <contrib/libs/llvm22/lib/Target/ARM/ARMInstrInfo.h>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif

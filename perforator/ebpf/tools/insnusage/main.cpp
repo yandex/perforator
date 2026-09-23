@@ -635,8 +635,8 @@ struct TLogicalFn {
 // `.o` files (where many SEC()-tagged entry functions all have low_pc=0
 // in their respective sections), that map collides, returning a DIE from
 // some random section instead of the one we asked about. Confirmed by
-// reading lib/DebugInfo/DWARF/DWARFUnit.cpp updateAddressDieMap (line 717
-// in LLVM 18; same in 21).
+// reading lib/DebugInfo/DWARF/DWARFUnit.cpp updateAddressDieMap (line 739
+// in LLVM 22).
 //
 // The class mirrors LLVM's algorithm exactly (DWARFUnit's `AddrDieMap` +
 // `getSubroutineForAddress` + `getInlinedChainForAddress`), with one
@@ -827,7 +827,7 @@ private:
         if (!lt) return;
         llvm::DILineInfo info;
         if (lt->getFileLineInfoForAddress(
-                {addr, secIdx}, unit->getCompilationDir(),
+                {addr, secIdx}, /*Approximate=*/false, unit->getCompilationDir(),
                 llvm::DILineInfoSpecifier::FileLineInfoKind::AbsoluteFilePath,
                 info)) {
             out.FileName = info.FileName.c_str();
@@ -932,9 +932,11 @@ TAnalysisResult AnalyzeProgram(
                 llvm::DILineInfoSpecifier{
                     llvm::DILineInfoSpecifier::FileLineInfoKind::AbsoluteFilePath,
                     llvm::DILineInfoSpecifier::FunctionNameKind::None});
-            f.FileName = lineOnly.FileName.c_str();
-            f.Line = lineOnly.Line;
-            f.Column = lineOnly.Column;
+            if (lineOnly) {
+                f.FileName = lineOnly->FileName.c_str();
+                f.Line = lineOnly->Line;
+                f.Column = lineOnly->Column;
+            }
             frames.push_back(std::move(f));
         }
         for (const auto& frame : frames) {

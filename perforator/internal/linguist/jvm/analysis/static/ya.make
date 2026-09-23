@@ -15,8 +15,8 @@ PEERDIR(
 )
 
 PEERDIR(
-    contrib/libs/llvm18/include
-    contrib/libs/llvm18/lib/Target/X86
+    contrib/libs/llvm22/include
+    contrib/libs/llvm22/lib/Target/X86
     
     perforator/lib/llvmex
 )

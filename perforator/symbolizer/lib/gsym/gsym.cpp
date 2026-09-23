@@ -7,6 +7,7 @@
 #include <llvm/DebugInfo/GSYM/GsymCreator.h>
 #include <llvm/DebugInfo/GSYM/DwarfTransformer.h>
 #include <llvm/DebugInfo/GSYM/ObjectFileTransformer.h>
+#include <llvm/DebugInfo/GSYM/OutputAggregator.h>
 
 #include <llvm/Object/Binary.h>
 #include <llvm/Object/ObjectFile.h>
@@ -48,13 +49,13 @@ llvm::Error DoFixupObjectFileTransformation(
 // directive, and are thus absent in the resulting GSYM.
 // What's even worse, handwritten assembly might lack ".size" directive, and GSYM lookups
 // might match these zero-size symbols _instead_ of absent ST_Unknown symbols in some cases.
-// (https://github.com/llvm/llvm-project/blob/release/18.x/llvm/lib/DebugInfo/GSYM/GsymReader.cpp#L283).
+// (https://github.com/llvm/llvm-project/blob/release/22.x/llvm/lib/DebugInfo/GSYM/GsymReader.cpp#L290).
 //
 // Also, some binaries don't have symtab at all (glibc.so, for instance), but do have dynsym,
 // and we'd like to have those symbols.
 //
 // We fixup such symbols by basically copying what ObjectFileTransformer::convert
-// (https://github.com/llvm/llvm-project/blob/release/18.x/llvm/lib/DebugInfo/GSYM/ObjectFileTransformer.cpp#L70)
+// (https://github.com/llvm/llvm-project/blob/release/22.x/llvm/lib/DebugInfo/GSYM/ObjectFileTransformer.cpp#L69)
 // does, but adding ST_Unknown symbols from symtab and processing dynsym as well.
 //
 // TODO : remove when/if https://github.com/llvm/llvm-project/pull/119307 is resolved
@@ -178,11 +179,13 @@ void FixupFunctionNamesFromSymtab(
     // We should win some gsym size (esp. uncompressed) if we find a way to GC them.
 }
 
-// This is a close adaptation of how llvm-gsymutil-18 does the convertion
-// https://github.com/llvm/llvm-project/blob/release/18.x/llvm/tools/llvm-gsymutil/llvm-gsymutil.cpp#L303
+// This is a close adaptation of how llvm-gsymutil-22 does the convertion
+// https://github.com/llvm/llvm-project/blob/release/22.x/llvm/tools/llvm-gsymutil/llvm-gsymutil.cpp#L346
 llvm::Error ConvertDWARFToGSYM(llvm::object::ObjectFile& obj, std::string_view output, ui32 convertNumThreads) {
     // We might want to caprute the logs in the future, so this could be a pipe instead
     auto &os = llvm::outs();
+    llvm::gsym::OutputAggregator quietAggregator{nullptr};
+    llvm::gsym::OutputAggregator outputAggregator{&os};
 
     llvm::gsym::GsymCreator gsymCreator(true /* quiet */);
 
@@ -226,11 +229,11 @@ llvm::Error ConvertDWARFToGSYM(llvm::object::ObjectFile& obj, std::string_view o
         gsymCreator.SetValidTextRanges(textRanges);
     }
 
-    if (auto err = dwarfTransformer.convert(convertNumThreads, nullptr)) {
+    if (auto err = dwarfTransformer.convert(convertNumThreads, quietAggregator)) {
         return err;
     }
 
-    if (auto err = llvm::gsym::ObjectFileTransformer::convert(obj, nullptr, gsymCreator)) {
+    if (auto err = llvm::gsym::ObjectFileTransformer::convert(obj, quietAggregator, gsymCreator)) {
         return err;
     }
     if (auto err = FixupObjectFileTransformation(obj, gsymCreator)) {
@@ -244,7 +247,7 @@ llvm::Error ConvertDWARFToGSYM(llvm::object::ObjectFile& obj, std::string_view o
     // This must run before finalize() because finalize() freezes the string table.
     FixupFunctionNamesFromSymtab(gsymCreator, CollectSymtabNames(obj));
 
-    if (auto err = gsymCreator.finalize(os)) {
+    if (auto err = gsymCreator.finalize(outputAggregator)) {
         return err;
     }
 

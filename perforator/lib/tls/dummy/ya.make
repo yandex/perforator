@@ -3,7 +3,7 @@ PROGRAM()
 SRCS(main.cpp)
 
 PEERDIR(
-    contrib/libs/llvm18/include
+    contrib/libs/llvm22/include
     perforator/lib/tls
 )
 

@@ -1,7 +1,7 @@
 LIBRARY()
 
 PEERDIR(
-    contrib/libs/llvm18/lib/Demangle
+    contrib/libs/llvm22/lib/Demangle
     contrib/libs/re2
 )
 

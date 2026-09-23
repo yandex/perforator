@@ -1,7 +1,7 @@
 LIBRARY()
 
 PEERDIR(
-    contrib/libs/llvm18/lib/DebugInfo/Symbolize
+    contrib/libs/llvm22/lib/DebugInfo/Symbolize
     contrib/libs/pdqsort
 
     library/cpp/logger/global

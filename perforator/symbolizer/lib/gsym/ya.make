@@ -1,10 +1,10 @@
 LIBRARY()
 
 PEERDIR(
-    contrib/libs/llvm18/lib/DebugInfo/Symbolize
-    contrib/libs/llvm18/lib/DebugInfo/GSYM
-    contrib/libs/llvm18/lib/DebugInfo/DWARF
-    contrib/libs/llvm18/lib/Object
+    contrib/libs/llvm22/lib/DebugInfo/Symbolize
+    contrib/libs/llvm22/lib/DebugInfo/GSYM
+    contrib/libs/llvm22/lib/DebugInfo/DWARF
+    contrib/libs/llvm22/lib/Object
 
     contrib/libs/fmt
 

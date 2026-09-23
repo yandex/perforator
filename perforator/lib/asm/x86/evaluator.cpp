@@ -4,7 +4,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
-#include <contrib/libs/llvm18/lib/Target/X86/X86InstrInfo.h>
+#include <contrib/libs/llvm22/lib/Target/X86/X86InstrInfo.h>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -44,25 +44,25 @@ EDecodeInstructionError DecodeInstructions(
     LLVMInitializeX86Disassembler();
 
     std::string error;
-    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple.getTriple(), error);
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, error);
     if (!target) {
         log << TLOG_ERR << "Failed to lookup target by triple " << triple.getTriple() << ' ' << error << Endl;
         return EDecodeInstructionError::TargetLookupFailed;
     }
 
-    THolder<llvm::MCRegisterInfo> mri(target->createMCRegInfo(triple.getTriple()));
+    THolder<llvm::MCRegisterInfo> mri(target->createMCRegInfo(triple));
 
     llvm::MCTargetOptions options;
     THolder<llvm::MCAsmInfo> asmInfo(
         target->createMCAsmInfo(
             *mri,
-            triple.getTriple(),
+            triple,
             options
         )
     );
 
     THolder<llvm::MCSubtargetInfo> subTargetInfo(
-        target->createMCSubtargetInfo(triple.getTriple(), "", "")
+        target->createMCSubtargetInfo(triple, "", "")
     );
     if (subTargetInfo == nullptr) {
         return EDecodeInstructionError::SubtargetInfoCreationFailed;

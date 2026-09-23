@@ -11,8 +11,8 @@ ELSEIF (ARCH_AARCH64)
 ENDIF()
 
 PEERDIR(
-    contrib/libs/llvm18/include
-    contrib/libs/llvm18/lib/Object
+    contrib/libs/llvm22/include
+    contrib/libs/llvm22/lib/Object
 
     perforator/lib/elf
     perforator/lib/llvmex

@@ -77,7 +77,7 @@ TMaybe<TPythonVersion> TryParseVersionFromPyVersionSymbol(
     }
 
     TVector<ui8> versionBytes(content->begin(), content->end());
-    if constexpr (ELFT::TargetEndianness == llvm::endianness::little) {
+    if constexpr (ELFT::Endianness == llvm::endianness::little) {
         Reverse(versionBytes.begin(), versionBytes.end());
     }
 

@@ -6,11 +6,11 @@ SRCS(
 
 
 ADDINCL(
-    ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/X86
+    ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm22/lib/Target/X86
 )
 
 PEERDIR(
-    contrib/libs/llvm18/include
+    contrib/libs/llvm22/include
     
     perforator/lib/llvmex
 

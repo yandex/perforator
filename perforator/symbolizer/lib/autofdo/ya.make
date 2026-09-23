@@ -1,7 +1,7 @@
 LIBRARY()
 
 PEERDIR(
-    contrib/libs/llvm18/lib/Object
+    contrib/libs/llvm22/lib/Object
 
     perforator/lib/llvmex
     perforator/lib/profile

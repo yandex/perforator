@@ -59,7 +59,7 @@ TSmallVector<llvm::DILineInfo> TSymbolizer::Symbolize(ui64 addr) {
 
     if (!function.Range.contains(addr)) {
         // Apparently, some symbols could have zero size, and such symbols are considered a match.
-        // https://github.com/llvm/llvm-project/blob/release/18.x/llvm/lib/DebugInfo/GSYM/GsymReader.cpp#L284
+        // https://github.com/llvm/llvm-project/blob/release/22.x/llvm/lib/DebugInfo/GSYM/GsymReader.cpp#L290
         if (!function.Range.empty()) {
             return {};
         }

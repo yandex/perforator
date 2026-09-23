@@ -9,20 +9,19 @@ SRCS(
 
 
 PEERDIR(
-    perforator/agent/preprocessing/lib/llvm
-
-    contrib/libs/llvm18/include
-    contrib/libs/llvm18/lib/DebugInfo/DWARF
-    contrib/libs/llvm18/lib/DebugInfo/Symbolize
-    contrib/libs/llvm18/lib/Target
-    contrib/libs/llvm18/lib/Target/AArch64
-    contrib/libs/llvm18/lib/Target/ARM
-    # contrib/libs/llvm18/lib/Target/BPF
-    # contrib/libs/llvm18/lib/Target/LoongArch
-    # contrib/libs/llvm18/lib/Target/NVPTX
-    # contrib/libs/llvm18/lib/Target/PowerPC
-    # contrib/libs/llvm18/lib/Target/WebAssembly
-    contrib/libs/llvm18/lib/Target/X86
+    contrib/libs/llvm22/include
+    contrib/libs/llvm22/lib/DebugInfo/DWARF
+    contrib/libs/llvm22/lib/DebugInfo/Symbolize
+    contrib/libs/llvm22/lib/Target
+    contrib/libs/llvm22/lib/Target/AArch64
+    contrib/libs/llvm22/lib/Target/ARM
+    # contrib/libs/llvm22/lib/Target/BPF
+    # contrib/libs/llvm22/lib/Target/LoongArch
+    # contrib/libs/llvm22/lib/Target/NVPTX
+    # contrib/libs/llvm22/lib/Target/PowerPC
+    # contrib/libs/llvm22/lib/Target/WebAssembly
+    contrib/libs/llvm22/lib/Target/X86
+    contrib/libs/llvm22/lib/Object
     perforator/agent/preprocessing/proto/parse
     perforator/agent/preprocessing/proto/python
     perforator/agent/preprocessing/proto/tls
@@ -41,8 +40,8 @@ PEERDIR(
 IF (ARCH_AARCH64)
 
 PEERDIR(
-    contrib/libs/llvm18/lib/Target/AArch64
-    contrib/libs/llvm18/lib/Target/AArch64/Disassembler
+    contrib/libs/llvm22/lib/Target/AArch64
+    contrib/libs/llvm22/lib/Target/AArch64/Disassembler
 )
 
 ENDIF()

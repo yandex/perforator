@@ -1,6 +1,6 @@
 #pragma once
 
-#include <contrib/libs/llvm18/include/llvm/DebugInfo/DWARF/DWARFDie.h>
+#include <contrib/libs/llvm22/include/llvm/DebugInfo/DWARF/DWARFDie.h>
 
 #include <util/string/join.h>
 #include <util/system/types.h>

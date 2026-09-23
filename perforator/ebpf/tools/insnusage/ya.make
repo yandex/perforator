@@ -26,10 +26,10 @@ CFLAGS(-Wno-macro-redefined)
 
 PEERDIR(
     contrib/libs/libbpf
-    contrib/libs/llvm18/include
-    contrib/libs/llvm18/lib/DebugInfo/BTF
-    contrib/libs/llvm18/lib/DebugInfo/DWARF
-    contrib/libs/llvm18/lib/Object
+    contrib/libs/llvm22/include
+    contrib/libs/llvm22/lib/DebugInfo/BTF
+    contrib/libs/llvm22/lib/DebugInfo/DWARF
+    contrib/libs/llvm22/lib/Object
     library/cpp/getopt
     perforator/lib/llvmex
     perforator/lib/profile
