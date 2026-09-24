@@ -83,7 +83,7 @@ func commonArgs(opts sshSessionOptions) []string {
 	if opts.verbose {
 		args = append(args, "-v")
 	}
-	args = append(args, "-o", "StrictHostKeyChecking=no")
+	args = append(args, "-o", "StrictHostKeyChecking=no", "-o", "ServerAliveInterval=30")
 	for _, opt := range opts.extraOpts {
 		args = append(args, "-o", opt)
 	}
