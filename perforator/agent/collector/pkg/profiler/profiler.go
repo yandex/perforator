@@ -347,6 +347,9 @@ func (p *Profiler) shouldDiscoverProcess(pid linux.CurrentNamespacePID) bool {
 		p.log.Warn("Failed to get cgroup for process", log.Error(err))
 		return false
 	}
+	if path.IsAbs(group) {
+		group = group[1:]
+	}
 	for {
 		if _, found := p.cgroupTargets[group]; found {
 			return true
@@ -355,6 +358,9 @@ func (p *Profiler) shouldDiscoverProcess(pid linux.CurrentNamespacePID) bool {
 			break
 		}
 		group = path.Dir(group)
+		if group == "." {
+			group = ""
+		}
 	}
 	return false
 }
@@ -1270,7 +1276,7 @@ func (p *Profiler) runProcessDiscovery(ctx context.Context) error {
 // Register cgroup in the profiler.
 // If cgroup name is empty, trace whole system.
 // Thread safety: it is safe to run AddCgroup concurrently with Run/AddCgroup.
-// Use porto/ prefix instead of porto% (like in /sys/fs/cgroup/freezer hierarchy)
+// Cgroup name must be specified without leading /, and any . or .. elements.
 func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 	if conf == nil {
 		conf = &CgroupConfig{}
@@ -1396,6 +1402,7 @@ func (p *Profiler) DeleteCgroup(name string) error {
 	return p.cgroups.Delete(name)
 }
 
+// see AddCgroup for input requirements
 func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
 	p.targetsmu.Lock()
 	defer p.targetsmu.Unlock()
