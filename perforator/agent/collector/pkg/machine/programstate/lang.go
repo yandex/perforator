@@ -3,6 +3,7 @@ package programstate
 import (
 	"github.com/cilium/ebpf"
 
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 )
@@ -51,8 +52,18 @@ func (s *State) DeletePthreadConfig(id unwinder.BinaryId) error {
 }
 
 // TODO: we can use batch lookups into bpf maps
-func (s *State) SymbolizeInterpeter(key *unwinder.SymbolKey) (res unwinder.Symbol, exists bool) {
-	err := s.maps.InterpreterSymbols.Lookup(key, &res)
+func (s *State) SymbolizeInterpreter(
+	language models.Language,
+	process linux.ProcessKey,
+	key *unwinder.SymbolKey,
+) (res unwinder.Symbol, exists bool) {
+	cacheKey := unwinder.InterpreterSymbolKey{
+		SymbolKey:        unwinder.SymbolKey{ObjectAddr: key.ObjectAddr, Linestart: key.Linestart},
+		Pid:              process.Pid,
+		ProcessStarttime: process.ProcessStartTime,
+		Language:         uint8(language),
+	}
+	err := s.maps.InterpreterSymbols.Lookup(&cacheKey, &res)
 	exists = (err == nil)
 	return
 }

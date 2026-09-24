@@ -2,12 +2,16 @@ package symbolizer
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/yandex/perforator/library/go/core/metrics/nop"
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 func TestExtractNameAndFilenameSlices(t *testing.T) {
@@ -134,4 +138,60 @@ func TestExtractNameAndFilenameSlicesAllLengths(t *testing.T) {
 			}
 		}
 	}
+}
+
+type fakeSymbolSource struct {
+	symbols map[unwinder.InterpreterSymbolKey]unwinder.Symbol
+	calls   int
+}
+
+func (s *fakeSymbolSource) SymbolizeInterpreter(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (unwinder.Symbol, bool) {
+	s.calls++
+	symbol, ok := s.symbols[unwinder.InterpreterSymbolKey{SymbolKey: *key, Pid: process.Pid, ProcessStarttime: process.ProcessStartTime, Language: uint8(language)}]
+	return symbol, ok
+}
+
+func makeSymbol(name string) unwinder.Symbol {
+	symbol := unwinder.Symbol{CodepointSize: 1, NameLength: uint8(len(name))}
+	copy(symbol.Data[:], name)
+	return symbol
+}
+
+func TestSymbolCacheSeparatesLanguagesAndProcessLifetimes(t *testing.T) {
+	source := &fakeSymbolSource{symbols: make(map[unwinder.InterpreterSymbolKey]unwinder.Symbol)}
+	s, err := newSymbolizer(&SymbolizerConfig{}, source, nop.Registry{}, "test")
+	require.NoError(t, err)
+	key := unwinder.SymbolKey{ObjectAddr: 0x1000, Linestart: 10}
+	for _, pid := range []uint32{42, 43} {
+		for _, language := range []uint8{uint8(unwinder.LanguagePython), uint8(unwinder.LanguagePhp), uint8(unwinder.LanguageLua)} {
+			for _, startTime := range []uint64{100, 200} {
+				name := fmt.Sprintf("%d/%d/%d", pid, language, startTime)
+				source.symbols[unwinder.InterpreterSymbolKey{SymbolKey: key, Pid: pid, Language: language, ProcessStarttime: startTime}] = makeSymbol(name)
+			}
+		}
+	}
+	for iteration := 0; iteration < 2; iteration++ {
+		for cacheKey := range source.symbols {
+			symbol, ok := s.Symbolize(models.Language(cacheKey.Language), linux.ProcessKey{Pid: cacheKey.Pid, ProcessStartTime: cacheKey.ProcessStarttime}, &cacheKey.SymbolKey)
+			require.True(t, ok)
+			require.Equal(t, fmt.Sprintf("%d/%d/%d", cacheKey.Pid, cacheKey.Language, cacheKey.ProcessStarttime), symbol.Name)
+		}
+	}
+	require.Equal(t, 12, source.calls, "the second pass must use the Go cache")
+}
+
+func TestSymbolCacheRetriesMissingSymbols(t *testing.T) {
+	source := &fakeSymbolSource{symbols: make(map[unwinder.InterpreterSymbolKey]unwinder.Symbol)}
+	s, err := newSymbolizer(&SymbolizerConfig{}, source, nop.Registry{}, "test")
+	require.NoError(t, err)
+	key := unwinder.InterpreterSymbolKey{SymbolKey: unwinder.SymbolKey{ObjectAddr: 0x1000}, Pid: 42, Language: uint8(unwinder.LanguagePython), ProcessStarttime: 100}
+	_, ok := s.Symbolize(models.Language(key.Language), linux.ProcessKey{Pid: key.Pid, ProcessStartTime: key.ProcessStarttime}, &key.SymbolKey)
+	require.False(t, ok)
+	source.symbols[key] = makeSymbol("available")
+	for i := 0; i < 2; i++ {
+		symbol, ok := s.Symbolize(models.Language(key.Language), linux.ProcessKey{Pid: key.Pid, ProcessStartTime: key.ProcessStarttime}, &key.SymbolKey)
+		require.True(t, ok)
+		require.Equal(t, "available", symbol.Name)
+	}
+	require.Equal(t, 2, source.calls)
 }

@@ -6,11 +6,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/python/agent/linetable"
 	"github.com/yandex/perforator/perforator/internal/linguist/python/agent/remotemem"
 	pyoffsets "github.com/yandex/perforator/perforator/internal/linguist/python/offsets"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 type stubOffsetsLookup struct {
@@ -45,10 +47,13 @@ func (s *stubLinetableReader) ReadCodeLinetable(
 }
 
 type stubSymbolSource struct {
-	symbols map[unwinder.SymbolKey]*symbolizer.Symbol
+	language models.Language
+	process  linux.ProcessKey
+	symbols  map[unwinder.SymbolKey]*symbolizer.Symbol
 }
 
-func (s *stubSymbolSource) Symbolize(key *unwinder.SymbolKey) (*symbolizer.Symbol, bool) {
+func (s *stubSymbolSource) Symbolize(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (*symbolizer.Symbol, bool) {
+	s.language, s.process = language, process
 	sym, ok := s.symbols[*key]
 	return sym, ok
 }
@@ -85,7 +90,6 @@ func testFrame(objectAddr uint64, linestart int32, instrPtr uint64, coLinetableP
 	return &unwinder.PythonFrame{
 		SymbolKey: unwinder.SymbolKey{
 			ObjectAddr: objectAddr,
-			Pid:        1,
 			Linestart:  linestart,
 		},
 		InstrPtr:       instrPtr,
@@ -120,13 +124,13 @@ func TestResolveLine_OK(t *testing.T) {
 	instrPtr := codeObjectAddr + coCodeAdaptive + 2 // bytecode offset 2 → line 10
 	frame := testFrame(codeObjectAddr, firstlineno, instrPtr, coLinetablePtr)
 
-	line, ok := sym.resolveLine(pid, frame)
+	line, ok := sym.resolveLine(linux.ProcessKey{Pid: pid}, frame)
 	require.True(t, ok)
 	require.Equal(t, int32(10), line)
 	require.Equal(t, 1, reader.calls)
 	require.Equal(t, uintptr(coLinetablePtr), reader.lastExpectedLinetableAddr)
 
-	line, ok = sym.resolveLine(pid, frame)
+	line, ok = sym.resolveLine(linux.ProcessKey{Pid: pid}, frame)
 	require.True(t, ok)
 	require.Equal(t, int32(10), line)
 	require.Equal(t, 1, reader.calls)
@@ -137,12 +141,12 @@ func TestResolveLine_UsesLinetableLineDelta(t *testing.T) {
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 	frame := testFrame(0x1000, 10, 0x1082, 0x2000)
 
-	line, ok := sym.resolveLine(42, frame)
+	line, ok := sym.resolveLine(linux.ProcessKey{Pid: 42}, frame)
 	require.True(t, ok)
 	require.Equal(t, int32(12), line)
 	require.Equal(t, 1, reader.calls)
 
-	line, ok = sym.resolveLine(42, frame)
+	line, ok = sym.resolveLine(linux.ProcessKey{Pid: 42}, frame)
 	require.True(t, ok)
 	require.Equal(t, int32(12), line)
 	require.Equal(t, 1, reader.calls, "cache hit must preserve the resolved line")
@@ -160,13 +164,13 @@ func TestInvalidatePid_ForcesReread(t *testing.T) {
 	)
 	frame := testFrame(codeObjectAddr, firstlineno, codeObjectAddr+coCodeAdaptive+2, 0x2000)
 
-	_, ok := sym.resolveLine(pid, frame)
+	_, ok := sym.resolveLine(linux.ProcessKey{Pid: pid}, frame)
 	require.True(t, ok)
 	require.Equal(t, 1, reader.calls)
 
 	sym.InvalidatePid(pid)
 
-	_, ok = sym.resolveLine(pid, frame)
+	_, ok = sym.resolveLine(linux.ProcessKey{Pid: pid}, frame)
 	require.True(t, ok)
 	require.Equal(t, 2, reader.calls, "cache must miss after InvalidatePid")
 }
@@ -175,7 +179,7 @@ func TestResolveLine_MissingOffsets(t *testing.T) {
 	reader := &stubLinetableReader{table: testLocationTable()}
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{ok: false}, reader)
 
-	line, ok := sym.resolveLine(1, testFrame(0x1000, 10, 0x1080, 0x2000))
+	line, ok := sym.resolveLine(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1080, 0x2000))
 	require.False(t, ok)
 	require.Equal(t, int32(0), line)
 	require.Equal(t, 0, reader.calls)
@@ -187,7 +191,7 @@ func TestResolveLine_MissingCoFirstlinenoOffset(t *testing.T) {
 	offsets.PyCodeObjectOffsets.CoFirstlineno = pyoffsets.UnspecifiedOffset
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: offsets, ok: true}, reader)
 
-	line, ok := sym.resolveLine(1, testFrame(0x1000, 10, 0x1080, 0x2000))
+	line, ok := sym.resolveLine(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1080, 0x2000))
 	require.False(t, ok)
 	require.Equal(t, int32(0), line)
 	require.Equal(t, 0, reader.calls)
@@ -198,12 +202,12 @@ func TestResolveLine_RemoteErrorTombstone(t *testing.T) {
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
 	frame := testFrame(0x1000, 10, 0x1082, 0x2000)
-	line, ok := sym.resolveLine(1, frame)
+	line, ok := sym.resolveLine(linux.ProcessKey{Pid: 1}, frame)
 	require.False(t, ok)
 	require.Equal(t, int32(0), line)
 	require.Equal(t, 1, reader.calls)
 
-	line, ok = sym.resolveLine(1, frame)
+	line, ok = sym.resolveLine(linux.ProcessKey{Pid: 1}, frame)
 	require.False(t, ok)
 	require.Equal(t, int32(0), line)
 	require.Equal(t, 1, reader.calls)
@@ -214,7 +218,7 @@ func TestResolveLine_CodeObjectChangedDoesNotTombstone(t *testing.T) {
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
 	frame := testFrame(0x1000, 10, 0x1082, 0x2000)
-	line, ok := sym.resolveLine(1, frame)
+	line, ok := sym.resolveLine(linux.ProcessKey{Pid: 1}, frame)
 	require.False(t, ok)
 	require.Equal(t, int32(0), line)
 	require.Equal(t, 1, reader.calls)
@@ -222,7 +226,7 @@ func TestResolveLine_CodeObjectChangedDoesNotTombstone(t *testing.T) {
 	reader.err = nil
 	reader.table = testLocationTable()
 
-	line, ok = sym.resolveLine(1, frame)
+	line, ok = sym.resolveLine(linux.ProcessKey{Pid: 1}, frame)
 	require.True(t, ok)
 	require.Equal(t, int32(10), line)
 	require.Equal(t, 2, reader.calls, "must retry remote read after ErrCodeObjectChanged")
@@ -234,7 +238,7 @@ func TestResolveLine_RejectsNonPositiveLine(t *testing.T) {
 	reader := &stubLinetableReader{table: table}
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
-	line, ok := sym.resolveLine(1, testFrame(0x1000, 0, 0x1082, 0x2000))
+	line, ok := sym.resolveLine(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 0, 0x1082, 0x2000))
 	require.False(t, ok)
 	require.Equal(t, int32(0), line)
 }
@@ -243,11 +247,11 @@ func TestResolveLine_ZeroPointers(t *testing.T) {
 	reader := &stubLinetableReader{table: testLocationTable()}
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
-	_, ok := sym.resolveLine(1, testFrame(0, 10, 0x1080, 0x2000))
+	_, ok := sym.resolveLine(linux.ProcessKey{Pid: 1}, testFrame(0, 10, 0x1080, 0x2000))
 	require.False(t, ok)
-	_, ok = sym.resolveLine(1, testFrame(0x1000, 10, 0, 0x2000))
+	_, ok = sym.resolveLine(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0, 0x2000))
 	require.False(t, ok)
-	_, ok = sym.resolveLine(1, testFrame(0x1000, 10, 0x1080, 0))
+	_, ok = sym.resolveLine(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1080, 0))
 	require.False(t, ok)
 	require.Equal(t, 0, reader.calls)
 }
@@ -256,15 +260,15 @@ func TestResolveLine_ChangedLinetablePointerMissesCache(t *testing.T) {
 	reader := &stubLinetableReader{table: testLocationTable()}
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
-	_, ok := sym.resolveLine(1, testFrame(0x1000, 10, 0x1082, 0x2000))
+	_, ok := sym.resolveLine(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1082, 0x2000))
 	require.True(t, ok)
-	_, ok = sym.resolveLine(1, testFrame(0x1000, 10, 0x1082, 0x3000))
+	_, ok = sym.resolveLine(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1082, 0x3000))
 	require.True(t, ok)
 	require.Equal(t, 2, reader.calls)
 }
 
 func TestSymbolizeFrame_SymbolAndLine(t *testing.T) {
-	key := unwinder.SymbolKey{ObjectAddr: 0x1000, Pid: 1, Linestart: 10}
+	key := unwinder.SymbolKey{ObjectAddr: 0x1000, Linestart: 10}
 	source := &stubSymbolSource{
 		symbols: map[unwinder.SymbolKey]*symbolizer.Symbol{
 			key: {Name: "foo", FileName: "busyloop.py"},
@@ -274,7 +278,7 @@ func TestSymbolizeFrame_SymbolAndLine(t *testing.T) {
 	sym := newTestSymbolizer(t, source, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
 	instrPtr := uint64(0x1000) + 0x80 + 2
-	got, line, ok := sym.SymbolizeFrame(42, testFrame(0x1000, 10, instrPtr, 0x2000))
+	got, line, ok := sym.SymbolizeFrame(linux.ProcessKey{Pid: 42}, testFrame(0x1000, 10, instrPtr, 0x2000))
 	require.True(t, ok)
 	require.Equal(t, "foo", got.Name)
 	require.Equal(t, "busyloop.py", got.FileName)
@@ -286,7 +290,7 @@ func TestSymbolizeFrame_Unsymbolized(t *testing.T) {
 	reader := &stubLinetableReader{table: testLocationTable()}
 	sym := newTestSymbolizer(t, &stubSymbolSource{symbols: map[unwinder.SymbolKey]*symbolizer.Symbol{}}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
-	got, line, ok := sym.SymbolizeFrame(1, testFrame(0x1000, 10, 0x1082, 0x2000))
+	got, line, ok := sym.SymbolizeFrame(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1082, 0x2000))
 	require.False(t, ok)
 	require.Nil(t, got)
 	require.Equal(t, int32(0), line)
@@ -294,7 +298,7 @@ func TestSymbolizeFrame_Unsymbolized(t *testing.T) {
 }
 
 func TestSymbolizeFrame_LineResolutionDisabled(t *testing.T) {
-	key := unwinder.SymbolKey{ObjectAddr: 0x1000, Pid: 1, Linestart: 10}
+	key := unwinder.SymbolKey{ObjectAddr: 0x1000, Linestart: 10}
 	source := &stubSymbolSource{
 		symbols: map[unwinder.SymbolKey]*symbolizer.Symbol{
 			key: {Name: "foo", FileName: "busyloop.py"},
@@ -303,14 +307,14 @@ func TestSymbolizeFrame_LineResolutionDisabled(t *testing.T) {
 	// offsets == nil disables line resolution (feature flag off).
 	sym := newSymbolizer(source, nil, nil, nil)
 
-	got, line, ok := sym.SymbolizeFrame(1, testFrame(0x1000, 10, 0x1082, 0x2000))
+	got, line, ok := sym.SymbolizeFrame(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1082, 0x2000))
 	require.True(t, ok)
 	require.Equal(t, "foo", got.Name)
 	require.Equal(t, int32(0), line)
 }
 
 func TestSymbolizeFrame_TrampolineSkipsLine(t *testing.T) {
-	key := unwinder.SymbolKey{ObjectAddr: 0x1000, Pid: 1, Linestart: -1}
+	key := unwinder.SymbolKey{ObjectAddr: 0x1000, Linestart: -1}
 	source := &stubSymbolSource{
 		symbols: map[unwinder.SymbolKey]*symbolizer.Symbol{
 			key: {Name: "trampoline", FileName: ""},
@@ -319,9 +323,41 @@ func TestSymbolizeFrame_TrampolineSkipsLine(t *testing.T) {
 	reader := &stubLinetableReader{table: testLocationTable()}
 	sym := newTestSymbolizer(t, source, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
-	got, line, ok := sym.SymbolizeFrame(1, testFrame(0x1000, -1, 0x1082, 0x2000))
+	got, line, ok := sym.SymbolizeFrame(linux.ProcessKey{Pid: 1}, testFrame(0x1000, -1, 0x1082, 0x2000))
 	require.True(t, ok)
 	require.Equal(t, "trampoline", got.Name)
 	require.Equal(t, int32(0), line)
 	require.Equal(t, 0, reader.calls)
+}
+
+func TestResolveLineSeparatesProcessLifetimes(t *testing.T) {
+	reader := &stubLinetableReader{table: testLocationTable()}
+	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
+	frame := testFrame(0x1000, 10, 0x1082, 0x2000)
+	line, ok := sym.resolveLine(linux.ProcessKey{Pid: 42, ProcessStartTime: 100}, frame)
+	require.True(t, ok)
+	require.Equal(t, int32(10), line)
+	reader.table.FirstLineno = 20
+	line, ok = sym.resolveLine(linux.ProcessKey{Pid: 42, ProcessStartTime: 200}, frame)
+	require.True(t, ok)
+	require.Equal(t, int32(20), line)
+	line, ok = sym.resolveLine(linux.ProcessKey{Pid: 42, ProcessStartTime: 100}, frame)
+	require.True(t, ok)
+	require.Equal(t, int32(10), line)
+	require.Equal(t, 2, reader.calls)
+}
+
+func TestResolveLineRetriesMissingOffsets(t *testing.T) {
+	reader := &stubLinetableReader{table: testLocationTable()}
+	offsets := &stubOffsetsLookup{}
+	sym := newTestSymbolizer(t, &stubSymbolSource{}, offsets, reader)
+	frame := testFrame(0x1000, 10, 0x1082, 0x2000)
+	_, ok := sym.resolveLine(linux.ProcessKey{Pid: 42, ProcessStartTime: 100}, frame)
+	require.False(t, ok)
+	require.Zero(t, reader.calls)
+	offsets.offsets, offsets.ok = testOffsets(), true
+	line, ok := sym.resolveLine(linux.ProcessKey{Pid: 42, ProcessStartTime: 100}, frame)
+	require.True(t, ok)
+	require.Equal(t, int32(10), line)
+	require.Equal(t, 1, reader.calls)
 }

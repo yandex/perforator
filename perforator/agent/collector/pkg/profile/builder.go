@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/pprof/profile"
 
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/profile/merge"
 )
 
@@ -50,7 +52,7 @@ func (s *SampleType) String() string {
 
 type Builder struct {
 	profile     *Profile
-	caches      *DefaultMap[uint32, ProcessCache]
+	caches      *DefaultMap[linux.ProcessKey, ProcessCache]
 	ownsCaches  bool
 	sampleTypes map[string]bool
 
@@ -60,10 +62,10 @@ type Builder struct {
 	maxTimestamp time.Time
 }
 
-func NewProcessCaches() *DefaultMap[uint32, ProcessCache] {
+func NewProcessCaches() *DefaultMap[linux.ProcessKey, ProcessCache] {
 	ids := &ids{}
-	return NewDefaultMap(func(k uint32) *ProcessCache {
-		return NewProcessCache(k, ids)
+	return NewDefaultMap(func(_ linux.ProcessKey) *ProcessCache {
+		return NewProcessCache(ids)
 	}, nil)
 }
 
@@ -71,14 +73,14 @@ func NewBuilder() *Builder {
 	ids := &ids{}
 	return &Builder{
 		profile: NewProfile(),
-		caches: NewDefaultMap(func(k uint32) *ProcessCache {
-			return NewProcessCache(k, ids)
+		caches: NewDefaultMap(func(_ linux.ProcessKey) *ProcessCache {
+			return NewProcessCache(ids)
 		}, nil),
 		ownsCaches: true,
 	}
 }
 
-func NewBuilderWithCaches(caches *DefaultMap[uint32, ProcessCache]) *Builder {
+func NewBuilderWithCaches(caches *DefaultMap[linux.ProcessKey, ProcessCache]) *Builder {
 	return &Builder{
 		profile:    NewProfile(),
 		caches:     caches,
@@ -217,10 +219,10 @@ func (b *Builder) Finish() *Profile {
 
 // Add should not be called if AddTimestampedSample was called.
 // User should choose to add samples via Add or AddTimestampedSample.
-func (b *Builder) Add(pid uint32) *SampleBuilder {
+func (b *Builder) Add(process linux.ProcessKey) *SampleBuilder {
 	bb := &SampleBuilder{
-		pid:   pid,
-		cache: b.caches.Get(pid),
+		pid:   process.Pid,
+		cache: b.caches.Get(process),
 		sample: &profile.Sample{
 			Label:    make(map[string][]string),
 			NumLabel: make(map[string][]int64),
@@ -235,8 +237,8 @@ func (b *Builder) Add(pid uint32) *SampleBuilder {
 // AddTimestampedSample creates a new sample builder that will accumulate the given
 // timestamp for automatic StartTime/EndTime derivation in Builder.Finish().
 // User should choose to add samples via Add or AddTimestampedSample.
-func (b *Builder) AddTimestampedSample(pid uint32, ts time.Time) *SampleBuilder {
-	sb := b.Add(pid)
+func (b *Builder) AddTimestampedSample(process linux.ProcessKey, ts time.Time) *SampleBuilder {
+	sb := b.Add(process)
 	sb.timestamp = &ts
 	return sb
 }
@@ -463,10 +465,13 @@ func (b *FrameBuilder) Finish() *LocationBuilder {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// InterpreterLocationKey identifies a frame within one process lifetime.
+// Language keeps locations distinct across runtimes in the same process.
 type InterpreterLocationKey struct {
 	ObjectAddress uint64
 	Linestart     int32
 	Line          int32
+	Language      models.Language
 }
 
 type functionKey struct {
@@ -489,7 +494,7 @@ type ProcessCache struct {
 	ids                  *ids
 }
 
-func NewProcessCache(pid uint32, ids *ids) *ProcessCache {
+func NewProcessCache(ids *ids) *ProcessCache {
 	return &ProcessCache{
 		nativeLocations:      make(map[uint64]*profile.Location),
 		interpreterLocations: make(map[InterpreterLocationKey]*profile.Location),

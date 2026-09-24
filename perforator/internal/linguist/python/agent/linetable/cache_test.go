@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 func newTestCache(t *testing.T, budget int64, ttl time.Duration) *Cache {
@@ -16,7 +18,7 @@ func newTestCache(t *testing.T, budget int64, ttl time.Duration) *Cache {
 
 func TestCache_GetAdd(t *testing.T) {
 	c := newTestCache(t, 256, time.Minute)
-	key := CacheKey{Pid: 1, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 10}
+	key := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 10}
 	table := LocationTable{FirstLineno: 10, Raw: []byte{0x80, 0x01}}
 
 	_, ok := c.Get(key)
@@ -31,11 +33,11 @@ func TestCache_GetAdd(t *testing.T) {
 func TestCache_KeyFieldsDistinct(t *testing.T) {
 	c := newTestCache(t, 512, time.Minute)
 
-	k1 := CacheKey{Pid: 1, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 10}
-	k2 := CacheKey{Pid: 2, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 10} // different pid
-	k3 := CacheKey{Pid: 1, CodeObjectPtr: 0x3000, CoLinetablePtr: 0x2000, CoFirstlineno: 10} // different code object
-	k4 := CacheKey{Pid: 1, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x4000, CoFirstlineno: 10} // different linetable
-	k5 := CacheKey{Pid: 1, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 20} // different firstlineno
+	k1 := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 10}
+	k2 := CacheKey{Process: linux.ProcessKey{Pid: 2}, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 10} // different pid
+	k3 := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 0x3000, CoLinetablePtr: 0x2000, CoFirstlineno: 10} // different code object
+	k4 := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x4000, CoFirstlineno: 10} // different linetable
+	k5 := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 20} // different firstlineno
 
 	c.Add(k1, LocationTable{FirstLineno: 10, Raw: []byte{0x80}})
 	c.Add(k2, LocationTable{FirstLineno: 10, Raw: []byte{0x90}})
@@ -61,13 +63,13 @@ func TestCache_KeyFieldsDistinct(t *testing.T) {
 }
 
 func TestCache_KeySerializationIsFixedWidth(t *testing.T) {
-	key := CacheKey{Pid: 1, CodeObjectPtr: 2, CoLinetablePtr: 3, CoFirstlineno: 4}
-	require.Len(t, cacheKeyString(key), 24)
+	key := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 2, CoLinetablePtr: 3, CoFirstlineno: 4}
+	require.Len(t, cacheKeyString(key), 32)
 }
 
 func TestCache_OversizedRejected(t *testing.T) {
 	c := newTestCache(t, cacheEntryCost, time.Minute)
-	key := CacheKey{Pid: 1, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 1}
+	key := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 1}
 	c.Add(key, LocationTable{FirstLineno: 1, Raw: []byte{1, 2, 3, 4, 5}})
 	_, ok := c.Get(key)
 	require.False(t, ok)
@@ -99,7 +101,7 @@ func TestCache_StopIdempotent(t *testing.T) {
 
 func TestCache_TTLExpiry(t *testing.T) {
 	c := newTestCache(t, 256, 20*time.Millisecond)
-	key := CacheKey{Pid: 1, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 1}
+	key := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 1}
 	c.Add(key, LocationTable{FirstLineno: 1, Raw: []byte{0x80}})
 
 	got, ok := c.Get(key)
@@ -113,7 +115,7 @@ func TestCache_TTLExpiry(t *testing.T) {
 
 func TestCache_Tombstone(t *testing.T) {
 	c := newTestCache(t, 256, time.Minute)
-	key := CacheKey{Pid: 1, CodeObjectPtr: 0x1000, CoLinetablePtr: 0xbeef, CoFirstlineno: 10}
+	key := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 0x1000, CoLinetablePtr: 0xbeef, CoFirstlineno: 10}
 
 	c.AddTombstone(key)
 	got, ok := c.Get(key)
@@ -131,10 +133,10 @@ func TestCache_Tombstone(t *testing.T) {
 func TestCache_InvalidatePid(t *testing.T) {
 	c := newTestCache(t, 512, time.Minute)
 
-	keep := CacheKey{Pid: 1, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 10}
-	drop1 := CacheKey{Pid: 2, CodeObjectPtr: 0x3000, CoLinetablePtr: 0x4000, CoFirstlineno: 20}
-	drop2 := CacheKey{Pid: 2, CodeObjectPtr: 0x5000, CoLinetablePtr: 0x6000, CoFirstlineno: 30}
-	tomb := CacheKey{Pid: 2, CodeObjectPtr: 0x7000, CoLinetablePtr: 0x8000, CoFirstlineno: 40}
+	keep := CacheKey{Process: linux.ProcessKey{Pid: 1}, CodeObjectPtr: 0x1000, CoLinetablePtr: 0x2000, CoFirstlineno: 10}
+	drop1 := CacheKey{Process: linux.ProcessKey{Pid: 2}, CodeObjectPtr: 0x3000, CoLinetablePtr: 0x4000, CoFirstlineno: 20}
+	drop2 := CacheKey{Process: linux.ProcessKey{Pid: 2}, CodeObjectPtr: 0x5000, CoLinetablePtr: 0x6000, CoFirstlineno: 30}
+	tomb := CacheKey{Process: linux.ProcessKey{Pid: 2}, CodeObjectPtr: 0x7000, CoLinetablePtr: 0x8000, CoFirstlineno: 40}
 
 	c.Add(keep, LocationTable{FirstLineno: 10, Raw: []byte{0x80}})
 	c.Add(drop1, LocationTable{FirstLineno: 20, Raw: []byte{0x90}})

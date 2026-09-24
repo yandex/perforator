@@ -230,7 +230,7 @@ func (l *testProcessListener) waitForProcessRegistration(ctx context.Context, pi
 	}
 }
 
-func setupProfiler(t testing.TB, c config.Config) (xlog.Logger, xmetrics.Registry, *testEventListener, *testProcessListener, *profiler.Profiler) {
+func setupProfiler(t testing.TB, c config.Config, opts ...profiler.Option) (xlog.Logger, xmetrics.Registry, *testEventListener, *testProcessListener, *profiler.Profiler) {
 	t.Helper()
 	l := xlog.ForTest(t)
 
@@ -265,7 +265,8 @@ func setupProfiler(t testing.TB, c config.Config) (xlog.Logger, xmetrics.Registr
 		logger:     l.WithName("ProfilerProcessListener"),
 		discovered: make(map[linux.CurrentNamespacePID]struct{}),
 	}
-	p, err := profiler.NewProfiler(&c, l.Logger(), r.WithPrefix("profiler"), profiler.WithEventListener(el), profiler.WithProcessListener(pl))
+	opts = append(opts, profiler.WithEventListener(el), profiler.WithProcessListener(pl))
+	p, err := profiler.NewProfiler(&c, l.Logger(), r.WithPrefix("profiler"), opts...)
 	require.NoError(t, err)
 
 	return l, r, el, pl, p

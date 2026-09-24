@@ -10,6 +10,7 @@ import (
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileresult"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/profile/bundle"
 )
 
@@ -48,7 +49,7 @@ func TestToResult(t *testing.T) {
 			start := time.Unix(1700000000, 990000000)
 			b := NewBuilder().AddSampleType("signal", "count")
 			for i, pid := range []int64{42, 42, 43} {
-				s := b.AddTimestampedSample(uint32(pid), start.Add(time.Duration(i)*time.Second)).
+				s := b.AddTimestampedSample(linux.ProcessKey{Pid: uint32(pid)}, start.Add(time.Duration(i)*time.Second)).
 					AddValue(1).AddIntLabel("pid", pid, "").AddIntLabel("innermost_pidns_pid", 8, "id").AddIntLabel("size", 16, "bytes").
 					AddStringLabel("env:key", "value").AddStringLabel("signal:name", "SIGINT").
 					AddStringLabel("signal:name", "").AddStringLabel("custom", "label")

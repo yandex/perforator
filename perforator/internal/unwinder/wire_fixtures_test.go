@@ -26,10 +26,10 @@ func TestWireFormat(t *testing.T) {
 		"0000000000000000000000000000000000000000000000000000000000000000" +
 		"0000000000000000000000000000000000000000000000000000000000000000" +
 		"000000000000000000000000000000002a000000000000002000000120000000" +
-		"34120000000000002a0000000b00000038120000000000007856000000000000" +
-		"100001011000000045230000000000002a0000000c0000001000020210000000" +
+		"34120000000000000b0000000000000038120000000000007856000000000000" +
+		"100001011000000045230000000000000c000000000000001000020210000000" +
 		"0000000000000000563400000000000018000301180000000000000000000000" +
-		"67450000000000002a0000000d000000"
+		"67450000000000000d00000000000000"
 	base, err := hex.DecodeString(recordHex)
 	if err != nil {
 		t.Fatal(err)
@@ -85,10 +85,12 @@ func TestWireFormat(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if out.Cpu != 3 || !out.Kthread || out.Runtime != 1000 || out.Starttime != 555 ||
+			if out.Cpu != 3 || !out.Kthread || out.Runtime != 1000 || out.Starttime != 555 || out.Pid != 42 ||
 				out.KernStack[1] != 0x20 || out.UserStack[0] != 0x30 || out.Cgroups[0] != 42 ||
-				out.PythonStack.Frames[0].InstrPtr != 0x1238 || out.PhpStack.Frames[0].SymbolKey.ObjectAddr != 0x2345 ||
-				out.JvmStack.Frames[0].MethodAddr != 0x3456 || out.LuaStack.Len != 1 {
+				out.PythonStack.Frames[0].SymbolKey.Linestart != 11 || out.PythonStack.Frames[0].InstrPtr != 0x1238 || out.PhpStack.Frames[0].SymbolKey.ObjectAddr != 0x2345 ||
+				out.PhpStack.Frames[0].SymbolKey.Linestart != 12 ||
+				out.JvmStack.Frames[0].MethodAddr != 0x3456 || out.LuaStack.Len != 1 ||
+				out.LuaStack.Frames[0].Value.GetLuaFrame().Linestart != 13 {
 				t.Fatalf("unexpected decoded fixture: %+v", out)
 			}
 			if len(out.LBR) != 2 || len(out.TLS) != 2 {

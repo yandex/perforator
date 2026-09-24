@@ -45,12 +45,12 @@ TString MakeRecord() {
     };
     struct {
         std::uint64_t ObjectAddress;
-        std::uint32_t Pid;
         std::int32_t LineStart;
+        std::uint32_t Padding;
     } frame{
         .ObjectAddress = 0x1234,
-        .Pid = 7,
         .LineStart = 11,
+        .Padding = 0,
     };
     std::memcpy(record.begin() + sizeof(header) + 32, &language, sizeof(language));
     std::memcpy(record.begin() + sizeof(header) + 40, &frame, sizeof(frame));
@@ -79,10 +79,10 @@ Y_UNIT_TEST_SUITE(RawSample) {
             "0000000000000000000000000000000000000000000000000000000000000000"
             "0000000000000000000000000000000000000000000000000000000000000000"
             "000000000000000000000000000000002a000000000000002000000120000000"
-            "34120000000000002a0000000b00000038120000000000007856000000000000"
-            "100001011000000045230000000000002a0000000c0000001000020210000000"
+            "34120000000000000b0000000000000038120000000000007856000000000000"
+            "100001011000000045230000000000000c000000000000001000020210000000"
             "0000000000000000563400000000000018000301180000000000000000000000"
-            "67450000000000002a0000000d000000";
+            "67450000000000000d00000000000000";
         const TString base = HexDecode(hex.data(), hex.size());
         const struct {
             const char* Name;

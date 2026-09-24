@@ -959,6 +959,8 @@ func (p *Profiler) setupConfig() error {
 		conf.EnableJvm = true
 	}
 
+	conf.EnablePython = p.conf.BPF.TracePython == nil || *p.conf.BPF.TracePython
+
 	conf.EnablePhp = p.conf.FeatureFlagsConfig.PhpEnabled()
 
 	conf.EnableLua = p.conf.FeatureFlagsConfig.LuaEnabled()

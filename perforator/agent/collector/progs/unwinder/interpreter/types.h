@@ -2,8 +2,10 @@
 
 struct symbol_key {
     u64 object_addr;
-    u32 pid;
     i32 linestart;
+    // Pads the struct to an 8-byte boundary. Must be zero because BPF maps
+    // compare all key bytes, including padding.
+    u32 _pad;
 };
 
 enum {
@@ -26,4 +28,19 @@ struct symbol {
     char data[SYMBOL_BUFFER_SIZE];
 };
 
-BPF_MAP(interpreter_symbols, BPF_MAP_TYPE_LRU_HASH, struct symbol_key, struct symbol, MAX_SYMBOLS_SIZE);
+// Frame identity is local to a process and language. The complete map key
+// includes the sample process lifetime and the section language.
+struct interpreter_symbol_key {
+    struct symbol_key symbol_key;
+    u64 process_starttime;
+    u32 pid;
+    u8 language;
+    // Pads the struct to an 8-byte boundary. Must be zero because BPF maps
+    // compare all key bytes, including padding.
+    u8 _pad[3];
+};
+
+_Static_assert(sizeof(struct symbol_key) == 16, "Unexpected symbol_key layout");
+_Static_assert(sizeof(struct interpreter_symbol_key) == 32, "Unexpected interpreter_symbol_key layout");
+
+BPF_MAP(interpreter_symbols, BPF_MAP_TYPE_LRU_HASH, struct interpreter_symbol_key, struct symbol, MAX_SYMBOLS_SIZE);

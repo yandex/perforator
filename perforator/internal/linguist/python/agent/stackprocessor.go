@@ -6,6 +6,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	python_models "github.com/yandex/perforator/perforator/internal/linguist/python/models"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 // trampolineLinestart marks a frame that is a CPython eval-loop trampoline
@@ -30,11 +31,11 @@ func NewStackProcessor(symbolizer *Symbolizer, reg metrics.Registry) *StackProce
 func (p *StackProcessor) Process(
 	builder *profile.SampleBuilder,
 	stack *unwinder.PythonStack,
-	pid uint32,
+	process linux.ProcessKey,
 ) {
 	var frames uint32
 	for i := 0; i < int(stack.Len); i++ {
-		p.processFrame(builder, &stack.Frames[i], pid)
+		p.processFrame(builder, &stack.Frames[i], process)
 		frames++
 	}
 	p.collectedFrameCount.Add(int64(frames))
@@ -43,7 +44,7 @@ func (p *StackProcessor) Process(
 func (p *StackProcessor) processFrame(
 	builder *profile.SampleBuilder,
 	frame *unwinder.PythonFrame,
-	pid uint32,
+	process linux.ProcessKey,
 ) {
 	if frame.SymbolKey.Linestart == trampolineLinestart {
 		loc := p.addLocation(builder, frame, 0)
@@ -52,7 +53,7 @@ func (p *StackProcessor) processFrame(
 		return
 	}
 
-	symbol, line, ok := p.symbolizer.SymbolizeFrame(pid, frame)
+	symbol, line, ok := p.symbolizer.SymbolizeFrame(process, frame)
 	if !ok {
 		p.unsymbolizedFrameCount.Inc()
 
@@ -86,6 +87,7 @@ func (p *StackProcessor) addLocation(
 		ObjectAddress: frame.SymbolKey.ObjectAddr,
 		Linestart:     frame.SymbolKey.Linestart,
 		Line:          line,
+		Language:      models.Language(unwinder.LanguagePython),
 	})
 	loc.SetMapping().SetPath(string(profile.PythonSpecialMapping)).Finish()
 	return loc

@@ -21,6 +21,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileresult"
 	gateway "github.com/yandex/perforator/perforator/internal/agent_gateway/client/storage"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/profile/bundle"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -66,7 +67,7 @@ func TestSerializedStorage(t *testing.T) {
 			t.Run(string(input)+"/"+string(output), func(t *testing.T) {
 				start := time.Unix(1700000000, 0).UTC()
 				b := profile.NewBuilder().AddSampleType("signal", "count")
-				b.AddTimestampedSample(42, start).AddValue(1).AddStringLabel("signal:name", "SIGINT").
+				b.AddTimestampedSample(linux.ProcessKey{Pid: 42}, start).AddValue(1).AddStringLabel("signal:name", "SIGINT").
 					AddStringLabel("env:key", "value").AddIntLabel("pid", 42, "").AddNativeLocation(0x1000).
 					SetMapping().SetBuildID("build-id").Finish().Finish().Finish()
 				b.SetStartTime(start).SetEndTime(start.Add(time.Second))
@@ -124,7 +125,7 @@ func TestStoragePreservesOriginalPprof(t *testing.T) {
 	logger := xlog.ForTest(t)
 	b := profile.NewBuilder().AddSampleType("cpu", "cycles")
 	for range 2 {
-		b.Add(42).AddValue(7).AddIntLabel("size", 16, "custom-unit").
+		b.Add(linux.ProcessKey{Pid: 42}).AddValue(7).AddIntLabel("size", 16, "custom-unit").
 			AddNativeLocation(0x1000).Finish().Finish()
 	}
 	p := b.FinishRaw()

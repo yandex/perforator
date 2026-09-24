@@ -18,7 +18,7 @@ struct lua_stack_context {
     u64 bottom;                 // Last frame in the stack.
     u64 current_lua_state;      // Current `lua_State*`.
     struct lua_frame lua_frame; // Current interpreter frame.
-    u32 pid;                    // Current PID.
+    struct interpreter_symbol_key symbol_cache_key;
     struct symbol symbol;       // Temporary buffer for frame information.
 };
 
@@ -59,6 +59,9 @@ static ALWAYS_INLINE void lua_stack_context_init(
             .ffid = 0,
         },
     };
-    context->pid = state->pid;
+    context->symbol_cache_key.pid = state->pid;
+    context->symbol_cache_key.process_starttime = state->process_starttime;
+    context->symbol_cache_key.language = LANGUAGE_LUA;
+    __builtin_memset(context->symbol_cache_key._pad, 0, sizeof(context->symbol_cache_key._pad));
     context->symbol.codepoint_size = 1; // Lua strings are always utf-8
 }

@@ -357,7 +357,7 @@ static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, v
         return false;
     }
 
-    state->symbol_key.pid = state->pid;
+    state->symbol_key._pad = 0;
     state->symbol_key.object_addr = (u64) code;
     err = bpf_probe_read_user(&state->symbol_key.linestart, sizeof(int), (void*) code + state->config.offsets.py_code_object_offsets.co_firstlineno);
     if (err != 0) {
@@ -366,6 +366,7 @@ static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, v
     }
 
     res_frame->symbol_key = state->symbol_key;
+    state->symbol_cache_key.symbol_key = state->symbol_key;
 
     res_frame->instr_ptr = python_read_instr_ptr(
         (u64)frame,
@@ -376,11 +377,11 @@ static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, v
         state->config.offsets.py_code_object_offsets.co_linetable
     );
 
-    struct python_symbol* symbol = bpf_map_lookup_elem(&interpreter_symbols, &state->symbol_key);
+    struct python_symbol* symbol = bpf_map_lookup_elem(&interpreter_symbols, &state->symbol_cache_key);
     if (symbol != NULL) {
         BPF_TRACE(
             "python: already saved this symbol pid: %u, code_object %p, first line: %d",
-            state->symbol_key.pid,
+            state->pid,
             state->symbol_key.object_addr,
             state->symbol_key.linestart
         );
@@ -396,7 +397,7 @@ static ALWAYS_INLINE bool python_process_frame(struct python_frame* res_frame, v
         return false;
     }
 
-    err = bpf_map_update_elem(&interpreter_symbols, &state->symbol_key, &state->symbol, BPF_ANY);
+    err = bpf_map_update_elem(&interpreter_symbols, &state->symbol_cache_key, &state->symbol, BPF_ANY);
     if (err != 0) {
         BPF_TRACE("python: failed to update python symbol: %d", err);
     }
@@ -435,7 +436,7 @@ static ALWAYS_INLINE void python_walk_stack(
             BPF_TRACE("python: frame owned by c stack");
 
             state->frames[cur_frame].symbol_key.linestart = PYTHON_CFRAME_LINENO_ID;
-            state->frames[cur_frame].symbol_key.pid = 0;
+            state->frames[cur_frame].symbol_key._pad = 0;
             state->frames[cur_frame].symbol_key.object_addr = 0;
             state->frames[cur_frame].instr_ptr = 0;
             state->frames[cur_frame].co_linetable_ptr = 0;

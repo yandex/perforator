@@ -122,6 +122,9 @@ struct profiler_config {
     // Enable JVM-specific unwinding and symbolization.
     bool enable_jvm;
 
+    // Enable Python unwinding.
+    bool enable_python;
+
     // Enable PHP profiling
     bool enable_php;
 
@@ -781,13 +784,22 @@ static NOINLINE int profiler_stage_collect_python_stack(void* ctx, struct profil
         return -1;
     }
 
+    // Per-CPU scratch is reused, including after collection is disabled.
+    state->python_state.frame_count = 0;
+    if (!config->enable_python) {
+        return 0;
+    }
+
     struct process_info* info = lookup_process(ctx, state);
     if (!info) {
         return -1;
     }
 
     state->python_state.pid = state->packed.header.pid;
-    state->python_state.frame_count = 0;
+    state->python_state.symbol_cache_key.pid = state->packed.header.pid;
+    state->python_state.symbol_cache_key.process_starttime = state->packed.header.starttime;
+    state->python_state.symbol_cache_key.language = LANGUAGE_PYTHON;
+    __builtin_memset(state->python_state.symbol_cache_key._pad, 0, sizeof(state->python_state.symbol_cache_key._pad));
     state->python_state.py_runtime_address = 0;
     python_collect_stack(info, &state->python_state);
     return 0;
@@ -805,6 +817,11 @@ static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_
     if (!info) {
         return -1;
     }
+    state->php_state.pid = state->packed.header.pid;
+    state->php_state.symbol_cache_key.pid = state->packed.header.pid;
+    state->php_state.symbol_cache_key.process_starttime = state->packed.header.starttime;
+    state->php_state.symbol_cache_key.language = LANGUAGE_PHP;
+    __builtin_memset(state->php_state.symbol_cache_key._pad, 0, sizeof(state->php_state.symbol_cache_key._pad));
     php_collect_stack(info, &state->php_state);
     return 0;
 }
@@ -832,6 +849,7 @@ static NOINLINE int profiler_stage_collect_lua_stack(void* context, struct user_
 
     struct lua_state* lua_state = &profiler_state->lua_state;
     lua_state->pid = profiler_state->packed.header.pid;
+    lua_state->process_starttime = profiler_state->packed.header.starttime;
     lua_state_init_registers(lua_state, user_registers);
 
     lua_collect_stack(process_info, lua_state);

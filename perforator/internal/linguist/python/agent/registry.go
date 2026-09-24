@@ -83,12 +83,12 @@ func newRegistry(
 func (r *Registry) ProcessStack(
 	builder *profile.SampleBuilder,
 	stack *unwinder.PythonStack,
-	pid uint32,
+	process linux.ProcessKey,
 ) {
 	if r == nil || r.processor == nil {
 		return
 	}
-	r.processor.Process(builder, stack, pid)
+	r.processor.Process(builder, stack, process)
 }
 
 // Stop releases background resources owned by the registry.

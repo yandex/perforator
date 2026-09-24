@@ -48,7 +48,12 @@ enum lua_stack_step_result {
     }
 
     if (luajit_isluafunc(frame_function)) {
-        return lua_frame_set_lua(lua_frame, &context->symbol, context->pid, frame_function);
+        return lua_frame_set_lua(
+            lua_frame,
+            &context->symbol_cache_key,
+            &context->symbol,
+            frame_function
+        );
     }
 
     // C and FF functions are handled in the same way

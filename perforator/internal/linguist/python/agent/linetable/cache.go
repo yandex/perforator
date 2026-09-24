@@ -8,11 +8,13 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/karlseguin/ccache/v3"
+
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 // CacheKey deduplicates parsed location tables per sampled code object state.
 type CacheKey struct {
-	Pid            uint32
+	Process        linux.ProcessKey
 	CodeObjectPtr  uint64
 	CoLinetablePtr uint64
 	CoFirstlineno  int32
@@ -93,11 +95,12 @@ func newCache(budget int64, ttl time.Duration) *Cache {
 
 func cacheKeyString(key CacheKey) string {
 	// Fixed-width binary key avoids fmt.Sprintf allocations on the hot path.
-	var b [24]byte
-	binary.LittleEndian.PutUint32(b[0:4], key.Pid)
+	var b [32]byte
+	binary.LittleEndian.PutUint32(b[0:4], key.Process.Pid)
 	binary.LittleEndian.PutUint64(b[4:12], key.CodeObjectPtr)
 	binary.LittleEndian.PutUint64(b[12:20], key.CoLinetablePtr)
 	binary.LittleEndian.PutUint32(b[20:24], uint32(key.CoFirstlineno))
+	binary.LittleEndian.PutUint64(b[24:32], key.Process.ProcessStartTime)
 	return string(b[:])
 }
 

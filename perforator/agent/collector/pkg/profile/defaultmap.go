@@ -1,12 +1,8 @@
 package profile
 
-import (
-	"sync"
+import "sync"
 
-	"golang.org/x/exp/constraints"
-)
-
-type DefaultMap[K constraints.Ordered, V any] struct {
+type DefaultMap[K comparable, V any] struct {
 	init func(K) *V
 	fini func(K, *V)
 
@@ -14,7 +10,7 @@ type DefaultMap[K constraints.Ordered, V any] struct {
 	m  map[K]*V
 }
 
-func NewDefaultMap[K constraints.Ordered, V any](
+func NewDefaultMap[K comparable, V any](
 	init func(K) *V,
 	fini func(K, *V),
 ) *DefaultMap[K, V] {

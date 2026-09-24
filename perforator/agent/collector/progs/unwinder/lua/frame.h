@@ -13,8 +13,12 @@
  *
  * @return `true` if already saved this symbol
  */
-static ALWAYS_INLINE bool lua_frame_has_symbol(struct symbol_key* lua_frame_key) {
-    return bpf_map_lookup_elem(&interpreter_symbols, lua_frame_key) != NULL;
+static ALWAYS_INLINE bool lua_frame_has_symbol(
+    struct symbol_key* lua_frame_key,
+    struct interpreter_symbol_key* cache_key
+) {
+    cache_key->symbol_key = *lua_frame_key;
+    return bpf_map_lookup_elem(&interpreter_symbols, cache_key) != NULL;
 }
 
 /**
@@ -23,8 +27,13 @@ static ALWAYS_INLINE bool lua_frame_has_symbol(struct symbol_key* lua_frame_key)
  * @param lua_frame_key Lua frame key.
  * @param symbol Symbol info.
  */
-static ALWAYS_INLINE void lua_frame_save_symbol(struct symbol_key* lua_frame_key, struct symbol* symbol) {
-    bpf_map_update_elem(&interpreter_symbols, lua_frame_key, symbol, BPF_ANY);
+static ALWAYS_INLINE void lua_frame_save_symbol(
+    struct symbol_key* lua_frame_key,
+    struct interpreter_symbol_key* cache_key,
+    struct symbol* symbol
+) {
+    cache_key->symbol_key = *lua_frame_key;
+    bpf_map_update_elem(&interpreter_symbols, cache_key, symbol, BPF_ANY);
 }
 
 /**
@@ -48,7 +57,12 @@ static ALWAYS_INLINE void lua_frame_set_invalid(struct lua_frame* lua_frame, enu
  * @param function Lua function.
  * @return `true` if set successfully, `false` if failed to get function proto.
  */
-[[nodiscard]] static ALWAYS_INLINE bool lua_frame_set_lua(struct lua_frame* lua_frame, struct symbol* symbol, u32 pid, luajit_gc_func* function) {
+[[nodiscard]] static ALWAYS_INLINE bool lua_frame_set_lua(
+    struct lua_frame* lua_frame,
+    struct interpreter_symbol_key* cache_key,
+    struct symbol* symbol,
+    luajit_gc_func* function
+) {
     luajit_gc_proto* proto = luajit_funcproto(function);
     i32 line_defined = luajit_gc_proto_get_firstline(proto);
 
@@ -56,12 +70,11 @@ static ALWAYS_INLINE void lua_frame_set_invalid(struct lua_frame* lua_frame, enu
         .type = LUA_FRAME_TYPE_LUA,
         .value.lua_frame = {
             .object_addr = (u64)proto,
-            .pid = pid,
             .linestart = line_defined,
         },
     };
 
-    if (lua_frame_has_symbol(&lua_frame->value.lua_frame)) {
+    if (lua_frame_has_symbol(&lua_frame->value.lua_frame, cache_key)) {
         return true;
     }
 
@@ -86,7 +99,7 @@ static ALWAYS_INLINE void lua_frame_set_invalid(struct lua_frame* lua_frame, enu
         symbol->filename_length = status > 255 ? 255 : (u8)status;
     }
 
-    lua_frame_save_symbol(&lua_frame->value.lua_frame, symbol);
+    lua_frame_save_symbol(&lua_frame->value.lua_frame, cache_key, symbol);
     return true;
 }
 

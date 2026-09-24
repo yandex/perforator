@@ -168,6 +168,7 @@ struct python_state {
     u32 frame_count;
     struct symbol symbol;
     struct symbol_key symbol_key;
+    struct interpreter_symbol_key symbol_cache_key;
     struct python_code_object code_object;
     u32 pid;
 };

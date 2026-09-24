@@ -44,7 +44,7 @@ func TestFlushSeparatesSampleTypes(t *testing.T) {
 					expected[strings.Join(eventTypes, ",")] = test
 					builder := b.EnsureBuilder("same-name", sampleTypes)
 					require.Same(t, builder, b.EnsureBuilder("same-name", sampleTypes))
-					s := builder.AddTimestampedSample(42, start).AddIntLabel("pid", 42, "")
+					s := builder.AddTimestampedSample(linux.ProcessKey{Pid: 42}, start).AddIntLabel("pid", 42, "")
 					for _, value := range test.values {
 						s.AddValue(value)
 					}
@@ -112,7 +112,7 @@ func TestSaveSerializedProfileCounts(t *testing.T) {
 			builder := b.EnsureBuilder("cpu", []profile.SampleType{{Kind: "cpu", Unit: "cycles"}})
 			start := time.Unix(1700000000, 0)
 			for _, pid := range []int64{42, 42, 43} {
-				builder.AddTimestampedSample(uint32(pid), start).AddValue(1).
+				builder.AddTimestampedSample(linux.ProcessKey{Pid: uint32(pid)}, start).AddValue(1).
 					AddIntLabel("pid", pid, "").AddNativeLocation(0x1000).Finish().Finish()
 			}
 			flushed := b.RestartProfiles()

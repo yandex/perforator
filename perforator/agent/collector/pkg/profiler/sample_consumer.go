@@ -548,16 +548,17 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 }
 
 func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *profile.SampleBuilder) {
+	process := linux.ProcessKey{Pid: c.sample.Pid, ProcessStartTime: c.sample.Starttime}
 	if enablePython := c.p.conf.BPF.TracePython; enablePython != nil && *enablePython {
-		c.p.pythonRegistry.ProcessStack(builder, &c.sample.PythonStack, c.sample.Pid)
+		c.p.pythonRegistry.ProcessStack(builder, &c.sample.PythonStack, process)
 	}
 
 	if c.p.conf.FeatureFlagsConfig.PhpEnabled() {
-		c.p.phpProcessor.Process(builder, &c.sample.PhpStack)
+		c.p.phpProcessor.Process(builder, &c.sample.PhpStack, process)
 	}
 
 	if c.p.conf.FeatureFlagsConfig.LuaEnabled() {
-		c.p.luaProcessor.Process(builder, &c.sample.LuaStack)
+		c.p.luaProcessor.Process(builder, &c.sample.LuaStack, process)
 	}
 
 	c.collectKernelStackInto(builder)
@@ -601,7 +602,7 @@ func (c *oneShotSampleConsumer) collectLBRStackInto(ctx context.Context, builder
 
 // for testing purposes
 func (c *oneShotSampleConsumer) initBuilderMinimal(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {
-	return c.profileBuilder.EnsureBuilder(name, sampleTypes).AddTimestampedSample(c.sample.Pid, c.sampleTime)
+	return c.profileBuilder.EnsureBuilder(name, sampleTypes).AddTimestampedSample(linux.ProcessKey{Pid: c.sample.Pid, ProcessStartTime: c.sample.Starttime}, c.sampleTime)
 }
 
 func (c *oneShotSampleConsumer) initBuilderCommon(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {

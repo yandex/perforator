@@ -72,7 +72,7 @@ struct php_stack {
 // uses __LINE__ to generate its internal identifier.
 BTF_EXPORT(struct php_stack);
 
-#define PHP_FRAME_UNKNOWN (struct php_frame){.symbol_key = {.object_addr = 0, .pid = 0, .linestart = 0}}
+#define PHP_FRAME_UNKNOWN (struct php_frame){.symbol_key = {.object_addr = 0, .linestart = 0, ._pad = 0}}
 
 
 struct php_function_data {
@@ -91,6 +91,7 @@ struct php_state {
 
     struct symbol symbol;
     struct symbol_key symbol_key;
+    struct interpreter_symbol_key symbol_cache_key;
     struct php_function_data function_data;
     u32 pid;
 };

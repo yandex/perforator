@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 // stackcollapse-perf.pl does not account event period
@@ -53,7 +54,7 @@ func ParsePerfScript(r io.Reader) (*profile.Profile, error) {
 			if err != nil {
 				return nil, err
 			}
-			sample = res.Add(0).AddValue(period).AddStringLabel("comm", comm)
+			sample = res.Add(linux.ProcessKey{}).AddValue(period).AddStringLabel("comm", comm)
 		} else {
 			// stack
 			idx := strings.IndexByte(line, ' ')

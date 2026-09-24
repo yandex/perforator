@@ -13,7 +13,9 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 const (
@@ -39,11 +41,22 @@ type Symbol struct {
 	Name     string
 }
 
+type symbolSource interface {
+	SymbolizeInterpreter(models.Language, linux.ProcessKey, *unwinder.SymbolKey) (unwinder.Symbol, bool)
+}
+
+type symbolCacheKey struct {
+	process    linux.ProcessKey
+	objectAddr uint64
+	linestart  int32
+	language   models.Language
+}
+
 type Symbolizer struct {
 	reg   metrics.Registry
 	c     *SymbolizerConfig
-	state *programstate.State
-	cache *expirable.LRU[unwinder.SymbolKey, *Symbol]
+	state symbolSource
+	cache *expirable.LRU[symbolCacheKey, *Symbol]
 
 	metrics *symbolizerMetrics
 }
@@ -60,7 +73,7 @@ func NewLuaSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metric
 	return newSymbolizer(c, state, reg, "lua")
 }
 
-func newSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metrics.Registry, language string) (*Symbolizer, error) {
+func newSymbolizer(c *SymbolizerConfig, state symbolSource, reg metrics.Registry, language string) (*Symbolizer, error) {
 	cacheSize := DefaultMaxCacheSize
 	itemTTL := DefaultCacheTTL
 	if c.ItemTTL != 0 {
@@ -70,7 +83,7 @@ func newSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metrics.R
 		cacheSize = int(c.MaxCacheSize)
 	}
 
-	cache := expirable.NewLRU[unwinder.SymbolKey, *Symbol](cacheSize, nil, itemTTL)
+	cache := expirable.NewLRU[symbolCacheKey, *Symbol](cacheSize, nil, itemTTL)
 
 	res := &Symbolizer{
 		reg:   reg,
@@ -185,15 +198,21 @@ func extractNameAndFilenameSlices(symbol *unwinder.Symbol) (nameBytes, filenameB
 	return symbol.Data[:filenameStart], symbol.Data[filenameStart:filenameEnd], true
 }
 
-func (s *Symbolizer) Symbolize(key *unwinder.SymbolKey) (*Symbol, bool) {
-	if symbol, ok := s.cache.Get(*key); ok {
+func (s *Symbolizer) Symbolize(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (*Symbol, bool) {
+	cacheKey := symbolCacheKey{
+		process:    process,
+		language:   language,
+		objectAddr: key.ObjectAddr,
+		linestart:  key.Linestart,
+	}
+	if symbol, ok := s.cache.Get(cacheKey); ok {
 		s.metrics.cacheHits.Inc()
 		return symbol, true
 	}
 
 	s.metrics.cacheMisses.Inc()
 
-	symbol, exists := s.state.SymbolizeInterpeter(key)
+	symbol, exists := s.state.SymbolizeInterpreter(language, process, key)
 	if !exists {
 		return nil, false
 	}
@@ -223,6 +242,6 @@ func (s *Symbolizer) Symbolize(key *unwinder.SymbolKey) (*Symbol, bool) {
 		FileName: fileName,
 	}
 
-	_ = s.cache.Add(*key, newSymbol)
+	_ = s.cache.Add(cacheKey, newSymbol)
 	return newSymbol, true
 }

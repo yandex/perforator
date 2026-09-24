@@ -80,6 +80,7 @@ struct lua_stack {
 struct lua_state {
     // Process info
     u32 pid;                  // Current process ID.
+    u64 process_starttime;    // Distinguishes PID reuse in symbol caches.
     struct lua_config config; // Config of LuaJIT binary found in this process.
     u64 binary_start_address; // Base address of LuaJIT binary in memory.
     u64 binary_end_address;   // Last address of LuaJIT binary in memory.

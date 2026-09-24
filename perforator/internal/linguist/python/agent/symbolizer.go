@@ -4,16 +4,18 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/python/agent/linetable"
 	"github.com/yandex/perforator/perforator/internal/linguist/python/agent/remotemem"
 	pyoffsets "github.com/yandex/perforator/perforator/internal/linguist/python/offsets"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 // SymbolSource provides name/filename symbolization for interpreter frames.
 type SymbolSource interface {
-	Symbolize(key *unwinder.SymbolKey) (*symbolizer.Symbol, bool)
+	Symbolize(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (*symbolizer.Symbol, bool)
 }
 
 // OffsetsLookup provides per-pid CPython internals offsets for line resolution.
@@ -84,17 +86,17 @@ func newSymbolizer(
 
 // SymbolizeFrame symbolizes frame and best-effort resolves its source line.
 func (s *Symbolizer) SymbolizeFrame(
-	pid uint32,
+	process linux.ProcessKey,
 	frame *unwinder.PythonFrame,
 ) (*symbolizer.Symbol, int32, bool) {
 	if s == nil || s.symbols == nil || frame == nil {
 		return nil, 0, false
 	}
-	sym, ok := s.symbols.Symbolize(&frame.SymbolKey)
+	sym, ok := s.symbols.Symbolize(models.Language(unwinder.LanguagePython), process, &frame.SymbolKey)
 	if !ok {
 		return nil, 0, false
 	}
-	line, _ := s.resolveLine(pid, frame)
+	line, _ := s.resolveLine(process, frame)
 	return sym, line, true
 }
 
@@ -113,7 +115,7 @@ func (s *Symbolizer) Stop() {
 	s.cache.Stop()
 }
 
-func (s *Symbolizer) resolveLine(pid uint32, frame *unwinder.PythonFrame) (int32, bool) {
+func (s *Symbolizer) resolveLine(process linux.ProcessKey, frame *unwinder.PythonFrame) (int32, bool) {
 	if s.offsets == nil || s.reader == nil || s.cache == nil {
 		return 0, false
 	}
@@ -128,7 +130,7 @@ func (s *Symbolizer) resolveLine(pid uint32, frame *unwinder.PythonFrame) (int32
 		return 0, false
 	}
 
-	offsets, ok := s.offsets.OffsetsForPid(pid)
+	offsets, ok := s.offsets.OffsetsForPid(process.Pid)
 	if !ok || offsets == nil {
 		return 0, false
 	}
@@ -154,7 +156,7 @@ func (s *Symbolizer) resolveLine(pid uint32, frame *unwinder.PythonFrame) (int32
 	}
 
 	cacheKey := linetable.CacheKey{
-		Pid:            pid,
+		Process:        process,
 		CodeObjectPtr:  codeObjectAddr,
 		CoLinetablePtr: coLinetablePtr,
 		CoFirstlineno:  coFirstlineno,
@@ -168,7 +170,7 @@ func (s *Symbolizer) resolveLine(pid uint32, frame *unwinder.PythonFrame) (int32
 	}
 
 	table, err := s.reader.ReadCodeLinetable(
-		pid,
+		process.Pid,
 		uintptr(codeObjectAddr),
 		uintptr(coLinetablePtr),
 		remotemem.CodeObjectOffsets{

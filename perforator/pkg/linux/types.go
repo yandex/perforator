@@ -9,3 +9,10 @@ type CurrentNamespacePID processID
 type NamespacedPID processID
 
 type PIDNamespaceInode uint64
+
+// ProcessKey identifies one process lifetime in the agent PID namespace.
+// ProcessStartTime uses the monotonic starttime recorded in BPF samples.
+type ProcessKey struct {
+	Pid              uint32
+	ProcessStartTime uint64
+}

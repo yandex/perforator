@@ -12,6 +12,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileresult"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -33,7 +34,7 @@ type profileBuilderWithSampleTypes struct {
 type multiProfileBuilder struct {
 	mu               sync.RWMutex
 	labels           map[string]string
-	caches           *profile.DefaultMap[uint32, profile.ProcessCache]
+	caches           *profile.DefaultMap[linux.ProcessKey, profile.ProcessCache]
 	builders         map[string][]profileBuilderWithSampleTypes
 	profileStartTime time.Time
 	profileFormat    profileformat.ProfileFormat

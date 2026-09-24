@@ -217,16 +217,17 @@ static ALWAYS_INLINE bool php_process_frame(struct php_state* state, struct php_
         }
     }
 
-    state->symbol_key.pid = state->pid;
+    state->symbol_key._pad = 0;
     state->symbol_key.object_addr = (u64)zend_function;
     state->symbol_key.linestart = linestart;
 
     frame->symbol_key = state->symbol_key;
+    state->symbol_cache_key.symbol_key = state->symbol_key;
 
-    struct php_symbol* symbol = bpf_map_lookup_elem(&interpreter_symbols, &state->symbol_key);
+    struct php_symbol* symbol = bpf_map_lookup_elem(&interpreter_symbols, &state->symbol_cache_key);
     if (symbol != NULL) {
         PHP_TRACE("already saved this symbol pid: %u, function_addr %p, linestart: %u",
-                  state->symbol_key.pid, state->symbol_key.object_addr, state->symbol_key.linestart);
+                  state->pid, state->symbol_key.object_addr, state->symbol_key.linestart);
         return true;
     }
 
@@ -239,7 +240,7 @@ static ALWAYS_INLINE bool php_process_frame(struct php_state* state, struct php_
         return false;
     }
 
-    err = bpf_map_update_elem(&interpreter_symbols, &state->symbol_key, &state->symbol, BPF_ANY);
+    err = bpf_map_update_elem(&interpreter_symbols, &state->symbol_cache_key, &state->symbol, BPF_ANY);
     if (err != 0) {
         PHP_TRACE("failed to update php symbol: %d", err);
     }

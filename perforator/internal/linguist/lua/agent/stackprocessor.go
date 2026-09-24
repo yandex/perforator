@@ -6,8 +6,10 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 // Internal frame decoding errors, see lua_stack_walk_error at perforator/agent/collector/progs/unwinder/lua/stack/walk_error.h
@@ -38,11 +40,12 @@ func NewStackProcessor(symbolizer *symbolizer.Symbolizer, reg metrics.Registry) 
 func (p *StackProcessor) Process(
 	builder *profile.SampleBuilder,
 	stack *unwinder.LuaStack,
+	process linux.ProcessKey,
 ) {
 	var frames uint32
 	for i := 0; i < int(stack.Len); i++ {
 		frame := &stack.Frames[i]
-		p.processFrame(builder, frame)
+		p.processFrame(builder, frame, process)
 
 		frames++
 	}
@@ -53,6 +56,7 @@ func (p *StackProcessor) Process(
 func (p *StackProcessor) processFrame(
 	builder *profile.SampleBuilder,
 	frame *unwinder.LuaFrame,
+	process linux.ProcessKey,
 ) {
 	name := "[lua] "
 	filename := ""
@@ -62,7 +66,7 @@ func (p *StackProcessor) processFrame(
 	switch frame.Type {
 	case unwinder.LuaFrameTypeLua:
 		luaFrame := frame.Value.GetLuaFrame()
-		symbol, exists := p.symbolizer.Symbolize(&luaFrame)
+		symbol, exists := p.symbolizer.Symbolize(models.Language(unwinder.LanguageLua), process, &luaFrame)
 
 		if !exists {
 			p.unsymbolizedFrameCount.Inc()
@@ -88,6 +92,7 @@ func (p *StackProcessor) processFrame(
 		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
 			ObjectAddress: luaFrame.ObjectAddr,
 			Linestart:     luaFrame.Linestart,
+			Language:      models.Language(unwinder.LanguageLua),
 		})
 	case unwinder.LuaFrameTypeC:
 		cFrame := frame.Value.GetCFrame()
@@ -103,6 +108,7 @@ func (p *StackProcessor) processFrame(
 		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
 			ObjectAddress: cFrame.ObjectAddr,
 			Linestart:     int32(cFrame.Ffid),
+			Language:      models.Language(unwinder.LanguageLua),
 		})
 	case unwinder.LuaFrameTypeInvalid:
 		invalidFrame := frame.Value.GetInvalidFrame()
@@ -115,6 +121,7 @@ func (p *StackProcessor) processFrame(
 		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
 			ObjectAddress: uint64(invalidFrame.Error),
 			Linestart:     0,
+			Language:      models.Language(unwinder.LanguageLua),
 		})
 	}
 

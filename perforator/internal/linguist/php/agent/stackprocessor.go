@@ -6,6 +6,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 // StackProcessor renders a PHP stack collected by the unwinder into pprof locations.
@@ -26,6 +27,7 @@ func NewStackProcessor(symbolizer *symbolizer.Symbolizer, reg metrics.Registry) 
 func (p *StackProcessor) Process(
 	builder *profile.SampleBuilder,
 	stack *unwinder.PhpStack,
+	process linux.ProcessKey,
 ) {
 	var frames uint32
 	for i := 0; i < int(stack.Len); i++ {
@@ -34,10 +36,11 @@ func (p *StackProcessor) Process(
 		loc := builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
 			ObjectAddress: frame.SymbolKey.ObjectAddr,
 			Linestart:     frame.SymbolKey.Linestart,
+			Language:      models.Language(unwinder.LanguagePhp),
 		})
 		loc.SetMapping().SetPath(string(profile.PHPSpecialMapping)).Finish()
 
-		p.processFrame(loc, frame)
+		p.processFrame(loc, frame, process)
 
 		loc.Finish()
 		frames++
@@ -48,8 +51,9 @@ func (p *StackProcessor) Process(
 func (p *StackProcessor) processFrame(
 	loc *profile.LocationBuilder,
 	frame *unwinder.PhpFrame,
+	process linux.ProcessKey,
 ) {
-	symbol, exists := p.symbolizer.Symbolize(&frame.SymbolKey)
+	symbol, exists := p.symbolizer.Symbolize(models.Language(unwinder.LanguagePhp), process, &frame.SymbolKey)
 	if !exists {
 		p.unsymbolizedFrameCount.Inc()
 		loc.AddFrame().
