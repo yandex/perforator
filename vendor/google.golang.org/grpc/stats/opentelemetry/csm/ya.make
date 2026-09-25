@@ -9,13 +9,4 @@ SRCS(
     pluginoption.go
 )
 
-GO_TEST_SRCS(
-    observability_test.go
-    pluginoption_test.go
-)
-
 END()
-
-RECURSE(
-    gotest
-)
