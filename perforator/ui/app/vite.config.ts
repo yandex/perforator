@@ -21,8 +21,8 @@ export default defineConfig(({ command }): UserConfig => {
     const aliases: Alias[] = [
         ...(viteSettings?.aliases || []),
         {
-            find: /^~.+/,
-            replacement: val => val.replace(/^~/, ''),
+            find: /^~(.+)/,
+            replacement: '$1',
         },
         {
             find: 'src',

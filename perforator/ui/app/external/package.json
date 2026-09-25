@@ -63,7 +63,7 @@
     "@types/react-dom": "18.3.6",
     "@typescript-eslint/eslint-plugin": "8.62.0",
     "@typescript-eslint/parser": "8.62.0",
-    "@vitejs/plugin-react": "4.6.0",
+    "@vitejs/plugin-react": "6.1.1",
     "autoprefixer": "^10.4.20",
     "eslint": "9.39.4",
     "eslint-plugin-import": "2.32.0",
@@ -81,7 +81,7 @@
     "stylelint": "15.11.0",
     "ts-proto": "2.2.0",
     "typescript": "6.0.3",
-    "vite": "6.3.5"
+    "vite": "8.3.0"
   },
   "engines": {
     "node": "22.22.2"

@@ -15,8 +15,8 @@ export default defineConfig(() => {
             alias: [
                 ...(viteSettings.aliases || []),
                 {
-                    find: /^~.+/,
-                    replacement: val => val.replace(/^~/, ''),
+                    find: /^~(.+)/,
+                    replacement: '$1',
                 },
                 {
                     find: 'src',
@@ -39,7 +39,7 @@ export default defineConfig(() => {
                     chunkFileNames: `assets/[name].js`,
                     assetFileNames: `assets/[name].[ext]`,
                     inlineDynamicImports: true,
-                    format: 'iife',
+                    format: 'iife' as const,
                 },
             }
         },
