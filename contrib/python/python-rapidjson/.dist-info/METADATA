@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: python-rapidjson
-Version: 1.23
+Version: 1.25
 Summary: Python wrapper around rapidjson
 Home-page: https://github.com/python-rapidjson/python-rapidjson
 Author: Ken Robbins
@@ -14,14 +14,14 @@ Classifier: Intended Audience :: Developers
 Classifier: Programming Language :: C++
 Classifier: Programming Language :: Python :: 3 :: Only
 Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
 Classifier: Programming Language :: Python :: 3.13
 Classifier: Programming Language :: Python :: 3.14
+Classifier: Programming Language :: Python :: 3.15
 Classifier: Programming Language :: Python
-Requires-Python: >=3.6
+Requires-Python: >=3.10
 Description-Content-Type: text/x-rst
 License-File: LICENSE
 Dynamic: author
@@ -187,6 +187,41 @@ __ https://python-rapidjson.readthedocs.io/en/latest/quickstart.html#incompatibi
 
 Changes
 -------
+
+1.25 (2026-09-06)
+~~~~~~~~~~~~~~~~~
+
+* Rectify packaging, mention minimal supported Python version (`issue 240`__)
+
+  __ https://github.com/python-rapidjson/python-rapidjson/issues/240
+
+
+1.24 (2026-09-05)
+~~~~~~~~~~~~~~~~~
+
+* Fix error handling after ``PyList_SetItem()`` calls (`issue 231`__)
+
+  __ https://github.com/python-rapidjson/python-rapidjson/issues/231
+
+* Fix error handling after ``PyList_Append()`` calls (`issue 232`__)
+
+  __ https://github.com/python-rapidjson/python-rapidjson/issues/232
+
+* Fix crash serializing a list that changes on the fly (`issue 238`__)
+
+  __ https://github.com/python-rapidjson/python-rapidjson/issues/238
+
+* Fix memory leak in ``RawJSON`` constructor with invalid argument (`PR #239`__), thanks
+  to Junhyung Lee
+
+  __ https://github.com/python-rapidjson/python-rapidjson/pull/239
+
+* Drop support for Python <3.10
+
+* Generate wheels on PyPI for Python 3.15rc1, thanks to cibuildwheel `4.2.0`__
+
+  __ https://cibuildwheel.pypa.io/en/stable/changelog/#v420
+
 
 1.23 (2025-12-07)
 ~~~~~~~~~~~~~~~~~

@@ -3,7 +3,7 @@
 // :Author:    Ken Robbins <ken@kenrobbins.com>
 // :License:   MIT License
 // :Copyright: © 2015 Ken Robbins
-// :Copyright: © 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025 Lele Gaifax
+// :Copyright: © 2015-2026 Lele Gaifax
 //
 
 #include <locale.h>
@@ -465,7 +465,6 @@ RawJSON_dealloc(RawJSON* self)
 static PyObject*
 RawJSON_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
 {
-    PyObject* self = type->tp_alloc(type, 0);
     static char const* kwlist[] = {
         "value",
         NULL
@@ -473,6 +472,10 @@ RawJSON_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     PyObject* value = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "U", (char**) kwlist, &value))
+        return NULL;
+
+    PyObject* self = type->tp_alloc(type, 0);
+    if (self == NULL)
         return NULL;
 
     ((RawJSON*) self)->value = value;
@@ -909,8 +912,11 @@ struct PyHandler {
                     return false;
                 }
             } else {
-                PyList_Append(current.object, value);
+                int rc = PyList_Append(current.object, value);
                 Py_DECREF(value);
+                if (rc == -1) {
+                    return false;
+                }
             }
         } else {
             root = value;
@@ -1054,11 +1060,11 @@ struct PyHandler {
 
                     rc = PyList_SetItem(current.object, listLen - 1, pair);
 
-                    // NB: PyList_SetItem() steals a reference on the replacement, so it
-                    // must not be DECREFed when the operation succeeds
+                    // NB: PyList_SetItem() always steals a reference on the replacement,
+                    // even in case of error:
+                    // https://docs.python.org/3/c-api/list.html#c.PyList_SetItem
 
                     if (rc == -1) {
-                        Py_DECREF(pair);
                         return false;
                     }
                 } else {
@@ -1079,11 +1085,11 @@ struct PyHandler {
                 Py_ssize_t listLen = PyList_GET_SIZE(current.object);
                 int rc = PyList_SetItem(current.object, listLen - 1, replacement);
 
-                // NB: PyList_SetItem() steals a reference on the replacement, so it must
-                // not be DECREFed when the operation succeeds
+                // NB: PyList_SetItem() always steals a reference on the replacement,
+                // even in case of error:
+                // https://docs.python.org/3/c-api/list.html#c.PyList_SetItem
 
                 if (rc == -1) {
-                    Py_DECREF(replacement);
                     return false;
                 }
             }
@@ -1174,11 +1180,11 @@ struct PyHandler {
                 Py_ssize_t listLen = PyList_GET_SIZE(current.object);
                 int rc = PyList_SetItem(current.object, listLen - 1, replacement);
 
-                // NB: PyList_SetItem() steals a reference on the replacement, so it must
-                // not be DECREFed when the operation succeeds
-
+                // NB: PyList_SetItem() always steals a reference on the replacement,
+                // even in case of error:
+                // https://docs.python.org/3/c-api/list.html#c.PyList_SetItem
+                //
                 if (rc == -1) {
-                    Py_DECREF(replacement);
                     return false;
                 }
             }
@@ -2504,9 +2510,7 @@ dumps_internal(
                (!(iterableMode & IM_ONLY_LISTS) && PyList_Check(object))) {
         writer->StartArray();
 
-        Py_ssize_t size = PyList_GET_SIZE(object);
-
-        for (Py_ssize_t i = 0; i < size; i++) {
+        for (Py_ssize_t i = 0; i < PyList_GET_SIZE(object); i++) {
             if (Py_EnterRecursiveCall(" while JSONifying list object"))
                 return false;
             PyObject* item = PyList_GET_ITEM(object, i);
