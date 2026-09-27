@@ -124,8 +124,15 @@ func (c *continuousProfilingSampleConsumer) Flush(ctx context.Context) error {
 		}
 	}
 
-	// TODO: hold mutex here
-	for pid, process := range c.p.pids {
+	// Snapshot pids under short lock to avoid racing with add/remove.
+	c.p.pidsmu.RLock()
+	pidsSnapshot := make(map[linux.CurrentNamespacePID]*trackedProcess, len(c.p.pids))
+	for k, v := range c.p.pids {
+		pidsSnapshot[k] = v
+	}
+	c.p.pidsmu.RUnlock()
+
+	for pid, process := range pidsSnapshot {
 		c.p.log.Info("Flushing process profile", logfield.CurrentNamespacePID(pid))
 		err := process.sampleConsumer.Flush(ctx)
 		if err != nil {
