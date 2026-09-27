@@ -633,11 +633,6 @@ func (c *Client) UploadRenderedProfile(
 		return "", "", fmt.Errorf("failed to upload profile: %w", err)
 	}
 
-	// FIXME(sskvor): We store profiles in the Clickhouse using async_insert,
-	// so UploadProfile may return when the profile is not available yet for reading.
-	// Temporary kludge until we have a better way to synchronously upload profile.
-	time.Sleep(time.Second * 5)
-
 	// Derive event type from profile for the selector.
 	// The server requires event_type to be specified, otherwise it defaults to cpu.cycles.
 	eventType := sampletype.SampleTypeCPUCycles
@@ -669,9 +664,30 @@ func (c *Client) UploadRenderedProfile(
 		}
 	}
 
-	taskID, _, err = c.MergeProfilesProto(ctx, req, taskAnnotation)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to render uploaded profile: %w", err)
+	// ClickHouse async_insert: profile may not be visible immediately after upload.
+	// Poll with exponential backoff (100ms → 200ms → 400ms → … ≤ 5 s total)
+	// instead of an unconditional 5 s sleep, so fast inserts return early.
+	const maxWait = 5 * time.Second
+	delay := 100 * time.Millisecond
+	deadline := time.Now().Add(maxWait)
+	for {
+		taskID, _, err = c.MergeProfilesProto(ctx, req, taskAnnotation)
+		if err == nil {
+			break
+		}
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return "", "", fmt.Errorf("failed to render uploaded profile: %w", err)
+		}
+		if delay > remaining {
+			delay = remaining
+		}
+		select {
+		case <-ctx.Done():
+			return "", "", ctx.Err()
+		case <-time.After(delay):
+		}
+		delay *= 2
 	}
 	c.l.Info(ctx,
 		"Uploaded profile",
