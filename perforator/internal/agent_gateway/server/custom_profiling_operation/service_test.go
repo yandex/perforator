@@ -432,11 +432,16 @@ func TestService_PollOperations_MultipleAgentsLongPolling(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	// Long polling timeout must be significantly larger than the delay before the
+	// snapshot update below: on slow/loaded CI machines the update goroutine can be
+	// scheduled later than timeout expires. Hence we allow this test to run a bit longer too.
+	const testTimeout = 15 * time.Second
+
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
 	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, 3*time.Second)
+	service := createTestService(t, operationsMockStorage, 5*time.Second)
 
 	agentsCount := 10
 
@@ -555,7 +560,7 @@ func TestService_PollOperations_MultipleAgentsLongPolling(t *testing.T) {
 	}
 
 	go func() {
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 		service.tryUpdateSnapshot(ctx)
 	}()
 
