@@ -18399,11 +18399,12 @@ github.com/xuri/nfp
 # github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0
 ## explicit
 github.com/yalp/jsonpath
-# github.com/yandex-cloud/go-genproto v0.115.0
+# github.com/yandex-cloud/go-genproto v0.121.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-genproto
 github.com/yandex-cloud/go-genproto/yandex/cloud
 github.com/yandex-cloud/go-genproto/yandex/cloud/access
+github.com/yandex-cloud/go-genproto/yandex/cloud/adviser/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/ai/assistants/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/ai/assistants/v1/runs
 github.com/yandex-cloud/go-genproto/yandex/cloud/ai/assistants/v1/searchindex
@@ -18545,6 +18546,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/workflows/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartcaptcha/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/advanced_rate_limiter
+github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/custom_page
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/load_balancer
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/match_list
 github.com/yandex-cloud/go-genproto/yandex/cloud/smartwebsecurity/v1/waf
@@ -18559,7 +18561,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1/privatelink
 github.com/yandex-cloud/go-genproto/yandex/cloud/ydb/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/ytsaurus/v1
-# github.com/yandex-cloud/go-sdk v0.32.0
+# github.com/yandex-cloud/go-sdk v0.35.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-sdk
 github.com/yandex-cloud/go-sdk/dial
@@ -18650,6 +18652,7 @@ github.com/yandex-cloud/go-sdk/gen/mdb/postgresql
 github.com/yandex-cloud/go-sdk/gen/mdb/redis
 github.com/yandex-cloud/go-sdk/gen/mdb/spqr
 github.com/yandex-cloud/go-sdk/gen/mdb/sqlserver
+github.com/yandex-cloud/go-sdk/gen/mdb/zonalshift
 github.com/yandex-cloud/go-sdk/gen/mdbproxy
 github.com/yandex-cloud/go-sdk/gen/metastore
 github.com/yandex-cloud/go-sdk/gen/monitoring
@@ -18669,6 +18672,7 @@ github.com/yandex-cloud/go-sdk/gen/smartwebsecurity/waf
 github.com/yandex-cloud/go-sdk/gen/spark
 github.com/yandex-cloud/go-sdk/gen/storage-api
 github.com/yandex-cloud/go-sdk/gen/triggers
+github.com/yandex-cloud/go-sdk/gen/triggers/v2
 github.com/yandex-cloud/go-sdk/gen/trino
 github.com/yandex-cloud/go-sdk/gen/vpc
 github.com/yandex-cloud/go-sdk/gen/vpc/privatelink
@@ -18686,6 +18690,37 @@ github.com/yandex-cloud/go-sdk/pkg/sdkerrors
 github.com/yandex-cloud/go-sdk/pkg/singleflight
 github.com/yandex-cloud/go-sdk/pkg/testutil
 github.com/yandex-cloud/go-sdk/sdkresolvers
+# github.com/yandex-cloud/go-sdk/services/marketplace/stacklandlicenseapi v0.0.20
+## explicit; go 1.24.13
+github.com/yandex-cloud/go-sdk/services/marketplace/stacklandlicenseapi
+github.com/yandex-cloud/go-sdk/services/marketplace/stacklandlicenseapi/v1
+# github.com/yandex-cloud/go-sdk/v2 v2.94.0
+## explicit; go 1.23.0
+github.com/yandex-cloud/go-sdk/v2
+github.com/yandex-cloud/go-sdk/v2/credentials
+github.com/yandex-cloud/go-sdk/v2/pkg/authentication
+github.com/yandex-cloud/go-sdk/v2/pkg/endpoints
+github.com/yandex-cloud/go-sdk/v2/pkg/errors
+github.com/yandex-cloud/go-sdk/v2/pkg/iamkey
+github.com/yandex-cloud/go-sdk/v2/pkg/iterator
+github.com/yandex-cloud/go-sdk/v2/pkg/log
+github.com/yandex-cloud/go-sdk/v2/pkg/operation
+github.com/yandex-cloud/go-sdk/v2/pkg/options
+github.com/yandex-cloud/go-sdk/v2/pkg/options/retry
+github.com/yandex-cloud/go-sdk/v2/pkg/sdkerrors
+github.com/yandex-cloud/go-sdk/v2/pkg/sdkresolvers
+github.com/yandex-cloud/go-sdk/v2/pkg/transport
+github.com/yandex-cloud/go-sdk/v2/pkg/transport/grpc
+github.com/yandex-cloud/go-sdk/v2/pkg/transport/middleware/authentication
+github.com/yandex-cloud/go-sdk/v2/pkg/transport/middleware/idempotency
+github.com/yandex-cloud/go-sdk/v2/pkg/transport/middleware/requestid
+github.com/yandex-cloud/go-sdk/v2/services/devtools/ycvc/v1
+github.com/yandex-cloud/go-sdk/v2/services/endpoint
+github.com/yandex-cloud/go-sdk/v2/services/endpoints
+github.com/yandex-cloud/go-sdk/v2/services/iam/v1
+github.com/yandex-cloud/go-sdk/v2/services/iam/v1/awscompatibility
+github.com/yandex-cloud/go-sdk/v2/services/iam/v1/workload
+github.com/yandex-cloud/go-sdk/v2/services/iam/v1/workload/oidc
 # github.com/yandex-cloud/kms-clients-go/yckmstink v0.0.0-20200608135605-a61de9ba71a6
 ## explicit; go 1.13
 github.com/yandex-cloud/kms-clients-go/yckmstink
@@ -24785,6 +24820,11 @@ software.sslmate.com/src/go-pkcs12/internal/rc2
 ## explicit
 # sourcegraph.com/sourcegraph/appdash-data v0.0.0-20151005221446-73f23eafcf67
 ## explicit
+# src.yandex.cloud/yc/quantum/license/lib v0.0.0-20260827090626-385a126ca950
+## explicit; go 1.24.13
+src.yandex.cloud/yc/quantum/license/lib
+src.yandex.cloud/yc/quantum/license/lib/offline
+src.yandex.cloud/yc/quantum/license/lib/online
 # tags.cncf.io/container-device-interface v1.0.1
 ## explicit; go 1.20
 # tags.cncf.io/container-device-interface/specs-go v1.0.0

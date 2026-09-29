@@ -964,8 +964,10 @@ require (
 	github.com/xitongsys/parquet-go v1.6.2
 	github.com/xlab/treeprint v1.2.0
 	github.com/xuri/excelize/v2 v2.9.1
-	github.com/yandex-cloud/go-genproto v0.115.0
-	github.com/yandex-cloud/go-sdk v0.32.0
+	github.com/yandex-cloud/go-genproto v0.121.0
+	github.com/yandex-cloud/go-sdk v0.35.0
+	github.com/yandex-cloud/go-sdk/services/marketplace/stacklandlicenseapi v0.0.20
+	github.com/yandex-cloud/go-sdk/v2 v2.94.0
 	github.com/yandex-cloud/kms-clients-go/yckmstink v0.0.0-20200608135605-a61de9ba71a6
 	github.com/yandex/pandora v0.5.3
 	github.com/yanet-platform/ipfw-go v0.2.0
@@ -1227,6 +1229,7 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.20.1
 	sigs.k8s.io/yaml v1.6.0
 	software.sslmate.com/src/go-pkcs12 v0.7.3
+	src.yandex.cloud/yc/quantum/license/lib v0.0.0-20260827090626-385a126ca950
 )
 
 require (
