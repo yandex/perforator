@@ -1,5 +1,5 @@
 on:
-  - pull_request_target
+  - pull_request
 permissions: {} # disable all by default
 jobs:
   run-build:
