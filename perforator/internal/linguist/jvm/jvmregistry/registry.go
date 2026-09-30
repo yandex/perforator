@@ -466,11 +466,9 @@ func (r *Registry) scanSingleProcess(ctx context.Context, tp *trackedProcess) er
 	if err != nil {
 		status, ok := status.FromError(err)
 		if ok && status.Code() == codes.FailedPrecondition {
-			r.l.Info(ctx, "Ignoring FAILED_PRECONDITION scan error", logfield.CurrentNamespacePID(tp.pid), log.String("message", status.Message()))
+			r.l.Debug(ctx, "Ignoring FAILED_PRECONDITION scan error", logfield.CurrentNamespacePID(tp.pid), log.String("message", status.Message()))
 		} else {
-			r.l.Error(ctx, "Unexpected scan error", logfield.CurrentNamespacePID(tp.pid), log.Stringer("code", status.Code()), log.String("message", status.Message()))
-			// TODO:
-			// return fmt.Errorf("scanner call failed: %w", err)
+			return fmt.Errorf("scanner call failed: %w", err)
 		}
 		return nil
 	}
@@ -528,7 +526,7 @@ func (r *Registry) listTargets() []*trackedProcess {
 	return targets
 }
 
-func (r *Registry) scanAll(ctx context.Context) error {
+func (r *Registry) scanAll(ctx context.Context) {
 	r.scanIterations.Add(1)
 	targets := r.listTargets()
 
@@ -537,28 +535,24 @@ func (r *Registry) scanAll(ctx context.Context) error {
 	r.trackedMu.Lock()
 	defer r.trackedMu.Unlock()
 	for _, tp := range targets {
+		if ctx.Err() != nil {
+			return
+		}
 		r.processScans.Add(1)
 		err := r.scanSingleProcess(ctx, tp)
 		if err != nil {
-			return err
+			r.l.Warn(ctx, "Error during background JVM process refresh", logfield.CurrentNamespacePID(tp.pid), log.Error(err))
 		}
 	}
-	return nil
 }
 
-func (r *Registry) runProcessScanner(ctx context.Context) error {
+func (r *Registry) runProcessScanner(ctx context.Context) {
 	ticker := time.NewTicker(10 * time.Second)
 	for {
-		err := r.scanAll(ctx)
-		if err != nil {
-			if errors.Is(err, context.Cause(ctx)) {
-				return nil
-			}
-			return err
-		}
+		r.scanAll(ctx)
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		case <-ticker.C:
 		}
 	}
@@ -606,10 +600,7 @@ func (r *Registry) Run(ctx context.Context) error {
 		return fmt.Errorf("keepalive call succeeded unexpectedly")
 	})
 	eg.Go(func() error {
-		err := r.runProcessScanner(ctx)
-		if err != nil {
-			return fmt.Errorf("background process scanner failed: %w", err)
-		}
+		r.runProcessScanner(ctx)
 		return nil
 	})
 
