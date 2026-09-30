@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-09-21T07:34:06.892Z",
+    "created": "2026-09-29T18:25:20.464Z",
     "pr": {
-      "id": 15857833,
-      "author": "zaverden",
-      "summary": "FBP-2783: Move builder runtime out of build plugins"
+      "id": 16091398,
+      "author": "baymer",
+      "summary": "FBP-3454: Вынести pnpm из ERM"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13750200463"
+      "uri": "sbr:13883956734"
     },
     "darwin-arm64": {
-      "uri": "sbr:13750197125"
+      "uri": "sbr:13883954279"
     },
     "linux": {
-      "uri": "sbr:13750206714"
+      "uri": "sbr:13883961705"
     },
     "linux-aarch64": {
-      "uri": "sbr:13750203460"
+      "uri": "sbr:13883959224"
     }
   }
 }
