@@ -168,19 +168,21 @@ func (s *Symbolizer) decodeUTF32(data []byte) string {
 	return string(result)
 }
 
-func extractNameAndFilenameSlices(symbol *unwinder.Symbol) (nameBytes, filenameBytes []byte) {
-	if symbol.CodepointSize == 1 {
-		nameBytes = symbol.Data[:symbol.NameLength]
-		filenameBytes = symbol.Data[symbol.NameLength : symbol.NameLength+symbol.FilenameLength]
-		return
+func extractNameAndFilenameSlices(symbol *unwinder.Symbol) (nameBytes, filenameBytes []byte, ok bool) {
+	switch symbol.CodepointSize {
+	case 1, 2, 4:
+	default:
+		return nil, nil, false
 	}
 
-	// UTF-16 or UTF-32
 	charSize := int(symbol.CodepointSize)
-	filenameOffset := int(symbol.NameLength) * charSize
-	nameBytes = symbol.Data[:filenameOffset]
-	filenameBytes = symbol.Data[filenameOffset : filenameOffset+int(symbol.FilenameLength)*charSize]
-	return
+	// Widen the uint8 lengths before arithmetic: their sum can exceed 255.
+	filenameStart := int(symbol.NameLength) * charSize
+	filenameEnd := filenameStart + int(symbol.FilenameLength)*charSize
+	if filenameEnd > len(symbol.Data) {
+		return nil, nil, false
+	}
+	return symbol.Data[:filenameStart], symbol.Data[filenameStart:filenameEnd], true
 }
 
 func (s *Symbolizer) Symbolize(key *unwinder.SymbolKey) (*Symbol, bool) {
@@ -197,7 +199,10 @@ func (s *Symbolizer) Symbolize(key *unwinder.SymbolKey) (*Symbol, bool) {
 	}
 
 	var name, fileName string
-	nameBytes, filenameBytes := extractNameAndFilenameSlices(&symbol)
+	nameBytes, filenameBytes, ok := extractNameAndFilenameSlices(&symbol)
+	if !ok {
+		return nil, false
+	}
 
 	switch symbol.CodepointSize {
 	case 1:
