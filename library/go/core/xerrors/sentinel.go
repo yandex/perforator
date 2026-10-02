@@ -12,12 +12,16 @@ import (
 
 // NewSentinel acts as New but does not add stack frame
 func NewSentinel(text string) *Sentinel {
-	return &Sentinel{error: errors.New(text)}
+	return &Sentinel{err: errors.New(text)}
 }
 
 // Sentinel error
 type Sentinel struct {
-	error
+	err error
+}
+
+func (s *Sentinel) Error() string {
+	return s.err.Error()
 }
 
 // WithFrame adds stack frame to sentinel error (DEPRECATED)
