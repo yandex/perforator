@@ -267,12 +267,13 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/awalterschulze/gographviz v2.0.3+incompatible
 	github.com/aws/aws-sdk-go v1.55.8
-	github.com/aws/aws-sdk-go-v2 v1.41.9
+	github.com/aws/aws-sdk-go-v2 v1.47.0
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.11
 	github.com/aws/aws-sdk-go-v2/config v1.32.20
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.19
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.25
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.0
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.21.1
+	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.74.0
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.285.0
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.55.1
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.6
@@ -286,7 +287,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.25
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.3
 	github.com/aws/aws-sdk-go-v2/service/ssoadmin v1.36.14
-	github.com/aws/smithy-go v1.26.0
+	github.com/aws/smithy-go v1.28.1
 	github.com/aymerick/douceur v0.2.0
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible
 	github.com/beevik/etree v1.1.0
@@ -1447,8 +1448,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.8.35 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/rds/auth v1.6.20 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.2.3 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.25 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.25 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.3 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/appconfig v1.4.2 // indirect
@@ -1461,9 +1462,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.20.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/glue v1.137.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.10 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.18 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.11.21 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.25 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.25 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.18.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/lightsail v1.50.10 // indirect
