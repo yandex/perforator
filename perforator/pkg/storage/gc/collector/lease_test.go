@@ -23,7 +23,7 @@ type fakeLeaseStorage struct {
 	waiting  chan struct{}
 }
 
-func (s *fakeLeaseStorage) Acquire(ctx context.Context, _, holder string, _ time.Duration) (bool, error) {
+func (s *fakeLeaseStorage) Acquire(ctx context.Context, holder string, _ time.Duration) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
@@ -40,13 +40,13 @@ func (s *fakeLeaseStorage) Acquire(ctx context.Context, _, holder string, _ time
 	return true, nil
 }
 
-func (s *fakeLeaseStorage) Renew(_ context.Context, _, holder string, _ time.Duration) (bool, error) {
+func (s *fakeLeaseStorage) Renew(_ context.Context, holder string, _ time.Duration) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.holder == holder && !s.lost.Load(), nil
 }
 
-func (s *fakeLeaseStorage) Release(_ context.Context, _, holder string) error {
+func (s *fakeLeaseStorage) Release(_ context.Context, holder string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.holder == holder {
@@ -59,14 +59,14 @@ func (s *fakeLeaseStorage) Release(_ context.Context, _, holder string) error {
 	return nil
 }
 
-func testGC(t *testing.T, ls lease.Storage, f func(context.Context) error) *GC {
+func testGC(t *testing.T, ls lease.Lease, f func(context.Context) error) *GC {
 	t.Helper()
 	st := &stubStorage{collect: func(ctx context.Context) ([]*storage.ObjectMeta, error) {
 		return nil, f(ctx)
 	}}
 	c, _ := testStorageGC(t, st, config.Binary, 1)
 	return &GC{collectors: []*storageGC{c}, l: xlog.ForTest(t),
-		leaseStorage: ls, leaseName: "test_gc", leaseTTL: 90 * time.Millisecond}
+		target: ls, leaseTTL: 90 * time.Millisecond}
 }
 
 func await[T any](t *testing.T, ch <-chan T) T {

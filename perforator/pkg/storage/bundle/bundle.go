@@ -47,7 +47,7 @@ type StorageBundle struct {
 	TaskStorage                     asynctask.TaskService
 	CustomProfilingOperationStorage custom_profiling_operation.Storage
 	ClusterTopGenerationsStorage    clustertop.Storage
-	LeaseStorage                    lease.Storage
+	LeaseStorage                    *postgres_lease.Storage
 }
 
 // bgCtx should be valid for as long as databases are used
@@ -161,7 +161,7 @@ func NewStorageBundle(ctx context.Context, bgCtx context.Context, l xlog.Logger,
 			if res.DBs.PostgresCluster == nil {
 				return nil, ErrPostgresClusterNotSpecified
 			}
-			res.LeaseStorage = postgres_lease.NewStorage(l, res.DBs.PostgresCluster)
+			res.LeaseStorage = postgres_lease.NewStorage(res.DBs.PostgresCluster)
 		default:
 			return nil, fmt.Errorf("unknown lease storage type: %s", *c.LeaseStorage)
 		}

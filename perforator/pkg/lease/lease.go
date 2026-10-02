@@ -17,14 +17,13 @@ import (
 
 const leaseReleaseTimeout = 5 * time.Second
 
-// BuildPerProcessHolderID generates a unique identifier for a lease holder based on the hostname
-// and random bytes encoded in base64.
-func BuildPerProcessHolderID() (string, error) {
+// newToken combines the hostname with a fresh random token.
+func newToken() (string, error) {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "", fmt.Errorf("failed to get hostname: %w", err)
 	}
-	b := make([]byte, 6)
+	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		return "", fmt.Errorf("failed to read random bytes: %w", err)
 	}
@@ -37,6 +36,10 @@ type leaseOptions struct {
 	maxAcquireRetries    uint32
 	acquireRetryInterval time.Duration
 	registry             metrics.Registry
+	releaseTimeout       time.Duration
+	waitForLease         bool
+	operationTimeout     time.Duration
+	renewalErrors        metrics.Counter
 }
 
 type LeaseOption func(*leaseOptions)
@@ -51,6 +54,26 @@ func WithRenewInterval(interval time.Duration) LeaseOption {
 	return func(o *leaseOptions) {
 		o.renewInterval = interval
 	}
+}
+
+// WithReleaseTimeout bounds cleanup independently of caller cancellation.
+func WithReleaseTimeout(timeout time.Duration) LeaseOption {
+	return func(o *leaseOptions) { o.releaseTimeout = timeout }
+}
+
+// WithWaitForLease(false) returns ErrLeaseBusy instead of waiting.
+func WithWaitForLease(wait bool) LeaseOption {
+	return func(o *leaseOptions) { o.waitForLease = wait }
+}
+
+// WithOperationTimeout bounds Acquire/Renew requests; zero adds no timeout.
+// Renew is always bounded by lease expiry.
+func WithOperationTimeout(timeout time.Duration) LeaseOption {
+	return func(o *leaseOptions) { o.operationTimeout = timeout }
+}
+
+func WithRenewalErrors(counter metrics.Counter) LeaseOption {
+	return func(o *leaseOptions) { o.renewalErrors = counter }
 }
 
 func WithMaxAcquireRetries(retries uint32) LeaseOption {
@@ -69,152 +92,111 @@ func defaultLeaseOptions() leaseOptions {
 	return leaseOptions{
 		ttl:               30 * time.Second,
 		maxAcquireRetries: 5,
+		releaseTimeout:    leaseReleaseTimeout,
+		waitForLease:      true,
 	}
 }
 
 var (
 	ErrLeaseLost = errors.New("lease was lost")
+	ErrLeaseBusy = errors.New("lease is already held")
 )
 
-// leaseHolder manages a single distributed lease.
+// leaseHolder tracks one acquisition and its heartbeat.
 type leaseHolder struct {
-	storage  Storage
-	logger   xlog.Logger
-	name     string
-	holderID string
-	options  leaseOptions
-
-	mu             sync.Mutex // Protects the deadline and its expiry check.
+	target         Lease
+	token          string
+	options        leaseOptions
+	logger         xlog.Logger
+	mu             sync.Mutex
 	leaseExpiresAt time.Time
 	workers        sync.WaitGroup
-
-	leaseCtx  context.Context
-	cancel    context.CancelCauseFunc
-	leaseHeld metrics.Gauge
+	leaseCtx       context.Context
+	cancel         context.CancelCauseFunc
+	leaseHeld      metrics.Gauge
 }
 
-// newLeaseHolder creates a new leaseHolder for a specific lease and holder.
-func newLeaseHolder(
-	logger xlog.Logger,
-	storage Storage,
-	leaseName string,
-	holderID string,
-	opts ...LeaseOption,
-) *leaseHolder {
-	options := defaultLeaseOptions()
-	for _, opt := range opts {
-		opt(&options)
+func (h *leaseHolder) start(ctx context.Context) error {
+	h.leaseCtx, h.cancel = context.WithCancelCause(ctx)
+	if h.leaseHeld != nil {
+		h.leaseHeld.Set(1)
 	}
-	if options.renewInterval == 0 {
-		options.renewInterval = options.ttl / 3
+	ready := make(chan error)
+	h.workers.Add(1)
+	go h.watchExpiry(ready)
+	// Check acquisition expiry before starting work.
+	if err := <-ready; err != nil {
+		return err
 	}
-	if options.acquireRetryInterval == 0 {
-		options.acquireRetryInterval = options.ttl / 3
+	if cause := context.Cause(h.leaseCtx); cause != nil {
+		return cause
 	}
-
-	h := &leaseHolder{
-		logger:   logger.WithName("LeaseHolder").With(log.String("lease_name", leaseName), log.String("holder_id", holderID)),
-		storage:  storage,
-		name:     leaseName,
-		holderID: holderID,
-		options:  options,
-	}
-
-	if options.registry != nil {
-		h.leaseHeld = options.registry.WithTags(map[string]string{
-			"name": leaseName,
-		}).Gauge("lease.held")
-	}
-
-	return h
-}
-
-// hold attempts to acquire the lease, retrying if it is already held or if transient errors occur.
-// If successful, it starts renewal and expiry monitoring goroutines.
-// It blocks until the lease is acquired, the maximum number of retries for storage errors is exceeded,
-// or the provided context is canceled.
-// The lease lifetime is tied to the context passed to this method.
-// If the context is canceled, the lease will be released.
-func (h *leaseHolder) hold(ctx context.Context) error {
-	if h.options.ttl <= 0 || h.options.renewInterval <= 0 || h.options.acquireRetryInterval <= 0 {
-		return fmt.Errorf("lease TTL and renewal/retry intervals must be positive")
-	}
-
-	retryErrors := []error{}
-	for {
-		acquireTime := time.Now()
-		acquired, err := h.storage.Acquire(ctx, h.name, h.holderID, h.options.ttl)
-		if err == nil && acquired {
-			h.leaseExpiresAt = acquireTime.Add(h.options.ttl)
-			h.leaseCtx, h.cancel = context.WithCancelCause(ctx)
-			if h.leaseHeld != nil {
-				h.leaseHeld.Set(1)
-			}
-			ready := make(chan error)
-			h.workers.Add(1)
-			go h.watchExpiry(ready)
-			// Wait for the initial expiry check before starting any work.
-			if err := <-ready; err != nil {
-				if closeErr := h.close(); closeErr != nil {
-					h.logger.Warn(ctx, "Failed to close lease holder", log.Error(closeErr))
-				}
-				return err
-			}
-			h.workers.Add(1)
-			go h.runRenewal()
-			return nil
-		}
-
-		if err != nil {
-			h.logger.Warn(ctx, "Failed to acquire lease", log.Error(err))
-			retryErrors = append(retryErrors, err)
-		} else if !acquired {
-			h.logger.Debug(ctx, "Lease is already held")
-			retryErrors = retryErrors[:0]
-		}
-
-		if len(retryErrors) >= int(h.options.maxAcquireRetries) {
-			return fmt.Errorf("failed to acquire lease after %d retries: %w", len(retryErrors), errors.Join(retryErrors...))
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(h.options.acquireRetryInterval):
-			continue
-		}
-	}
-}
-
-// context returns a context that is canceled if the lease is lost or released.
-// Returns nil if the lease has not been acquired.
-func (h *leaseHolder) context() context.Context {
-	return h.leaseCtx
-}
-
-// close stops the renewal process and releases the lease.
-// It waits for both background goroutines, including any in-flight renewal.
-func (h *leaseHolder) close() error {
-	if h.cancel == nil {
-		return nil
-	}
-
-	h.cancel(nil)
-	h.workers.Wait()
-
-	h.release(h.leaseCtx)
+	h.workers.Add(1)
+	go h.runRenewal()
 	return nil
 }
 
-func (h *leaseHolder) release(ctx context.Context) {
-	// A late acquisition or renewal may have succeeded in storage even after
-	// our confirmed deadline. Cleanup needs its own budget, including when
-	// the parent context has already been canceled.
-	releaseCtx, cancelReleaseCtx := context.WithTimeout(context.WithoutCancel(ctx), leaseReleaseTimeout)
-	defer cancelReleaseCtx()
+// stop cancels and joins background workers without releasing the lease.
+func (h *leaseHolder) stop() {
+	h.cancel(nil)
+	h.workers.Wait()
+}
 
-	if err := h.storage.Release(releaseCtx, h.name, h.holderID); err != nil {
-		h.logger.Warn(releaseCtx, "Failed to release lease", log.Error(err))
+// renew measures expiry from request start, including request latency.
+func (h *leaseHolder) renew(ctx context.Context) (time.Time, error) {
+	deadline := time.Now().Add(h.options.ttl)
+	if h.options.operationTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, h.options.operationTimeout)
+		defer cancel()
+	}
+	renewed, err := h.target.Renew(ctx, h.token, h.options.ttl)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if !renewed {
+		return time.Time{}, ErrLeaseLost
+	}
+	return deadline, nil
+}
+
+// acquire returns expiry measured from request start, without starting heartbeat.
+func (h *leaseHolder) acquire(ctx context.Context) (time.Time, error) {
+	options := h.options
+	retryErrors := []error{}
+	for {
+		acquireTime := time.Now()
+		if err := ctx.Err(); err != nil {
+			return time.Time{}, context.Cause(ctx)
+		}
+		requestCtx := ctx
+		cancel := func() {}
+		if options.operationTimeout > 0 {
+			requestCtx, cancel = context.WithTimeout(ctx, options.operationTimeout)
+		}
+		acquired, err := h.target.Acquire(requestCtx, h.token, options.ttl)
+		cancel()
+		if err == nil && acquired {
+			return acquireTime.Add(options.ttl), nil
+		}
+		if err != nil {
+			h.logger.Warn(ctx, "Failed to acquire lease", log.Error(err))
+			retryErrors = append(retryErrors, err)
+		} else {
+			if !options.waitForLease {
+				return time.Time{}, ErrLeaseBusy
+			}
+			h.logger.Debug(ctx, "Lease is already held")
+			retryErrors = retryErrors[:0]
+		}
+		if err != nil && len(retryErrors) >= int(options.maxAcquireRetries) {
+			return time.Time{}, fmt.Errorf("failed to acquire lease after %d retries: %w", len(retryErrors), errors.Join(retryErrors...))
+		}
+		select {
+		case <-ctx.Done():
+			return time.Time{}, ctx.Err()
+		case <-time.After(options.acquireRetryInterval):
+		}
 	}
 }
 
@@ -237,13 +219,19 @@ func (h *leaseHolder) runRenewal() {
 			return
 		}
 		ctx, cancel := context.WithDeadline(h.leaseCtx, expiresAt)
-		// Count the TTL from request start, including storage latency.
-		renewExpiresAt := time.Now().Add(h.options.ttl)
-		renewed, err := h.storage.Renew(ctx, h.name, h.holderID, h.options.ttl)
+		renewExpiresAt, err := h.renew(ctx)
 		cancel()
+		if err != nil && !errors.Is(err, ErrLeaseLost) && h.options.renewalErrors != nil {
+			h.options.renewalErrors.Inc()
+		}
 
 		h.mu.Lock()
 		if h.leaseCtx.Err() != nil {
+			h.mu.Unlock()
+			return
+		}
+		if errors.Is(err, ErrLeaseLost) {
+			h.cancel(ErrLeaseLost)
 			h.mu.Unlock()
 			return
 		}
@@ -252,12 +240,15 @@ func (h *leaseHolder) runRenewal() {
 			h.logger.Warn(h.leaseCtx, "Failed to renew lease", log.Error(err))
 			continue
 		}
-		if !renewed {
-			h.cancel(ErrLeaseLost)
+		if !time.Now().Before(renewExpiresAt) {
+			h.cancel(fmt.Errorf("%w: renewal response deadline exceeded", ErrLeaseLost))
 			h.mu.Unlock()
 			return
 		}
-		h.leaseExpiresAt = renewExpiresAt
+		// Never shorten confirmed expiry.
+		if renewExpiresAt.After(h.leaseExpiresAt) {
+			h.leaseExpiresAt = renewExpiresAt
+		}
 		h.mu.Unlock()
 		h.logger.Debug(h.leaseCtx, "Lease renewed")
 	}
@@ -274,7 +265,7 @@ func (h *leaseHolder) watchExpiry(ready chan<- error) {
 	defer timer.Stop()
 
 	for {
-		// Renewal only extends the deadline; the old timer may fire first.
+		// Recheck expiry: renewal may have extended it since the timer was set.
 		h.mu.Lock()
 		expiresAt := h.leaseExpiresAt
 		var err error
@@ -299,36 +290,69 @@ func (h *leaseHolder) watchExpiry(ready chan<- error) {
 	}
 }
 
-// LockAndRun tries to acquire a lease with the given name.
-// If successful, it executes the action function.
-// The action function receives a context that is canceled if the lease is lost or released.
-// If the lease is already held, it waits until it can acquire it or ctx is canceled.
+// LockAndRun acquires the lease with a fresh token and runs action.
+// It cancels action's context on lease loss and releases the lease on return.
+// Busy leases wait by default; WithWaitForLease(false) returns ErrLeaseBusy.
+// Errors report acquisition or startup failure.
+// On lease loss, action's context is canceled with ErrLeaseLost.
 func LockAndRun(
 	ctx context.Context,
 	logger xlog.Logger,
-	storage Storage,
-	leaseName string,
-	holderID string,
-	action func(ctx context.Context),
+	target Lease,
+	action func(ctx context.Context, token string),
 	opts ...LeaseOption,
 ) error {
-	holder := newLeaseHolder(logger, storage, leaseName, holderID, opts...)
-
-	if err := holder.hold(ctx); err != nil {
-		return err
+	options := defaultLeaseOptions()
+	for _, opt := range opts {
+		opt(&options)
+	}
+	if options.renewInterval == 0 {
+		options.renewInterval = options.ttl / 3
+	}
+	if options.acquireRetryInterval == 0 {
+		options.acquireRetryInterval = options.ttl / 3
+	}
+	if options.ttl <= 0 || options.renewInterval <= 0 || options.acquireRetryInterval <= 0 || options.releaseTimeout <= 0 {
+		return fmt.Errorf("lease TTL, renewal/retry intervals and release timeout must be positive")
 	}
 
+	if options.operationTimeout < 0 {
+		return fmt.Errorf("lease operation timeout must not be negative")
+	}
+	if target == nil || action == nil {
+		return fmt.Errorf("lease and action must be set")
+	}
+	token, err := newToken()
+	if err != nil {
+		return err
+	}
+	logger = logger.WithName("LeaseHolder").With(log.String("holder_id", token))
+	run := &leaseHolder{target: target, token: token, options: options, logger: logger}
+	deadline, err := run.acquire(ctx)
+	if err != nil {
+		return err
+	}
+	// Even a late acquisition response may need cleanup in storage.
 	defer func() {
-		if closeErr := holder.close(); closeErr != nil {
-			logger.Warn(ctx, "Failed to close lease holder", log.Error(closeErr))
+		releaseCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), options.releaseTimeout)
+		defer cancel()
+		if err := target.Release(releaseCtx, token); err != nil {
+			logger.Warn(releaseCtx, "Failed to release lease", log.Error(err))
 		}
 	}()
 
-	if cause := context.Cause(holder.context()); cause != nil {
+	run.leaseExpiresAt = deadline
+	if options.registry != nil {
+		run.leaseHeld = options.registry.Gauge("lease.held")
+	}
+	// Join renewal before release, even if startup fails.
+	defer run.stop()
+	if err := run.start(ctx); err != nil {
+		return err
+	}
+	if cause := context.Cause(run.leaseCtx); cause != nil {
 		return cause
 	}
-
-	action(holder.context())
-
+	action(run.leaseCtx, token)
 	return nil
 }

@@ -1,114 +1,63 @@
 package postgres
 
 import (
-	"context"
-	"fmt"
-	"time"
-
 	"github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v5"
 	hasql "golang.yandex/hasql/sqlx"
-
-	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-const (
-	leasesTable = "leases"
+var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
-	acquireOnConflictSuffix = "ON CONFLICT (name) DO UPDATE SET holder = EXCLUDED.holder, expires_at = EXCLUDED.expires_at WHERE " + leasesTable + ".expires_at < NOW()"
-)
+// RowLayout names an unqualified table and its lease columns; names are SQL-quoted.
+// KeyColumn must be unique; HolderColumn and ExpiresAtColumn must be nullable.
+type RowLayout struct {
+	Table           string
+	KeyColumn       string
+	HolderColumn    string
+	ExpiresAtColumn string
+}
 
-var (
-	psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-)
+type storageOptions struct {
+	layout           RowLayout
+	existingRowsOnly bool
+}
 
+type StorageOption func(*storageOptions)
+
+// WithRowLayout sets the layout; default: leases(name, holder, expires_at).
+func WithRowLayout(layout RowLayout) StorageOption {
+	return func(o *storageOptions) { o.layout = layout }
+}
+
+// WithExistingRowsOnly disables row creation for caller-managed data.
+func WithExistingRowsOnly() StorageOption {
+	return func(o *storageOptions) { o.existingRowsOnly = true }
+}
+
+// Storage manages row leases, creating missing rows by default.
+// Non-lease columns must be nullable or have defaults. Release clears lease fields,
+// preserving the row. The configured columns are part of the public contract.
+//
+// Guard writes by key and token in the same SQL statement; check RowsAffected.
+// Also check expiry against clock_timestamp() to reject writes after expiration.
+// Recheck row eligibility after acquisition: a previous owner may have finished it.
 type Storage struct {
-	logger  xlog.Logger
-	cluster *hasql.Cluster
+	cluster                       *hasql.Cluster
+	table, key, holder, expiresAt string
+	existingRowsOnly              bool
 }
 
-func NewStorage(logger xlog.Logger, cluster *hasql.Cluster) *Storage {
+func NewStorage(cluster *hasql.Cluster, opts ...StorageOption) *Storage {
+	options := storageOptions{layout: RowLayout{
+		Table: "leases", KeyColumn: "name", HolderColumn: "holder", ExpiresAtColumn: "expires_at",
+	}}
+	for _, opt := range opts {
+		opt(&options)
+	}
+	quote := func(name string) string { return pgx.Identifier{name}.Sanitize() }
 	return &Storage{
-		logger:  logger.WithName("LeaseStorage"),
-		cluster: cluster,
+		cluster: cluster, table: quote(options.layout.Table), key: quote(options.layout.KeyColumn),
+		holder: quote(options.layout.HolderColumn), expiresAt: quote(options.layout.ExpiresAtColumn),
+		existingRowsOnly: options.existingRowsOnly,
 	}
-}
-
-func (s *Storage) Acquire(ctx context.Context, name, holder string, ttl time.Duration) (bool, error) {
-	primary, err := s.cluster.WaitForPrimary(ctx)
-	if err != nil {
-		return false, fmt.Errorf("failed to wait for primary: %w", err)
-	}
-
-	expiresAt := time.Now().Add(ttl)
-
-	query, args, err := psql.Insert(leasesTable).
-		Columns("name", "holder", "expires_at").
-		Values(name, holder, expiresAt).
-		Suffix(acquireOnConflictSuffix).
-		ToSql()
-	if err != nil {
-		return false, fmt.Errorf("failed to build query: %w", err)
-	}
-
-	res, err := primary.DBx().ExecContext(ctx, query, args...)
-	if err != nil {
-		return false, fmt.Errorf("failed to acquire lease: %w", err)
-	}
-
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return false, err
-	}
-
-	return rows > 0, nil
-}
-
-func (s *Storage) Renew(ctx context.Context, name, holder string, ttl time.Duration) (bool, error) {
-	primary, err := s.cluster.WaitForPrimary(ctx)
-	if err != nil {
-		return false, fmt.Errorf("failed to wait for primary: %w", err)
-	}
-
-	expiresAt := time.Now().Add(ttl)
-
-	query, args, err := psql.Update(leasesTable).
-		Set("expires_at", expiresAt).
-		Where(squirrel.Eq{"name": name, "holder": holder}).
-		ToSql()
-	if err != nil {
-		return false, fmt.Errorf("failed to build query: %w", err)
-	}
-
-	res, err := primary.DBx().ExecContext(ctx, query, args...)
-	if err != nil {
-		return false, fmt.Errorf("failed to renew lease: %w", err)
-	}
-
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return false, err
-	}
-
-	return rows > 0, nil
-}
-
-func (s *Storage) Release(ctx context.Context, name, holder string) error {
-	primary, err := s.cluster.WaitForPrimary(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to wait for primary: %w", err)
-	}
-
-	query, args, err := psql.Delete(leasesTable).
-		Where(squirrel.Eq{"name": name, "holder": holder}).
-		ToSql()
-	if err != nil {
-		return fmt.Errorf("failed to build query: %w", err)
-	}
-
-	_, err = primary.DBx().ExecContext(ctx, query, args...)
-	if err != nil {
-		return fmt.Errorf("failed to release lease: %w", err)
-	}
-
-	return nil
 }

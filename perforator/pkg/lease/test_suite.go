@@ -14,34 +14,38 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func RunTests(t *testing.T, factory func() (Storage, error)) {
+func RunTests(t *testing.T, factory func() (Lease, error)) {
 	logger := xlog.ForTest(t)
+	// Real database latency must not consume the lease between test steps.
+	integrationOptions := []LeaseOption{
+		WithTTL(30 * time.Second), WithRenewInterval(200 * time.Millisecond),
+		func(o *leaseOptions) { o.acquireRetryInterval = 200 * time.Millisecond },
+	}
 
 	t.Run("Lifecycle", func(t *testing.T) {
 		s, err := factory()
 		require.NoError(t, err)
 
 		ctx := t.Context()
-		name := "test-lease-lifecycle"
 		holder := "holder-1"
 		ttl := 5 * time.Second
 
 		logger.Info(ctx, "Acquiring lease")
-		acquired, err := s.Acquire(ctx, name, holder, ttl)
+		acquired, err := s.Acquire(ctx, holder, ttl)
 		require.NoError(t, err)
 		require.True(t, acquired)
 
 		logger.Info(ctx, "Renewing lease")
-		renewed, err := s.Renew(ctx, name, holder, ttl)
+		renewed, err := s.Renew(ctx, holder, ttl)
 		require.NoError(t, err)
 		require.True(t, renewed)
 
 		logger.Info(ctx, "Releasing lease")
-		err = s.Release(ctx, name, holder)
+		err = s.Release(ctx, holder)
 		require.NoError(t, err)
 
 		logger.Info(ctx, "Acquiring lease again after release")
-		acquired, err = s.Acquire(ctx, name, holder, ttl)
+		acquired, err = s.Acquire(ctx, holder, ttl)
 		require.NoError(t, err)
 		require.True(t, acquired)
 	})
@@ -51,18 +55,17 @@ func RunTests(t *testing.T, factory func() (Storage, error)) {
 		require.NoError(t, err)
 
 		ctx := t.Context()
-		name := "test-lease-conflict"
 		holderA := "holder-a"
 		holderB := "holder-b"
 		ttl := 2 * time.Second
 
 		logger.Info(ctx, "Holder A acquiring lease")
-		acquired, err := s.Acquire(ctx, name, holderA, ttl)
+		acquired, err := s.Acquire(ctx, holderA, ttl)
 		require.NoError(t, err)
 		require.True(t, acquired)
 
 		logger.Info(ctx, "Holder B trying to acquire active lease (should fail)")
-		acquired, err = s.Acquire(ctx, name, holderB, ttl)
+		acquired, err = s.Acquire(ctx, holderB, ttl)
 		require.NoError(t, err)
 		require.False(t, acquired)
 
@@ -70,78 +73,87 @@ func RunTests(t *testing.T, factory func() (Storage, error)) {
 		time.Sleep(ttl)
 
 		logger.Info(ctx, "Holder B trying to acquire expired lease (takeover)")
-		acquired, err = s.Acquire(ctx, name, holderB, ttl)
+		acquired, err = s.Acquire(ctx, holderB, ttl)
 		require.NoError(t, err)
 		require.True(t, acquired)
 
 		logger.Info(ctx, "Holder A trying to renew lost lease (zombie renew, should fail)")
-		renewed, err := s.Renew(ctx, name, holderA, ttl)
+		renewed, err := s.Renew(ctx, holderA, ttl)
 		require.NoError(t, err)
 		require.False(t, renewed)
 
 		logger.Info(ctx, "Holder A releasing lost lease (must preserve holder B)")
-		require.NoError(t, s.Release(ctx, name, holderA))
+		require.NoError(t, s.Release(ctx, holderA))
 
-		acquired, err = s.Acquire(ctx, name, holderA, ttl)
+		acquired, err = s.Acquire(ctx, holderA, ttl)
 		require.NoError(t, err)
 		require.False(t, acquired, "stale release must not make holder B's lease available")
 
-		renewed, err = s.Renew(ctx, name, holderB, ttl)
+		renewed, err = s.Renew(ctx, holderB, ttl)
 		require.NoError(t, err)
 		require.True(t, renewed, "holder B must retain its lease after holder A releases")
 	})
 
-	t.Run("LeaseHolder", func(t *testing.T) {
+	t.Run("NamedLeaseLifecycle", func(t *testing.T) {
 		s, err := factory()
 		require.NoError(t, err)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+		defer cancel()
+		renewals := make(chan struct{}, 1)
+		s = &observedRenewalLease{Lease: s, renewed: renewals}
+		aCtx, cancelA := context.WithCancel(ctx)
+		started := make(chan context.Context, 1)
+		done := make(chan struct{})
+		var aErr error
+		go func() {
+			defer close(done)
+			aErr = LockAndRun(aCtx, logger, s, func(ctx context.Context, _ string) {
+				started <- ctx
+				<-ctx.Done()
+			}, integrationOptions...)
+		}()
+		defer func() { cancelA(); <-done }()
+		select {
+		case leaseCtx := <-started:
+			require.NoError(t, leaseCtx.Err())
+		case <-done:
+			t.Fatalf("holder A stopped before running its action: %v", aErr)
+		}
 
-		ctx := t.Context()
-		name := "test-lease-holder"
-		holderA := "holder-a"
-		holderB := "holder-b"
-		ttl := time.Second
+		// Observe an actual renewal instead of relying on wall-clock TTL expiry.
+		select {
+		case <-renewals:
+		case <-done:
+			t.Fatalf("holder A stopped before renewal: %v", aErr)
+		case <-ctx.Done():
+			t.Fatal("Timed out waiting for renewal")
+		}
 
-		logger := xlog.ForTest(t)
-		hA := newLeaseHolder(logger, s, name, holderA, WithTTL(ttl))
-		hB := newLeaseHolder(logger, s, name, holderB,
-			WithTTL(ttl),
-		)
-
-		logger.Info(ctx, "Holder A holding lease LeaseHolder")
-		err = hA.hold(ctx)
-		require.NoError(t, err)
-		require.NotNil(t, hA.context())
-		require.NoError(t, hA.context().Err())
-
-		logger.Info(ctx, "Holder B trying to hold lease LeaseHolder (should fail due to context cancellation)")
-		bCtx, cancelBctx := context.WithTimeout(ctx, 2*ttl)
-		defer cancelBctx()
-		err = hB.hold(bCtx)
-		require.Error(t, err)
+		bCtx, cancelB := context.WithTimeout(ctx, 2*time.Second)
+		defer cancelB()
+		err = LockAndRun(bCtx, logger, s, func(context.Context, string) {
+			t.Error("holder B acquired while holder A was active")
+		}, integrationOptions...)
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 
-		logger.Info(ctx, "Holder A closing lease")
-		err = hA.close()
+		cancelA()
+		<-done
+		require.NoError(t, aErr)
+		called := false
+		err = LockAndRun(ctx, logger, s, func(ctx context.Context, _ string) {
+			require.NoError(t, ctx.Err())
+			called = true
+		}, integrationOptions...)
 		require.NoError(t, err)
-
-		logger.Info(ctx, "Holder B holding lease LeaseHolder after A closed")
-		err = hB.hold(ctx)
-		require.NoError(t, err)
-		require.NotNil(t, hB.context())
-		require.NoError(t, hB.context().Err())
-
-		logger.Info(ctx, "Holder B closing lease")
-		err = hB.close()
-		require.NoError(t, err)
+		require.True(t, called)
 	})
 
 	t.Run("LockAndRun", func(t *testing.T) {
 		s, err := factory()
 		require.NoError(t, err)
 
-		ctx := t.Context()
-		name := "test-lock-and-run-sequential"
-		ttl := 1 * time.Second
+		ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+		defer cancel()
 		logger := xlog.ForTest(t)
 
 		const iterations = 10
@@ -149,7 +161,7 @@ func RunTests(t *testing.T, factory func() (Storage, error)) {
 		var mu sync.Mutex
 
 		runTask := func(id string) error {
-			return LockAndRun(ctx, logger, s, name, id, func(ctx context.Context) {
+			return LockAndRun(ctx, logger, s, func(ctx context.Context, _ string) {
 				mu.Lock()
 				counter++
 				current := counter
@@ -163,11 +175,11 @@ func RunTests(t *testing.T, factory func() (Storage, error)) {
 				}
 
 				mu.Lock()
-				// If tasks were running in parallel, counter would have been incremented by another task
+				// Concurrent tasks would change the counter.
 				assert.Equal(t, current, counter, "Mutual exclusion violated")
 				logger.Info(ctx, "Task finished", log.String("id", id))
 				mu.Unlock()
-			}, WithTTL(ttl))
+			}, integrationOptions...)
 		}
 
 		done := make(chan error, iterations)
@@ -181,11 +193,28 @@ func RunTests(t *testing.T, factory func() (Storage, error)) {
 			select {
 			case err := <-done:
 				assert.NoError(t, err)
-			case <-time.After(10 * time.Second):
+			case <-ctx.Done():
 				t.Fatal("Timeout waiting for LockAndRun tasks")
 			}
 		}
 
 		require.Equal(t, iterations, counter)
 	})
+}
+
+// observedRenewalLease reports successful database renewals to lifecycle tests.
+type observedRenewalLease struct {
+	Lease
+	renewed chan<- struct{}
+}
+
+func (l *observedRenewalLease) Renew(ctx context.Context, token string, ttl time.Duration) (bool, error) {
+	renewed, err := l.Lease.Renew(ctx, token, ttl)
+	if err == nil && renewed {
+		select {
+		case l.renewed <- struct{}{}:
+		default:
+		}
+	}
+	return renewed, err
 }

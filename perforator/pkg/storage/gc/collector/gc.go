@@ -9,6 +9,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/lease"
+	postgreslease "github.com/yandex/perforator/perforator/pkg/lease/postgres"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	clustertopgc "github.com/yandex/perforator/perforator/pkg/storage/cluster_top/gc"
 	"github.com/yandex/perforator/perforator/pkg/storage/gc/config"
@@ -17,13 +18,12 @@ import (
 )
 
 type GC struct {
-	clusterTop   *clusterTopGC
-	collectors   []*storageGC
-	l            xlog.Logger
-	registry     metrics.Registry
-	leaseStorage lease.Storage
-	leaseName    string
-	leaseTTL     time.Duration
+	clusterTop *clusterTopGC
+	collectors []*storageGC
+	l          xlog.Logger
+	registry   metrics.Registry
+	target     lease.Lease
+	leaseTTL   time.Duration
 }
 
 func NewGC(l xlog.Logger, r metrics.Registry, gcConf config.Config, storageBundle *bundle.StorageBundle) (*GC, error) {
@@ -58,14 +58,21 @@ func NewGC(l xlog.Logger, r metrics.Registry, gcConf config.Config, storageBundl
 		}
 		clusterTop = newClusterTopGC(l, r, gcConf.ClusterTop, clustertopgc.NewStorage(storageBundle.DBs.PostgresCluster, storageBundle.DBs.ClickhouseConn, gcConf.ClusterTop.OperationTimeout))
 	}
+	var target lease.Lease
+	if storageBundle.LeaseStorage != nil {
+		target = postgreslease.ForKey(storageBundle.LeaseStorage, gcConf.LeaseName)
+	}
+	var leaseRegistry metrics.Registry
+	if r != nil {
+		leaseRegistry = r.WithTags(map[string]string{"name": gcConf.LeaseName})
+	}
 	return &GC{
-		clusterTop:   clusterTop,
-		collectors:   collectors,
-		l:            l,
-		registry:     r,
-		leaseStorage: storageBundle.LeaseStorage,
-		leaseName:    gcConf.LeaseName,
-		leaseTTL:     gcConf.LeaseTTL,
+		clusterTop: clusterTop,
+		collectors: collectors,
+		l:          l,
+		registry:   leaseRegistry,
+		target:     target,
+		leaseTTL:   gcConf.LeaseTTL,
 	}, nil
 }
 
@@ -74,16 +81,12 @@ func (g *GC) Run(ctx context.Context, interval time.Duration) error {
 		return fmt.Errorf("GC iteration interval must be positive")
 	}
 	// Keep custom configurations without lease storage backwards-compatible.
-	if g.leaseStorage == nil {
+	if g.target == nil {
 		return g.runCollectors(ctx, interval)
 	}
-	holderID, err := lease.BuildPerProcessHolderID()
-	if err != nil {
-		return err
-	}
 	var runErr error
-	err = lease.LockAndRun(ctx, g.l, g.leaseStorage, g.leaseName, holderID,
-		func(leaseCtx context.Context) {
+	err := lease.LockAndRun(ctx, g.l, g.target,
+		func(leaseCtx context.Context, _ string) {
 			runErr = g.runCollectors(leaseCtx, interval)
 			if cause := context.Cause(leaseCtx); cause != nil {
 				runErr = cause

@@ -1,0 +1,3 @@
+ALTER TABLE leases
+    ALTER COLUMN holder DROP NOT NULL,
+    ALTER COLUMN expires_at DROP NOT NULL;

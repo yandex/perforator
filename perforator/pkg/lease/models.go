@@ -11,15 +11,14 @@ const (
 	Postgres StorageType = "postgres"
 )
 
-type Storage interface {
-	// Acquire tries to acquire the lease. Returns true if acquired.
-	// If the lease is already held by someone else but expired, it should be taken over.
-	Acquire(ctx context.Context, name, holder string, ttl time.Duration) (bool, error)
-
-	// Renew extends the lease if it is still held by the holder.
-	// Returns true if renewed, false if the lease was lost (e.g. taken over by someone else).
-	Renew(ctx context.Context, name, holder string, ttl time.Duration) (bool, error)
-
-	// Release explicitly releases the lease if it is held by the holder.
-	Release(ctx context.Context, name, holder string) error
+// Lease addresses one resource; each acquisition requires a fresh token.
+// All operations must honor context cancellation.
+type Lease interface {
+	// Acquire returns false if the resource is busy or unavailable.
+	Acquire(ctx context.Context, token string, ttl time.Duration) (bool, error)
+	// Renew only extends expiry, including after expiration while still owned.
+	// It returns false for a lost or explicitly released lease.
+	Renew(ctx context.Context, token string, ttl time.Duration) (bool, error)
+	// Release does nothing if the lease is absent or belongs to another token.
+	Release(ctx context.Context, token string) error
 }

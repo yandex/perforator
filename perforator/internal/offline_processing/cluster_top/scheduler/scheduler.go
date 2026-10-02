@@ -14,6 +14,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/lease"
+	postgreslease "github.com/yandex/perforator/perforator/pkg/lease/postgres"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/generations"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -472,18 +473,12 @@ func (s *Scheduler) runGenerationFinisher(ctx context.Context) error {
 }
 
 func (s *Scheduler) Run(ctx context.Context) error {
-	holderID, err := lease.BuildPerProcessHolderID()
-	if err != nil {
-		return fmt.Errorf("failed to build lease holder ID: %w", err)
-	}
-
-	return lease.LockAndRun(
+	var runErr error
+	err := lease.LockAndRun(
 		ctx,
 		s.l,
-		s.storage.LeaseStorage,
-		clusterTopSchedulerLeaseName,
-		holderID,
-		func(leaseCtx context.Context) {
+		postgreslease.ForKey(s.storage.LeaseStorage, clusterTopSchedulerLeaseName),
+		func(leaseCtx context.Context, _ string) {
 			g, gCtx := errgroup.WithContext(leaseCtx)
 
 			g.Go(func() error {
@@ -494,10 +489,18 @@ func (s *Scheduler) Run(ctx context.Context) error {
 				return s.runGenerationFinisher(gCtx)
 			})
 
-			if err := g.Wait(); err != nil {
-				s.l.Error(leaseCtx, "Scheduler stopped", log.Error(err))
+			runErr = g.Wait()
+			if runErr != nil {
+				s.l.Error(leaseCtx, "Scheduler stopped", log.Error(runErr))
+				if cause := context.Cause(leaseCtx); cause != nil {
+					runErr = cause
+				}
 			}
 		},
 		lease.WithTTL(s.conf.LeaseTTL),
 	)
+	if err != nil {
+		return err
+	}
+	return runErr
 }

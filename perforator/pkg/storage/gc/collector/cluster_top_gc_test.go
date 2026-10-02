@@ -215,7 +215,7 @@ func TestClusterTopUsesSharedLeaseAndDrains(t *testing.T) {
 		blocked := &blockingClusterTopGCStorage{s, make(chan struct{}), make(chan struct{})}
 		c.storage = blocked
 		ls := &fakeLeaseStorage{released: make(chan struct{}, 1), waiting: make(chan struct{}, 1)}
-		g := &GC{clusterTop: c, l: xlog.NewNop(), leaseStorage: ls, leaseName: "gc", leaseTTL: 30 * time.Second}
+		g := &GC{clusterTop: c, l: xlog.NewNop(), target: ls, leaseTTL: 30 * time.Second}
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		done := make(chan error, 1)
