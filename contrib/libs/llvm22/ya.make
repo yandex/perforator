@@ -231,6 +231,5 @@ RECURSE(
 IF (OS_LINUX)
     RECURSE(
         lib/ExecutionEngine/PerfJITEvents
-        tools/gold
     )
 ENDIF()
