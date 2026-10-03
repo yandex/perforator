@@ -76,6 +76,22 @@ Returns:
 """
 
 
+@timeit
+def _wait_for_pnpm_lock(mutexes):
+    import fcntl
+
+    while True:
+        for mutex in mutexes:
+            try:
+                fcntl.lockf(mutex, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                continue
+
+            return mutex
+
+        time.sleep(0.1)
+
+
 def sync_mutex_file(mutex_filename, concurrency=LOCAL_PNPM_INSTALL_CONCURRENCY):
     if concurrency < 1:
         raise ValueError("concurrency must be at least 1")
@@ -86,19 +102,11 @@ def sync_mutex_file(mutex_filename, concurrency=LOCAL_PNPM_INSTALL_CONCURRENCY):
 
             mutexes = [open("{}.{}".format(mutex_filename, slot), "w+") for slot in range(concurrency)]
             try:
-                while True:
-                    for mutex in mutexes:
-                        try:
-                            fcntl.lockf(mutex, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                        except BlockingIOError:
-                            continue
-
-                        try:
-                            return function(*args, **kwargs)
-                        finally:
-                            fcntl.lockf(mutex, fcntl.LOCK_UN)
-
-                    time.sleep(0.1)
+                mutex = _wait_for_pnpm_lock(mutexes)
+                try:
+                    return function(*args, **kwargs)
+                finally:
+                    fcntl.lockf(mutex, fcntl.LOCK_UN)
             finally:
                 for mutex in mutexes:
                     mutex.close()

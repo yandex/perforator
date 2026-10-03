@@ -2,6 +2,7 @@ import importlib
 import os
 
 import fcntl
+import pytest
 
 from build.plugins.lib.nots.package_manager import PackageJson
 
@@ -45,6 +46,63 @@ def test_sync_mutex_file_uses_four_slots_by_default(monkeypatch, tmp_path):
         for slot in range(package_manager_module.LOCAL_PNPM_INSTALL_CONCURRENCY)
     ]
     assert locked_slots == opened_paths
+
+
+@pytest.mark.parametrize("busy", [False, True])
+@pytest.mark.parametrize("install_fails", [False, True])
+def test_pnpm_lock_wait_trace_excludes_install_and_release(monkeypatch, tmp_path, busy, install_fails):
+    tracing = importlib.import_module("devtools.frontend_build_platform.libraries.logging.timeit")
+    options = tracing.TimeitOptions()
+    options.current_record = tracing.TimeitRecord("root", 0)
+    options.trace_events = []
+    options.enable(silent=True, use_dumper=True)
+    monkeypatch.setattr(tracing, "options", options)
+    operations = []
+    attempts = 0
+
+    class Mutex:
+        def close(self):
+            operations.append("close")
+
+    monkeypatch.setattr(package_manager_module, "open", lambda path, mode: Mutex(), raising=False)
+
+    def lock_mutex(mutex, operation):
+        nonlocal attempts
+        if operation & fcntl.LOCK_UN:
+            assert [event.ph for event in options.trace_events] == ["B", "E"]
+            operations.append("release")
+            return
+        attempts += 1
+        if busy and attempts == 1:
+            raise BlockingIOError
+        operations.append("acquire")
+
+    def wait(interval):
+        assert interval == 0.1
+        assert [event.ph for event in options.trace_events] == ["B"]
+        operations.append("wait")
+
+    def install():
+        assert [event.ph for event in options.trace_events] == ["B", "E"]
+        operations.append("install")
+        if install_fails:
+            raise RuntimeError("install failed")
+        return "installed"
+
+    monkeypatch.setattr(fcntl, "lockf", lock_mutex)
+    monkeypatch.setattr(package_manager_module.time, "sleep", wait)
+    run = package_manager_module.sync_mutex_file(str(tmp_path / "install_mutex"), concurrency=1)(install)
+
+    if install_fails:
+        with pytest.raises(RuntimeError, match="install failed"):
+            run()
+    else:
+        assert run() == "installed"
+
+    assert operations == (["wait"] if busy else []) + ["acquire", "install", "release", "close"]
+    assert [event.name for event in options.trace_events] == ["_wait_for_pnpm_lock"] * 2
+    assert options.trace_events[0].ts <= options.trace_events[1].ts
+    assert options.current_record.name == "root"
 
 
 def _package_manager(monkeypatch):
