@@ -22064,7 +22064,7 @@ golang.org/x/vuln/scan
 ## explicit; go 1.18
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# golang.yandex/di v0.18.0
+# golang.yandex/di v0.19.1
 ## explicit; go 1.27
 golang.yandex/di
 golang.yandex/di/dihttp
