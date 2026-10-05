@@ -1,6 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
+    lineinfo_metrics.go
     offsets_registry.go
     registry.go
     stackprocessor.go

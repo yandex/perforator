@@ -16,6 +16,7 @@ const trampolineLinestart int32 = -1
 // StackProcessor renders a Python stack collected by the unwinder into pprof locations.
 type StackProcessor struct {
 	symbolizer             *Symbolizer
+	lineInfo               lineInfoMetrics
 	collectedFrameCount    metrics.Counter
 	unsymbolizedFrameCount metrics.Counter
 }
@@ -23,6 +24,7 @@ type StackProcessor struct {
 func NewStackProcessor(symbolizer *Symbolizer, reg metrics.Registry) *StackProcessor {
 	return &StackProcessor{
 		symbolizer:             symbolizer,
+		lineInfo:               newLineInfoMetrics(reg, symbolizer != nil && symbolizer.offsets != nil),
 		collectedFrameCount:    reg.Counter("python.frame.collected.count"),
 		unsymbolizedFrameCount: reg.Counter("python.frame.unsymbolized.count"),
 	}
@@ -34,26 +36,29 @@ func (p *StackProcessor) Process(
 	process linux.ProcessKey,
 ) {
 	var frames uint32
+	var lineCounts [lineInfoOutcomeCount]int64
 	for i := 0; i < int(stack.Len); i++ {
-		p.processFrame(builder, &stack.Frames[i], process)
+		outcome := p.processFrame(builder, &stack.Frames[i], process)
+		lineCounts[outcome]++
 		frames++
 	}
 	p.collectedFrameCount.Add(int64(frames))
+	p.lineInfo.record(&lineCounts)
 }
 
 func (p *StackProcessor) processFrame(
 	builder *profile.SampleBuilder,
 	frame *unwinder.PythonFrame,
 	process linux.ProcessKey,
-) {
+) lineInfoOutcome {
 	if frame.SymbolKey.Linestart == trampolineLinestart {
 		loc := p.addLocation(builder, frame, 0)
 		loc.AddFrame().SetName(python_models.PythonTrampolineFrame).Finish()
 		loc.Finish()
-		return
+		return lineSkipped
 	}
 
-	symbol, line, ok := p.symbolizer.SymbolizeFrame(process, frame)
+	symbol, line, ok, resolution := p.symbolizer.symbolizeFrame(process, frame)
 	if !ok {
 		p.unsymbolizedFrameCount.Inc()
 
@@ -63,7 +68,7 @@ func (p *StackProcessor) processFrame(
 			SetStartLine(int64(frame.SymbolKey.Linestart)).
 			Finish()
 		loc.Finish()
-		return
+		return resolution
 	}
 
 	loc := p.addLocation(builder, frame, line)
@@ -76,6 +81,7 @@ func (p *StackProcessor) processFrame(
 	}
 	fb.Finish()
 	loc.Finish()
+	return resolution
 }
 
 func (p *StackProcessor) addLocation(

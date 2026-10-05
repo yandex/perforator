@@ -89,15 +89,23 @@ func (s *Symbolizer) SymbolizeFrame(
 	process linux.ProcessKey,
 	frame *unwinder.PythonFrame,
 ) (*symbolizer.Symbol, int32, bool) {
+	sym, line, ok, _ := s.symbolizeFrame(process, frame)
+	return sym, line, ok
+}
+
+func (s *Symbolizer) symbolizeFrame(
+	process linux.ProcessKey,
+	frame *unwinder.PythonFrame,
+) (*symbolizer.Symbol, int32, bool, lineInfoOutcome) {
 	if s == nil || s.symbols == nil || frame == nil {
-		return nil, 0, false
+		return nil, 0, false, lineSkipped
 	}
 	sym, ok := s.symbols.Symbolize(models.Language(unwinder.LanguagePython), process, &frame.SymbolKey)
 	if !ok {
-		return nil, 0, false
+		return nil, 0, false, lineSkipped
 	}
-	line, _ := s.resolveLine(process, frame)
-	return sym, line, true
+	line, resolution := s.resolveLine(process, frame)
+	return sym, line, true, resolution
 }
 
 func (s *Symbolizer) InvalidatePid(pid uint32) {
@@ -115,35 +123,35 @@ func (s *Symbolizer) Stop() {
 	s.cache.Stop()
 }
 
-func (s *Symbolizer) resolveLine(process linux.ProcessKey, frame *unwinder.PythonFrame) (int32, bool) {
+func (s *Symbolizer) resolveLine(process linux.ProcessKey, frame *unwinder.PythonFrame) (int32, lineInfoOutcome) {
 	if s.offsets == nil || s.reader == nil || s.cache == nil {
-		return 0, false
+		return 0, lineSkipped
 	}
 	if frame.SymbolKey.Linestart == trampolineLinestart {
-		return 0, false
+		return 0, lineSkipped
 	}
 	codeObjectAddr := frame.SymbolKey.ObjectAddr
 	instrPtr := frame.InstrPtr
 	coLinetablePtr := frame.CoLinetablePtr
 	coFirstlineno := frame.SymbolKey.Linestart
 	if codeObjectAddr == 0 || instrPtr == 0 || coLinetablePtr == 0 {
-		return 0, false
+		return 0, lineUnavailable
 	}
 
 	offsets, ok := s.offsets.OffsetsForPid(process.Pid)
 	if !ok || offsets == nil {
-		return 0, false
+		return 0, lineUnavailable
 	}
 
 	co := offsets.PyCodeObjectOffsets
 	if co.CoCodeAdaptive == pyoffsets.UnspecifiedOffset ||
 		co.CoLinetable == pyoffsets.UnspecifiedOffset ||
 		co.CoFirstlineno == pyoffsets.UnspecifiedOffset {
-		return 0, false
+		return 0, lineUnavailable
 	}
 	bytesOff := offsets.PyBytesObjectOffsets
 	if bytesOff.ObSize == pyoffsets.UnspecifiedOffset || bytesOff.ObSval == pyoffsets.UnspecifiedOffset {
-		return 0, false
+		return 0, lineUnavailable
 	}
 
 	bytecodeOffset, ok := linetable.InstrPtrToBytecodeOffset(
@@ -152,7 +160,7 @@ func (s *Symbolizer) resolveLine(process linux.ProcessKey, frame *unwinder.Pytho
 		uint64(co.CoCodeAdaptive),
 	)
 	if !ok {
-		return 0, false
+		return 0, lineFailed
 	}
 
 	cacheKey := linetable.CacheKey{
@@ -164,7 +172,7 @@ func (s *Symbolizer) resolveLine(process linux.ProcessKey, frame *unwinder.Pytho
 
 	if table, hit := s.cache.Get(cacheKey); hit {
 		if table.Unresolvable {
-			return 0, false
+			return 0, lineFailed
 		}
 		return validLine(table.ResolveLine(bytecodeOffset))
 	}
@@ -187,7 +195,7 @@ func (s *Symbolizer) resolveLine(process linux.ProcessKey, frame *unwinder.Pytho
 		if !errors.Is(err, remotemem.ErrCodeObjectChanged) {
 			s.cache.AddTombstone(cacheKey)
 		}
-		return 0, false
+		return 0, lineFailed
 	}
 
 	s.cache.Add(cacheKey, table)
@@ -197,9 +205,9 @@ func (s *Symbolizer) resolveLine(process linux.ProcessKey, frame *unwinder.Pytho
 // validLine rejects non-positive lines. CPython line numbers are 1-based, but
 // the location table accumulates signed deltas, so a desynced or truncated
 // table can walk the running line below zero.
-func validLine(line int32, ok bool) (int32, bool) {
+func validLine(line int32, ok bool) (int32, lineInfoOutcome) {
 	if !ok || line <= 0 {
-		return 0, false
+		return 0, lineNoLine
 	}
-	return line, true
+	return line, lineResolved
 }
