@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-09-29T18:25:20.464Z",
+    "created": "2026-10-03T00:35:42Z",
     "pr": {
-      "id": 16091398,
+      "id": 16208902,
       "author": "baymer",
-      "summary": "FBP-3454: Вынести pnpm из ERM"
+      "summary": "FBP-3469: измерять ожидание pnpm lock"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13883956734"
+      "uri": "sbr:13955529570"
     },
     "darwin-arm64": {
-      "uri": "sbr:13883954279"
+      "uri": "sbr:13955527575"
     },
     "linux": {
-      "uri": "sbr:13883961705"
+      "uri": "sbr:13955533498"
     },
     "linux-aarch64": {
-      "uri": "sbr:13883959224"
+      "uri": "sbr:13955531480"
     }
   }
 }
