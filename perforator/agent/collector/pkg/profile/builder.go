@@ -332,6 +332,15 @@ type LocationBuilder struct {
 	location *profile.Location
 }
 
+// ClearAddress omits the stored address without changing the location's cache key.
+// The caller must provide the symbol information needed to identify the location.
+func (b *LocationBuilder) ClearAddress() *LocationBuilder {
+	if b.location != nil {
+		b.location.Address = 0
+	}
+	return b
+}
+
 func (b *LocationBuilder) SetMapping() *MappingBuilder {
 	return &MappingBuilder{b.cache, b, &profile.Mapping{}}
 }

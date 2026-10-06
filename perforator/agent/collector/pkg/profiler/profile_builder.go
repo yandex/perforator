@@ -122,7 +122,13 @@ func (b *multiProfileBuilder) EnsureBuilder(name string, sampleTypes []profile.S
 		}
 	}
 
-	builder := profile.NewBuilderWithCaches(b.caches)
+	var builder *profile.Builder
+	if name == "lbr" {
+		// LBR locations must retain addresses independently of symbolized CPU locations.
+		builder = profile.NewBuilder()
+	} else {
+		builder = profile.NewBuilderWithCaches(b.caches)
+	}
 	builder.SetStartTime(b.profileStartTime)
 	for _, sampleType := range sampleTypes {
 		builder.AddSampleType(sampleType.Kind, sampleType.Unit)

@@ -18,7 +18,6 @@ import (
 
 	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/observability/lib/querylang"
-	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
 	"github.com/yandex/perforator/perforator/pkg/cprofile"
 	"github.com/yandex/perforator/perforator/pkg/profile/merge"
 	"github.com/yandex/perforator/perforator/pkg/profile/quality"
@@ -73,7 +72,7 @@ func (s *PerforatorServer) MergeProfiles(
 	}
 
 	var profile *pprof.Profile
-	if req.GetExperimental().GetEnableNewProfileMerger() || (s.c.FeaturesConfig.EnableNewProfileMerger != nil && *s.c.FeaturesConfig.EnableNewProfileMerger) {
+	if samplePeriod != 0 || req.GetExperimental().GetEnableNewProfileMerger() || (s.c.FeaturesConfig.EnableNewProfileMerger != nil && *s.c.FeaturesConfig.EnableNewProfileMerger) {
 		s.l.Debug(ctx, "Merging profiles via new profile merger")
 		opts, err := fillMergeOptions(req.MergeOptions, query.Selector, targetEventType, samplePeriod)
 		if err != nil {
@@ -85,7 +84,7 @@ func (s *PerforatorServer) MergeProfiles(
 		}
 	} else {
 		s.l.Debug(ctx, "Merging profiles via legacy profile merger")
-		profile, metas, err = s.fetchAndMergeProfilesLegacy(ctx, metas, query.Selector, targetEventType, samplePeriod)
+		profile, metas, err = s.fetchAndMergeProfilesLegacy(ctx, metas, query.Selector, targetEventType)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to merge profiles: %v", err)
 		}
@@ -115,23 +114,12 @@ func (s *PerforatorServer) fetchAndMergeProfilesLegacy(
 	metas []*meta.ProfileMetadata,
 	selector *querylang.Selector,
 	targetEventType string,
-	samplePeriod uint64,
 ) (*pprof.Profile, []*meta.ProfileMetadata, error) {
 	const kDefaultDownloadConcurrency = 256
 
-	var datas []profilestorage.ProfileData
-	var err error
-
-	if samplePeriod != 0 {
-		metas, datas, err = s.sampleProfiles(ctx, metas, targetEventType, samplePeriod)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		datas, err = s.fetchProfiles(ctx, metas, kDefaultDownloadConcurrency, nil, false)
-		if err != nil {
-			return nil, nil, err
-		}
+	datas, err := s.fetchProfiles(ctx, metas, kDefaultDownloadConcurrency, nil, false)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	profiles, err := s.parseProfiles(ctx, datas)
@@ -350,88 +338,6 @@ func calculateSamplePeriod(profilesCount int, samplingTarget int) uint64 {
 	}
 
 	return samplePeriod
-}
-
-func (s *PerforatorServer) sampleProfiles(
-	ctx context.Context,
-	metas []*meta.ProfileMetadata,
-	targetEventType string,
-	samplePeriod uint64,
-) (sampledProfileMetas []*meta.ProfileMetadata, sampledProfileDatas []profilestorage.ProfileData, err error) {
-	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.sampleProfiles")
-	defer span.End()
-	defer func() {
-		if err != nil {
-			span.SetStatus(otelcodes.Error, err.Error())
-			span.RecordError(err)
-		}
-	}()
-
-	const kConcurrencyLevel = 16
-	const kBatchSize = 20
-
-	sampledProfileDatas = make([]profilestorage.ProfileData, kConcurrencyLevel)
-	sampledProfileMetas = make([]*meta.ProfileMetadata, kConcurrencyLevel)
-
-	metasBatches := make(
-		chan []*meta.ProfileMetadata,
-		(len(metas)+kBatchSize-1)/kBatchSize,
-	)
-	for i := 0; i < len(metas); i += kBatchSize {
-		metasBatches <- metas[i:min(i+kBatchSize, len(metas))]
-	}
-	close(metasBatches)
-
-	g, ctx := errgroup.WithContext(ctx)
-	for i := range kConcurrencyLevel {
-		g.Go(func() error {
-			sampler, err := symbolize.NewStacksSampler(targetEventType, samplePeriod)
-			if err != nil {
-				return err
-			}
-			defer sampler.Destroy()
-
-			for metasBatch := range metasBatches {
-				datas, err := s.fetchProfiles(ctx, metasBatch, kBatchSize, nil, false)
-				if err != nil {
-					return err
-				}
-
-				for j, meta := range metasBatch {
-					sampler.AddProfile(datas[j])
-					// GC the thing
-					datas[j] = nil
-
-					// This is nonsense, obviously,
-					// but idk what should actually be in meta when we sample this way
-					sampledProfileMetas[i] = meta
-				}
-			}
-
-			sampledProfileDatas[i], err = sampler.ExtractSampledProfile()
-			if err != nil {
-				return err
-			}
-
-			return nil
-		})
-	}
-	if err := g.Wait(); err != nil {
-		return nil, nil, err
-	}
-
-	insertIndex := 0
-	for i := range sampledProfileDatas {
-		if len(sampledProfileDatas[i]) == 0 {
-			continue
-		}
-
-		sampledProfileDatas[insertIndex] = sampledProfileDatas[i]
-		sampledProfileMetas[insertIndex] = sampledProfileMetas[i]
-		insertIndex += 1
-	}
-
-	return sampledProfileMetas[:insertIndex], sampledProfileDatas[:insertIndex], nil
 }
 
 func (s *PerforatorServer) parseProfile(ctx context.Context, data profilestorage.ProfileData) (profile *pprof.Profile, err error) {

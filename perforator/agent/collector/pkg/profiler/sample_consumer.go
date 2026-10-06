@@ -442,6 +442,9 @@ func (c *oneShotSampleConsumer) collectKernelStackInto(builder *profile.SampleBu
 
 		kfunc := c.p.kallsyms.Resolve(ip)
 		if kfunc != "" {
+			if kfunc != "unknown" {
+				loc.ClearAddress()
+			}
 			loc.AddFrame().SetName(kfunc).SetMangledName(kfunc).Finish()
 		}
 
@@ -454,14 +457,19 @@ func (c *oneShotSampleConsumer) collectKernelStackInto(builder *profile.SampleBu
 	}
 }
 
-func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, loc *profile.LocationBuilder, ip uint64, jvmFrame *unwinder.JvmFrame) {
+func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, loc *profile.LocationBuilder, ip uint64, jvmFrame *unwinder.JvmFrame, preserveAddress bool) {
 	for _, s := range c.p.jitSymbolizers {
 		out, ok := s.Resolve(linux.CurrentNamespacePID(c.sample.Pid), ip)
 		if !ok {
 			continue
 		}
+		fullySymbolized := len(out.Symbols) > 0
 		for _, symbol := range out.Symbols {
+			fullySymbolized = fullySymbolized && symbol.Name != "" && symbol.Name != models.UnsymbolizedInterpreterLocation
 			loc.AddFrame().SetName(symbol.Name).SetMangledName(symbol.Name).Finish()
+		}
+		if fullySymbolized && !preserveAddress {
+			loc.ClearAddress()
 		}
 		loc.SetMapping().SetPath(out.MappingName).Finish()
 		loc.Finish()
@@ -502,6 +510,8 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 			if err != nil {
 				name = models.UnsymbolizedInterpreterLocation
 				xlog.Wrap(c.p.log).Error(ctx, "Failed to symbolize interpreted JVM method", log.Error(err))
+			} else if name != "" && name != models.UnsymbolizedInterpreterLocation && !preserveAddress {
+				loc.ClearAddress()
 			}
 			fb.SetName(name).SetMangledName(name)
 		}
@@ -543,7 +553,7 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 		} else {
 			loc = builder.AddNativeLocation(ip)
 		}
-		c.processUserSpaceLocation(ctx, loc, ip, matchingJVMFrame)
+		c.processUserSpaceLocation(ctx, loc, ip, matchingJVMFrame, false)
 	}
 }
 
@@ -593,7 +603,7 @@ func (c *oneShotSampleConsumer) collectLBRStackInto(ctx context.Context, builder
 
 		processAddress := func(ip uint64) {
 			loc := builder.AddNativeLocation(ip)
-			c.processUserSpaceLocation(ctx, loc, ip, nil)
+			c.processUserSpaceLocation(ctx, loc, ip, nil, true)
 		}
 		processAddress(from)
 		processAddress(to)

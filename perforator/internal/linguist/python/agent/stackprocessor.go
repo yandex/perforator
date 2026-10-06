@@ -72,6 +72,9 @@ func (p *StackProcessor) processFrame(
 	}
 
 	loc := p.addLocation(builder, frame, line)
+	if symbol.Name != "" {
+		loc.ClearAddress()
+	}
 	fb := loc.AddFrame().
 		SetName(symbol.Name).
 		SetFilename(symbol.FileName).

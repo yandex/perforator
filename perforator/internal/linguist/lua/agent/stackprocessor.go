@@ -61,6 +61,7 @@ func (p *StackProcessor) processFrame(
 	name := "[lua] "
 	filename := ""
 	line := int64(0)
+	clearAddress := false
 	var loc *profile.LocationBuilder
 
 	switch frame.Type {
@@ -88,6 +89,7 @@ func (p *StackProcessor) processFrame(
 		}
 
 		line = int64(luaFrame.Linestart)
+		clearAddress = exists && (symbol.Name != "" || (filename != "" && line > 0))
 
 		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
 			ObjectAddress: luaFrame.ObjectAddr,
@@ -103,6 +105,7 @@ func (p *StackProcessor) processFrame(
 		} else {
 			// FF function
 			name += "function: builtin#" + strconv.Itoa(int(cFrame.Ffid))
+			clearAddress = true
 		}
 
 		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
@@ -125,6 +128,9 @@ func (p *StackProcessor) processFrame(
 		})
 	}
 
+	if clearAddress {
+		loc.ClearAddress()
+	}
 	loc.SetMapping().SetPath(string(profile.LuaSpecialMapping)).Finish()
 	loc.AddFrame().
 		SetName(name).
