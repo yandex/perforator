@@ -1,5 +1,5 @@
 on:
-  - pull_request_target
+  - pull_request
 permissions: {} # disable all by default
 jobs:
   run-build:
@@ -53,6 +53,7 @@ jobs:
       - name: Prepare inputs
         run: |
           echo "BAZEL_URI=http://bazel-cache.ci-private.internal.perforator.tech:8080" > ${{ github.workspace }}/job-env
+          echo "npm_config_registry=${{ secrets.NPMJS_MIRROR_URL }}" >> ${{ github.workspace }}/job-env
       - name: Run tests
         uses: ./configs/.github/actions/remote-run
         with:
