@@ -448,7 +448,7 @@ require (
 	github.com/go-cmd/cmd v1.4.2
 	github.com/go-co-op/gocron/v2 v2.21.0
 	github.com/go-critic/go-critic v0.9.0
-	github.com/go-delve/delve v1.26.3
+	github.com/go-delve/delve v1.27.1
 	github.com/go-faster/city v1.0.1
 	github.com/go-faster/errors v0.7.1
 	github.com/go-faster/jx v1.2.0
@@ -1151,7 +1151,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5
 	gocloud.dev v0.46.0
 	gocv.io/x/gocv v0.39.0
-	golang.org/x/arch v0.12.0
+	golang.org/x/arch v0.28.0
 	golang.org/x/crypto v0.55.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/image v0.32.0
