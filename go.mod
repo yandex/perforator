@@ -352,7 +352,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/crossplane/crossplane-runtime v1.19.0
 	github.com/cucumber/gherkin-go/v19 v19.0.3
-	github.com/cucumber/godog v0.12.5
+	github.com/cucumber/godog v0.16.0
 	github.com/cucumber/messages-go/v16 v16.0.1
 	github.com/czerwonk/bird_exporter v0.0.0-20231026083236-f24f1ab36c60
 	github.com/czerwonk/bird_socket v0.0.0-20230831050638-df62ae583e1d
@@ -1643,7 +1643,9 @@ require (
 	github.com/crossdock/crossdock-go v0.0.0-20160816171116-049aabb0122b // indirect
 	github.com/cubicdaiya/gonp v1.0.4 // indirect
 	github.com/cucumber/gherkin/go/v28 v28.0.0 // indirect
+	github.com/cucumber/gherkin/go/v42 v42.0.0 // indirect
 	github.com/cucumber/messages/go/v24 v24.1.0 // indirect
+	github.com/cucumber/messages/go/v34 v34.2.0 // indirect
 	github.com/cyberdelia/templates v1.0.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
@@ -1955,7 +1957,7 @@ require (
 	github.com/hashicorp/go-getter v1.6.2 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-immutable-radix/v2 v2.1.0 // indirect
-	github.com/hashicorp/go-memdb v1.3.3 // indirect
+	github.com/hashicorp/go-memdb v1.3.5 // indirect
 	github.com/hashicorp/go-metrics v0.5.4 // indirect
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-msgpack/v2 v2.1.2 // indirect
