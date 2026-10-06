@@ -19,7 +19,6 @@ type oneShotJobProcessor struct {
 	l              xlog.Logger
 	profileStorage profile.Storage
 	symbolizer     *ClusterTopSymbolizer
-	aggregator     ClusterPerfTopAggregator
 
 	job                 Job
 	stats               *JobExecutionStats
@@ -33,7 +32,6 @@ func newOneShotJobProcessor(
 	l xlog.Logger,
 	profileStorage profile.Storage,
 	symbolizer *ClusterTopSymbolizer,
-	aggregator ClusterPerfTopAggregator,
 	job Job,
 	degreeOfParallelism int,
 	profilesBatchSize int,
@@ -47,7 +45,6 @@ func newOneShotJobProcessor(
 		l:                   l,
 		profileStorage:      profileStorage,
 		symbolizer:          symbolizer,
-		aggregator:          aggregator,
 		job:                 job,
 		stats:               stats,
 		degreeOfParallelism: degreeOfParallelism,
@@ -57,6 +54,7 @@ func newOneShotJobProcessor(
 }
 
 type oneShotJobResult struct {
+	top               *JobResult
 	profilesProcessed int
 	executionStats    JobExecutionStats
 }
@@ -117,16 +115,14 @@ func (p *oneShotJobProcessor) run(ctx context.Context) (result oneShotJobResult,
 	p.stats.Metrics.Functions = len(processed.functions)
 	p.stats.Metrics.ProfilesProcessed = len(profileMetas)
 
-	saveStart := time.Now()
-	err = p.aggregator.Save(ctx, &JobResult{
-		JobID:       p.job.ID,
-		Generation:  p.job.Generation,
-		BucketCount: p.job.BucketCount,
-		ServiceName: p.job.Service,
-		Functions:   processed.functions,
-	})
-	p.stats.Stages.SaveTop = time.Since(saveStart)
-	return oneShotJobResult{profilesProcessed: len(profileMetas)}, err
+	return oneShotJobResult{
+		profilesProcessed: len(profileMetas),
+		top: &JobResult{
+			JobID: p.job.ID, Generation: p.job.Generation,
+			BucketCount: p.job.BucketCount, ServiceName: p.job.Service,
+			Functions: processed.functions,
+		},
+	}, nil
 }
 
 type parallelProcessingStages struct {

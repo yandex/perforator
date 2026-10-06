@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY cluster_top_jobs_claim_idx;

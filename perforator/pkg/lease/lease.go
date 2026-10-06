@@ -31,15 +31,15 @@ func newToken() (string, error) {
 }
 
 type leaseOptions struct {
-	ttl                  time.Duration
-	renewInterval        time.Duration
-	maxAcquireRetries    uint32
-	acquireRetryInterval time.Duration
-	registry             metrics.Registry
-	releaseTimeout       time.Duration
-	waitForLease         bool
-	operationTimeout     time.Duration
-	renewalErrors        metrics.Counter
+	ttl                     time.Duration
+	renewInterval           time.Duration
+	maxAcquireRetryAttempts uint32
+	acquireRetryInterval    time.Duration
+	registry                metrics.Registry
+	releaseTimeout          time.Duration
+	waitForLease            bool
+	operationTimeout        time.Duration
+	renewalErrors           metrics.Counter
 }
 
 type LeaseOption func(*leaseOptions)
@@ -76,9 +76,10 @@ func WithRenewalErrors(counter metrics.Counter) LeaseOption {
 	return func(o *leaseOptions) { o.renewalErrors = counter }
 }
 
-func WithMaxAcquireRetries(retries uint32) LeaseOption {
+// WithMaxAcquireRetryAttempts limits retries after Acquire errors; zero disables them.
+func WithMaxAcquireRetryAttempts(retries uint32) LeaseOption {
 	return func(o *leaseOptions) {
-		o.maxAcquireRetries = retries
+		o.maxAcquireRetryAttempts = retries
 	}
 }
 
@@ -90,10 +91,10 @@ func WithMetrics(registry metrics.Registry) LeaseOption {
 
 func defaultLeaseOptions() leaseOptions {
 	return leaseOptions{
-		ttl:               30 * time.Second,
-		maxAcquireRetries: 5,
-		releaseTimeout:    leaseReleaseTimeout,
-		waitForLease:      true,
+		ttl:                     30 * time.Second,
+		maxAcquireRetryAttempts: 4,
+		releaseTimeout:          leaseReleaseTimeout,
+		waitForLease:            true,
 	}
 }
 
@@ -189,8 +190,8 @@ func (h *leaseHolder) acquire(ctx context.Context) (time.Time, error) {
 			h.logger.Debug(ctx, "Lease is already held")
 			retryErrors = retryErrors[:0]
 		}
-		if err != nil && len(retryErrors) >= int(options.maxAcquireRetries) {
-			return time.Time{}, fmt.Errorf("failed to acquire lease after %d retries: %w", len(retryErrors), errors.Join(retryErrors...))
+		if err != nil && uint64(len(retryErrors)) > uint64(options.maxAcquireRetryAttempts) {
+			return time.Time{}, fmt.Errorf("failed to acquire lease after %d attempts: %w", len(retryErrors), errors.Join(retryErrors...))
 		}
 		select {
 		case <-ctx.Done():

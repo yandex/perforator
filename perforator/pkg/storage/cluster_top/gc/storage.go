@@ -43,7 +43,7 @@ func (s *storage) ListGenerations(ctx context.Context) ([]Generation, error) {
 	err = primary.DBx().SelectContext(ctx, &result, `
  SELECT g.id, g.to_ts, COALESCE(g.status, 'finished') AS status,
         COALESCE(g.bucket_count, 0) AS bucket_count,
-        EXISTS (SELECT 1 FROM cluster_top_jobs j WHERE j.generation = g.id AND j.status = 'pending') AS has_pending_jobs
+        EXISTS (SELECT 1 FROM cluster_top_jobs j WHERE j.generation = g.id AND j.status IN ('pending', 'running')) AS has_pending_jobs
  FROM cluster_top_generations g ORDER BY g.to_ts, g.id`)
 	return result, err
 }
@@ -60,7 +60,7 @@ func (s *storage) MarkDeleting(ctx context.Context, generation uint32, cutoff ti
 	result, err := primary.DBx().ExecContext(ctx, `
  UPDATE cluster_top_generations g SET status = 'deleting'
  WHERE g.id = $1 AND g.bucket_count > 0
-   AND NOT EXISTS (SELECT 1 FROM cluster_top_jobs j WHERE j.generation = g.id AND j.status = 'pending')
+   AND NOT EXISTS (SELECT 1 FROM cluster_top_jobs j WHERE j.generation = g.id AND j.status IN ('pending', 'running'))
    AND (g.status = 'deleting' OR (
      g.status = 'finished' AND g.to_ts < $2
      AND g.id < (SELECT MAX(id) FROM cluster_top_generations WHERE COALESCE(status, 'finished') = 'finished')

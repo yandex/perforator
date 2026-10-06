@@ -7,7 +7,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Masterminds/squirrel"
 	hasql "golang.yandex/hasql/sqlx"
+
+	"github.com/yandex/perforator/perforator/pkg/lease"
+	postgreslease "github.com/yandex/perforator/perforator/pkg/lease/postgres"
 )
 
 type jobQueueItem struct {
@@ -24,119 +28,126 @@ type jobQueueItem struct {
 
 type PgJobSelector struct {
 	cluster *hasql.Cluster
+	conf    JobLeaseConfig
+	rows    *postgreslease.Storage
 }
 
-func NewPgJobSelector(cluster *hasql.Cluster) *PgJobSelector {
-	return &PgJobSelector{
-		cluster: cluster,
+func NewPgJobSelector(cluster *hasql.Cluster, conf JobLeaseConfig) (*PgJobSelector, error) {
+	if err := conf.Validate(); err != nil {
+		return nil, err
 	}
+
+	return &PgJobSelector{cluster: cluster, conf: conf,
+		rows: postgreslease.NewStorage(cluster, postgreslease.WithRowLayout(postgreslease.RowLayout{
+			Table: "cluster_top_jobs", KeyColumn: "id", HolderColumn: "lease_token", ExpiresAtColumn: "lease_expires_at",
+		}), postgreslease.WithExistingRowsOnly()),
+	}, nil
 }
 
 func (s *PgJobSelector) SelectJob(ctx context.Context) (*SelectedJob, error) {
-	primary, err := s.cluster.WaitForPrimary(ctx)
+	claimCtx, cancel := context.WithTimeout(ctx, s.conf.OperationTimeout)
+	defer cancel()
+	primary, err := s.cluster.WaitForPrimary(claimCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	tx, err := primary.DBx().BeginTxx(ctx, &sql.TxOptions{})
+	var item jobQueueItem
+	err = primary.DBx().GetContext(claimCtx, &item, `SELECT
+        j.id, j.service, j.generation, j.pod_id, j.node_id, j.created_at,
+        g.from_ts, g.to_ts, g.bucket_count
+    FROM cluster_top_jobs j
+    JOIN cluster_top_generations g ON g.id = j.generation
+    WHERE j.status IN ('pending', 'running')
+        AND (j.lease_expires_at IS NULL OR j.lease_expires_at <= clock_timestamp())
+    ORDER BY j.profiles_count DESC, j.id
+    LIMIT 1`)
 	if err != nil {
-		return nil, fmt.Errorf("failed to start tx: %w", err)
-	}
-
-	var queueItem jobQueueItem
-	err = tx.GetContext(
-		ctx,
-		&queueItem,
-		`SELECT
-			j.id,
-			j.service,
-			j.generation,
-			j.pod_id,
-			j.node_id,
-			j.created_at,
-			g.from_ts,
-			g.to_ts,
-			g.bucket_count
-		FROM cluster_top_jobs AS j
-		INNER JOIN cluster_top_generations AS g ON g.id = j.generation
-		WHERE
-			j.status = 'pending'
-		ORDER BY
-			j.profiles_count DESC
-		LIMIT 1
-		FOR UPDATE OF j SKIP LOCKED
-		`,
-	)
-	if err != nil {
-		_ = tx.Rollback()
 		return nil, err
 	}
-	if queueItem.BucketCount == 0 {
-		_ = tx.Rollback()
-		return nil, fmt.Errorf("generation %d has zero bucket_count", queueItem.Generation)
+	if item.BucketCount == 0 {
+		return nil, fmt.Errorf("generation %d has zero bucket_count", item.Generation)
 	}
-
-	var startedAt time.Time
-	err = tx.GetContext(
-		ctx,
-		&startedAt,
-		`UPDATE cluster_top_jobs
-		SET started_at = clock_timestamp()
-		WHERE id = $1
-		RETURNING started_at`,
-		queueItem.ID,
-	)
-	if err != nil {
-		_ = tx.Rollback()
-		return nil, fmt.Errorf("failed to set started_at: %w", err)
-	}
-
-	job := Job{
-		ID:          queueItem.ID,
-		Generation:  int(queueItem.Generation),
-		BucketCount: queueItem.BucketCount,
-		Service:     queueItem.Service,
-		PodID:       queueItem.PodID,
-		NodeID:      queueItem.NodeID,
-		TimeRange: TimeRange{
-			From: queueItem.From,
-			To:   queueItem.To,
-		},
-		CreatedAt: queueItem.CreatedAt,
-		StartedAt: startedAt,
-	}
-
 	return &SelectedJob{
-		Job: job,
-		finalize: func(ctx context.Context, status string, stats *JobExecutionStats) {
-			var executionStatsJSON []byte
-			if stats != nil {
-				var marshalErr error
-				executionStatsJSON, marshalErr = json.Marshal(stats)
-				if marshalErr != nil {
-					_ = tx.Rollback()
-					return
-				}
-			}
-
-			_, finalizationErr := tx.ExecContext(
-				ctx,
-				`UPDATE cluster_top_jobs
-				SET
-					status = $2,
-					finished_at = clock_timestamp(),
-					execution_stats = $3
-				WHERE
-					id = $1`,
-				job.ID,
-				status,
-				executionStatsJSON,
-			)
-			if finalizationErr == nil {
-				_ = tx.Commit()
-			} else {
-				_ = tx.Rollback()
-			}
+		Job: Job{
+			ID: item.ID, Generation: int(item.Generation), BucketCount: item.BucketCount,
+			Service: item.Service, PodID: item.PodID, NodeID: item.NodeID,
+			TimeRange: TimeRange{From: item.From, To: item.To},
+			CreatedAt: item.CreatedAt,
 		},
+		jobState: &pgJobState{selector: s, jobID: item.ID},
 	}, nil
+}
+
+type pgJobState struct {
+	selector *PgJobSelector
+	jobID    int64
+}
+
+func (l *pgJobState) Lease() lease.Lease { return postgreslease.ForKey(l.selector.rows, l.jobID) }
+
+// MarkRunning rechecks eligibility after acquisition: a previously selected candidate
+// may have been completed and released by another worker in the meantime.
+func (l *pgJobState) MarkRunning(ctx context.Context, token string) (time.Time, error) {
+	ctx, cancel := context.WithTimeout(ctx, l.selector.conf.OperationTimeout)
+	defer cancel()
+	primary, err := l.selector.cluster.WaitForPrimary(ctx)
+	if err != nil {
+		return time.Time{}, err
+	}
+	var startedAt time.Time
+	err = primary.DBx().GetContext(ctx, &startedAt, `UPDATE cluster_top_jobs
+        SET status = 'running', started_at = clock_timestamp(), finished_at = NULL,
+            execution_stats = NULL
+        WHERE id = $1 AND lease_token = $2 AND lease_expires_at > clock_timestamp()
+            AND status IN ('pending', 'running')
+        RETURNING started_at`, l.jobID, token)
+	return startedAt, err
+}
+
+func (l *pgJobState) Finalize(ctx context.Context, token, status string, stats *JobExecutionStats) error {
+	if status != JobStatusDone && status != JobStatusFailed && status != JobStatusSkipped {
+		return fmt.Errorf("invalid final job status %q", status)
+	}
+	var statsJSON []byte
+	if stats != nil {
+		var err error
+		statsJSON, err = json.Marshal(stats)
+		if err != nil {
+			return fmt.Errorf("failed to marshal execution stats: %w", err)
+		}
+	}
+	ctx, cancel := context.WithTimeout(ctx, l.selector.conf.OperationTimeout)
+	defer cancel()
+	primary, err := l.selector.cluster.WaitForPrimary(ctx)
+	if err != nil {
+		return err
+	}
+	query, args, err := squirrel.Update("cluster_top_jobs").
+		Set("status", status).
+		Set("finished_at", squirrel.Expr("clock_timestamp()")).
+		Set("execution_stats", statsJSON).
+		Where(squirrel.Eq{"id": l.jobID, "lease_token": token}).
+		Where(squirrel.Expr("lease_expires_at > clock_timestamp()")).
+		Where(squirrel.Eq{"status": JobStatusRunning}).
+		PlaceholderFormat(squirrel.Dollar).ToSql()
+	if err != nil {
+		return err
+	}
+	result, err := primary.DBx().ExecContext(ctx, query, args...)
+	return checkLeaseUpdate(result, err)
+}
+
+func checkLeaseUpdate(result sql.Result, err error) error {
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return ErrJobLeaseLost
+	}
+	return nil
 }

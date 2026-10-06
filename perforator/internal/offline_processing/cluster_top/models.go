@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/yandex/perforator/perforator/pkg/lease"
 	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/aggregated"
 )
 
@@ -35,16 +36,19 @@ func (j Job) WorkloadKey() string {
 	return workloadKey(j.PodID, j.NodeID)
 }
 
+var ErrJobLeaseLost = lease.ErrLeaseLost
+
+// SelectedJob is a candidate, not an acquired job. Its eligibility must be
+// checked by MarkRunning after LockAndRun has acquired its lease.
 type SelectedJob struct {
 	Job Job
-
-	finalize func(ctx context.Context, status string, stats *JobExecutionStats)
+	jobState
 }
 
-func (s *SelectedJob) Finalize(ctx context.Context, status string, stats *JobExecutionStats) {
-	if s.finalize != nil {
-		s.finalize(ctx, status, stats)
-	}
+type jobState interface {
+	Lease() lease.Lease
+	MarkRunning(context.Context, string) (time.Time, error)
+	Finalize(context.Context, string, string, *JobExecutionStats) error
 }
 
 type JobSelector interface {

@@ -366,7 +366,7 @@ func (s *Scheduler) finishGenerations(ctx context.Context) error {
 	for _, id := range scheduledIDs {
 		var pendingCount int
 		err = tx.GetContext(ctx, &pendingCount,
-			`SELECT count(*) FROM cluster_top_jobs WHERE generation = $1 AND status = 'pending'`,
+			`SELECT count(*) FROM cluster_top_jobs WHERE generation = $1 AND status IN ('pending', 'running')`,
 			id,
 		)
 		if err != nil {

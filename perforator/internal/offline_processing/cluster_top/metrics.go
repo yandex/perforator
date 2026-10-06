@@ -6,25 +6,31 @@ import (
 )
 
 type workerMetrics struct {
-	processingSuccess metrics.Timer
-	processingFailed  metrics.Timer
-	queueWait         metrics.Timer
-	processedDone     metrics.Counter
-	processedFailed   metrics.Counter
-	processedEmpty    metrics.Counter
-	processedSkipped  metrics.Counter
+	heartbeatErrors    metrics.Counter
+	leaseLost          metrics.Counter
+	finalizationErrors metrics.Counter
+	processingSuccess  metrics.Timer
+	processingFailed   metrics.Timer
+	queueWait          metrics.Timer
+	processedDone      metrics.Counter
+	processedFailed    metrics.Counter
+	processedEmpty     metrics.Counter
+	processedSkipped   metrics.Counter
 }
 
 func newWorkerMetrics(reg xmetrics.Registry) *workerMetrics {
 	r := reg.WithPrefix("cluster_top_worker")
 	return &workerMetrics{
-		processingSuccess: r.WithTags(map[string]string{"status": "success"}).Timer("jobs.processing.timer"),
-		processingFailed:  r.WithTags(map[string]string{"status": "failed"}).Timer("jobs.processing.timer"),
-		queueWait:         r.Timer("jobs.queue_wait.timer"),
-		processedDone:     r.WithTags(map[string]string{"status": "done"}).Counter("jobs.processed.count"),
-		processedFailed:   r.WithTags(map[string]string{"status": "failed"}).Counter("jobs.processed.count"),
-		processedEmpty:    r.WithTags(map[string]string{"status": "empty"}).Counter("jobs.processed.count"),
-		processedSkipped:  r.WithTags(map[string]string{"status": "skipped"}).Counter("jobs.processed.count"),
+		heartbeatErrors:    r.Counter("jobs.lease.heartbeat_errors.count"),
+		leaseLost:          r.Counter("jobs.lease.lost.count"),
+		finalizationErrors: r.Counter("jobs.finalization_errors.count"),
+		processingSuccess:  r.WithTags(map[string]string{"status": "success"}).Timer("jobs.processing.timer"),
+		processingFailed:   r.WithTags(map[string]string{"status": "failed"}).Timer("jobs.processing.timer"),
+		queueWait:          r.Timer("jobs.queue_wait.timer"),
+		processedDone:      r.WithTags(map[string]string{"status": "done"}).Counter("jobs.processed.count"),
+		processedFailed:    r.WithTags(map[string]string{"status": "failed"}).Counter("jobs.processed.count"),
+		processedEmpty:     r.WithTags(map[string]string{"status": "empty"}).Counter("jobs.processed.count"),
+		processedSkipped:   r.WithTags(map[string]string{"status": "skipped"}).Counter("jobs.processed.count"),
 	}
 }
 

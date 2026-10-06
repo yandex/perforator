@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY cluster_top_jobs_pending_profiles_count_idx;

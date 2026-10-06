@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -56,7 +59,8 @@ var (
 		Use:   "cluster-top",
 		Short: "Calculate the 'perf-top' for the service",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
+			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
 
 			reg := xmetrics.NewRegistry(
 				xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
@@ -109,7 +113,10 @@ var (
 				)
 			}
 
-			jobSelector := cluster_top.NewPgJobSelector(storageBundle.DBs.PostgresCluster)
+			jobSelector, err := cluster_top.NewPgJobSelector(storageBundle.DBs.PostgresCluster, conf.Worker.Lease)
+			if err != nil {
+				return err
+			}
 
 			clusterPerfTopAggregator := cluster_top.NewClickhousePerfTopAggregator(storageBundle.ClusterTopGenerationsStorage)
 

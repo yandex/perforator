@@ -528,6 +528,50 @@ func TestLockAndRunReleasesAfterAction(t *testing.T) {
 	require.True(t, released)
 }
 
+func TestLockAndRunAcquireRetryAttempts(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		retries     uint32
+		useDefaults bool
+		succeed     bool
+		wantCalls   int
+	}{
+		{name: "no retries", wantCalls: 1},
+		{name: "one retry", retries: 1, wantCalls: 2},
+		{name: "success on last retry", retries: 2, succeed: true, wantCalls: 3},
+		{name: "default attempts unchanged", useDefaults: true, wantCalls: 5},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				failure := errors.New("database unavailable")
+				calls, ran := 0, false
+				target := &stubLeaseStorage{acquire: func(context.Context) (bool, error) {
+					calls++
+					if tc.succeed && calls == tc.wantCalls {
+						return true, nil
+					}
+					return false, failure
+				}}
+				opts := []LeaseOption{WithTTL(3 * time.Second)}
+				if !tc.useDefaults {
+					opts = append(opts, WithMaxAcquireRetryAttempts(tc.retries))
+				}
+				started := time.Now()
+				err := LockAndRun(t.Context(), xlog.NewNop(), target,
+					func(context.Context, string) { ran = true }, opts...)
+				if tc.succeed {
+					require.NoError(t, err)
+				} else {
+					require.ErrorIs(t, err, failure)
+				}
+				require.Equal(t, tc.succeed, ran)
+				require.Equal(t, tc.wantCalls, calls)
+				require.Equal(t, time.Duration(tc.wantCalls-1)*time.Second, time.Since(started))
+			})
+		})
+	}
+}
+
 func TestLockAndRunBoundsAcquisitionRequest(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		target := &stubLeaseStorage{acquire: func(ctx context.Context) (bool, error) {
@@ -537,7 +581,7 @@ func TestLockAndRunBoundsAcquisitionRequest(t *testing.T) {
 		started := time.Now()
 		err := LockAndRun(t.Context(), xlog.NewNop(), target,
 			func(context.Context, string) { t.Error("ran after acquisition error") },
-			WithOperationTimeout(time.Second), WithMaxAcquireRetries(1))
+			WithOperationTimeout(time.Second), WithMaxAcquireRetryAttempts(0))
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 		require.Equal(t, time.Second, time.Since(started))
 	})

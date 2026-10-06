@@ -15,6 +15,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/filecache"
+	"github.com/yandex/perforator/perforator/pkg/lease"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
@@ -31,7 +32,8 @@ type ClusterTop struct {
 
 	skiplist *ServiceSkipList
 
-	metrics *workerMetrics
+	metrics   *workerMetrics
+	leaseConf JobLeaseConfig
 }
 
 func NewClusterTop(
@@ -40,6 +42,9 @@ func NewClusterTop(
 	reg xmetrics.Registry,
 	storageBundle *bundle.StorageBundle,
 ) (*ClusterTop, error) {
+	if err := conf.Worker.Lease.Validate(); err != nil {
+		return nil, err
+	}
 	fileCache, err := filecache.NewFileCache(conf.BinaryProvider.FileCache, reg)
 	if err != nil {
 		return nil, err
@@ -67,6 +72,7 @@ func NewClusterTop(
 		symbolizer:     symbolizer,
 		skiplist:       NewServiceSkipList(conf.Worker.SkippedServices),
 		metrics:        newWorkerMetrics(reg),
+		leaseConf:      conf.Worker.Lease,
 	}, nil
 }
 
@@ -138,11 +144,14 @@ func (t *ClusterTop) Run(
 	clusterPerfTopAggregator ClusterPerfTopAggregator,
 	degreeOfParallelism uint,
 ) error {
+	if degreeOfParallelism == 0 {
+		return fmt.Errorf("cluster top parallelism must be positive")
+	}
 	g, ctx := errgroup.WithContext(ctx)
 
 	for range degreeOfParallelism {
 		g.Go(func() error {
-			for {
+			for ctx.Err() == nil {
 				shouldContinueRightAway := t.selectAndProcessJob(
 					ctx,
 					jobSelector,
@@ -154,7 +163,10 @@ func (t *ClusterTop) Run(
 						break
 					}
 
-					time.Sleep(10 * time.Second)
+					select {
+					case <-ctx.Done():
+					case <-time.After(10 * time.Second):
+					}
 				}
 			}
 
@@ -182,65 +194,93 @@ func (t *ClusterTop) selectAndProcessJob(
 	}
 
 	job := selected.Job
-
 	if t.skiplist.Contains(job.Service) {
-		stats := buildSkippedStats(job)
-		t.l.Info(ctx, "Skipping service on skip list",
-			log.Int64("job_id", job.ID),
-			log.String("service", job.Service),
-			log.Int("generation", job.Generation),
-			log.String("workload_key", job.WorkloadKey()),
-		)
-		t.metrics.recordSkipped(stats)
-		selected.Finalize(ctx, JobStatusSkipped, stats)
-		return true
+		err = t.runSelectedJob(ctx, selected, func(jobCtx context.Context, token string) error {
+			stats := buildSkippedStats(selected.Job)
+			if err := t.finalizeJob(jobCtx, selected, token, JobStatusSkipped, stats); err != nil {
+				return errors.Join(err, context.Cause(jobCtx))
+			}
+			t.jobLogger(job).Info(ctx, "Skipping service on skip list")
+			t.metrics.recordSkipped(stats)
+			return nil
+		})
+	} else {
+		err = t.processSelectedJob(ctx, selected, func(jobCtx context.Context) (oneShotJobResult, error) {
+			processor := newOneShotJobProcessor(t.l, t.profileStorage, t.symbolizer, selected.Job,
+				degreeOfParallelism, kDefaultProfilesBatchSize)
+			return processor.run(jobCtx)
+		}, clusterPerfTopAggregator)
 	}
+	// Contention is normal: select another candidate immediately. Other errors
+	// use the worker loop's existing delay instead of repeatedly hitting the DB.
+	if err != nil && !errors.Is(err, lease.ErrLeaseBusy) {
+		t.jobLogger(job).Warn(ctx, "Failed to run selected job", log.Error(err))
+		return false
+	}
+	return true
+}
 
-	processor := newOneShotJobProcessor(
-		t.l,
-		t.profileStorage,
-		t.symbolizer,
-		clusterPerfTopAggregator,
-		job,
-		degreeOfParallelism,
-		kDefaultProfilesBatchSize,
-	)
-
-	var jobResult oneShotJobResult
-	var finishStatus string
-	defer func() {
-		stats := &jobResult.executionStats
-
-		l := t.l.With(
-			log.Int64("job_id", job.ID),
-			log.String("service", job.Service),
-			log.Int("generation", job.Generation),
-			log.String("workload_key", job.WorkloadKey()),
-			log.String("pod_id", job.PodID),
-			log.String("node_id", job.NodeID),
-			log.Time("from", job.TimeRange.From),
-			log.Time("to", job.TimeRange.To),
-			log.Int("profilesCount", jobResult.profilesProcessed),
-			log.Any("execution_stats", stats),
-		)
+// compute must return success only after every required processing stage has
+// finished. A failed computation must never publish even a non-nil partial top.
+func (t *ClusterTop) processSelectedJob(
+	ctx context.Context,
+	selected *SelectedJob,
+	compute func(context.Context) (oneShotJobResult, error),
+	aggregator ClusterPerfTopAggregator,
+) error {
+	return t.runSelectedJob(ctx, selected, func(jobCtx context.Context, token string) error {
+		l := t.jobLogger(selected.Job)
+		start := time.Now()
+		result, err := compute(jobCtx)
+		if err == nil && result.top != nil && jobCtx.Err() == nil {
+			saveStart := time.Now()
+			err = aggregator.Save(jobCtx, result.top)
+			result.executionStats.Stages.SaveTop = time.Since(saveStart)
+		}
+		result.executionStats.Duration = time.Since(start)
 		if err != nil {
-			l.Error(ctx, "Failed to process the job", log.Error(err))
-		} else {
-			l.Info(ctx, "Successfully processed the job")
+			result.executionStats.Error = err.Error()
 		}
 
-		t.metrics.recordJob(finishStatus, jobResult.profilesProcessed, stats)
-		selected.Finalize(ctx, finishStatus, stats)
-	}()
+		if jobCtx.Err() != nil {
+			l.Info(ctx, "Job processing interrupted", log.Error(context.Cause(jobCtx)))
+			return context.Cause(jobCtx)
+		}
+		status := JobStatusDone
+		if err != nil {
+			status = JobStatusFailed
+			l.Error(ctx, "Failed to process job", log.Error(err))
+		}
+		if err := t.finalizeJob(jobCtx, selected, token, status, &result.executionStats); err != nil {
+			return errors.Join(err, context.Cause(jobCtx))
+		} else {
+			t.metrics.recordJob(status, result.profilesProcessed, &result.executionStats)
+			l.Info(ctx, "Finalized job", log.String("status", status), log.Any("execution_stats", result.executionStats))
+		}
+		return nil
+	})
+}
 
-	jobResult, err = processor.run(ctx)
-	if err != nil {
-		finishStatus = JobStatusFailed
-	} else {
-		finishStatus = JobStatusDone
+func (t *ClusterTop) finalizeJob(ctx context.Context, selected *SelectedJob, token, status string, stats *JobExecutionStats) error {
+	if err := selected.Finalize(ctx, token, status, stats); err != nil {
+		t.metrics.finalizationErrors.Inc()
+		t.jobLogger(selected.Job).Error(ctx, "Failed to finalize job", log.Error(err))
+		return err
 	}
+	return nil
+}
 
-	return true
+func (t *ClusterTop) jobLogger(job Job) xlog.Logger {
+	return t.l.With(
+		log.Int64("job_id", job.ID),
+		log.String("service", job.Service),
+		log.Int("generation", job.Generation),
+		log.String("workload_key", job.WorkloadKey()),
+		log.String("pod_id", job.PodID),
+		log.String("node_id", job.NodeID),
+		log.Time("from", job.TimeRange.From),
+		log.Time("to", job.TimeRange.To),
+	)
 }
 
 func buildSkippedStats(job Job) *JobExecutionStats {
