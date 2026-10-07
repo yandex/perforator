@@ -281,7 +281,7 @@ func (r *Registry) tryEnqueueForDiscovery(ctx context.Context, tp *trackedProces
 		r.logger.Debug(
 			ctx,
 			"Process does not allow perfmap collection, skipping process (early check)",
-			logfield.CurrentNamespacePID(info.ProcessID()),
+			logfield.CurrentNamespacePID(info.Key().Pid),
 		)
 		tp.state.Store(int32(processStateTransientSkip))
 		return
@@ -300,31 +300,31 @@ func (r *Registry) tryEnqueueForDiscovery(ctx context.Context, tp *trackedProces
 		r.logger.Debug(
 			ctx,
 			"Process enqueued for discovery",
-			logfield.CurrentNamespacePID(info.ProcessID()),
+			logfield.CurrentNamespacePID(info.Key().Pid),
 		)
 	default:
 		r.logger.Error(
 			ctx,
 			"Register queue is full, skipping process",
-			logfield.CurrentNamespacePID(info.ProcessID()),
+			logfield.CurrentNamespacePID(info.Key().Pid),
 		)
 	}
 }
 
 // OnProcessDiscovery implements process.Listener
 func (r *Registry) OnProcessDiscovery(ctx context.Context, info process.ProcessInfo) {
-	tp := r.addProcessEntry(ctx, info.ProcessID())
+	tp := r.addProcessEntry(ctx, info.Key().Pid)
 	r.tryEnqueueForDiscovery(ctx, tp, info)
 }
 
 // OnProcessRescan implements process.Listener
 func (r *Registry) OnProcessRescan(ctx context.Context, info process.ProcessInfo) {
-	tp := r.findProcess(info.ProcessID())
+	tp := r.findProcess(info.Key().Pid)
 	if tp == nil {
 		r.logger.Warn(
 			ctx,
 			"Got Rescan notification for unknown process",
-			log.UInt32("pid", uint32(info.ProcessID())),
+			log.UInt32("pid", uint32(info.Key().Pid)),
 		)
 		return
 	}
@@ -335,11 +335,11 @@ func (r *Registry) OnProcessRescan(ctx context.Context, info process.ProcessInfo
 }
 
 // OnProcessDeath implements process.Listener
-func (r *Registry) OnProcessDeath(ctx context.Context, pid linux.CurrentNamespacePID) {
+func (r *Registry) OnProcessDeath(ctx context.Context, key linux.ProcessKey) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	// TODO: cancel discovery if it has not completed yet?
-	delete(r.procs, pid)
+	delete(r.procs, key.Pid)
 }
 
 func (r *Registry) findProcess(pid linux.CurrentNamespacePID) *trackedProcess {

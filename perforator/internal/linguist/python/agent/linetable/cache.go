@@ -96,7 +96,7 @@ func newCache(budget int64, ttl time.Duration) *Cache {
 func cacheKeyString(key CacheKey) string {
 	// Fixed-width binary key avoids fmt.Sprintf allocations on the hot path.
 	var b [32]byte
-	binary.LittleEndian.PutUint32(b[0:4], key.Process.Pid)
+	binary.LittleEndian.PutUint32(b[0:4], uint32(key.Process.Pid))
 	binary.LittleEndian.PutUint64(b[4:12], key.CodeObjectPtr)
 	binary.LittleEndian.PutUint64(b[12:20], key.CoLinetablePtr)
 	binary.LittleEndian.PutUint32(b[20:24], uint32(key.CoFirstlineno))

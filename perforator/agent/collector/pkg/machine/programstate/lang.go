@@ -59,7 +59,7 @@ func (s *State) SymbolizeInterpreter(
 ) (res unwinder.Symbol, exists bool) {
 	cacheKey := unwinder.InterpreterSymbolKey{
 		SymbolKey:        unwinder.SymbolKey{ObjectAddr: key.ObjectAddr, Linestart: key.Linestart},
-		Pid:              process.Pid,
+		Pid:              uint32(process.Pid),
 		ProcessStarttime: process.ProcessStartTime,
 		Language:         uint8(language),
 	}

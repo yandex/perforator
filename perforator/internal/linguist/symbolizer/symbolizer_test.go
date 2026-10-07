@@ -147,7 +147,7 @@ type fakeSymbolSource struct {
 
 func (s *fakeSymbolSource) SymbolizeInterpreter(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (unwinder.Symbol, bool) {
 	s.calls++
-	symbol, ok := s.symbols[unwinder.InterpreterSymbolKey{SymbolKey: *key, Pid: process.Pid, ProcessStarttime: process.ProcessStartTime, Language: uint8(language)}]
+	symbol, ok := s.symbols[unwinder.InterpreterSymbolKey{SymbolKey: *key, Pid: uint32(process.Pid), ProcessStarttime: process.ProcessStartTime, Language: uint8(language)}]
 	return symbol, ok
 }
 
@@ -172,7 +172,7 @@ func TestSymbolCacheSeparatesLanguagesAndProcessLifetimes(t *testing.T) {
 	}
 	for iteration := 0; iteration < 2; iteration++ {
 		for cacheKey := range source.symbols {
-			symbol, ok := s.Symbolize(models.Language(cacheKey.Language), linux.ProcessKey{Pid: cacheKey.Pid, ProcessStartTime: cacheKey.ProcessStarttime}, &cacheKey.SymbolKey)
+			symbol, ok := s.Symbolize(models.Language(cacheKey.Language), linux.ProcessKey{Pid: linux.CurrentNamespacePID(cacheKey.Pid), ProcessStartTime: cacheKey.ProcessStarttime}, &cacheKey.SymbolKey)
 			require.True(t, ok)
 			require.Equal(t, fmt.Sprintf("%d/%d/%d", cacheKey.Pid, cacheKey.Language, cacheKey.ProcessStarttime), symbol.Name)
 		}
@@ -185,11 +185,11 @@ func TestSymbolCacheRetriesMissingSymbols(t *testing.T) {
 	s, err := newSymbolizer(&SymbolizerConfig{}, source, nop.Registry{}, "test")
 	require.NoError(t, err)
 	key := unwinder.InterpreterSymbolKey{SymbolKey: unwinder.SymbolKey{ObjectAddr: 0x1000}, Pid: 42, Language: uint8(unwinder.LanguagePython), ProcessStarttime: 100}
-	_, ok := s.Symbolize(models.Language(key.Language), linux.ProcessKey{Pid: key.Pid, ProcessStartTime: key.ProcessStarttime}, &key.SymbolKey)
+	_, ok := s.Symbolize(models.Language(key.Language), linux.ProcessKey{Pid: linux.CurrentNamespacePID(key.Pid), ProcessStartTime: key.ProcessStarttime}, &key.SymbolKey)
 	require.False(t, ok)
 	source.symbols[key] = makeSymbol("available")
 	for i := 0; i < 2; i++ {
-		symbol, ok := s.Symbolize(models.Language(key.Language), linux.ProcessKey{Pid: key.Pid, ProcessStartTime: key.ProcessStarttime}, &key.SymbolKey)
+		symbol, ok := s.Symbolize(models.Language(key.Language), linux.ProcessKey{Pid: linux.CurrentNamespacePID(key.Pid), ProcessStartTime: key.ProcessStarttime}, &key.SymbolKey)
 		require.True(t, ok)
 		require.Equal(t, "available", symbol.Name)
 	}

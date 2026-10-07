@@ -3,6 +3,7 @@ package process
 import (
 	"context"
 	eb "encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"math/bits"
@@ -15,7 +16,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"golang.org/x/exp/maps"
+	"github.com/cilium/ebpf"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
@@ -38,6 +39,15 @@ import (
 
 ////////////////////////////////////////////////////////////////////////////////
 
+type processBPFState interface {
+	AddProcess(linux.CurrentNamespacePID, *unwinder.ProcessInfo) error
+	RemoveProcess(linux.CurrentNamespacePID) error
+	AddMappingLPMSegment(*unwinder.ExecutableMappingTrieKey, *unwinder.ExecutableMappingInfo) error
+	RemoveMappingLPMSegment(*unwinder.ExecutableMappingTrieKey) error
+	AddMapping(*unwinder.ExecutableMappingKey, *unwinder.ExecutableMapping) error
+	RemoveMapping(*unwinder.ExecutableMappingKey) error
+}
+
 type ProcessRegistry struct {
 	*pidNamespaceIndex
 
@@ -47,13 +57,14 @@ type ProcessRegistry struct {
 	procsmu sync.RWMutex
 	// incremented each time new scan starts
 	procsGeneration atomic.Uint64
-	procchan        chan *processInfo
+	procchan        chan *processRegistration
 
-	listeners []Listener
+	listeners         []Listener
+	metadataPublisher MetadataPublisher
 
 	buildids   *BuildIDCache
 	dsoStorage *dso.Storage
-	state      *programstate.State
+	state      processBPFState
 	mounts     *mountinfo.Watcher
 
 	uploader   *upload.Scheduler
@@ -61,6 +72,7 @@ type ProcessRegistry struct {
 
 	metrics        processRegistryMetrics
 	processScanner ProcessScanner
+	processFilter  ProcessFilter
 }
 
 type processRegistryMetrics struct {
@@ -110,54 +122,68 @@ func (m mappingImpl) buildInfo() *xelf.BuildInfo {
 type processMap struct {
 	Mapping
 	id uint32
+	// Incomplete mappings remain owned by the lifetime until cleanup succeeds.
+	incomplete bool
+}
+
+// Pending updates survive lifetime changes within a registration. Removing the
+// registration invalidates its pending work. Only discovery and scanning may
+// extend liveness; samples must not do so.
+type processRegistration struct {
+	pid               linux.CurrentNamespacePID
+	lifecycleMu       sync.Mutex
+	generation        atomic.Uint64
+	observedStartTime atomic.Uint64
+	updateQueued      atomic.Bool
+	refreshNeeded     atomic.Bool
+	// Mapping IDs remain monotonic across lifetime replacements.
+	nextmapid atomic.Uint32
+}
+
+func (p *processRegistration) observeStartTime(startTime uint64) uint64 {
+	for observed := p.observedStartTime.Load(); ; observed = p.observedStartTime.Load() {
+		if startTime <= observed {
+			return observed
+		}
+		if p.observedStartTime.CompareAndSwap(observed, startTime) {
+			return startTime
+		}
+	}
 }
 
 type processInfo struct {
 	currentNamespaceID   linux.CurrentNamespacePID
 	pidNamespaceIndexKey *pidNamespaceIndexKey
+	*processRegistration
 
-	state             processState
-	lock              sync.RWMutex
+	// Retired lifetimes reject analysis and publication, even while cleanup is incomplete.
+	retired           atomic.Bool
+	envsMu            sync.RWMutex
 	envs              map[string]string
-	listenersNotified atomic.Bool
-
-	// Used for deletion purposes. All modifications happen under r.procsmu in shared or exclusive mode
-	generation     atomic.Uint64
-	mapsgeneration atomic.Uint64
-	nextmapid      atomic.Uint32
+	listenersNotified bool // guarded by lifecycleMu
+	startTime         atomic.Uint64
+	mapsgeneration    atomic.Uint64
 	// map itself can be changed (while holding mapslock), but values must be immutable.
 	registeredmaps map[procfs.Address]processMap
 	mapslock       sync.Mutex
 }
 
-func (p *processInfo) setState(state processState) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	if p.state == processStateDeleted && state != processStateDeleted {
-		return fmt.Errorf("process %d has already been deleted", p.currentNamespaceID)
-	}
-
-	p.state = state
-	return nil
-}
-
 var _ ProcessInfo = (*processInfo)(nil)
 
-// ProcessID implements ProcessInfo
-func (p *processInfo) ProcessID() linux.CurrentNamespacePID {
-	return p.currentNamespaceID
+func (p *processInfo) Key() linux.ProcessKey {
+	return linux.ProcessKey{Pid: p.currentNamespaceID, ProcessStartTime: p.startTime.Load()}
 }
 
 func (p *processInfo) setEnvs(envs map[string]string) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.envsMu.Lock()
+	defer p.envsMu.Unlock()
 	p.envs = envs
 }
 
 // Env implements ProcessInfo
 func (p *processInfo) Env() map[string]string {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
+	p.envsMu.RLock()
+	defer p.envsMu.RUnlock()
 	return p.envs
 }
 
@@ -167,22 +193,14 @@ func (p *processInfo) Mappings() []Mapping {
 	defer p.mapslock.Unlock()
 	mps := make([]Mapping, 0, len(p.registeredmaps))
 	for _, mp := range p.registeredmaps {
-		mps = append(mps, mp.Mapping)
+		if !mp.incomplete {
+			mps = append(mps, mp.Mapping)
+		}
 	}
 	return mps
 }
 
-type processState int
-
-const (
-	processStateUnknown processState = iota
-	processStateDiscovered
-	processStatePopulating
-	processStatePopulated
-	processStateDeleted
-
-	ProcScanPeriod = 10 * time.Second
-)
+const ProcScanPeriod = 10 * time.Second
 
 type UploaderArguments struct {
 	Storage client.BinaryStorage
@@ -199,7 +217,9 @@ func NewProcessRegistry(
 	dsoStorage *dso.Storage,
 	uploaderArgs *UploaderArguments,
 	processScanner ProcessScanner,
+	processFilter ProcessFilter,
 	listeners []Listener,
+	metadataPublisher MetadataPublisher,
 ) (*ProcessRegistry, error) {
 	uploader, err := upload.NewUploadScheduler(
 		uploaderArgs.Conf,
@@ -222,7 +242,7 @@ func NewProcessRegistry(
 		procs:             make(map[linux.CurrentNamespacePID]*processInfo),
 		dsoStorage:        dsoStorage,
 		state:             state,
-		procchan:          make(chan *processInfo, 8192),
+		procchan:          make(chan *processRegistration, 8192),
 		buildids:          NewBuildIDCache(),
 		uploader:          uploader,
 		uploadHost:        uploadHost,
@@ -238,19 +258,15 @@ func NewProcessRegistry(
 			processesWithEmptyEnvironment:   m.Counter("processes.with_empty_environment.count"),
 			processEnvironmentWaitDelay:     m.Counter("environment.wait_delay.total.milliseconds"),
 		},
-		processScanner: processScanner,
-		listeners:      listeners,
+		processScanner:    processScanner,
+		processFilter:     processFilter,
+		listeners:         listeners,
+		metadataPublisher: metadataPublisher,
 	}
 
-	p.initialize()
+	p.procsGeneration.Store(1)
 
 	return p, nil
-}
-
-func (r *ProcessRegistry) initialize() {
-	// Set initial process generation to any non-zero value in order to distinguish
-	// zero-initialized atomics inside processInfo from real generations.
-	r.procsGeneration.Store(1)
 }
 
 type WorkerConfig struct {
@@ -266,62 +282,100 @@ func (r *ProcessRegistry) RunWorker(ctx context.Context, conf WorkerConfig) erro
 	})
 
 	g.Go(func() error {
-		return r.runHandler(newCtx, &conf)
+		return r.runHandler(newCtx, func(ctx context.Context, proc *processInfo) error {
+			return r.handleProcess(ctx, proc, &conf)
+		})
 	})
 
 	return g.Wait()
 }
 
-func (r *ProcessRegistry) deleteProcess(ctx context.Context, pid linux.CurrentNamespacePID) {
-	r.procsmu.Lock()
-	pi := r.procs[pid]
-	delete(r.procs, pid)
-	r.procsmu.Unlock()
-
-	r.unregisterPidNamespaceCorrelation(pi)
-
-	r.dsoStorage.RemoveProcess(ctx, pid)
-	r.removeProcessMappings(ctx, pi)
-
-	err := r.state.RemoveProcess(pid)
-	if err != nil {
-		r.log.Debug(
-			ctx,
-			"Failed to remove process info from the eBPF mapping",
-			log.UInt32("current_namespace_pid", uint32(pid)),
-			log.Error(err),
-		)
+// retireProcessLocked requires pi.lifecycleMu. A failed retirement must be retried
+// before the registration can be removed or a new lifetime can be installed.
+func (r *ProcessRegistry) retireProcessLocked(ctx context.Context, pi *processInfo) bool {
+	pi.retired.Store(true)
+	if err := ignoreMissingBPFEntry(r.state.RemoveProcess(pi.currentNamespaceID)); err != nil {
+		r.log.Debug(ctx, "Failed to remove process from eBPF state",
+			log.UInt32("pid", uint32(pi.currentNamespaceID)), log.Error(err))
+		return false
 	}
+	if !r.removeProcessMappings(ctx, pi) {
+		return false
+	}
+	r.unregisterPidNamespaceCorrelation(pi)
+	r.dsoStorage.RemoveProcess(ctx, pi.currentNamespaceID)
+	r.notifyProcessDeathLocked(ctx, pi)
+	return true
+}
 
+func (r *ProcessRegistry) isCurrent(info *processInfo) bool {
+	r.procsmu.RLock()
+	defer r.procsmu.RUnlock()
+	return r.procs[info.currentNamespaceID] == info
+}
+
+func (r *ProcessRegistry) currentProcess(updates *processRegistration) *processInfo {
+	r.procsmu.RLock()
+	defer r.procsmu.RUnlock()
+	info := r.procs[updates.pid]
+	if info == nil || info.processRegistration != updates {
+		return nil
+	}
+	return info
+}
+
+func (r *ProcessRegistry) deleteProcess(ctx context.Context, info *processInfo, scanGeneration uint64) bool {
+	info.lifecycleMu.Lock()
+	defer info.lifecycleMu.Unlock()
+	if !r.isCurrent(info) || info.generation.Load() >= scanGeneration {
+		return false
+	}
+	if !r.retireProcessLocked(ctx, info) {
+		return false
+	}
+	r.procsmu.Lock()
+	delete(r.procs, info.currentNamespaceID)
+	r.procsmu.Unlock()
+	return true
+}
+
+func (r *ProcessRegistry) notifyProcessDeathLocked(
+	ctx context.Context,
+	info *processInfo,
+) {
+	key := info.Key()
+	if r.metadataPublisher != nil {
+		r.metadataPublisher.OnProcessDeath(ctx, key)
+	}
 	for _, listener := range r.listeners {
-		listener.OnProcessDeath(ctx, pid)
+		listener.OnProcessDeath(ctx, key)
 	}
 }
 
-func (r *ProcessRegistry) collectDeadPids(ctx context.Context, newGen uint64) []linux.CurrentNamespacePID {
+// Requires info.lifecycleMu and successful BPF activation of the current lifetime.
+func (r *ProcessRegistry) notifyProcessUpdateLocked(ctx context.Context, info *processInfo) {
+	if !info.listenersNotified {
+		info.listenersNotified = true
+		for _, listener := range r.listeners {
+			listener.OnProcessDiscovery(ctx, info)
+		}
+	} else {
+		for _, listener := range r.listeners {
+			listener.OnProcessRescan(ctx, info)
+		}
+	}
+}
+
+func (r *ProcessRegistry) collectDeadProcesses(newGen uint64) []*processInfo {
 	r.procsmu.RLock()
 	defer r.procsmu.RUnlock()
-
-	deadPids := []linux.CurrentNamespacePID{}
-	for pid, proc := range r.procs {
-		gen := proc.generation.Load()
-		if gen == newGen {
-			continue
+	var dead []*processInfo
+	for _, proc := range r.procs {
+		if proc.generation.Load() < newGen {
+			dead = append(dead, proc)
 		}
-
-		_ = proc.setState(processStateDeleted)
-		deadPids = append(deadPids, pid)
-
-		r.log.Debug(
-			ctx,
-			"Found dead process",
-			log.UInt32("pid", uint32(pid)),
-			log.UInt64("newgen", newGen),
-			log.UInt64("procgen", gen),
-		)
 	}
-
-	return deadPids
+	return dead
 }
 
 type procScanStats struct {
@@ -336,34 +390,42 @@ type processDiscoverer struct {
 }
 
 func (p *processDiscoverer) discover(ctx context.Context, pid linux.CurrentNamespacePID) {
-	p.r.log.Debug(ctx, "Scanned process", log.UInt32("pid", uint32(pid)))
-	discovered := p.r.DiscoverProcess(ctx, pid)
-	if discovered {
-		p.stats.BornProcesses++
+	p.r.procsmu.RLock()
+	info := p.r.procs[pid]
+	p.r.procsmu.RUnlock()
+	// Filtered PIDs still refresh liveness for their existing registration.
+	if p.r.processFilter != nil && !p.r.processFilter(pid) {
+		if info != nil {
+			info.lifecycleMu.Lock()
+			if p.r.currentProcess(info.processRegistration) != nil {
+				info.generation.Store(p.r.procsGeneration.Load())
+				p.stats.AliveProcesses++
+				if info.refreshNeeded.Load() {
+					p.r.tryScheduleProcessUpdate(ctx, info, true)
+				}
+			}
+			info.lifecycleMu.Unlock()
+		}
+		return
 	}
 	p.stats.AliveProcesses++
+	if p.r.DiscoverProcess(ctx, linux.ProcessKey{Pid: pid}) {
+		p.stats.BornProcesses++
+	}
 }
 
 func (r *ProcessRegistry) scanProcesses(ctx context.Context) (stats procScanStats, err error) {
 	newGen := r.procsGeneration.Add(1)
-	processDiscoverer := &processDiscoverer{
-		r:     r,
-		stats: &stats,
+	discoverer := &processDiscoverer{r: r, stats: &stats}
+	if err = r.processScanner.Scan(ctx, discoverer.discover); err != nil {
+		// A partial scan is not evidence of death.
+		return
 	}
-	err = r.processScanner.Scan(ctx, processDiscoverer.discover)
-
-	// TODO: what if process dies between two scans and another process
-	//   with same pid occurs. Maybe use process creation timestamp to detect this case?
-
-	// TODO: add unit tests for strange process creations and deletions
-	//     for purposes of checking thread-safety and deadlocks
-
-	deadPids := r.collectDeadPids(ctx, newGen)
-	stats.DiedProcesses += len(deadPids)
-	for _, pid := range deadPids {
-		r.deleteProcess(ctx, pid)
+	for _, info := range r.collectDeadProcesses(newGen) {
+		if r.deleteProcess(ctx, info, newGen) {
+			stats.DiedProcesses++
+		}
 	}
-
 	return
 }
 
@@ -391,55 +453,129 @@ func (r *ProcessRegistry) RunProcessScanner(ctx context.Context) error {
 	}
 }
 
-func (r *ProcessRegistry) DiscoverProcess(ctx context.Context, pid linux.CurrentNamespacePID) (discovered bool) {
-	curgen := r.procsGeneration.Load()
-
-	// Happy-path. Just acquire rlock & lookup the pid in the map.
-	r.procsmu.RLock()
-	if info, ok := r.procs[pid]; ok {
-		r.procsmu.RUnlock()
-		info.generation.Store(curgen)
-		return false
-	}
-	r.procsmu.RUnlock()
-
-	// Insert new processInfo into the process map.
-	var info *processInfo
-	r.procsmu.Lock()
-	if _, ok := r.procs[pid]; ok {
-		r.procsmu.Unlock()
-		return false
-	}
-	info = &processInfo{
-		currentNamespaceID: pid,
-		state:              processStateDiscovered,
-		registeredmaps:     make(map[procfs.Address]processMap),
-	}
-	info.generation.Store(curgen)
-	r.procs[pid] = info
-	r.procsmu.Unlock()
-
-	r.tryScheduleProcessUpdate(ctx, info)
-
-	return true
+// DiscoverProcess refreshes liveness and records the kernel identity when known.
+// A zero start time does not replace a known identity. Samples use ObserveProcessSample.
+func (r *ProcessRegistry) DiscoverProcess(ctx context.Context, key linux.ProcessKey) bool {
+	return r.discoverProcess(ctx, key, nil)
 }
 
-func (r *ProcessRegistry) tryScheduleProcessUpdate(ctx context.Context, info *processInfo) {
+// ObserveProcessSample records identity observations for an existing registration.
+// Samples neither extend liveness nor create registrations.
+func (r *ProcessRegistry) ObserveProcessSample(ctx context.Context, key linux.ProcessKey) {
+	r.procsmu.RLock()
+	info := r.procs[key.Pid]
+	r.procsmu.RUnlock()
+	if info == nil || (key.ProcessStartTime != 0 && key.ProcessStartTime < max(info.startTime.Load(), info.observedStartTime.Load())) {
+		return
+	}
+	updates := info.processRegistration
+	updates.observeStartTime(key.ProcessStartTime)
+	r.tryScheduleProcessUpdate(ctx, info, key.ProcessStartTime != 0 && key.ProcessStartTime != info.startTime.Load())
+}
+
+func (r *ProcessRegistry) applySampleObservation(ctx context.Context, updates *processRegistration) *processInfo {
+	if startTime := updates.observedStartTime.Load(); startTime != 0 {
+		r.discoverProcess(ctx, linux.ProcessKey{Pid: updates.pid, ProcessStartTime: startTime}, updates)
+	}
+	return r.currentProcess(updates)
+}
+
+func (r *ProcessRegistry) discoverProcess(ctx context.Context, key linux.ProcessKey, expected *processRegistration) bool {
+	pid := key.Pid
+	startTime := key.ProcessStartTime
+	for {
+		r.procsmu.Lock()
+		info := r.procs[pid]
+		if expected != nil && (info == nil || info.processRegistration != expected) {
+			r.procsmu.Unlock()
+			return false
+		}
+		if info == nil {
+			info = &processInfo{
+				currentNamespaceID:  pid,
+				processRegistration: &processRegistration{pid: pid},
+				registeredmaps:      make(map[procfs.Address]processMap),
+			}
+			info.startTime.Store(startTime)
+			info.observeStartTime(startTime)
+			info.generation.Store(r.procsGeneration.Load())
+			r.procs[pid] = info
+			r.procsmu.Unlock()
+			r.tryScheduleProcessUpdate(ctx, info, true)
+			return true
+		}
+		r.procsmu.Unlock()
+
+		info.lifecycleMu.Lock()
+		if !r.isCurrent(info) {
+			info.lifecycleMu.Unlock()
+			continue
+		}
+		known := info.startTime.Load()
+		if startTime != 0 && startTime < known {
+			info.lifecycleMu.Unlock()
+			return false
+		}
+		// The newest known identity survives failed retirement and scans without a start time.
+		startTime = info.observeStartTime(max(startTime, known))
+		if expected == nil {
+			info.generation.Store(r.procsGeneration.Load())
+		}
+		if info.retired.Load() || (startTime != 0 && known != 0 && startTime != known) {
+			if !r.retireProcessLocked(ctx, info) {
+				info.lifecycleMu.Unlock()
+				return false
+			}
+			next := &processInfo{
+				currentNamespaceID:  pid,
+				processRegistration: info.processRegistration,
+				registeredmaps:      make(map[procfs.Address]processMap),
+			}
+			next.startTime.Store(startTime)
+			r.procsmu.Lock()
+			r.procs[pid] = next
+			r.procsmu.Unlock()
+			info.lifecycleMu.Unlock()
+			r.tryScheduleProcessUpdate(ctx, next, true)
+			return true
+		}
+		// Binding a bootstrap identity retains the existing process state.
+		bound := startTime != 0 && known == 0
+		if bound {
+			info.startTime.Store(startTime)
+		}
+		info.lifecycleMu.Unlock()
+		if bound || info.refreshNeeded.Load() {
+			r.tryScheduleProcessUpdate(ctx, info, true)
+		}
+		return false
+	}
+}
+
+func (r *ProcessRegistry) tryScheduleProcessUpdate(ctx context.Context, info *processInfo, force bool) {
+	updates := info.processRegistration
+	info = r.currentProcess(updates)
+	if info == nil {
+		return
+	}
+	if force {
+		updates.refreshNeeded.Store(true)
+	}
 	desired := r.procsGeneration.Load()
 	current := info.mapsgeneration.Load()
-	if current >= desired {
+	if !force && current >= desired {
 		return
 	}
 
-	if !info.mapsgeneration.CompareAndSwap(current, desired) {
+	if !updates.updateQueued.CompareAndSwap(false, true) {
 		return
 	}
 
-	// DiscoverProcess should be fast.
-	// Add the process to the queue for the async discovery.
+	// Discovery does not wait for queue capacity.
 	select {
-	case r.procchan <- info:
+	case r.procchan <- updates:
 	default:
+		updates.updateQueued.Store(false)
 		r.log.Warn(
 			ctx,
 			"Failed to enqueue process discovery",
@@ -471,26 +607,62 @@ func (r *ProcessRegistry) MaybeRescanProcess(ctx context.Context, pid linux.Curr
 		return
 	}
 
-	r.tryScheduleProcessUpdate(ctx, p)
+	r.tryScheduleProcessUpdate(ctx, p, false)
 }
 
-func (r *ProcessRegistry) runHandler(ctx context.Context, config *WorkerConfig) error {
-	var proc *processInfo
+func (r *ProcessRegistry) runHandler(ctx context.Context, handleProcess func(context.Context, *processInfo) error) error {
+	var updates *processRegistration
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case proc = <-r.procchan:
+		case updates = <-r.procchan:
 		}
 
-		err := r.handleProcess(ctx, proc, config)
-		if err != nil {
-			r.log.Debug(
-				ctx,
-				"Failed to handle new process",
-				log.UInt32("pid", uint32(proc.currentNamespaceID)),
-				log.Error(err),
-			)
+		failed := false
+		var proc *processInfo
+		var observedStartTime uint64
+		for {
+			observedStartTime = updates.observedStartTime.Load()
+			updates.refreshNeeded.Store(false)
+			proc = r.applySampleObservation(ctx, updates)
+			if proc == nil {
+				break
+			}
+			generation := r.procsGeneration.Load()
+			err := handleProcess(ctx, proc)
+			if err != nil {
+				failed = true
+				r.log.Debug(
+					ctx,
+					"Failed to handle new process",
+					log.UInt32("pid", uint32(proc.currentNamespaceID)),
+					log.Error(err),
+				)
+				break
+			}
+			proc.mapsgeneration.Store(generation)
+			if !updates.refreshNeeded.Load() && generation >= r.procsGeneration.Load() {
+				break
+			}
+		}
+
+		if failed {
+			// Failed analysis remains pending until a retry can be scheduled.
+			updates.refreshNeeded.Store(true)
+		}
+		updates.updateQueued.Store(false)
+		current := r.currentProcess(updates)
+		if current == nil {
+			continue
+		}
+		// Errors defer the same lifetime to discovery or scan, but not a newer identity.
+		if failed && current == proc && updates.observedStartTime.Load() == observedStartTime {
+			continue
+		}
+		force := updates.refreshNeeded.Load()
+		if force || current.mapsgeneration.Load() < r.procsGeneration.Load() {
+			r.tryScheduleProcessUpdate(ctx, current, force)
 		}
 	}
 }
@@ -499,66 +671,62 @@ func (r *ProcessRegistry) runHandler(ctx context.Context, config *WorkerConfig) 
 
 func (r *ProcessRegistry) handleProcess(ctx context.Context, proc *processInfo, config *WorkerConfig) error {
 	a := processAnalyzer{
-		reg:         r,
-		config:      config,
-		proc:        proc,
-		log:         r.log.With(log.UInt32("pid", uint32(proc.currentNamespaceID))),
-		uploader:    r.uploader,
-		exemappings: make([]*dso.Mapping, 0, 4),
+		reg:              r,
+		config:           config,
+		proc:             proc,
+		log:              r.log.With(log.UInt32("pid", uint32(proc.currentNamespaceID))),
+		uploader:         r.uploader,
+		exemappings:      make([]*dso.Mapping, 0, 4),
+		preparedMappings: make([]*dso.Mapping, 0, 4),
+		startTime:        proc.startTime.Load(),
 	}
 	return a.run(ctx)
 }
 
 type processAnalyzer struct {
-	reg         *ProcessRegistry
-	config      *WorkerConfig
-	proc        *processInfo
-	uploader    *upload.Scheduler
-	log         xlog.Logger
-	exemappings []*dso.Mapping
+	reg              *ProcessRegistry
+	config           *WorkerConfig
+	proc             *processInfo
+	uploader         *upload.Scheduler
+	log              xlog.Logger
+	exemappings      []*dso.Mapping
+	startTime        uint64
+	preparedMappings []*dso.Mapping
+	envs             map[string]string
+}
+
+func (a *processAnalyzer) ensureCurrentIdentity() error {
+	if !a.reg.isCurrent(a.proc) {
+		return fmt.Errorf("process %d analysis belongs to a retired lifetime", a.proc.currentNamespaceID)
+	}
+	if current := a.proc.startTime.Load(); current != a.startTime {
+		return fmt.Errorf(
+			"process identity changed while analyzing pid %d: %d -> %d",
+			a.proc.currentNamespaceID,
+			a.startTime,
+			current,
+		)
+	}
+	return nil
 }
 
 func (a *processAnalyzer) run(ctx context.Context) error {
-	err := a.proc.setState(processStatePopulating)
-	if err != nil {
-		return err
+	// Prepared binary references are local to this analysis until commit.
+	defer func() { a.reg.dsoStorage.ReleaseMappings(ctx, a.preparedMappings) }()
+	if a.proc.retired.Load() {
+		return fmt.Errorf("process %d has already been deleted", a.proc.currentNamespaceID)
 	}
-
-	defer func() {
-		_ = a.proc.setState(processStatePopulated)
-	}()
 
 	if err := a.loadEnvs(ctx); err != nil {
-		// Do not fail entire process discovery, just log an error.
-		// A process can have malformed environment file.
-		// For example, nginx overwrites original environ:
-		// https://github.com/nginx/nginx/blob/master/src/os/unix/ngx_setproctitle.c#L35
+		// Processes may overwrite environ; environment errors are non-fatal.
 		a.log.Debug(ctx, "Failed to load process environment", log.Error(err))
 	}
-
-	a.reg.tryRegisterPidNamespaceCorrelation(ctx, a.proc)
 
 	if err := a.loadMaps(ctx); err != nil {
 		return err
 	}
 
-	if err := a.storeBPFMaps(ctx); err != nil {
-		return err
-	}
-
-	// Note that a.registeredmaps must be populated before exposing process object to listeners,
-	// so this has to be sequenced after storeBPFMaps.
-	if !a.proc.listenersNotified.Swap(true) {
-		for _, l := range a.reg.listeners {
-			l.OnProcessDiscovery(ctx, a.proc)
-		}
-	} else {
-		for _, l := range a.reg.listeners {
-			l.OnProcessRescan(ctx, a.proc)
-		}
-	}
-
-	return nil
+	return a.storeBPFMaps(ctx)
 }
 
 func (a *processAnalyzer) loadMaps(ctx context.Context) error {
@@ -595,12 +763,12 @@ func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping)
 	if mapping.Path == "" {
 		// Probably JITed mapping.
 		mapping.Path = "[JIT]"
-		a.reg.dsoStorage.AddMapping(ctx, a.proc.currentNamespaceID, mapping, nil)
+		a.preparedMappings = append(a.preparedMappings, &mapping)
 		return nil
 	}
 
 	if vdso.IsUnsymbolizableVDSOMapping(&mapping.Mapping) {
-		a.reg.dsoStorage.AddMapping(ctx, a.proc.currentNamespaceID, mapping, nil)
+		a.preparedMappings = append(a.preparedMappings, &mapping)
 		return nil
 	}
 
@@ -629,14 +797,7 @@ func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping)
 		)
 	}
 
-	// This code is racy.
-	// Linux does not give us any way to get correct mappings
-	// (i.e. ino_generation of the inode) of the process.
-	//
-	// There is perf_event_open + PERF_RECORD_MMAP2, but there is no guarantee
-	// that we won't lose any records (and we WILL lose them).
-	//
-	// Let's try to get inode & inode generation as soon as possible and hope for the best.
+	// Inode generation describes the opened binary, not an atomic procfs snapshot.
 	if mapping.Inode.Gen == 0 {
 		mapping.Inode.Gen = binary.InodeGen
 	}
@@ -696,17 +857,9 @@ func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping)
 		return err
 	}
 
-	dso := a.reg.dsoStorage.AddMapping(
-		ctx,
-		a.proc.currentNamespaceID,
-		mapping,
-		binary,
-	)
-
-	mapping.DSO = dso
+	a.reg.dsoStorage.PrepareMapping(ctx, &mapping, binary)
+	a.preparedMappings = append(a.preparedMappings, &mapping)
 	a.registerMapping(&mapping)
-
-	a.reg.dsoStorage.Compactify(ctx, a.proc.currentNamespaceID)
 
 	err = a.uploader.ScheduleBinary(buildid, handle, getBinaryAttributes(mapping.Path, a.reg.uploadHost))
 	if err != nil {
@@ -766,12 +919,59 @@ func newProcessInfo() *unwinder.ProcessInfo {
 }
 
 func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
+	// Publication and activation must belong to the same process lifetime.
+	a.proc.lifecycleMu.Lock()
+	defer a.proc.lifecycleMu.Unlock()
+
+	if a.proc.retired.Load() {
+		return fmt.Errorf("process %d was deleted before metadata publication", a.proc.currentNamespaceID)
+	}
+
+	if err := a.ensureCurrentIdentity(); err != nil {
+		return err
+	}
+	if a.reg.metadataPublisher != nil {
+		// Failed publication or activation must leave the updated mappings
+		// unavailable for new sampling, including for an already active PID.
+		if err := ignoreMissingBPFEntry(a.reg.state.RemoveProcess(a.proc.currentNamespaceID)); err != nil {
+			return fmt.Errorf("failed to disable process before metadata update: %w", err)
+		}
+	}
+	if a.preparedMappings != nil {
+		// Committed references remain owned by DSO storage if publication or activation fails.
+		a.reg.dsoStorage.ReplaceMappings(ctx, a.proc.currentNamespaceID, a.preparedMappings)
+		a.preparedMappings = nil
+	}
+	if a.envs != nil {
+		a.proc.setEnvs(a.envs)
+	}
+	if a.reg.pidNamespaceIndex != nil {
+		a.reg.tryRegisterPidNamespaceCorrelation(ctx, a.proc)
+	}
+	a.proc.mapslock.Lock()
+
 	sort.Slice(a.exemappings, func(i, j int) bool {
 		return a.exemappings[i].Begin < a.exemappings[j].Begin
 	})
 
-	a.syncMaps(ctx)
+	err := a.syncMapsLocked(ctx)
+	a.proc.mapslock.Unlock()
+	if err != nil {
+		if a.reg.metadataPublisher == nil {
+			if disableErr := ignoreMissingBPFEntry(a.reg.state.RemoveProcess(a.proc.currentNamespaceID)); disableErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to disable process after mapping synchronization: %w", disableErr))
+			}
+		}
+		return fmt.Errorf("failed to synchronize process mappings: %w", err)
+	}
 
+	// The publisher may synchronously read process metadata. Publication must
+	// succeed before the updated process becomes available for new sampling.
+	if a.reg.metadataPublisher != nil {
+		if err := a.reg.metadataPublisher.PublishProcess(ctx, a.proc); err != nil {
+			return fmt.Errorf("failed to publish process metadata: %w", err)
+		}
+	}
 	pi := newProcessInfo()
 	if len(a.exemappings) > 0 && a.exemappings[0].DSO != nil {
 		pi.MainBinaryId = unwinder.BinaryId(a.exemappings[0].DSO.ID)
@@ -783,19 +983,19 @@ func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
 	}
 
 	a.log.Debug(ctx, "Put process info", log.Any("info", pi))
-	err := a.reg.state.AddProcess(a.proc.currentNamespaceID, pi)
+	err = a.reg.state.AddProcess(a.proc.currentNamespaceID, pi)
 	if err != nil {
 		return err
 	}
 
+	// Listener callbacks report a process ready to sample and may synchronously
+	// read its metadata.
+	a.reg.notifyProcessUpdateLocked(ctx, a.proc)
 	return nil
 }
 
-func (a *processAnalyzer) syncMaps(ctx context.Context) {
+func (a *processAnalyzer) syncMapsLocked(ctx context.Context) error {
 	visited := make(map[uint64]struct{}, len(a.exemappings))
-
-	a.proc.mapslock.Lock()
-	defer a.proc.mapslock.Unlock()
 
 	toRemove := make([]processMap, 0)
 	toAdd := make([]*dso.Mapping, 0)
@@ -807,8 +1007,7 @@ func (a *processAnalyzer) syncMaps(ctx context.Context) {
 		visited[m.Begin] = struct{}{}
 
 		mapping, ok := a.proc.registeredmaps[m.Begin]
-		// Happy path. Mapping exist and points to the valid binary.
-		if ok && mapping.ID() == m.DSO.ID && mapping.end() == m.End {
+		if ok && !mapping.incomplete && mapping.ID() == m.DSO.ID && mapping.end() == m.End {
 			continue
 		}
 
@@ -826,21 +1025,26 @@ func (a *processAnalyzer) syncMaps(ctx context.Context) {
 	}
 
 	for _, m := range toRemove {
-		a.reg.removeBPFMap(ctx, a.proc, m)
+		if err := a.reg.removeBPFMap(ctx, a.proc, m); err != nil {
+			return err
+		}
 	}
 
 	for _, m := range toAdd {
-		a.reg.addBPFMap(ctx, a.proc, m)
+		if err := a.reg.addBPFMap(ctx, a.proc, m); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso.Mapping) {
+func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso.Mapping) error {
 	l := r.log.With(logfield.CurrentNamespacePID(pi.currentNamespaceID)).WithName("lpm")
 	l.Debug(ctx, "Trying to add eBPF mapping", log.String("buildid", m.BuildInfo.BuildID))
 
 	id := pi.nextmapid.Add(1)
+	pi.registeredmaps[m.Begin] = processMap{Mapping: mappingImpl{m}, id: id, incomplete: true}
 
-	// Step 1. Populate LPM trie
 	err := iterateMappingLPMSegments(mappingImpl{m}, func(address uint64, prefix uint32) error {
 		return r.state.AddMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
 			Prefixlen:     32 + prefix,
@@ -852,10 +1056,9 @@ func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso
 	})
 	if err != nil {
 		l.Warn(ctx, "Failed to add eBPF mapping lpm trie segment", log.Error(err))
-		return
+		return err
 	}
 
-	// Step 2. Add eBPF mapping to the per-process registry.
 	err = r.state.AddMapping(&unwinder.ExecutableMappingKey{
 		Pid:           uint32(pi.currentNamespaceID),
 		UnusedPadding: 0,
@@ -868,11 +1071,11 @@ func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso
 	})
 	if err != nil {
 		l.Warn(ctx, "Failed to add eBPF mapping", log.Error(err))
-		return
+		return err
 	}
 
-	// Step 3. Now we can finally commit our map to the user-space registery.
-	pi.registeredmaps[m.Begin] = processMap{mappingImpl{m}, id}
+	pi.registeredmaps[m.Begin] = processMap{Mapping: mappingImpl{m}, id: id}
+	return nil
 }
 
 func HostToBigEndian64(value uint64) uint64 {
@@ -881,42 +1084,51 @@ func HostToBigEndian64(value uint64) uint64 {
 	return eb.BigEndian.Uint64(buf[:])
 }
 
-func (r *ProcessRegistry) removeBPFMap(ctx context.Context, pi *processInfo, m processMap) {
+func (r *ProcessRegistry) removeBPFMap(ctx context.Context, pi *processInfo, m processMap) error {
 	l := r.log.With(logfield.CurrentNamespacePID(pi.currentNamespaceID)).WithName("lpm")
 	l.Debug(ctx, "Trying to remove eBPF mapping", log.String("buildid", m.buildInfo().BuildID))
+	m.incomplete = true
+	pi.registeredmaps[m.begin()] = m
 
-	// Step 1. Remove LPM trie
 	err := iterateMappingLPMSegments(m.Mapping, func(address uint64, prefix uint32) error {
-		return r.state.RemoveMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
+		return ignoreMissingBPFEntry(r.state.RemoveMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
 			Prefixlen:     32 + prefix,
 			Pid:           uint32(pi.currentNamespaceID),
 			AddressPrefix: HostToBigEndian64(address),
-		})
+		}))
 	})
 	if err != nil {
 		l.Warn(ctx, "Failed to remove eBPF mapping lpm trie segment", log.Error(err))
-		return
+		return err
 	}
 
-	// Step 2. Remove eBPF mapping from the per-process registry.
-	// If this fails, we will retry on the next iteration.
-	err = r.state.RemoveMapping(&unwinder.ExecutableMappingKey{
+	err = ignoreMissingBPFEntry(r.state.RemoveMapping(&unwinder.ExecutableMappingKey{
 		Pid: uint32(pi.currentNamespaceID),
 		Id:  m.id,
-	})
+	}))
 	if err != nil {
 		l.Warn(ctx, "Failed to remove eBPF mapping", log.Error(err))
-		return
+		return err
 	}
 
-	// Step 3. Now we can finally remove our map from user-space registery.
 	delete(pi.registeredmaps, m.begin())
+	return nil
 }
 
-func (r *ProcessRegistry) removeProcessMappings(ctx context.Context, pi *processInfo) {
-	for _, m := range maps.Values(pi.registeredmaps) {
-		r.removeBPFMap(ctx, pi, m)
+func ignoreMissingBPFEntry(err error) error {
+	if errors.Is(err, ebpf.ErrKeyNotExist) {
+		return nil
 	}
+	return err
+}
+
+func (r *ProcessRegistry) removeProcessMappings(ctx context.Context, pi *processInfo) bool {
+	pi.mapslock.Lock()
+	defer pi.mapslock.Unlock()
+	for _, m := range pi.registeredmaps {
+		_ = r.removeBPFMap(ctx, pi, m)
+	}
+	return len(pi.registeredmaps) == 0
 }
 
 func iterateMappingLPMSegments(m Mapping, callback func(address uint64, prefix uint32) error) error {
@@ -945,9 +1157,8 @@ func iterateMappingLPMSegments(m Mapping, callback func(address uint64, prefix u
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// tryLoadEnvs returns environment of process `proc` or determines that it is not available yet.
-// `firstIter` is a flag that should be set if tryLoadEnvs was already called successfully for this process.
-// Second return value is true when environment is available.
+// tryLoadEnvs returns the environment and whether it is ready.
+// On the first iteration, an empty kernel-thread environment is considered ready.
 func (a *processAnalyzer) tryLoadEnvs(ctx context.Context, proc *procfs.Process, firstIter bool) (map[string]string, bool, error) {
 	envs, err := proc.ListEnvs()
 	if err != nil {
@@ -1001,8 +1212,7 @@ func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
 		}()
 	}
 
-	// TODO(PERFORATOR-1102): loop here is hacky attempt to work around some
-	// race conditions when we fail to observe correct process environment shortly after process creation.
+	// A newly created process may expose an empty environment before initialization.
 	for i := 0; ; i++ {
 		envs, ok, err := a.tryLoadEnvs(ctx, proc, i == 0)
 		if err != nil {
@@ -1016,16 +1226,16 @@ func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
 				log.Int("env_count", len(envs)),
 				log.Int("attempts", i),
 			)
-			a.proc.setEnvs(envs)
+			// A successful empty read replaces old values; nil means no successful read.
+			if envs == nil {
+				envs = make(map[string]string)
+			}
+			a.envs = envs
 			break
 		}
 
-		// Environment is not initialized yet. This is a race
-		// with a newly created process.
 		sleepFor := backoff.NextBackOff()
 		if sleepFor == backoff.Stop || !waitOnEmptyEnv {
-			// Level is not DEBUG because it is the only sign of a possible race
-			// and processes with actually empty environment are likely to be rare.
 			a.log.Warn(ctx, "Timed out waiting for process environment to initialize")
 			a.reg.metrics.processesWithEmptyEnvironment.Inc()
 			break

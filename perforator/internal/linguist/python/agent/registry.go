@@ -111,7 +111,7 @@ func (r *Registry) OnProcessDiscovery(ctx context.Context, info process.ProcessI
 		return
 	}
 	if r.offsets.OnProcessDiscovery(ctx, info) {
-		r.invalidateProcessImage(info.ProcessID())
+		r.invalidateProcessImage(info.Key().Pid)
 	}
 }
 
@@ -120,16 +120,16 @@ func (r *Registry) OnProcessRescan(ctx context.Context, info process.ProcessInfo
 		return
 	}
 	if r.offsets.OnProcessRescan(ctx, info) {
-		r.invalidateProcessImage(info.ProcessID())
+		r.invalidateProcessImage(info.Key().Pid)
 	}
 }
 
-func (r *Registry) OnProcessDeath(ctx context.Context, pid linux.CurrentNamespacePID) {
+func (r *Registry) OnProcessDeath(ctx context.Context, key linux.ProcessKey) {
 	if r == nil || r.offsets == nil {
 		return
 	}
-	r.offsets.OnProcessDeath(ctx, pid)
-	r.invalidateProcessImage(pid)
+	r.offsets.OnProcessDeath(ctx, key.Pid)
+	r.invalidateProcessImage(key.Pid)
 }
 
 func (r *Registry) invalidateProcessImage(pid linux.CurrentNamespacePID) {

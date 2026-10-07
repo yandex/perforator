@@ -77,7 +77,6 @@ type Profiler struct {
 	conf           *config.Config
 	storage        client.Storage
 	metrics        profilerMetrics
-	processScanner process.ProcessScanner
 	sampleCallback machine.RawSampleCallback
 	eventListener  EventListener
 	initialTargets *initialTargets
@@ -301,9 +300,6 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 		ebpfMetricsShutdown:     graceful.NewShutdownCookie(),
 		clockConverter:          clockConverter,
 	}
-
-	scanner := &process.ProcFSScanner{}
-	profiler.processScanner = process.NewFilteringProcessScanner(scanner, profiler.shouldDiscoverProcess)
 
 	for _, opt := range opts {
 		err := opt(profiler)
@@ -615,8 +611,10 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 			Conf:    p.conf.UploadSchedulerConfig,
 			Storage: p.storage,
 		},
-		p.processScanner,
+		&process.ProcFSScanner{},
+		p.shouldDiscoverProcess,
 		p.processListeners,
+		nil, // The Go backend does not require a metadata publisher.
 	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize process registry: %w", err)
@@ -1271,7 +1269,7 @@ func (p *Profiler) runProcessDiscovery(ctx context.Context) error {
 			log.UInt32("pid", sample.Pid),
 			log.UInt64("starttime", sample.Starttime),
 		)
-		p.procs.DiscoverProcess(ctx, linux.CurrentNamespacePID(sample.Pid))
+		p.procs.DiscoverProcess(ctx, linux.ProcessKey{Pid: linux.CurrentNamespacePID(sample.Pid), ProcessStartTime: sample.Starttime})
 	}
 }
 

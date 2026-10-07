@@ -138,7 +138,7 @@ func (s *Symbolizer) resolveLine(process linux.ProcessKey, frame *unwinder.Pytho
 		return 0, lineUnavailable
 	}
 
-	offsets, ok := s.offsets.OffsetsForPid(process.Pid)
+	offsets, ok := s.offsets.OffsetsForPid(uint32(process.Pid))
 	if !ok || offsets == nil {
 		return 0, lineUnavailable
 	}
@@ -178,7 +178,7 @@ func (s *Symbolizer) resolveLine(process linux.ProcessKey, frame *unwinder.Pytho
 	}
 
 	table, err := s.reader.ReadCodeLinetable(
-		process.Pid,
+		uint32(process.Pid),
 		uintptr(codeObjectAddr),
 		uintptr(coLinetablePtr),
 		remotemem.CodeObjectOffsets{

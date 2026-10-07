@@ -138,18 +138,46 @@ func (d *Storage) removeMapping(ctx context.Context, vmap *versionedMapping) {
 // Thread safe.
 // Atomic relative to RemoveProcess
 func (d *Storage) AddMapping(ctx context.Context, pid linux.CurrentNamespacePID, mapping Mapping, binary binary.UnsealedFile) *DSO {
-	var dso *DSO
-
-	if mapping.BuildInfo != nil {
-		dso = d.registry.register(ctx, mapping.BuildInfo, binary)
-		mapping.DSO = dso
-	}
+	d.PrepareMapping(ctx, &mapping, binary)
 
 	maps := d.ensureProcess(pid, true /*=lock*/)
 	defer maps.lock.Unlock()
 	maps.addMappingLocked(mapping)
 
-	return dso
+	return mapping.DSO
+}
+
+// PrepareMapping acquires a binary reference without changing any PID-indexed
+// state. The caller must transfer it to ReplaceMappings or release it through
+// ReleaseMappings exactly once.
+func (d *Storage) PrepareMapping(ctx context.Context, mapping *Mapping, file binary.UnsealedFile) {
+	if mapping.BuildInfo != nil {
+		mapping.DSO = d.registry.register(ctx, mapping.BuildInfo, file)
+	}
+}
+
+// ReleaseMappings releases prepared references that have not been transferred
+// to ReplaceMappings. It does not change the process's committed mappings.
+func (d *Storage) ReleaseMappings(ctx context.Context, mappings []*Mapping) {
+	for _, mapping := range mappings {
+		if mapping.BuildInfo != nil {
+			d.registry.release(ctx, mapping.BuildInfo.BuildID)
+		}
+	}
+}
+
+// ReplaceMappings transfers the prepared references to the process atomically.
+// Process lifecycle ordering is the caller's responsibility.
+func (d *Storage) ReplaceMappings(ctx context.Context, pid linux.CurrentNamespacePID, mappings []*Mapping) {
+	maps := d.ensureProcess(pid, true /*=lock*/)
+	defer maps.lock.Unlock()
+	for _, old := range maps.maps {
+		d.removeMapping(ctx, &old)
+	}
+	maps.maps = nil
+	for _, mapping := range mappings {
+		maps.addMappingLocked(*mapping)
+	}
 }
 
 // Remove unused process mappings.

@@ -94,7 +94,7 @@ func (r *offsetsRegistry) OffsetsForPid(pid uint32) (*unwinder.PythonInternalsOf
 }
 
 func (r *offsetsRegistry) refreshProcess(ctx context.Context, info process.ProcessInfo, replaceExisting bool) bool {
-	pid := info.ProcessID()
+	pid := info.Key().Pid
 	identity, found := pythonMappingIdentityForProcess(info)
 	return r.updateBinding(ctx, pid, identity, found, replaceExisting)
 }

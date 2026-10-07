@@ -221,7 +221,7 @@ func (b *Builder) Finish() *Profile {
 // User should choose to add samples via Add or AddTimestampedSample.
 func (b *Builder) Add(process linux.ProcessKey) *SampleBuilder {
 	bb := &SampleBuilder{
-		pid:   process.Pid,
+		pid:   uint32(process.Pid),
 		cache: b.caches.Get(process),
 		sample: &profile.Sample{
 			Label:    make(map[string][]string),

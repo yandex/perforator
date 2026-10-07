@@ -286,7 +286,7 @@ func (r *Registry) OnProcessDiscovery(ctx context.Context, info process.ProcessI
 	for _, m := range info.Mappings() {
 		if m.BinaryClass() == dso.JvmBinaryClass {
 			r.l.Info(ctx, "Ensuring JVM process is tracked")
-			r.ensureRegistered(ctx, info.ProcessID(), m.ID(), m.BaseAddress())
+			r.ensureRegistered(ctx, info.Key().Pid, m.ID(), m.BaseAddress())
 		}
 	}
 }
@@ -668,7 +668,8 @@ func (r *Registry) ensureRegistered(ctx context.Context, pid linux.CurrentNamesp
 	tp.initialized = true
 }
 
-func (r *Registry) OnProcessDeath(ctx context.Context, pid linux.CurrentNamespacePID) {
+func (r *Registry) OnProcessDeath(ctx context.Context, key linux.ProcessKey) {
+	pid := key.Pid
 	logCtx := ctxlog.WithFields(ctx, logfield.CurrentNamespacePID(pid), log.String("event", "discovery"))
 	r.trackedMu.Lock()
 	defer r.trackedMu.Unlock()

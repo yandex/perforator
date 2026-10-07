@@ -112,7 +112,7 @@ func TestSaveSerializedProfileCounts(t *testing.T) {
 			builder := b.EnsureBuilder("cpu", []profile.SampleType{{Kind: "cpu", Unit: "cycles"}})
 			start := time.Unix(1700000000, 0)
 			for _, pid := range []int64{42, 42, 43} {
-				builder.AddTimestampedSample(linux.ProcessKey{Pid: uint32(pid)}, start).AddValue(1).
+				builder.AddTimestampedSample(linux.ProcessKey{Pid: linux.CurrentNamespacePID(pid)}, start).AddValue(1).
 					AddIntLabel("pid", pid, "").AddNativeLocation(0x1000).Finish().Finish()
 			}
 			flushed := b.RestartProfiles()

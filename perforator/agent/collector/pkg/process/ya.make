@@ -9,8 +9,10 @@ SRCS(
 )
 
 GO_TEST_SRCS(
+    lifecycle_test.go
     map_test.go
     process_info_test.go
+    publication_test.go
 )
 
 END()

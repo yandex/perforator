@@ -509,3 +509,37 @@ func TestStorage_Concurrent(t *testing.T) {
 		})
 	}
 }
+
+func TestPreparedMappingsDoNotChangeProcessUntilCommit(t *testing.T) {
+	ctx := t.Context()
+	storage, err := NewStorage(xlog.ForTest(t), mock.NewRegistry(nil), nil, nil)
+	require.NoError(t, err)
+	old := Mapping{Mapping: procfs.Mapping{Begin: 1, End: 10, Path: "old"}, BuildInfo: &xelf.BuildInfo{BuildID: "old"}}
+	storage.AddMapping(ctx, 42, old, nil)
+	prepared := []*Mapping{{Mapping: procfs.Mapping{Begin: 1, End: 10, Path: "new"}, BuildInfo: &xelf.BuildInfo{BuildID: "new"}}}
+	storage.PrepareMapping(ctx, prepared[0], nil)
+	mapping, err := storage.ResolveMapping(ctx, 42, 2)
+	require.NoError(t, err)
+	require.Equal(t, "old", mapping.Path)
+	storage.ReplaceMappings(ctx, 42, prepared)
+	require.Nil(t, storage.registry.get("old"))
+	require.NotNil(t, storage.registry.get("new"))
+	mapping, err = storage.ResolveMapping(ctx, 42, 2)
+	require.NoError(t, err)
+	require.Equal(t, "new", mapping.Path)
+	storage.RemoveProcess(ctx, 42)
+	require.Zero(t, storage.registry.getMappingCount())
+}
+
+func TestDiscardingPreparedMappingsPreservesCommittedReferences(t *testing.T) {
+	ctx := t.Context()
+	storage, err := NewStorage(xlog.ForTest(t), mock.NewRegistry(nil), nil, nil)
+	require.NoError(t, err)
+	mapping := Mapping{Mapping: procfs.Mapping{Begin: 1, End: 10}, BuildInfo: &xelf.BuildInfo{BuildID: "shared"}}
+	storage.AddMapping(ctx, 42, mapping, nil)
+	storage.PrepareMapping(ctx, &mapping, nil)
+	storage.ReleaseMappings(ctx, []*Mapping{&mapping})
+	require.NotNil(t, storage.registry.get("shared"))
+	storage.RemoveProcess(ctx, 42)
+	require.Zero(t, storage.registry.getMappingCount())
+}

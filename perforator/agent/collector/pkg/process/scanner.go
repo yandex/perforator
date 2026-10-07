@@ -9,6 +9,7 @@ import (
 )
 
 type ProcessScanner interface {
+	// Scan must report live PIDs independently of profiling targets.
 	Scan(ctx context.Context, discoverer func(context.Context, linux.CurrentNamespacePID)) error
 }
 
@@ -21,6 +22,7 @@ func (p *ProcFSScanner) Scan(ctx context.Context, discoverer func(context.Contex
 	if err != nil {
 		return
 	}
+	defer procDir.Close()
 
 	entries, err := procDir.ReadDir(0 /* read all dir entries */)
 	if err != nil {
@@ -28,6 +30,9 @@ func (p *ProcFSScanner) Scan(ctx context.Context, discoverer func(context.Contex
 	}
 
 	for _, entry := range entries {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if entry.IsDir() {
 			pid, err := strconv.ParseUint(entry.Name(), 10, 32)
 			if err != nil { // not a pid directory
@@ -41,42 +46,11 @@ func (p *ProcFSScanner) Scan(ctx context.Context, discoverer func(context.Contex
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// ProcessFilter controls discovery of new registrations. Rejecting a PID does
+// not end an existing registration's lifetime.
 type ProcessFilter func(pid linux.CurrentNamespacePID) bool
-
-////////////////////////////////////////////////////////////////////////////////
-
-type FilteringProcessScanner struct {
-	underlying ProcessScanner
-	filter     ProcessFilter
-}
-
-type filteringDiscoverer struct {
-	underlying func(context.Context, linux.CurrentNamespacePID)
-	filter     ProcessFilter
-}
-
-func (d *filteringDiscoverer) Discover(ctx context.Context, pid linux.CurrentNamespacePID) {
-	if d.filter(pid) {
-		d.underlying(ctx, pid)
-	}
-}
-
-func (s *FilteringProcessScanner) Scan(ctx context.Context, discoverer func(context.Context, linux.CurrentNamespacePID)) (err error) {
-	d := &filteringDiscoverer{underlying: discoverer, filter: s.filter}
-	return s.underlying.Scan(ctx, d.Discover)
-}
-
-func NewFilteringProcessScanner(underlying ProcessScanner, filter ProcessFilter) *FilteringProcessScanner {
-	return &FilteringProcessScanner{
-		underlying: underlying,
-		filter:     filter,
-	}
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // Compile-time inheritance check.
 var _ ProcessScanner = &ProcFSScanner{}
-
-// Compile-time inheritance check.
-var _ ProcessScanner = &FilteringProcessScanner{}

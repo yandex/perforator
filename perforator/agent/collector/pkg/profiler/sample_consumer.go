@@ -558,7 +558,7 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 }
 
 func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *profile.SampleBuilder) {
-	process := linux.ProcessKey{Pid: c.sample.Pid, ProcessStartTime: c.sample.Starttime}
+	process := linux.ProcessKey{Pid: linux.CurrentNamespacePID(c.sample.Pid), ProcessStartTime: c.sample.Starttime}
 	if enablePython := c.p.conf.BPF.TracePython; enablePython != nil && *enablePython {
 		c.p.pythonRegistry.ProcessStack(builder, &c.sample.PythonStack, process)
 	}
@@ -612,7 +612,7 @@ func (c *oneShotSampleConsumer) collectLBRStackInto(ctx context.Context, builder
 
 // for testing purposes
 func (c *oneShotSampleConsumer) initBuilderMinimal(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {
-	return c.profileBuilder.EnsureBuilder(name, sampleTypes).AddTimestampedSample(linux.ProcessKey{Pid: c.sample.Pid, ProcessStartTime: c.sample.Starttime}, c.sampleTime)
+	return c.profileBuilder.EnsureBuilder(name, sampleTypes).AddTimestampedSample(linux.ProcessKey{Pid: linux.CurrentNamespacePID(c.sample.Pid), ProcessStartTime: c.sample.Starttime}, c.sampleTime)
 }
 
 func (c *oneShotSampleConsumer) initBuilderCommon(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {
@@ -848,7 +848,7 @@ func (c *oneShotSampleConsumer) recordSampleConsumeLatency() {
 func (c *oneShotSampleConsumer) consume(ctx context.Context) {
 	defer c.recordSampleConsumeLatency()
 	defer c.p.metrics.sampleProcessingCount.Inc()
-	c.p.procs.DiscoverProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
+	c.p.procs.ObserveProcessSample(ctx, linux.ProcessKey{Pid: linux.CurrentNamespacePID(c.sample.Pid), ProcessStartTime: c.sample.Starttime})
 	c.countMetrics(ctx)
 	c.prepareData(ctx)
 	c.recordSample(ctx)

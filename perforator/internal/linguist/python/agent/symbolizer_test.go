@@ -115,7 +115,7 @@ func TestResolveLine_OK(t *testing.T) {
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
 	const (
-		pid            = uint32(42)
+		pid            = 42
 		codeObjectAddr = uint64(0x1000)
 		coCodeAdaptive = uint64(0x80)
 		coLinetablePtr = uint64(0x2000)
@@ -157,7 +157,7 @@ func TestInvalidatePid_ForcesReread(t *testing.T) {
 	sym := newTestSymbolizer(t, &stubSymbolSource{}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
 	const (
-		pid            = uint32(42)
+		pid            = 42
 		codeObjectAddr = uint64(0x1000)
 		coCodeAdaptive = uint64(0x80)
 		firstlineno    = int32(10)

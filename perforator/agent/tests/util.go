@@ -182,13 +182,13 @@ type testProcessListener struct {
 }
 
 func (l *testProcessListener) OnProcessDiscovery(ctx context.Context, info process.ProcessInfo) {
-	l.logger.Debug(ctx, "Discovered process", logfield.CurrentNamespacePID(info.ProcessID()))
+	l.logger.Debug(ctx, "Discovered process", logfield.CurrentNamespacePID(info.Key().Pid))
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.discovered[info.ProcessID()] = struct{}{}
+	l.discovered[info.Key().Pid] = struct{}{}
 	newWaiters := make([]*processDiscoveryWaiter, 0, len(l.waiters))
 	for _, w := range l.waiters {
-		if w.pid == info.ProcessID() {
+		if w.pid == info.Key().Pid {
 			close(w.ch)
 		} else {
 			newWaiters = append(newWaiters, w)
@@ -201,7 +201,8 @@ func (l *testProcessListener) OnProcessRescan(ctx context.Context, info process.
 	l.OnProcessDiscovery(ctx, info)
 }
 
-func (l *testProcessListener) OnProcessDeath(ctx context.Context, pid linux.CurrentNamespacePID) {}
+func (l *testProcessListener) OnProcessDeath(ctx context.Context, key linux.ProcessKey) {
+}
 
 func (l *testProcessListener) ensureWaiter(pid linux.CurrentNamespacePID) <-chan struct{} {
 	l.mu.Lock()
