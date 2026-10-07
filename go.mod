@@ -1168,6 +1168,7 @@ require (
 	golang.org/x/tools/godoc v0.1.0-deprecated
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 	golang.yandex/di v0.19.1
+	golang.yandex/di/digrpc v0.4.0
 	golang.yandex/hasql v1.1.1
 	golang.yandex/hasql/v2 v2.1.1
 	golang.yandex/linters v1.3.3
@@ -1177,7 +1178,7 @@ require (
 	google.golang.org/genai v1.40.0
 	google.golang.org/genproto v0.0.0-20260319201613-d00831a3d3e7
 	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260427160629-7cedc36a6bc4
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800
 	google.golang.org/grpc v1.80.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/grpc/examples v0.0.0-20250407062114-b368379ef8f6

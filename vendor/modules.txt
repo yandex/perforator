@@ -22079,6 +22079,9 @@ golang.org/x/xerrors/internal
 golang.yandex/di
 golang.yandex/di/dihttp
 golang.yandex/di/dislog
+# golang.yandex/di/digrpc v0.4.0
+## explicit; go 1.27
+golang.yandex/di/digrpc
 # golang.yandex/hasql v1.1.1
 ## explicit; go 1.18
 golang.yandex/hasql
@@ -22368,7 +22371,7 @@ google.golang.org/genproto/googleapis/api/serviceconfig
 google.golang.org/genproto/googleapis/api/visibility
 # google.golang.org/genproto/googleapis/bytestream v0.0.0-20260311181403-84a4fc48630c
 ## explicit; go 1.25.0
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20260427160629-7cedc36a6bc4
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800
 ## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/rpc
 google.golang.org/genproto/googleapis/rpc/code
