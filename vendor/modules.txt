@@ -19175,7 +19175,7 @@ github.com/ydb-platform/ydb-go-yc/internal/cmd/connect
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-yc-metadata
 github.com/ydb-platform/ydb-go-yc-metadata/trace
-# github.com/ydb-platform/ydbops v0.0.25
+# github.com/ydb-platform/ydbops v0.0.28
 ## explicit; go 1.23.9
 github.com/ydb-platform/ydbops
 github.com/ydb-platform/ydbops/cmd
@@ -19194,6 +19194,7 @@ github.com/ydb-platform/ydbops/pkg/cli
 github.com/ydb-platform/ydbops/pkg/client
 github.com/ydb-platform/ydbops/pkg/client/auth
 github.com/ydb-platform/ydbops/pkg/client/auth/credentials
+github.com/ydb-platform/ydbops/pkg/client/auth/provider
 github.com/ydb-platform/ydbops/pkg/client/cms
 github.com/ydb-platform/ydbops/pkg/client/connectionsfactory
 github.com/ydb-platform/ydbops/pkg/client/discovery
