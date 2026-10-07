@@ -9,7 +9,10 @@ SRCS(
     root.go
     sink.go
     symbolize.go
+    symbolize_batch.go
 )
+
+GO_TEST_SRCS(symbolize_batch_test.go)
 
 IF (OS_LINUX)
     SRCS(
@@ -30,3 +33,7 @@ IF (OS_WINDOWS)
 ENDIF()
 
 END()
+
+RECURSE(
+    gotest
+)

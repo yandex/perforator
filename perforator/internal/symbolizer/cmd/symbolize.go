@@ -25,6 +25,9 @@ type (
 	symbolizeLocalArgs struct {
 		OutputPath       string
 		LocalBinaryPaths []string
+		ProfilePaths     []string
+		OutputDir        string
+		ReportPath       string
 	}
 
 	symbolizeStorageArgs struct {
@@ -45,9 +48,15 @@ var (
 	}
 
 	symbolizeLocalCmd = &cobra.Command{
-		Use:   "local <profile_path>",
-		Short: "Symbolize profile from fs",
-		RunE: func(_ *cobra.Command, args []string) error {
+		Use:   "local [profile_path]",
+		Short: "Symbolize local profiles with shared binaries",
+		Args: func(cmd *cobra.Command, args []string) error {
+			return validateLocalArgs(cmd, args, localArgs)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(localArgs.ProfilePaths) > 0 {
+				return symbolizeLocalBatch(cmd.Context(), localArgs)
+			}
 			profilePath := args[0]
 
 			logger, err := xlog.ForCLI(xlog.CLIConfig{
@@ -249,6 +258,9 @@ func init() {
 		"Binaries to fetch debug info from, separated with commas",
 	)
 
+	symbolizeLocalCmd.Flags().StringArrayVar(&localArgs.ProfilePaths, "profiles", nil, "Profile path to symbolize; repeat for multiple profiles")
+	symbolizeLocalCmd.Flags().StringVar(&localArgs.OutputDir, "output-dir", "", "Directory for separate symbolized profiles, keeping input filenames")
+	symbolizeLocalCmd.Flags().StringVar(&localArgs.ReportPath, "report", "", "Optional per-profile JSONL report for --profiles")
 	must.Must(symbolizeLocalCmd.MarkFlagFilename("output"))
 
 	symbolizeCmd.AddCommand(symbolizeLocalCmd)
