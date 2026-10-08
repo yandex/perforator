@@ -490,8 +490,7 @@ func formatFieldForInsert(builder *strings.Builder, field reflect.Value) error {
 	case reflect.Struct:
 		if field.Type() == reflect.TypeOf(time.Time{}) {
 			timestamp := field.Interface().(time.Time)
-			milliseconds := timestamp.UnixMilli()
-			builder.WriteString(fmt.Sprintf("%d", milliseconds))
+			builder.WriteString(fmt.Sprintf("fromUnixTimestamp64Milli(%d)", timestamp.UnixMilli()))
 		} else {
 			return fmt.Errorf("unsupported struct type: %v", field.Type())
 		}
