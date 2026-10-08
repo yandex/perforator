@@ -9,6 +9,7 @@ import { QuerySuggestProvider } from 'src/providers/QuerySuggestProvider/QuerySu
 import { cn } from 'src/utils/cn';
 import { EMPTY_SELECTOR } from 'src/utils/selector';
 
+import i18n from './i18n';
 import { TokensInput } from './TokensInput';
 import { makeSelectorFromTokensString, parseSelectorToTokensString } from './utils';
 
@@ -93,10 +94,10 @@ export const SwitchableSelectorInput: React.FC<SwitchableSelectorInputProps> = (
                     className={b('switcher')}
                 >
                     <SegmentedRadioGroup.Option value="tokens">
-                        Tokens
+                        {i18n('tokensLabel')}
                     </SegmentedRadioGroup.Option>
                     <SegmentedRadioGroup.Option value="selector">
-                        Selector
+                        {i18n('selectorLabel')}
                     </SegmentedRadioGroup.Option>
                 </SegmentedRadioGroup>
                 <QueryLanguageHelpPopover/>

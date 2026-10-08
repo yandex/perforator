@@ -3,6 +3,8 @@ import { generatePath } from 'react-router-dom';
 import { routes } from 'src/const/routes';
 import type { OnboardingNames } from 'src/utils/onboarding';
 
+import i18n from './i18n';
+
 
 type Tutorial = {
     title?: string;
@@ -20,7 +22,7 @@ export const enrichTutorialsForView = (list: Tutorial[]) => list.map((item, inde
 
 export const TUTORIALS_LIST = enrichTutorialsForView([
     {
-        title: 'Basics of flamegraph navigation',
+        title: i18n('basics'),
         slug: 'basics',
     },
 ] as Tutorial[]);

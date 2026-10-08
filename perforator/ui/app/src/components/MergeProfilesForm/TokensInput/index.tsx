@@ -1,6 +1,7 @@
 import type { QueryInput, QueryInputRenderer } from 'src/components/MergeProfilesForm/QueryInput';
 import { QuerySuggestProvider } from 'src/providers/QuerySuggestProvider';
 
+import i18n from './i18n';
 import { TokensInput } from './TokensInput';
 import { makeSelectorFromTokensString } from './utils';
 
@@ -25,6 +26,7 @@ const renderTokensInput: QueryInputRenderer = (query, setQuery, setTableSelector
 
 export const TOKENS_QUERY_INPUT: QueryInput = {
     name: 'Tokens',
+    label: i18n('tokensLabel'),
     queryField: 'tokens',
     render: renderTokensInput,
 };

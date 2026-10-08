@@ -11,6 +11,7 @@ import {
 } from 'src/utils/selector';
 import { createErrorToast } from 'src/utils/toaster';
 
+import i18n from './i18n';
 import { useQuerySuggestContext } from './QuerySuggestContext';
 
 
@@ -57,7 +58,7 @@ const fetchSuggestions = (state: SuggestState) => (
             }
             createErrorToast(
                 error,
-                { name: 'list-suggestions', title: 'Failed to load suggestions', content },
+                { name: 'list-suggestions', title: i18n('loadError'), content },
             );
         }
         return undefined;

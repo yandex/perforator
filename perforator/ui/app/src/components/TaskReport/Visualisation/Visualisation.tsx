@@ -26,6 +26,8 @@ import { createSuccessToast } from 'src/utils/toaster';
 
 import type { Tab } from '../TaskFlamegraph/TaskFlamegraph';
 
+import i18n from './i18n';
+
 import './Visualisation.css';
 
 
@@ -231,9 +233,9 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, onFin
             className={'visualisation_tabs'}
             activeTab={tab}
             items={[
-                { id: 'flame', title: 'Flamegraph' },
-                { id: 'top', title: 'Top' },
-                { id: 'sbs', title: <>Side by side <Beta/></> },
+                { id: 'flame', title: i18n('flamegraph') },
+                { id: 'top', title: i18n('top') },
+                { id: 'sbs', title: <>{i18n('sideBySide')} <Beta/></> },
             ]}
             onSelectTab={(newTab: Tab) => {
                 setQuery({ tab: newTab });

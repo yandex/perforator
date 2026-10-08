@@ -8,6 +8,7 @@ import { Button, Icon, Popup, Select, type SelectOption } from '@gravity-ui/uiki
 import type { ClusterTopGeneration } from 'src/generated/perforator/proto/perforator/perforator';
 import { cn } from 'src/utils/cn';
 
+import i18n from './i18n';
 import { generationStatusLabel } from './statusLabel';
 import { classifyGenerations, dayKeyOf, formatGenLabel } from './validation';
 
@@ -76,7 +77,7 @@ export function GenerationCalendarSelector({ generations, value, onUpdate }: Pro
         } as SelectOption));
     }, [classified, selectedDay]);
 
-    const buttonLabel = selectedDay ?? currentDayKey ?? 'Select date';
+    const buttonLabel = selectedDay ?? currentDayKey ?? i18n('selectDate');
 
     return (
         <div className={b()}>
@@ -109,7 +110,7 @@ export function GenerationCalendarSelector({ generations, value, onUpdate }: Pro
                     options={subdayOptions}
                     value={value ? [value] : []}
                     onUpdate={([val]) => onUpdate(val)}
-                    placeholder="generation"
+                    placeholder={i18n('generationPlaceholder')}
                     renderSelectedOption={(option) => <>{option.content}</>}
                     width="auto"
                 />

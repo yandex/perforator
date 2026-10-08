@@ -2,6 +2,7 @@ import { makeSelectorFromConditions } from 'src/utils/selector';
 
 import type { QueryInput, QueryInputRenderer } from '../QueryInput';
 
+import i18n from './i18n';
 import { ServiceInput } from './ServiceInput';
 
 
@@ -28,6 +29,7 @@ const renderServiceInput: QueryInputRenderer = (query, setQuery, setTableSelecto
 
 export const SERVICE_QUERY_INPUT: QueryInput = {
     name: 'Service',
+    label: i18n('label'),
     queryField: 'service',
     render: renderServiceInput,
 };

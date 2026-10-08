@@ -10,6 +10,7 @@ import type { TaskResult } from 'src/models/Task';
 import { renderWithRouter } from 'src/test/renderWithRouter';
 
 import type * as EditableTaskQueryModule from './EditableTaskQuery';
+import i18n from './i18n';
 
 
 interface TaskOptions {
@@ -88,8 +89,8 @@ describe('EditableTaskQuery', () => {
             service,
         }));
         const selector = screen.getByRole('textbox', { name: 'Selector' });
-        const cancelButton = screen.getByRole('button', { name: 'Cancel changes' });
-        const saveButton = screen.getByRole('button', { name: 'Save changes' });
+        const cancelButton = screen.getByRole('button', { name: i18n('cancelChanges') });
+        const saveButton = screen.getByRole('button', { name: i18n('saveChanges') });
         expect(cancelButton).toBeDisabled();
         expect(saveButton).toBeDisabled();
 
@@ -135,7 +136,7 @@ describe('EditableTaskQuery', () => {
         await user.paste(editedSelector);
 
         // Act
-        await user.click(screen.getByRole('button', { name: 'Save changes' }));
+        await user.click(screen.getByRole('button', { name: i18n('saveChanges') }));
 
         // Assert
         expectBuildLocation({
@@ -165,7 +166,7 @@ describe('EditableTaskQuery', () => {
 
         // Act
         await user.click(screen.getByRole('button', { name: 'Use selected interval' }));
-        await user.click(screen.getByRole('button', { name: 'Save changes' }));
+        await user.click(screen.getByRole('button', { name: i18n('saveChanges') }));
 
         // Assert
         expectBuildLocation({

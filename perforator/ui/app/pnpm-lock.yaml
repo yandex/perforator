@@ -32,6 +32,9 @@ importers:
       '@gravity-ui/date-utils':
         specifier: 2.5.5
         version: 2.5.5
+      '@gravity-ui/i18n':
+        specifier: 1.8.0
+        version: 1.8.0
       '@gravity-ui/icons':
         specifier: 2.18.0
         version: 2.18.0(react@18.3.1)
@@ -310,6 +313,9 @@ importers:
       '@gravity-ui/components':
         specifier: 4.19.1
         version: 4.19.1(@gravity-ui/uikit@7.36.1(@babel/runtime@7.26.7)(@types/react@18.2.66)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@gravity-ui/i18n':
+        specifier: 1.8.0
+        version: 1.8.0
       '@gravity-ui/icons':
         specifier: 2.18.0
         version: 2.18.0(react@18.3.1)

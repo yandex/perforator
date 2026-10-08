@@ -1,0 +1,13 @@
+{
+    "loading": "Loading...",
+    "name": "Name",
+    "buildFlamegraph": "Build a service flamegraph and search for this function",
+    "selfCores": "Self, Cores ",
+    "selfHelp": "Estimated CPU time spent in function",
+    "totalCores": "Total, Cores ",
+    "totalHelp": "Estimated CPU time spent in function and its children",
+    "errorPrefix": "Error: ",
+    "functionPatternPlaceholder": "Filter by function pattern...",
+    "search": "Search",
+    "loadMore": "Load more"
+}

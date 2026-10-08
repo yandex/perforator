@@ -16,6 +16,8 @@ import {
     Task,
 } from '../../pages';
 
+import i18n from './i18n';
+
 
 export const getRouter = (pageProps: PagePublicProps) => {
     const makePage = (page: PageComponent, title: Optional<string>) => (
@@ -30,7 +32,7 @@ export const getRouter = (pageProps: PagePublicProps) => {
         {
             path: routes.home,
             element: <Outlet />,
-            errorElement: makePage(NotFound, 'Not found'),
+            errorElement: makePage(NotFound, i18n('notFound')),
             children: [
                 {
                     index: true,
@@ -38,35 +40,35 @@ export const getRouter = (pageProps: PagePublicProps) => {
                 },
                 {
                     path: routes.profiles,
-                    element: makePage(ProfileList, 'Profiles'),
+                    element: makePage(ProfileList, i18n('profiles')),
                 },
                 {
                     path: routes.diff,
-                    element: makePage(DiffLists, 'Diff'),
+                    element: makePage(DiffLists, i18n('diff')),
                 },
                 {
                     path: routes.task,
-                    element: makePage(Task, 'Profile'),
+                    element: makePage(Task, i18n('profile')),
                 },
                 {
                     path: routes.profile,
-                    element: makePage(Profile, 'Profile'),
+                    element: makePage(Profile, i18n('profile')),
                 },
                 {
                     path: routes.build,
-                    element: makePage(BuildProfile, 'Profile'),
+                    element: makePage(BuildProfile, i18n('profile')),
                 },
                 {
                     path: routes.tasks,
-                    element: makePage(History, 'History'),
+                    element: makePage(History, i18n('history')),
                 },
                 {
                     path: routes.tutorialBasics,
-                    element: makePage(DemoPage, 'Demo'),
+                    element: makePage(DemoPage, i18n('demo')),
                 },
                 {
                     path: routes.clusterTop,
-                    element: makePage(ClusterTop, 'Cluster Top'),
+                    element: makePage(ClusterTop, i18n('clusterTop')),
                 },
             ],
         },

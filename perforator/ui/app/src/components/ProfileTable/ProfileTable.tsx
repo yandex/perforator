@@ -25,6 +25,8 @@ import { formatDate, getIsoDate, parseDate } from 'src/utils/date';
 import { ErrorPanel } from '../ErrorPanel/ErrorPanel';
 import { Link as RouterLink } from '../Link/Link';
 
+import i18n from './i18n';
+
 import './ProfileTable.scss';
 
 
@@ -76,7 +78,7 @@ const prepareProfileColumns = ({ compact }: { compact?: boolean } = {}) => {
     return ([
         {
             id: 'HumanReadableTimestamp',
-            name: 'Time',
+            name: i18n('time'),
             meta: { sort: true, defaultSortOrder: 'desc', id: 'timestamp' },
         },
         {
@@ -129,7 +131,7 @@ const prepareProfileColumns = ({ compact }: { compact?: boolean } = {}) => {
         },
         {
             id: 'ProfileID',
-            name: 'Profile ID',
+            name: i18n('profileId'),
             template: (profile: Profile) => {
                 const href = `${generatePath(routes.profile, { profileId: profile.ProfileID })}?timestamp=${parseDate(profile.Timestamp ?? '')!.valueOf()}&event_type=${profile.EventType}&service=${profile.Service}`;
                 return renderLink(href, profile.ProfileID, true);

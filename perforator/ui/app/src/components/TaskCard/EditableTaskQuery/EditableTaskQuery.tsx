@@ -17,6 +17,8 @@ import { areIntervalsEqual, type TimeInterval } from '../../TimeIntervalInput/Ti
 import { TimeIntervalInput as TimeIntervalInputRaw } from '../../TimeIntervalInput/TimeIntervalInput';
 import { MinimalHeader } from '../TaskHeader';
 
+import i18n from './i18n';
+
 import './EditableTaskQuery.scss';
 
 
@@ -122,7 +124,7 @@ export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, addi
     const controls = React.useMemo(() => (
         <div className="editable-task-query__controls">
             <Button
-                aria-label="Cancel changes"
+                aria-label={i18n('cancelChanges')}
                 className="editable-task-query__button"
                 onClick={handleCancel}
                 view="flat"
@@ -131,7 +133,7 @@ export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, addi
                 <Icon size={14} data={Xmark} />
             </Button>
             <Button
-                aria-label="Save changes"
+                aria-label={i18n('saveChanges')}
                 className="editable-task-query__button"
                 disabled={!hasChanges}
                 onClick={handleSave}

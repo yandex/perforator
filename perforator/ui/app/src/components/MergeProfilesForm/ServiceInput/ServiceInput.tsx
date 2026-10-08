@@ -3,6 +3,7 @@ import React from 'react';
 import { Select, type SelectFilter } from 'src/components/Select/Select';
 
 import { fetchServices } from './fetchServices';
+import i18n from './i18n';
 
 import './ServiceInput.scss';
 
@@ -30,7 +31,7 @@ export const ServiceInput: React.FC<ServiceInputProps> = ({ service, onUpdate }:
         listValues={listValues}
         onUpdate={onUpdate}
         value={service}
-        placeholder={'Service regexp'}
+        placeholder={i18n('servicePlaceholder')}
     />;
 };
 

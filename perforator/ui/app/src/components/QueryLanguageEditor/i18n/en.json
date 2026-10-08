@@ -1,0 +1,11 @@
+{
+    "selectorDescription": "Selector consists of comma-separated triples of keys, operators and values wrapped in curly braces, i.e. ",
+    "exampleHeading": "Example:",
+    "operatorsHeading": "Operators:",
+    "exactMatch": "Exact match (use ",
+    "regexMatch": "Regex match",
+    "ordinalComparison": "Ordinal comparison (useful for time)",
+    "documentation": "Read full documentation",
+    "exactMatchOrExample": " for OR, e.g., \"",
+    "exactMatchEnd": "\")"
+}

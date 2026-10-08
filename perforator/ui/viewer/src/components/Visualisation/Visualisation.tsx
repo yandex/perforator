@@ -12,6 +12,7 @@ import { createSuccessToast } from '../../utils/toaster';
 import {  useTypedQuery } from '../../query-utils';
 import { SettingsPopup } from '../SettingsPopup/SettingsPopup';
 
+import i18n from './i18n';
 import './Visualisation.css';
 import { cn } from '../../utils/cn';
 
@@ -132,9 +133,9 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
                     className={'vis_tabs'}
                     activeTab={tab}
                     items={[
-                        { id: 'flame', title: 'Flamegraph' },
-                        { id: 'top', title: 'Top' },
-                        { id: 'sbs', title: 'Side by side' }
+                        { id: 'flame', title: i18n('flamegraph') },
+                        { id: 'top', title: i18n('top') },
+                        { id: 'sbs', title: i18n('sideBySide') }
                     ]}
                     onSelectTab={(newTab) => {
                         setQuery({ tab: newTab });

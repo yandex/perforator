@@ -1,0 +1,22 @@
+{
+    "appearance": "Appearance",
+    "interfaceTheme": "Interface theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "fullFunctionNames": "Show full function names",
+    "always": "Always",
+    "onHover": "On hover",
+    "never": "Never",
+    "compactNumbers": "Compact number representation",
+    "exponent": "Exponent",
+    "metricPrefix": "Metric prefix",
+    "monospaceFont": "Use browser monospace font for flamegraph",
+    "reverseFlamegraph": "Show flamegraph in reverse by default",
+    "experimental": "Experimental",
+    "pythonPrettificationDescription": "Off: raw stacks. Mixed: remove CPython internals, keep user native (C++ extensions). Python only: leave only Python frames.",
+    "pythonPrettification": "Python stack prettification",
+    "off": "Off",
+    "mixed": "Mixed",
+    "pythonOnly": "Python only"
+}

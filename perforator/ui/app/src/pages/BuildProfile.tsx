@@ -16,6 +16,8 @@ import {
 } from 'src/utils/profileTask';
 import { preserveWellKnownQueryParams } from 'src/utils/profileTask/preserveWellKnown';
 
+import i18n from './i18n';
+
 
 const setupQuery = (searchParams: URLSearchParams): ProfileTaskQuery => {
     const query = defaultProfileTaskQuery();
@@ -56,7 +58,7 @@ export const BuildProfile: React.FC<BuildProfileProps> = () => {
         }).catch(e => {
             if (active) {
                 attempt?.finish('error');
-                setError(e instanceof AxiosError ? e.message : (e as Error)?.message ?? 'Unknown error');
+                setError(e instanceof AxiosError ? e.message : (e as Error)?.message ?? i18n('unknownError'));
             }
         });
         return () => { active = false; };

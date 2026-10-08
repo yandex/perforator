@@ -12,6 +12,8 @@ import type { ProfileData, StringifiedNode } from 'src/models/Profile';
 import type { SendError } from 'src/utils/error';
 import { fakeRum, type Rum } from 'src/utils/rum';
 
+import i18n from './i18n';
+
 
 export class UIFactory {
     configureApp = (): void => {};
@@ -36,10 +38,10 @@ export class UIFactory {
 
     defaultCluster = () => 'unknown';
 
-    clusterName = () => 'Zone';
-    serviceName = () => 'Service';
-    podName = () => 'Pod';
-    nodeName = () => 'Node';
+    clusterName = () => i18n('zone');
+    serviceName = () => i18n('service');
+    podName = () => i18n('pod');
+    nodeName = () => i18n('node');
 
     makeServiceUrl = (cluster: string, service: Optional<string>): Optional<string> => undefined;
     makePodUrl = (cluster: string, pod: Optional<string>): Optional<string> => undefined;

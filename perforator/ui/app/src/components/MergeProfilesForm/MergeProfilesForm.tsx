@@ -17,6 +17,7 @@ import { ProfileTable } from '../ProfileTable/ProfileTable';
 import { TimeIntervalInput } from '../TimeIntervalInput/TimeIntervalInput';
 
 import { changeQueryToNewInput } from './changeQueryToNewInput';
+import i18n from './i18n';
 import type { QueryInput, QueryInputResult } from './QueryInput';
 import { QUERY_INPUTS } from './queryInputs';
 import { QueryInputSwitcher } from './QueryInputSwitcher/QueryInputSwitcher';
@@ -91,7 +92,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = ({
     );
 
     React.useEffect(() => {
-        setPageTitle(tableSelector ? `Profiles: ${tableSelector}` : undefined);
+        setPageTitle(tableSelector ? `${i18n('profilesTitlePrefix')}${tableSelector}` : undefined);
     }, [tableSelector]);
 
     React.useMemo(() => {
@@ -137,7 +138,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = ({
         } catch (error) {
             createErrorToast(
                 error,
-                { name: 'submit-task-error', title: 'Failed to submit new task' },
+                { name: 'submit-task-error', title: i18n('submitTaskError') },
             );
         }
     };
@@ -148,12 +149,12 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = ({
                 onClick={() => submitTask()}
                 view="action"
             >
-                Merge profiles
+                {i18n('mergeProfiles')}
                 <Hotkey value="cmd+enter" view="dark" />
             </Button>
             <DropdownMenu popupProps={{ placement: 'bottom-end' }} items={[
-                { action: () => submitTask({ raw: true }), text: 'Merge into pprof' },
-                { action: () => submitTask({ text: true }), text: 'Merge into text format' },
+                { action: () => submitTask({ raw: true }), text: i18n('mergePprof') },
+                { action: () => submitTask({ text: true }), text: i18n('mergeText') },
 
             ]}/>
         </React.Fragment>
@@ -225,7 +226,7 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = ({
 
             <div className="merge-profiles-form__table">
                 <h3 className="merge-profiles-form__table-heading">
-                    Preview of profiles matching selector
+                    {i18n('previewHeading')}
                 </h3>
                 <div>
                     {profileTable}

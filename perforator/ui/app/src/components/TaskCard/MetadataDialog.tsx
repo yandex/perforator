@@ -10,6 +10,8 @@ import { getFormat, isDiffTaskResult } from 'src/utils/renderingFormat';
 import type { DefinitionListItem } from '../DefinitionList/DefinitionList';
 import { DefinitionList } from '../DefinitionList/DefinitionList';
 
+import i18n from './i18n';
+
 
 export interface MetadataDialogProps extends Pick<DialogProps, 'open' | 'onClose'> {
     task: TaskResult | null;
@@ -40,27 +42,27 @@ export const MetadataDialog: React.FC<MetadataDialogProps> = ({ task, ...props }
 
 
     const properties: DefinitionListItem[] = [
-        ['Selector', querySelector],
-        ['Baseline Selector', baselineSelector],
-        ['Diff Selector', diffSelector],
-        ['Service', query?.Service],
+        [i18n('selector'), querySelector],
+        [i18n('baselineSelector'), baselineSelector],
+        [i18n('diffSelector'), diffSelector],
+        [i18n('service'), query?.Service],
         [
-            'Time interval',
+            i18n('timeInterval'),
             (
                 query?.TimeInterval?.From && query?.TimeInterval?.To
-                    ? `from ${query?.TimeInterval?.From ?? '-inf'} to ${query?.TimeInterval?.To ?? 'inf'}`
+                    ? `${i18n('intervalFromPrefix')}${query?.TimeInterval?.From ?? '-inf'}${i18n('intervalToSeparator')}${query?.TimeInterval?.To ?? 'inf'}`
                     : null
             ),
         ],
-        ['Profile count', spec?.MaxSamples],
-        ['Baseline profile count', diffSpec?.BaselineQuery?.MaxSamples],
-        ['Diff profile count', diffSpec?.DiffQuery?.MaxSamples],
-        ['Trace', renderTraceLink(traceId)],
-        ['Flamegraph format', format === 'Flamegraph' ? 'HTML' : undefined],
-        ['Executor', getExecutor({ attempts: status?.Attempts })],
+        [i18n('profileCount'), spec?.MaxSamples],
+        [i18n('baselineProfileCount'), diffSpec?.BaselineQuery?.MaxSamples],
+        [i18n('diffProfileCount'), diffSpec?.DiffQuery?.MaxSamples],
+        [i18n('trace'), renderTraceLink(traceId)],
+        [i18n('flamegraphFormat'), format === 'Flamegraph' ? 'HTML' : undefined],
+        [i18n('executor'), getExecutor({ attempts: status?.Attempts })],
     ];
     return <Dialog size="l" open={props.open} onClose={props.onClose}>
-        <Dialog.Header caption={'Task Metadata'}/>
+        <Dialog.Header caption={i18n('metadataTitle')}/>
         <Dialog.Body>
             <DefinitionList items={properties} />
         </Dialog.Body>

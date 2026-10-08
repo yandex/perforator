@@ -18,7 +18,7 @@ export const QueryInputSwitcher: React.FC<QueryInputSwitcherProps> = ({ value, i
         inputs.map(input => (
             <SegmentedRadioGroup.Option key={input.name} value={input.name}>
                 <span>
-                    {input.name}
+                    {input.label}
                     {input.beta && <Beta />}
                 </span>
             </SegmentedRadioGroup.Option>

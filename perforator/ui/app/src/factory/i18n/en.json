@@ -1,0 +1,6 @@
+{
+    "zone": "Zone",
+    "service": "Service",
+    "pod": "Pod",
+    "node": "Node"
+}

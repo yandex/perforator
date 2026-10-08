@@ -10,6 +10,8 @@ import { composeDiffQuery } from 'src/utils/selector';
 
 import { MergeProfilesForm } from '../MergeProfilesForm/MergeProfilesForm';
 
+import i18n from './i18n';
+
 import './DiffProfilesForm.scss';
 
 
@@ -58,7 +60,7 @@ export const DiffProfilesForm: React.FC = () => {
 
     return (
         <div className="diff-profiles-form">
-            <Button view="action" className="diff-profiles-form__button" onClick={renderDiff}>Diff profiles</Button>
+            <Button view="action" className="diff-profiles-form__button" onClick={renderDiff}>{i18n('diffProfiles')}</Button>
             <div className="diff-profiles-form__list">
                 {leftForm}
                 <div className="diff-profiles-form__spacer_vertical"></div>

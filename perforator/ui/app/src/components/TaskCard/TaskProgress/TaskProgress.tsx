@@ -7,6 +7,8 @@ import { TaskState } from 'src/models/Task';
 
 import { ErrorPanel } from '../../ErrorPanel/ErrorPanel';
 
+import i18n from './i18n';
+
 
 export interface TaskProgressProps {
     state: TaskState;
@@ -15,8 +17,15 @@ export interface TaskProgressProps {
 
 export const TaskProgress: React.FC<TaskProgressProps> = ({ state, error }: TaskProgressProps) => {
     if (state === TaskState.Failed || error) {
-        return <ErrorPanel message={error ?? 'Task failed without error message'} />;
+        return <ErrorPanel message={error ?? i18n('failedWithoutMessage')} />;
     }
+
+    const stateLabels: Partial<Record<TaskState, string>> = {
+        [TaskState.Unknown]: i18n('unknown'),
+        [TaskState.Created]: i18n('created'),
+        [TaskState.Running]: i18n('running'),
+        [TaskState.Finished]: i18n('finished'),
+    };
 
     const themes: {[key in TaskState]?: ProgressTheme} = {
         [TaskState.Unknown]: 'misc',
@@ -36,7 +45,7 @@ export const TaskProgress: React.FC<TaskProgressProps> = ({ state, error }: Task
 
     return (
         <Progress
-            text={state}
+            text={stateLabels[state] ?? state}
             loading={state !== TaskState.Finished}
             theme={theme}
             value={progressPercentage}

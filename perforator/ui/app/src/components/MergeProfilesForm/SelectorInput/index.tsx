@@ -1,5 +1,6 @@
 import type { QueryInput, QueryInputRenderer } from '../QueryInput';
 
+import i18n from './i18n';
 import { SelectorInput } from './SelectorInput';
 
 
@@ -26,6 +27,7 @@ const renderSelectorInput: QueryInputRenderer = (query, setQuery, setTableSelect
 
 export const SELECTOR_QUERY_INPUT: QueryInput = {
     name: 'Selector',
+    label: i18n('label'),
     queryField: 'selector',
     render: renderSelectorInput,
 };

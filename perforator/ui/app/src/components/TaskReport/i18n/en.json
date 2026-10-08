@@ -1,0 +1,8 @@
+{
+    "missingProfile": "Task finished without profile",
+    "rawProfile": "Task finished with a raw pprof profile",
+    "download": "Download",
+    "nothingToShow": "Nothing to show there",
+    "error": "Error",
+    "unknownFormat": "Unknown format in"
+}

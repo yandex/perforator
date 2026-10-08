@@ -7,6 +7,7 @@ import { uiFactory } from 'src/factory';
 import { cn } from 'src/utils/cn';
 import { createErrorToast, createSuccessToast } from 'src/utils/toaster';
 
+import i18n from './i18n';
 import type { ShareFormat } from './utils';
 import { SHARE_FORMAT_LINK } from './utils';
 
@@ -38,7 +39,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ getUrl, view, size, cl
         navigator.clipboard.writeText(shared)
             .then(() => createSuccessToast({
                 name: 'share-copy',
-                title: 'Copied to clipboard',
+                title: i18n('copiedToClipboard'),
             }))
             .catch(e => createErrorToast(e, { name: 'share-copy' }));
     };
@@ -58,7 +59,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ getUrl, view, size, cl
                 size={size}
             >
                 <Icon size={SHARE_ICON_SIZE} data={ArrowShapeTurnUpRight} />
-                {view === 'compact' ? null : 'Share'}
+                {view === 'compact' ? null : i18n('share')}
             </Button>
             <DropdownMenu
                 items={items}

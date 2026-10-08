@@ -1,0 +1,8 @@
+{
+    "profilesTitlePrefix": "Profiles: ",
+    "submitTaskError": "Failed to submit new task",
+    "mergeProfiles": "Merge profiles",
+    "mergePprof": "Merge into pprof",
+    "mergeText": "Merge into text format",
+    "previewHeading": "Preview of profiles matching selector"
+}

@@ -1,0 +1,7 @@
+{
+    "unknownError": "Unknown error",
+    "clusterTop": "Cluster Top",
+    "generationInProgress": "Cluster top for this generation is still being built. Data may be incomplete and can change. Switch to a completed generation for accurate results.",
+    "pageNotFound": "Page not found",
+    "missingTimestamp": "No timestamp was specified"
+}

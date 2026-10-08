@@ -10,6 +10,7 @@ import {
 import { uiFactory } from 'src/factory';
 
 import { BugReportLink } from './BugReportLink/BugReportLink';
+import i18n from './i18n';
 import { NavigationFooterLink } from './NavigationFooterLink/NavigationFooterLink';
 import { UserLink } from './UserLink/UserLink';
 
@@ -23,13 +24,13 @@ export const NavigationFooter: React.FC<NavigationFooterProps> = ({ compact, tog
     return (
         <>
             {!uiFactory().docsLink() ? null : <NavigationFooterLink
-                text="Documentation"
+                text={i18n('documentation')}
                 url={uiFactory().docsLink()}
                 icon={CircleQuestion}
                 compact={compact}
             />}
             {!uiFactory().supportChatLink() ? null : <NavigationFooterLink
-                text="Support chat"
+                text={i18n('supportChat')}
                 url={uiFactory().supportChatLink()}
                 icon={LogoTelegram}
                 compact={compact}
@@ -38,13 +39,13 @@ export const NavigationFooter: React.FC<NavigationFooterProps> = ({ compact, tog
                 compact={compact}
             />}
             {!uiFactory().clientSpeedDebugLink() ? null : <NavigationFooterLink
-                text="Client speed debug"
+                text={i18n('clientSpeedDebug')}
                 url={uiFactory().clientSpeedDebugLink()}
                 icon={Snail}
                 compact={compact}
             />}
             <NavigationFooterLink
-                text="Settings"
+                text={i18n('settings')}
                 icon={Gear}
                 onClick={toggleSettings}
                 compact={compact}

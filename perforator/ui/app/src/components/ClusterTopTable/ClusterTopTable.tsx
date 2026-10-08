@@ -21,6 +21,7 @@ import { useTypedQuery } from 'src/utils/query';
 
 import { ErrorPanel } from '../ErrorPanel/ErrorPanel';
 
+import i18n from './i18n';
 import { clusterTopServicesQueryKeys, getGenerationCachePolicy, useFunctionTopQuery } from './queries';
 import type { ClusterTopRow } from './utils';
 import { convertToFunctionRow as rawConvertToFunctionRow, convertToServiceRow as rawConvertToServiceRow } from './utils';
@@ -28,7 +29,7 @@ import { convertToFunctionRow as rawConvertToFunctionRow, convertToServiceRow as
 import './ClusterTopTable.css';
 
 
-const LOADING_STRING = 'Loading...';
+const LOADING_STRING = i18n('loading');
 
 const b = cn('cluster-top-table');
 
@@ -92,7 +93,7 @@ const getColumns: (args: Pick<ClusterTopTableProps, 'timeIntervalFrom' | 'timeIn
     {
         id: 'Name',
         accessorKey: 'Name',
-        header: 'Name',
+        header: i18n('name'),
         size: 600,
         enableSorting: false,
         cell: ({ row, getValue }) => {
@@ -123,7 +124,7 @@ const getColumns: (args: Pick<ClusterTopTableProps, 'timeIntervalFrom' | 'timeIn
                 return <>
                     <span className={b('service-name', nameColumn)}>{getValue<string>()}
                         <ClipboardButton text={row.original.Name} size="xs"/>
-                        <Tooltip content="Build a service flamegraph and search for this function">
+                        <Tooltip content={i18n('buildFlamegraph')}>
                             <Button onClick={() => {uiFactory().reachGoal('FLAME_FROM_CLUSTER_TOP');}} target={'_blank'} view={'flat'} size={'xs'} href={`${generatePath(routes.build)}?${query.toString()}`}>
                                 <Icon height={14} size={14} data={Flame} className={b('icon', { flamegraph: true })}/>
                             </Button>
@@ -138,7 +139,7 @@ const getColumns: (args: Pick<ClusterTopTableProps, 'timeIntervalFrom' | 'timeIn
     {
         id: 'Count.Self',
         accessorFn: (row) => row.Count.Self,
-        header: () => <>Self, Cores <HelpMark>Estimated CPU time spent in function</HelpMark></>,
+        header: () => <>{i18n('selfCores')}<HelpMark>{i18n('selfHelp')}</HelpMark></>,
         size: 100,
         enableSorting: true,
         sortDescFirst: true,
@@ -151,7 +152,7 @@ const getColumns: (args: Pick<ClusterTopTableProps, 'timeIntervalFrom' | 'timeIn
     {
         id: 'Count.Cumulative',
         accessorFn: (row) => row.Count.Cumulative,
-        header: () => <>Total, Cores <HelpMark>Estimated CPU time spent in function and its children</HelpMark></>,
+        header: () => <>{i18n('totalCores')}<HelpMark>{i18n('totalHelp')}</HelpMark></>,
         size: 100,
         enableSorting: true,
         sortDescFirst: true,
@@ -292,7 +293,7 @@ export const ClusterTopTable: React.FC<ClusterTopTableProps> = ({ generation, ti
                 if (row.error) {
                     return [
                         {
-                            Name: `Error: ${row.error}`,
+                            Name: i18n('errorPrefix') + row.error,
                             parentFunction: row.Name,
                             Count: { Self: 0, Cumulative: 0, CumulativePct: '', SelfPct: '', SelfPctValue: 0, CumulativePctValue: 0 },
                             type: 'service' as const,
@@ -325,13 +326,13 @@ export const ClusterTopTable: React.FC<ClusterTopTableProps> = ({ generation, ti
         <>
             <form className={b('filter__form')} onSubmit={(e) => {e.preventDefault();setCurrentFilter(filterInput);}}>
                 <TextInput
-                    placeholder="Filter by function pattern..."
+                    placeholder={i18n('functionPatternPlaceholder')}
                     value={filterInput}
                     onUpdate={setFilterInput}
                     className={b('filter__input')}
                     hasClear
                 />
-                <Button loading={loading && currentFilter !== ''} className={b('search-button')} view={'action'} disabled={currentFilter === filterInput} onClick={() => setCurrentFilter(filterInput)}>Search</Button>
+                <Button loading={loading && currentFilter !== ''} className={b('search-button')} view={'action'} disabled={currentFilter === filterInput} onClick={() => setCurrentFilter(filterInput)}>{i18n('search')}</Button>
             </form>
             {isFetchNextPageError && <ErrorPanel message={error?.message} />}
             {loading ? <EmptyView/> :
@@ -340,7 +341,7 @@ export const ClusterTopTable: React.FC<ClusterTopTableProps> = ({ generation, ti
                     {hasNextPage && (
                         <div className={b('load-more')}>
                             <Button onClick={() => fetchNextPage()} loading={isFetchingNextPage} view="outlined">
-                        Load more
+                                {i18n('loadMore')}
                             </Button>
                         </div>
                     )}

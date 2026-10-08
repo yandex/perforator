@@ -14,6 +14,7 @@ import { ClusterTopGenerationStatus } from 'src/generated/perforator/proto/perfo
 import { apiClient } from 'src/utils/api';
 import { useTypedQuery } from 'src/utils/query';
 
+import i18n from './i18n';
 import type { Page } from './Page';
 
 
@@ -54,7 +55,7 @@ export const ClusterTop: Page = ({ header }) => {
     return (<>
         {header}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>Cluster Top <Beta/></div>
+            <div>{i18n('clusterTop')} <Beta/></div>
             <GenerationCalendarSelector
                 generations={generations?.Generations ?? []}
                 value={currentGeneration}
@@ -63,7 +64,7 @@ export const ClusterTop: Page = ({ header }) => {
             {currentGenerationObject?.GenerationStatus === ClusterTopGenerationStatus.IN_PROGRESS && (
                 <Alert
                     theme="warning"
-                    message="Cluster top for this generation is still being built. Data may be incomplete and can change. Switch to a completed generation for accurate results."
+                    message={i18n('generationInProgress')}
                 />
             )}
             {currentGeneration && currentGenerationObject && timeInterval &&

@@ -7,6 +7,7 @@ import { Text } from '@gravity-ui/uikit';
 import { ColorSwatch } from 'src/components/ColorSwatch/ColorSwatch';
 import { LocalStorageKey } from 'src/const/localStorage';
 
+import i18n from './onboarding/i18n';
 import { createSuccessToast } from './toaster';
 
 
@@ -29,7 +30,7 @@ export const enum OnboardingNames {
 
 const progressSuccessToastHooks = {
     onStepPass: () => {
-        createSuccessToast({ name: 'step', content: 'Step passed' });
+        createSuccessToast({ name: 'step', content: i18n('stepPassed') });
     },
 };
 
@@ -42,7 +43,7 @@ const setIndexes: <
     length: number,
 ) => I & { hintParams: H & { index?: string } } = (item, i, length) => ({
     ...item,
-    hintParams: { ...item.hintParams, index: i !== 0 ? `${i} out of ${length} passed` : undefined },
+    hintParams: { ...item.hintParams, index: i !== 0 ? i18n('progress', { passed: i, total: length }) : undefined },
 });
 
 
@@ -51,15 +52,14 @@ export const demoFlamegraphPreset = createPreset(
         const steps = [
             {
                 slug: FlamegraphSteps.FlamegraphOverview,
-                name: 'Flamegraph overview',
+                name: i18n('overviewTitle'),
                 description: '',
                 hintParams: {
                     children:
-                    <>This is a flamegraph. It includes both the library code and your code, it also includes the kernel-space functions.
-            The code is by default shades of <ColorSwatch color={'rgb(205, 0, 0)'}/> orange, the kernel-space code is shades of <ColorSwatch color={'rgb(96, 96, 205)'}/> blue. For some languages with specialised instrumentation and first-class support we use special colors, like <ColorSwatch color="rgb(103, 178, 120)"/> green for python.</>,
+                    <>{i18n('overviewIntro')}<ColorSwatch color={'rgb(205, 0, 0)'}/>{i18n('overviewOrange')}<ColorSwatch color={'rgb(96, 96, 205)'}/>{i18n('overviewBlue')}<ColorSwatch color="rgb(103, 178, 120)"/>{i18n('overviewGreen')}</>,
                     actions: [
                         {
-                            children: 'Go next',
+                            children: i18n('next'),
                             view: 'action' as const,
                             onClick: () => {
                                 goNextStep();
@@ -70,20 +70,19 @@ export const demoFlamegraphPreset = createPreset(
             },
             {
                 slug: FlamegraphSteps.FlamegraphClick,
-                name: 'Flamegraph click',
+                name: i18n('clickTitle'),
                 description: '',
                 hintParams: {
                     children:
-                        <>Let's try moving around flamegraph a bit. Click <Text variant={'code-1'}>inefficient_calc_sum</Text> rectangle to stretch it to 100%.</>,
+                        <>{i18n('clickIntro')}<Text variant={'code-1'}>inefficient_calc_sum</Text>{i18n('clickEnd')}</>,
                     highlightCoordinate: [8, 0] as Coordinate,
                 },
                 hooks: progressSuccessToastHooks,
             },
             {
                 slug: FlamegraphSteps.GoBack,
-                name: 'Going back',
-                description:
-                    'Now let\'s get back to the general overview: to return there click on the root node here',
+                name: i18n('backTitle'),
+                description: i18n('backDescription'),
                 hintParams: {
                     highlightCoordinate: [0, 0] as Coordinate,
                 },
@@ -91,19 +90,18 @@ export const demoFlamegraphPreset = createPreset(
             },
             {
                 slug: FlamegraphSteps.FlamegraphAltClick,
-                name: 'Flamegraph alt click',
+                name: i18n('contextMenuTitle'),
                 description: '',
                 hintParams: {
-                    children: <>We can use context menu to omit unneeded nodes like this function <Text variant={'code-1'}>shuffle_some_array</Text>.<br/> It uses standard library, probably efficient enough not to focus on it<br/> Let's click it with right mouse button and delete it.</>,
+                    children: <>{i18n('contextMenuIntro')}<Text variant={'code-1'}>shuffle_some_array</Text>{i18n('contextMenuEnd')}<br/>{i18n('contextMenuEfficiency')}<br/>{i18n('contextMenuAction')}</>,
                     highlightCoordinate: [8, 1] as Coordinate,
                 },
                 hooks: progressSuccessToastHooks,
             },
             {
                 slug: FlamegraphSteps.ResetOmit,
-                name: 'Reset omit',
-                description:
-                    'We\'ve omitted some nodes on previous steps. Let\'s reset them and return the flamegraph back to its original form with the button to the right',
+                name: i18n('resetOmitTitle'),
+                description: i18n('resetOmitDescription'),
                 hintParams: {
                     className: '.flamegraph__clear-deletion',
                 },
@@ -111,40 +109,37 @@ export const demoFlamegraphPreset = createPreset(
             },
             {
                 slug: FlamegraphSteps.Search,
-                name: 'Search',
+                name: i18n('searchTitle'),
                 description: '',
                 hintParams: {
                     children:
-                        <>We can search for a node by its name. Let's search for "<Text variant="code-1">kernel</Text>"</>,
+                        <>{i18n('searchIntro')}<Text variant="code-1">kernel</Text>{i18n('searchEnd')}</>,
                     className: '.flamegraph__button_search',
                 },
                 hooks: progressSuccessToastHooks,
             },
             {
                 slug: FlamegraphSteps.ShowMatchedStacks,
-                name: 'Show matched stacks',
+                name: i18n('matchedStacksTitle'),
                 hintParams: {
                     className: '.flamegraph__button_keep-only-found',
                 },
-                description:
-                    'Let\'s show only matched stacks and their parents with the "show matched stacks" button',
+                description: i18n('matchedStacksDescription'),
                 hooks: progressSuccessToastHooks,
             },
             {
                 slug: FlamegraphSteps.SearchReset,
-                name: 'Search reset',
+                name: i18n('resetSearchTitle'),
                 hintParams: {
                     className: '.flamegraph__clear',
                 },
-                description:
-                    'Let\'s reset the search with this button to the right (you can also do it with Esc)',
+                description: i18n('resetSearchDescription'),
                 hooks: progressSuccessToastHooks,
             },
             {
                 slug: FlamegraphSteps.LeftHeavy,
-                name: 'Left heavy',
-                description:
-                    'Let\'s try the left heavy form of the flamegraph. It will reorder the flame by the number of events.',
+                name: i18n('leftHeavyTitle'),
+                description: i18n('leftHeavyDescription'),
                 hintParams: {
                     className: '.flamegraph__switch_left-heavy',
                 },
@@ -152,14 +147,13 @@ export const demoFlamegraphPreset = createPreset(
             },
             {
                 slug: FlamegraphSteps.Final,
-                name: 'The flamegraph tutorial is now completed',
-                description:
-                    'Congratulations, you\'ve completed the flamegraph tutorial.',
+                name: i18n('completedTitle'),
+                description: i18n('completedDescription'),
                 hintParams: {
                     actions: [
 
                         {
-                            children: 'Finish',
+                            children: i18n('finish'),
                             view: 'action' as const,
                             onClick: () => {
                                 goNextStep();

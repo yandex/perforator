@@ -8,6 +8,8 @@ import { ErrorPanel } from 'src/components/ErrorPanel/ErrorPanel';
 import type { ProfileTaskQuery } from 'src/models/Task';
 import { redirectToTaskPage } from 'src/utils/profileTask';
 
+import i18n from './i18n';
+
 
 export interface ProfileProps {}
 
@@ -41,7 +43,7 @@ export const Profile: React.FC<ProfileProps> = () => {
     }, [key, timestamp, profileId, eventType, serviceName, navigate]);
 
     if (!timestamp) {
-        return <ErrorPanel message="No timestamp was specified" />;
+        return <ErrorPanel message={i18n('missingTimestamp')} />;
     }
 
     return <Loader />;

@@ -7,6 +7,8 @@ import { Icon, Link } from '@gravity-ui/uikit';
 
 import { EMBED_PARAM, THEME_PARAM } from 'src/const/query';
 
+import i18n from './i18n';
+
 import './PageHeading.scss';
 
 
@@ -35,7 +37,7 @@ export const PageHeading: React.FC<PageHeadingProps> = ({ embed }: PageHeadingPr
                     href={makePerforatorUrl(searchParams)}
                     target="_blank"
                 >
-                    Open in Perforator
+                    {i18n('openInPerforator')}
                     <Icon className="page-heading__link-arrow" data={ArrowUpRightFromSquare} />
                 </Link>
             </div>

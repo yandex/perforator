@@ -15,6 +15,7 @@ import { ErrorPanel } from '../ErrorPanel/ErrorPanel';
 import { useFullscreen } from '../Fullscreen/FullscreenContext';
 import { navigateToLineNumbers } from '../TaskCard/navigateToLineNumbers';
 
+import i18n from './i18n';
 import { TaskFlamegraph } from './TaskFlamegraph/TaskFlamegraph';
 import { TextProfile } from './TextProfile/TextProfile';
 
@@ -67,15 +68,15 @@ export const TaskReport: React.FC<TaskReportProps> = ({ task, taskId }: TaskRepo
 
     const renderContent = () => {
         if (!url) {
-            return <ErrorPanel message="Task finished without profile" />;
+            return <ErrorPanel message={i18n('missingProfile')} />;
         }
         if (format === 'RawProfile') {
             const message = (
                 <div>
                     <div>
-                        Task finished with a raw pprof profile
+                        {i18n('rawProfile')}
                     </div>
-                    <Button className="task-report__download-raw" href={url}>Download</Button>
+                    <Button className="task-report__download-raw" href={url}>{i18n('download')}</Button>
                 </div>
             );
 
@@ -83,7 +84,7 @@ export const TaskReport: React.FC<TaskReportProps> = ({ task, taskId }: TaskRepo
                 className={b('alert')}
                 theme="info"
                 view="outlined"
-                title="Nothing to show there"
+                title={i18n('nothingToShow')}
                 message={message}
             />;
         }
@@ -105,8 +106,8 @@ export const TaskReport: React.FC<TaskReportProps> = ({ task, taskId }: TaskRepo
                 className={b('alert')}
                 theme="danger"
                 view="outlined"
-                title="Error"
-                message={`Unknown format in ${JSON.stringify(mergeRenderFormat || diffRenderFormat)}`}
+                title={i18n('error')}
+                message={`${i18n('unknownFormat')} ${JSON.stringify(mergeRenderFormat || diffRenderFormat)}`}
             />;
         }
 

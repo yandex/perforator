@@ -15,6 +15,7 @@ export type QueryInputRenderer = (
 
 export interface QueryInput {
     name: string;
+    label: string;
     queryField: string;
     render: QueryInputRenderer;
     beta?: boolean;

@@ -1,0 +1,23 @@
+{
+    "unknownFormat": "Unknown format",
+    "diffRequiresTwoProfiles": "Diff can be calculated only for two profiles",
+    "diffRequiresMergeProfiles": "Diff can be calculated only for MergeProfiles",
+    "diffRequiresFinishedTasks": "Diff can be calculated only for finished tasks",
+    "diffProfiles": "Diff profiles",
+    "login": "login",
+    "showOnlyMine": "Show only mine",
+    "taskState": "Task State",
+    "taskType": "Task Type",
+    "taskFormat": "Task Format",
+    "loadMore": "Load more",
+    "errorPrefix": "Error: ",
+    "columns.status": "Status",
+    "columns.id": "ID",
+    "columns.type": "Type",
+    "columns.creationTime": "CreationTime",
+    "columns.author": "Author",
+    "columns.query": "Query",
+    "columns.format": "Format",
+    "columns.profileCount": "ProfileCount",
+    "columns.profilesTimes": "ProfilesTimes"
+}

@@ -42,6 +42,7 @@ import { ErrorPanel } from '../ErrorPanel/ErrorPanel';
 import { Link } from '../Link/Link';
 import { type TimeInterval, TimeIntervalInput } from '../TimeIntervalInput/TimeIntervalInput';
 
+import i18n from './i18n';
 import { useTasksQuery } from './queries';
 
 import './Tasks.scss';
@@ -162,7 +163,7 @@ const readFormat = (format: RenderFormat | undefined) => {
         return 'TextProfile';
     }
 
-    return 'Unknown format';
+    return i18n('unknownFormat');
 };
 
 const getFormat = (spec: Task['Spec']) => {
@@ -183,6 +184,7 @@ const getFormat = (spec: Task['Spec']) => {
 const getColumnsConfig = (): TableColumnConfig<Task>[] => [
     {
         id: 'Status',
+        name: i18n('columns.status'),
         template: (data) => (
             <Label theme={statusToLabelTheme(data.Status?.State)}>
                 {data.Status?.State}
@@ -191,6 +193,7 @@ const getColumnsConfig = (): TableColumnConfig<Task>[] => [
     },
     {
         id: 'ID',
+        name: i18n('columns.id'),
         template: (profileData) => profileData?.Meta?.ID ? (
             <Link href={generatePath(routes.task, { taskId: profileData.Meta.ID })}>
                 {profileData.Meta.ID}
@@ -199,10 +202,12 @@ const getColumnsConfig = (): TableColumnConfig<Task>[] => [
     },
     {
         id: 'Type',
+        name: i18n('columns.type'),
         template: (profileData) => typeTemplate(profileData.Spec),
     },
     {
         id: 'CreationTime',
+        name: i18n('columns.creationTime'),
         template: (profileData) =>
             formatDate(
                 Number(profileData?.Meta?.CreationTime) / 1000,
@@ -211,10 +216,12 @@ const getColumnsConfig = (): TableColumnConfig<Task>[] => [
     },
     ...(uiFactory().authorizationSupported() ? [{
         id: 'Author',
+        name: i18n('columns.author'),
         template: (profileData: Task) => uiFactory().renderUserLink(profileData.Meta?.Author),
     }] : []),
     {
         id: 'Query',
+        name: i18n('columns.query'),
         template: (profileData) => {
             const text = getSelectorFromSpec(profileData);
             return <Text variant="code-1">{text}</Text>;
@@ -222,14 +229,17 @@ const getColumnsConfig = (): TableColumnConfig<Task>[] => [
     },
     {
         id: 'Format',
+        name: i18n('columns.format'),
         template: (data) => getFormat(data.Spec),
     },
     {
         id: 'ProfileCount',
+        name: i18n('columns.profileCount'),
         template: (data) => data.Result?.MergeProfiles?.ProfileMeta?.length,
     },
     {
         id: 'ProfilesTimes',
+        name: i18n('columns.profilesTimes'),
         template: (data) => {
             const times = data.Result?.MergeProfiles?.ProfileMeta.map(
                 (profile) => profile.Timestamp,
@@ -398,17 +408,17 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
             () =>
                 selected.length === 2
                     ? undefined
-                    : 'Diff can be calculated only for two profiles',
+                    : i18n('diffRequiresTwoProfiles'),
             () =>
                 'MergeProfiles' in (selectedProfile?.Spec || {}) &&
                     'MergeProfiles' in (selectedDiffProfile?.Spec || {})
                     ? undefined
-                    : 'Diff can be calculated only for MergeProfiles',
+                    : i18n('diffRequiresMergeProfiles'),
             () =>
                 selectedProfile?.Status?.State === TaskState.Finished &&
                     selectedDiffProfile?.Status?.State === TaskState.Finished
                     ? undefined
-                    : 'Diff can be calculated only for finished tasks',
+                    : i18n('diffRequiresFinishedTasks'),
         ];
 
 
@@ -428,7 +438,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                 id: 'diff-profiles',
                 button: {
                     props: {
-                        children: 'Diff profiles',
+                        children: i18n('diffProfiles'),
                         onClick: handleDiff,
                         disabled: Boolean(errorMessage),
                     },
@@ -436,7 +446,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                 dropdown: {
                     item: {
                         action: handleDiff,
-                        text: 'Diff profiles',
+                        text: i18n('diffProfiles'),
                         disabled: Boolean(errorMessage),
                     },
                 },
@@ -447,7 +457,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
     const renderUserInput = () => !uiFactory().authorizationSupported() ? null : (
         <div className={b('user-filter')}>
             <TextInput
-                placeholder={'login'}
+                placeholder={i18n('login')}
                 onUpdate={handleSetUserFilter}
                 value={userFilter}
                 size={'m'}
@@ -456,7 +466,7 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
             <Switch
                 checked={mine}
                 onUpdate={handleMine}
-                content={'Show only mine'}
+                content={i18n('showOnlyMine')}
             />
         </div>
     );
@@ -477,8 +487,8 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
             <Select
                 className={b('filter')}
                 qa="task-state-filter"
-                placeholder={'Task State'}
-                label={'Task State'}
+                placeholder={i18n('taskState')}
+                label={i18n('taskState')}
                 value={statusFilter}
                 multiple
                 hasClear
@@ -489,8 +499,8 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
             <Select
                 className={b('filter')}
                 qa="task-type-filter"
-                placeholder={'Task Type'}
-                label="Task Type"
+                placeholder={i18n('taskType')}
+                label={i18n('taskType')}
                 multiple
                 options={taskTypeOptions}
                 value={typeFilter}
@@ -500,8 +510,8 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
             <Select
                 className={b('filter')}
                 qa="task-format-filter"
-                placeholder={'Task Format'}
-                label="Task Format"
+                placeholder={i18n('taskFormat')}
+                label={i18n('taskFormat')}
                 multiple
                 options={taskFormatOptions}
                 value={formatFilter}
@@ -530,8 +540,8 @@ export const Tasks: React.FC<TasksProps> = ({ header }) => {
                     columns={columnsConfig}
                 />
                 {hasNextPage
-                    ? <><Button loading={isFetchingNextPage} className='tasks__pagination' onClick={() => fetchNextPage()}>Load more</Button>
-                        {error ? <Text className="tasks__pagination-error" color="danger">Error: {error?.message}</Text> : null}
+                    ? <><Button loading={isFetchingNextPage} className='tasks__pagination' onClick={() => fetchNextPage()}>{i18n('loadMore')}</Button>
+                        {error ? <Text className="tasks__pagination-error" color="danger">{i18n('errorPrefix')}{error?.message}</Text> : null}
                     </>
                     : null}
             </React.Fragment>

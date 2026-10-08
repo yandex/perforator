@@ -2,6 +2,8 @@ import React from 'react';
 
 import { Alert } from '@gravity-ui/uikit';
 
+import i18n from './i18n';
+
 
 export interface ErrorPanelProps {
     message: string;
@@ -13,7 +15,7 @@ export const ErrorPanel: React.FC<ErrorPanelProps> = ({ message, title }: ErrorP
         <Alert
             theme="danger"
             view="filled"
-            title={title ?? 'Error'}
+            title={title ?? i18n('error')}
             message={message}
         />
     );

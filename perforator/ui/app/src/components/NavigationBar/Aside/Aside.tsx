@@ -21,6 +21,7 @@ import { NavigationFooter } from '../NavigationFooter/NavigationFooter';
 import { SettingsPanel } from '../SettingsPanel/SettingsPanel';
 
 import type { AsideProps } from './AsideProps';
+import i18n from './i18n';
 
 
 interface MenuLink {
@@ -33,22 +34,22 @@ const isClusterTopEnabled = Boolean(localStorage.getItem(LocalStorageKey.Cluster
 
 const menuLinks: MenuLink[] = [
     {
-        title: 'Profiles',
+        title: i18n('profiles'),
         icon: BarsDescendingAlignLeftIcon,
         link: generatePath(routes.home),
     },
     ...(isClusterTopEnabled ? [{
-        title: 'Cluster Top',
+        title: i18n('clusterTop'),
         icon: ServerIcon,
         link: generatePath(routes.clusterTop),
     }] : []),
     {
-        title: 'History',
+        title: i18n('history'),
         icon: ClockArrowRotateLeftIcon,
         link: generatePath(routes.tasks),
     },
     {
-        title: 'Diff',
+        title: i18n('diff'),
         icon: ScalesUnbalancedIcon,
         link: generatePath(routes.diff),
     },
@@ -92,7 +93,7 @@ export const Aside: React.FC<AsideProps> = ({ setCompact }: AsideProps) => {
 
     const items = React.useMemo(
         () => menuLinks.map((link) => makeMenuItem(link, pathname)).concat([{
-            title: 'Learn',
+            title: i18n('learn'),
             icon: GraduationCapIcon,
             id: 'tutorials',
             current: showPanel === 'tutorials' || pathname.startsWith(routes.tutorialBasics),

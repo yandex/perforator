@@ -5,6 +5,8 @@ import { Card, ClipboardButton, DefinitionList, DefinitionListItem, Disclosure }
 import type { TaskResult } from 'src/models/Task';
 import { setPageTitle } from 'src/utils/title';
 
+import i18n from './i18n';
+
 import './TaskCard.scss';
 
 
@@ -24,10 +26,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, taskId } )=> {
 
     React.useEffect(() => {
         if (query?.Selector) {
-            setPageTitle(`Profile: ${query?.Selector}`);
+            setPageTitle(`${i18n('profileTitlePrefix')}${query?.Selector}`);
         }
         if (baselineQuery?.Selector && diffQuery?.Selector) {
-            setPageTitle(`Diff: ${baselineQuery?.Selector} vs ${diffQuery?.Selector}`);
+            setPageTitle(`${i18n('diffTitlePrefix')}${baselineQuery?.Selector}${i18n('versus')}${diffQuery?.Selector}`);
         }
     }, [query, baselineQuery, diffQuery]);
 
@@ -40,13 +42,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, taskId } )=> {
 
 
     const properties = [
-        ['Baseline Selector', baselineSelector],
-        ['Diff Selector', diffSelector],
+        [i18n('baselineSelector'), baselineSelector],
+        [i18n('diffSelector'), diffSelector],
     ].filter(([_, value]) => Boolean(value));
 
     return properties.length > 0 ? (
         <Card className="task-card">
-            <Disclosure defaultExpanded summary={<h2 className="task-card__title"> Task {taskId}</h2>}>
+            <Disclosure defaultExpanded summary={<h2 className="task-card__title">{i18n('taskTitlePrefix')}{taskId}</h2>}>
                 <DefinitionList>
                     {properties.map(item => <DefinitionListItem name={item[0]}>{item[1]}</DefinitionListItem>)}
                 </DefinitionList>

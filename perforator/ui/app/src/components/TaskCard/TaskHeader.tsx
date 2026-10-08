@@ -15,6 +15,7 @@ import { getFormat, isDiffTaskResult } from 'src/utils/renderingFormat';
 import { ShareButton } from '../ShareButton/ShareButton';
 
 import { EditableTaskQuery } from './EditableTaskQuery/EditableTaskQuery';
+import i18n from './i18n';
 import { MetadataDialog } from './MetadataDialog';
 
 import './TaskHeader.scss';
@@ -89,7 +90,7 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
         if (isMergeTask && !isRawProfile(task)) {
             items.push(
                 {
-                    text: 'Get pprof',
+                    text: i18n('getPprof'),
                     action: () => redirectToTaskPage(navigate, {
                         selector: query?.Selector,
                         maxProfiles: spec?.MaxSamples,
@@ -100,7 +101,7 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
         }
         if (isMergeTask) {
             items.push({
-                text: 'Compare with',
+                text: i18n('compareWith'),
                 action: () => {
                     const search = new URLSearchParams({
                         selector: query?.Selector ?? '',
@@ -114,7 +115,7 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
         const taskUrl = task.Result?.MergeProfiles?.ProfileURL;
         if (isMergeTask && getFormat(task.Spec?.MergeProfiles?.Format) === 'HTMLVisualisation' && taskUrl) {
             items.push({
-                text: 'Download html report',
+                text: i18n('downloadHtml'),
                 href: taskUrl,
             });
         }
@@ -126,8 +127,8 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
             onOpenInfoDialog();
         }} >
             <Icon data={CircleInfo}/>
-                Info
+            {i18n('info')}
         </Button>
-        {items.length > 0 ? <DropdownMenu items={items} defaultSwitcherProps={{ 'aria-label': 'Task actions' }}/> : null}
+        {items.length > 0 ? <DropdownMenu items={items} defaultSwitcherProps={{ 'aria-label': i18n('taskActions') }}/> : null}
     </>;
 };

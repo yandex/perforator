@@ -7,6 +7,8 @@ import { buildProfileRum } from 'src/utils/buildProfileRum';
 
 import { ErrorPage } from '../ErrorPage/ErrorPage';
 
+import i18n from './i18n';
+
 
 interface ErrorBoundaryProps {
     children?: React.ReactNode;
@@ -35,7 +37,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     render() {
         const { error, hasError } = this.state;
         if (hasError) {
-            return <ErrorPage picture={InternalError} title={error?.message ?? 'Unknown error'} />;
+            return <ErrorPage picture={InternalError} title={error?.message ?? i18n('unknownError')} />;
         }
 
         return this.props.children;

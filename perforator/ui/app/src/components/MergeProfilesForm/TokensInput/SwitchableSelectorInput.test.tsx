@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 
 import { LocalStorageKey } from 'src/const/localStorage';
 
+import i18n from './i18n';
 import type * as SwitchableSelectorInputModule from './SwitchableSelectorInput';
 
 
@@ -63,7 +64,7 @@ describe('SwitchableSelectorInput', () => {
         render(<SelectorHarness />);
 
         // Act
-        await user.click(screen.getByText('Selector'));
+        await user.click(screen.getByText(i18n('selectorLabel')));
         const editor = await screen.findByRole('textbox', { name: 'Selector editor' });
         await user.clear(editor);
         await user.paste('{service="worker"}');

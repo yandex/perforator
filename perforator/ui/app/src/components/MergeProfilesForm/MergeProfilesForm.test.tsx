@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event';
 import { routes } from 'src/const/routes';
 import { renderWithRouter } from 'src/test/renderWithRouter';
 
+import i18n from './i18n';
 import type * as MergeProfilesFormModule from './MergeProfilesForm';
 
 
@@ -67,7 +68,7 @@ describe('MergeProfilesForm', () => {
         await user.click(screen.getByRole('button', { name: 'Use service token' }));
         await user.click(screen.getByRole('button', { name: 'Use test interval' }));
         await user.click(screen.getByRole('button', { name: 'Use 321 profiles' }));
-        await user.click(screen.getByRole('button', { name: /Merge profiles/ }));
+        await user.click(getMergeButton());
 
         // Assert
         await expectBuildLocation(expectedSearchParams);
@@ -83,7 +84,7 @@ describe('MergeProfilesForm', () => {
         await waitFor(() => expect(screen.getByLabelText('Preview selector')).toHaveTextContent(mockSelector));
 
         // Act
-        fireEvent.keyDown(screen.getByRole('button', { name: /Merge profiles/ }), {
+        fireEvent.keyDown(getMergeButton(), {
             code: 'Enter',
             ctrlKey: true,
         });
@@ -98,15 +99,19 @@ describe('MergeProfilesForm', () => {
         renderMergeProfilesForm();
 
         // Act
-        await user.click(screen.getByRole('button', { name: /Merge profiles/ }));
+        await user.click(getMergeButton());
 
         // Assert
         expect(screen.queryByLabelText('Current location')).not.toBeInTheDocument();
-        expect(screen.getByText('Preview of profiles matching selector')).toBeVisible();
+        expect(screen.getByText(i18n('previewHeading'))).toBeVisible();
     });
 });
 
 // Helpers
+
+function getMergeButton() {
+    return screen.getByRole('button', { name: name => name.startsWith(i18n('mergeProfiles')) });
+}
 
 function renderMergeProfilesForm() {
     return renderWithRouter(

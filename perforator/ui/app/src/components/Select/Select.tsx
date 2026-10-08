@@ -8,6 +8,8 @@ import { Select as GravitySelect } from '@gravity-ui/uikit';
 import { cn } from 'src/utils/cn';
 import { createErrorToast } from 'src/utils/toaster';
 
+import i18n from './i18n';
+
 import './Select.scss';
 
 
@@ -65,7 +67,7 @@ export const Select: React.FC<SelectProps> = ({ value: propValue, placeholder, o
             setLoadState('error');
             createErrorToast(
                 error,
-                { name: 'list-services', title: 'Failed to load service names' },
+                { name: 'list-services', title: i18n('loadServiceNamesFailed') },
             );
         }
     };
@@ -105,7 +107,7 @@ export const Select: React.FC<SelectProps> = ({ value: propValue, placeholder, o
                 <div className={b('input')}>
                     <DelayedTextInput
                         view="clear"
-                        placeholder="Search"
+                        placeholder={i18n('search')}
                         value={query}
                         onUpdate={handleQueryChange}
                         onKeyDown={inputProps.onKeyDown}
@@ -120,7 +122,7 @@ export const Select: React.FC<SelectProps> = ({ value: propValue, placeholder, o
             width="max"
             renderEmptyOptions={() => (
                 <div className={b('empty')}>
-                    {query ? 'No matches found :(' : 'Enter search string…'}
+                    {query ? i18n('noMatches') : i18n('enterSearchString')}
                 </div>
             )}
             onLoadMore={handleLoadMore}

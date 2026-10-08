@@ -1,0 +1,7 @@
+{
+    "failedWithoutMessage": "Task failed without error message",
+    "unknown": "Unknown",
+    "created": "Created",
+    "running": "Running",
+    "finished": "Finished"
+}

@@ -1,0 +1,12 @@
+{
+    "monospaceFont": "Monospace Font",
+    "defaultFont": "Default",
+    "systemFont": "System",
+    "numberFormat": "Number Format",
+    "exponentFormat": "Exponent",
+    "hugeNumFormat": "Huge Num",
+    "shortenFrameTexts": "Shorten Frame Texts",
+    "shortenTrue": "True",
+    "shortenFalse": "False",
+    "shortenHover": "Hover"
+}

@@ -6,6 +6,7 @@ import type { QueryInput } from './QueryInput';
 
 const makeQueryInput = (queryField: string): QueryInput => ({
     name: queryField.charAt(0).toUpperCase() + queryField.slice(1),
+    label: queryField,
     queryField,
     render: () => null,
 });

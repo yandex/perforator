@@ -6,6 +6,8 @@ import { Button, Icon, NumberInput, Popup, Select } from '@gravity-ui/uikit';
 import { LocalStorageKey } from 'src/const/localStorage';
 import { uiFactory } from 'src/factory';
 
+import i18n from './i18n';
+
 import './SampleSizeInput.scss';
 
 
@@ -46,7 +48,7 @@ export const SampleSizeInput: React.FC<SampleSizeInputProps> = ({ value, onUpdat
         content: (
             <span className="sample-size-input__add-option">
                 <Icon data={Plus} size={14} />
-                <span>Add option</span>
+                <span>{i18n('addOption')}</span>
             </span>
         ),
         value: ADD_OPTION_VALUE,
@@ -121,7 +123,7 @@ export const SampleSizeInput: React.FC<SampleSizeInputProps> = ({ value, onUpdat
 
     return (
         <div className="sample-size-input">
-            <span className="sample-size-input__caption">Profile count</span>
+            <span className="sample-size-input__caption">{i18n('profileCount')}</span>
             <div className="sample-size-input__select-wrapper">
                 <Select
                     className="sample-size-input__select"
@@ -142,7 +144,7 @@ export const SampleSizeInput: React.FC<SampleSizeInputProps> = ({ value, onUpdat
                         value={inputValue}
                         onUpdate={setInputValue}
                         onKeyDown={handleKeyDown}
-                        placeholder="Enter value"
+                        placeholder={i18n('valuePlaceholder')}
                         autoFocus
                     />
                     <Button
