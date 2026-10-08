@@ -21208,8 +21208,8 @@ go.uber.org/dig/internal/digreflect/tests/myrepository.git/mypackage
 go.uber.org/dig/internal/digtest
 go.uber.org/dig/internal/dot
 go.uber.org/dig/internal/graph
-# go.uber.org/fx v1.23.0
-## explicit; go 1.20
+# go.uber.org/fx v1.24.0
+## explicit; go 1.22
 go.uber.org/fx
 go.uber.org/fx/fxevent
 go.uber.org/fx/fxtest
