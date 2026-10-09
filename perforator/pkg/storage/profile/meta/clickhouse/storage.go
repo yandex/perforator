@@ -27,6 +27,7 @@ var _ meta.Storage = (*Storage)(nil)
 type profileEntry struct {
 	row      *ProfileRow
 	callback func(*meta.ProfileMetadata)
+	done     chan<- error
 }
 
 type Storage struct {
@@ -235,16 +236,26 @@ func (s *Storage) StoreProfile(
 	})
 
 	o := meta.BuildStoreOptions(opts)
+	done := make(chan error, 1)
 	entry := &profileEntry{
 		row:      profileModelFromMeta(m),
 		callback: o.PersistCallback,
+		done:     done,
 	}
 
 	select {
 	case s.profilechan <- entry:
-		return nil
+		if !s.conf.ForegroundInserts {
+			return nil
+		}
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("canceled while enqueuing profile: %w", context.Cause(ctx))
+	}
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		return fmt.Errorf("canceled while waiting for profile to be stored: %w", context.Cause(ctx))
 	}
 }
 
@@ -339,6 +350,9 @@ func (s *Storage) sendBatch(ctx context.Context, entries []*profileEntry) (next 
 	}
 
 	err := s.sendBatchImpl(ctx, rows)
+	for _, e := range entries {
+		e.done <- err
+	}
 	if err != nil {
 		s.l.Error(ctx, "Failed to send batch",
 			log.Error(err),

@@ -12,4 +12,5 @@ type BatchingConfig struct {
 type Config struct {
 	Batching                     BatchingConfig `yaml:"batching"`
 	ReadRequestRetriesDeprecated uint32         `yaml:"read_request_retries"`
+	ForegroundInserts            bool           `yaml:"foreground_inserts"`
 }
