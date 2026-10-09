@@ -4,6 +4,10 @@
 
 // namespace lua::symbol
 
+enum {
+    LUA_SYMBOL_MAX_FILENAME_LENGTH = 255, // Maximum representable u8 length.
+};
+
 /**
  * @brief Writes string to symbol buffer.
  *

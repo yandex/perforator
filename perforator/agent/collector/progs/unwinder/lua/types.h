@@ -50,9 +50,14 @@ enum lua_frame_error : u8 {
 struct lua_frame {
     enum lua_frame_type type;
     union {
-        struct symbol_key lua_frame;
         struct {
-            u64 object_addr;
+            u64 proto_address;
+            i32 first_line;
+            i32 current_line;
+            u32 bytecode_index;
+        } lua_frame;
+        struct {
+            u64 function_address;
             u8 ffid;
         } c_frame;
         struct {
@@ -86,10 +91,11 @@ struct lua_state {
     u64 binary_end_address;   // Last address of LuaJIT binary in memory.
 
     // Registers
-    u64 instruction_pointer; // Value of `rip`. Used to determine if we're executing in LuaJIT binary.
-    u64 dispatch_register;   // Value of `r14`. This register might hold pointer to `GG_State->dispatch`.
-    u64 lua_state_register;  // Value of register for C ABI first function argument. This register might hold pointer to `lua_State`.
-    u64 base_register;       // Value of `rdx`. This register might have a hint about the actual L->base value.
+    u64 instruction_pointer;  // Value of `rip`. Used to determine if we're executing in LuaJIT binary.
+    u64 dispatch_register;    // Value of `r14`. This register might hold pointer to `GG_State->dispatch`.
+    u64 lua_state_register;   // Value of register for C ABI first function argument. This register might hold pointer to `lua_State`.
+    u64 base_register;        // Value of `rdx`. This register might have a hint about the actual L->base value.
+    u64 bytecode_pc_register; // Value of `rbx`. Inside the interpreter this register holds the bytecode PC.
 
     // Main structures
     u64 current_lua_state; // Current `lua_State*`. Use `lua_state_get_lua_state`.
