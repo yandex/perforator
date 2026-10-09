@@ -100,7 +100,7 @@ static ALWAYS_INLINE void lua_stack_context_get_previous_frame(struct lua_stack_
 
     // **Previous** frame is pseudo-frame, but type of the **current** frame is `FRAME_VARG`.
     if (luajit_frame_isvarg(frame)) {
-        LUA_LOG_DEBUG("Skipping pseudo-frame");
+        LUA_LOG_DEBUG("Skipping vararg pseudo-frame for next iteration");
         frame = luajit_frame_prevd(frame);
     }
 

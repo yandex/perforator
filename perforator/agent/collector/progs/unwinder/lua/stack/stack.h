@@ -187,6 +187,11 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
 
     lua_stack_context_init(stack_context, state, frame, max_stack, bottom, bytecode_pc);
 
+    if (!lua_frame_should_skip_vararg(frame)) {
+        LUA_LOG_DEBUG("Skipping partially initialized vararg function frame.");
+        lua_stack_context_get_previous_frame(stack_context);
+    }
+
     for (int i = 0; i < LUA_MAX_STACK_DEPTH; ++i) {
         enum lua_stack_step_result status = lua_stack_step();
 

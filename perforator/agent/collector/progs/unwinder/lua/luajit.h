@@ -47,12 +47,17 @@ typedef struct luajit_gc_proto luajit_gc_proto;
 enum {
     LUAJIT_GC_PROTO_SIZEOF = 104,   // sizeof(GCproto)
     LUAJIT_GC_PROTO_SIZEBC = 12,    // MSize sizebc;
+    LUAJIT_GC_PROTO_FLAGS = 61,     // uint8_t flags;
     LUAJIT_GC_PROTO_CHUNKNAME = 64, // GCRef chunkname;
     LUAJIT_GC_PROTO_FIRSTLINE = 72, // BCLine firstline;
     LUAJIT_GC_PROTO_NUMLINE = 76,   // BCLine numline;
     LUAJIT_GC_PROTO_LINEINFO = 80,  // MRef lineinfo;
 };
+
+static const int LUAJIT_PROTO_VARARG = 0x02; // Vararg function.
+
 LUAJIT_DEFINE_FIELD_GETTER(u32, luajit_gc_proto, sizebc, LUAJIT_GC_PROTO_SIZEBC);
+LUAJIT_DEFINE_FIELD_GETTER(u8, luajit_gc_proto, flags, LUAJIT_GC_PROTO_FLAGS);
 LUAJIT_DEFINE_FIELD_GETTER(void*, luajit_gc_proto, chunkname, LUAJIT_GC_PROTO_CHUNKNAME);
 LUAJIT_DEFINE_FIELD_GETTER(i32, luajit_gc_proto, firstline, LUAJIT_GC_PROTO_FIRSTLINE);
 LUAJIT_DEFINE_FIELD_GETTER(i32, luajit_gc_proto, numline, LUAJIT_GC_PROTO_NUMLINE);
