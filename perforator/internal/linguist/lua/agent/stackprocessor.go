@@ -60,40 +60,38 @@ func (p *StackProcessor) processFrame(
 ) {
 	name := "[lua] "
 	filename := ""
-	line := int64(0)
+	firstLine := int64(0)
+	currentLine := int64(0)
 	clearAddress := false
 	var loc *profile.LocationBuilder
 
 	switch frame.Type {
 	case unwinder.LuaFrameTypeLua:
 		luaFrame := frame.Value.GetLuaFrame()
-		symbol, exists := p.symbolizer.Symbolize(models.Language(unwinder.LanguageLua), process, &luaFrame)
+		symbol, exists := p.symbolizer.Symbolize(models.Language(unwinder.LanguageLua), process, &unwinder.SymbolKey{ObjectAddr: luaFrame.ProtoAddress, Linestart: luaFrame.FirstLine})
 
 		if !exists {
 			p.unsymbolizedFrameCount.Inc()
-			name += fmt.Sprintf("unsymbolized lua function: 0x%x", luaFrame.ObjectAddr)
+			name += fmt.Sprintf("unsymbolized lua proto: 0x%x", luaFrame.ProtoAddress)
 		} else {
-			if len(symbol.Name) == 0 {
-				name += "<no name>"
-			} else {
-				name += symbol.Name
-			}
-
-			filename = symbol.FileName
+			name += "<no name>"
 
 			// Usually scripts has `@` symbol appended at the beginning.
 			// Perforator has the same symbol, removing here.
+			filename = symbol.FileName
 			if len(filename) != 0 && filename[0] == '@' {
 				filename = symbol.FileName[1:]
 			}
 		}
 
-		line = int64(luaFrame.Linestart)
-		clearAddress = exists && (symbol.Name != "" || (filename != "" && line > 0))
+		firstLine = int64(luaFrame.FirstLine)
+		currentLine = int64(luaFrame.CurrentLine)
+		clearAddress = exists && (symbol.Name != "" || (filename != "" && firstLine > 0))
 
 		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
-			ObjectAddress: luaFrame.ObjectAddr,
-			Linestart:     luaFrame.Linestart,
+			ObjectAddress: luaFrame.ProtoAddress,
+			Linestart:     luaFrame.FirstLine,
+			Line:          luaFrame.CurrentLine,
 			Language:      models.Language(unwinder.LanguageLua),
 		})
 	case unwinder.LuaFrameTypeC:
@@ -101,7 +99,7 @@ func (p *StackProcessor) processFrame(
 
 		// TODO: Try to symbolize this frame by postprocess
 		if int(cFrame.Ffid) == LuaCFunctionId {
-			name += fmt.Sprintf("function: 0x%x", cFrame.ObjectAddr)
+			name += fmt.Sprintf("function: 0x%x", cFrame.FunctionAddress)
 		} else {
 			// FF function
 			name += "function: builtin#" + strconv.Itoa(int(cFrame.Ffid))
@@ -109,7 +107,7 @@ func (p *StackProcessor) processFrame(
 		}
 
 		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
-			ObjectAddress: cFrame.ObjectAddr,
+			ObjectAddress: cFrame.FunctionAddress,
 			Linestart:     int32(cFrame.Ffid),
 			Language:      models.Language(unwinder.LanguageLua),
 		})
@@ -135,8 +133,8 @@ func (p *StackProcessor) processFrame(
 	loc.AddFrame().
 		SetName(name).
 		SetFilename(filename).
-		SetLine(line).
-		SetStartLine(line).
+		SetLine(currentLine).
+		SetStartLine(firstLine).
 		Finish()
 	loc.Finish()
 }

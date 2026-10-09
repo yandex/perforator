@@ -46,13 +46,27 @@ enum {
 typedef struct luajit_gc_proto luajit_gc_proto;
 enum {
     LUAJIT_GC_PROTO_SIZEOF = 104,   // sizeof(GCproto)
+    LUAJIT_GC_PROTO_SIZEBC = 12,    // MSize sizebc;
     LUAJIT_GC_PROTO_CHUNKNAME = 64, // GCRef chunkname;
     LUAJIT_GC_PROTO_FIRSTLINE = 72, // BCLine firstline;
     LUAJIT_GC_PROTO_NUMLINE = 76,   // BCLine numline;
+    LUAJIT_GC_PROTO_LINEINFO = 80,  // MRef lineinfo;
 };
+LUAJIT_DEFINE_FIELD_GETTER(u32, luajit_gc_proto, sizebc, LUAJIT_GC_PROTO_SIZEBC);
 LUAJIT_DEFINE_FIELD_GETTER(void*, luajit_gc_proto, chunkname, LUAJIT_GC_PROTO_CHUNKNAME);
 LUAJIT_DEFINE_FIELD_GETTER(i32, luajit_gc_proto, firstline, LUAJIT_GC_PROTO_FIRSTLINE);
 LUAJIT_DEFINE_FIELD_GETTER(i32, luajit_gc_proto, numline, LUAJIT_GC_PROTO_NUMLINE);
+LUAJIT_DEFINE_FIELD_GETTER(const void*, luajit_gc_proto, lineinfo, LUAJIT_GC_PROTO_LINEINFO);
+
+[[nodiscard]] static ALWAYS_INLINE u32* luajit_gc_proto_bc(luajit_gc_proto* proto) {
+    // #define proto_bc(pt)		((BCIns *)((char *)(pt) + sizeof(GCproto)))
+    return (u32*)((char*)(proto) + LUAJIT_GC_PROTO_SIZEOF);
+}
+
+[[nodiscard]] static ALWAYS_INLINE u32 luajit_gc_proto_bcpos(luajit_gc_proto* proto, const u32* pc) {
+    // #define proto_bcpos(pt, pc)	((BCPos)((pc) - proto_bc(pt)))
+    return (u32)((pc)-luajit_gc_proto_bc(proto));
+}
 
 [[nodiscard]] static ALWAYS_INLINE const char* luajit_proto_chunknamestr(luajit_gc_proto* proto) {
     // #define strref(r)        (&gcref((r))->str)
@@ -179,6 +193,8 @@ typedef union luajit_gc_obj luajit_gc_obj;
 
 // lj_bc.h
 
+static const u32 LUAJIT_NO_BCPOS = ~0u; // Invalid bytecode position.
+
 [[nodiscard]] static ALWAYS_INLINE u32 luajit_bc_a(u32 instruction) {
     // #define bc_a(i)          ((BCReg)(((i)>>8)&0xff))
     return (u32)((instruction >> 8) & 0xff);
@@ -186,15 +202,23 @@ typedef union luajit_gc_obj luajit_gc_obj;
 
 // lj_frame.h
 
-static const int LUAJIT_FRAME_LUA = 0;
-static const int LUAJIT_FRAME_VARG = 3;
+enum luajit_frame_type {
+    LUAJIT_FRAME_LUA,   // Lua frame
+    LUAJIT_FRAME_C,     // C frame
+    LUAJIT_FRAME_CONT,  // Continuation frame
+    LUAJIT_FRAME_VARG,  // Lua vararg frame
+    LUAJIT_FRAME_LUAP,  // Lua protected???
+    LUAJIT_FRAME_CP,    // cpcall() frame
+    LUAJIT_FRAME_PCALL, // ff pcall() frame
+    LUAJIT_FRAME_PCALLH // ff pcall() frame with active hook
+};
 static const int LUAJIT_FRAME_TYPE = 3;
 static const int LUAJIT_FRAME_P = 4;
 static const int LUAJIT_FRAME_TYPEP = (LUAJIT_FRAME_TYPE | LUAJIT_FRAME_P);
 
-[[nodiscard]] static ALWAYS_INLINE luajit_gc_obj* luajit_frame_gc(const luajit_tvalue* frame) {
+[[nodiscard]] static ALWAYS_INLINE luajit_gc_func* luajit_frame_func(const luajit_tvalue* frame) {
     // #define frame_gc(f)              (gcval((f)-1))
-    return luajit_gcval(frame - LUAJIT_LJ_FR2);
+    return (luajit_gc_func*)luajit_gcval(frame - LUAJIT_LJ_FR2);
 }
 
 [[nodiscard]] static ALWAYS_INLINE i64 luajit_frame_ftsz(const luajit_tvalue* frame) {
@@ -207,12 +231,12 @@ static const int LUAJIT_FRAME_TYPEP = (LUAJIT_FRAME_TYPE | LUAJIT_FRAME_P);
     return (u32*)luajit_frame_ftsz(frame);
 }
 
-[[nodiscard]] static ALWAYS_INLINE i64 luajit_frame_type(const luajit_tvalue* frame) {
+[[nodiscard]] static ALWAYS_INLINE enum luajit_frame_type luajit_frame_type(const luajit_tvalue* frame) {
     // #define frame_type(f)            (frame_ftsz(f) & FRAME_TYPE)
     return luajit_frame_ftsz(frame) & LUAJIT_FRAME_TYPE;
 }
 
-[[nodiscard]] static ALWAYS_INLINE i64 luajit_frame_typep(const luajit_tvalue* frame) {
+[[nodiscard]] static ALWAYS_INLINE enum luajit_frame_type luajit_frame_typep(const luajit_tvalue* frame) {
     // #define frame_typep(f)           (frame_ftsz(f) & FRAME_TYPEP)
     return luajit_frame_ftsz(frame) & LUAJIT_FRAME_TYPEP;
 }
@@ -220,6 +244,11 @@ static const int LUAJIT_FRAME_TYPEP = (LUAJIT_FRAME_TYPE | LUAJIT_FRAME_P);
 [[nodiscard]] static ALWAYS_INLINE bool luajit_frame_islua(const luajit_tvalue* frame) {
     // #define frame_islua(f)           (frame_type(f) == FRAME_LUA)
     return luajit_frame_type(frame) == LUAJIT_FRAME_LUA;
+}
+
+[[nodiscard]] static ALWAYS_INLINE bool luajit_frame_iscont(const luajit_tvalue* frame) {
+    // #define frame_iscont(f)		(frame_typep(f) == FRAME_CONT)
+    return luajit_frame_typep(frame) == LUAJIT_FRAME_CONT;
 }
 
 [[nodiscard]] static ALWAYS_INLINE bool luajit_frame_isvarg(const luajit_tvalue* frame) {
@@ -232,6 +261,11 @@ static const int LUAJIT_FRAME_TYPEP = (LUAJIT_FRAME_TYPE | LUAJIT_FRAME_P);
     return luajit_frame_ftsz(frame) & ~LUAJIT_FRAME_TYPEP;
 }
 
+[[nodiscard]] static ALWAYS_INLINE u32* luajit_frame_contpc(const luajit_tvalue* frame) {
+    // #define frame_contpc(f)		(frame_pc((f)-2))
+    return luajit_frame_pc(frame - 2);
+}
+
 [[nodiscard]] static ALWAYS_INLINE const luajit_tvalue* luajit_frame_prevl(const luajit_tvalue* frame) {
     // #define frame_prevl(f)           ((f) - (1+LJ_FR2+bc_a(frame_pc(f)[-1])))
     return (frame) - (1 + LUAJIT_LJ_FR2 + luajit_bc_a(BPF_PROBE_READ_USER_FROM(&luajit_frame_pc(frame)[-1])));
@@ -241,3 +275,36 @@ static const int LUAJIT_FRAME_TYPEP = (LUAJIT_FRAME_TYPE | LUAJIT_FRAME_P);
     // #define frame_prevd(f)           ((TValue *)((char *)(f) - frame_sized(f)))
     return (const luajit_tvalue*)((char*)(frame)-luajit_frame_sized(frame));
 }
+
+// @note Does not skip over `FRAME_VARG`.
+[[nodiscard]] static ALWAYS_INLINE const luajit_tvalue* luajit_frame_prev(const luajit_tvalue* frame) {
+    // #define frame_prev(f)		(frame_islua(f)?frame_prevl(f):frame_prevd(f))
+    return luajit_frame_islua(frame) ? luajit_frame_prevl(frame) : luajit_frame_prevd(frame);
+}
+
+typedef struct luajit_cframe luajit_cframe;
+enum : u64 {
+    // CFRAME_OFS_*
+    LUAJIT_CFRAME_PREV = 4 * 8,
+    LUAJIT_CFRAME_PC = 3 * 8,
+    LUAJIT_CFRAME_L = 2 * 8,
+    LUAJIT_CFRAME_ERRF = 3 * 4,
+    LUAJIT_CFRAME_NRES = 2 * 4,
+    LUAJIT_CFRAME_MULTRES = 0 * 4,
+
+    // Other CFRAME_* macros
+    LUAJIT_CFRAME_RESUME = 1,
+    LUAJIT_CFRAME_UNWIND_FF = 2, // Only used in unwinder.
+    LUAJIT_CFRAME_RAWMASK = ~(LUAJIT_CFRAME_RESUME | LUAJIT_CFRAME_UNWIND_FF)
+};
+// LUAJIT_DEFINE_FIELD_GETTER(i32, luajit_cframe, errfunc, LUAJIT_CFRAME_ERRF);
+// LUAJIT_DEFINE_FIELD_GETTER(i32, luajit_cframe, nres, LUAJIT_CFRAME_NRES);
+// LUAJIT_DEFINE_FIELD_GETTER(void*, luajit_cframe, prev, LUAJIT_CFRAME_PREV);
+LUAJIT_DEFINE_FIELD_GETTER(luajit_state*, luajit_cframe, l, LUAJIT_CFRAME_L);
+LUAJIT_DEFINE_FIELD_GETTER(u32*, luajit_cframe, pc, LUAJIT_CFRAME_PC);
+
+[[nodiscard]] static ALWAYS_INLINE luajit_cframe* luajit_cframe_raw(void* cframe) {
+    // #define cframe_raw(cf)		((void *)((intptr_t)(cf) & CFRAME_RAWMASK))
+    return (luajit_cframe*)((u64)cframe & LUAJIT_CFRAME_RAWMASK);
+}
+
