@@ -43,3 +43,8 @@ func RPCMessageID(val int) attribute.KeyValue { return RPCMessageIDKey.Int(val) 
 func RPCMessageUncompressedSize(val int) attribute.KeyValue {
 	return RPCMessageUncompressedSizeKey.Int(val)
 }
+
+// Compatibility shims for symbols removed from upstream semconv in v1.41.0.
+func DeploymentEnvironmentName(val string) attribute.KeyValue {
+	return DeploymentEnvironmentNameKey.String(val)
+}

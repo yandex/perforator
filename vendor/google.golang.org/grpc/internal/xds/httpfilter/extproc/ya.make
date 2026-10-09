@@ -1,0 +1,15 @@
+GO_LIBRARY()
+
+LICENSE(Apache-2.0)
+
+VERSION(v1.83.2)
+
+ALL_GO_SRCS()
+
+ALL_GO_TEST_SRCS()
+
+END()
+
+RECURSE(
+    gotest
+)

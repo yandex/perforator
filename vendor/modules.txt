@@ -95,7 +95,7 @@ carvel.dev/ytt/pkg/yttlibraryext
 carvel.dev/ytt/pkg/yttlibraryext/toml
 carvel.dev/ytt/test/e2e
 carvel.dev/ytt/test/filetests
-# cel.dev/expr v0.25.1
+# cel.dev/expr v0.25.2
 ## explicit; go 1.23.0
 cel.dev/expr
 # charm.land/bubbles/v2 v2.1.0
@@ -4018,8 +4018,8 @@ github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp/mocks
 github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp/multiendpoint
 # github.com/GoogleCloudPlatform/k8s-cloud-provider v1.20.0
 ## explicit; go 1.13
-# github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.31.0
-## explicit; go 1.24.0
+# github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.33.0
+## explicit; go 1.25.0
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp
 # github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0
 ## explicit; go 1.24.0
@@ -16947,11 +16947,13 @@ github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
 github.com/spf13/viper/internal/features
 github.com/spf13/viper/internal/testutil
-# github.com/spiffe/go-spiffe/v2 v2.6.0
+# github.com/spiffe/go-spiffe/v2 v2.7.0
 ## explicit; go 1.24.0
 github.com/spiffe/go-spiffe/v2/bundle/jwtbundle
 github.com/spiffe/go-spiffe/v2/bundle/spiffebundle
 github.com/spiffe/go-spiffe/v2/bundle/x509bundle
+github.com/spiffe/go-spiffe/v2/exp/bundle/witbundle
+github.com/spiffe/go-spiffe/v2/exp/svid/witsvid
 github.com/spiffe/go-spiffe/v2/internal/cryptoutil
 github.com/spiffe/go-spiffe/v2/internal/jwtutil
 github.com/spiffe/go-spiffe/v2/internal/pemutil
@@ -20159,7 +20161,7 @@ go.opentelemetry.io/contrib/bridges/otelzap
 # go.opentelemetry.io/contrib/detectors/aws/ec2 v1.38.0
 ## explicit; go 1.23.0
 go.opentelemetry.io/contrib/detectors/aws/ec2
-# go.opentelemetry.io/contrib/detectors/gcp v1.42.0
+# go.opentelemetry.io/contrib/detectors/gcp v1.44.0
 ## explicit; go 1.25.0
 go.opentelemetry.io/contrib/detectors/gcp
 # go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws v0.68.0
@@ -20596,7 +20598,7 @@ go.opentelemetry.io/otel/exporters/prometheus/internal/x
 # go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.17.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/otel/exporters/stdout/stdoutlog
-# go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.43.0
+# go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.44.0
 ## explicit; go 1.25.0
 go.opentelemetry.io/otel/exporters/stdout/stdoutmetric
 go.opentelemetry.io/otel/exporters/stdout/stdoutmetric/internal
@@ -20625,7 +20627,10 @@ go.opentelemetry.io/otel/log/logtest
 go.opentelemetry.io/otel/metric
 go.opentelemetry.io/otel/metric/embedded
 go.opentelemetry.io/otel/metric/noop
-# go.opentelemetry.io/otel/sdk v1.43.0
+# go.opentelemetry.io/otel/metric/x v0.66.0
+## explicit; go 1.25.0
+go.opentelemetry.io/otel/metric/x
+# go.opentelemetry.io/otel/sdk v1.44.0
 ## explicit; go 1.25.0
 go.opentelemetry.io/otel/sdk
 go.opentelemetry.io/otel/sdk/instrumentation
@@ -20645,7 +20650,7 @@ go.opentelemetry.io/otel/sdk/log/internal/x
 # go.opentelemetry.io/otel/sdk/log/logtest v0.17.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/otel/sdk/log/logtest
-# go.opentelemetry.io/otel/sdk/metric v1.43.0
+# go.opentelemetry.io/otel/sdk/metric v1.44.0
 ## explicit; go 1.25.0
 go.opentelemetry.io/otel/sdk/metric
 go.opentelemetry.io/otel/sdk/metric/exemplar
@@ -22353,7 +22358,7 @@ google.golang.org/genproto/protobuf/api
 google.golang.org/genproto/protobuf/field_mask
 google.golang.org/genproto/protobuf/ptype
 google.golang.org/genproto/protobuf/source_context
-# google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9
+# google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa
 ## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
@@ -22380,8 +22385,8 @@ google.golang.org/genproto/googleapis/rpc/context/attribute_context
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/http
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.80.0
-## explicit; go 1.24.0
+# google.golang.org/grpc v1.83.2
+## explicit; go 1.25.0
 google.golang.org/grpc
 google.golang.org/grpc/admin
 google.golang.org/grpc/admin/test
@@ -22440,6 +22445,7 @@ google.golang.org/grpc/credentials/alts/internal/handshaker/service
 google.golang.org/grpc/credentials/alts/internal/proto/grpc_gcp
 google.golang.org/grpc/credentials/alts/internal/testutil
 google.golang.org/grpc/credentials/google
+google.golang.org/grpc/credentials/google/internal
 google.golang.org/grpc/credentials/insecure
 google.golang.org/grpc/credentials/jwt
 google.golang.org/grpc/credentials/local
@@ -22453,10 +22459,13 @@ google.golang.org/grpc/encoding/gzip
 google.golang.org/grpc/encoding/internal
 google.golang.org/grpc/encoding/proto
 google.golang.org/grpc/experimental
+google.golang.org/grpc/experimental/balancer/hostname
+google.golang.org/grpc/experimental/balancer/weight
 google.golang.org/grpc/experimental/credentials
 google.golang.org/grpc/experimental/credentials/internal
 google.golang.org/grpc/experimental/opentelemetry
 google.golang.org/grpc/experimental/stats
+google.golang.org/grpc/experimental/stats/telemetry
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/grpclog/glogger
 google.golang.org/grpc/grpclog/internal
@@ -22468,7 +22477,6 @@ google.golang.org/grpc/internal/backoff
 google.golang.org/grpc/internal/balancer/gracefulswitch
 google.golang.org/grpc/internal/balancer/nop
 google.golang.org/grpc/internal/balancer/stub
-google.golang.org/grpc/internal/balancer/weight
 google.golang.org/grpc/internal/balancergroup
 google.golang.org/grpc/internal/balancerload
 google.golang.org/grpc/internal/binarylog
@@ -22489,6 +22497,7 @@ google.golang.org/grpc/internal/idle
 google.golang.org/grpc/internal/leakcheck
 google.golang.org/grpc/internal/mem
 google.golang.org/grpc/internal/metadata
+google.golang.org/grpc/internal/optional
 google.golang.org/grpc/internal/pretty
 google.golang.org/grpc/internal/profiling
 google.golang.org/grpc/internal/profiling/buffer
@@ -22517,13 +22526,16 @@ google.golang.org/grpc/internal/testutils/xds/e2e
 google.golang.org/grpc/internal/testutils/xds/e2e/setup
 google.golang.org/grpc/internal/testutils/xds/fakeserver
 google.golang.org/grpc/internal/transport
+google.golang.org/grpc/internal/transport/internal
 google.golang.org/grpc/internal/transport/networktype
+google.golang.org/grpc/internal/transport/readyreader
 google.golang.org/grpc/internal/wrr
 google.golang.org/grpc/internal/xds
 google.golang.org/grpc/internal/xds/balancer
 google.golang.org/grpc/internal/xds/balancer/cdsbalancer
 google.golang.org/grpc/internal/xds/balancer/cdsbalancer/e2e_test
 google.golang.org/grpc/internal/xds/balancer/clusterimpl
+google.golang.org/grpc/internal/xds/balancer/clusterimpl/internal
 google.golang.org/grpc/internal/xds/balancer/clustermanager
 google.golang.org/grpc/internal/xds/balancer/loadstore
 google.golang.org/grpc/internal/xds/balancer/outlierdetection
@@ -22543,6 +22555,7 @@ google.golang.org/grpc/internal/xds/clients/internal/syncutil
 google.golang.org/grpc/internal/xds/clients/internal/testutils
 google.golang.org/grpc/internal/xds/clients/internal/testutils/e2e
 google.golang.org/grpc/internal/xds/clients/internal/testutils/fakeserver
+google.golang.org/grpc/internal/xds/clients/internal/testutils/faketransport
 google.golang.org/grpc/internal/xds/clients/lrsclient
 google.golang.org/grpc/internal/xds/clients/lrsclient/internal
 google.golang.org/grpc/internal/xds/clients/xdsclient
@@ -22553,7 +22566,9 @@ google.golang.org/grpc/internal/xds/clients/xdsclient/test
 google.golang.org/grpc/internal/xds/clusterspecifier
 google.golang.org/grpc/internal/xds/clusterspecifier/rls
 google.golang.org/grpc/internal/xds/httpfilter
+google.golang.org/grpc/internal/xds/httpfilter/extproc
 google.golang.org/grpc/internal/xds/httpfilter/fault
+google.golang.org/grpc/internal/xds/httpfilter/gcp_authn
 google.golang.org/grpc/internal/xds/httpfilter/rbac
 google.golang.org/grpc/internal/xds/httpfilter/router
 google.golang.org/grpc/internal/xds/matcher

@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.80.0)
+VERSION(v1.83.2)
 
 SRCS(
     labels.go
@@ -10,7 +10,10 @@ SRCS(
     stats.go
 )
 
-GO_XTEST_SRCS(metrics_recorder_list_test.go)
+GO_XTEST_SRCS(
+    labels_test.go
+    metrics_recorder_list_test.go
+)
 
 END()
 

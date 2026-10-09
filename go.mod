@@ -1115,15 +1115,16 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.43.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.63.0
 	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.17.0
-	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.43.0
+	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.44.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.41.0
 	go.opentelemetry.io/otel/log v0.19.0
 	go.opentelemetry.io/otel/log/logtest v0.15.0
 	go.opentelemetry.io/otel/metric v1.46.0
-	go.opentelemetry.io/otel/sdk v1.43.0
+	go.opentelemetry.io/otel/metric/x v0.66.0
+	go.opentelemetry.io/otel/sdk v1.44.0
 	go.opentelemetry.io/otel/sdk/log v0.19.0
 	go.opentelemetry.io/otel/sdk/log/logtest v0.17.0
-	go.opentelemetry.io/otel/sdk/metric v1.43.0
+	go.opentelemetry.io/otel/sdk/metric v1.44.0
 	go.opentelemetry.io/otel/trace v1.46.0
 	go.opentelemetry.io/proto/otlp v1.10.0
 	go.starlark.net v0.0.0-20260210143700-b62fd896b91b
@@ -1177,9 +1178,9 @@ require (
 	google.golang.org/api v0.272.0
 	google.golang.org/genai v1.40.0
 	google.golang.org/genproto v0.0.0-20260319201613-d00831a3d3e7
-	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9
+	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800
-	google.golang.org/grpc v1.80.0
+	google.golang.org/grpc v1.83.2
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/grpc/examples v0.0.0-20250407062114-b368379ef8f6
 	google.golang.org/grpc/gcp/observability v1.0.1
@@ -1246,7 +1247,7 @@ require (
 	buf.build/gen/go/connectrpc/eliza/grpc/go v1.4.0-20230727061922-edc8ae343b96.2 // indirect
 	buf.build/gen/go/connectrpc/eliza/protocolbuffers/go v1.35.2-20230913231627-233fca715f49.1 // indirect
 	buf.build/go/protoyaml v0.6.0 // indirect
-	cel.dev/expr v0.25.1 // indirect
+	cel.dev/expr v0.25.2 // indirect
 	code.cloudfoundry.org/clock v1.1.0 // indirect
 	code.gitea.io/sdk/gitea v0.19.0 // indirect
 	codeberg.org/go-fonts/dejavu v0.4.0 // indirect
@@ -1325,7 +1326,7 @@ require (
 	github.com/GoogleCloudPlatform/grpc-gcp-go v1.3.0 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0 // indirect
 	github.com/GoogleCloudPlatform/k8s-cloud-provider v1.20.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.31.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.33.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.31.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0.55.0 // indirect
@@ -2486,7 +2487,7 @@ require (
 	github.com/speakeasy-api/jsonpath v0.6.0 // indirect
 	github.com/speakeasy-api/openapi-overlay v0.10.2 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
+	github.com/spiffe/go-spiffe/v2 v2.7.0 // indirect
 	github.com/spiral/errors v1.0.12 // indirect
 	github.com/src-d/gcfg v1.4.0 // indirect
 	github.com/ssgreg/nlreturn v1.0.5 // indirect
@@ -2657,7 +2658,7 @@ require (
 	go.opentelemetry.io/collector/model v0.50.0 // indirect
 	go.opentelemetry.io/contrib/config v0.14.0 // indirect
 	go.opentelemetry.io/contrib/detectors/aws/ec2 v1.38.0 // indirect
-	go.opentelemetry.io/contrib/detectors/gcp v1.42.0 // indirect
+	go.opentelemetry.io/contrib/detectors/gcp v1.44.0 // indirect
 	go.opentelemetry.io/contrib/otelconf v0.21.0 // indirect
 	go.opentelemetry.io/contrib/processors/baggagecopy v0.16.0 // indirect
 	go.opentelemetry.io/contrib/propagators/autoprop v0.66.0 // indirect

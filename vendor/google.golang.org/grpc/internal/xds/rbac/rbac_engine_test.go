@@ -667,6 +667,185 @@ func (s) TestNewChainEngine(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Unsupported_field_in_NotRule",
+			policies: []*v3rbacpb.RBAC{
+				{
+					Action: v3rbacpb.RBAC_ALLOW,
+					Policies: map[string]*v3rbacpb.Policy{
+						"anyone": {
+							Permissions: []*v3rbacpb.Permission{
+								{
+									Rule: &v3rbacpb.Permission_NotRule{
+										NotRule: &v3rbacpb.Permission{
+											Rule: &v3rbacpb.Permission_SourcedMetadata{
+												SourcedMetadata: &v3rbacpb.SourcedMetadata{},
+											},
+										},
+									},
+								},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Any{Any: true}},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "supported_and_unsupported_fields_in_NotRule",
+			policies: []*v3rbacpb.RBAC{
+				{
+					Action: v3rbacpb.RBAC_ALLOW,
+					Policies: map[string]*v3rbacpb.Policy{
+						"anyone": {
+							Permissions: []*v3rbacpb.Permission{
+								{
+									Rule: &v3rbacpb.Permission_NotRule{
+										NotRule: &v3rbacpb.Permission{
+											Rule: &v3rbacpb.Permission_AndRules{
+												AndRules: &v3rbacpb.Permission_Set{
+													Rules: []*v3rbacpb.Permission{
+														{
+															Rule: &v3rbacpb.Permission_UrlPath{
+																UrlPath: &v3matcherpb.PathMatcher{
+																	Rule: &v3matcherpb.PathMatcher_Path{
+																		Path: &v3matcherpb.StringMatcher{
+																			MatchPattern: &v3matcherpb.StringMatcher_Exact{Exact: "allowed"},
+																		},
+																	},
+																},
+															},
+														},
+														{
+															Rule: &v3rbacpb.Permission_SourcedMetadata{
+																SourcedMetadata: &v3rbacpb.SourcedMetadata{},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Any{Any: true}},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Unsupported_field_in_NotId",
+			policies: []*v3rbacpb.RBAC{
+				{
+					Action: v3rbacpb.RBAC_ALLOW,
+					Policies: map[string]*v3rbacpb.Policy{
+						"anyone": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Any{Any: true}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{
+									Identifier: &v3rbacpb.Principal_NotId{
+										NotId: &v3rbacpb.Principal{
+											Identifier: &v3rbacpb.Principal_SourcedMetadata{
+												SourcedMetadata: &v3rbacpb.SourcedMetadata{},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "supported_and_unsupported_fields_in_NotId",
+			policies: []*v3rbacpb.RBAC{
+				{
+					Action: v3rbacpb.RBAC_ALLOW,
+					Policies: map[string]*v3rbacpb.Policy{
+						"anyone": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Any{Any: true}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{
+									Identifier: &v3rbacpb.Principal_NotId{
+										NotId: &v3rbacpb.Principal{
+											Identifier: &v3rbacpb.Principal_AndIds{
+												AndIds: &v3rbacpb.Principal_Set{
+													Ids: []*v3rbacpb.Principal{
+														{
+															Identifier: &v3rbacpb.Principal_DirectRemoteIp{
+																DirectRemoteIp: &v3corepb.CidrRange{
+																	AddressPrefix: "0.0.0.0",
+																	PrefixLen:     &wrapperspb.UInt32Value{Value: uint32(10)},
+																},
+															},
+														},
+														{
+															Identifier: &v3rbacpb.Principal_SourcedMetadata{
+																SourcedMetadata: &v3rbacpb.SourcedMetadata{},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "PermissionMetadata",
+			policies: []*v3rbacpb.RBAC{
+				{
+					Action: v3rbacpb.RBAC_ALLOW,
+					Policies: map[string]*v3rbacpb.Policy{
+						"metadata-permission": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Metadata{Metadata: &v3matcherpb.MetadataMatcher{}}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Any{Any: true}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "PrincipalMetadata",
+			policies: []*v3rbacpb.RBAC{
+				{
+					Action: v3rbacpb.RBAC_ALLOW,
+					Policies: map[string]*v3rbacpb.Policy{
+						"metadata-principal": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Any{Any: true}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Metadata{Metadata: &v3matcherpb.MetadataMatcher{}}},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -702,6 +881,180 @@ func (s) TestChainEngine(t *testing.T) {
 		rbacQueries []rbacQuery
 		policyName  string
 	}{
+		{
+			name: "PermissionMetadata",
+			rbacConfigs: []*v3rbacpb.RBAC{
+				{
+					Policies: map[string]*v3rbacpb.Policy{
+						"metadata-permission": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Metadata{Metadata: &v3matcherpb.MetadataMatcher{Invert: false}}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Any{Any: true}},
+							},
+						},
+					},
+				},
+			},
+			rbacQueries: []rbacQuery{
+				{
+					rpcData: &rpcData{
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0"},
+						},
+					},
+					wantStatusCode: codes.PermissionDenied,
+				},
+			},
+		},
+		{
+			name: "PermissionMetadataInvert",
+			rbacConfigs: []*v3rbacpb.RBAC{
+				{
+					Policies: map[string]*v3rbacpb.Policy{
+						"metadata-permission-invert": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Metadata{Metadata: &v3matcherpb.MetadataMatcher{Invert: true}}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Any{Any: true}},
+							},
+						},
+					},
+				},
+			},
+			rbacQueries: []rbacQuery{
+				{
+					rpcData: &rpcData{
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0"},
+						},
+					},
+					wantStatusCode: codes.OK,
+				},
+			},
+		},
+		{
+			name: "PrincipalMetadata",
+			rbacConfigs: []*v3rbacpb.RBAC{
+				{
+					Policies: map[string]*v3rbacpb.Policy{
+						"metadata-principal": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Any{Any: true}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Metadata{Metadata: &v3matcherpb.MetadataMatcher{Invert: false}}},
+							},
+						},
+					},
+				},
+			},
+			rbacQueries: []rbacQuery{
+				{
+					rpcData: &rpcData{
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0"},
+						},
+					},
+					wantStatusCode: codes.PermissionDenied,
+				},
+			},
+		},
+		{
+			name: "PrincipalMetadataInvert",
+			rbacConfigs: []*v3rbacpb.RBAC{
+				{
+					Policies: map[string]*v3rbacpb.Policy{
+						"metadata-principal-invert": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Any{Any: true}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Metadata{Metadata: &v3matcherpb.MetadataMatcher{Invert: true}}},
+							},
+						},
+					},
+				},
+			},
+			rbacQueries: []rbacQuery{
+				{
+					rpcData: &rpcData{
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0"},
+						},
+					},
+					wantStatusCode: codes.OK,
+				},
+			},
+		},
+		{
+			name: "RequestedServerNameNotMatching",
+			rbacConfigs: []*v3rbacpb.RBAC{
+				{
+					Policies: map[string]*v3rbacpb.Policy{
+						"requested-server-name": {
+							Permissions: []*v3rbacpb.Permission{
+								{
+									Rule: &v3rbacpb.Permission_RequestedServerName{
+										RequestedServerName: &v3matcherpb.StringMatcher{
+											MatchPattern: &v3matcherpb.StringMatcher_Exact{Exact: "foo"},
+										},
+									},
+								},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Any{Any: true}},
+							},
+						},
+					},
+				},
+			},
+			rbacQueries: []rbacQuery{
+				{
+					rpcData: &rpcData{
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0"},
+						},
+					},
+					wantStatusCode: codes.PermissionDenied,
+				},
+			},
+		},
+		{
+			name: "RequestedServerNameMatching",
+			rbacConfigs: []*v3rbacpb.RBAC{
+				{
+					Policies: map[string]*v3rbacpb.Policy{
+						"requested-server-name": {
+							Permissions: []*v3rbacpb.Permission{
+								{
+									Rule: &v3rbacpb.Permission_RequestedServerName{
+										RequestedServerName: &v3matcherpb.StringMatcher{
+											MatchPattern: &v3matcherpb.StringMatcher_Exact{Exact: ""},
+										},
+									},
+								},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_Any{Any: true}},
+							},
+						},
+					},
+				},
+			},
+			rbacQueries: []rbacQuery{
+				{
+					rpcData: &rpcData{
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0"},
+						},
+					},
+					wantStatusCode: codes.OK,
+				},
+			},
+		},
 		// SuccessCaseAnyMatch tests a single RBAC Engine instantiated with
 		// a config with a policy with any rules for both permissions and
 		// principals, meaning that any data about incoming RPC's that the RBAC
@@ -1002,6 +1355,47 @@ func (s) TestChainEngine(t *testing.T) {
 				},
 			},
 		},
+		// This test tests a RBAC policy configured with a source-ip policy.
+		// This should be logically equivalent to configuring a Engine with a
+		// direct-remote-ip or remote-ip policy, as per A41 - "allow equating
+		// RBAC's direct_remote_ip and remote_ip."
+		{
+			name: "SourceIpMatcher",
+			rbacConfigs: []*v3rbacpb.RBAC{
+				{
+					Policies: map[string]*v3rbacpb.Policy{
+						"certain-source-ip": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Any{Any: true}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{Identifier: &v3rbacpb.Principal_SourceIp{SourceIp: &v3corepb.CidrRange{AddressPrefix: "0.0.0.0", PrefixLen: &wrapperspb.UInt32Value{Value: uint32(10)}}}},
+							},
+						},
+					},
+				},
+			},
+			rbacQueries: []rbacQuery{
+				// This incoming RPC Call should match with the certain-source-ip policy.
+				{
+					rpcData: &rpcData{
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0"},
+						},
+					},
+					wantStatusCode: codes.OK,
+				},
+				// This incoming RPC Call shouldn't match with the certain-source-ip policy.
+				{
+					rpcData: &rpcData{
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "10.0.0.0:8080"},
+						},
+					},
+					wantStatusCode: codes.PermissionDenied,
+				},
+			},
+		},
 		{
 			name: "DestinationIpMatcher",
 			rbacConfigs: []*v3rbacpb.RBAC{
@@ -1111,8 +1505,8 @@ func (s) TestChainEngine(t *testing.T) {
 				},
 			},
 		},
-		// This test tests that when there are no SANs or Subject's
-		// distinguished name in incoming RPC's, that authenticated matchers
+		// This test verifies that when there are no SANs or Subject
+		// distinguished name in incoming RPCs, authenticated matchers
 		// match against the empty string.
 		{
 			name: "default-matching-no-credentials",
@@ -1131,10 +1525,9 @@ func (s) TestChainEngine(t *testing.T) {
 				},
 			},
 			rbacQueries: []rbacQuery{
-				// This incoming RPC Call should match with the service admin
-				// policy. No authentication info is provided, so the
-				// authenticated matcher should match to the string matcher on
-				// the empty string, matching to the service-admin policy.
+				// This incoming RPC should match the service admin policy. No
+				// authentication info is provided, so the authenticated matcher
+				// evaluates the empty string.
 				{
 					rpcData: &rpcData{
 						fullMethod: "some method",
@@ -1156,72 +1549,138 @@ func (s) TestChainEngine(t *testing.T) {
 							},
 						},
 					},
-					wantStatusCode: codes.OK,
+					wantStatusCode: codes.PermissionDenied,
 				},
-			},
-		},
-		// This test tests that an RBAC policy configured with a metadata
-		// matcher as a permission doesn't match with any incoming RPC.
-		{
-			name: "metadata-never-matches",
-			rbacConfigs: []*v3rbacpb.RBAC{
-				{
-					Policies: map[string]*v3rbacpb.Policy{
-						"metadata-never-matches": {
-							Permissions: []*v3rbacpb.Permission{
-								{Rule: &v3rbacpb.Permission_Metadata{
-									Metadata: &v3matcherpb.MetadataMatcher{},
-								}},
-							},
-							Principals: []*v3rbacpb.Principal{
-								{Identifier: &v3rbacpb.Principal_Any{Any: true}},
-							},
-						},
-					},
-				},
-			},
-			rbacQueries: []rbacQuery{
 				{
 					rpcData: &rpcData{
 						fullMethod: "some method",
 						peerInfo: &peer.Peer{
-							Addr: &addr{ipAddress: "0.0.0.0"},
+							Addr: &addr{ipAddress: "0.0.0.0:8080"},
+							AuthInfo: credentials.TLSInfo{
+								State: tls.ConnectionState{},
+							},
 						},
 					},
-					wantStatusCode: codes.PermissionDenied,
+					wantStatusCode: codes.OK,
 				},
 			},
 		},
-		// This test tests that an RBAC policy configured with a metadata
-		// matcher with invert set to true as a permission always matches with
-		// any incoming RPC.
+		// This test verifies that SafeRegex header matching is implicitly
+		// anchored at both ends (full string matching).
 		{
-			name: "metadata-invert-always-matches",
+			name: "SafeRegexHeaderMatcherImplicitAnchoring",
 			rbacConfigs: []*v3rbacpb.RBAC{
 				{
+					Action: v3rbacpb.RBAC_ALLOW,
 					Policies: map[string]*v3rbacpb.Policy{
-						"metadata-invert-always-matches": {
+						"safe-regex-policy": {
 							Permissions: []*v3rbacpb.Permission{
-								{Rule: &v3rbacpb.Permission_Metadata{
-									Metadata: &v3matcherpb.MetadataMatcher{Invert: true},
-								}},
+								{Rule: &v3rbacpb.Permission_Any{Any: true}},
 							},
 							Principals: []*v3rbacpb.Principal{
-								{Identifier: &v3rbacpb.Principal_Any{Any: true}},
+								{
+									Identifier: &v3rbacpb.Principal_Header{
+										Header: &v3routepb.HeaderMatcher{
+											Name: "foo",
+											HeaderMatchSpecifier: &v3routepb.HeaderMatcher_SafeRegexMatch{
+												SafeRegexMatch: &v3matcherpb.RegexMatcher{
+													Regex: "abc",
+												},
+											},
+										},
+									},
+								},
 							},
 						},
 					},
 				},
 			},
 			rbacQueries: []rbacQuery{
+				// This RPC has header "foo: abc", which matches "abc" exactly, so it should be allowed (OK).
 				{
 					rpcData: &rpcData{
+						md: metadata.MD{
+							"foo": []string{"abc"},
+						},
 						fullMethod: "some method",
 						peerInfo: &peer.Peer{
 							Addr: &addr{ipAddress: "0.0.0.0:8080"},
 						},
 					},
 					wantStatusCode: codes.OK,
+				},
+				// This RPC has header "foo: 123abc456", which contains "abc" but is not an exact match.
+				// Since safe regex is implicitly anchored, it should not match and return PermissionDenied.
+				{
+					rpcData: &rpcData{
+						md: metadata.MD{
+							"foo": []string{"123abc456"},
+						},
+						fullMethod: "some method",
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0:8080"},
+						},
+					},
+					wantStatusCode: codes.PermissionDenied,
+				},
+			},
+		},
+		// This test verifies that SafeRegex header matching with wildcard matching
+		// (e.g. .*abc.*) matches substrings as expected.
+		{
+			name: "SafeRegexHeaderMatcherWildcard",
+			rbacConfigs: []*v3rbacpb.RBAC{
+				{
+					Action: v3rbacpb.RBAC_ALLOW,
+					Policies: map[string]*v3rbacpb.Policy{
+						"safe-regex-wildcard-policy": {
+							Permissions: []*v3rbacpb.Permission{
+								{Rule: &v3rbacpb.Permission_Any{Any: true}},
+							},
+							Principals: []*v3rbacpb.Principal{
+								{
+									Identifier: &v3rbacpb.Principal_Header{
+										Header: &v3routepb.HeaderMatcher{
+											Name: "foo",
+											HeaderMatchSpecifier: &v3routepb.HeaderMatcher_SafeRegexMatch{
+												SafeRegexMatch: &v3matcherpb.RegexMatcher{
+													Regex: ".*abc.*",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			rbacQueries: []rbacQuery{
+				// This RPC has header "foo: 123abc456", which matches the wildcard safe regex, so it should be allowed (OK).
+				{
+					rpcData: &rpcData{
+						md: metadata.MD{
+							"foo": []string{"123abc456"},
+						},
+						fullMethod: "some method",
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0:8080"},
+						},
+					},
+					wantStatusCode: codes.OK,
+				},
+				// This RPC has header "foo: xyz", which does not contain "abc", so it should return PermissionDenied.
+				{
+					rpcData: &rpcData{
+						md: metadata.MD{
+							"foo": []string{"xyz"},
+						},
+						fullMethod: "some method",
+						peerInfo: &peer.Peer{
+							Addr: &addr{ipAddress: "0.0.0.0:8080"},
+						},
+					},
+					wantStatusCode: codes.PermissionDenied,
 				},
 			},
 		},
@@ -1931,4 +2390,96 @@ func createXDSTypedStruct(t *testing.T, in map[string]any, name string) *anypb.A
 		t.Fatalf("createXDSTypedStructFailed during anypb.New: %v", err)
 	}
 	return customConfig
+}
+
+func TestAuthenticatedMatcherIdentitySourcePrecedence(t *testing.T) {
+	tests := []struct {
+		name            string
+		uris            []string
+		dnsNames        []string
+		subjectCN       string
+		matcherContains string
+		wantMatch       bool
+	}{
+		{
+			name:            "uriSANPresentAndMatches",
+			uris:            []string{"spiffe://corp.example/svc/legitimate"},
+			matcherContains: "spiffe://corp.example/svc/legitimate",
+			wantMatch:       true,
+		},
+		{
+			name:            "uriSANPresentDoesNotFallbackToDNS",
+			uris:            []string{"spiffe://corp.example/svc/other"},
+			dnsNames:        []string{"spiffe://corp.example/svc/legitimate"},
+			matcherContains: "spiffe://corp.example/svc/legitimate",
+			wantMatch:       false,
+		},
+		{
+			name:            "uriSANPresentDoesNotFallbackToSubject",
+			uris:            []string{"spiffe://corp.example/svc/other"},
+			subjectCN:       "spiffe://corp.example/svc/legitimate",
+			matcherContains: "spiffe://corp.example/svc/legitimate",
+			wantMatch:       false,
+		},
+		{
+			name:            "dnsSANPresentAndMatchesWhenNoURI",
+			dnsNames:        []string{"svc.legitimate.internal"},
+			matcherContains: "svc.legitimate.internal",
+			wantMatch:       true,
+		},
+		{
+			name:            "dnsSANPresentDoesNotFallbackToSubject",
+			dnsNames:        []string{"svc.other.internal"},
+			subjectCN:       "svc.legitimate.internal",
+			matcherContains: "svc.legitimate.internal",
+			wantMatch:       false,
+		},
+		{
+			name:            "subjectUsedWhenNoURINorDNS",
+			subjectCN:       "svc.legitimate.internal",
+			matcherContains: "svc.legitimate.internal",
+			wantMatch:       true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var uriSANs []*url.URL
+			for _, u := range tt.uris {
+				parsed, err := url.Parse(u)
+				if err != nil {
+					t.Fatalf("url.Parse(%q) failed: %v", u, err)
+				}
+				uriSANs = append(uriSANs, parsed)
+			}
+			cert := &x509.Certificate{
+				URIs:     uriSANs,
+				DNSNames: tt.dnsNames,
+				Subject: pkix.Name{
+					CommonName: tt.subjectCN,
+				},
+			}
+
+			amConfig := &v3rbacpb.Principal_Authenticated{
+				PrincipalName: &v3matcherpb.StringMatcher{
+					MatchPattern: &v3matcherpb.StringMatcher_Contains{
+						Contains: tt.matcherContains,
+					},
+				},
+			}
+			matcher, err := newAuthenticatedMatcher(amConfig)
+			if err != nil {
+				t.Fatalf("failed to create matcher: %v", err)
+			}
+
+			rpcData := &rpcData{
+				authType: "tls",
+				certs:    []*x509.Certificate{cert},
+			}
+
+			if got := matcher.match(rpcData); got != tt.wantMatch {
+				t.Errorf("match() = %v, want %v", got, tt.wantMatch)
+			}
+		})
+	}
 }

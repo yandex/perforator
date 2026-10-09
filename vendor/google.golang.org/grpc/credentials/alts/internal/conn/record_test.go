@@ -370,16 +370,76 @@ func (s) TestProtectedBuffer(t *testing.T) {
 	}
 }
 
-// BenchmarkMemoryUsage measures the allocations per ALTS connection.
-// Run this with: go test -bench=BenchmarkMemoryUsage -benchmem
-func BenchmarkMemoryUsage(b *testing.B) {
+// BenchmarkWriteMemoryUsage measures the allocations per ALTS connection.
+// Run this with: go test -bench=BenchmarkWriteMemoryUsage -benchmem
+func BenchmarkWriteMemoryUsage(b *testing.B) {
 	b.ReportAllocs()
+	data := []byte(strings.Repeat("d", 256))
+	key := []byte{
+		// 16 arbitrary bytes.
+		0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xd2, 0x4c, 0xce, 0x4f, 0x49}
+	conn := &noopConn{}
 
-	for i := 0; i < b.N; i++ {
-		c, _ := newConnPair(rekeyRecordProtocol, nil, nil)
+	for b.Loop() {
+		c, err := NewConn(conn, core.ClientSide, rekeyRecordProtocol, key, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
 
-		if _, err := c.Write([]byte("d")); err != nil {
+		if _, err := c.Write(data); err != nil {
 			b.Fatalf("Write failed: %v", err)
 		}
+	}
+}
+
+// BenchmarkReadMemoryUsage measures the allocations per ALTS connection.
+// Run this with: go test -bench=BenchmarkReadMemoryUsage -benchmem
+func BenchmarkReadMemoryUsage(b *testing.B) {
+	b.ReportAllocs()
+	data := []byte(strings.Repeat("d", 257))
+	readBuf := make([]byte, 1024)
+
+	for b.Loop() {
+		clientConn, serverConn := newConnPair(rekeyRecordProtocol, nil, nil)
+		b.StopTimer()
+		clientConn.Write(data)
+		b.StartTimer()
+		if _, err := serverConn.Read(readBuf); err != nil {
+			b.Fatalf("Write failed: %v", err)
+		}
+	}
+}
+
+type noopConn struct {
+	net.Conn
+}
+
+func (c *noopConn) Write(b []byte) (n int, err error) {
+	return len(b), nil
+}
+
+func (c *noopConn) Close() error {
+	return nil
+}
+
+func (s) TestParseFramedMsgVulnerability(t *testing.T) {
+	key := []byte{0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xd2, 0x4c, 0xce, 0x4f, 0x49}
+	tc := testConn{
+		in:  new(bytes.Buffer),
+		out: new(bytes.Buffer),
+	}
+	// We pass a protected buffer representing a framed message length of 0,
+	// followed by bytes that will act as a dirty buffer capacity. If the capacity
+	// bytes happen to start with `0x06` (altsRecordMsgType), the vulnerable
+	// code will try to slice `msg[4:]` which panics because len(msg) is 0.
+	malformedProtected := []byte{0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00}
+	c, err := NewConn(&tc, core.ServerSide, rekeyRecordProtocol, key, malformedProtected)
+	if err != nil {
+		t.Fatalf("NewConn failed: %v", err)
+	}
+	buf := make([]byte, 1024)
+	const wantErr = "shorter than message type field size"
+	if _, err := c.Read(buf); err == nil || !strings.Contains(err.Error(), wantErr) {
+		t.Fatalf("c.Read(buf) returned error: %v, want error containing %q", err, wantErr)
 	}
 }

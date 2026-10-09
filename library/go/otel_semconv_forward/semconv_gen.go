@@ -2,7 +2,7 @@
 
 package semconv
 
-import upstream "go.opentelemetry.io/otel/semconv/v1.40.0"
+import upstream "go.opentelemetry.io/otel/semconv/v1.41.0"
 
 const (
 	AWSBedrockGuardrailIDKey                       = upstream.AWSBedrockGuardrailIDKey
@@ -284,12 +284,14 @@ const (
 	GenAIRequestPresencePenaltyKey                 = upstream.GenAIRequestPresencePenaltyKey
 	GenAIRequestSeedKey                            = upstream.GenAIRequestSeedKey
 	GenAIRequestStopSequencesKey                   = upstream.GenAIRequestStopSequencesKey
+	GenAIRequestStreamKey                          = upstream.GenAIRequestStreamKey
 	GenAIRequestTemperatureKey                     = upstream.GenAIRequestTemperatureKey
 	GenAIRequestTopKKey                            = upstream.GenAIRequestTopKKey
 	GenAIRequestTopPKey                            = upstream.GenAIRequestTopPKey
 	GenAIResponseFinishReasonsKey                  = upstream.GenAIResponseFinishReasonsKey
 	GenAIResponseIDKey                             = upstream.GenAIResponseIDKey
 	GenAIResponseModelKey                          = upstream.GenAIResponseModelKey
+	GenAIResponseTimeToFirstChunkKey               = upstream.GenAIResponseTimeToFirstChunkKey
 	GenAIRetrievalDocumentsKey                     = upstream.GenAIRetrievalDocumentsKey
 	GenAIRetrievalQueryTextKey                     = upstream.GenAIRetrievalQueryTextKey
 	GenAISystemInstructionsKey                     = upstream.GenAISystemInstructionsKey
@@ -305,6 +307,8 @@ const (
 	GenAIUsageCacheReadInputTokensKey              = upstream.GenAIUsageCacheReadInputTokensKey
 	GenAIUsageInputTokensKey                       = upstream.GenAIUsageInputTokensKey
 	GenAIUsageOutputTokensKey                      = upstream.GenAIUsageOutputTokensKey
+	GenAIUsageReasoningOutputTokensKey             = upstream.GenAIUsageReasoningOutputTokensKey
+	GenAIWorkflowNameKey                           = upstream.GenAIWorkflowNameKey
 	GeoContinentCodeKey                            = upstream.GeoContinentCodeKey
 	GeoCountryISOCodeKey                           = upstream.GeoCountryISOCodeKey
 	GeoLocalityNameKey                             = upstream.GeoLocalityNameKey
@@ -312,6 +316,9 @@ const (
 	GeoLocationLonKey                              = upstream.GeoLocationLonKey
 	GeoPostalCodeKey                               = upstream.GeoPostalCodeKey
 	GeoRegionISOCodeKey                            = upstream.GeoRegionISOCodeKey
+	GoCPUDetailedStateKey                          = upstream.GoCPUDetailedStateKey
+	GoCPUStateKey                                  = upstream.GoCPUStateKey
+	GoMemoryDetailedTypeKey                        = upstream.GoMemoryDetailedTypeKey
 	GoMemoryTypeKey                                = upstream.GoMemoryTypeKey
 	GraphQLDocumentKey                             = upstream.GraphQLDocumentKey
 	GraphQLOperationNameKey                        = upstream.GraphQLOperationNameKey
@@ -401,7 +408,15 @@ const (
 	K8SNodeConditionStatusKey                      = upstream.K8SNodeConditionStatusKey
 	K8SNodeConditionTypeKey                        = upstream.K8SNodeConditionTypeKey
 	K8SNodeNameKey                                 = upstream.K8SNodeNameKey
+	K8SNodeSystemContainerNameKey                  = upstream.K8SNodeSystemContainerNameKey
 	K8SNodeUIDKey                                  = upstream.K8SNodeUIDKey
+	K8SPersistentvolumeNameKey                     = upstream.K8SPersistentvolumeNameKey
+	K8SPersistentvolumeReclaimPolicyKey            = upstream.K8SPersistentvolumeReclaimPolicyKey
+	K8SPersistentvolumeStatusPhaseKey              = upstream.K8SPersistentvolumeStatusPhaseKey
+	K8SPersistentvolumeUIDKey                      = upstream.K8SPersistentvolumeUIDKey
+	K8SPersistentvolumeclaimNameKey                = upstream.K8SPersistentvolumeclaimNameKey
+	K8SPersistentvolumeclaimStatusPhaseKey         = upstream.K8SPersistentvolumeclaimStatusPhaseKey
+	K8SPersistentvolumeclaimUIDKey                 = upstream.K8SPersistentvolumeclaimUIDKey
 	K8SPodHostnameKey                              = upstream.K8SPodHostnameKey
 	K8SPodIPKey                                    = upstream.K8SPodIPKey
 	K8SPodNameKey                                  = upstream.K8SPodNameKey
@@ -608,6 +623,7 @@ const (
 	SystemFilesystemMountpointKey                  = upstream.SystemFilesystemMountpointKey
 	SystemFilesystemStateKey                       = upstream.SystemFilesystemStateKey
 	SystemFilesystemTypeKey                        = upstream.SystemFilesystemTypeKey
+	SystemMemoryLinuxHugepagesStateKey             = upstream.SystemMemoryLinuxHugepagesStateKey
 	SystemMemoryLinuxSlabStateKey                  = upstream.SystemMemoryLinuxSlabStateKey
 	SystemMemoryStateKey                           = upstream.SystemMemoryStateKey
 	SystemPagingDirectionKey                       = upstream.SystemPagingDirectionKey
@@ -844,6 +860,10 @@ var (
 	DBSystemNameSoftwareagAdabas                               = upstream.DBSystemNameSoftwareagAdabas
 	DBSystemNameTeradata                                       = upstream.DBSystemNameTeradata
 	DBSystemNameTrino                                          = upstream.DBSystemNameTrino
+	DeploymentEnvironmentNameDevelopment                       = upstream.DeploymentEnvironmentNameDevelopment
+	DeploymentEnvironmentNameProduction                        = upstream.DeploymentEnvironmentNameProduction
+	DeploymentEnvironmentNameStaging                           = upstream.DeploymentEnvironmentNameStaging
+	DeploymentEnvironmentNameTest                              = upstream.DeploymentEnvironmentNameTest
 	DeploymentStatusFailed                                     = upstream.DeploymentStatusFailed
 	DeploymentStatusSucceeded                                  = upstream.DeploymentStatusSucceeded
 	DiskIODirectionRead                                        = upstream.DiskIODirectionRead
@@ -909,6 +929,7 @@ var (
 	GenAIOperationNameExecuteTool                              = upstream.GenAIOperationNameExecuteTool
 	GenAIOperationNameGenerateContent                          = upstream.GenAIOperationNameGenerateContent
 	GenAIOperationNameInvokeAgent                              = upstream.GenAIOperationNameInvokeAgent
+	GenAIOperationNameInvokeWorkflow                           = upstream.GenAIOperationNameInvokeWorkflow
 	GenAIOperationNameRetrieval                                = upstream.GenAIOperationNameRetrieval
 	GenAIOperationNameTextCompletion                           = upstream.GenAIOperationNameTextCompletion
 	GenAIOutputTypeImage                                       = upstream.GenAIOutputTypeImage
@@ -939,6 +960,10 @@ var (
 	GeoContinentCodeNa                                         = upstream.GeoContinentCodeNa
 	GeoContinentCodeOc                                         = upstream.GeoContinentCodeOc
 	GeoContinentCodeSa                                         = upstream.GeoContinentCodeSa
+	GoCPUStateGC                                               = upstream.GoCPUStateGC
+	GoCPUStateIdle                                             = upstream.GoCPUStateIdle
+	GoCPUStateScavenge                                         = upstream.GoCPUStateScavenge
+	GoCPUStateUser                                             = upstream.GoCPUStateUser
 	GoMemoryTypeOther                                          = upstream.GoMemoryTypeOther
 	GoMemoryTypeStack                                          = upstream.GoMemoryTypeStack
 	GraphQLOperationTypeMutation                               = upstream.GraphQLOperationTypeMutation
@@ -1031,6 +1056,17 @@ var (
 	K8SNodeConditionTypeNetworkUnavailable                     = upstream.K8SNodeConditionTypeNetworkUnavailable
 	K8SNodeConditionTypePIDPressure                            = upstream.K8SNodeConditionTypePIDPressure
 	K8SNodeConditionTypeReady                                  = upstream.K8SNodeConditionTypeReady
+	K8SPersistentvolumeReclaimPolicyDelete                     = upstream.K8SPersistentvolumeReclaimPolicyDelete
+	K8SPersistentvolumeReclaimPolicyRecycle                    = upstream.K8SPersistentvolumeReclaimPolicyRecycle
+	K8SPersistentvolumeReclaimPolicyRetain                     = upstream.K8SPersistentvolumeReclaimPolicyRetain
+	K8SPersistentvolumeStatusPhaseAvailable                    = upstream.K8SPersistentvolumeStatusPhaseAvailable
+	K8SPersistentvolumeStatusPhaseBound                        = upstream.K8SPersistentvolumeStatusPhaseBound
+	K8SPersistentvolumeStatusPhaseFailed                       = upstream.K8SPersistentvolumeStatusPhaseFailed
+	K8SPersistentvolumeStatusPhasePending                      = upstream.K8SPersistentvolumeStatusPhasePending
+	K8SPersistentvolumeStatusPhaseReleased                     = upstream.K8SPersistentvolumeStatusPhaseReleased
+	K8SPersistentvolumeclaimStatusPhaseBound                   = upstream.K8SPersistentvolumeclaimStatusPhaseBound
+	K8SPersistentvolumeclaimStatusPhaseLost                    = upstream.K8SPersistentvolumeclaimStatusPhaseLost
+	K8SPersistentvolumeclaimStatusPhasePending                 = upstream.K8SPersistentvolumeclaimStatusPhasePending
 	K8SPodStatusPhaseFailed                                    = upstream.K8SPodStatusPhaseFailed
 	K8SPodStatusPhasePending                                   = upstream.K8SPodStatusPhasePending
 	K8SPodStatusPhaseRunning                                   = upstream.K8SPodStatusPhaseRunning
@@ -1239,6 +1275,8 @@ var (
 	SystemFilesystemTypeHfsplus                                = upstream.SystemFilesystemTypeHfsplus
 	SystemFilesystemTypeNtfs                                   = upstream.SystemFilesystemTypeNtfs
 	SystemFilesystemTypeRefs                                   = upstream.SystemFilesystemTypeRefs
+	SystemMemoryLinuxHugepagesStateFree                        = upstream.SystemMemoryLinuxHugepagesStateFree
+	SystemMemoryLinuxHugepagesStateUsed                        = upstream.SystemMemoryLinuxHugepagesStateUsed
 	SystemMemoryLinuxSlabStateReclaimable                      = upstream.SystemMemoryLinuxSlabStateReclaimable
 	SystemMemoryLinuxSlabStateUnreclaimable                    = upstream.SystemMemoryLinuxSlabStateUnreclaimable
 	SystemMemoryStateBuffers                                   = upstream.SystemMemoryStateBuffers
@@ -1446,7 +1484,6 @@ var (
 	DBStoredProcedureName                                      = upstream.DBStoredProcedureName
 	DNSAnswers                                                 = upstream.DNSAnswers
 	DNSQuestionName                                            = upstream.DNSQuestionName
-	DeploymentEnvironmentName                                  = upstream.DeploymentEnvironmentName
 	DeploymentID                                               = upstream.DeploymentID
 	DeploymentName                                             = upstream.DeploymentName
 	DestinationAddress                                         = upstream.DestinationAddress
@@ -1538,12 +1575,14 @@ var (
 	GenAIRequestPresencePenalty                                = upstream.GenAIRequestPresencePenalty
 	GenAIRequestSeed                                           = upstream.GenAIRequestSeed
 	GenAIRequestStopSequences                                  = upstream.GenAIRequestStopSequences
+	GenAIRequestStream                                         = upstream.GenAIRequestStream
 	GenAIRequestTemperature                                    = upstream.GenAIRequestTemperature
 	GenAIRequestTopK                                           = upstream.GenAIRequestTopK
 	GenAIRequestTopP                                           = upstream.GenAIRequestTopP
 	GenAIResponseFinishReasons                                 = upstream.GenAIResponseFinishReasons
 	GenAIResponseID                                            = upstream.GenAIResponseID
 	GenAIResponseModel                                         = upstream.GenAIResponseModel
+	GenAIResponseTimeToFirstChunk                              = upstream.GenAIResponseTimeToFirstChunk
 	GenAIRetrievalQueryText                                    = upstream.GenAIRetrievalQueryText
 	GenAIToolCallID                                            = upstream.GenAIToolCallID
 	GenAIToolDescription                                       = upstream.GenAIToolDescription
@@ -1553,12 +1592,16 @@ var (
 	GenAIUsageCacheReadInputTokens                             = upstream.GenAIUsageCacheReadInputTokens
 	GenAIUsageInputTokens                                      = upstream.GenAIUsageInputTokens
 	GenAIUsageOutputTokens                                     = upstream.GenAIUsageOutputTokens
+	GenAIUsageReasoningOutputTokens                            = upstream.GenAIUsageReasoningOutputTokens
+	GenAIWorkflowName                                          = upstream.GenAIWorkflowName
 	GeoCountryISOCode                                          = upstream.GeoCountryISOCode
 	GeoLocalityName                                            = upstream.GeoLocalityName
 	GeoLocationLat                                             = upstream.GeoLocationLat
 	GeoLocationLon                                             = upstream.GeoLocationLon
 	GeoPostalCode                                              = upstream.GeoPostalCode
 	GeoRegionISOCode                                           = upstream.GeoRegionISOCode
+	GoCPUDetailedState                                         = upstream.GoCPUDetailedState
+	GoMemoryDetailedType                                       = upstream.GoMemoryDetailedType
 	GraphQLDocument                                            = upstream.GraphQLDocument
 	GraphQLOperationName                                       = upstream.GraphQLOperationName
 	HTTPRequestBodySize                                        = upstream.HTTPRequestBodySize
@@ -1643,7 +1686,16 @@ var (
 	K8SNodeAnnotation                                          = upstream.K8SNodeAnnotation
 	K8SNodeLabel                                               = upstream.K8SNodeLabel
 	K8SNodeName                                                = upstream.K8SNodeName
+	K8SNodeSystemContainerName                                 = upstream.K8SNodeSystemContainerName
 	K8SNodeUID                                                 = upstream.K8SNodeUID
+	K8SPersistentvolumeAnnotation                              = upstream.K8SPersistentvolumeAnnotation
+	K8SPersistentvolumeLabel                                   = upstream.K8SPersistentvolumeLabel
+	K8SPersistentvolumeName                                    = upstream.K8SPersistentvolumeName
+	K8SPersistentvolumeUID                                     = upstream.K8SPersistentvolumeUID
+	K8SPersistentvolumeclaimAnnotation                         = upstream.K8SPersistentvolumeclaimAnnotation
+	K8SPersistentvolumeclaimLabel                              = upstream.K8SPersistentvolumeclaimLabel
+	K8SPersistentvolumeclaimName                               = upstream.K8SPersistentvolumeclaimName
+	K8SPersistentvolumeclaimUID                                = upstream.K8SPersistentvolumeclaimUID
 	K8SPodAnnotation                                           = upstream.K8SPodAnnotation
 	K8SPodHostname                                             = upstream.K8SPodHostname
 	K8SPodIP                                                   = upstream.K8SPodIP

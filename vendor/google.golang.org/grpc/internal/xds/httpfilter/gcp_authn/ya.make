@@ -1,0 +1,17 @@
+GO_LIBRARY()
+
+LICENSE(Apache-2.0)
+
+VERSION(v1.83.2)
+
+ALL_GO_SRCS()
+
+GO_TEST_SRCS(gcp_authn_filter_test.go)
+
+GO_XTEST_SRCS(gcp_authn_filter_e2e_test.go)
+
+END()
+
+RECURSE(
+    gotest
+)

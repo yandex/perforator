@@ -2,7 +2,7 @@ GO_TEST()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.80.0)
+VERSION(v1.83.2)
 
 DATA(
     arcadia/vendor/google.golang.org/grpc/testdata/x509

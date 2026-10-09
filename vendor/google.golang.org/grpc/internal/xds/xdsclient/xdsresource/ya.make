@@ -2,13 +2,14 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.80.0)
+VERSION(v1.83.2)
 
 SRCS(
     cluster_resource_type.go
     endpoints_resource_type.go
     errors.go
     filter_chain.go
+    grpc_service.go
     listener_resource_type.go
     logging.go
     matcher.go

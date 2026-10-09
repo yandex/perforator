@@ -5,7 +5,7 @@ LICENSE(
     BSD-3-Clause
 )
 
-VERSION(v1.43.0)
+VERSION(v1.44.0)
 
 SRCS(
     aggregation.go
@@ -23,6 +23,7 @@ SRCS(
     pipeline.go
     provider.go
     reader.go
+    splitmetrics.go
     version.go
     view.go
 )
@@ -41,6 +42,7 @@ GO_TEST_SRCS(
     pipeline_test.go
     provider_test.go
     reader_test.go
+    splitmetrics_test.go
     version_test.go
     view_test.go
 )

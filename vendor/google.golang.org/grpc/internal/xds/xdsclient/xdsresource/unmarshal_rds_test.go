@@ -218,10 +218,11 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 	)
 
 	tests := []struct {
-		name       string
-		rc         *v3routepb.RouteConfiguration
-		wantUpdate RouteConfigUpdate
-		wantError  bool
+		name                    string
+		rc                      *v3routepb.RouteConfiguration
+		wantUpdate              RouteConfigUpdate
+		wantError               bool
+		xdsClientExtProcEnabled bool
 	}{
 		{
 			name: "default-route-match-field-is-nil",
@@ -558,6 +559,12 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 			wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterConfig}}),
 		},
 		{
+			name:                    "good-route-config-with-disabled-http-filter",
+			rc:                      goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": testutils.MarshalAny(t, &v3routepb.FilterConfig{Disabled: true})}),
+			wantUpdate:              goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": httpfilter.DisabledFilterConfig{}}),
+			xdsClientExtProcEnabled: true,
+		},
+		{
 			name:       "good-route-config-with-http-filter-config-in-old-typed-struct",
 			rc:         goodRouteConfigWithFilterConfigs(map[string]*anypb.Any{"foo": testutils.MarshalAny(t, customFilterOldTypedStructConfig)}),
 			wantUpdate: goodUpdateWithFilterConfigs(map[string]httpfilter.FilterConfig{"foo": filterConfig{Override: customFilterOldTypedStructConfig}}),
@@ -712,6 +719,8 @@ func (s) TestRDSGenerateRDSUpdateFromRouteConfiguration(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			testutils.SetEnvConfig(t, &envconfig.XDSClientExtProcEnabled, test.xdsClientExtProcEnabled)
+
 			gotUpdate, gotError := generateRDSUpdateFromRouteConfiguration(test.rc, nil)
 			if (gotError != nil) != test.wantError ||
 				!cmp.Equal(gotUpdate, test.wantUpdate, cmpopts.EquateEmpty(),
@@ -919,6 +928,15 @@ func (s) TestUnmarshalRouteConfig(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "v3 routeConfig resource with empty name",
+			resource: testutils.MarshalAny(t, &v3routepb.RouteConfiguration{
+				Name:         "",
+				VirtualHosts: v3VirtualHost,
+			}),
+			wantName: "",
+			wantErr:  true,
+		},
+		{
 			name:     "v3 routeConfig resource",
 			resource: v3RouteConfig,
 			wantName: v3RouteConfigName,
@@ -981,6 +999,10 @@ func (s) TestUnmarshalRouteConfig(t *testing.T) {
 
 func (s) TestRoutesProtoToSlice(t *testing.T) {
 	sm, _ := matcher.StringMatcherFromProto(&v3matcherpb.StringMatcher{MatchPattern: &v3matcherpb.StringMatcher_Exact{Exact: "tv"}})
+	prefixSM, _ := matcher.StringMatcherFromProto(&v3matcherpb.StringMatcher{MatchPattern: &v3matcherpb.StringMatcher_Prefix{Prefix: "tv"}})
+	suffixSM, _ := matcher.StringMatcherFromProto(&v3matcherpb.StringMatcher{MatchPattern: &v3matcherpb.StringMatcher_Suffix{Suffix: "tv"}})
+	containsSM, _ := matcher.StringMatcherFromProto(&v3matcherpb.StringMatcher{MatchPattern: &v3matcherpb.StringMatcher_Contains{Contains: "tv"}})
+	emptyExactSM, _ := matcher.StringMatcherFromProto(&v3matcherpb.StringMatcher{MatchPattern: &v3matcherpb.StringMatcher_Exact{Exact: ""}})
 	var (
 		goodRouteWithFilterConfigs = func(cfgs map[string]*anypb.Any) []*v3routepb.Route {
 			// Sets per-filter config in cluster "B" and in the route.
@@ -1095,7 +1117,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 					{
 						Name:        "th",
 						InvertMatch: newBoolP(true),
-						PrefixMatch: newStringP("tv"),
+						StringMatch: &prefixSM,
 					},
 				},
 				Fraction: newUInt32P(10000),
@@ -1138,12 +1160,12 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 				},
 			},
 			wantRoutes: []*Route{{
-				Regex: func() *regexp.Regexp { return regexp.MustCompile("/a/") }(),
+				Regex: func() *regexp.Regexp { return regexp.MustCompile("^(?:/a/)$") }(),
 				Headers: []*HeaderMatcher{
 					{
 						Name:        "th",
 						InvertMatch: newBoolP(false),
-						RegexMatch:  func() *regexp.Regexp { return regexp.MustCompile("tv") }(),
+						RegexMatch:  func() *regexp.Regexp { return regexp.MustCompile("^(?:tv)$") }(),
 					},
 				},
 				Fraction: newUInt32P(10000),
@@ -1186,7 +1208,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 				},
 			},
 			wantRoutes: []*Route{{
-				Regex: func() *regexp.Regexp { return regexp.MustCompile("/a/") }(),
+				Regex: func() *regexp.Regexp { return regexp.MustCompile("^(?:/a/)$") }(),
 				Headers: []*HeaderMatcher{
 					{
 						Name:        "th",
@@ -1290,20 +1312,142 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "unrecognized header match specifier",
-			routes: []*v3routepb.Route{
-				{
-					Match: &v3routepb.RouteMatch{
-						PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/a/"},
-						Headers: []*v3routepb.HeaderMatcher{
-							{
-								Name:                 "th",
-								HeaderMatchSpecifier: &v3routepb.HeaderMatcher_StringMatch{},
-							},
-						},
-					},
+			name: "empty exact_match header specifier is accepted",
+			routes: []*v3routepb.Route{{
+				Match: &v3routepb.RouteMatch{
+					PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/a/"},
+					Headers: []*v3routepb.HeaderMatcher{{
+						Name:                 "th",
+						HeaderMatchSpecifier: &v3routepb.HeaderMatcher_ExactMatch{ExactMatch: ""},
+					}},
 				},
-			},
+				Action: &v3routepb.Route_Route{
+					Route: &v3routepb.RouteAction{ClusterSpecifier: &v3routepb.RouteAction_Cluster{Cluster: clusterName}},
+				},
+			}},
+			wantRoutes: []*Route{{
+				Prefix: newStringP("/a/"),
+				Headers: []*HeaderMatcher{{
+					Name:        "th",
+					InvertMatch: newBoolP(false),
+					StringMatch: &emptyExactSM,
+				}},
+				WeightedClusters: []WeightedCluster{{Name: clusterName, Weight: 1}},
+				ActionType:       RouteActionRoute,
+			}},
+			wantErr: false,
+		},
+		{
+			name: "suffix_match header specifier",
+			routes: []*v3routepb.Route{{
+				Match: &v3routepb.RouteMatch{
+					PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/a/"},
+					Headers: []*v3routepb.HeaderMatcher{{
+						Name:                 "th",
+						HeaderMatchSpecifier: &v3routepb.HeaderMatcher_SuffixMatch{SuffixMatch: "tv"},
+					}},
+				},
+				Action: &v3routepb.Route_Route{
+					Route: &v3routepb.RouteAction{ClusterSpecifier: &v3routepb.RouteAction_Cluster{Cluster: clusterName}},
+				},
+			}},
+			wantRoutes: []*Route{{
+				Prefix: newStringP("/a/"),
+				Headers: []*HeaderMatcher{{
+					Name:        "th",
+					InvertMatch: newBoolP(false),
+					StringMatch: &suffixSM,
+				}},
+				WeightedClusters: []WeightedCluster{{Name: clusterName, Weight: 1}},
+				ActionType:       RouteActionRoute,
+			}},
+			wantErr: false,
+		},
+		{
+			name: "contains_match header specifier",
+			routes: []*v3routepb.Route{{
+				Match: &v3routepb.RouteMatch{
+					PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/a/"},
+					Headers: []*v3routepb.HeaderMatcher{{
+						Name:                 "th",
+						HeaderMatchSpecifier: &v3routepb.HeaderMatcher_ContainsMatch{ContainsMatch: "tv"},
+					}},
+				},
+				Action: &v3routepb.Route_Route{
+					Route: &v3routepb.RouteAction{ClusterSpecifier: &v3routepb.RouteAction_Cluster{Cluster: clusterName}},
+				},
+			}},
+			wantRoutes: []*Route{{
+				Prefix: newStringP("/a/"),
+				Headers: []*HeaderMatcher{{
+					Name:        "th",
+					InvertMatch: newBoolP(false),
+					StringMatch: &containsSM,
+				}},
+				WeightedClusters: []WeightedCluster{{Name: clusterName, Weight: 1}},
+				ActionType:       RouteActionRoute,
+			}},
+			wantErr: false,
+		},
+		{
+			name: "empty contains_match header specifier",
+			routes: []*v3routepb.Route{{
+				Match: &v3routepb.RouteMatch{
+					PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/a/"},
+					Headers: []*v3routepb.HeaderMatcher{{
+						Name:                 "th",
+						HeaderMatchSpecifier: &v3routepb.HeaderMatcher_ContainsMatch{ContainsMatch: ""},
+					}},
+				},
+				Action: &v3routepb.Route_Route{
+					Route: &v3routepb.RouteAction{ClusterSpecifier: &v3routepb.RouteAction_Cluster{Cluster: clusterName}},
+				},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "empty prefix_match header specifier",
+			routes: []*v3routepb.Route{{
+				Match: &v3routepb.RouteMatch{
+					PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/a/"},
+					Headers: []*v3routepb.HeaderMatcher{{
+						Name:                 "th",
+						HeaderMatchSpecifier: &v3routepb.HeaderMatcher_PrefixMatch{PrefixMatch: ""},
+					}},
+				},
+				Action: &v3routepb.Route_Route{
+					Route: &v3routepb.RouteAction{ClusterSpecifier: &v3routepb.RouteAction_Cluster{Cluster: clusterName}},
+				},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "empty suffix_match header specifier",
+			routes: []*v3routepb.Route{{
+				Match: &v3routepb.RouteMatch{
+					PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/a/"},
+					Headers: []*v3routepb.HeaderMatcher{{
+						Name:                 "th",
+						HeaderMatchSpecifier: &v3routepb.HeaderMatcher_SuffixMatch{SuffixMatch: ""},
+					}},
+				},
+				Action: &v3routepb.Route_Route{
+					Route: &v3routepb.RouteAction{ClusterSpecifier: &v3routepb.RouteAction_Cluster{Cluster: clusterName}},
+				},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "nil string match header specifier",
+			routes: []*v3routepb.Route{{
+				Match: &v3routepb.RouteMatch{
+					PathSpecifier: &v3routepb.RouteMatch_Prefix{Prefix: "/a/"},
+					Headers: []*v3routepb.HeaderMatcher{{
+						Name:                 "th",
+						HeaderMatchSpecifier: &v3routepb.HeaderMatcher_StringMatch{},
+					}},
+				},
+			}},
 			wantErr: true,
 		},
 		{
@@ -1474,7 +1618,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 					{
 						Name:        "th",
 						InvertMatch: newBoolP(true),
-						PrefixMatch: newStringP("tv"),
+						StringMatch: &prefixSM,
 					},
 				},
 				Fraction: newUInt32P(10000),
@@ -1534,7 +1678,7 @@ func (s) TestRoutesProtoToSlice(t *testing.T) {
 					{
 						Name:        "th",
 						InvertMatch: newBoolP(true),
-						PrefixMatch: newStringP("tv"),
+						StringMatch: &prefixSM,
 					},
 				},
 				Fraction: newUInt32P(10000),

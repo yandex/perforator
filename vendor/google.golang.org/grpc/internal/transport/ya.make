@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.80.0)
+VERSION(v1.83.2)
 
 SRCS(
     bdp_estimator.go
@@ -21,6 +21,7 @@ SRCS(
 )
 
 GO_TEST_SRCS(
+    controlbuf_test.go
     handler_server_test.go
     http_util_test.go
     keepalive_test.go
@@ -36,5 +37,7 @@ END()
 
 RECURSE(
     gotest
+    internal
     networktype
+    readyreader
 )
