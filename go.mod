@@ -921,7 +921,7 @@ require (
 	github.com/twmb/franz-go v1.17.0
 	github.com/twmb/franz-go/pkg/kadm v1.12.0
 	github.com/twmb/franz-go/pkg/kmsg v1.8.0
-	github.com/twmb/murmur3 v1.1.8
+	github.com/twmb/murmur3 v1.2.0
 	github.com/uber-go/tally v3.5.0+incompatible
 	github.com/uber-go/tally/v4 v4.1.17
 	github.com/uber/h3-go/v4 v4.3.0

@@ -17880,8 +17880,8 @@ github.com/twmb/franz-go/pkg/kadm
 ## explicit; go 1.19
 github.com/twmb/franz-go/pkg/kmsg
 github.com/twmb/franz-go/pkg/kmsg/internal/kbin
-# github.com/twmb/murmur3 v1.1.8
-## explicit; go 1.11
+# github.com/twmb/murmur3 v1.2.0
+## explicit; go 1.26
 github.com/twmb/murmur3
 github.com/twmb/murmur3/testdata
 # github.com/tych0/go-losetup v0.0.0-20170407175016-fc9adea44124
