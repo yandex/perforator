@@ -254,15 +254,26 @@ static ALWAYS_INLINE u32 lua_frame_get_pc(struct lua_frame_context* frame_contex
 
     struct symbol* symbol = &stack_context->symbol;
 
+    // Writing GCproto struct into symbol buffer as `name`. It fits in size and we don't use name part.
+    // symbol structure: [gcproto][filename]
+    long status = bpf_probe_read_user(symbol->data, LUAJIT_GC_PROTO_SIZEOF, proto);
+    if (status != 0) {
+        LUA_LOG_ERROR("Failed to read proto=%px struct (%d)", proto, status);
+        // Leave the symbol uncached so a later sample can retry.
+        return true;
+    }
+    symbol->name_length = LUAJIT_GC_PROTO_SIZEOF;
+
     // This must be written inline for least amount of verifier checks
     const char* filename = luajit_proto_chunknamestr(proto);
-    long status = bpf_probe_read_user_str(symbol->data, SYMBOL_BUFFER_SIZE, filename);
+    char* filename_data = symbol->data + LUAJIT_GC_PROTO_SIZEOF;
+    status = bpf_probe_read_user_str(filename_data, LUA_SYMBOL_MAX_FILENAME_LENGTH + 1, filename);
     if (status <= 0) {
         LUA_LOG_ERROR("Failed to read proto=%px filename (%d)", proto, status);
-        symbol->filename_length = (u8)lua_symbol_append_fail(symbol->data);
+        symbol->filename_length = (u8)lua_symbol_append_fail(filename_data);
     } else {
         --status;
-        symbol->filename_length = status > 255 ? 255 : (u8)status;
+        symbol->filename_length = (u8)status;
     }
 
     LUA_LOG_DEBUG("Saved symbol for Lua frame proto=%px filename_length=%d", proto, symbol->filename_length);
