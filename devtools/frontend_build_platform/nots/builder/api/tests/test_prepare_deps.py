@@ -15,7 +15,6 @@ def _prepare_deps_args(tmp_path):
         curdir=str(curdir),
         nodejs_bin="node",
         pm_script="pnpm",
-        inject_peers=False,
         ts_proto_auto_deps_path=None,
         tarballs_store="__tarballs__",
         local_cli=False,
@@ -45,6 +44,11 @@ importers:
         def load_lockfile(self, path):
             return prepare_deps_module.Lockfile.load(path)
 
+    monkeypatch.setattr(
+        prepare_deps_module,
+        "TsProtoGenerator",
+        lambda args: SimpleNamespace(refresh_generated_peer_lockfile=lambda: None),
+    )
     monkeypatch.setattr(prepare_deps_module, "PackageManager", PackageManager)
 
     with pytest.raises(
@@ -73,6 +77,11 @@ def test_prepare_deps_accepts_dependency_free_lockfile(monkeypatch, tmp_path):
             built_lockfile.parent.mkdir(parents=True)
             built_lockfile.write_text("lockfileVersion: '9.0'\nimporters:\n  .: {}\n")
 
+    monkeypatch.setattr(
+        prepare_deps_module,
+        "TsProtoGenerator",
+        lambda args: SimpleNamespace(refresh_generated_peer_lockfile=lambda: None),
+    )
     monkeypatch.setattr(prepare_deps_module, "PackageManager", PackageManager)
     monkeypatch.setattr(
         prepare_deps_module,

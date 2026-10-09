@@ -37,12 +37,6 @@ class BaseOptions:
     squashfs_tools_path: str | None
     """optional path to Linux x86-64 SquashFS tools"""
 
-    use_legacy_pnpm_virtual_store: bool
-    """Use legacy pnpm virtual store"""
-
-    inject_peers: bool
-    """Inject peers"""
-
     hermetic_node_modules: bool
     """Restore node_modules prepared and cached by TS_PREPARE_DEPS"""
 

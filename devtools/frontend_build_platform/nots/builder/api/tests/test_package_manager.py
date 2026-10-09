@@ -6,9 +6,7 @@ import pytest
 
 from build.plugins.lib.nots.package_manager import PackageJson
 
-package_manager_module = importlib.import_module(
-    "devtools.frontend_build_platform.nots.builder.api.package_manager"
-)
+package_manager_module = importlib.import_module("devtools.frontend_build_platform.nots.builder.api.package_manager")
 
 
 def test_sync_mutex_file_uses_four_slots_by_default(monkeypatch, tmp_path):
@@ -42,8 +40,7 @@ def test_sync_mutex_file_uses_four_slots_by_default(monkeypatch, tmp_path):
 
     assert result == "installed"
     assert opened_paths == [
-        "{}.{}".format(mutex_path, slot)
-        for slot in range(package_manager_module.LOCAL_PNPM_INSTALL_CONCURRENCY)
+        "{}.{}".format(mutex_path, slot) for slot in range(package_manager_module.LOCAL_PNPM_INSTALL_CONCURRENCY)
     ]
     assert locked_slots == opened_paths
 
@@ -127,7 +124,6 @@ def test_pnpm_install_copies_external_node_modules_across_filesystems(monkeypatc
         cwd,
         False,
         virtual_store_dir,
-        True,
         node_modules_path,
     )
 
@@ -152,7 +148,6 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
         cwd,
         False,
         virtual_store_dir,
-        True,
         node_modules_path,
     )
 
@@ -175,7 +170,6 @@ def test_pnpm_install_preserves_legacy_node_modules_layout(monkeypatch, tmp_path
         cwd,
         False,
         virtual_store_dir,
-        True,
         node_modules_path,
     )
 
@@ -190,7 +184,6 @@ def test_prepare_deps_publishes_package_json(tmp_path):
     package_manager = object.__new__(package_manager_module.PackageManager)
     package_manager.module_path = "project/module"
     package_manager.sources_path = str(tmp_path / "project" / "module")
-    package_manager.inject_peers = False
 
     inputs, outputs, _ = package_manager.calc_prepare_deps_inouts_and_resources(
         store_path="__tarballs__",
@@ -251,7 +244,6 @@ def test_build_workspace_without_lockfile(tmp_path):
     package_manager.sources_root = str(tmp_path)
     package_manager.build_path = str(tmp_path / "build")
     package_manager.module_path = "project/module"
-    package_manager.inject_peers = False
 
     os.makedirs(package_manager.sources_path)
     os.makedirs(package_manager.build_path)
@@ -283,7 +275,6 @@ def test_build_workspace_writes_pnpm_settings_to_workspace_config(tmp_path):
     package_manager.sources_root = str(tmp_path)
     package_manager.build_path = str(build_path)
     package_manager.module_path = "project/module"
-    package_manager.inject_peers = False
     package_manager.load_package_json = lambda path: _load_package_json(path)
 
     package_manager.build_workspace(tarballs_store="__tarballs__", local_cli=True)
@@ -301,12 +292,10 @@ def test_build_workspace_writes_pnpm_settings_to_workspace_config(tmp_path):
         "packageExtensions": {"bar": {"peerDependencies": {"baz": "2.0.0"}}},
         "allowNonAppliedPatches": True,
     }
-    assert _load_package_json(str(source_path / "package.json")).data["pnpm"]["neverBuiltDependencies"] == [
-        "esbuild"
-    ]
+    assert _load_package_json(str(source_path / "package.json")).data["pnpm"]["neverBuiltDependencies"] == ["esbuild"]
 
 
-def test_build_workspace_merges_transitive_workspace_lockfiles(tmp_path):
+def test_build_workspace_does_not_merge_peer_lockfiles(tmp_path):
     source_path = tmp_path / "source" / "consumer"
     build_path = tmp_path / "build" / "consumer"
     reporter_path = tmp_path / "build" / "reporter"
@@ -315,18 +304,12 @@ def test_build_workspace_merges_transitive_workspace_lockfiles(tmp_path):
     reporter_path.mkdir(parents=True)
     ci_reporter_path.mkdir(parents=True)
 
-    (source_path / "package.json").write_text(
-        '{"dependencies":{"reporter":"workspace:../reporter"}}\n'
-    )
+    (source_path / "package.json").write_text('{"dependencies":{"reporter":"workspace:../reporter"}}\n')
     source_lockfile = package_manager_module.Lockfile(str(source_path / "pnpm-lock.yaml"))
     source_lockfile.data = {
         "lockfileVersion": "9.0",
         "importers": {
-            ".": {
-                "dependencies": {
-                    "reporter": {"specifier": "workspace:../reporter", "version": "link:../reporter"}
-                }
-            }
+            ".": {"dependencies": {"reporter": {"specifier": "workspace:../reporter", "version": "link:../reporter"}}}
         },
     }
     source_lockfile.write()
@@ -345,9 +328,7 @@ def test_build_workspace_merges_transitive_workspace_lockfiles(tmp_path):
     ci_reporter_lockfile = package_manager_module.Lockfile(str(ci_reporter_path / "pnpm-lock.yaml"))
     ci_reporter_lockfile.data = {
         "lockfileVersion": "9.0",
-        "importers": {
-            ".": {"devDependencies": {"typescript": {"specifier": "5.9.3", "version": "5.9.3"}}}
-        },
+        "importers": {".": {"devDependencies": {"typescript": {"specifier": "5.9.3", "version": "5.9.3"}}}},
     }
     ci_reporter_lockfile.write()
 
@@ -356,12 +337,11 @@ def test_build_workspace_merges_transitive_workspace_lockfiles(tmp_path):
     package_manager.build_path = str(build_path)
     package_manager.module_path = "consumer"
     package_manager.sources_root = str(tmp_path / "source")
-    package_manager.inject_peers = False
 
     package_manager.build_workspace(tarballs_store="__tarballs__", local_cli=True)
 
     lockfile = package_manager.load_lockfile(str(build_path / "pnpm-lock.yaml"))
-    assert set(lockfile.get_importers()) == {".", "../reporter", "../ci-reporter"}
+    assert set(lockfile.get_importers()) == {"."}
 
 
 def test_rebase_file_tarball_resolutions(tmp_path):
@@ -399,9 +379,7 @@ def test_production_install_reuses_install_flags(monkeypatch, tmp_path):
     cwd = str(tmp_path)
     node_modules = str(tmp_path / "node_modules")
     for prod in [False, True]:
-        package_manager._run_pnpm_install(
-            store, cwd, False, node_modules + "/.pnpm", True, node_modules, prod=prod
-        )
+        package_manager._run_pnpm_install(store, cwd, False, node_modules + "/.pnpm", node_modules, prod=prod)
     ordinary, production = [cmd for cmd, cwd in commands]
     assert "--prod" in production
     assert [arg for arg in production if arg != "--prod"] == ordinary
@@ -410,7 +388,6 @@ def test_production_install_reuses_install_flags(monkeypatch, tmp_path):
 def test_production_reinstall_removes_restored_node_modules(monkeypatch, tmp_path):
     package_manager = object.__new__(package_manager_module.PackageManager)
     package_manager.build_path = str(tmp_path / "build")
-    package_manager.inject_peers = True
     os.makedirs(package_manager.build_path)
     restored = tmp_path / "ram" / "node_modules"
     restored.mkdir(parents=True)
@@ -428,12 +405,3 @@ def test_production_reinstall_removes_restored_node_modules(monkeypatch, tmp_pat
     package_manager.create_node_modules = create_node_modules
     package_manager.prune_node_modules(yatool_prebuilder_path="/prebuilder", local_cli=False)
     assert calls == [{"yatool_prebuilder_path": "/prebuilder", "local_cli": False, "prod": True}]
-
-
-def test_production_reinstall_rejects_linked_peers(tmp_path):
-    import pytest
-
-    package_manager = object.__new__(package_manager_module.PackageManager)
-    package_manager.inject_peers = False
-    with pytest.raises(package_manager_module.PackageManagerError, match="requires injected"):
-        package_manager.prune_node_modules()

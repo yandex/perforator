@@ -97,8 +97,6 @@ def test_create_node_modules_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
-        use_legacy_pnpm_virtual_store=False,
-        inject_peers=False,
         hermetic_node_modules=False,
         # Flags
         local_cli=False,
@@ -145,8 +143,6 @@ def test_create_node_modules_bundle_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
-        use_legacy_pnpm_virtual_store=False,
-        inject_peers=False,
         hermetic_node_modules=False,
         # Flags
         local_cli=False,
@@ -207,8 +203,6 @@ def test_build_library_args(build_command_arg, expected_build_command):
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
-        use_legacy_pnpm_virtual_store=False,
-        inject_peers=False,
         hermetic_node_modules=False,
         env=['NODE_ENV=production'],
         # Flags
@@ -259,8 +253,6 @@ def test_build_package_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
-        use_legacy_pnpm_virtual_store=False,
-        inject_peers=False,
         hermetic_node_modules=False,
         env=[],
         # Flags
@@ -310,8 +302,6 @@ def test_build_package_nm_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
-        use_legacy_pnpm_virtual_store=False,
-        inject_peers=False,
         hermetic_node_modules=False,
         env=[],
         # Flags
@@ -359,8 +349,6 @@ def test_build_verbose_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
-        use_legacy_pnpm_virtual_store=False,
-        inject_peers=False,
         hermetic_node_modules=False,
         env=[],
         # Flags
@@ -387,6 +375,6 @@ def test_nm_bundle_prod_arg(value, expected):
     args = __convert_args_to_dict(
         f"--arcadia-root /source --arcadia-build-root /build --moddir project "
         f"--nodejs-bin /node --pm-script /pnpm.cjs --pm-type pnpm "
-        f"--nm-bundle yes --nm-bundle-prod {value} --inject-peers yes create-node-modules --moddir project"
+        f"--nm-bundle yes --nm-bundle-prod {value} create-node-modules --moddir project"
     )
     assert args["nm_bundle_prod"] is expected

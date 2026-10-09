@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-03T00:35:42Z",
+    "created": "2026-10-08T07:24:10.682Z",
     "pr": {
-      "id": 16208902,
+      "id": 16331458,
       "author": "baymer",
-      "summary": "FBP-3469: измерять ожидание pnpm lock"
+      "summary": "FBP-3489: Inject как единственный режим установки Tier 0"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:13955529570"
+      "uri": "sbr:14012075892"
     },
     "darwin-arm64": {
-      "uri": "sbr:13955527575"
+      "uri": "sbr:14012073388"
     },
     "linux": {
-      "uri": "sbr:13955533498"
+      "uri": "sbr:14012080477"
     },
     "linux-aarch64": {
-      "uri": "sbr:13955531480"
+      "uri": "sbr:14012078056"
     }
   }
 }

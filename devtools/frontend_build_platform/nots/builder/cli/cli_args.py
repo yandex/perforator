@@ -40,22 +40,6 @@ def register_base_args(parser: ArgumentParser) -> None:
     )
 
     parser.add_argument(
-        "--use-legacy-pnpm-virtual-store",
-        action=YesNoAction,
-        required=False,
-        default=False,
-        help="Use legacy pnpm virtual store",
-    )
-
-    parser.add_argument(
-        "--inject-peers",
-        action=YesNoAction,
-        required=False,
-        default=False,
-        help="Inject peers",
-    )
-
-    parser.add_argument(
         "--hermetic-node-modules",
         action=YesNoAction,
         required=False,

@@ -198,7 +198,6 @@ class PackageManager(BasePackageManager):
         script_path,
         module_path=None,
         sources_root=None,
-        inject_peers=False,
         verbose=False,
         ld_library_path=None,
     ):
@@ -208,7 +207,6 @@ class PackageManager(BasePackageManager):
             sources_path=sources_path,
             module_path=module_path,
             sources_root=sources_root,
-            inject_peers=inject_peers,
         )
         self.nodejs_bin_path = nodejs_bin_path
         self.script_path = script_path
@@ -324,7 +322,6 @@ class PackageManager(BasePackageManager):
     def create_node_modules(
         self,
         yatool_prebuilder_path=None,
-        use_legacy_pnpm_virtual_store=False,
         local_cli=False,
         node_modules_path=None,
         store_dir=None,
@@ -343,33 +340,24 @@ class PackageManager(BasePackageManager):
         node_modules_path = node_modules_path or default_node_modules_path
         os.makedirs(store_dir, exist_ok=True)
         os.makedirs(os.path.dirname(node_modules_path), exist_ok=True)
-        if self.inject_peers or use_legacy_pnpm_virtual_store:
-            virtual_store_dir = os.path.join(node_modules_path, VIRTUAL_STORE_DIRNAME)
-        else:
-            virtual_store_dir = None
-
-        global_virtual_store_dir = os.path.join(store_dir, "v10", "links")
+        virtual_store_dir = os.path.join(node_modules_path, VIRTUAL_STORE_DIRNAME)
 
         self._run_pnpm_install(
             store_dir,
             self.build_path,
             local_cli,
             virtual_store_dir,
-            self.inject_peers,
             node_modules_path,
             prod=prod,
         )
 
-        self._run_apply_addons_if_need(yatool_prebuilder_path, virtual_store_dir or global_virtual_store_dir)
+        self._run_apply_addons_if_need(yatool_prebuilder_path, virtual_store_dir)
 
         return ws
 
     @timeit
     def prune_node_modules(self, yatool_prebuilder_path=None, local_cli=False):
         """Reinstall only production dependencies before bundling injected node_modules."""
-        if not self.inject_peers:
-            raise PackageManagerError("Production-only bundling requires injected workspace dependencies")
-
         node_modules_path = build_nm_path(self.build_path)
         # A restored layer can live on a RAM disk behind this symlink.
         real_node_modules_path = os.path.realpath(node_modules_path)
@@ -406,8 +394,7 @@ class PackageManager(BasePackageManager):
         store_dir: str,
         cwd: str,
         local_cli: bool,
-        virtual_store_dir: str | None,
-        inject_peers: bool,
+        virtual_store_dir: str,
         node_modules_path: str,
         prod: bool = False,
     ):
@@ -442,15 +429,10 @@ class PackageManager(BasePackageManager):
             if custom_node_modules_path:
                 install_cmd.extend(["--modules-dir", os.path.relpath(node_modules_path, cwd)])
 
-            if virtual_store_dir:
-                install_cmd.extend(["--virtual-store-dir", virtual_store_dir])
-            else:
-                install_cmd.extend(["--config.enableGlobalVirtualStore=true"])
-
-            if inject_peers:
-                install_cmd.extend(
-                    ["--config.injectWorkspacePackages=true", "--config.sharedWorkspaceLockfile=false", "--filter", "."]
-                )
+            install_cmd.extend(["--virtual-store-dir", virtual_store_dir])
+            install_cmd.extend(
+                ["--config.injectWorkspacePackages=true", "--config.sharedWorkspaceLockfile=false", "--filter", "."]
+            )
 
             self._exec_command(install_cmd, cwd=cwd)
 
@@ -491,7 +473,7 @@ class PackageManager(BasePackageManager):
         ws.set_from_package_json(pj)
         _remove_migrated_build_dependencies(pj)
         source_pj = self.load_package_json_from_dir(self.sources_path)
-        config_path, ws.catalogs = load_common_config(source_pj, self.sources_root, self.inject_peers)
+        config_path, ws.catalogs = load_common_config(source_pj, self.sources_root)
         if config_path:
             ws.common_config_sources[config_path] = sorted(ws.catalogs)
 
@@ -543,14 +525,6 @@ class PackageManager(BasePackageManager):
                 )
             )
 
-        if self.inject_peers is False:
-            for dep_path in dep_paths:
-                dep_lockfile_path = build_lockfile_path(dep_path)
-                if os.path.isfile(dep_lockfile_path):
-                    dep_lf = self.load_lockfile(dep_lockfile_path)
-                    self._rebase_file_tarball_resolutions(dep_lf, self.build_path)
-                    lf.merge(dep_lf)
-
         lf.write()
 
     @staticmethod
@@ -577,9 +551,6 @@ class PackageManager(BasePackageManager):
             ws_config_path = build_ws_config_path(dep_path)
             if os.path.isfile(ws_config_path):
                 peer_ws = PnpmWorkspace.load(ws_config_path)
-                if not self.inject_peers:
-                    peer_ws.catalogs = {}
-                    peer_ws.common_config_sources = {}
                 ws.merge(peer_ws)
 
         ws.write()
