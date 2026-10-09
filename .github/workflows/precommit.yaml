@@ -37,6 +37,7 @@ jobs:
         with:
           path: code
           ref: ${{ github.event.pull_request.head.sha }}
+          allow-unsafe-pr-checkout: true
       - name: Create code tarball
         run: |
           # Make sure we only use git main version of sensitive configs
