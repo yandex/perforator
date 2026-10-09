@@ -47,6 +47,8 @@ static ALWAYS_INLINE void lua_frame_set_invalid(struct lua_frame* lua_frame, enu
         .type = LUA_FRAME_TYPE_INVALID,
         .value.invalid_frame.error = error,
     };
+
+    LUA_LOG_DEBUG("Invalid frame error=%d", error);
 }
 
 /**
@@ -75,6 +77,7 @@ static ALWAYS_INLINE void lua_frame_set_invalid(struct lua_frame* lua_frame, enu
     };
 
     if (lua_frame_has_symbol(&lua_frame->value.lua_frame, cache_key)) {
+        LUA_LOG_DEBUG("Lua frame symbol cache hit proto=%px", proto);
         return true;
     }
 
@@ -92,13 +95,14 @@ static ALWAYS_INLINE void lua_frame_set_invalid(struct lua_frame* lua_frame, enu
     const char* filename = luajit_proto_chunknamestr(proto);
     long status = bpf_probe_read_user_str(caret, SYMBOL_BUFFER_SIZE - name_length, filename);
     if (status <= 0) {
-        LUA_TRACE("[error] lua_frame_set_lua: failed to read proto=%px filename (%d)", proto, status);
+        LUA_LOG_ERROR("Failed to read proto=%px filename (%d)", proto, status);
         symbol->filename_length = (u8)lua_symbol_append_fail(caret);
     } else {
         --status;
         symbol->filename_length = status > 255 ? 255 : (u8)status;
     }
 
+    LUA_LOG_DEBUG("Saved symbol for Lua frame proto=%px name_length=%d filename_length=%d", proto, symbol->name_length, symbol->filename_length);
     lua_frame_save_symbol(&lua_frame->value.lua_frame, cache_key, symbol);
     return true;
 }
@@ -118,4 +122,6 @@ static ALWAYS_INLINE void lua_frame_set_c(struct lua_frame* lua_frame, luajit_gc
             .ffid = luajit_gc_func_get_ffid(function),
         },
     };
+
+    LUA_LOG_DEBUG("C frame function=%px object_addr=%px ffid=%d", function, lua_frame->value.c_frame.object_addr, lua_frame->value.c_frame.ffid);
 }
