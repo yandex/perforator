@@ -2,27 +2,6 @@ from build.plugins.lib.nots.package_manager import PackageJson
 from devtools.frontend_build_platform.nots.builder.api.pnpm_workspace import PnpmWorkspace
 
 
-def test_workspace_get_paths():
-    ws = PnpmWorkspace(path="/packages/foo/pnpm-workspace.yaml")
-    ws.packages = set([".", "../bar", "../../another/baz"])
-
-    assert sorted(ws.get_paths()) == [
-        "/another/baz",
-        "/packages/bar",
-        "/packages/foo",
-    ]
-
-
-def test_workspace_get_paths_with_custom_base_path_without_self():
-    ws = PnpmWorkspace(path="/packages/foo/pnpm-workspace.yaml")
-    ws.packages = set([".", "../bar", "../../another/baz"])
-
-    assert sorted(ws.get_paths(base_path="some/custom/dir", ignore_self=True)) == [
-        "some/another/baz",
-        "some/custom/bar",
-    ]
-
-
 def test_workspace_set_from_package_json():
     ws = PnpmWorkspace(path="/packages/foo/pnpm-workspace.yaml")
     pj = PackageJson(path="/packages/foo/package.json")
@@ -43,16 +22,10 @@ def test_workspace_set_from_package_json():
 
     ws.set_from_package_json(pj)
 
-    assert sorted(ws.get_paths()) == [
-        "/another/baz",
-        "/another/quux",
-        "/another/qux",
-        "/packages/bar",
-        "/packages/foo",
-    ]
+    assert ws.packages == set()
 
 
-def test_workspace_set_from_package_json_writes_pnpm_11_settings(tmp_path):
+def test_workspace_set_from_package_json_writes_only_supported_settings(tmp_path):
     workspace_path = tmp_path / "pnpm-workspace.yaml"
     package_json = PackageJson(path=str(tmp_path / "package.json"))
     package_json.data = {
@@ -76,19 +49,16 @@ def test_workspace_set_from_package_json_writes_pnpm_11_settings(tmp_path):
     workspace.write()
 
     written_workspace = PnpmWorkspace.load(str(workspace_path))
-    assert written_workspace.packages == {"."}
+    assert written_workspace.packages == set()
     assert written_workspace.settings == {
         "overrides": {"foo": "1.0.0"},
         "packageExtensions": {"bar": {"peerDependencies": {"baz": "2.0.0"}}},
         "patchedDependencies": {"qux@3.0.0": "patches/qux.patch"},
         "peerDependencyRules": {"ignoreMissing": ["react"]},
-        "allowBuilds": {"esbuild": True, "sharp": False, "core-js": False},
-        "allowUnusedPatches": True,
-        "pmOnFail": "error",
     }
 
 
-def test_workspace_drops_settings_without_automatic_pnpm_11_migration(tmp_path):
+def test_workspace_ignores_unknown_settings(tmp_path):
     package_json = PackageJson(path=str(tmp_path / "package.json"))
     package_json.data = {
         "pnpm": {
@@ -120,17 +90,16 @@ def test_workspace_read_write_preserves_settings(tmp_path):
     assert written_workspace.settings == {"overrides": {"foo": "1.0.0"}}
 
 
-def test_workspace_merge():
+def test_workspace_merge_imports_catalogs_without_peer_settings_or_packages():
     ws1 = PnpmWorkspace(path="/packages/foo/pnpm-workspace.yaml")
-    ws1.packages = set([".", "../bar", "../../another/baz"])
+    ws1.settings = {"overrides": {"own": "1.0.0"}}
     ws2 = PnpmWorkspace(path="/another/baz/pnpm-workspace.yaml")
-    ws2.packages = set([".", "../qux"])
+    ws2.packages = {".", "../qux"}
+    ws2.settings = {"overrides": {"peer": "2.0.0"}}
+    ws2.catalogs = {"another/common": {"colors": "1.4.0"}}
 
     ws1.merge(ws2)
 
-    assert sorted(ws1.get_paths()) == [
-        "/another/baz",
-        "/another/qux",
-        "/packages/bar",
-        "/packages/foo",
-    ]
+    assert ws1.packages == set()
+    assert ws1.settings == {"overrides": {"own": "1.0.0"}}
+    assert ws1.catalogs == ws2.catalogs

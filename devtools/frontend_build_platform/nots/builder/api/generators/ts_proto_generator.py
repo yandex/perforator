@@ -220,7 +220,6 @@ class TsProtoGenerator:
             peer_workspace_path = pm_utils.build_ws_config_path(peer_dir)
             if os.path.isfile(peer_workspace_path):
                 workspace.merge(PnpmWorkspace.load(peer_workspace_path))
-            workspace.packages.add(os.path.relpath(peer_dir, self.options.bindir))
         workspace.write()
 
         self._update_peer_lockfile(peer_dirs, peer_dependencies)
@@ -292,17 +291,27 @@ class TsProtoGenerator:
 
     def refresh_generated_peer_lockfile(self) -> None:
         """Refresh dynamic proto snapshots in an ordinary consumer's frozen lockfile."""
-        workspace = PnpmWorkspace.load(pm_utils.build_ws_config_path(self.options.bindir))
+        # The consumer workspace contains packages: []; discover prepared peers
+        # from manifests instead of relying on the former workspace grouping.
+        visited = {self.options.bindir}
+        pending = [self.options.bindir]
         peer_dirs = []
-        for peer_dir in sorted(workspace.get_paths(ignore_self=True)):
-            manifest_path = pm_utils.build_pj_path(peer_dir)
-            if not os.path.isfile(manifest_path):
-                continue
-            metadata = PackageJson.load(manifest_path).data.get("nots")
-            if not isinstance(metadata, dict) or metadata.get("tsProtoAuto") is not True:
-                continue
-            extract_all_output_tars(peer_dir, build_root=self.options.arcadia_build_root)
-            peer_dirs.append(peer_dir)
+        while pending:
+            directory = pending.pop()
+            package = PackageJson.load(pm_utils.build_pj_path(directory))
+            for _, relative_path in package.get_workspace_dep_spec_paths():
+                peer_dir = os.path.normpath(os.path.join(directory, relative_path))
+                if peer_dir in visited:
+                    continue
+                visited.add(peer_dir)
+                manifest_path = pm_utils.build_pj_path(peer_dir)
+                if not os.path.isfile(manifest_path):
+                    continue
+                metadata = PackageJson.load(manifest_path).data.get("nots")
+                if isinstance(metadata, dict) and metadata.get("tsProtoAuto") is True:
+                    extract_all_output_tars(peer_dir, build_root=self.options.arcadia_build_root)
+                    peer_dirs.append(peer_dir)
+                pending.append(peer_dir)
         if peer_dirs:
             self._update_peer_lockfile(peer_dirs, {})
 

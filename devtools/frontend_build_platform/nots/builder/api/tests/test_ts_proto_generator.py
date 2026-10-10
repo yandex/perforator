@@ -138,7 +138,7 @@ def test_prepare_peer_libraries_generates_complete_metadata(tmp_path, monkeypatc
     bindir.mkdir(parents=True)
     peer_dir.mkdir(parents=True)
     (bindir / "package.json").write_text(json.dumps({"name": "@test/consumer", "dependencies": {"runtime": "1.0.0"}}))
-    (bindir / "pnpm-workspace.yaml").write_text("packages:\n  - .\n")
+    (bindir / "pnpm-workspace.yaml").write_text("packages: []\n")
     (bindir / "pnpm-lock.yaml").write_text(
         "lockfileVersion: '9.0'\n"
         "importers:\n"
@@ -185,7 +185,7 @@ def test_prepare_peer_libraries_generates_complete_metadata(tmp_path, monkeypatc
     package_json = json.loads((bindir / "package.json").read_text())
     assert package_json["dependencies"] == {"runtime": "1.0.0", "@test/peer": "workspace:../peer"}
     assert package_json["files"] == ["ya.make"]
-    assert set((bindir / "pnpm-workspace.yaml").read_text().split()) >= {".", "../peer"}
+    assert "packages: []" in (bindir / "pnpm-workspace.yaml").read_text()
 
     lockfile = (bindir / "pnpm-lock.yaml").read_text()
     assert "@test/peer" in lockfile
@@ -312,7 +312,7 @@ def test_refresh_generated_peer_snapshot_preserves_consumer_dependencies(tmp_pat
     for directory in (consumer, peer, nested, custom):
         directory.mkdir(parents=True)
     (consumer / "package.json").write_text(json.dumps({"dependencies": {"@test/alias": "workspace:../proto"}}))
-    (consumer / "pnpm-workspace.yaml").write_text("packages:\n  - .\n  - ../proto\n  - ../nested\n  - ../custom\n")
+    (consumer / "pnpm-workspace.yaml").write_text("packages: []\n")
     # A custom package's source manifest need not be present in distbuild.
     # Its existing snapshot must remain untouched without the auto-proto marker.
     (custom / "package.json").write_text(json.dumps({"name": "@test/custom"}))
@@ -351,8 +351,6 @@ def test_refresh_generated_peer_snapshot_preserves_consumer_dependencies(tmp_pat
     generator.refresh_generated_peer_lockfile()
     result = Lockfile.load(str(consumer / "pnpm-lock.yaml"))
     assert result.get_importers()["."] == root_importer
-    assert result.data["snapshots"]["@test/proto@file:../proto"] == {
-        "dependencies": {"@test/nested": "file:../nested"}
-    }
+    assert result.data["snapshots"]["@test/proto@file:../proto"] == {"dependencies": {"@test/nested": "file:../nested"}}
     assert result.data["snapshots"]["@test/nested@file:../nested"] == {}
     assert result.data["snapshots"]["@test/custom@file:../custom"] == {"dependencies": {"keep": "1.0.0"}}

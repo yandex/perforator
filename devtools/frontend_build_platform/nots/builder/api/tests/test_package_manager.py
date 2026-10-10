@@ -1,6 +1,8 @@
 import importlib
 import os
+from pathlib import Path
 
+import yaml
 import fcntl
 import pytest
 
@@ -119,6 +121,8 @@ def test_pnpm_install_copies_external_node_modules_across_filesystems(monkeypatc
     os.makedirs(os.path.dirname(node_modules_path))
     monkeypatch.setattr(package_manager_module, "_same_filesystem", lambda source, destination: False)
 
+    os.makedirs(cwd, exist_ok=True)
+    package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml")).write()
     package_manager._run_pnpm_install(
         str(tmp_path / "build" / "store"),
         cwd,
@@ -129,9 +133,15 @@ def test_pnpm_install_copies_external_node_modules_across_filesystems(monkeypatc
 
     command, actual_cwd = commands[0]
     assert actual_cwd == cwd
-    assert command[command.index("--modules-dir") + 1] == os.path.relpath(node_modules_path, cwd)
-    assert command[command.index("--virtual-store-dir") + 1] == virtual_store_dir
-    assert command[command.index("--package-import-method") + 1] == "copy"
+    settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
+    assert settings["modulesDir"] == os.path.relpath(node_modules_path, cwd)
+    settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
+    assert settings["virtualStoreDir"] == virtual_store_dir
+    assert settings["packageImportMethod"] == "copy"
+    assert settings["registry"] == "https://npm.yandex-team.ru"
+    assert settings["dedupePeerDependents"] is True
+    assert settings["allowUnusedPatches"] is True
+    assert "dedupePeers" not in settings
 
 
 def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeypatch, tmp_path):
@@ -143,6 +153,8 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
     os.makedirs(store_dir)
     os.makedirs(os.path.dirname(node_modules_path))
 
+    os.makedirs(cwd, exist_ok=True)
+    package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml")).write()
     package_manager._run_pnpm_install(
         store_dir,
         cwd,
@@ -153,11 +165,12 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
 
     command, actual_cwd = commands[0]
     assert actual_cwd == cwd
-    assert command[command.index("--modules-dir") + 1] == os.path.relpath(node_modules_path, cwd)
-    assert command[command.index("--package-import-method") + 1] == "hardlink"
+    settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
+    assert settings["modulesDir"] == os.path.relpath(node_modules_path, cwd)
+    assert settings["packageImportMethod"] == "hardlink"
 
 
-def test_pnpm_install_preserves_legacy_node_modules_layout(monkeypatch, tmp_path):
+def test_pnpm_install_uses_module_node_modules_layout(monkeypatch, tmp_path):
     package_manager, commands = _package_manager(monkeypatch)
     cwd = str(tmp_path / "build" / "project" / "module")
     node_modules_path = os.path.join(cwd, "node_modules")
@@ -165,6 +178,8 @@ def test_pnpm_install_preserves_legacy_node_modules_layout(monkeypatch, tmp_path
     os.makedirs(tmp_path / "build" / "store")
     os.makedirs(cwd)
 
+    os.makedirs(cwd, exist_ok=True)
+    package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml")).write()
     package_manager._run_pnpm_install(
         str(tmp_path / "build" / "store"),
         cwd,
@@ -176,8 +191,9 @@ def test_pnpm_install_preserves_legacy_node_modules_layout(monkeypatch, tmp_path
     command, actual_cwd = commands[0]
     assert actual_cwd == cwd
     assert "--modules-dir" not in command
-    assert command[command.index("--virtual-store-dir") + 1] == virtual_store_dir
-    assert command[command.index("--package-import-method") + 1] == "hardlink"
+    settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
+    assert settings["virtualStoreDir"] == virtual_store_dir
+    assert settings["packageImportMethod"] == "hardlink"
 
 
 def test_prepare_deps_publishes_package_json(tmp_path):
@@ -280,17 +296,14 @@ def test_build_workspace_writes_pnpm_settings_to_workspace_config(tmp_path):
     package_manager.build_workspace(tarballs_store="__tarballs__", local_cli=True)
 
     workspace = package_manager_module.PnpmWorkspace.load(str(build_path / "pnpm-workspace.yaml"))
-    assert workspace.packages == {"."}
+    assert workspace.packages == set()
     assert workspace.settings == {
         "overrides": {"foo": "1.0.0"},
         "packageExtensions": {"bar": {"peerDependencies": {"baz": "2.0.0"}}},
-        "allowBuilds": {"esbuild": False},
-        "allowUnusedPatches": True,
     }
     assert _load_package_json(str(build_path / "package.json")).data["pnpm"] == {
         "overrides": {"foo": "1.0.0"},
         "packageExtensions": {"bar": {"peerDependencies": {"baz": "2.0.0"}}},
-        "allowNonAppliedPatches": True,
     }
     assert _load_package_json(str(source_path / "package.json")).data["pnpm"]["neverBuiltDependencies"] == ["esbuild"]
 
@@ -335,6 +348,7 @@ def test_build_workspace_does_not_merge_peer_lockfiles(tmp_path):
     package_manager = object.__new__(package_manager_module.PackageManager)
     package_manager.sources_path = str(source_path)
     package_manager.build_path = str(build_path)
+    package_manager.build_root = str(tmp_path / "build")
     package_manager.module_path = "consumer"
     package_manager.sources_root = str(tmp_path / "source")
 
@@ -378,8 +392,14 @@ def test_production_install_reuses_install_flags(monkeypatch, tmp_path):
     os.makedirs(store)
     cwd = str(tmp_path)
     node_modules = str(tmp_path / "node_modules")
+    package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml")).write()
     for prod in [False, True]:
+        ws = package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml"))
+        ws.settings = {"strictPeerDependencies": prod}
+        ws.write()
         package_manager._run_pnpm_install(store, cwd, False, node_modules + "/.pnpm", node_modules, prod=prod)
+        settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
+        assert settings["strictPeerDependencies"] is prod
     ordinary, production = [cmd for cmd, cwd in commands]
     assert "--prod" in production
     assert [arg for arg in production if arg != "--prod"] == ordinary
@@ -405,3 +425,47 @@ def test_production_reinstall_removes_restored_node_modules(monkeypatch, tmp_pat
     package_manager.create_node_modules = create_node_modules
     package_manager.prune_node_modules(yatool_prebuilder_path="/prebuilder", local_cli=False)
     assert calls == [{"yatool_prebuilder_path": "/prebuilder", "local_cli": False, "prod": True}]
+
+
+def test_pnpm_install_detaches_readonly_workspace_input(monkeypatch, tmp_path):
+    package_manager, commands = _package_manager(monkeypatch)
+    cwd = tmp_path / "module"
+    cwd.mkdir()
+    source = tmp_path / "workspace-input.yaml"
+    source.write_text("overrides: {foo: '1.0.0'}\n")
+    source.chmod(0o444)
+    workspace = cwd / "pnpm-workspace.yaml"
+    os.link(source, workspace)
+    original = source.read_bytes()
+    store = tmp_path / "store"
+    store.mkdir()
+    package_manager._run_pnpm_install(
+        str(store), str(cwd), False, str(cwd / "node_modules/.pnpm"), str(cwd / "node_modules")
+    )
+    assert source.read_bytes() == original
+    assert source.stat().st_mode & 0o222 == 0
+    assert source.stat().st_ino != workspace.stat().st_ino
+    settings = yaml.safe_load(workspace.read_text())
+    assert settings["overrides"] == {"foo": "1.0.0"}
+    assert "storeDir" not in settings
+    args, _ = commands[0]
+    assert args[args.index("--store-dir") + 1] == str(store)
+    assert len(commands) == 1
+
+
+def test_build_workspace_preserves_manifest_format_without_pnpm_changes(tmp_path):
+    source = tmp_path / "source"
+    source.mkdir()
+    manifest = '{\n  "name": "pkg",\n  "version": "1.0.0",\n  "files": ["build"]\n}\n'
+    (source / "package.json").write_text(manifest)
+    pm = package_manager_module.PackageManager(
+        str(tmp_path / "build"),
+        str(tmp_path / "build/module"),
+        str(source),
+        None,
+        None,
+        module_path="module",
+        sources_root=str(tmp_path),
+    )
+    pm.build_workspace("__tarballs__", True)
+    assert Path(pm.build_path, "package.json").read_text() == manifest

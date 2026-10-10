@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import os
 import shutil
@@ -17,36 +18,22 @@ from build.plugins.lib.nots.package_manager.utils import (
     build_nots_path,
     build_pj_path,
 )
-from .pnpm_workspace import PnpmWorkspace
-from build.plugins.lib.nots.package_manager.common_config import load_common_config
+from .pnpm_workspace import PnpmWorkspace, pnpm_defaults
+from .utils import copy_writable_file
+from build.plugins.lib.nots.package_manager.common_config import (
+    load_common_config,
+    rebase_pnpm_settings,
+    join_pnpm_settings,
+    PNPM_SETTINGS,
+)
 from build.plugins.lib.nots.package_manager.timeit import timeit
 
 LOCAL_PNPM_INSTALL_CONCURRENCY = 4
 LOCAL_PNPM_INSTALL_MUTEX_FILENAME = ".__install_mutex__"
-NPM_REGISTRY_URL = "http://npm.yandex-team.ru"
 
 
 def _same_filesystem(source: str, destination: str) -> bool:
     return os.stat(source).st_dev == os.stat(os.path.dirname(destination)).st_dev
-
-
-def _remove_migrated_build_dependencies(package_json):
-    pnpm_settings = package_json.data.get("pnpm")
-    if not isinstance(pnpm_settings, dict):
-        return
-
-    changed = False
-    for key in ("onlyBuiltDependencies", "neverBuiltDependencies", "ignoredBuiltDependencies"):
-        if key in pnpm_settings:
-            del pnpm_settings[key]
-            changed = True
-
-    if not changed:
-        return
-
-    if not pnpm_settings:
-        del package_json.data["pnpm"]
-    package_json.write()
 
 
 class PackageManagerCommandError(PackageManagerError):
@@ -286,7 +273,7 @@ class PackageManager(BasePackageManager):
         return os.path.join(build_nm_path(self.build_path), *parts)
 
     def _get_default_options(self):
-        return ["--registry", NPM_REGISTRY_URL, "--stream", "--reporter", "append-only", "--no-color"]
+        return ["--stream", "--reporter", "append-only", "--no-color"]
 
     def _get_debug_log_path(self):
         return self._nm_path(".pnpm-debug.log")
@@ -406,33 +393,26 @@ class PackageManager(BasePackageManager):
                 default_node_modules_path
             )
             package_import_method = "hardlink" if _same_filesystem(store_dir, node_modules_path) else "copy"
+            ws = PnpmWorkspace.load(build_ws_config_path(cwd))
+            defaults = pnpm_defaults()
+            ws.runtime_settings = {
+                **defaults,
+                **{key: value for key, value in ws.settings.items() if key in defaults},
+                "modulesDir": os.path.relpath(node_modules_path, cwd) if custom_node_modules_path else "node_modules",
+                "packageImportMethod": package_import_method,
+                "virtualStoreDir": virtual_store_dir,
+            }
+            copy_writable_file(ws.path, ws.path)
+            ws.write()
             install_cmd = [
                 "install",
-                "--frozen-lockfile",
-                "--ignore-pnpmfile",
-                "--ignore-scripts",
-                "--no-verify-store-integrity",
-                "--prefer-offline" if local_cli else "--offline",
-                "--config.confirmModulesPurge=false",  # hack for https://st.yandex-team.ru/FBP-1295
-                "--config.preferSymlinkedExecutables=true",
-                "--package-import-method",
-                package_import_method,
-                # "--registry" will be set later inside self._exec_command()
                 "--store-dir",
                 store_dir,
-                "--strict-peer-dependencies",
+                "--frozen-lockfile",
+                "--prefer-offline" if local_cli else "--offline",
             ]
-
             if prod:
                 install_cmd.append("--prod")
-
-            if custom_node_modules_path:
-                install_cmd.extend(["--modules-dir", os.path.relpath(node_modules_path, cwd)])
-
-            install_cmd.extend(["--virtual-store-dir", virtual_store_dir])
-            install_cmd.extend(
-                ["--config.injectWorkspacePackages=true", "--config.sharedWorkspaceLockfile=false", "--filter", "."]
-            )
 
             self._exec_command(install_cmd, cwd=cwd)
 
@@ -471,14 +451,36 @@ class PackageManager(BasePackageManager):
 
         ws = PnpmWorkspace(build_ws_config_path(self.build_path))
         ws.set_from_package_json(pj)
-        _remove_migrated_build_dependencies(pj)
         source_pj = self.load_package_json_from_dir(self.sources_path)
-        config_path, ws.catalogs = load_common_config(source_pj, self.sources_root)
+        config_path, ws.catalogs, settings = load_common_config(source_pj, self.sources_root, include_settings=True)
         if config_path:
-            ws.common_config_sources[config_path] = sorted(ws.catalogs)
-
-        dep_paths = ws.get_paths(ignore_self=True)
-        self._build_merged_workspace_config(ws, dep_paths)
+            common_settings = rebase_pnpm_settings(
+                settings,
+                os.path.join(
+                    self.build_path,
+                    os.path.relpath(os.path.join(self.sources_root, os.path.dirname(config_path)), self.sources_path),
+                ),
+                self.build_path,
+            )
+            ws.settings = join_pnpm_settings(common_settings, ws.settings)
+        # Distbuild delivers prepared peer workspaces, not their source configs.
+        # A peer workspace already contains its transitive catalog closure.
+        for peer_path in (self.get_local_peers_from_package_json() if pj.has_dependencies() else []):
+            peer = PnpmWorkspace.load(build_ws_config_path(os.path.join(self.build_root, peer_path)))
+            for group, entries in peer.catalogs.items():
+                if group in ws.catalogs and ws.catalogs[group] != entries:
+                    raise ValueError("Conflicting catalog group {}".format(group))
+                ws.catalogs[group] = copy.deepcopy(entries)
+        ws.write()
+        # pnpm 10 prefers package.json#pnpm over workspace YAML for these fields.
+        # Only the generated manifest receives shared settings.
+        shared_fields = {key: ws.settings[key] for key in PNPM_SETTINGS if key in ws.settings}
+        if shared_fields != pj.data.get("pnpm", {}):
+            if shared_fields:
+                pj.data["pnpm"] = shared_fields
+            else:
+                pj.data.pop("pnpm", None)
+            pj.write()
         dep_paths = ws.get_paths(ignore_self=True)
         self._build_merged_lockfile(tarballs_store, dep_paths, local_cli, pj.has_dependencies())
 
@@ -491,7 +493,6 @@ class PackageManager(BasePackageManager):
         """
 
         ws = PnpmWorkspace(build_ws_config_path(self.build_path))
-        ws.packages.add(".")
         ws.write()
 
         deps_lockfile_path = build_lockfile_path(os.path.join(self.build_root, deps_mod))
@@ -541,21 +542,6 @@ class PackageManager(BasePackageManager):
         lf.update_tarball_resolutions(rebase)
 
     @timeit
-    def _build_merged_workspace_config(self, ws, dep_paths):
-        """
-        NOTE: This method mutates `ws`.
-        :type ws: PnpmWorkspaceConfig
-        :type dep_paths: list of str
-        """
-        for dep_path in dep_paths:
-            ws_config_path = build_ws_config_path(dep_path)
-            if os.path.isfile(ws_config_path):
-                peer_ws = PnpmWorkspace.load(ws_config_path)
-                ws.merge(peer_ws)
-
-        ws.write()
-
-    @timeit
     def _run_apply_addons_if_need(self, yatool_prebuilder_path, virtual_store_dir):
         if not yatool_prebuilder_path:
             return
@@ -573,8 +559,7 @@ class PackageManager(BasePackageManager):
 
     @timeit
     def _copy_pnpm_patches(self):
-        pj = self.load_package_json_from_dir(self.build_path)
-        patched_dependencies: dict[str, str] = pj.data.get("pnpm", {}).get("patchedDependencies", {})
+        patched_dependencies = self._prepare_workspace().settings.get("patchedDependencies", {})
 
         for p in patched_dependencies.values():
             patch_source_path = os.path.join(self.sources_path, p)
