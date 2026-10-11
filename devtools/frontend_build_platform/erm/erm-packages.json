@@ -3529,11 +3529,6 @@
         "add_date": "2026-09-15T05:34:29",
         "resources": [
           {
-            "id": 13658693953,
-            "platform": "linux",
-            "arch": "x64"
-          },
-          {
             "id": 13658696668,
             "platform": "linux",
             "arch": "arm64"
@@ -3547,6 +3542,11 @@
             "id": 13658701660,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044759563,
+            "platform": "linux",
+            "arch": "x64"
           }
         ]
       },
