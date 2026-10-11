@@ -2473,7 +2473,7 @@
         "add_date": "2026-09-22T12:46:13",
         "resources": [
           {
-            "id": 13772357558,
+            "id": 14044436447,
             "platform": "any",
             "arch": "any"
           }
@@ -2659,16 +2659,6 @@
           }
         ]
       },
-      "1.4.1": {
-        "add_date": "2024-09-03T09:28:05",
-        "resources": [
-          {
-            "id": 6994637518,
-            "platform": "any",
-            "arch": "any"
-          }
-        ]
-      },
       "1.4.0": {
         "add_date": "2024-08-29T12:24:27",
         "resources": [
@@ -2689,31 +2679,11 @@
           }
         ]
       },
-      "1.2.3": {
-        "add_date": "2024-07-24T13:35:42",
-        "resources": [
-          {
-            "id": 6739582942,
-            "platform": "any",
-            "arch": "any"
-          }
-        ]
-      },
       "1.2.2": {
         "add_date": "2024-06-21T14:04:58",
         "resources": [
           {
             "id": 6544381209,
-            "platform": "any",
-            "arch": "any"
-          }
-        ]
-      },
-      "1.2.1": {
-        "add_date": "2024-06-06T09:24:20",
-        "resources": [
-          {
-            "id": 6454082073,
             "platform": "any",
             "arch": "any"
           }
@@ -2749,16 +2719,6 @@
           }
         ]
       },
-      "0.6.2": {
-        "add_date": "2024-02-21T07:08:30",
-        "resources": [
-          {
-            "id": 5865234038,
-            "platform": "any",
-            "arch": "any"
-          }
-        ]
-      },
       "0.6.1": {
         "add_date": "2024-02-13T21:56:28",
         "resources": [
@@ -2769,41 +2729,11 @@
           }
         ]
       },
-      "0.6.0": {
-        "add_date": "2024-01-26T09:16:12",
-        "resources": [
-          {
-            "id": 5723018127,
-            "platform": "any",
-            "arch": "any"
-          }
-        ]
-      },
-      "0.5.1": {
-        "add_date": "2024-01-25T09:31:59",
-        "resources": [
-          {
-            "id": 5716270790,
-            "platform": "any",
-            "arch": "any"
-          }
-        ]
-      },
       "0.5.0": {
         "add_date": "2023-12-19T13:14:37",
         "resources": [
           {
             "id": 5556049881,
-            "platform": "any",
-            "arch": "any"
-          }
-        ]
-      },
-      "0.4.0": {
-        "add_date": "2023-12-18T18:44:05",
-        "resources": [
-          {
-            "id": 5551965731,
             "platform": "any",
             "arch": "any"
           }
@@ -4099,16 +4029,6 @@
         "add_date": "2025-12-02T05:33:47",
         "resources": [
           {
-            "id": 10455267343,
-            "platform": "linux",
-            "arch": "x64"
-          },
-          {
-            "id": 10455270451,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
             "id": 10455274799,
             "platform": "darwin",
             "arch": "x64"
@@ -4117,6 +4037,16 @@
             "id": 10455277557,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044434765,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044435585,
+            "platform": "linux",
+            "arch": "x64"
           }
         ]
       },
@@ -4134,14 +4064,14 @@
             "arch": "arm64"
           },
           {
-            "id": 10383969204,
-            "platform": "darwin",
-            "arch": "x64"
-          },
-          {
             "id": 10383970993,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044433762,
+            "platform": "darwin",
+            "arch": "x64"
           }
         ]
       },
@@ -4479,11 +4409,6 @@
             "arch": "x64"
           },
           {
-            "id": 10729893320,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
             "id": 10729894812,
             "platform": "darwin",
             "arch": "x64"
@@ -4491,6 +4416,11 @@
           {
             "id": 10729896613,
             "platform": "darwin",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044432697,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -4504,11 +4434,6 @@
             "arch": "x64"
           },
           {
-            "id": 10383959004,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
             "id": 10383961012,
             "platform": "darwin",
             "arch": "x64"
@@ -4516,6 +4441,11 @@
           {
             "id": 10383963518,
             "platform": "darwin",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044431345,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -4704,18 +4634,18 @@
             "arch": "x64"
           },
           {
-            "id": 9317382712,
-            "platform": "linux",
+            "id": 9317388208,
+            "platform": "darwin",
             "arch": "arm64"
           },
           {
-            "id": 9317385592,
+            "id": 14044428551,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 9317388208,
-            "platform": "darwin",
+            "id": 14044429810,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -4724,24 +4654,24 @@
         "add_date": "2025-07-08T05:36:35",
         "resources": [
           {
-            "id": 9152599191,
-            "platform": "linux",
-            "arch": "x64"
-          },
-          {
-            "id": 9152600266,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
             "id": 9152602784,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 9152604151,
+            "id": 14044423974,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044426398,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044427500,
+            "platform": "linux",
+            "arch": "x64"
           }
         ]
       },
@@ -4749,24 +4679,24 @@
         "add_date": "2025-06-24T05:32:09",
         "resources": [
           {
-            "id": 9040977908,
-            "platform": "linux",
-            "arch": "x64"
-          },
-          {
-            "id": 9040979408,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
             "id": 9040981601,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 9040982994,
+            "id": 14044419716,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044420972,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044422519,
+            "platform": "linux",
+            "arch": "x64"
           }
         ]
       },
@@ -4784,14 +4714,14 @@
             "arch": "arm64"
           },
           {
-            "id": 8877787717,
-            "platform": "darwin",
-            "arch": "x64"
-          },
-          {
             "id": 8877789076,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044418291,
+            "platform": "darwin",
+            "arch": "x64"
           }
         ]
       },
@@ -4809,14 +4739,14 @@
             "arch": "arm64"
           },
           {
-            "id": 8816797685,
-            "platform": "darwin",
-            "arch": "x64"
-          },
-          {
             "id": 8816799050,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044416939,
+            "platform": "darwin",
+            "arch": "x64"
           }
         ]
       },
@@ -4854,18 +4784,18 @@
             "arch": "x64"
           },
           {
-            "id": 8877780898,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
             "id": 8877782010,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 8877782890,
+            "id": 14044411834,
             "platform": "darwin",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044413882,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -4879,18 +4809,18 @@
             "arch": "x64"
           },
           {
-            "id": 8510775902,
-            "platform": "linux",
+            "id": 14044408229,
+            "platform": "darwin",
             "arch": "arm64"
           },
           {
-            "id": 8510776719,
+            "id": 14044409546,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 8510778541,
-            "platform": "darwin",
+            "id": 14044410651,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -4898,11 +4828,6 @@
       "23.10.0": {
         "add_date": "2025-04-01T05:35:44",
         "resources": [
-          {
-            "id": 8401284234,
-            "platform": "linux",
-            "arch": "x64"
-          },
           {
             "id": 8401286062,
             "platform": "linux",
@@ -4917,17 +4842,17 @@
             "id": 8401289766,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044406756,
+            "platform": "linux",
+            "arch": "x64"
           }
         ]
       },
       "23.9.0": {
         "add_date": "2025-03-18T05:32:08",
         "resources": [
-          {
-            "id": 8288588123,
-            "platform": "linux",
-            "arch": "x64"
-          },
           {
             "id": 8288589479,
             "platform": "linux",
@@ -4942,6 +4867,11 @@
             "id": 8288592302,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044404613,
+            "platform": "linux",
+            "arch": "x64"
           }
         ]
       },
@@ -4964,7 +4894,7 @@
             "arch": "x64"
           },
           {
-            "id": 8175489573,
+            "id": 14044402439,
             "platform": "darwin",
             "arch": "arm64"
           }
@@ -4979,11 +4909,6 @@
             "arch": "x64"
           },
           {
-            "id": 8068931055,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
             "id": 8068933057,
             "platform": "darwin",
             "arch": "x64"
@@ -4991,6 +4916,11 @@
           {
             "id": 8068935098,
             "platform": "darwin",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044400596,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -5009,14 +4939,14 @@
             "arch": "arm64"
           },
           {
-            "id": 7966051283,
-            "platform": "darwin",
-            "arch": "x64"
-          },
-          {
-            "id": 7966052222,
+            "id": 14044396765,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044398773,
+            "platform": "darwin",
+            "arch": "x64"
           }
         ]
       },
@@ -5059,14 +4989,14 @@
             "arch": "arm64"
           },
           {
-            "id": 7786542444,
-            "platform": "darwin",
-            "arch": "x64"
-          },
-          {
-            "id": 7786543483,
+            "id": 14044392637,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044394324,
+            "platform": "darwin",
+            "arch": "x64"
           }
         ]
       },
@@ -5104,18 +5034,18 @@
             "arch": "x64"
           },
           {
-            "id": 7633877037,
-            "platform": "linux",
+            "id": 7633880421,
+            "platform": "darwin",
             "arch": "arm64"
           },
           {
-            "id": 7633879000,
+            "id": 14044389848,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 7633880421,
-            "platform": "darwin",
+            "id": 14044391071,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -5139,7 +5069,7 @@
             "arch": "x64"
           },
           {
-            "id": 7446578887,
+            "id": 14044387973,
             "platform": "darwin",
             "arch": "arm64"
           }
@@ -5149,24 +5079,24 @@
         "add_date": "2024-11-05T05:36:14",
         "resources": [
           {
-            "id": 7401169605,
-            "platform": "linux",
-            "arch": "x64"
-          },
-          {
-            "id": 7401171473,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
-            "id": 7401172512,
-            "platform": "darwin",
-            "arch": "x64"
-          },
-          {
             "id": 7401173821,
             "platform": "darwin",
             "arch": "arm64"
+          },
+          {
+            "id": 14044380607,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 14044381473,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044383614,
+            "platform": "linux",
+            "arch": "x64"
           }
         ]
       },
@@ -5354,11 +5284,6 @@
             "arch": "x64"
           },
           {
-            "id": 10183567196,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
             "id": 10183568076,
             "platform": "darwin",
             "arch": "x64"
@@ -5366,6 +5291,11 @@
           {
             "id": 10183569295,
             "platform": "darwin",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044379628,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -5454,18 +5384,18 @@
             "arch": "x64"
           },
           {
-            "id": 9317371057,
-            "platform": "linux",
+            "id": 9317377378,
+            "platform": "darwin",
             "arch": "arm64"
           },
           {
-            "id": 9317374797,
+            "id": 14044377562,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 9317377378,
-            "platform": "darwin",
+            "id": 14044378537,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -5479,11 +5409,6 @@
             "arch": "x64"
           },
           {
-            "id": 9152595553,
-            "platform": "linux",
-            "arch": "arm64"
-          },
-          {
             "id": 9152596658,
             "platform": "darwin",
             "arch": "x64"
@@ -5491,6 +5416,11 @@
           {
             "id": 9152598245,
             "platform": "darwin",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044376044,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -5529,18 +5459,18 @@
             "arch": "x64"
           },
           {
-            "id": 8679135070,
-            "platform": "linux",
+            "id": 8679140167,
+            "platform": "darwin",
             "arch": "arm64"
           },
           {
-            "id": 8679137949,
+            "id": 14044373683,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 8679140167,
-            "platform": "darwin",
+            "id": 14044374737,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -5654,18 +5584,18 @@
             "arch": "x64"
           },
           {
-            "id": 7446564278,
-            "platform": "linux",
+            "id": 7446568871,
+            "platform": "darwin",
             "arch": "arm64"
           },
           {
-            "id": 7446566623,
+            "id": 14044371816,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 7446568871,
-            "platform": "darwin",
+            "id": 14044372611,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -5704,18 +5634,18 @@
             "arch": "x64"
           },
           {
-            "id": 7225910735,
-            "platform": "linux",
+            "id": 7225913016,
+            "platform": "darwin",
             "arch": "arm64"
           },
           {
-            "id": 7225911794,
+            "id": 14044342072,
             "platform": "darwin",
             "arch": "x64"
           },
           {
-            "id": 7225913016,
-            "platform": "darwin",
+            "id": 14044347594,
+            "platform": "linux",
             "arch": "arm64"
           }
         ]
@@ -5739,8 +5669,23 @@
             "arch": "arm64"
           },
           {
-            "id": 6359345284,
+            "id": 14044325669,
             "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 14044326525,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 14044327050,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 14044328022,
+            "platform": "darwin",
             "arch": "arm64"
           }
         ]
@@ -5935,7 +5880,7 @@
         "add_date": "2025-10-14T05:37:15",
         "resources": [
           {
-            "id": 9987443648,
+            "id": 14044441816,
             "platform": "any",
             "arch": "any"
           }
@@ -5985,7 +5930,7 @@
         "add_date": "2025-06-03T05:43:21",
         "resources": [
           {
-            "id": 8877790182,
+            "id": 14044441325,
             "platform": "any",
             "arch": "any"
           }
@@ -6085,7 +6030,7 @@
         "add_date": "2024-10-01T05:33:33",
         "resources": [
           {
-            "id": 7182577815,
+            "id": 14044440625,
             "platform": "any",
             "arch": "any"
           }
@@ -6145,7 +6090,7 @@
         "add_date": "2024-04-30T05:39:26",
         "resources": [
           {
-            "id": 6258980243,
+            "id": 14044440095,
             "platform": "any",
             "arch": "any"
           }
@@ -6175,7 +6120,7 @@
         "add_date": "2024-02-13T05:33:27",
         "resources": [
           {
-            "id": 5818372864,
+            "id": 14044438813,
             "platform": "any",
             "arch": "any"
           }
@@ -6185,7 +6130,7 @@
         "add_date": "2024-01-30T05:34:05",
         "resources": [
           {
-            "id": 5740130848,
+            "id": 14044438299,
             "platform": "any",
             "arch": "any"
           }
@@ -6235,7 +6180,7 @@
         "add_date": "2023-10-24T05:44:41",
         "resources": [
           {
-            "id": 5295369144,
+            "id": 14044436910,
             "platform": "any",
             "arch": "any"
           }
