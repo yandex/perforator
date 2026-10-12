@@ -73,18 +73,28 @@ type MergeSession struct {
 	session C.TPerforatorProfileMerger
 }
 
-func (s *MergeSession) AddPProfProfile(data []byte) error {
-	ptr, size, done := cgobuf(data)
-	defer done()
-
-	var profile C.TPerforatorProfile
-	perr := C.PerforatorProfileParsePProf(ptr, size, &profile)
-	if err := unwrap(perr); err != nil {
+func (s *MergeSession) AddYaprofProfile(data []byte) error {
+	profile, err := Parse(data)
+	if err != nil {
 		return err
 	}
-	defer C.PerforatorProfileDispose(profile)
+	defer profile.Free()
 
-	perr = C.PerforatorMergerAddProfile(s.session, profile)
+	return s.addProfile(profile)
+}
+
+func (s *MergeSession) AddPProfProfile(data []byte) error {
+	profile, err := ParsePProf(data)
+	if err != nil {
+		return err
+	}
+	defer profile.Free()
+
+	return s.addProfile(profile)
+}
+
+func (s *MergeSession) addProfile(profile *Profile) error {
+	perr := C.PerforatorMergerAddProfile(s.session, profile.ptr)
 	if err := unwrap(perr); err != nil {
 		return err
 	}

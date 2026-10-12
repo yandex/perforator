@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	_ "net/http/pprof"
 	"time"
@@ -208,9 +209,12 @@ func (s *PerforatorServer) downloadAndAddProfiles(
 			if err != nil {
 				return err
 			}
-			data, err := profileBundle.GetOrConvertPprof()
-			if err != nil {
-				return err
+			if data := profileBundle.GetYaprof(); len(data) > 0 {
+				return session.AddYaprofProfile(data)
+			}
+			data := profileBundle.GetPprof()
+			if len(data) == 0 {
+				return errors.New("profile bundle is empty: neither pprof nor yaprof data is available")
 			}
 			// TODO(ayles) improve stability.
 			return session.AddPProfProfile(data)
