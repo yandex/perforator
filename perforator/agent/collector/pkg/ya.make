@@ -7,6 +7,7 @@ RECURSE(
     deploy_system
     dso
     machine
+    nativepipeline
     perfmap
     process
     profile
