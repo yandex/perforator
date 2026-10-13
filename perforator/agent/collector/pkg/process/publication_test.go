@@ -54,8 +54,8 @@ func TestEnvironmentRefreshClearsEmptyAndPreservesUnreadable(t *testing.T) {
 			r.DiscoverProcess(t.Context(), linux.ProcessKey{Pid: tc.pid, ProcessStartTime: 100})
 			info := r.procs[tc.pid]
 			var published map[string]string
-			r.metadataPublisher = &testMetadataPublisher{publish: func(snapshot ProcessInfo) error {
-				published = maps.Clone(snapshot.Env())
+			r.metadataPublisher = &testMetadataPublisher{publish: func(snapshot MetadataSnapshot) error {
+				published = maps.Clone(snapshot.Environment)
 				return nil
 			}}
 			old := map[string]string{"label": "old"}
@@ -175,16 +175,16 @@ func TestRescanPublicationFailureAndRetry(t *testing.T) {
 			r.listeners = []Listener{listener}
 			var published string
 			var publicationError error
-			r.metadataPublisher = &testMetadataPublisher{publish: func(snapshot ProcessInfo) error {
+			r.metadataPublisher = &testMetadataPublisher{publish: func(snapshot MetadataSnapshot) error {
 				require.False(t, state.active, "process must remain disabled throughout publication")
 				if publicationError != nil {
 					return publicationError
 				}
-				mappings := snapshot.Mappings()
+				mappings := snapshot.Mappings
 				require.Len(t, mappings, 1)
-				require.Equal(t, state.binaryID, mappings[0].ID())
-				require.Equal(t, snapshot.Env()["image"], mappings[0].Path())
-				published = mappings[0].Path()
+				require.Equal(t, state.binaryID, info.Mappings()[0].ID())
+				require.Equal(t, snapshot.Environment["image"], mappings[0].Path)
+				published = mappings[0].Path
 				return nil
 			}}
 
@@ -237,8 +237,8 @@ func TestFailedRescanDisablePreservesCommittedState(t *testing.T) {
 	listener := &lifetimeListener{}
 	r.listeners = []Listener{listener}
 	var published string
-	r.metadataPublisher = &testMetadataPublisher{publish: func(snapshot ProcessInfo) error {
-		published = snapshot.Mappings()[0].Path()
+	r.metadataPublisher = &testMetadataPublisher{publish: func(snapshot MetadataSnapshot) error {
+		published = snapshot.Mappings[0].Path
 		return nil
 	}}
 	require.NoError(t, commitRescanMapping(t, r, "old-binary"))
@@ -348,10 +348,10 @@ func TestMappingSynchronizationFailureAndRetry(t *testing.T) {
 				publications := 0
 				if retry != "go" {
 					state.checkMappingWrite = func() { require.False(t, state.active) }
-					r.metadataPublisher = &testMetadataPublisher{publish: func(info ProcessInfo) error {
+					r.metadataPublisher = &testMetadataPublisher{publish: func(info MetadataSnapshot) error {
 						publications++
 						require.False(t, state.active)
-						require.Len(t, info.Mappings(), len(state.mappings))
+						require.Len(t, info.Mappings, len(state.mappings))
 						return nil
 					}}
 				}

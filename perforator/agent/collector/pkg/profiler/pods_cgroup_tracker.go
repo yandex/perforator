@@ -25,6 +25,12 @@ type blackListEntryCompiled struct {
 	Reason string
 }
 
+type workloadSnapshot struct {
+	cgroupBaseName string
+	serviceName    string
+	containerName  string
+}
+
 type containerInfo struct {
 	podServiceName string
 	containerName  string
@@ -335,4 +341,18 @@ func (p *Profiler) runPodsCgroupTracker(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func (t *PodsCgroupTracker) snapshotWorkloads() []workloadSnapshot {
+	t.workloadsmu.RLock()
+	defer t.workloadsmu.RUnlock()
+	result := make([]workloadSnapshot, 0, len(t.workloads))
+	for cgroupBaseName, info := range t.workloads {
+		result = append(result, workloadSnapshot{
+			cgroupBaseName: cgroupBaseName,
+			serviceName:    info.podServiceName,
+			containerName:  info.containerName,
+		})
+	}
+	return result
 }

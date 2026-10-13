@@ -74,12 +74,30 @@ type TrackerConfig struct {
 	CgroupHints *CgroupHints `yaml:"cgroupfs_hints,omitempty"`
 }
 
-func NewTracker(l log.Logger, config *TrackerConfig) (*Tracker, error) {
+type trackerOptions struct {
+	updates chan<- struct{}
+}
+
+type TrackerOption func(*trackerOptions)
+
+// WithUpdatesStream enables coalesced notifications on a buffered channel that must remain open.
+// Its sole reader must read SnapshotNames initially and after receiving each notification.
+func WithUpdatesStream(updates chan<- struct{}) TrackerOption {
+	return func(options *trackerOptions) {
+		options.updates = updates
+	}
+}
+
+func NewTracker(l log.Logger, config *TrackerConfig, opts ...TrackerOption) (*Tracker, error) {
+	var options trackerOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
 	fs, err := findCgroups(config.CgroupHints)
 	if err != nil {
 		return nil, fmt.Errorf("cgroupfs not found: %w", err)
 	}
-	nameCache, err := newCgroupNameCache(fs)
+	nameCache, err := newCgroupNameCache(fs, options.updates)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create name cache: %w", err)
 	}
@@ -256,6 +274,11 @@ func (t *Tracker) CgroupFullName(id uint64) string {
 
 func (t *Tracker) CgroupBaseName(id uint64) string {
 	return t.nameCache.cgroupBaseName(id)
+}
+
+// SnapshotNames returns an owned copy of the cgroup name cache.
+func (t *Tracker) SnapshotNames() []CgroupNameSnapshot {
+	return t.nameCache.snapshot()
 }
 
 // Cgroup name must be in /sys/fs/cgroup/freezer hierarchy

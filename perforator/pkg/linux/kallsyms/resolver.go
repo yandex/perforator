@@ -18,6 +18,24 @@ type KallsymsResolver struct {
 	sorted    bool
 }
 
+type Symbol struct {
+	Address uint64
+	Name    string
+}
+
+// Snapshot returns an owned, address-sorted symbol table with module-qualified names.
+func (k *KallsymsResolver) Snapshot() []Symbol {
+	result := make([]Symbol, len(k.addresses))
+	for i, address := range k.addresses {
+		name := k.symbols[i]
+		if k.modules[i] != "" {
+			name = name + "@" + k.modules[i]
+		}
+		result[i] = Symbol{Address: address, Name: name}
+	}
+	return result
+}
+
 func (k *KallsymsResolver) addSymbol(address uint64, name, module string) {
 	if k.sorted && len(k.addresses) > 0 && k.addresses[len(k.addresses)-1] >= address {
 		k.sorted = false
@@ -53,7 +71,7 @@ func (k *KallsymsResolver) Resolve(address uint64) string {
 	if mod == "" {
 		return sym
 	} else {
-		return fmt.Sprintf("%s@%s", sym, mod)
+		return sym + "@" + mod
 	}
 }
 

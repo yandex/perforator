@@ -42,6 +42,25 @@ type DSO struct {
 	bpfAllocation      *bpf.Allocation
 }
 
+// CopyTLSNames returns an owned copy of TLS names keyed by sample offsets.
+func (d *DSO) CopyTLSNames() map[uint64]string {
+	if d == nil {
+		return nil
+	}
+	d.bpfAllocationMutex.Lock()
+	defer d.bpfAllocationMutex.Unlock()
+	if d.bpfAllocation == nil {
+		return nil
+	}
+	d.bpfAllocation.TLSMutex.RLock()
+	defer d.bpfAllocation.TLSMutex.RUnlock()
+	result := make(map[uint64]string, len(d.bpfAllocation.TLSMap))
+	for offset, name := range d.bpfAllocation.TLSMap {
+		result[offset] = name
+	}
+	return result
+}
+
 type BinaryClass int
 
 const (
@@ -59,6 +78,7 @@ type refCountedDSO struct {
 	*DSO
 	refCount int32 // Guarded by RWMutex in Registry
 	cached   ccache.TrackedItem[*DSO]
+	ready    chan struct{}
 }
 
 type registryMetrics struct {
@@ -209,12 +229,13 @@ func (d *Registry) ensure(buildID string, newDSO *refCountedDSO) (*refCountedDSO
 	return newDSO, true
 }
 
-// Return existing DSO if it exists, otherwise build unwind table and store new DSO
+// register acquires a DSO reference after initialization finishes, even if analysis fails.
 func (d *Registry) register(ctx context.Context, buildInfo *xelf.BuildInfo, file binary.UnsealedFile) *DSO {
 	buildID := buildInfo.BuildID
 
 	rcdso := d.acquireIfExists(buildID)
 	if rcdso != nil {
+		<-rcdso.ready
 		return rcdso.DSO
 	}
 
@@ -229,13 +250,16 @@ func (d *Registry) register(ctx context.Context, buildInfo *xelf.BuildInfo, file
 		DSO:      item.Value(),
 		refCount: 1,
 		cached:   item,
+		ready:    make(chan struct{}),
 	}
 
 	dso, inserted := d.ensure(buildID, newDSO)
 	if !inserted {
 		item.Release()
+		<-dso.ready
 		return dso.DSO
 	}
+	defer close(dso.ready)
 
 	if file != nil {
 		d.populateDSO(ctx, dso.DSO, file.GetFile())

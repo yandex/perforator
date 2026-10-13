@@ -32,10 +32,10 @@ func (l *publicationListener) OnProcessRescan(_ context.Context, info ProcessInf
 
 type testMetadataPublisher struct {
 	lifetimeListener
-	publish func(ProcessInfo) error
+	publish func(MetadataSnapshot) error
 }
 
-func (p *testMetadataPublisher) PublishProcess(_ context.Context, info ProcessInfo) error {
+func (p *testMetadataPublisher) PublishProcess(_ context.Context, info MetadataSnapshot) error {
 	return p.publish(info)
 }
 
@@ -94,12 +94,12 @@ func TestProcessMetadataPublishedBeforeBPFActivation(t *testing.T) {
 			info.startTime.Store(100)
 			info.listenersNotified = rescan
 			var events []string
-			publisher := &testMetadataPublisher{publish: func(snapshot ProcessInfo) error {
-				require.Equal(t, "VALUE", snapshot.Env()["my_env"])
-				mappings := snapshot.Mappings()
+			publisher := &testMetadataPublisher{publish: func(snapshot MetadataSnapshot) error {
+				require.Equal(t, "VALUE", snapshot.Environment["my_env"])
+				mappings := snapshot.Mappings
 				require.Len(t, mappings, 1)
-				require.Equal(t, "/bin/app", mappings[0].Path())
-				require.Equal(t, linux.ProcessKey{Pid: 42, ProcessStartTime: 100}, snapshot.Key())
+				require.Equal(t, "/bin/app", mappings[0].Path)
+				require.Equal(t, linux.ProcessKey{Pid: 42, ProcessStartTime: 100}, snapshot.Key)
 				events = append(events, "metadata")
 				return nil
 			}}
@@ -118,9 +118,10 @@ func TestProcessMetadataPublishedBeforeBPFActivation(t *testing.T) {
 				return nil
 			}}
 			a := processAnalyzer{
-				reg:  &ProcessRegistry{state: state, listeners: []Listener{listener, lifetime}, metadataPublisher: publisher},
+				reg:  &ProcessRegistry{state: state, listeners: []Listener{listener, lifetime}, metadataPublisher: publisher, dsoStorage: newLifecycleTestRegistry(t).dsoStorage},
 				proc: info, startTime: 100, log: xlog.ForTest(t),
-				exemappings: []*dso.Mapping{mapping},
+				exemappings:      []*dso.Mapping{mapping},
+				preparedMappings: []*dso.Mapping{mapping},
 			}
 			a.reg.procs = map[linux.CurrentNamespacePID]*processInfo{a.proc.Key().Pid: a.proc}
 			require.NoError(t, a.storeBPFMaps(t.Context()))
@@ -131,7 +132,7 @@ func TestProcessMetadataPublishedBeforeBPFActivation(t *testing.T) {
 }
 
 func TestDeletedProcessMetadataIsNotRepublished(t *testing.T) {
-	publisher := &testMetadataPublisher{publish: func(ProcessInfo) error {
+	publisher := &testMetadataPublisher{publish: func(MetadataSnapshot) error {
 		t.Fatal("deleted process metadata was republished")
 		return nil
 	}}
@@ -152,7 +153,7 @@ func TestFailedProcessActivationDoesNotNotifyListeners(t *testing.T) {
 			failure := errors.New("activation failed")
 			fail := true
 			listener := &lifetimeListener{}
-			publisher := &testMetadataPublisher{publish: func(ProcessInfo) error {
+			publisher := &testMetadataPublisher{publish: func(MetadataSnapshot) error {
 				if fail && stage == "metadata" {
 					return failure
 				}
@@ -166,7 +167,7 @@ func TestFailedProcessActivationDoesNotNotifyListeners(t *testing.T) {
 				return nil
 			}}
 			a := processAnalyzer{
-				reg:  &ProcessRegistry{state: state, listeners: []Listener{listener}, metadataPublisher: publisher},
+				reg:  &ProcessRegistry{state: state, listeners: []Listener{listener}, metadataPublisher: publisher, dsoStorage: newLifecycleTestRegistry(t).dsoStorage},
 				proc: info, startTime: 100, log: xlog.ForTest(t),
 			}
 			a.reg.procs = map[linux.CurrentNamespacePID]*processInfo{a.proc.Key().Pid: a.proc}
@@ -224,7 +225,7 @@ func TestPIDReuseStartsNewListenerLifetime(t *testing.T) {
 	r := newLifecycleTestRegistry(t)
 	listener := &lifetimeListener{}
 	r.listeners = []Listener{listener}
-	publisher := &testMetadataPublisher{publish: func(ProcessInfo) error { return nil }}
+	publisher := &testMetadataPublisher{publish: func(MetadataSnapshot) error { return nil }}
 	r.metadataPublisher = publisher
 	require.True(t, r.DiscoverProcess(t.Context(), linux.ProcessKey{Pid: 42, ProcessStartTime: 100}))
 	old := r.procs[42]

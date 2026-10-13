@@ -110,6 +110,13 @@ type nameCache interface {
 	populate() error
 	cgroupVersion() CgroupVersion
 	cgroupPrefix() string
+	snapshot() []CgroupNameSnapshot
+}
+
+type CgroupNameSnapshot struct {
+	ID       uint64
+	BaseName string
+	FullName string
 }
 
 type cgroupNameCache struct {
@@ -118,13 +125,15 @@ type cgroupNameCache struct {
 	mu          sync.RWMutex
 	id2baseName map[uint64]string
 	id2fullName map[uint64]string
+	updateCh    chan<- struct{}
 }
 
-func newCgroupNameCache(fs *cgroupFS) (*cgroupNameCache, error) {
+func newCgroupNameCache(fs *cgroupFS, updates chan<- struct{}) (*cgroupNameCache, error) {
 	m := &cgroupNameCache{
 		fs:          fs,
 		id2baseName: make(map[uint64]string),
 		id2fullName: make(map[uint64]string),
+		updateCh:    updates,
 	}
 	go func() { _ = m.populate() }()
 	return m, nil
@@ -200,12 +209,22 @@ func (m *cgroupNameCache) addCgroup(name string) (uint64, error) {
 		return ^uint64(0), err
 	}
 
+	m.recordName(id, filepath.Base(cgpath), name)
+	return id, nil
+}
+
+func (m *cgroupNameCache) recordName(id uint64, baseName, name string) {
 	m.mu.Lock()
-	m.id2baseName[id] = filepath.Base(cgpath)
+	changed := m.updateCh != nil && (m.id2baseName[id] != baseName || m.id2fullName[id] != name)
+	m.id2baseName[id] = baseName
 	m.id2fullName[id] = name
 	m.mu.Unlock()
-
-	return id, nil
+	if changed {
+		select {
+		case m.updateCh <- struct{}{}:
+		default:
+		}
+	}
 }
 
 func (m *cgroupNameCache) cgroupFullName(id uint64) string {
@@ -227,4 +246,18 @@ func (m *cgroupNameCache) cgroupVersion() CgroupVersion {
 
 func (m *cgroupNameCache) cgroupPrefix() string {
 	return m.fs.prefix
+}
+
+func (m *cgroupNameCache) snapshot() []CgroupNameSnapshot {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	result := make([]CgroupNameSnapshot, 0, len(m.id2fullName))
+	for id, fullName := range m.id2fullName {
+		result = append(result, CgroupNameSnapshot{
+			ID:       id,
+			BaseName: m.id2baseName[id],
+			FullName: fullName,
+		})
+	}
+	return result
 }

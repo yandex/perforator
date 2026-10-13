@@ -5,6 +5,7 @@ import (
 	eb "encoding/binary"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"math/bits"
 	"os"
@@ -965,16 +966,27 @@ func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
 		return fmt.Errorf("failed to synchronize process mappings: %w", err)
 	}
 
-	// The publisher may synchronously read process metadata. Publication must
-	// succeed before the updated process becomes available for new sampling.
+	var mainMapping *dso.Mapping
+	if len(a.exemappings) > 0 {
+		mainMapping = a.exemappings[0]
+	}
+
 	if a.reg.metadataPublisher != nil {
-		if err := a.reg.metadataPublisher.PublishProcess(ctx, a.proc); err != nil {
+		snapshot := MetadataSnapshot{
+			Key:         a.proc.Key(),
+			Mappings:    a.reg.dsoStorage.SnapshotMappings(ctx, a.proc.currentNamespaceID),
+			Environment: maps.Clone(a.proc.Env()),
+		}
+		if mainMapping != nil && mainMapping.DSO != nil {
+			snapshot.TLSNames = mainMapping.DSO.CopyTLSNames()
+		}
+		if err := a.reg.metadataPublisher.PublishProcess(ctx, snapshot); err != nil {
 			return fmt.Errorf("failed to publish process metadata: %w", err)
 		}
 	}
 	pi := newProcessInfo()
-	if len(a.exemappings) > 0 && a.exemappings[0].DSO != nil {
-		pi.MainBinaryId = unwinder.BinaryId(a.exemappings[0].DSO.ID)
+	if mainMapping != nil && mainMapping.DSO != nil {
+		pi.MainBinaryId = unwinder.BinaryId(mainMapping.DSO.ID)
 	}
 	a.fillMappedBinaryInfo(pi, a.exemappings)
 	if pi.LibjvmBinary.BaseAddress != math.MaxUint64 {

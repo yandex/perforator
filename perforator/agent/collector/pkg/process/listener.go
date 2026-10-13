@@ -34,15 +34,23 @@ type Listener interface {
 	OnProcessDeath(ctx context.Context, key linux.ProcessKey)
 }
 
+// MetadataSnapshot owns the process metadata passed to a publisher.
+type MetadataSnapshot struct {
+	Key         linux.ProcessKey
+	Mappings    []dso.MappingSnapshot
+	Environment map[string]string
+	TLSNames    map[uint64]string
+}
+
 // MetadataPublisher synchronously publishes sample metadata before BPF activation.
 // It is separate from Listener, whose callbacks report a process ready to sample.
-// The registry serializes publication and death per PID and keeps ProcessInfo
-// stable for the duration of each callback. Callbacks must not reenter discovery.
+// The registry serializes publication and death per PID.
+// Callbacks must not reenter discovery.
 // With a publisher, updated mappings must not become available for new sampling
 // until publication and activation succeed, including on rescans. Failed updates
 // may be retried within the same process lifetime. Samples already in flight or
 // buffered in the perf ring are not drained by this contract.
 type MetadataPublisher interface {
-	PublishProcess(ctx context.Context, info ProcessInfo) error
+	PublishProcess(ctx context.Context, snapshot MetadataSnapshot) error
 	OnProcessDeath(ctx context.Context, key linux.ProcessKey)
 }

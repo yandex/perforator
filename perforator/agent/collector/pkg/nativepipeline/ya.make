@@ -7,4 +7,8 @@ PEERDIR(
 
 CGO_SRCS(state_cgo.go)
 
+SRCS(
+    process_listener.go
+)
+
 END()

@@ -120,6 +120,16 @@ func (n *testNameCache) cgroupPrefix() string {
 	panic("cgroupPrefix unsupported")
 }
 
+func (n *testNameCache) snapshot() []CgroupNameSnapshot {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+	result := make([]CgroupNameSnapshot, 0, len(n.reverseCache))
+	for id, name := range n.reverseCache {
+		result = append(result, CgroupNameSnapshot{ID: id, BaseName: filepath.Base(name), FullName: name})
+	}
+	return result
+}
+
 func TestTracker_Simple(t *testing.T) {
 	logger, err := createLogger()
 	require.NoError(t, err)

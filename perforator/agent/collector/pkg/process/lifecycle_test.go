@@ -271,8 +271,8 @@ func TestWorkerProcessesNewIdentityAfterFailedAnalysis(t *testing.T) {
 			}
 			r.DiscoverProcess(t.Context(), linux.ProcessKey{Pid: 42, ProcessStartTime: startTime})
 			var published []uint64
-			r.metadataPublisher = &testMetadataPublisher{publish: func(info ProcessInfo) error {
-				published = append(published, info.Key().ProcessStartTime)
+			r.metadataPublisher = &testMetadataPublisher{publish: func(info MetadataSnapshot) error {
+				published = append(published, info.Key.ProcessStartTime)
 				return nil
 			}}
 			activated := make(chan linux.CurrentNamespacePID, 1)
@@ -321,8 +321,8 @@ func TestBlockedPublicationDoesNotBlockOtherPIDs(t *testing.T) {
 	r.DiscoverProcess(t.Context(), linux.ProcessKey{Pid: 43, ProcessStartTime: 100})
 	entered, release := make(chan struct{}), make(chan struct{})
 	releasePublication := sync.OnceFunc(func() { close(release) })
-	r.metadataPublisher = &testMetadataPublisher{publish: func(info ProcessInfo) error {
-		if info.Key().Pid == 42 {
+	r.metadataPublisher = &testMetadataPublisher{publish: func(info MetadataSnapshot) error {
+		if info.Key.Pid == 42 {
 			close(entered)
 			<-release
 		}
@@ -363,8 +363,8 @@ func TestReuseWaitsForPublicationBeforeRetiringOldLifetime(t *testing.T) {
 	r.listeners = []Listener{listener}
 	entered, release := make(chan struct{}), make(chan struct{})
 	releasePublication := sync.OnceFunc(func() { close(release) })
-	r.metadataPublisher = &testMetadataPublisher{publish: func(info ProcessInfo) error {
-		if info.Key().ProcessStartTime == 100 {
+	r.metadataPublisher = &testMetadataPublisher{publish: func(info MetadataSnapshot) error {
+		if info.Key.ProcessStartTime == 100 {
 			close(entered)
 			<-release
 		}

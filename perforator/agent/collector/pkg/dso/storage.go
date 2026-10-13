@@ -45,6 +45,35 @@ type Mapping struct {
 	BaseAddress Address
 }
 
+// MappingSnapshot describes an executable process address range [Begin, End).
+type MappingSnapshot struct {
+	Begin uint64
+	End   uint64
+	// EffectiveOffset translates an IP to a profile binary address: IP - Begin + EffectiveOffset.
+	EffectiveOffset uint64
+	// FileOffset is the byte offset in the mapped file corresponding to Begin.
+	FileOffset uint64
+	Path       string
+	BuildID    string
+}
+
+func (m *Mapping) Snapshot() MappingSnapshot {
+	result := MappingSnapshot{
+		Begin:           uint64(m.Begin),
+		End:             uint64(m.End),
+		EffectiveOffset: m.Offset,
+		FileOffset:      m.Offset,
+		Path:            m.Path,
+	}
+	if m.BuildInfo != nil {
+		result.BuildID = m.BuildInfo.BuildID
+		if m.BuildInfo.FirstPhdr != nil {
+			result.EffectiveOffset = uint64(m.Begin - m.BaseAddress - m.BuildInfo.FirstPhdr.Vaddr)
+		}
+	}
+	return result
+}
+
 // Resolved location inside DSO.
 type Location struct {
 	// Path to the DSO, relative to the process mount namespace.
@@ -251,6 +280,25 @@ func (d *Storage) ResolveTLSName(ctx context.Context, pid linux.CurrentNamespace
 		return "", ErrNoTLSAtOffset
 	}
 	return name, nil
+}
+
+// SnapshotMappings returns an owned copy of all stored executable mappings,
+// sorted by address, including mappings without a BPF binary ID.
+func (d *Storage) SnapshotMappings(ctx context.Context, pid linux.CurrentNamespacePID) []MappingSnapshot {
+	maps := d.findProcess(pid)
+	if maps == nil {
+		return nil
+	}
+
+	maps.lock.RLock()
+	defer maps.lock.RUnlock()
+	maps.sortForReadLocked(ctx)
+
+	result := make([]MappingSnapshot, 0, len(maps.maps))
+	for i := range maps.maps {
+		result = append(result, maps.maps[i].Mapping.Snapshot())
+	}
+	return result
 }
 
 // Get or create process maps.
