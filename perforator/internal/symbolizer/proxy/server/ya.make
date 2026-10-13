@@ -5,10 +5,10 @@ SRCS(
     banned_users.go
     config.go
     debuginfod.go
-    llvm_tools.go
     merge.go
     methods.go
     microscope.go
+    pgo.go
     render.go
     server.go
     services.go

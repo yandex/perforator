@@ -498,7 +498,7 @@ func (s *PerforatorServer) processLBRProfiles(
 	datas []profilestorage.ProfileData,
 	buildID string,
 ) (autofdo.ProcessedLBRData, error) {
-	binary, err := s.llvmTools.binaryProvider.Acquire(ctx, buildID)
+	binary, err := s.pgoGenerator.binaryProvider.Acquire(ctx, buildID)
 	if err != nil {
 		return autofdo.ProcessedLBRData{}, err
 	}
@@ -602,9 +602,9 @@ func (s *PerforatorServer) doGeneratePGOProfile(
 	var profile *LLVMPGOProfile
 	switch v := format.GetFormat().(type) {
 	case *perforator.PGOProfileFormat_AutoFDO:
-		profile, err = s.llvmTools.CreateAutofdoProfile(ctx, []byte(autofdoInput.Data.AutofdoInput), autofdoInput.BuildID)
+		profile, err = s.pgoGenerator.CreateAutofdoProfile(ctx, []byte(autofdoInput.Data.AutofdoInput), autofdoInput.BuildID)
 	case *perforator.PGOProfileFormat_Bolt:
-		profile, err = s.llvmTools.CreateBoltProfile(ctx, []byte(autofdoInput.Data.BoltInput), autofdoInput.BuildID)
+		profile, err = s.pgoGenerator.CreateBoltProfile(ctx, []byte(autofdoInput.Data.BoltInput), autofdoInput.BuildID)
 	default:
 		return nil, nil, fmt.Errorf("unsupported PGO render format: %T", v)
 	}

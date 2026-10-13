@@ -123,7 +123,7 @@ type PerforatorServer struct {
 
 	bpClient *bpclient.Client
 
-	llvmTools LLVMTools
+	pgoGenerator PGOGenerator
 
 	grpcServer   *grpc.Server
 	healthServer *health.Server
@@ -209,8 +209,8 @@ func NewPerforatorServer(
 		return nil, fmt.Errorf("failed to initialize binary downloaders: %w", err)
 	}
 
-	llvmTools := NewLLVMTools(
-		l.WithName("llvmTools"),
+	pgoGenerator := NewPGOGenerator(
+		l.WithName("pgoGenerator"),
 		conf.PGOConfig,
 		binaryDownloader,
 	)
@@ -306,7 +306,7 @@ func NewPerforatorServer(
 		tasksemaphore:               semaphore.NewWeighted(conf.Tasks.ConcurrencyLimit),
 		httpclient:                  resty.New().SetTimeout(time.Hour).SetRetryCount(3),
 		binaryDownloader:            binaryDownloader,
-		llvmTools:                   llvmTools,
+		pgoGenerator:                pgoGenerator,
 		symbolizer:                  symbolizer,
 		mergemanager:                mergemanager,
 		bpClient:                    bpClient,

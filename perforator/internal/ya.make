@@ -9,6 +9,7 @@ RECURSE(
     linguist
     logfield
     offline_processing
+    pgo
     symbolizer
     symboltable
     unwinder
