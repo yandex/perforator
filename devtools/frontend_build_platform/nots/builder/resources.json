@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-14T02:00:49Z",
+    "created": "2026-10-14T14:59:21Z",
     "pr": {
-      "id": 16432855,
+      "id": 16468413,
       "author": "baymer",
-      "summary": "FBP-3518: Поддержать file-зависимости Tier 0 и запретить workspace overrides"
+      "summary": "TRIVIAL: add tier0-settings"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14056240105"
+      "uri": "sbr:14059979400"
     },
     "darwin-arm64": {
-      "uri": "sbr:14056239710"
+      "uri": "sbr:14059978014"
     },
     "linux": {
-      "uri": "sbr:14056241086"
+      "uri": "sbr:14059982184"
     },
     "linux-aarch64": {
-      "uri": "sbr:14056240545"
+      "uri": "sbr:14059980692"
     }
   }
 }
