@@ -469,3 +469,28 @@ def test_build_workspace_preserves_manifest_format_without_pnpm_changes(tmp_path
     )
     pm.build_workspace("__tarballs__", True)
     assert Path(pm.build_path, "package.json").read_text() == manifest
+
+
+def test_build_workspace_rebases_common_workspace_override(tmp_path):
+    source_root = tmp_path / "source"
+    source_path = source_root / "project/pkg"
+    build_path = tmp_path / "build/project/pkg"
+    source_path.mkdir(parents=True)
+    (source_path.parent / "common.yaml").write_text("overrides: {toolkit: 'file:./toolkit'}\n")
+    (source_path / "package.json").write_text('{"nots":{"commonConfigPath":"../common.yaml"}}')
+    (source_path / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n")
+    pm = object.__new__(package_manager_module.PackageManager)
+    pm.sources_path = str(source_path)
+    pm.sources_root = str(source_root)
+    pm.build_path = str(build_path)
+    pm.module_path = "project/pkg"
+    pm.build_root = str(tmp_path / "build")
+    peer_path = build_path.parent / "toolkit"
+    peer_path.mkdir(parents=True)
+    (peer_path / "pnpm-workspace.yaml").write_text("packages: []\ncatalogs: {peer/common: {foo: '1.0.0'}}")
+    pm.build_workspace("__tarballs__", True)
+    workspace = yaml.safe_load((build_path / "pnpm-workspace.yaml").read_text())
+    assert workspace["overrides"] == {"toolkit": "file:../toolkit"}
+    assert workspace["catalogs"] == {"peer/common": {"foo": "1.0.0"}}
+    assert workspace["packages"] == []
+    assert _load_package_json(str(build_path / "package.json")).data["pnpm"]["overrides"] == workspace["overrides"]

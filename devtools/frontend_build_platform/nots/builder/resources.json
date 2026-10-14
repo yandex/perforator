@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-09T23:28:37.196Z",
+    "created": "2026-10-13T20:33:09.837Z",
     "pr": {
-      "id": 16170614,
+      "id": 16432855,
       "author": "baymer",
-      "summary": "FBP-3463: NOTS: самостоятельные установки и общая конфигурация pnpm"
+      "summary": "FBP-3518: Поддержать file-зависимости Tier 0 и запретить workspace overrides"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14037746872"
+      "uri": "sbr:14055324171"
     },
     "darwin-arm64": {
-      "uri": "sbr:14037745701"
+      "uri": "sbr:14055323621"
     },
     "linux": {
-      "uri": "sbr:14037749168"
+      "uri": "sbr:14055325618"
     },
     "linux-aarch64": {
-      "uri": "sbr:14037748011"
+      "uri": "sbr:14055324857"
     }
   }
 }

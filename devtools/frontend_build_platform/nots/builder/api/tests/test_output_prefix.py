@@ -66,3 +66,20 @@ def test_normalize_prefix(raw, expected):
 def test_invalid_prefix(prefix):
     with pytest.raises(ValueError):
         normalize_output_prefix(prefix)
+
+
+def test_extract_peer_tars_includes_common_file_overrides(tmp_path, monkeypatch):
+    from devtools.frontend_build_platform.nots.builder.api import utils
+
+    root = tmp_path / "root"
+    peer = tmp_path / "peer"
+    root.mkdir()
+    peer.mkdir()
+    (root / "package.json").write_text('{"pnpm":{"overrides":{"foo":"file:../peer","archive":"file:../archive.tgz"}}}')
+    (peer / "package.json").write_text('{"name":"foo"}')
+    extracted = []
+    monkeypatch.setattr(
+        utils, "extract_all_output_tars", lambda directory, visited, build_root: extracted.append(directory)
+    )
+    utils.extract_peer_tars(str(root))
+    assert extracted == [str(peer)]

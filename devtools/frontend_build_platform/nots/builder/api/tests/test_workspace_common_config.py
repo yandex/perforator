@@ -109,7 +109,7 @@ def test_build_workspace_imports_prepared_override_peer_catalogs_without_peer_so
             "nots": {"commonConfigPath": "../common.yaml"},
         },
     )
-    (root / "project/common.yaml").write_text("overrides: {peer: 'workspace:./peer'}\n")
+    (root / "project/common.yaml").write_text("overrides: {peer: 'file:./peer'}\n")
     peer_path = build_root / "project/peer"
     peer_path.mkdir(parents=True)
     peer = PnpmWorkspace(str(peer_path / "pnpm-workspace.yaml"))
@@ -132,4 +132,4 @@ def test_build_workspace_imports_prepared_override_peer_catalogs_without_peer_so
     pm._build_merged_lockfile = lambda *args: None
     result = pm.build_workspace("__tarballs__", True)
     assert result.catalogs == peer.catalogs
-    assert result.settings == {"overrides": {"peer": "workspace:../peer"}}
+    assert result.settings == {"overrides": {"peer": "file:../peer"}}

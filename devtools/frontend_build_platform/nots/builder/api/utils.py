@@ -46,7 +46,15 @@ def extract_peer_tars(moddir_abs: str, visited: set[str] | None = None, build_ro
         visited = set()
     moddir_abs = _resolve_build_root(moddir_abs, build_root)
     pj = PackageJson.load(pm_utils.build_pj_path(moddir_abs))
-    for dep_path in pj.get_workspace_dep_paths():
+    dep_paths = set(pj.get_workspace_dep_paths())
+    # File overrides can introduce built peers without direct dependency entries.
+    # Extract those artifacts before pnpm reads the peer package.
+    for spec in pj.data.get("pnpm", {}).get("overrides", {}).values():
+        if spec.startswith("file:") and not os.path.isabs(spec[len("file:") :]):
+            peer_dir = os.path.normpath(os.path.join(moddir_abs, spec[len("file:") :]))
+            if os.path.isfile(pm_utils.build_pj_path(peer_dir)):
+                dep_paths.add(peer_dir)
+    for dep_path in sorted(dep_paths):
         extract_all_output_tars(dep_path, visited, build_root)
 
 
