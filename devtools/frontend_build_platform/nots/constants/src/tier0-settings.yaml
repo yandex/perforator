@@ -65,6 +65,23 @@ pnpm:
     # https://pnpm.io/10.x/settings#dedupepeerdependents
     dedupePeerDependents: true
 
+    # Временная мера при нестабильности S3 (DEVTOOLSSUPPORT-97777).
+    # Удалить после стабилизации: два ретрая с паузами 30 и 60 секунд.
+    # https://pnpm.io/10.x/settings#fetchretries
+    fetchRetries: 2
+
+    # Множитель увеличения паузы между повторными запросами.
+    # https://pnpm.io/10.x/settings#fetchretryfactor
+    fetchRetryFactor: 2
+
+    # Начальная пауза перед повторным запросом, в миллисекундах.
+    # https://pnpm.io/10.x/settings#fetchretrymintimeout
+    fetchRetryMintimeout: 30000
+
+    # Максимальная пауза перед повторным запросом, в миллисекундах.
+    # https://pnpm.io/10.x/settings#fetchretrymaxtimeout
+    fetchRetryMaxtimeout: 120000
+
     # Не выполнять пользовательские pnpmfile hooks, меняющие разрешение зависимостей.
     # https://pnpm.io/pnpmfile#ignorepnpmfile
     ignorePnpmfile: true
