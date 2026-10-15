@@ -49,6 +49,11 @@ type Config struct {
 	TraceLBR *bool `yaml:"trace_lbr"`
 	// Collect BRS on AMD. Requires `trace_lbr`.
 	TraceLBROnAMD *bool `yaml:"trace_lbr_on_amd"`
+	// Sampling period for the dedicated AMD BRS event, in events between samples.
+	// Zero uses the default sampling period.
+	// Only applies when trace_lbr and trace_lbr_on_amd
+	// are enabled on a supported AMD CPU; this field does not enable BRS itself.
+	AMDBRSSampleRate uint64 `yaml:"amd_brs_sample_rate"`
 	// Trace potentially fatal signals.
 	TraceSignals *bool `yaml:"trace_signals"`
 	// Trace wall time.

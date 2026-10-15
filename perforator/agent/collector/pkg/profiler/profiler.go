@@ -843,14 +843,18 @@ func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
 
 	p.log.Info("Trying to enable AMD BRS perf-event")
 
+	sampleRate := p.conf.BPF.AMDBRSSampleRate
+	if sampleRate == 0 {
+		sampleRate = 1000009
+	}
+
 	target := &perfevent.Target{
 		WholeSystem: true,
 	}
 	options := &perfevent.Options{
 		Type: perfevent.AMDFam19hBRS,
 		// Frequency is not supported here, so we have to provide sampling period.
-		// This value seems reasonable to me, but could be easily changed.
-		SampleRate:             ptr.T(uint64(1000009)),
+		SampleRate:             ptr.T(sampleRate),
 		TryToSampleBranchStack: true,
 	}
 
