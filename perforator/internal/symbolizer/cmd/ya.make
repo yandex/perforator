@@ -6,13 +6,17 @@ SRCS(
     list.go
     microscope.go
     profile.go
+    profile_merge.go
     root.go
     sink.go
     symbolize.go
     symbolize_batch.go
 )
 
-GO_TEST_SRCS(symbolize_batch_test.go)
+GO_TEST_SRCS(
+    symbolize_batch_test.go
+    profile_merge_test.go
+)
 
 IF (OS_LINUX)
     SRCS(

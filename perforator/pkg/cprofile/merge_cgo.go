@@ -59,9 +59,9 @@ func (m *MergeManager) Start(opts *pb.MergeOptions) (*MergeSession, error) {
 		return nil, err
 	}
 
-	session := &MergeSession{merger}
-	runtime.SetFinalizer(session, func(m *MergeSession) {
-		session.Close()
+	session := &MergeSession{session: merger, manager: m}
+	runtime.SetFinalizer(session, func(s *MergeSession) {
+		s.Close()
 	})
 
 	return session, nil
@@ -71,6 +71,7 @@ func (m *MergeManager) Start(opts *pb.MergeOptions) (*MergeSession, error) {
 
 type MergeSession struct {
 	session C.TPerforatorProfileMerger
+	manager *MergeManager
 }
 
 func (s *MergeSession) AddYaprofProfile(data []byte) error {
@@ -95,6 +96,7 @@ func (s *MergeSession) AddPProfProfile(data []byte) error {
 
 func (s *MergeSession) addProfile(profile *Profile) error {
 	perr := C.PerforatorMergerAddProfile(s.session, profile.ptr)
+	runtime.KeepAlive(s)
 	if err := unwrap(perr); err != nil {
 		return err
 	}
@@ -105,6 +107,7 @@ func (s *MergeSession) addProfile(profile *Profile) error {
 func (s *MergeSession) Finish() (*Profile, error) {
 	var profile C.TPerforatorProfile
 	perr := C.PerforatorMergerFinish(s.session, &profile)
+	runtime.KeepAlive(s)
 	if err := unwrap(perr); err != nil {
 		return nil, err
 	}
@@ -116,6 +119,7 @@ func (s *MergeSession) Close() {
 		C.PerforatorMergerDispose(s.session)
 		s.session = nil
 	}
+	s.manager = nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -21,6 +21,7 @@ IF (CGO_ENABLED)
 
     GO_TEST_SRCS(
         bytes_cgo_test.go
+        merge_cgo_test.go
     )
 ELSE()
     SRCS(

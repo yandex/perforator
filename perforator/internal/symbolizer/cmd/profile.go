@@ -83,6 +83,7 @@ func makeProfileCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(makeFlamegraphCmd())
+	cmd.AddCommand(makeMergeCmd())
 	cmd.AddCommand(makeTextFormatCmd())
 	return cmd
 }
