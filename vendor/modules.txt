@@ -17567,7 +17567,7 @@ github.com/tidwall/pretty
 # github.com/tidwall/sjson v1.2.5
 ## explicit; go 1.14
 github.com/tidwall/sjson
-# github.com/tiendc/go-deepcopy v1.6.0
+# github.com/tiendc/go-deepcopy v1.7.1
 ## explicit; go 1.18
 github.com/tiendc/go-deepcopy
 # github.com/tiktoken-go/tokenizer v0.7.0
@@ -18424,10 +18424,10 @@ github.com/xrash/smetrics
 # github.com/xuri/efp v0.0.1
 ## explicit; go 1.11
 github.com/xuri/efp
-# github.com/xuri/excelize/v2 v2.9.1
-## explicit; go 1.23.0
+# github.com/xuri/excelize/v2 v2.10.0
+## explicit; go 1.24.0
 github.com/xuri/excelize/v2
-# github.com/xuri/nfp v0.0.1
+# github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9
 ## explicit; go 1.15
 github.com/xuri/nfp
 # github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2
