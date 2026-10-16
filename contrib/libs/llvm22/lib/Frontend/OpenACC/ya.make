@@ -10,6 +10,7 @@ VERSION(22.1.7)
 
 PEERDIR(
     contrib/libs/llvm22
+    contrib/libs/llvm22/lib/Frontend/Directive
     contrib/libs/llvm22/lib/Support
 )
 

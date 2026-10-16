@@ -14,6 +14,7 @@ PEERDIR(
     contrib/libs/llvm22/lib/Bitcode/Reader
     contrib/libs/llvm22/lib/Demangle
     contrib/libs/llvm22/lib/Frontend/Atomic
+    contrib/libs/llvm22/lib/Frontend/Directive
     contrib/libs/llvm22/lib/Frontend/Offloading
     contrib/libs/llvm22/lib/IR
     contrib/libs/llvm22/lib/MC

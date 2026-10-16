@@ -36,6 +36,7 @@ PEERDIR(
     contrib/libs/llvm22/lib/DebugInfo/Symbolize
     contrib/libs/llvm22/lib/Demangle
     contrib/libs/llvm22/lib/Frontend/Atomic
+    contrib/libs/llvm22/lib/Frontend/Directive
     contrib/libs/llvm22/lib/Frontend/HLSL
     contrib/libs/llvm22/lib/Frontend/Offloading
     contrib/libs/llvm22/lib/Frontend/OpenMP

@@ -38,6 +38,7 @@ PEERDIR(
     contrib/libs/llvm22/lib/ExecutionEngine/Orc/TargetProcess
     contrib/libs/llvm22/lib/ExecutionEngine/RuntimeDyld
     contrib/libs/llvm22/lib/Frontend/Atomic
+    contrib/libs/llvm22/lib/Frontend/Directive
     contrib/libs/llvm22/lib/Frontend/HLSL
     contrib/libs/llvm22/lib/Frontend/Offloading
     contrib/libs/llvm22/lib/Frontend/OpenMP
