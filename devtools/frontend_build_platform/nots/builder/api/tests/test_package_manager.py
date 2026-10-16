@@ -494,3 +494,88 @@ def test_build_workspace_rebases_common_workspace_override(tmp_path):
     assert workspace["catalogs"] == {"peer/common": {"foo": "1.0.0"}}
     assert workspace["packages"] == []
     assert _load_package_json(str(build_path / "package.json")).data["pnpm"]["overrides"] == workspace["overrides"]
+
+
+@pytest.mark.parametrize("lockfile_version", ["6.0", "9.0"])
+@pytest.mark.parametrize(
+    "name, version, package_path",
+    [
+        ("@emnapi/runtime", "1.11.2", "@emnapi%2fruntime/-/runtime-1.11.2.tgz"),
+        ("lodash", "4.17.21", "lodash/-/lodash-4.17.21.tgz"),
+    ],
+)
+def test_distbuild_without_tarball_uses_same_resource_and_local_path(
+    tmp_path, lockfile_version, name, version, package_path
+):
+    source = tmp_path / "source" / "module"
+    build = tmp_path / "build" / "module"
+    source.mkdir(parents=True)
+    (source / "package.json").write_text('{"dependencies": {"' + name + '": "' + version + '"}}')
+    key = ("/" if lockfile_version == "6.0" else "") + name + "@" + version
+    data = {
+        "lockfileVersion": lockfile_version,
+        "packages": {key: {"resolution": {"integrity": "sha512-aGFzaA=="}}},
+    }
+    source_lockfile = yaml.safe_dump(data)
+    (source / "pnpm-lock.yaml").write_text(source_lockfile)
+    pm = package_manager_module.PackageManager(
+        nodejs_bin_path="/unused/node",
+        script_path="/unused/pnpm",
+        build_root=str(tmp_path / "build"),
+        build_path=str(build),
+        sources_path=str(source),
+        module_path="module",
+        sources_root=str(tmp_path / "source"),
+    )
+
+    _, outputs, resources = pm.calc_prepare_deps_inouts_and_resources("__tarballs__", True, False)
+    pm.build_workspace("__tarballs__", False)
+
+    tarball_path = "__tarballs__/" + package_path.replace("%2f", "/")
+    assert resources == ["https://npm.yandex-team.ru/" + package_path + "#integrity=sha512-aGFzaA=="]
+    assert "$B/module/" + tarball_path in outputs
+    generated = yaml.safe_load((build / "pnpm-lock.yaml").read_text())
+    assert generated["packages"][name + "@" + version]["resolution"] == {
+        "tarball": "file:" + tarball_path,
+        "integrity": "sha512-aGFzaA==",
+    }
+    assert (source / "pnpm-lock.yaml").read_text() == source_lockfile
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "foo?bar@1.2.3",
+        "@scope/foo#bar@1.2.3",
+        "@scope%2fname/foo@1.2.3",
+        "pkg@01.2.3",
+        "pkg@1.2.3-..",
+        "pkg@1.2.3+build..2",
+    ],
+)
+def test_distbuild_rejects_invalid_keys_before_declaring_or_rewriting_tarballs(tmp_path, key):
+    source = tmp_path / "source" / "module"
+    source.mkdir(parents=True)
+    (source / "pnpm-lock.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "lockfileVersion": "9.0",
+                "packages": {key: {"resolution": {"integrity": "sha512-aGFzaA=="}}},
+            }
+        )
+    )
+    pm = package_manager_module.PackageManager(
+        nodejs_bin_path="/unused/node",
+        script_path="/unused/pnpm",
+        build_root=str(tmp_path / "build"),
+        build_path=str(tmp_path / "build" / "module"),
+        sources_path=str(source),
+        module_path="module",
+        sources_root=str(tmp_path / "source"),
+    )
+
+    with pytest.raises(package_manager_module.PackageManagerError, match="cannot infer tarball URL"):
+        pm.calc_prepare_deps_inouts_and_resources("__tarballs__", True, False)
+    with pytest.raises(TypeError, match="cannot infer tarball URL"):
+        pm._build_merged_lockfile("__tarballs__", [], False, True)
+    assert not (tmp_path / "build" / "module" / "pnpm-lock.yaml").exists()
