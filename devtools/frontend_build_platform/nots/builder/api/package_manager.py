@@ -23,7 +23,6 @@ from .utils import copy_writable_file
 from build.plugins.lib.nots.package_manager.common_config import (
     load_common_config,
     rebase_pnpm_settings,
-    normalize_workspace_override_paths,
     join_pnpm_settings,
     PNPM_SETTINGS,
 )
@@ -454,8 +453,6 @@ class PackageManager(BasePackageManager):
         ws.set_from_package_json(pj)
         source_pj = self.load_package_json_from_dir(self.sources_path)
         config_path, ws.catalogs, settings = load_common_config(source_pj, self.sources_root, include_settings=True)
-        original_overrides = dict(settings.get("overrides", {}))
-        original_overrides.update(ws.settings.get("overrides", {}))
         if config_path:
             common_settings = rebase_pnpm_settings(
                 settings,
@@ -466,12 +463,6 @@ class PackageManager(BasePackageManager):
                 self.build_path,
             )
             ws.settings = join_pnpm_settings(common_settings, ws.settings)
-        workspace_root = os.path.normpath(
-            os.path.join(self.build_path, os.path.relpath(self.sources_root, self.sources_path))
-        )
-        ws.settings = normalize_workspace_override_paths(
-            ws.settings, self.build_path, workspace_root, original_overrides
-        )
         # Distbuild delivers prepared peer workspaces, not their source configs.
         # A peer workspace already contains its transitive catalog closure.
         for peer_path in self.get_local_peers_from_package_json():

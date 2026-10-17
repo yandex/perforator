@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-14T14:59:21Z",
+    "created": "2026-10-16T22:26:52.321Z",
     "pr": {
-      "id": 16468413,
+      "id": 16526355,
       "author": "baymer",
-      "summary": "TRIVIAL: add tier0-settings"
+      "summary": "FBP-3521: reject workspace protocol in pnpm overrides"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14059979400"
+      "uri": "sbr:14075483143"
     },
     "darwin-arm64": {
-      "uri": "sbr:14059978014"
+      "uri": "sbr:14075482341"
     },
     "linux": {
-      "uri": "sbr:14059982184"
+      "uri": "sbr:14075485309"
     },
     "linux-aarch64": {
-      "uri": "sbr:14059980692"
+      "uri": "sbr:14075484374"
     }
   }
 }
