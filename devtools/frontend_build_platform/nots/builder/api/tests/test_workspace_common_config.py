@@ -53,7 +53,12 @@ def test_build_workspace_uses_only_target_config(tmp_path):
             "name": "target",
             "dependencies": {"peer": "workspace:../peer"},
             "nots": {"commonConfigPath": "../common.yaml"},
-            "pnpm": {"overrides": {"duplicate": "2", "local": "3"}, "ignoredOptionalDependencies": ["local-optional"]},
+            "pnpm": {
+                "overrides": {"duplicate": "2", "local": "3"},
+                "ignoredOptionalDependencies": ["local-optional"],
+                "supportedArchitectures": {"os": ["darwin"], "cpu": ["arm64"]},
+                "allowedDeprecatedVersions": {"old": "2"},
+            },
         },
     )
     (root / "project/common.yaml").write_text(
@@ -61,13 +66,19 @@ def test_build_workspace_uses_only_target_config(tmp_path):
         "overrides: {duplicate: '1', shared: '1'}\n"
         "patchedDependencies: {foo: patches/foo.patch}\n"
         "ignoredOptionalDependencies: [common-optional]\n"
+        "supportedArchitectures: {os: [current, linux], cpu: [x64], libc: [musl]}\n"
+        "allowedDeprecatedVersions: {old: '1', common: '*'}\n"
     )
     peer_path = tmp_path / "build/project/peer"
     peer_path.mkdir(parents=True)
     peer = PnpmWorkspace(str(peer_path / "pnpm-workspace.yaml"))
     peer.packages = {".", "../transitive"}
     peer.catalogs = {"peer/common": {"foo": "9"}}
-    peer.settings = {"overrides": {"shared": "9", "peer-only": "9"}}
+    peer.settings = {
+        "overrides": {"shared": "9", "peer-only": "9"},
+        "supportedArchitectures": {"os": ["win32"]},
+        "allowedDeprecatedVersions": {"peer-only": "*"},
+    }
     peer.write()
     pm = PackageManager(
         str(tmp_path / "build"),
@@ -84,6 +95,8 @@ def test_build_workspace_uses_only_target_config(tmp_path):
     assert result == {
         "packages": [],
         "ignoredOptionalDependencies": ["common-optional", "local-optional"],
+        "supportedArchitectures": {"os": ["current", "linux", "darwin"], "cpu": ["x64", "arm64"], "libc": ["musl"]},
+        "allowedDeprecatedVersions": {"old": "2", "common": "*"},
         "catalogs": {"project/common": {"foo": "1.0.0"}, "peer/common": {"foo": "9"}},
         "overrides": {"duplicate": "2", "local": "3", "shared": "1"},
         "patchedDependencies": {"foo": "../patches/foo.patch"},
@@ -91,6 +104,8 @@ def test_build_workspace_uses_only_target_config(tmp_path):
     assert PackageJson.load(str(source / "package.json")).data["pnpm"] == {
         "overrides": {"duplicate": "2", "local": "3"},
         "ignoredOptionalDependencies": ["local-optional"],
+        "supportedArchitectures": {"os": ["darwin"], "cpu": ["arm64"]},
+        "allowedDeprecatedVersions": {"old": "2"},
     }
 
 

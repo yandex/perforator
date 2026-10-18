@@ -25,6 +25,14 @@ pnpm:
     # https://pnpm.io/10.x/settings#peerssuffixmaxlength
     peersSuffixMaxLength: non-negative-integer
 
+    # Платформы, для которых устанавливаются optional-зависимости, включая отличные от текущей.
+    # https://pnpm.io/10.x/settings#supportedarchitectures
+    supportedArchitectures: supported-architectures
+
+    # Подавление deprecation warnings для выбранных пакетов и диапазонов версий.
+    # https://pnpm.io/10.x/settings#alloweddeprecatedversions
+    allowedDeprecatedVersions: dependency-map
+
     # Имена и шаблоны optional-зависимостей, которые не нужно устанавливать.
     # https://pnpm.io/10.x/settings#ignoredoptionaldependencies
     ignoredOptionalDependencies: string-list
