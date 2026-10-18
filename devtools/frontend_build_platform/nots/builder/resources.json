@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-17T00:08:09Z",
+    "created": "2026-10-18T20:24:40Z",
     "pr": {
-      "id": 16526355,
+      "id": 16490470,
       "author": "baymer",
-      "summary": "FBP-3521: reject workspace protocol in pnpm overrides"
+      "summary": "FBP-3530: разрешить supportedArchitectures и allowedDeprecatedVersions в Tier-0"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14075792608"
+      "uri": "sbr:14081055431"
     },
     "darwin-arm64": {
-      "uri": "sbr:14075791813"
+      "uri": "sbr:14081055014"
     },
     "linux": {
-      "uri": "sbr:14075794108"
+      "uri": "sbr:14081056401"
     },
     "linux-aarch64": {
-      "uri": "sbr:14075793353"
+      "uri": "sbr:14081055821"
     }
   }
 }
