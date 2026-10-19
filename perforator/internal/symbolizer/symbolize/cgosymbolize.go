@@ -37,6 +37,7 @@ func NewSymbolizer(
 	var errPtr *C.char = nil
 	var symbolizer unsafe.Pointer = C.MakeSymbolizer(&errPtr)
 	if errPtr != nil {
+		defer C.free(unsafe.Pointer(errPtr))
 		return nil, errors.New(C.GoString(errPtr))
 	}
 
@@ -93,6 +94,7 @@ func (s *Symbolizer) symbolizeLocation(
 		cUseGSYM,
 	)
 	if errPtr != nil {
+		defer C.free(unsafe.Pointer(errPtr))
 		errStr := C.GoString(errPtr)
 		s.logger.Error(ctx, "Failed to symbolize code",
 			log.String("error", errStr),
