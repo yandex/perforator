@@ -51,8 +51,8 @@ func TestLanguageFrameSizes(t *testing.T) {
 	if phpFrameSize != 16 {
 		t.Errorf("php_frame size = %d, want 16", phpFrameSize)
 	}
-	if luaFrameSize != 24 {
-		t.Errorf("lua_frame size = %d, want 24", luaFrameSize)
+	if luaFrameSize != 32 {
+		t.Errorf("lua_frame size = %d, want 32", luaFrameSize)
 	}
 }
 
@@ -197,12 +197,14 @@ func appendPhpFrame(dst []byte, objectAddr uint64, linestart int32) []byte {
 
 // appendLuaFrame appends a lua_frame with type LUA_FRAME_TYPE_LUA. Layout:
 //
-//	u8 type | u64 object_addr | i32 linestart | u32 padding.
-func appendLuaFrame(dst []byte, objectAddr uint64, linestart int32) []byte {
+//	u8 type | padding[7] | u64 proto_address | i32 first_line | i32 current_line | u32 bytecode_index | padding[4].
+func appendLuaFrame(dst []byte, protoAddress uint64, firstLine, currentLine int32, bytecodeIndex uint32) []byte {
 	frame := make([]byte, luaFrameSize)
-	le.PutUint64(frame[0:8], uint64(LuaFrameTypeLua))
-	le.PutUint64(frame[8:16], objectAddr)
-	le.PutUint32(frame[16:20], uint32(linestart))
+	frame[0] = byte(LuaFrameTypeLua)
+	le.PutUint64(frame[8:16], protoAddress)
+	le.PutUint32(frame[16:20], uint32(firstLine))
+	le.PutUint32(frame[20:24], uint32(currentLine))
+	le.PutUint32(frame[24:28], bytecodeIndex)
 	return append(dst, frame...)
 }
 
@@ -286,7 +288,7 @@ func TestParsePackedSampleWithPhpStack(t *testing.T) {
 
 func TestParsePackedSampleWithLuaStack(t *testing.T) {
 	data := buildMinimalPackedSample()
-	frames := appendLuaFrame(nil, 0x1a2b3c, 77)
+	frames := appendLuaFrame(nil, 0x1a2b3c, 77, 81, 12)
 	langData := appendLanguageSection(nil, LanguageLua, frames)
 	putSectionDesc(data, sdLangSect, 0, uint16(len(langData)))
 	data = append(data, langData...)
@@ -300,8 +302,9 @@ func TestParsePackedSampleWithLuaStack(t *testing.T) {
 		t.Fatalf("LuaStack.Len = %d, want 1", out.LuaStack.Len)
 	}
 	got := out.LuaStack.Frames[0]
-	if got.Type != LuaFrameTypeLua || got.Value.GetLuaFrame().ObjectAddr != 0x1a2b3c ||
-		got.Value.GetLuaFrame().Linestart != 77 {
+	lua := got.Value.GetLuaFrame()
+	if got.Type != LuaFrameTypeLua || lua.ProtoAddress != 0x1a2b3c ||
+		lua.FirstLine != 77 || lua.CurrentLine != 81 || lua.BytecodeIndex != 12 {
 		t.Errorf("frame = %+v", got)
 	}
 }
@@ -314,7 +317,7 @@ func buildPackedSampleWithMixedLanguageStacks() []byte {
 	le.PutUint16(jvmFrames[0:2], 3)
 	le.PutUint64(jvmFrames[8:16], 0x3000)
 
-	luaFrames := appendLuaFrame(nil, 0x4000, 404)
+	luaFrames := appendLuaFrame(nil, 0x4000, 404, 405, 9)
 
 	var langData []byte
 	langData = appendLanguageSection(langData, LanguagePython, pythonFrames)
@@ -342,7 +345,9 @@ func TestParsePackedSampleWithMixedLanguageStacks(t *testing.T) {
 	if out.JvmStack.FramesLen != 1 || out.JvmStack.Frames[0].MethodAddr != 0x3000 {
 		t.Errorf("JvmStack = %+v", out.JvmStack)
 	}
-	if out.LuaStack.Len != 1 || out.LuaStack.Frames[0].Value.GetLuaFrame().ObjectAddr != 0x4000 {
+	lua := out.LuaStack.Frames[0].Value.GetLuaFrame()
+	if out.LuaStack.Len != 1 || lua.ProtoAddress != 0x4000 ||
+		lua.FirstLine != 404 || lua.CurrentLine != 405 || lua.BytecodeIndex != 9 {
 		t.Errorf("LuaStack = %+v", out.LuaStack)
 	}
 }

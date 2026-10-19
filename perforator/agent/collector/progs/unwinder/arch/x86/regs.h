@@ -17,6 +17,7 @@ struct user_regs {
     u64 rdi;
     u64 rdx;
     u64 r14;
+    u64 rbx;
 };
 
 static ALWAYS_INLINE u64 regs_get_current_instruction(struct user_regs* regs) {
@@ -30,6 +31,7 @@ struct pt_regs___kernel {
     u64 di;
     u64 dx;
     u64 r14;
+    u64 bx;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -75,6 +77,7 @@ static NOINLINE bool extract_saved_userspace_registers(struct user_regs* regs) {
     regs->rdi = BPF_CORE_READ(kregs, di);
     regs->rdx = BPF_CORE_READ(kregs, dx);
     regs->r14 = BPF_CORE_READ(kregs, r14);
+    regs->rbx = BPF_CORE_READ(kregs, bx);
 
     return true;
 }
@@ -90,6 +93,7 @@ static NOINLINE bool find_task_userspace_registers(struct pt_regs* kregs, struct
     uregs->rdi = kregs->rdi;
     uregs->rdx = kregs->rdx;
     uregs->r14 = kregs->r14;
+    uregs->rbx = kregs->rbx;
 
     return true;
 }

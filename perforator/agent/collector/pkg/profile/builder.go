@@ -481,6 +481,8 @@ type InterpreterLocationKey struct {
 	Linestart     int32
 	Line          int32
 	Language      models.Language
+	// Lua function names depend on the caller, even for the same proto and line.
+	Name string
 }
 
 type functionKey struct {

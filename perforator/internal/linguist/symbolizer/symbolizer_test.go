@@ -195,3 +195,27 @@ func TestSymbolCacheRetriesMissingSymbols(t *testing.T) {
 	}
 	require.Equal(t, 2, source.calls)
 }
+
+func TestLuaSymbolPreservesProtoHeader(t *testing.T) {
+	const protoSize = 104 // sizeof(GCproto), LJ_GC64=1.
+	key := unwinder.InterpreterSymbolKey{
+		SymbolKey: unwinder.SymbolKey{ObjectAddr: 0x1000, Linestart: 10},
+		Pid:       42, Language: uint8(unwinder.LanguageLua), ProcessStarttime: 100,
+	}
+	filename := strings.Repeat("f", 255)
+	raw := unwinder.Symbol{CodepointSize: 1, NameLength: protoSize, FilenameLength: uint8(len(filename))}
+	for i := range raw.Data[:protoSize] {
+		raw.Data[i] = byte(i) // Includes NUL and binary bytes, not a function name.
+	}
+	copy(raw.Data[protoSize:], filename)
+	source := &fakeSymbolSource{symbols: map[unwinder.InterpreterSymbolKey]unwinder.Symbol{key: raw}}
+	s, err := newSymbolizer(&SymbolizerConfig{}, source, nop.Registry{}, "lua")
+	require.NoError(t, err)
+	for i := 0; i < 2; i++ {
+		symbol, ok := s.Symbolize(models.Language(key.Language), linux.ProcessKey{Pid: linux.CurrentNamespacePID(key.Pid), ProcessStartTime: key.ProcessStarttime}, &key.SymbolKey)
+		require.True(t, ok)
+		require.Equal(t, string(raw.Data[:protoSize]), symbol.Name)
+		require.Equal(t, filename, symbol.FileName)
+	}
+	require.Equal(t, 1, source.calls)
+}
