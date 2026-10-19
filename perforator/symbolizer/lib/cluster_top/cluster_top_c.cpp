@@ -99,4 +99,13 @@ void FinalizePerfTopAggregator(
     }
 }
 
+void FreePerfTopAggregatorResult(ui64 nEntries, const char** functions, char* selfCycles, char* cumulativeCycles) {
+    for (ui64 i = 0; i < nEntries; ++i) {
+        free(const_cast<char*>(functions[i]));
+    }
+    delete[] functions;
+    delete[] selfCycles;
+    delete[] cumulativeCycles;
+}
+
 }

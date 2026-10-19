@@ -135,15 +135,7 @@ func (a *PerfTopAggregator) Extract() []Function {
 	functionsArray := (*[1 << 30]*C.char)(unsafe.Pointer(cFunctions))
 	selfCyclesArray := (*[1 << 30]byte)(unsafe.Pointer(cSelfCycles))
 	cumulativeCyclesArray := (*[1 << 30]byte)(unsafe.Pointer(cCumulativeCycles))
-	defer func() {
-		for i := uint64(0); i < uint64(cEntries); i += 1 {
-			C.free(unsafe.Pointer(functionsArray[i]))
-		}
-		C.free(unsafe.Pointer(cFunctions))
-
-		C.free(unsafe.Pointer(cSelfCycles))
-		C.free(unsafe.Pointer(cCumulativeCycles))
-	}()
+	defer C.FreePerfTopAggregatorResult(cEntries, cFunctions, cSelfCycles, cCumulativeCycles)
 
 	functions := make([]Function, 0, int(cEntries))
 	for i := uint64(0); i < uint64(cEntries); i += 1 {

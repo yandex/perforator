@@ -35,6 +35,8 @@ void FinalizePerfTopAggregator(
     char** cumulativeCycles
 );
 
+void FreePerfTopAggregatorResult(ui64 nEntries, const char** functions, char* selfCycles, char* cumulativeCycles);
+
 #ifdef __cplusplus
 }
 #endif

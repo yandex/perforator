@@ -340,6 +340,8 @@ void TPerfTopAggregator::MergeAggregator(const TPerfTopAggregator& other) {
         cyclesCount.CumulativeCycles += v.CumulativeCycles;
     }
 
+    KernelFunctions_.insert(other.KernelFunctions_.begin(), other.KernelFunctions_.end());
+
     TotalCycles_ += other.TotalCycles_;
     TotalProfiles_ += other.TotalProfiles_;
 }
