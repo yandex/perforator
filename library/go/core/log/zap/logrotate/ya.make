@@ -9,7 +9,12 @@ IF (OS_LINUX OR OS_ANDROID)
         sink.go
     )
 
-    GO_TEST_SRCS(sink_test.go)
+    GO_TEST_SRCS(
+        benchmark_test.go
+        integration_test.go
+        signal_test.go
+        sink_test.go
+    )
 
     GO_XTEST_SRCS(example_sink_test.go)
 ENDIF()
@@ -19,7 +24,12 @@ IF (OS_DARWIN)
         sink.go
     )
 
-    GO_TEST_SRCS(sink_test.go)
+    GO_TEST_SRCS(
+        benchmark_test.go
+        integration_test.go
+        signal_test.go
+        sink_test.go
+    )
 
     GO_XTEST_SRCS(example_sink_test.go)
 ENDIF()
