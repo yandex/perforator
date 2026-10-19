@@ -1,4 +1,4 @@
-package jvmscanner
+package cheatsheets
 
 import (
 	"fmt"
@@ -45,7 +45,8 @@ func makeReqs(f protoreflect.FieldDescriptor) (fieldReqs, error) {
 	return reqs, nil
 }
 
-func validateProto(cs *jvmproto.Cheatsheet, version uint32) error {
+func Validate(cs *jvmproto.Cheatsheet, version uint32) error {
+	// TODO: most of this can be calculated once and reused
 	refl := cs.ProtoReflect()
 	fields := refl.Descriptor().Fields()
 	for i := range fields.Len() {

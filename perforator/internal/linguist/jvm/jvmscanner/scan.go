@@ -9,6 +9,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 	jvmproto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm"
+	"github.com/yandex/perforator/perforator/internal/linguist/jvm/cheatsheets"
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmbindings"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -133,7 +134,7 @@ func (s *Scanner) initJIT(j *jvmbindings.JVM, baseAddr uint64, state *ProcessSta
 }
 
 func (s *Scanner) InitProcess(pid linux.CurrentNamespacePID, cs *jvmproto.Cheatsheet, version uint32, baseAddress uint64) (*ProcessState, ProcessInfoForBPF, error) {
-	err := validateProto(cs, version)
+	err := cheatsheets.Validate(cs, version)
 	if err != nil {
 		return nil, ProcessInfoForBPF{}, fmt.Errorf("invalid config: %w", err)
 	}

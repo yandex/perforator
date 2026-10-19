@@ -4,7 +4,6 @@ LICENSE(GPL-2.0)
 
 SRCS(
     bookmark.go
-    conf.go
     method_name.go
     scan_symbolization.go
     scan.go

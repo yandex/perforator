@@ -1,5 +1,3 @@
-RECURSE(tool)
-
 IF (NOT OPENSOURCE)
     RECURSE(
         yandex-specific/test
@@ -8,6 +6,7 @@ IF (NOT OPENSOURCE)
 ENDIF()
 
 GO_LIBRARY()
+
 RESOURCE(
     perforator/internal/linguist/jvm/cheatsheets/jdk17.txtpb jvm-cheatsheets/jdk17.txtpb
     perforator/internal/linguist/jvm/cheatsheets/jdk21.txtpb jvm-cheatsheets/jdk21.txtpb
@@ -15,5 +14,12 @@ RESOURCE(
     perforator/internal/linguist/jvm/cheatsheets/jdk24.txtpb jvm-cheatsheets/jdk24.txtpb
     perforator/internal/linguist/jvm/cheatsheets/jdk25.txtpb jvm-cheatsheets/jdk25.txtpb
 )
+
+ALL_GO_SRCS()
+
 END()
 
+RECURSE(
+    tests
+    tool
+)
