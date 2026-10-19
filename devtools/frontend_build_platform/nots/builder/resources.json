@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-18T23:22:12.753Z",
+    "created": "2026-10-19T12:33:52.768Z",
     "pr": {
-      "id": 16540444,
+      "id": 16551999,
       "author": "baymer",
-      "summary": "FBP-3539: Пояснения в генерируемом pnpm-workspace.yaml"
+      "summary": "FBP-3529: отключить lockfileIncludeTarballUrl"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14081432888"
+      "uri": "sbr:14084745327"
     },
     "darwin-arm64": {
-      "uri": "sbr:14081432581"
+      "uri": "sbr:14084743970"
     },
     "linux": {
-      "uri": "sbr:14081433509"
+      "uri": "sbr:14084748486"
     },
     "linux-aarch64": {
-      "uri": "sbr:14081433170"
+      "uri": "sbr:14084746866"
     }
   }
 }

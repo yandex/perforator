@@ -38,7 +38,7 @@ pnpm:
         updateNotifier: false
         verifyStoreIntegrity: false
         gitChecks: false
-        lockfileIncludeTarballUrl: true
+        lockfileIncludeTarballUrl: false
         trustLockfile: true
 
     # storeDir вычисляется при запуске и передаётся аргументом pnpm: ~/.nots для CLI, build-root для builder.
