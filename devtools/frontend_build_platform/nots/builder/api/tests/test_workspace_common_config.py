@@ -91,7 +91,10 @@ def test_build_workspace_uses_only_target_config(tmp_path):
     )
     pm._build_merged_lockfile = lambda *args: None
     pm.build_workspace("__tarballs__", True)
-    result = yaml.safe_load((build / "pnpm-workspace.yaml").read_text())
+    workspace_text = (build / "pnpm-workspace.yaml").read_text()
+    assert "# НЕ РЕДАКТИРУЙТЕ ЕГО ВРУЧНУЮ" in workspace_text
+    assert "https://pnpm.io/10.x/settings#overrides" in workspace_text
+    result = yaml.safe_load(workspace_text)
     assert result == {
         "packages": [],
         "ignoredOptionalDependencies": ["common-optional", "local-optional"],

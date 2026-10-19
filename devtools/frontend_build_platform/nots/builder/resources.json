@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-18T20:24:40Z",
+    "created": "2026-10-18T23:22:12.753Z",
     "pr": {
-      "id": 16490470,
+      "id": 16540444,
       "author": "baymer",
-      "summary": "FBP-3530: разрешить supportedArchitectures и allowedDeprecatedVersions в Tier-0"
+      "summary": "FBP-3539: Пояснения в генерируемом pnpm-workspace.yaml"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14081055431"
+      "uri": "sbr:14081432888"
     },
     "darwin-arm64": {
-      "uri": "sbr:14081055014"
+      "uri": "sbr:14081432581"
     },
     "linux": {
-      "uri": "sbr:14081056401"
+      "uri": "sbr:14081433509"
     },
     "linux-aarch64": {
-      "uri": "sbr:14081055821"
+      "uri": "sbr:14081433170"
     }
   }
 }

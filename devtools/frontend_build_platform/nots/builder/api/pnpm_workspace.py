@@ -43,13 +43,35 @@ class PnpmWorkspace(object):
         if not path:
             path = self.path
 
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             data = copy.deepcopy(self.settings)
             data.update(self.runtime_settings)
             data["packages"] = sorted(self.packages)
             if self.catalogs:
                 data["catalogs"] = self.catalogs
-            yaml.dump(data, f, Dumper=yaml.CSafeDumper)
+            policy = load_tier0_settings()["pnpm"]
+            comments = policy["workspaceComments"]
+            serialized = yaml.dump(data, Dumper=yaml.CSafeDumper)
+            f.write(self._comment(comments["header"]))
+            # Only top-level option names receive comments; nested YAML is left intact.
+            for line in serialized.splitlines(keepends=True):
+                key = line.split(":", 1)[0]
+                if key in data:
+                    if key == "catalogs":
+                        hint = comments["catalogs"]
+                    elif key in policy["supportedCustomSettings"]:
+                        hint = comments["configurable"]
+                    elif key in policy["defaults"]:
+                        hint = comments["managed"]
+                    else:
+                        hint = comments["generated"]
+                    description = comments["descriptions"][key]
+                    f.write("\n" + self._comment(description + "\n" + hint))
+                f.write(line)
+
+    @staticmethod
+    def _comment(text):
+        return "".join("#" + (" " + line if line else "") + "\n" for line in text.splitlines())
 
     def get_paths(self, base_path=None, ignore_self=False):
         """

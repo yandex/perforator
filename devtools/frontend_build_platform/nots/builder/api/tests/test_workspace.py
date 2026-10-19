@@ -1,4 +1,7 @@
+import yaml
+
 from build.plugins.lib.nots.package_manager import PackageJson
+from build.plugins.lib.nots.package_manager.common_config import load_tier0_settings
 from devtools.frontend_build_platform.nots.builder.api.pnpm_workspace import PnpmWorkspace
 
 
@@ -103,3 +106,58 @@ def test_workspace_merge_imports_catalogs_without_peer_settings_or_packages():
     assert ws1.packages == set()
     assert ws1.settings == {"overrides": {"own": "1.0.0"}}
     assert ws1.catalogs == ws2.catalogs
+
+
+def test_workspace_descriptions_cover_policy_and_runtime_settings():
+    policy = load_tier0_settings()["pnpm"]
+    required = set(policy["defaults"]) | set(policy["supportedCustomSettings"]) | {"packages", "virtualStoreDir"}
+    for key in required:
+        assert "https://pnpm.io/" in policy["workspaceComments"]["descriptions"][key], key
+
+
+def test_workspace_comments_preserve_values_and_regenerate_after_runtime_settings(tmp_path):
+    policy = load_tier0_settings()["pnpm"]
+    comments = policy["workspaceComments"]
+    workspace_path = tmp_path / "pnpm-workspace.yaml"
+    workspace = PnpmWorkspace(str(workspace_path))
+    workspace.settings = {
+        "strictPeerDependencies": True,
+        "overrides": {"foo@*": "npm:bar@1.0.0"},
+        "patchedDependencies": {"foo@1.0.0": "patches/foo.patch"},
+        "packageExtensions": {"foo@*": {"peerDependencies": {"bar": "^1"}}},
+        "peerDependencyRules": {"ignoreMissing": ["react"]},
+    }
+    workspace.catalogs = {"project/common": {"colors": "1.4.0"}}
+    workspace.write()
+    expected = {**workspace.settings, "packages": [], "catalogs": workspace.catalogs}
+    assert yaml.safe_load(workspace_path.read_text()) == expected
+
+    restored = PnpmWorkspace.load(str(workspace_path))
+    restored.runtime_settings = {
+        **policy["defaults"],
+        "strictPeerDependencies": True,
+        "virtualStoreDir": str(tmp_path / "node_modules/.pnpm"),
+        "modulesDir": "../ram/node_modules",
+        "packageImportMethod": "copy",
+    }
+    restored.write()
+    text = workspace_path.read_text()
+    assert yaml.safe_load(text) == {**expected, **restored.runtime_settings}
+    assert text.count("# ВНИМАНИЕ:") == 1
+    assert "# НЕ РЕДАКТИРУЙТЕ ЕГО ВРУЧНУЮ" in text
+    assert "package.json#pnpm" in text
+    assert "nots.commonConfigPath" in text
+    assert "workspaceComments:" not in text
+    for key in yaml.safe_load(text):
+        description = PnpmWorkspace._comment(comments["descriptions"][key])
+        assert description in text, key
+    for key, rule in (
+        ("strictPeerDependencies", "configurable"),
+        ("ignoreScripts", "managed"),
+        ("catalogs", "catalogs"),
+        ("packages", "generated"),
+        ("virtualStoreDir", "generated"),
+    ):
+        assert PnpmWorkspace._comment(comments["descriptions"][key] + "\n" + comments[rule]) + key + ":" in text
+    restored.write()
+    assert workspace_path.read_text() == text
