@@ -88,6 +88,14 @@ func (s *storage) DeleteData(ctx context.Context, generation uint32) error {
 			return fmt.Errorf("delete generation %d from %s: %w", generation, table, err)
 		}
 	}
+	// Serving snapshots have one partition per generation. DROP PARTITION avoids
+	// rewriting rows and is replicated from the accepting replica, like above.
+	operationCtx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	if err := s.clickhouse.Exec(operationCtx,
+		"ALTER TABLE cluster_top_by_function_v3_serving DROP PARTITION ? SETTINGS replication_alter_partitions_sync = 1", generation); err != nil {
+		return fmt.Errorf("drop serving snapshot for generation %d: %w", generation, err)
+	}
 	return nil
 }
 

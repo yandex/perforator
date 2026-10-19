@@ -82,32 +82,31 @@ func (c *Config) FillDefault() {
 	}
 }
 
-func Connect(ctx context.Context, conf *Config, reg metrics.Registry) (*Connection, error) {
-	conf.FillDefault()
-	if err := conf.ExecRetry.validate(); err != nil {
-		return nil, fmt.Errorf("invalid Exec retry config: %w", err)
+// BuildOptions builds driver options without mutating the configuration.
+func BuildOptions(conf *Config) (*clickhouse.Options, error) {
+	if conf == nil {
+		return nil, errors.New("clickhouse config is nil")
 	}
-	if reg == nil {
-		return nil, errors.New("metrics registry is nil")
-	}
-	password := os.Getenv(conf.PasswordEnvironmentVariable)
+	c := *conf
+	c.FillDefault()
+	password := os.Getenv(c.PasswordEnvironmentVariable)
 
-	tlsConf, err := conf.TLS.BuildTLSConfig()
+	tlsConf, err := c.TLS.BuildTLSConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure TLS: %w", err)
 	}
 
-	protocol, err := convertStringToProtocol(conf.Protocol)
+	protocol, err := convertStringToProtocol(c.Protocol)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := clickhouse.Open(&clickhouse.Options{
+	return &clickhouse.Options{
 		Protocol: protocol,
-		Addr:     conf.Replicas,
+		Addr:     slices.Clone(c.Replicas),
 		Auth: clickhouse.Auth{
-			Database: conf.Database,
-			Username: conf.User,
+			Database: c.Database,
+			Username: c.User,
 			Password: password,
 		},
 		ConnOpenStrategy: clickhouse.ConnOpenRoundRobin,
@@ -118,7 +117,22 @@ func Connect(ctx context.Context, conf *Config, reg metrics.Registry) (*Connecti
 		DialTimeout:  time.Second * 10,
 		MaxOpenConns: 200,
 		MaxIdleConns: 300,
-	})
+	}, nil
+}
+
+func Connect(ctx context.Context, conf *Config, reg metrics.Registry) (*Connection, error) {
+	conf.FillDefault()
+	if err := conf.ExecRetry.validate(); err != nil {
+		return nil, fmt.Errorf("invalid Exec retry config: %w", err)
+	}
+	if reg == nil {
+		return nil, errors.New("metrics registry is nil")
+	}
+	options, err := BuildOptions(conf)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := clickhouse.Open(options)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open clickhouse cluster connection: %w", err)
 	}
