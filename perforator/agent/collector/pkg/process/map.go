@@ -544,6 +544,11 @@ func (r *ProcessRegistry) discoverProcess(ctx context.Context, key linux.Process
 		bound := startTime != 0 && known == 0
 		if bound {
 			info.startTime.Store(startTime)
+			for _, listener := range r.listeners {
+				if listener, ok := listener.(IdentityListener); ok {
+					listener.OnProcessIdentityChanged(ctx, linux.ProcessKey{Pid: pid}, info.Key())
+				}
+			}
 		}
 		info.lifecycleMu.Unlock()
 		if bound || info.refreshNeeded.Load() {

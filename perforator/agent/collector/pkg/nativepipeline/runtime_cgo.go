@@ -13,10 +13,12 @@ import (
 )
 
 const (
-	LanguagePython Language = Language(C.PERFORATOR_LANGUAGE_PYTHON)
-	LanguagePHP    Language = Language(C.PERFORATOR_LANGUAGE_PHP)
-	LanguageLua    Language = Language(C.PERFORATOR_LANGUAGE_LUA)
-	LanguageCount           = int(C.PERFORATOR_LANGUAGE_COUNT)
+	JITRuntimeNone JITRuntimeID = JITRuntimeID(C.PerforatorJitRuntimeNone)
+	JITRuntimeJVM  JITRuntimeID = JITRuntimeID(C.PerforatorJitRuntimeJvm)
+	LanguagePython Language     = Language(C.PERFORATOR_LANGUAGE_PYTHON)
+	LanguagePHP    Language     = Language(C.PERFORATOR_LANGUAGE_PHP)
+	LanguageLua    Language     = Language(C.PERFORATOR_LANGUAGE_LUA)
+	LanguageCount               = int(C.PERFORATOR_LANGUAGE_COUNT)
 )
 
 // runtimeCallbacks belongs to one serialized native consumer. Its owner keeps
@@ -137,6 +139,7 @@ func PerforatorGoResolveInterpreterFrames(
 			Address:   C.uint64_t(frame.Address),
 			StartLine: C.int32_t(frame.StartLine),
 			Line:      C.int32_t(frame.Line),
+			LineInfo:  C.uint8_t(frame.LineInfo),
 		}
 		if frame.Unsymbolized {
 			result.Flags |= C.uint32_t(C.PerforatorResolvedFrameUnsymbolized)
@@ -191,8 +194,8 @@ func PerforatorGoResolveNativeFrames(
 			goRequests[i] = NativeFrameRequest{
 				Key:              processKeyFromC(request.Key.Pid, request.Key.StartTime),
 				Address:          uint64(request.Address),
-				HasJVMMethod:     request.HasJvmMethod != 0,
-				JVMMethodAddress: uint64(request.JvmMethodAddress),
+				JITRuntimeID:     JITRuntimeID(request.JitRuntimeId),
+				JITMethodAddress: uint64(request.JitMethodAddress),
 			}
 		}
 		resolved.frames = callbacks.resolver.ResolveNativeFrames(callbacks.ctx, goRequests)
@@ -228,6 +231,9 @@ func PerforatorGoResolveNativeFrames(
 			symbolOffset++
 		}
 		result.JvmName = strings.put(frame.JVMName)
+		if frame.ClearAddress {
+			result.ClearAddress = 1
+		}
 		results[i] = result
 	}
 	strings.finish()

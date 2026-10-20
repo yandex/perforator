@@ -37,16 +37,24 @@ const (
 type trackedProcess struct {
 	state             atomic.Int32
 	hasJVMLikeMapping atomic.Bool
-	pid               linux.CurrentNamespacePID
-	perfmap           *perfMap
-	javaConn          *jvmattach.VirtualMachineConn
+
+	key              linux.ProcessKey
+	samplingAccepted bool
+	processFD        *pidfd.FD
+	perfmap          *perfMap
+	javaConn         *jvmattach.VirtualMachineConn
+}
+
+type processSymbol struct {
+	key  linux.ProcessKey
+	name string
 }
 
 type Registry struct {
 	logger        xlog.Logger
 	mu            sync.RWMutex
 	procs         map[linux.CurrentNamespacePID]*trackedProcess
-	syms          *symboltable.Table[linux.CurrentNamespacePID, string]
+	syms          *symboltable.Table[linux.CurrentNamespacePID, processSymbol]
 	jvmDialer     *jvmattach.Dialer
 	enableJVM     bool
 	started       atomic.Bool
@@ -61,13 +69,15 @@ type Registry struct {
 	discoveryDuration           metrics.Timer
 }
 
+var _ process.IdentityListener = (*Registry)(nil)
+
 func NewRegistry(logger log.Logger, mReg metrics.Registry, enableJVM bool) *Registry {
 	mReg = mReg.WithPrefix("perfmap")
 	discoveryDurationBuckets := metrics.MakeExponentialDurationBuckets(time.Millisecond, 10, 5)
 	reg := &Registry{
 		logger: xlog.Wrap(logger.WithName("perfmap")),
 		procs:  make(map[linux.CurrentNamespacePID]*trackedProcess),
-		syms:   symboltable.New[linux.CurrentNamespacePID, string](),
+		syms:   symboltable.New[linux.CurrentNamespacePID, processSymbol](),
 		jvmDialer: &jvmattach.Dialer{
 			Logger: xlog.Wrap(logger.WithName("perfmap.jvmattach")),
 		},
@@ -90,18 +100,28 @@ func NewRegistry(logger log.Logger, mReg metrics.Registry, enableJVM bool) *Regi
 	return reg
 }
 
-func (r *Registry) addProcessEntry(ctx context.Context, pid linux.CurrentNamespacePID) *trackedProcess {
+func (r *Registry) addProcessEntry(ctx context.Context, key linux.ProcessKey) *trackedProcess {
+	pid := key.Pid
 	tp := &trackedProcess{
-		pid: pid,
+		key: key,
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	_, ok := r.procs[pid]
+	old, ok := r.procs[pid]
 	if ok {
+		r.removeProcessEntryLocked(old)
 		r.logger.Error(ctx, "Process already registered", logfield.CurrentNamespacePID(pid))
 	}
 	r.procs[pid] = tp
 	return tp
+}
+
+func (r *Registry) removeProcessEntryLocked(tp *trackedProcess) {
+	delete(r.procs, tp.key.Pid)
+	if tp.processFD != nil {
+		_ = tp.processFD.Close()
+	}
+	r.syms.Remove(tp.key.Pid)
 }
 
 func (r *Registry) registerImpl(ctx context.Context, tp *trackedProcess, nspid linux.NamespacedPID, java bool, pfd *pidfd.FD) bool {
@@ -110,45 +130,47 @@ func (r *Registry) registerImpl(ctx context.Context, tp *trackedProcess, nspid l
 		var err error
 		conn, err = r.jvmDialer.Dial(ctx, jvmattach.Target{
 			ProcessFD:     pfd,
-			PID:           tp.pid,
+			PID:           tp.key.Pid,
 			NamespacedPID: nspid,
 		})
 		if err != nil {
-			r.logger.Info(ctx, "Failed to connect to JVM", logfield.CurrentNamespacePID(tp.pid), logfield.NamespacedPID(nspid), log.Error(err))
+			r.logger.Info(ctx, "Failed to connect to JVM", logfield.CurrentNamespacePID(tp.key.Pid), logfield.NamespacedPID(nspid), log.Error(err))
 			return false
 		}
 	}
 
-	path := fmt.Sprintf("/proc/%d/root/tmp/perf-%d.map", tp.pid, nspid)
+	path := fmt.Sprintf("/proc/%d/root/tmp/perf-%d.map", tp.key.Pid, nspid)
 	tp.perfmap = newPerfMap(path)
 	tp.javaConn = conn
 	return true
 }
 
 func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) processState {
-	// It is critical that we open pidfd before reading any process information besides its pid.
-	// This way, if discovery races with process termination
-	// (and potential pid reuse), pidfd_send_signal inside jvmattach.Dialer.Dial will fail.
-	// Otherwise we can be sure that all discovery read consistent data.
-	pfd, err := pidfd.Open(tp.pid)
-	if err != nil {
-		r.logger.Info(ctx, "Failed to open pidfd", logfield.CurrentNamespacePID(tp.pid), log.Error(err))
+	if r.findProcess(tp.key.Pid) != tp {
 		return processStateTerminalSkip
 	}
+	if tp.state.Load() == int32(processStateInitialized) {
+		return processStateInitialized
+	}
+	processFD, err := pidfd.OpenForProcess(tp.key)
+	if err != nil {
+		r.logger.Info(ctx, "Failed to pin process lifetime", logfield.CurrentNamespacePID(tp.key.Pid), log.Error(err))
+		return processStateTerminalSkip
+	}
+	initialized := false
 	defer func() {
-		closeErr := pfd.Close()
-		if closeErr != nil {
-			r.logger.Warn(ctx, "Failed to close pidfd", logfield.CurrentNamespacePID(tp.pid), log.Error(closeErr))
+		if !initialized {
+			_ = processFD.Close()
 		}
 	}()
-	process := procfs.FS().Process(tp.pid)
+	process := procfs.FS().Process(tp.key.Pid)
 
 	env, err := process.ListEnvs()
 	if err != nil {
 		r.logger.Info(
 			ctx,
 			"Failed to read process environment, skipping process",
-			logfield.CurrentNamespacePID(tp.pid),
+			logfield.CurrentNamespacePID(tp.key.Pid),
 			log.Error(err),
 		)
 		r.processIgnoredEnvParseError.Inc()
@@ -162,7 +184,7 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) process
 		r.logger.Debug(
 			ctx,
 			"Process enables perfmap",
-			logfield.CurrentNamespacePID(tp.pid),
+			logfield.CurrentNamespacePID(tp.key.Pid),
 			log.Any("config", perfMapConf),
 			log.Errors("errors", errs),
 		)
@@ -170,7 +192,7 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) process
 			r.logger.Info(
 				ctx,
 				"Process requests JVM integration but feature flag is disabled, this request will be ignored",
-				logfield.CurrentNamespacePID(tp.pid),
+				logfield.CurrentNamespacePID(tp.key.Pid),
 			)
 			perfMapConf.java = false
 		}
@@ -180,12 +202,12 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) process
 		r.logger.Info(
 			ctx,
 			"Process does not allow perfmap collection, skipping process (late check)",
-			logfield.CurrentNamespacePID(tp.pid),
+			logfield.CurrentNamespacePID(tp.key.Pid),
 		)
 		r.processIgnoredNotEnabled.Inc()
 		return processStateTransientSkip
 	}
-	if perfMapConf.percentage < 100 {
+	if !tp.samplingAccepted && perfMapConf.percentage < 100 {
 		if rand.Uint32N(100) >= perfMapConf.percentage {
 			r.logger.Debug(ctx, "Process enables perfmap randomly and was not sampled")
 			return processStateTerminalSkip
@@ -195,7 +217,7 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) process
 		r.logger.Info(
 			ctx,
 			"Process does not have mapping with file named libjvm.so, skipping process",
-			logfield.CurrentNamespacePID(tp.pid),
+			logfield.CurrentNamespacePID(tp.key.Pid),
 		)
 		return processStateTransientSkip
 	}
@@ -205,24 +227,33 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) process
 		r.logger.Warn(
 			ctx,
 			"Failed to get namespaced pid",
-			logfield.CurrentNamespacePID(tp.pid),
+			logfield.CurrentNamespacePID(tp.key.Pid),
 			log.Error(err),
 		)
-		// TODO: conversion from CurrentNamespacePID to NamespacedPID is something we should avoid
-		nspid = linux.NamespacedPID(tp.pid)
+		nspid = linux.NamespacedPID(tp.key.Pid)
 	} else {
 		r.logger.Info(
 			ctx,
 			"Resolved pid in innermost pid_ns",
-			logfield.CurrentNamespacePID(tp.pid),
+			logfield.CurrentNamespacePID(tp.key.Pid),
 			log.UInt32("nspid", uint32(nspid)),
 		)
 	}
 
-	ok = r.registerImpl(ctx, tp, nspid, perfMapConf.java, pfd)
+	ok = r.registerImpl(ctx, tp, nspid, perfMapConf.java, processFD)
 	if !ok {
 		return processStateTerminalSkip
 	}
+	if processFD.CheckAlive() != nil {
+		return processStateTerminalSkip
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.procs[tp.key.Pid] != tp {
+		return processStateTerminalSkip
+	}
+	tp.processFD = processFD
+	initialized = true
 	return processStateInitialized
 }
 
@@ -247,8 +278,10 @@ func (r *Registry) runRegisterWorker(ctx context.Context) {
 			state := r.registerSync(regCtx, tp)
 			if state == processStateTerminalSkip {
 				r.mu.Lock()
-				// TODO(PERFORATOR-561) here is race condition: we may delete another (newer) process which reused this pid
-				delete(r.procs, tp.pid)
+				if r.procs[tp.key.Pid] == tp {
+					delete(r.procs, tp.key.Pid)
+					r.syms.Remove(tp.key.Pid)
+				}
 				r.mu.Unlock()
 			} else {
 				tp.state.Store(int32(state))
@@ -258,7 +291,7 @@ func (r *Registry) runRegisterWorker(ctx context.Context) {
 				r.logger.Warn(
 					ctx,
 					"Process discovery took too long",
-					logfield.CurrentNamespacePID(tp.pid),
+					logfield.CurrentNamespacePID(tp.key.Pid),
 					log.Duration("elapsed", elapsed),
 					log.Duration("threshold", singleProcessRegisterWarnThreshold),
 				)
@@ -266,7 +299,7 @@ func (r *Registry) runRegisterWorker(ctx context.Context) {
 				r.logger.Debug(
 					ctx,
 					"Process discovery completed",
-					logfield.CurrentNamespacePID(tp.pid),
+					logfield.CurrentNamespacePID(tp.key.Pid),
 					log.Duration("elapsed", elapsed),
 				)
 			}
@@ -275,7 +308,7 @@ func (r *Registry) runRegisterWorker(ctx context.Context) {
 }
 
 func (r *Registry) tryEnqueueForDiscovery(ctx context.Context, tp *trackedProcess, info process.ProcessInfo) {
-	// TODO: we will still parse environment the second time, because this check happens outside of pidfd protection region
+	// Registration re-reads the environment after opening the process lifetime.
 	_, ok := info.Env()["__PERFORATOR_ENABLE_PERFMAP"]
 	if !ok {
 		r.logger.Debug(
@@ -313,14 +346,31 @@ func (r *Registry) tryEnqueueForDiscovery(ctx context.Context, tp *trackedProces
 
 // OnProcessDiscovery implements process.Listener
 func (r *Registry) OnProcessDiscovery(ctx context.Context, info process.ProcessInfo) {
-	tp := r.addProcessEntry(ctx, info.Key().Pid)
+	tp := r.addProcessEntry(ctx, info.Key())
 	r.tryEnqueueForDiscovery(ctx, tp, info)
+}
+
+func (r *Registry) OnProcessIdentityChanged(_ context.Context, previous, current linux.ProcessKey) {
+	if previous.Pid != current.Pid || previous.ProcessStartTime != 0 || current.ProcessStartTime == 0 {
+		return
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if old := r.procs[previous.Pid]; old != nil && old.key == previous {
+		tp := &trackedProcess{key: current, samplingAccepted: old.processFD != nil}
+		if old.processFD != nil {
+			_ = old.processFD.Close()
+		}
+		// Keep PID-only symbols until refresh; native lookup rejects their old key.
+		tp.state.Store(int32(processStateTransientSkip))
+		r.procs[current.Pid] = tp
+	}
 }
 
 // OnProcessRescan implements process.Listener
 func (r *Registry) OnProcessRescan(ctx context.Context, info process.ProcessInfo) {
 	tp := r.findProcess(info.Key().Pid)
-	if tp == nil {
+	if tp == nil || tp.key != info.Key() {
 		r.logger.Warn(
 			ctx,
 			"Got Rescan notification for unknown process",
@@ -338,8 +388,9 @@ func (r *Registry) OnProcessRescan(ctx context.Context, info process.ProcessInfo
 func (r *Registry) OnProcessDeath(ctx context.Context, key linux.ProcessKey) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	// TODO: cancel discovery if it has not completed yet?
-	delete(r.procs, key.Pid)
+	if tp := r.procs[key.Pid]; tp != nil && tp.key == key {
+		r.removeProcessEntryLocked(tp)
+	}
 }
 
 func (r *Registry) findProcess(pid linux.CurrentNamespacePID) *trackedProcess {
@@ -349,18 +400,38 @@ func (r *Registry) findProcess(pid linux.CurrentNamespacePID) *trackedProcess {
 }
 
 func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
-	name, ok := r.syms.Find(pid, ip)
+	symbol, ok := r.syms.Find(pid, ip)
 	if ok {
 		return profilerext.JITSymbolizerOutput{
 			Symbols: []profilerext.JITSymbol{
 				{
-					Name: name,
+					Name: symbol.name,
 				},
 			},
 			MappingName: profile.JITSpecialMapping,
 		}, true
 	}
 	return profilerext.JITSymbolizerOutput{}, false
+}
+
+func (r *Registry) ResolveForProcess(key linux.ProcessKey, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
+	symbol, ok := r.syms.Find(key.Pid, ip)
+	if !ok || key.ProcessStartTime == 0 || symbol.key != key {
+		return profilerext.JITSymbolizerOutput{}, false
+	}
+	return profilerext.JITSymbolizerOutput{MappingName: profile.JITSpecialMapping, Symbols: []profilerext.JITSymbol{{Name: symbol.name}}}, true
+}
+
+func (r *Registry) publishSymbols(tp *trackedProcess, symbols []symboltable.Entry[string]) {
+	entries := make([]symboltable.Entry[processSymbol], len(symbols))
+	for i, symbol := range symbols {
+		entries[i] = symboltable.Entry[processSymbol]{Begin: symbol.Begin, Size: symbol.Size, Data: processSymbol{key: tp.key, name: symbol.Data}}
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.procs[tp.key.Pid] == tp {
+		r.syms.Put(tp.key.Pid, entries)
+	}
 }
 
 func trySleepContext(ctx context.Context, dur time.Duration) {
@@ -391,7 +462,7 @@ func (r *Registry) dumpJVMPerfMap(ctx context.Context, tp *trackedProcess) {
 		r.logger.Info(
 			ctx,
 			"Failed to execute Compiler.perfmap",
-			logfield.CurrentNamespacePID(tp.pid),
+			logfield.CurrentNamespacePID(tp.key.Pid),
 			log.Error(err),
 		)
 		return
@@ -399,7 +470,7 @@ func (r *Registry) dumpJVMPerfMap(ctx context.Context, tp *trackedProcess) {
 	r.logger.Debug(
 		ctx,
 		"Executed Compiler.perfmap",
-		logfield.CurrentNamespacePID(tp.pid),
+		logfield.CurrentNamespacePID(tp.key.Pid),
 		log.String("output", out),
 	)
 }
@@ -422,18 +493,24 @@ func (r *Registry) runRefresher(ctx context.Context) {
 
 		targets := r.listRefreshTargets()
 		for _, tp := range targets {
+			if tp.processFD.CheckAlive() != nil {
+				continue
+			}
 			if r.enableJVM && tp.javaConn != nil {
 				r.dumpJVMPerfMap(ctx, tp)
 			}
-			r.logger.Debug(ctx, "Starting perf map parser", logfield.CurrentNamespacePID(tp.pid))
+			r.logger.Debug(ctx, "Starting perf map parser", logfield.CurrentNamespacePID(tp.key.Pid))
 			newSyms, stats, err := tp.perfmap.refresh()
+			if tp.processFD.CheckAlive() != nil {
+				continue
+			}
 			if err != nil {
-				r.logger.Info(ctx, "Failed to refresh perf map", logfield.CurrentNamespacePID(tp.pid), log.Error(err))
+				r.logger.Info(ctx, "Failed to refresh perf map", logfield.CurrentNamespacePID(tp.key.Pid), log.Error(err))
 				errors++
 				continue
 			}
 			if newSyms != nil {
-				r.syms.Put(tp.pid, newSyms)
+				r.publishSymbols(tp, newSyms)
 			}
 			if !stats.skipped {
 				modified++
@@ -471,5 +548,13 @@ func (r *Registry) Run(parentCtx context.Context) error {
 		return nil
 	})
 
-	return wg.Wait()
+	err := wg.Wait()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, tp := range r.procs {
+		if tp.processFD != nil {
+			_ = tp.processFD.Close()
+		}
+	}
+	return err
 }

@@ -50,22 +50,27 @@ const (
 	methodKindSuffixInlined     = " (method-kind:inlined)"
 )
 
+var _ process.IdentityListener = (*Registry)(nil)
+
 type trackedProcess struct {
-	pid         linux.CurrentNamespacePID
+	key linux.ProcessKey
+	// Serializes scans and symbol publication with retirement.
 	mu          sync.Mutex
 	initialized bool
-	curMethods  map[string]*jvmsupp.MethodInfo
-	alloc       *unwindtable.Allocation
+	retired     bool
+	// The helper may still own the bootstrap key while registration is retried.
+	helperKey  *linux.ProcessKey
+	curMethods map[string]*jvmsupp.MethodInfo
+	alloc      *unwindtable.Allocation
 }
 
 type interpretedSymbolCacheKey struct {
-	pid  linux.CurrentNamespacePID
-	addr uint64
+	process linux.ProcessKey
+	addr    uint64
 }
 
 type interpretedSymbolCacheValue struct {
 	name string
-	// TODO: add some unique process id as a measure against pid reuse
 }
 
 type binaryData struct {
@@ -75,6 +80,11 @@ type binaryData struct {
 
 type symFunc = func(addr uint64) []string
 
+type compiledSymbol struct {
+	key     linux.ProcessKey
+	resolve symFunc
+}
+
 type Registry struct {
 	l      xlog.Logger
 	bpf    *programstate.State
@@ -82,7 +92,7 @@ type Registry struct {
 
 	disambiguateFrameSource bool
 
-	compiledSyms         *symboltable.Table[linux.CurrentNamespacePID, symFunc]
+	compiledSyms         *symboltable.Table[linux.CurrentNamespacePID, compiledSymbol]
 	interpretedSymsCache *expirable.LRU[interpretedSymbolCacheKey, interpretedSymbolCacheValue]
 
 	helperBinaryPath string
@@ -162,7 +172,7 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		tracked:                 make(map[linux.CurrentNamespacePID]*trackedProcess),
 		bpf:                     bpf.State(),
 		unwind:                  unwind,
-		compiledSyms:            symboltable.New[linux.CurrentNamespacePID, symFunc](),
+		compiledSyms:            symboltable.New[linux.CurrentNamespacePID, compiledSymbol](),
 		interpretedSymsCache:    interpretedSymsCache,
 		disambiguateFrameSource: opts.DisambiguateFrameSource,
 
@@ -286,7 +296,7 @@ func (r *Registry) OnProcessDiscovery(ctx context.Context, info process.ProcessI
 	for _, m := range info.Mappings() {
 		if m.BinaryClass() == dso.JvmBinaryClass {
 			r.l.Info(ctx, "Ensuring JVM process is tracked")
-			r.ensureRegistered(ctx, info.Key().Pid, m.ID(), m.BaseAddress())
+			r.ensureRegistered(ctx, info.Key(), m.ID(), m.BaseAddress())
 		}
 	}
 }
@@ -296,9 +306,34 @@ func (r *Registry) OnProcessRescan(ctx context.Context, info process.ProcessInfo
 }
 
 func (r *Registry) SymbolizeInterpreted(ctx context.Context, pid linux.CurrentNamespacePID, addr uint64) (string, error) {
+	return r.symbolizeInterpreted(ctx, linux.ProcessKey{Pid: pid}, addr)
+}
+
+func (r *Registry) SymbolizeInterpretedForProcess(ctx context.Context, process linux.ProcessKey, addr uint64) (string, bool, error) {
+	r.trackedMu.Lock()
+	tp := r.tracked[process.Pid]
+	matched := process.ProcessStartTime != 0 && tp != nil && tp.key == process
+	r.trackedMu.Unlock()
+	if !matched {
+		return "", false, nil
+	}
+	name, err := r.symbolizeInterpreted(ctx, process, addr)
+	r.trackedMu.Lock()
+	matched = r.tracked[process.Pid] == tp
+	r.trackedMu.Unlock()
+	if !matched {
+		return "", false, nil
+	}
+	if status.Code(err) == codes.FailedPrecondition || status.Code(err) == codes.NotFound {
+		return "", false, nil
+	}
+	return name, true, err
+}
+
+func (r *Registry) symbolizeInterpreted(ctx context.Context, process linux.ProcessKey, addr uint64) (string, error) {
 	key := interpretedSymbolCacheKey{
-		pid:  pid,
-		addr: addr,
+		process: process,
+		addr:    addr,
 	}
 	cached, ok := r.interpretedSymsCache.Get(key)
 	if ok {
@@ -306,13 +341,17 @@ func (r *Registry) SymbolizeInterpreted(ctx context.Context, pid linux.CurrentNa
 		return cached.name, nil
 	}
 	req := &jvmsupp.SymbolizeRequest{
-		Pid:     int64(pid),
-		Methods: []uint64{addr},
+		Pid:              int64(process.Pid),
+		ProcessStartTime: process.ProcessStartTime,
+		Methods:          []uint64{addr},
 	}
 	res, err := r.helper.Symbolize(ctx, req)
 	if err != nil {
 		r.interpretedMethodResolveInternalError.Inc()
 		return "", fmt.Errorf("remote symbolization failed: %w", err)
+	}
+	if len(res.GetSymbolized()) != 1 || res.GetSymbolized()[0] == nil {
+		return "", fmt.Errorf("invalid JVM symbolization response")
 	}
 	sym := res.GetSymbolized()[0]
 	if sym.Error != nil {
@@ -333,10 +372,10 @@ func (r *Registry) SymbolizeInterpreted(ctx context.Context, pid linux.CurrentNa
 }
 
 func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
-	symfn, ok := r.compiledSyms.Find(pid, ip)
+	symbol, ok := r.compiledSyms.Find(pid, ip)
 	if ok {
 		r.compiledMethodResolveSuccess.Inc()
-		names := symfn(ip)
+		names := symbol.resolve(ip)
 		var syms []profilerext.JITSymbol
 		for _, n := range names {
 			syms = append(syms, profilerext.JITSymbol{
@@ -350,6 +389,21 @@ func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerex
 	}
 	r.compiledMethodResolveFailure.Inc()
 	return profilerext.JITSymbolizerOutput{}, false
+}
+
+func (r *Registry) ResolveForProcess(key linux.ProcessKey, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
+	symbol, ok := r.compiledSyms.Find(key.Pid, ip)
+	if !ok || key.ProcessStartTime == 0 || symbol.key != key {
+		r.compiledMethodResolveFailure.Inc()
+		return profilerext.JITSymbolizerOutput{}, false
+	}
+	r.compiledMethodResolveSuccess.Inc()
+	names := symbol.resolve(ip)
+	symbols := make([]profilerext.JITSymbol, len(names))
+	for i, name := range names {
+		symbols[i].Name = name
+	}
+	return profilerext.JITSymbolizerOutput{MappingName: profile.JVMSpecialMapping, Symbols: symbols}, true
 }
 
 func (r *Registry) symbolizeLocation(ctx context.Context, method *jvmsupp.MethodInfo, offset uint64) []string {
@@ -411,8 +465,8 @@ func (r *Registry) symbolizeLocation(ctx context.Context, method *jvmsupp.Method
 	return res
 }
 
-func (r *Registry) updateSymbols(ctx context.Context, pid linux.CurrentNamespacePID, methods []*jvmsupp.MethodInfo) {
-	var s []symboltable.Entry[symFunc]
+func (r *Registry) updateSymbols(ctx context.Context, key linux.ProcessKey, methods []*jvmsupp.MethodInfo) {
+	var s []symboltable.Entry[compiledSymbol]
 	for _, m := range methods {
 		name := m.Name
 		if r.disambiguateFrameSource {
@@ -434,23 +488,23 @@ func (r *Registry) updateSymbols(ctx context.Context, pid linux.CurrentNamespace
 			}
 		}
 
-		s = append(s, symboltable.Entry[symFunc]{
-			Data:  symfunc,
+		s = append(s, symboltable.Entry[compiledSymbol]{
+			Data:  compiledSymbol{key: key, resolve: symfunc},
 			Begin: m.CodeBegin,
 			Size:  m.CodeEnd - m.CodeBegin,
 		})
 	}
-	slices.SortFunc(s, func(lhs, rhs symboltable.Entry[symFunc]) int {
+	slices.SortFunc(s, func(lhs, rhs symboltable.Entry[compiledSymbol]) int {
 		return cmp.Compare(lhs.Begin, rhs.Begin)
 	})
-	r.l.Info(ctx, "Updating compiled symbols", logfield.CurrentNamespacePID(pid), log.Int("count", len(s)))
-	r.compiledSyms.Put(pid, s)
+	r.l.Info(ctx, "Updating compiled symbols", logfield.CurrentNamespacePID(key.Pid), log.Int("count", len(s)))
+	r.compiledSyms.Put(key.Pid, s)
 }
 
 func (r *Registry) scanSingleProcess(ctx context.Context, tp *trackedProcess) error {
 	tp.mu.Lock()
 	defer tp.mu.Unlock()
-	if !tp.initialized {
+	if !tp.initialized || tp.retired {
 		return nil
 	}
 	var bookmarks []string
@@ -460,17 +514,18 @@ func (r *Registry) scanSingleProcess(ctx context.Context, tp *trackedProcess) er
 		}
 	}
 	res, err := r.helper.Scan(ctx, &jvmsupp.ScanRequest{
-		Pid:       int64(tp.pid),
-		Bookmarks: bookmarks,
+		Pid:              int64(tp.key.Pid),
+		ProcessStartTime: tp.key.ProcessStartTime,
+		Bookmarks:        bookmarks,
 	})
 	if err != nil {
-		status, ok := status.FromError(err)
-		if ok && status.Code() == codes.FailedPrecondition {
-			r.l.Debug(ctx, "Ignoring FAILED_PRECONDITION scan error", logfield.CurrentNamespacePID(tp.pid), log.String("message", status.Message()))
-		} else {
+		switch status.Code(err) {
+		case codes.FailedPrecondition, codes.NotFound:
+			r.l.Debug(ctx, "Skipping JVM scan for unavailable process state", logfield.CurrentNamespacePID(tp.key.Pid), log.Error(err))
+			return nil
+		default:
 			return fmt.Errorf("scanner call failed: %w", err)
 		}
-		return nil
 	}
 	r.methodNameReads.Add(res.Metrics.MethodNameReads)
 	r.methodScans.Add(int64(len(res.Methods)))
@@ -489,24 +544,19 @@ func (r *Registry) scanSingleProcess(ctx context.Context, tp *trackedProcess) er
 		}
 	}
 
-	r.updateSymbols(ctx, tp.pid, fullMethods)
+	r.updateSymbols(ctx, tp.key, fullMethods)
 	dwarf, err := synthesizeDWARF(fullMethods)
 	if err != nil {
 		return fmt.Errorf("failed to synthesize dwarf for detected method: %w", err)
 	}
 	oldAlloc := tp.alloc
 	if oldAlloc != nil {
-		// TODO(PERFORATOR-1170): we are releasing old allocation before adding new one.
-		// This is bad as ongoing BPF program executions may behave incorrectly in two ways:
-		// 1. program looks root up between Release and Add and finds nothing.
-		// 2. program looks root up before Release and starts traversing the tree,
-		// but pages are rewritten by a concurrent Add that reuses them (as they are already in the freelist after Release),
-		// so program reads effectively garbage.
-		// In both cases recorded sample will be truncated or wrong.
-		r.l.Debug(ctx, "Releasing previous unwind table allocation", logfield.CurrentNamespacePID(tp.pid))
+		// TODO(PERFORATOR-1170): Concurrent BPF readers may miss the root between Release
+		// and Add, or read rewritten pages if Add reuses the previous allocation.
+		r.l.Debug(ctx, "Releasing previous unwind table allocation", logfield.CurrentNamespacePID(tp.key.Pid))
 		r.unwind.Release(tp.alloc)
 	}
-	alloc, err := r.unwind.Add(unwindtable.AllocationID{PID: tp.pid}, dwarf)
+	alloc, err := r.unwind.Add(unwindtable.AllocationID{PID: tp.key.Pid}, dwarf)
 	if err != nil {
 		return fmt.Errorf("failed to allocate bpf unwind table: %w", err)
 	}
@@ -532,8 +582,6 @@ func (r *Registry) scanAll(ctx context.Context) {
 
 	r.l.Debug(ctx, "Scanning targets", log.Int("count", len(targets)))
 
-	r.trackedMu.Lock()
-	defer r.trackedMu.Unlock()
 	for _, tp := range targets {
 		if ctx.Err() != nil {
 			return
@@ -541,7 +589,7 @@ func (r *Registry) scanAll(ctx context.Context) {
 		r.processScans.Add(1)
 		err := r.scanSingleProcess(ctx, tp)
 		if err != nil {
-			r.l.Warn(ctx, "Error during background JVM process refresh", logfield.CurrentNamespacePID(tp.pid), log.Error(err))
+			r.l.Warn(ctx, "Error during background JVM process refresh", logfield.CurrentNamespacePID(tp.key.Pid), log.Error(err))
 		}
 	}
 }
@@ -589,10 +637,8 @@ func (r *Registry) Run(ctx context.Context) error {
 		_, err := r.helper.KeepAlive(ctx, &jvmsupp.KeepAliveRequest{}, grpc.WaitForReady(true))
 		if err != nil {
 			grpcStatus, ok := status.FromError(err)
-			isCanceledByContext := ok && grpcStatus.Code() == codes.Canceled && ctx.Err() != nil
+			isCanceledByContext := ctx.Err() != nil && (errors.Is(err, context.Canceled) || (ok && grpcStatus.Code() == codes.Canceled))
 			if isCanceledByContext {
-				// we are shutting down, and call got canceled. It's likely
-				// that it is client-side cancelation, and that is fine.
 				return nil
 			}
 			return fmt.Errorf("keepalive call failed: %w", err)
@@ -607,14 +653,27 @@ func (r *Registry) Run(ctx context.Context) error {
 	return eg.Wait()
 }
 
-func (r *Registry) ensureRegistered(ctx context.Context, pid linux.CurrentNamespacePID, binaryID uint64, baseAddress uint64) {
+func (r *Registry) ensureRegistered(ctx context.Context, key linux.ProcessKey, binaryID uint64, baseAddress uint64) {
+	pid := key.Pid
 	var tp *trackedProcess
 	var ok bool
 	r.trackedMu.Lock()
 	tp, ok = r.tracked[pid]
+	if ok && tp.key != key {
+		tp.mu.Lock()
+		tp.retired = true
+		if tp.alloc != nil {
+			r.unwind.Release(tp.alloc)
+			tp.alloc = nil
+		}
+		tp.mu.Unlock()
+		r.compiledSyms.Remove(pid)
+		r.trackedProcessCount.Add(-1)
+		ok = false
+	}
 	if !ok {
 		tp = &trackedProcess{
-			pid:        pid,
+			key:        key,
 			curMethods: make(map[string]*jvmsupp.MethodInfo),
 		}
 		r.tracked[pid] = tp
@@ -643,16 +702,18 @@ func (r *Registry) ensureRegistered(ctx context.Context, pid linux.CurrentNamesp
 	}
 
 	res, err := r.helper.InitProcess(ctx, &jvmsupp.InitProcessRequest{
-		Pid:            uint32(pid),
-		LibjvmBinaryId: uint64(binaryID),
-		Version:        data.version,
-		Cheatsheet:     data.cheatsheet,
-		BaseAddress:    baseAddress,
+		Pid:              uint32(pid),
+		ProcessStartTime: key.ProcessStartTime,
+		LibjvmBinaryId:   uint64(binaryID),
+		Version:          data.version,
+		Cheatsheet:       data.cheatsheet,
+		BaseAddress:      baseAddress,
 	})
 	if err != nil {
 		r.l.Info(ctx, "Failed to initialize process", logfield.CurrentNamespacePID(pid), log.Error(err))
 		return
 	}
+	tp.helperKey = &key
 	err = r.bpf.PutJVMProcessConfig(pid, unwinder.JvmProcessConfig{
 		InterpreterBegin: res.InterpreterBegin,
 		InterpreterEnd:   res.InterpreterEnd,
@@ -669,20 +730,68 @@ func (r *Registry) ensureRegistered(ctx context.Context, pid linux.CurrentNamesp
 }
 
 func (r *Registry) OnProcessDeath(ctx context.Context, key linux.ProcessKey) {
-	pid := key.Pid
-	logCtx := ctxlog.WithFields(ctx, logfield.CurrentNamespacePID(pid), log.String("event", "discovery"))
-	r.trackedMu.Lock()
-	defer r.trackedMu.Unlock()
-	tp := r.tracked[pid]
-	if tp == nil {
+	r.retireProcess(ctx, key)
+}
+
+func (r *Registry) OnProcessIdentityChanged(ctx context.Context, previous, current linux.ProcessKey) {
+	if previous.Pid != current.Pid || previous.ProcessStartTime != 0 || current.ProcessStartTime == 0 {
 		return
 	}
+	r.trackedMu.Lock()
+	defer r.trackedMu.Unlock()
+	old := r.tracked[previous.Pid]
+	if old == nil || old.key != previous {
+		return
+	}
+	old.mu.Lock()
+	defer old.mu.Unlock()
+	old.retired = true
+	// Keep Go symbols and unwind pages until the new registration is ready.
+	helperKey := old.helperKey
+	if helperKey == nil {
+		helperKey = &previous
+	}
+	r.tracked[current.Pid] = &trackedProcess{
+		key:        current,
+		helperKey:  helperKey,
+		alloc:      old.alloc,
+		curMethods: make(map[string]*jvmsupp.MethodInfo),
+	}
+	old.helperKey = nil
+	old.alloc = nil
+}
+
+func (r *Registry) retireProcess(ctx context.Context, key linux.ProcessKey) {
+	pid := key.Pid
+	logCtx := ctxlog.WithFields(ctx, logfield.CurrentNamespacePID(pid))
+	r.trackedMu.Lock()
+	tp := r.tracked[pid]
+	if tp == nil || tp.key != key {
+		r.trackedMu.Unlock()
+		return
+	}
+	tp.mu.Lock()
+	tp.retired = true
+	r.compiledSyms.Remove(pid)
 	r.trackedProcessCount.Add(-1)
 	delete(r.tracked, pid)
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
 	if tp.alloc != nil {
-		r.l.Debug(logCtx, "Releasing unwind table allocation of dead process")
+		r.l.Debug(logCtx, "Releasing unwind table allocation of retired process")
 		r.unwind.Release(tp.alloc)
+		tp.alloc = nil
+	}
+	helperKey := tp.helperKey
+	tp.helperKey = nil
+	tp.mu.Unlock()
+	r.trackedMu.Unlock()
+	releaseKeys := []linux.ProcessKey{key}
+	if helperKey != nil && *helperKey != key {
+		// A failed Init RPC may have replaced the helper state before returning.
+		releaseKeys = append(releaseKeys, *helperKey)
+	}
+	for _, releaseKey := range releaseKeys {
+		if _, err := r.helper.ReleaseProcess(ctx, &jvmsupp.ReleaseProcessRequest{Pid: uint32(pid), ProcessStartTime: releaseKey.ProcessStartTime}); err != nil {
+			r.l.Warn(ctx, "Failed to release JVM process state", log.Error(err))
+		}
 	}
 }

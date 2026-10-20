@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/python/agent/linetable"
 	"github.com/yandex/perforator/perforator/internal/linguist/python/agent/remotemem"
+	python_models "github.com/yandex/perforator/perforator/internal/linguist/python/models"
 	pyoffsets "github.com/yandex/perforator/perforator/internal/linguist/python/offsets"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
@@ -14,9 +16,7 @@ import (
 )
 
 // SymbolSource provides name/filename symbolization for interpreter frames.
-type SymbolSource interface {
-	Symbolize(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (*symbolizer.Symbol, bool)
-}
+type SymbolSource = symbolizer.SymbolSource
 
 // OffsetsLookup provides per-pid CPython internals offsets for line resolution.
 type OffsetsLookup interface {
@@ -210,4 +210,36 @@ func validLine(line int32, ok bool) (int32, lineInfoOutcome) {
 		return 0, lineNoLine
 	}
 	return line, lineResolved
+}
+
+func (s *Symbolizer) resolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame) models.ResolvedInterpreterFrame {
+	result := models.ResolvedInterpreterFrame{
+		Mapping: profile.PythonSpecialMapping,
+		Address: frame.SymbolKey.ObjectAddr,
+	}
+	if frame.SymbolKey.Linestart == trampolineLinestart {
+		result.Name = python_models.PythonTrampolineFrame
+		return result
+	}
+	result.StartLine = frame.SymbolKey.Linestart
+	result.HasStartLine = true
+	result.Name = models.UnsymbolizedInterpreterLocation
+	result.Unsymbolized = true
+	if s == nil || s.symbols == nil {
+		return result
+	}
+	symbol, ok := s.symbols.SymbolizeUncached(models.Language(unwinder.LanguagePython), process, &frame.SymbolKey)
+	if !ok {
+		return result
+	}
+	result.Unsymbolized = false
+	result.Name, result.Filename = symbol.Name, symbol.FileName
+	if symbol.Name != "" {
+		result.Address = 0
+	}
+	result.Line, result.LineInfo = s.resolveLine(process, frame)
+	result.HasLine = result.Line > 0
+	// The linetable cache owns negative-result expiry and transient retries.
+	result.DoNotCache = result.LineInfo != lineSkipped && result.LineInfo != lineResolved
+	return result
 }

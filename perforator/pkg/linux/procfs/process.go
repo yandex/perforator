@@ -256,14 +256,15 @@ func (p *Process) GetComm() (string, error) {
 }
 
 type ProcStat struct {
-	State  byte
-	EnvEnd uint64
+	State          byte
+	StartTimeTicks uint64 // USER_HZ ticks since boot.
+	EnvEnd         uint64
 }
 
-// See man 5 proc_pid_stat.
-// Note that we subtract 1 because numbering in man is 1-based.
-const stateFieldNumber = 3 - 1
-const envEndStatFieldNumber = 51 - 1
+// Field indices in the tail after pid and comm (see man 5 proc_pid_stat).
+const stateFieldNumber = 0
+const startTimeStatFieldNumber = 22 - 3
+const envEndStatFieldNumber = 51 - 3
 
 func (p *Process) Stat() (*ProcStat, error) {
 	path := p.child("stat")
@@ -277,15 +278,23 @@ func (p *Process) Stat() (*ProcStat, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %s: %w", path, err)
 	}
-	fields := strings.Fields(string(data))
+	end := strings.LastIndexByte(string(data), ')')
+	if end < 0 {
+		return nil, fmt.Errorf("unexpected stat: missing comm terminator")
+	}
+	fields := strings.Fields(string(data[end+1:]))
 
-	if len(fields) <= max(stateFieldNumber, envEndStatFieldNumber) {
+	if len(fields) <= max(stateFieldNumber, startTimeStatFieldNumber, envEndStatFieldNumber) {
 		return nil, fmt.Errorf("unexpected stat: not enough fields")
 	}
 
-	envEnv, err := strconv.ParseUint(fields[envEndStatFieldNumber], 10, 64)
+	startTime, err := strconv.ParseUint(fields[startTimeStatFieldNumber], 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse env_env: %w", err)
+		return nil, fmt.Errorf("failed to parse starttime: %w", err)
+	}
+	envEnd, err := strconv.ParseUint(fields[envEndStatFieldNumber], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse env_end: %w", err)
 	}
 
 	if len(fields[stateFieldNumber]) != 1 {
@@ -293,8 +302,9 @@ func (p *Process) Stat() (*ProcStat, error) {
 	}
 
 	return &ProcStat{
-		State:  fields[stateFieldNumber][0],
-		EnvEnd: envEnv,
+		State:          fields[stateFieldNumber][0],
+		StartTimeTicks: startTime,
+		EnvEnd:         envEnd,
 	}, nil
 }
 

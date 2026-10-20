@@ -13,6 +13,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmbindings"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
+	"github.com/yandex/perforator/perforator/pkg/linux/pidfd"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/jvmsupp"
 )
@@ -51,10 +52,11 @@ type CodeHeap struct {
 }
 
 type ProcessState struct {
-	pid     linux.CurrentNamespacePID
-	heaps   []CodeHeap
-	conf    *jvmproto.Cheatsheet
-	version uint32
+	key       linux.ProcessKey
+	processFD *pidfd.FD
+	heaps     []CodeHeap
+	conf      *jvmproto.Cheatsheet
+	version   uint32
 }
 
 type ProcessInfoForBPF struct {
@@ -133,39 +135,56 @@ func (s *Scanner) initJIT(j *jvmbindings.JVM, baseAddr uint64, state *ProcessSta
 	return nil
 }
 
-func (s *Scanner) InitProcess(pid linux.CurrentNamespacePID, cs *jvmproto.Cheatsheet, version uint32, baseAddress uint64) (*ProcessState, ProcessInfoForBPF, error) {
+func (s *Scanner) InitProcess(key linux.ProcessKey, cs *jvmproto.Cheatsheet, version uint32, baseAddress uint64) (*ProcessState, ProcessInfoForBPF, error) {
+	pid := key.Pid
 	err := cheatsheets.Validate(cs, version)
 	if err != nil {
 		return nil, ProcessInfoForBPF{}, fmt.Errorf("invalid config: %w", err)
 	}
+	processFD, err := pidfd.OpenForProcess(key)
+	if err != nil {
+		return nil, ProcessInfoForBPF{}, err
+	}
+	ready := false
+	defer func() {
+		if !ready {
+			_ = processFD.Close()
+		}
+	}()
 	j := jvmbindings.NewJVM(cs, uint32(pid), version)
 	infoForBPF, err := s.initInterp(j, baseAddress)
 	if err != nil {
 		return nil, ProcessInfoForBPF{}, fmt.Errorf("failed to discover interpreter state: %w", err)
 	}
 	var procState ProcessState
-	procState.pid = pid
+	procState.key = key
+	procState.processFD = processFD
 	procState.conf = cs
 	procState.version = version
 	err = s.initJIT(j, baseAddress, &procState)
 	if err != nil {
 		return nil, ProcessInfoForBPF{}, fmt.Errorf("failed to discover JIT state: %w", err)
 	}
-	return &procState, infoForBPF, err
+	if err := processFD.CheckAlive(); err != nil {
+		return nil, ProcessInfoForBPF{}, err
+	}
+	ready = true
+	return &procState, infoForBPF, nil
 }
 
 func (s *Scanner) prepare(ps *ProcessState) (*jvmbindings.JVM, error) {
-	proc, err := s.bpf.GetProcess(ps.pid)
+	if err := ps.checkAlive(); err != nil {
+		return nil, err
+	}
+	proc, err := s.bpf.GetProcess(ps.key.Pid)
 	if err != nil {
-		return nil, &ProcessNotFoundError{fmt.Errorf("process %d not found: %w", ps.pid, err)}
+		return nil, &ProcessNotFoundError{fmt.Errorf("process %d not found: %w", ps.key.Pid, err)}
 	}
 	if proc.LibjvmBinary.Id == ^unwinder.BinaryId(0) {
-		// Justification for ProcessNotFoundError tag: it may be possible
-		// that process already died, but its pid was reused by a non-java process
 		return nil, &ProcessNotFoundError{fmt.Errorf("process has no libjvm mapping")}
 	}
 
-	return jvmbindings.NewJVM(ps.conf, uint32(ps.pid), ps.version), nil
+	return jvmbindings.NewJVM(ps.conf, uint32(ps.key.Pid), ps.version), nil
 }
 
 func (s *Scanner) Symbolize(ctx context.Context, ps *ProcessState, addr uint64) (string, error) {
@@ -175,7 +194,13 @@ func (s *Scanner) Symbolize(ctx context.Context, ps *ProcessState, addr uint64) 
 	}
 
 	buf, err := readMethodName(jvmbindings.Method(jvm.MakeObjPointer(uintptr(addr))), methodNameLimit)
-	return string(buf), err
+	if err == nil {
+		err = ps.checkAlive()
+	}
+	if err != nil {
+		return "", err
+	}
+	return string(buf), nil
 }
 
 type scanStepResult struct {
@@ -426,5 +451,19 @@ func (s *Scanner) ScanProcess(
 		UnchangedMethods: unchangedMethods,
 		Metrics:          metrics,
 	}
+	if err := state.checkAlive(); err != nil {
+		return nil, err
+	}
 	return resp, nil
 }
+
+func (ps *ProcessState) Key() linux.ProcessKey { return ps.key }
+
+func (ps *ProcessState) checkAlive() error {
+	if err := ps.processFD.CheckAlive(); err != nil {
+		return &ProcessNotFoundError{err}
+	}
+	return nil
+}
+
+func (ps *ProcessState) Close() error { return ps.processFD.Close() }

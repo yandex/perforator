@@ -68,3 +68,7 @@ func TestRegistry_ProcessDeathInvalidatesLinetableCache(t *testing.T) {
 	_, ok = reg.symbolizer.cache.Get(key)
 	require.False(t, ok)
 }
+
+func (s nopSymbolSource) SymbolizeUncached(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (*symbolizer.Symbol, bool) {
+	return s.Symbolize(language, process, key)
+}

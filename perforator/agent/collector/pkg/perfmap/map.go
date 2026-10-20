@@ -65,7 +65,7 @@ func (p *perfMap) refresh() ([]symboltable.Entry[string], refreshStats, error) {
 
 	p.lastRefreshMtime = info.ModTime()
 	p.lastRefreshSize = info.Size()
-	var syms []symboltable.Entry[string]
+	syms := make([]symboltable.Entry[string], 0, len(rawSyms))
 	for _, s := range rawSyms {
 		syms = append(syms, symboltable.Entry[string]{
 			Data:  s.name,

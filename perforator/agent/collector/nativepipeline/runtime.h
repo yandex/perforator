@@ -31,6 +31,14 @@ enum TPerforatorResolvedFrameFlags {
     PerforatorResolvedFrameDoNotCache = 1u << 3,
 };
 
+enum TPerforatorLineInfoOutcome {
+    PerforatorLineInfoSkipped = 0,
+    PerforatorLineInfoResolved = 1,
+    PerforatorLineInfoUnavailable = 2,
+    PerforatorLineInfoNoLine = 3,
+    PerforatorLineInfoFailed = 4,
+};
+
 typedef struct {
     TPerforatorStringView Mapping;
     TPerforatorStringView Name;
@@ -39,6 +47,7 @@ typedef struct {
     int32_t StartLine;
     int32_t Line;
     uint32_t Flags;
+    uint8_t LineInfo;
 } TPerforatorResolvedInterpreterFrame;
 
 enum TPerforatorResolveStatus {
@@ -74,11 +83,17 @@ int PerforatorGoResolveInterpreterFrames(
 // Releases a live resolution handle; zero is allowed.
 void PerforatorGoReleaseRuntimeResolution(uint64_t resolution);
 
+// Optional method metadata; JIT lookup by frame address is independent.
+enum TPerforatorJitRuntimeId {
+    PerforatorJitRuntimeNone = 0,
+    PerforatorJitRuntimeJvm = 1,
+};
+
 typedef struct {
     TPerforatorProcessKey Key;
-    uint8_t HasJvmMethod;
+    uint8_t JitRuntimeId;
     uint64_t Address;
-    uint64_t JvmMethodAddress;
+    uint64_t JitMethodAddress;
 } TPerforatorNativeFrameRequest;
 
 typedef struct {
@@ -90,6 +105,7 @@ typedef struct {
     uint32_t SymbolBegin;
     uint32_t SymbolCount;
     TPerforatorStringView JvmName;
+    uint8_t ClearAddress;
 } TPerforatorResolvedNativeFrame;
 
 // The same ownership and retry contract applies. symbolCount is the required

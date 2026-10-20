@@ -101,3 +101,8 @@ func (p *StackProcessor) addLocation(
 	loc.SetMapping().SetPath(string(profile.PythonSpecialMapping)).Finish()
 	return loc
 }
+
+// ResolveFrame leaves name caching and per-occurrence metrics to the caller.
+func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame) models.ResolvedInterpreterFrame {
+	return p.symbolizer.resolveFrame(process, frame)
+}

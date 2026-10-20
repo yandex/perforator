@@ -34,6 +34,17 @@ type Listener interface {
 	OnProcessDeath(ctx context.Context, key linux.ProcessKey)
 }
 
+// IdentityListener observes refinement of an existing registration from {PID, 0}
+// to {PID, T}. Detected PID reuse is reported through death and discovery instead.
+// Callbacks are serialized with discovery, rescan and death per PID. Within the
+// registration, those callbacks receive the new key only after this notification,
+// and never receive the old key afterwards. Previously started asynchronous work
+// is not drained. The notification does not imply BPF readiness and may precede
+// the first discovery. Callbacks must not reenter discovery.
+type IdentityListener interface {
+	OnProcessIdentityChanged(ctx context.Context, previous, current linux.ProcessKey)
+}
+
 // MetadataSnapshot owns the process metadata passed to a publisher.
 type MetadataSnapshot struct {
 	Key         linux.ProcessKey

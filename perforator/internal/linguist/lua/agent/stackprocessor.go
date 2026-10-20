@@ -81,8 +81,7 @@ func (p *StackProcessor) processFrame(
 
 			filename = symbol.FileName
 
-			// Usually scripts has `@` symbol appended at the beginning.
-			// Perforator has the same symbol, removing here.
+			// Lua prefixes file-backed chunk names with '@'.
 			if len(filename) != 0 && filename[0] == '@' {
 				filename = symbol.FileName[1:]
 			}
@@ -99,11 +98,9 @@ func (p *StackProcessor) processFrame(
 	case unwinder.LuaFrameTypeC:
 		cFrame := frame.Value.GetCFrame()
 
-		// TODO: Try to symbolize this frame by postprocess
 		if int(cFrame.Ffid) == LuaCFunctionId {
 			name += fmt.Sprintf("function: 0x%x", cFrame.ObjectAddr)
 		} else {
-			// FF function
 			name += "function: builtin#" + strconv.Itoa(int(cFrame.Ffid))
 			clearAddress = true
 		}
@@ -139,4 +136,91 @@ func (p *StackProcessor) processFrame(
 		SetStartLine(line).
 		Finish()
 	loc.Finish()
+}
+
+// ResolveFrame leaves name caching and per-occurrence metrics to the caller.
+func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.LuaFrame) models.ResolvedInterpreterFrame {
+	name := "[lua] "
+	filename := ""
+	line := int64(0)
+	clearAddress := false
+	var key profile.InterpreterLocationKey
+	unsymbolized := false
+
+	switch frame.Type {
+	case unwinder.LuaFrameTypeLua:
+		luaFrame := frame.Value.GetLuaFrame()
+		symbol, exists := p.symbolizer.SymbolizeUncached(models.Language(unwinder.LanguageLua), process, &luaFrame)
+
+		if !exists {
+			unsymbolized = true
+			name += fmt.Sprintf("unsymbolized lua function: 0x%x", luaFrame.ObjectAddr)
+		} else {
+			if len(symbol.Name) == 0 {
+				name += "<no name>"
+			} else {
+				name += symbol.Name
+			}
+
+			filename = symbol.FileName
+
+			// Lua prefixes file-backed chunk names with '@'.
+			if len(filename) != 0 && filename[0] == '@' {
+				filename = symbol.FileName[1:]
+			}
+		}
+
+		line = int64(luaFrame.Linestart)
+		clearAddress = exists && (symbol.Name != "" || (filename != "" && line > 0))
+
+		key = profile.InterpreterLocationKey{
+			ObjectAddress: luaFrame.ObjectAddr,
+			Linestart:     luaFrame.Linestart,
+			Language:      models.Language(unwinder.LanguageLua),
+		}
+	case unwinder.LuaFrameTypeC:
+		cFrame := frame.Value.GetCFrame()
+
+		if int(cFrame.Ffid) == LuaCFunctionId {
+			name += fmt.Sprintf("function: 0x%x", cFrame.ObjectAddr)
+		} else {
+			name += "function: builtin#" + strconv.Itoa(int(cFrame.Ffid))
+			clearAddress = true
+		}
+
+		key = profile.InterpreterLocationKey{
+			ObjectAddress: cFrame.ObjectAddr,
+			Linestart:     int32(cFrame.Ffid),
+			Language:      models.Language(unwinder.LanguageLua),
+		}
+	case unwinder.LuaFrameTypeInvalid:
+		invalidFrame := frame.Value.GetInvalidFrame()
+		name += "<invalid lua frame>"
+
+		if int(invalidFrame.Error) < len(luaStackWalkErrorDescriptions) {
+			name += ": " + luaStackWalkErrorDescriptions[invalidFrame.Error]
+		}
+
+		key = profile.InterpreterLocationKey{
+			ObjectAddress: uint64(invalidFrame.Error),
+			Linestart:     0,
+			Language:      models.Language(unwinder.LanguageLua),
+		}
+	}
+
+	result := models.ResolvedInterpreterFrame{
+		Mapping:      profile.LuaSpecialMapping,
+		Name:         name,
+		Filename:     filename,
+		Address:      key.ObjectAddress,
+		StartLine:    int32(line),
+		Line:         int32(line),
+		HasStartLine: true,
+		HasLine:      true,
+		Unsymbolized: unsymbolized,
+	}
+	if clearAddress {
+		result.Address = 0
+	}
+	return result
 }

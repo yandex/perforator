@@ -3,6 +3,7 @@ package nativepipeline
 import (
 	"context"
 
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
@@ -16,30 +17,24 @@ type InterpreterFrameRequest struct {
 	Data     []byte
 }
 
-type ResolvedInterpreterFrame struct {
-	Mapping      string
-	Name         string
-	Filename     string
-	Address      uint64
-	StartLine    int32
-	Line         int32
-	Unsymbolized bool
-	HasStartLine bool
-	HasLine      bool
-	DoNotCache   bool
-}
+type ResolvedInterpreterFrame = models.ResolvedInterpreterFrame
+
+type JITRuntimeID uint8
 
 type NativeFrameRequest struct {
-	Key              linux.ProcessKey
-	Address          uint64
-	HasJVMMethod     bool
-	JVMMethodAddress uint64
+	Key     linux.ProcessKey
+	Address uint64
+	// Optional method metadata; JIT lookup uses Address regardless of runtime ID.
+	JITRuntimeID     JITRuntimeID
+	JITMethodAddress uint64
 }
 
 type ResolvedNativeFrame struct {
 	JITMapping string
 	JITSymbols []string
 	JVMName    string
+	// Targets that preserve the sampled address ignore ClearAddress.
+	ClearAddress bool
 }
 
 // RuntimeResolver returns one result per request in the same order. Methods

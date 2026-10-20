@@ -16,6 +16,7 @@ message ScanRequest {
     // List of bookmarks returned from the previous scan, in any order.
     // if this is first scan for the process, list must be empty.
     repeated string bookmarks = 2;
+    uint64 process_start_time = 3;
 }
 
 message InstructionRange {
@@ -73,6 +74,7 @@ message KeepAliveResponse {}
 message SymbolizeRequest {
     int64 pid = 1;
     repeated uint64 methods = 2;
+    uint64 process_start_time = 3;
 }
 
 message SymbolizationError {
@@ -92,6 +94,7 @@ message SymbolizeResponse {
 
 message InitProcessRequest {
     uint32 pid = 1;
+    uint64 process_start_time = 6;
 
     uint64 libjvm_binary_id = 2;
 
@@ -117,6 +120,13 @@ message RetainProcessesRequest {
 message RetainProcessesResponse {
 }
 
+message ReleaseProcessRequest {
+    uint32 pid = 1;
+    uint64 process_start_time = 2;
+}
+
+message ReleaseProcessResponse {}
+
 message RetainBinariesRequest {
     repeated uint64 binary_ids = 1;
 }
@@ -140,5 +150,7 @@ service JvmSupportService {
     rpc Symbolize(SymbolizeRequest) returns (SymbolizeResponse) {}
     rpc InitProcess(InitProcessRequest) returns (InitProcessResponse) {}
     rpc RetainProcesses(RetainProcessesRequest) returns (RetainProcessesResponse) {}
+    // Releases only the matching lifetime; late requests preserve its replacement.
+    rpc ReleaseProcess(ReleaseProcessRequest) returns (ReleaseProcessResponse) {}
     rpc RetainBinaries(RetainBinariesRequest) returns (RetainBinariesResponse) {}
 }

@@ -3,6 +3,7 @@ GO_LIBRARY()
 SRCS(
     cgroupevent.go
     event_listener.go
+    native_runtime.go
     perf_event_manager.go
     pidprofile.go
     pods_cgroup_tracker.go

@@ -361,3 +361,7 @@ func TestResolveLineRetriesMissingOffsets(t *testing.T) {
 	require.Equal(t, int32(10), line)
 	require.Equal(t, 1, reader.calls)
 }
+
+func (s *stubSymbolSource) SymbolizeUncached(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (*symbolizer.Symbol, bool) {
+	return s.Symbolize(language, process, key)
+}

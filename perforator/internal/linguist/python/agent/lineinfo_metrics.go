@@ -1,19 +1,22 @@
 package agent
 
-import "github.com/yandex/perforator/library/go/core/metrics"
+import (
+	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
+)
 
 // Count only ordinary symbolized frames with line information enabled.
 // Resolved includes cached lines; failed includes negative cache entries.
 // NoLine means a table was obtained but yielded no positive source line.
-type lineInfoOutcome uint8
+type lineInfoOutcome = models.LineInfoOutcome
 
 const (
-	lineSkipped lineInfoOutcome = iota
-	lineResolved
-	lineUnavailable
-	lineNoLine
-	lineFailed
-	lineInfoOutcomeCount
+	lineSkipped          = models.LineInfoSkipped
+	lineResolved         = models.LineInfoResolved
+	lineUnavailable      = models.LineInfoUnavailable
+	lineNoLine           = models.LineInfoNoLine
+	lineFailed           = models.LineInfoFailed
+	lineInfoOutcomeCount = lineFailed + 1
 )
 
 type lineInfoMetrics struct {

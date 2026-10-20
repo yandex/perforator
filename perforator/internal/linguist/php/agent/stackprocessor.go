@@ -72,3 +72,24 @@ func (p *StackProcessor) processFrame(
 		SetStartLine(int64(frame.SymbolKey.Linestart)).
 		Finish()
 }
+
+// ResolveFrame leaves name caching and per-occurrence metrics to the caller.
+func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.PhpFrame) models.ResolvedInterpreterFrame {
+	result := models.ResolvedInterpreterFrame{
+		Mapping:      profile.PHPSpecialMapping,
+		Address:      frame.SymbolKey.ObjectAddr,
+		StartLine:    frame.SymbolKey.Linestart,
+		HasStartLine: true,
+	}
+	symbol, exists := p.symbolizer.SymbolizeUncached(models.Language(unwinder.LanguagePhp), process, &frame.SymbolKey)
+	if !exists {
+		result.Unsymbolized = true
+		result.Name = models.UnsymbolizedInterpreterLocation
+		return result
+	}
+	result.Name, result.Filename = symbol.Name, symbol.FileName
+	if symbol.Name != "" {
+		result.Address = 0
+	}
+	return result
+}

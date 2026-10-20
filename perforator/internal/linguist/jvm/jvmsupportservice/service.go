@@ -23,7 +23,19 @@ import (
 )
 
 type Options struct {
+	// An empty path runs the service for in-process calls without a gRPC listener.
 	SocketPath string
+}
+
+type processEntry struct {
+	mu    sync.RWMutex
+	state *jvmscanner.ProcessState
+}
+
+func (p *processEntry) close() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	_ = p.state.Close()
 }
 
 type Service struct {
@@ -35,8 +47,10 @@ type Service struct {
 	keepaliveCallStarted chan struct{}
 	keepaliveCallFailed  chan error
 
-	procsmu sync.RWMutex
-	procs   map[linux.CurrentNamespacePID]*jvmscanner.ProcessState
+	procsmu        sync.RWMutex
+	procs          map[linux.CurrentNamespacePID]*processEntry
+	closed         bool
+	processUpdates sync.WaitGroup
 
 	cheatsheetsmu sync.RWMutex
 	cheatsheets   map[uint64]*jvm.Cheatsheet
@@ -49,9 +63,24 @@ func New(logger xlog.Logger, scanner *jvmscanner.Scanner, opts Options) *Service
 		scanner:              scanner,
 		keepaliveCallStarted: make(chan struct{}),
 		keepaliveCallFailed:  make(chan error, 1),
-		procs:                make(map[linux.CurrentNamespacePID]*jvmscanner.ProcessState),
+		procs:                make(map[linux.CurrentNamespacePID]*processEntry),
 		cheatsheets:          make(map[uint64]*jvm.Cheatsheet),
 	}
+}
+
+// acquireProcess pins the selected state; callers must release its read lock.
+func (s *Service) acquireProcess(key linux.ProcessKey) (*processEntry, error) {
+	s.procsmu.RLock()
+	defer s.procsmu.RUnlock()
+	proc := s.procs[key.Pid]
+	if proc == nil {
+		return nil, status.Errorf(codes.NotFound, "process %d not found", key.Pid)
+	}
+	if key.ProcessStartTime != 0 && proc.state.Key() != key {
+		return nil, status.Errorf(codes.NotFound, "JVM state for process %d with start time %d is not registered (registered start time: %d)", key.Pid, key.ProcessStartTime, proc.state.Key().ProcessStartTime)
+	}
+	proc.mu.RLock()
+	return proc, nil
 }
 
 func (s *Service) Scan(ctx context.Context, req *jvmsupp.ScanRequest) (*jvmsupp.ScanResponse, error) {
@@ -59,14 +88,13 @@ func (s *Service) Scan(ctx context.Context, req *jvmsupp.ScanRequest) (*jvmsupp.
 	if int64(pid) != req.Pid {
 		return nil, status.Errorf(codes.InvalidArgument, "pid does not fit into uint32_t: %d", req.Pid)
 	}
-	s.procsmu.RLock()
-	proc := s.procs[pid]
-	s.procsmu.RUnlock()
-	if proc == nil {
-		return nil, status.Errorf(codes.NotFound, "process %d not found", req.Pid)
+	proc, err := s.acquireProcess(linux.ProcessKey{Pid: pid, ProcessStartTime: req.ProcessStartTime})
+	if err != nil {
+		return nil, err
 	}
+	defer proc.mu.RUnlock()
 
-	res, err := s.scanner.ScanProcess(ctx, proc, req.Bookmarks)
+	res, err := s.scanner.ScanProcess(ctx, proc.state, req.Bookmarks)
 	if err != nil {
 		if _, ok := errors.AsType[*jvmscanner.ProcessNotFoundError](err); ok {
 			return nil, status.Errorf(codes.FailedPrecondition, "scan error (probably process does not exist anymore): %v", err)
@@ -92,16 +120,18 @@ func (s *Service) Symbolize(ctx context.Context, req *jvmsupp.SymbolizeRequest) 
 	if len(req.GetMethods()) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "no methods to symbolize")
 	}
-	s.procsmu.RLock()
-	proc := s.procs[linux.CurrentNamespacePID(req.GetPid())]
-	s.procsmu.RUnlock()
-	if proc == nil {
-		return nil, status.Errorf(codes.NotFound, "process %d not found", req.Pid)
+	proc, err := s.acquireProcess(linux.ProcessKey{Pid: linux.CurrentNamespacePID(req.GetPid()), ProcessStartTime: req.ProcessStartTime})
+	if err != nil {
+		return nil, err
 	}
+	defer proc.mu.RUnlock()
 	results := make([]*jvmsupp.AddressSymbolization, len(req.GetMethods()))
 	for i, addr := range req.Methods {
-		name, err := s.scanner.Symbolize(ctx, proc, addr)
+		name, err := s.scanner.Symbolize(ctx, proc.state, addr)
 		if err != nil {
+			if _, ok := errors.AsType[*jvmscanner.ProcessNotFoundError](err); ok {
+				return nil, status.Errorf(codes.FailedPrecondition, "process lifetime ended: %v", err)
+			}
 			results[i] = &jvmsupp.AddressSymbolization{
 				Error: &jvmsupp.SymbolizationError{
 					Message: err.Error(),
@@ -119,7 +149,23 @@ func (s *Service) Symbolize(ctx context.Context, req *jvmsupp.SymbolizeRequest) 
 	}, nil
 }
 
+// Admission and shutdown share procsmu so no update can start after cleanup begins.
+func (s *Service) beginProcessUpdate() error {
+	s.procsmu.Lock()
+	defer s.procsmu.Unlock()
+	if s.closed {
+		return status.Error(codes.Unavailable, "JVM service is closed")
+	}
+	s.processUpdates.Add(1)
+	return nil
+}
+
 func (s *Service) InitProcess(ctx context.Context, req *jvmsupp.InitProcessRequest) (*jvmsupp.InitProcessResponse, error) {
+	if err := s.beginProcessUpdate(); err != nil {
+		return nil, err
+	}
+	defer s.processUpdates.Done()
+
 	var cheatsheet *jvm.Cheatsheet
 	if req.Cheatsheet != nil {
 		cheatsheet = req.Cheatsheet
@@ -137,14 +183,23 @@ func (s *Service) InitProcess(ctx context.Context, req *jvmsupp.InitProcessReque
 	if req.Version == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "version is required")
 	}
-	state, bpfInfo, err := s.scanner.InitProcess(linux.CurrentNamespacePID(req.Pid), cheatsheet, req.Version, req.BaseAddress)
+	state, bpfInfo, err := s.scanner.InitProcess(linux.ProcessKey{Pid: linux.CurrentNamespacePID(req.Pid), ProcessStartTime: req.ProcessStartTime}, cheatsheet, req.Version, req.BaseAddress)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to initialize process: %v", err)
 	}
 
 	s.procsmu.Lock()
-	defer s.procsmu.Unlock()
-	s.procs[linux.CurrentNamespacePID(req.Pid)] = state
+	if s.closed {
+		s.procsmu.Unlock()
+		_ = state.Close()
+		return nil, status.Error(codes.Unavailable, "JVM service is closed")
+	}
+	old := s.procs[linux.CurrentNamespacePID(req.Pid)]
+	s.procs[linux.CurrentNamespacePID(req.Pid)] = &processEntry{state: state}
+	s.procsmu.Unlock()
+	if old != nil {
+		old.close()
+	}
 
 	return &jvmsupp.InitProcessResponse{
 		InterpreterBegin: bpfInfo.InterpreterBegin,
@@ -153,18 +208,50 @@ func (s *Service) InitProcess(ctx context.Context, req *jvmsupp.InitProcessReque
 }
 
 func (s *Service) RetainProcesses(ctx context.Context, req *jvmsupp.RetainProcessesRequest) (*jvmsupp.RetainProcessesResponse, error) {
+	if err := s.beginProcessUpdate(); err != nil {
+		return nil, err
+	}
+	defer s.processUpdates.Done()
+
 	pids := make(map[linux.CurrentNamespacePID]struct{})
 	for _, pid := range req.Pids {
 		pids[linux.CurrentNamespacePID(pid)] = struct{}{}
 	}
+	var removed []*processEntry
 	s.procsmu.Lock()
-	defer s.procsmu.Unlock()
-
-	maps.DeleteFunc(s.procs, func(pid linux.CurrentNamespacePID, _ *jvmscanner.ProcessState) bool {
+	maps.DeleteFunc(s.procs, func(pid linux.CurrentNamespacePID, proc *processEntry) bool {
 		_, ok := pids[pid]
+		if !ok {
+			removed = append(removed, proc)
+		}
 		return !ok
 	})
+	s.procsmu.Unlock()
+	for _, proc := range removed {
+		proc.close()
+	}
 	return &jvmsupp.RetainProcessesResponse{}, nil
+}
+
+func (s *Service) ReleaseProcess(ctx context.Context, req *jvmsupp.ReleaseProcessRequest) (*jvmsupp.ReleaseProcessResponse, error) {
+	if err := s.beginProcessUpdate(); err != nil {
+		return nil, err
+	}
+	defer s.processUpdates.Done()
+
+	key := linux.ProcessKey{Pid: linux.CurrentNamespacePID(req.Pid), ProcessStartTime: req.ProcessStartTime}
+	s.procsmu.Lock()
+	proc := s.procs[key.Pid]
+	if proc != nil && proc.state.Key() == key {
+		delete(s.procs, key.Pid)
+	} else {
+		proc = nil
+	}
+	s.procsmu.Unlock()
+	if proc != nil {
+		proc.close()
+	}
+	return &jvmsupp.ReleaseProcessResponse{}, nil
 }
 
 func (s *Service) RetainBinaries(ctx context.Context, req *jvmsupp.RetainBinariesRequest) (*jvmsupp.RetainBinariesResponse, error) {
@@ -182,27 +269,43 @@ func (s *Service) RetainBinaries(ctx context.Context, req *jvmsupp.RetainBinarie
 	return &jvmsupp.RetainBinariesResponse{}, nil
 }
 
-func (s *Service) Run(runCtx context.Context) error {
-	srv := grpc.NewServer()
-	jvmsupp.RegisterJvmSupportServiceServer(srv, s)
-	listener, err := net.Listen("unix", s.opts.SocketPath)
-	if err != nil {
-		return fmt.Errorf("failed to bind UDS listener: %w", err)
+func (s *Service) close() {
+	s.procsmu.Lock()
+	s.closed = true
+	procs := s.procs
+	s.procs = nil
+	s.procsmu.Unlock()
+	s.processUpdates.Wait()
+	for _, proc := range procs {
+		proc.close()
 	}
+}
+
+// Run must be called once. It releases process state before returning.
+func (s *Service) Run(runCtx context.Context) error {
+	defer s.close()
+
 	eg, gctx := errgroup.WithContext(runCtx)
-	eg.Go(func() error {
-		s.l.Info(gctx, "Starting grpc server")
-		err := srv.Serve(listener)
+	if s.opts.SocketPath != "" {
+		srv := grpc.NewServer()
+		jvmsupp.RegisterJvmSupportServiceServer(srv, s)
+		listener, err := net.Listen("unix", s.opts.SocketPath)
 		if err != nil {
-			return fmt.Errorf("grpc server failed: %w", err)
+			return fmt.Errorf("failed to bind UDS listener: %w", err)
 		}
-		return nil
-	})
-	eg.Go(func() error {
-		<-gctx.Done()
-		srv.Stop()
-		return nil
-	})
+		eg.Go(func() error {
+			s.l.Info(gctx, "Starting grpc server")
+			if err := srv.Serve(listener); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+				return fmt.Errorf("grpc server failed: %w", err)
+			}
+			return nil
+		})
+		eg.Go(func() error {
+			<-gctx.Done()
+			srv.Stop()
+			return nil
+		})
+	}
 	eg.Go(func() error {
 		keepaliveStartCtx, cancel := context.WithTimeoutCause(
 			gctx,
@@ -212,6 +315,9 @@ func (s *Service) Run(runCtx context.Context) error {
 		defer cancel()
 		select {
 		case <-keepaliveStartCtx.Done():
+			if gctx.Err() != nil {
+				return nil
+			}
 			return context.Cause(keepaliveStartCtx)
 		case <-s.keepaliveCallStarted:
 			s.l.Info(gctx, "Keepalive call established")
@@ -223,6 +329,9 @@ func (s *Service) Run(runCtx context.Context) error {
 		case <-gctx.Done():
 			return nil
 		case err := <-s.keepaliveCallFailed:
+			if gctx.Err() != nil {
+				return nil
+			}
 			return fmt.Errorf("keepalive call failed: %w", err)
 		}
 	})

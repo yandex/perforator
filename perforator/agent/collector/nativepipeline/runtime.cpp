@@ -327,6 +327,7 @@ TVector<std::shared_ptr<const TResolvedInterpreterFrame>> TGoRuntimeResolver::Re
                 const bool unsymbolized = (raw.Flags & PerforatorResolvedFrameUnsymbolized) != 0;
                 const bool cacheable = !unsymbolized &&
                                        (raw.Flags & PerforatorResolvedFrameDoNotCache) == 0;
+                Y_ENSURE(raw.LineInfo <= PerforatorLineInfoFailed, "invalid runtime line info outcome");
                 auto resolved = std::make_shared<TResolvedInterpreterFrame>(TResolvedInterpreterFrame{
                     .Mapping = CopyArenaString(arena, raw.Mapping, "runtime frame mapping"),
                     .Name = CopyArenaString(arena, raw.Name, "runtime frame name"),
@@ -337,6 +338,7 @@ TVector<std::shared_ptr<const TResolvedInterpreterFrame>> TGoRuntimeResolver::Re
                     .Unsymbolized = unsymbolized,
                     .HasStartLine = (raw.Flags & PerforatorResolvedFrameHasStartLine) != 0,
                     .HasLine = (raw.Flags & PerforatorResolvedFrameHasLine) != 0,
+                    .LineInfo = static_cast<TPerforatorLineInfoOutcome>(raw.LineInfo),
                 });
                 resolved->ProfileId = MakeProfileId(*resolved);
                 if (cacheable) {
@@ -403,6 +405,7 @@ TVector<TResolvedNativeFrame> TGoRuntimeResolver::ResolveNativeFrames(
                 TResolvedNativeFrame frame{
                     .JitMapping = CopyArenaString(resultArena, raw.JitMapping, "JIT mapping"),
                     .JvmName = CopyArenaString(resultArena, raw.JvmName, "JVM name"),
+                    .ClearAddress = raw.ClearAddress != 0,
                 };
                 frame.JitSymbols.reserve(raw.SymbolCount);
                 for (size_t i = 0; i < raw.SymbolCount; ++i) {

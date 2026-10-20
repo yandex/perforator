@@ -38,12 +38,14 @@ struct TResolvedInterpreterFrame {
     bool Unsymbolized = false;
     bool HasStartLine = false;
     bool HasLine = false;
+    TPerforatorLineInfoOutcome LineInfo = PerforatorLineInfoSkipped;
 };
 
 struct TResolvedNativeFrame {
     TString JitMapping;
     TVector<TString> JitSymbols;
     TString JvmName;
+    bool ClearAddress = false;
 };
 
 inline constexpr size_t LanguageCount = PERFORATOR_LANGUAGE_COUNT;

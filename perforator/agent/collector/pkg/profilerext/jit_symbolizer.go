@@ -20,3 +20,9 @@ type JITSymbolizer interface {
 	// Symbolizer is expected to return at least one output item on success.
 	Resolve(pid linux.CurrentNamespacePID, ip uint64) (JITSymbolizerOutput, bool)
 }
+
+// ProcessJITSymbolizer selects symbols from the requested process lifetime.
+// An unknown or mismatched lifetime returns no symbols.
+type ProcessJITSymbolizer interface {
+	ResolveForProcess(key linux.ProcessKey, ip uint64) (JITSymbolizerOutput, bool)
+}
