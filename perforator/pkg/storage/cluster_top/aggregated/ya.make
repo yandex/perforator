@@ -10,6 +10,7 @@ SRCS(
 # This test requires library/recipes, which is not supported in the oss repo
 IF (NOT OPENSOURCE)
     GO_TEST_SRCS(
+        serving_table_test.go
         snapshot_session_test.go
         snapshot_test.go
         storage_test.go

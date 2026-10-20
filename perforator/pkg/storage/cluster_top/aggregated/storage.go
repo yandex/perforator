@@ -109,11 +109,17 @@ func (s *ClickhouseAggregationStorage) CountTotalSelfCycles(ctx context.Context,
 	}
 
 	builder := squirrel.Select("sum(self_cycles) as total_self_cycles").
-		From(clusterTopByFunctionTable).
+		From(clusterTopServingTable).
 		Where("generation = ?", generation).
-		Where("event_type = ?", clusterTopEventType)
+		Where("event_type = ?", clusterTopEventType).
+		Where("sort_type = ?", "self_cycles")
 	if optionsObject.function != "" {
-		builder = builder.Where("function = ?", optionsObject.function)
+		// Service drill-down denominators still use live source aggregates.
+		builder = squirrel.Select("sum(self_cycles) as total_self_cycles").
+			From(clusterTopByFunctionTable).
+			Where("generation = ?", generation).
+			Where("event_type = ?", clusterTopEventType).
+			Where("function = ?", optionsObject.function)
 	}
 
 	return s.countTotal(ctx, builder)
@@ -172,35 +178,48 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 		limit = DefaultPageSize
 	}
 	offset := pagination.Offset
-	var orderByCycles string
+	var orderByCycles, sortType string
 	switch sortOrder {
 	case SelfTimeSortOrder:
 		orderByCycles = "cpu_cycles DESC"
+		sortType = "self_cycles"
 	case CumulativeTimeSortOrder:
 		orderByCycles = "sum_cumulative_cycles DESC"
+		sortType = "cumulative_cycles"
 	default:
 		return nil, fmt.Errorf("unknown sort order")
 	}
 
-	fromTable := clusterTopTable
-	if aggregationType == GroupByFunction {
-		fromTable = clusterTopByFunctionTable
+	var builder squirrel.SelectBuilder
+	switch aggregationType {
+	case GroupByFunction:
+		// Each sort copy already has globally aggregated counters. Reading in
+		// key order avoids a full-generation GROUP BY and top-N sort.
+		builder = squirrel.Select("function AS name, self_cycles AS cpu_cycles, cumulative_cycles AS sum_cumulative_cycles").
+			From(clusterTopServingTable).
+			Where("generation = ?", generation).
+			Where("event_type = ?", clusterTopEventType).
+			Where("sort_type = ?", sortType).
+			OrderBy("sort_cycles DESC", "function DESC")
+	case GroupByService:
+		// Service contributions still need summing across buckets and unmerged
+		// source rows; background merges are not required for correct results.
+		builder = squirrel.Select(fmt.Sprintf("%s AS name, sum(self_cycles) AS cpu_cycles, sum(cumulative_cycles) AS sum_cumulative_cycles", groupBy)).
+			From(clusterTopTable).
+			Where("generation = ?", generation).
+			Where("event_type = ?", clusterTopEventType).
+			GroupBy(groupBy).
+			OrderBy(orderByCycles)
+	default:
+		return nil, fmt.Errorf("unknown aggregation type: %s", aggregationType)
 	}
-	// Sum across buckets and unmerged rows; background merges are not required
-	// for correct results from SummingMergeTree tables.
-
-	builder := squirrel.
-		Select(fmt.Sprintf("%s AS name, sum(self_cycles) AS cpu_cycles, sum(cumulative_cycles) as sum_cumulative_cycles", groupBy)).
-		From(fromTable).
-		Where("generation = ?", generation).
-		Where("event_type = ?", clusterTopEventType).
-		OrderBy(orderByCycles).
-		Limit(limit).
-		Offset(offset).
-		GroupBy(groupBy)
+	builder = builder.Limit(limit).Offset(offset)
 
 	if filter != nil && filter.FunctionFilter != "" && filter.FunctionFilterMatchMode != "" {
 		comparisonOperator := getComparisonOperator(filter.FunctionFilterMatchMode)
+		if comparisonOperator == "" {
+			return nil, fmt.Errorf("unknown function match mode: %s", filter.FunctionFilterMatchMode)
+		}
 		searchValue := filter.FunctionFilter
 		if filter.FunctionFilterMatchMode == SubstringMatch {
 			searchValue = fmt.Sprintf("%%%s%%", filter.FunctionFilter)

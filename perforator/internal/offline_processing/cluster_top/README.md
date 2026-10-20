@@ -40,7 +40,7 @@ The Cluster Top relies on two main databases:
 2. **ClickHouse** — acts as the source of data about existing profiles and the target storage for the aggregated results:
 
    - The initial data is taken from the profile metadata table `profiles`.
-   - Results are written to `cluster_top_v3`; its materialized view updates `cluster_top_by_function_v3`. Reads use only these two tables.
+   - Results are written to `cluster_top_v3`; its materialized view updates `cluster_top_by_function_v3`. Global function rankings read precomputed snapshots from `cluster_top_by_function_v3_serving`.
 
 ## Main Components
 
@@ -119,10 +119,13 @@ storage:
 
 ### Read API
 
-- Global function tops and function-name searches read `cluster_top_by_function_v3`.
+- Global function tops and function-name searches read `cluster_top_by_function_v3_serving`, without read-time aggregation. Each function has self and cumulative ranking copies, both carrying both counters. Reads select one copy and order by `(sort_cycles DESC, function DESC)` for stable pagination.
 - Service breakdowns for an exact function read `cluster_top_v3`.
-- Totals read `cluster_top_by_function_v3`; all queries filter `event_type = 'cpu.cycles'` and sum across buckets and unmerged rows.
+- The global denominator sums `self_cycles` from the self-ranking copy, without the search filter. Exact-function service denominators still read `cluster_top_by_function_v3`. All current API queries filter `event_type = 'cpu.cycles'`.
 - Empty totals produce zero percentages.
+- Until the first snapshot is published, function rankings are empty and the global total is zero, even if source data already exists. There is no source-aggregation fallback. Separate page and totals requests can observe different intermediate snapshots.
+- Apply migration 019 and populate serving snapshots before switching readers, including snapshots for existing finished generations. Periodic rebuilding is provided by the separate scheduler change; reads do not depend on its code.
+- The trigram Bloom index helps skip granules for substring searches. Common substrings may still scan many granules, and searches shorter than three characters retain their semantics without benefiting from the index.
 
 There is no fallback to legacy tables. Historical migrations remain unchanged; deleting old data is a separate operation.
 
