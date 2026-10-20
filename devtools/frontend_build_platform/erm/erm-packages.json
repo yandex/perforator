@@ -5110,6 +5110,31 @@
           }
         ]
       },
+      "22.23.3": {
+        "add_date": "2026-10-20T05:33:10",
+        "resources": [
+          {
+            "id": 14088395515,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 14088397776,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 14088399312,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 14088402833,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "22.23.2": {
         "add_date": "2026-08-11T05:31:52",
         "resources": [
