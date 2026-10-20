@@ -59,8 +59,8 @@ The [Scheduler](./scheduler/scheduler.go) is responsible for regularly creating 
   - **Pod vs host normalization:** if any profile in the group has non-empty `pod_id`, the job is pod-scoped (`pod_id` set, `node_id` empty); otherwise it is host-scoped (`node_id` set, `pod_id` empty).
   - Creates a new record in PostgreSQL in the `cluster_top_generations` table with the `scheduled` status. The scheduler freezes `bucket_count` from `--partition-bucket-count` (default 16, range 1..65535; 0 selects the default) for future v3 writes; changing the flag affects only new generations.
   - Populates the `cluster_top_jobs` table with jobs (status `pending`).
-  - **Backpressure:** does not schedule a new generation while any generation remains in `scheduled` status (previous generation not yet `finished`).
-- **Generation Finisher:** a background process in the scheduler that checks every 30 seconds if all jobs in a generation have been processed (no records with the `pending` or `running` status). Jobs in `skipped` do not block finishing. If all jobs are processed, the generation's status is changed to `finished`. Also updates queue-depth gauges (`jobs.pending.count`, `generations.scheduled.count`).
+  - **Backpressure:** does not schedule a new generation while any generation remains `scheduled` or `finalizing`.
+- **Generation Controller:** one serial loop under the scheduler leadership lease checks active generations every 30 seconds. While jobs are pending/running, it rebuilds intermediate snapshots at the configured interval. Once none remain, it sets `finalizing`, publishes a final snapshot regardless of the refresh interval, then sets `finished`. Failed/skipped jobs do not block finishing. Errors or restarts leave `finalizing` for a full rebuild retry; the API reports it as `IN_PROGRESS`. No PostgreSQL transaction spans a ClickHouse rebuild. Queue-depth gauges remain `jobs.pending.count` and `generations.scheduled.count` (including `finalizing`); iteration metrics use `component=generation_controller`.
 
 ### Worker
 
@@ -128,6 +128,36 @@ storage:
 - The trigram Bloom index helps skip granules for substring searches. Common substrings may still scan many granules, and searches shorter than three characters retain their semantics without benefiting from the index.
 
 There is no fallback to legacy tables. Historical migrations remain unchanged; deleting old data is a separate operation.
+
+### Serving snapshot refresh
+
+The scheduler rebuilds `cluster_top_by_function_v3_serving` from all buckets in
+`cluster_top_by_function_v3`. Each rebuild creates a uniquely named temporary
+MergeTree table, validates both ranking copies and atomically replaces the
+generation partition. Closing the dedicated native session removes the temporary
+table after success or failure. A failed rebuild is retried from scratch.
+
+The optional scheduler settings below show the defaults:
+
+```yaml
+serving_tables:
+  refresh_interval: 1h
+  rebuild:
+    timeout: 1h
+    max_threads: 2
+    max_memory_usage: 8589934592 # 8 GiB
+```
+
+Insert parallelism is fixed at one thread. Rebuilds do not override ClickHouse's
+aggregation or sorting spill thresholds; exceeding the memory limit fails the rebuild.
+
+Apply migration 019 before starting this scheduler. Rebuilds need disk space for
+temporary parts and aggregation/sort spills in addition to the published snapshot.
+Only `scheduled` and `finalizing` generations are processed; previously finished generations require
+a separate snapshot build before readers can switch to the serving table.
+
+Metrics under `cluster_top_scheduler.serving` track rebuild outcomes, duration
+and snapshot age for active generations (`-1` until this leader publishes a snapshot).
 
 ## Worker config
 

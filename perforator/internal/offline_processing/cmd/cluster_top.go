@@ -20,6 +20,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/mlock"
 	"github.com/yandex/perforator/perforator/pkg/must"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
+	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/aggregated"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -177,7 +178,12 @@ var (
 				return err
 			}
 
-			s := scheduler.NewScheduler(logger, reg, storageBundle, schedulerConf)
+			schedulerConf.ServingTables = conf.ServingTables
+			snapshots, err := aggregated.NewSnapshotStorage(logger, conf.Storage.DBs.ClickhouseConfig)
+			if err != nil {
+				return fmt.Errorf("initialize serving snapshots: %w", err)
+			}
+			s := scheduler.NewScheduler(logger, reg, storageBundle, snapshots, schedulerConf)
 
 			g, ctx := errgroup.WithContext(ctx)
 

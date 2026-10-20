@@ -21,8 +21,9 @@ const (
 
 var (
 	generationStatusMap = map[string]perforator.ClusterTopGenerationStatus{
-		StatusFinished:  perforator.ClusterTopGenerationStatus_COMPLETED,
-		StatusScheduled: perforator.ClusterTopGenerationStatus_IN_PROGRESS,
+		StatusFinished:   perforator.ClusterTopGenerationStatus_COMPLETED,
+		StatusScheduled:  perforator.ClusterTopGenerationStatus_IN_PROGRESS,
+		StatusFinalizing: perforator.ClusterTopGenerationStatus_IN_PROGRESS,
 	}
 )
 

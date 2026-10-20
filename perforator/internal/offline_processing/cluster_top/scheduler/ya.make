@@ -8,6 +8,7 @@ PEERDIR(
 SRCS(
     discover_jobs.go
     filters.go
+    generation_controller.go
     scheduler.go
 )
 

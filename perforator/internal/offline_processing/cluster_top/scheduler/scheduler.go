@@ -28,6 +28,8 @@ const maxJobsInsertBatchSize = 10000
 
 const DefaultBucketCount uint16 = 16
 
+type GenerationID = uint32
+
 var errGenerationAlreadyExists = errors.New("generation already exists")
 
 var errUnfinishedGenerationExists = errors.New("unfinished generation exists")
@@ -42,9 +44,11 @@ type Config struct {
 	LeaseTTL           time.Duration
 	MaxConflictErrors  uint32
 	BucketCount        uint16
+	ServingTables      ServingTablesConfig
 }
 
 func (c *Config) FillDefault() {
+	c.ServingTables.FillDefault()
 	if c.BucketCount == 0 {
 		c.BucketCount = DefaultBucketCount
 	}
@@ -57,18 +61,14 @@ func (c *Config) FillDefault() {
 }
 
 type Scheduler struct {
-	l       xlog.Logger
-	reg     metrics.Registry
-	storage *bundle.StorageBundle
-	conf    *Config
+	l                    xlog.Logger
+	storage              *bundle.StorageBundle
+	conf                 *Config
+	generationController *GenerationController
 
-	schedulerSuccess          metrics.Counter
-	schedulerErrors           metrics.Counter
-	finisherSuccess           metrics.Counter
-	finisherErrors            metrics.Counter
-	schedulingThrottled       metrics.Counter
-	pendingJobsGauge          metrics.IntGauge
-	scheduledGenerationsGauge metrics.IntGauge
+	schedulerSuccess    metrics.Counter
+	schedulerErrors     metrics.Counter
+	schedulingThrottled metrics.Counter
 }
 
 type jobInsertRow struct {
@@ -83,45 +83,43 @@ func NewScheduler(
 	l xlog.Logger,
 	reg xmetrics.Registry,
 	storage *bundle.StorageBundle,
+	snapshots snapshotBuilder,
 	conf *Config,
 ) *Scheduler {
 	conf.FillDefault()
 	r := reg.WithPrefix("cluster_top_scheduler")
 
 	return &Scheduler{
-		l:                         l.WithName("Scheduler"),
-		reg:                       r,
-		storage:                   storage,
-		conf:                      conf,
-		schedulerSuccess:          r.WithTags(map[string]string{"component": "generation_scheduler", "status": "success"}).Counter("iterations.count"),
-		schedulerErrors:           r.WithTags(map[string]string{"component": "generation_scheduler", "status": "error"}).Counter("iterations.count"),
-		finisherSuccess:           r.WithTags(map[string]string{"component": "generation_finisher", "status": "success"}).Counter("iterations.count"),
-		finisherErrors:            r.WithTags(map[string]string{"component": "generation_finisher", "status": "error"}).Counter("iterations.count"),
-		schedulingThrottled:       r.Counter("scheduling.throttled.count"),
-		pendingJobsGauge:          r.IntGauge("jobs.pending.count"),
-		scheduledGenerationsGauge: r.IntGauge("generations.scheduled.count"),
+		l:                    l.WithName("Scheduler"),
+		storage:              storage,
+		conf:                 conf,
+		generationController: newGenerationController(l, r, storage.DBs.PostgresCluster, snapshots, conf.ServingTables),
+		schedulerSuccess:     r.WithTags(map[string]string{"component": "generation_scheduler", "status": "success"}).Counter("iterations.count"),
+		schedulerErrors:      r.WithTags(map[string]string{"component": "generation_scheduler", "status": "error"}).Counter("iterations.count"),
+		schedulingThrottled:  r.Counter("scheduling.throttled.count"),
 	}
 }
 
-func (s *Scheduler) hasScheduledGeneration(ctx context.Context) (bool, error) {
+func (s *Scheduler) hasUnfinishedGeneration(ctx context.Context) (bool, error) {
 	primary, err := s.storage.DBs.PostgresCluster.WaitForPrimary(ctx)
 	if err != nil {
 		return false, fmt.Errorf("failed to wait for primary postgres: %w", err)
 	}
 
-	return hasScheduledGeneration(ctx, primary.DBx())
+	return hasUnfinishedGeneration(ctx, primary.DBx())
 }
 
-func hasScheduledGeneration(ctx context.Context, q sqlGetter) (bool, error) {
+func hasUnfinishedGeneration(ctx context.Context, q sqlGetter) (bool, error) {
 	var exists bool
 	err := q.GetContext(
 		ctx,
 		&exists,
-		`SELECT EXISTS(SELECT 1 FROM cluster_top_generations WHERE status = $1)`,
+		`SELECT EXISTS(SELECT 1 FROM cluster_top_generations WHERE status IN ($1, $2))`,
 		generations.StatusScheduled,
+		generations.StatusFinalizing,
 	)
 	if err != nil {
-		return false, fmt.Errorf("failed to check scheduled generations: %w", err)
+		return false, fmt.Errorf("failed to check unfinished generations: %w", err)
 	}
 
 	return exists, nil
@@ -182,11 +180,11 @@ func (s *Scheduler) createGeneration(ctx context.Context, generationID int32, st
 	}
 	defer tx.Rollback()
 
-	hasScheduled, err := hasScheduledGeneration(ctx, tx)
+	hasUnfinished, err := hasUnfinishedGeneration(ctx, tx)
 	if err != nil {
 		return 0, err
 	}
-	if hasScheduled {
+	if hasUnfinished {
 		return 0, errUnfinishedGenerationExists
 	}
 
@@ -290,11 +288,11 @@ func (s *Scheduler) tryScheduleGeneration(ctx context.Context) error {
 	// Fast-path backpressure: skip before discoverJobs (ClickHouse). schedulingThrottled
 	// is incremented only here — intentional wait for the current generation to finish.
 	// createGeneration re-checks under RepeatableRead on primary.
-	hasScheduled, err := s.hasScheduledGeneration(ctx)
+	hasUnfinished, err := s.hasUnfinishedGeneration(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check unfinished generations: %w", err)
 	}
-	if hasScheduled {
+	if hasUnfinished {
 		s.l.Info(ctx, "Skipping generation scheduling: unfinished generation exists")
 		s.schedulingThrottled.Inc()
 		return nil
@@ -331,74 +329,6 @@ func (s *Scheduler) tryScheduleGeneration(ctx context.Context) error {
 	)
 
 	return nil
-}
-
-func (s *Scheduler) finishGenerations(ctx context.Context) error {
-	primary, err := s.storage.DBs.PostgresCluster.WaitForPrimary(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to wait for primary postgres: %w", err)
-	}
-
-	tx, err := primary.DBx().BeginTxx(ctx, repeatableReadTxOptions)
-	if err != nil {
-		return fmt.Errorf("failed to start postgres tx: %w", err)
-	}
-	defer tx.Rollback()
-
-	var scheduledIDs []int
-	query, args, err := sq.Select("id").
-		From("cluster_top_generations").
-		Where(sq.Eq{"status": generations.StatusScheduled}).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-	if err != nil {
-		return fmt.Errorf("failed to build in_progress query: %w", err)
-	}
-
-	err = tx.SelectContext(ctx, &scheduledIDs, query, args...)
-	if err != nil {
-		return fmt.Errorf("failed to fetch in_progress generations: %w", err)
-	}
-
-	errs := []error{}
-	totalPendingCount := 0
-	remainingScheduledCount := len(scheduledIDs)
-	for _, id := range scheduledIDs {
-		var pendingCount int
-		err = tx.GetContext(ctx, &pendingCount,
-			`SELECT count(*) FROM cluster_top_jobs WHERE generation = $1 AND status IN ('pending', 'running')`,
-			id,
-		)
-		if err != nil {
-			s.l.Error(ctx, "Failed to count pending jobs for in_progress generation", log.Int("id", id), log.Error(err))
-			errs = append(errs, err)
-			continue
-		}
-
-		totalPendingCount += pendingCount
-
-		if pendingCount == 0 {
-			_, err = tx.ExecContext(ctx,
-				`UPDATE cluster_top_generations SET status = $1 WHERE id = $2`,
-				generations.StatusFinished, id,
-			)
-			if err != nil {
-				s.l.Error(ctx, "Failed to update generation status to finished", log.Int("id", id), log.Error(err))
-				errs = append(errs, err)
-			} else {
-				remainingScheduledCount--
-			}
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit finish generations tx: %w", err)
-	}
-
-	s.pendingJobsGauge.Set(int64(totalPendingCount))
-	s.scheduledGenerationsGauge.Set(int64(remainingScheduledCount))
-
-	return errors.Join(errs...)
 }
 
 func (s *Scheduler) runScheduler(ctx context.Context) error {
@@ -438,7 +368,7 @@ func (s *Scheduler) runScheduler(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return context.Cause(ctx)
 		case <-ticker.C:
 			if err := iteration(); err != nil {
 				return err
@@ -447,32 +377,10 @@ func (s *Scheduler) runScheduler(ctx context.Context) error {
 	}
 }
 
-func (s *Scheduler) runGenerationFinisher(ctx context.Context) error {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-
-	iteration := func() {
-		if err := s.finishGenerations(ctx); err != nil {
-			s.l.Error(ctx, "Failed to run generation finisher tick", log.Error(err))
-			s.finisherErrors.Inc()
-		} else {
-			s.finisherSuccess.Inc()
-		}
-	}
-
-	iteration()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-			iteration()
-		}
-	}
-}
-
 func (s *Scheduler) Run(ctx context.Context) error {
+	if err := s.conf.ServingTables.Validate(); err != nil {
+		return err
+	}
 	var runErr error
 	err := lease.LockAndRun(
 		ctx,
@@ -486,7 +394,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 			})
 
 			g.Go(func() error {
-				return s.runGenerationFinisher(gCtx)
+				return s.generationController.Run(gCtx)
 			})
 
 			runErr = g.Wait()

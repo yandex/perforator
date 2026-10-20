@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	StatusScheduled = "scheduled"
-	StatusFinished  = "finished"
-	StatusDeleting  = "deleting"
+	StatusScheduled  = "scheduled"
+	StatusFinalizing = "finalizing"
+	StatusFinished   = "finished"
+	StatusDeleting   = "deleting"
 )
 
 type GenerationsStorage interface {

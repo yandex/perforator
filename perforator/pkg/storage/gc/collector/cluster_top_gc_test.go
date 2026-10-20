@@ -29,6 +29,7 @@ func TestClusterTopSelection(t *testing.T) {
 		{ID: 6, To: cutoff.Add(time.Hour), Status: generation.StatusDeleting, BucketCount: 4}, // resume despite TTL
 		{ID: 7, To: old, Status: generation.StatusFinished, BucketCount: 4},                   // latest finished
 		{ID: 8, To: old, Status: generation.StatusScheduled, BucketCount: 4},                  // ID watermark
+		{ID: 0, To: old, Status: generation.StatusFinalizing, BucketCount: 4},                 // final snapshot is not ready
 	}
 	candidates := selectClusterTopGenerations(rows, cutoff)
 	require.Equal(t, []clustertopgc.Generation{rows[3], rows[5]}, candidates)

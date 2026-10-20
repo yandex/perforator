@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/yandex/perforator/perforator/internal/offline_processing/cluster_top/scheduler"
 	"github.com/yandex/perforator/perforator/pkg/filecache"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 )
@@ -46,9 +47,10 @@ type WorkerConfig struct {
 }
 
 type Config struct {
-	Storage        bundle.Config        `yaml:"storage"`
-	BinaryProvider BinaryProviderConfig `yaml:"binary_provider"`
-	Worker         WorkerConfig         `yaml:"worker"`
+	Storage        bundle.Config                 `yaml:"storage"`
+	BinaryProvider BinaryProviderConfig          `yaml:"binary_provider"`
+	Worker         WorkerConfig                  `yaml:"worker"`
+	ServingTables  scheduler.ServingTablesConfig `yaml:"serving_tables"`
 
 	GsymS3Bucket string `yaml:"gsym_s3_bucket"`
 }
