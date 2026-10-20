@@ -4,7 +4,8 @@ LIBRARY()
 
 PEERDIR(
     perforator/lib/demangle
-    perforator/proto/pprofprofile
+    perforator/lib/profile
+    perforator/lib/profile/c
     perforator/symbolizer/lib/gsym
 
     library/cpp/int128
@@ -12,7 +13,12 @@ PEERDIR(
 
 SRCS(
     cluster_top_c.cpp
-    service_perf_top_aggregator.cpp
+    perf_top_aggregator.cpp
+    top_aggregator_session.cpp
 )
 
 END()
+
+RECURSE(
+    ut
+)

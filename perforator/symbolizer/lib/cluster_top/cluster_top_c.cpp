@@ -1,13 +1,14 @@
 #include "cluster_top_c.h"
 
 #include <memory>
+#include <perforator/lib/profile/c/error.hpp>
 
-#include <perforator/symbolizer/lib/cluster_top/service_perf_top_aggregator.h>
+#include <perforator/symbolizer/lib/cluster_top/top_aggregator_session.h>
 
 namespace {
 
-NPerforator::NClusterTop::TPerfTopAggregator* FromOpaque(void *aggregator) {
-    return reinterpret_cast<NPerforator::NClusterTop::TPerfTopAggregator*>(aggregator);
+NPerforator::NClusterTop::TTopAggregatorSession* FromOpaque(void *aggregator) {
+    return reinterpret_cast<NPerforator::NClusterTop::TTopAggregatorSession*>(aggregator);
 }
 
 constexpr std::size_t kBigIntSizeof = 16;
@@ -17,13 +18,13 @@ constexpr std::size_t kBigIntSizeof = 16;
 extern "C" {
 
 void *MakePerfTopAggregator() {
-    auto aggregatorPtr = std::make_unique<NPerforator::NClusterTop::TPerfTopAggregator>();
+    auto aggregatorPtr = std::make_unique<NPerforator::NClusterTop::TTopAggregatorSession>();
 
     return aggregatorPtr.release();
 }
 
 void DestroyPerfTopAggregator(void *aggregator) {
-    std::unique_ptr<NPerforator::NClusterTop::TPerfTopAggregator> aggregatorPtr{FromOpaque(aggregator)};
+    std::unique_ptr<NPerforator::NClusterTop::TTopAggregatorSession> aggregatorPtr{FromOpaque(aggregator)};
 
     aggregatorPtr.reset();
 }
@@ -41,14 +42,14 @@ void InitializeSymbolizerForPerfTopAggregator(
     );
 }
 
-void AddProfileIntoPerfTopAggregator(
+TPerforatorError AddYaprofIntoPerfTopAggregator(
     void *aggregator,
     const char* profileBytes,
     ui64 profileBytesLen
 ) {
-    auto *aggregatorPtr = FromOpaque(aggregator);
-
-    aggregatorPtr->AddProfile({profileBytes, profileBytesLen});
+    return NPerforator::NProfile::NCWrapper::InterceptExceptions([&] {
+        FromOpaque(aggregator)->AddYaprofBytes({profileBytes, profileBytesLen});
+    });
 }
 
 void MergePerfTopAggregators(void *aggregator, void *otherAggregator) {

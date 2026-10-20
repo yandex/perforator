@@ -3,6 +3,7 @@ package cluster_top
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -197,11 +198,11 @@ func (p *oneShotJobProcessor) processProfiles(
 
 			for metaBatch := range metaBatchesChan {
 				batch, err := p.fetchProfiles(ctx, metaBatch)
+				profileFetchNs.Add(batch.fetchDuration.Nanoseconds())
+				profileParseNs.Add(batch.parseDuration.Nanoseconds())
 				if err != nil {
 					return err
 				}
-				profileFetchNs.Add(batch.fetchDuration.Nanoseconds())
-				profileParseNs.Add(batch.parseDuration.Nanoseconds())
 
 				p.l.Info(
 					ctx,
@@ -212,7 +213,7 @@ func (p *oneShotJobProcessor) processProfiles(
 				)
 
 				aggregateStart := time.Now()
-				err = aggregator.AddProfiles(ctx, batch.profiles)
+				err = aggregator.AddYaprofProfiles(ctx, batch.profiles)
 				aggregateNs.Add(time.Since(aggregateStart).Nanoseconds())
 				if err != nil {
 					return err
@@ -245,7 +246,7 @@ func (p *oneShotJobProcessor) processProfiles(
 }
 
 type fetchedProfilesBatch struct {
-	profiles      []profile.ProfileData
+	profiles      [][]byte
 	fetchDuration time.Duration
 	parseDuration time.Duration
 }
@@ -254,7 +255,7 @@ func (p *oneShotJobProcessor) fetchProfiles(
 	ctx context.Context,
 	profileMetas []*meta.ProfileMetadata,
 ) (result fetchedProfilesBatch, err error) {
-	profiles := make([]profile.ProfileData, len(profileMetas))
+	profiles := make([][]byte, len(profileMetas))
 	var fetchNs atomic.Int64
 	var parseNs atomic.Int64
 
@@ -273,12 +274,12 @@ func (p *oneShotJobProcessor) fetchProfiles(
 			}
 
 			parseStart := time.Now()
-			pprofData, err := profileBundle.GetOrConvertPprof()
+			data, err := profileBundle.GetOrConvertYaprof()
 			parseNs.Add(time.Since(parseStart).Nanoseconds())
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to prepare yaprof for profile %s: %w", profileMetas[i].ID, err)
 			}
-			profiles[i] = pprofData
+			profiles[i] = data
 
 			return nil
 		})

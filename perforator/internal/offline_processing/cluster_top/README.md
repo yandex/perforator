@@ -79,8 +79,8 @@ The Workers are responsible for the actual data aggregation. They run concurrent
 
   1. Fetches profile metadata for the job's service, time range, and workload scope (`pod_id` or `node_id` for host agents) via `ProfileStorage`.
   2. Downloads the necessary symbol files (GSYM) for the binaries found in the profiles via `ClusterTopSymbolizer`.
-  3. Downloads the raw profiles in batches from Blob Storage.
-  4. Aggregates the profiles in parallel within the job: builds call trees and extracts the top functions, calculating `self_cycles` and `cumulative_cycles`.
+  3. Downloads the raw profiles in batches from Blob Storage and calls `GetOrConvertYaprof`. Existing yaprof bytes are reused unchanged; legacy pprof is converted into serialized yaprof. This preparation is measured by `parse_profile` separately from blob download time.
+  4. Parses and aggregates yaprof profiles in parallel within the job. `TTopAggregatorSession` owns a reusable native profile and a `TPerfTopAggregator`. The session parses and validates each profile before passing it to the aggregator, which calculates `self_cycles` and `cumulative_cycles` through profile accessors. Invalid profiles fail the job through the C ABI error result. Yaprof parsing and validation are included in `aggregate_profiles`.
   5. Saves the aggregated result to ClickHouse in `cluster_top_v3` via [ClickhousePerfTopAggregator](./clickhouse_perf_top_aggregator.go); its materialized view populates `cluster_top_by_function_v3`.
   6. Updates the job status in PostgreSQL to `done` (or `failed` in case of an error, or `skipped` for services on the skip list).
 

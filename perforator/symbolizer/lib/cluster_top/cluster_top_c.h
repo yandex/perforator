@@ -1,6 +1,7 @@
 #pragma once
 
 #include <util/system/types.h>
+#include <perforator/lib/profile/c/error.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,7 +17,7 @@ void InitializeSymbolizerForPerfTopAggregator(
     const char* gsymPathBytes, ui64 gsymPathBytesLen
 );
 
-void AddProfileIntoPerfTopAggregator(
+TPerforatorError AddYaprofIntoPerfTopAggregator(
     void *aggregator,
     const char* profileBytes,
     ui64 profileBytesLen

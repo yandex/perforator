@@ -1,11 +1,12 @@
-#include "service_perf_top_aggregator.h"
+#include "perf_top_aggregator.h"
 
 #include <perforator/lib/demangle/demangle.h>
-#include <perforator/symbolizer/lib/symbolize/symbolizer.h>
+#include <perforator/lib/profile/profile.h>
 
 #include <library/cpp/yt/compact_containers/compact_vector.h>
 
 #include <algorithm>
+#include <ranges>
 #include <string_view>
 
 namespace NPerforator::NClusterTop {
@@ -27,20 +28,6 @@ constexpr std::string_view kNoGSYMLocation = "<UNKNOWN (No GSYM)>";
 constexpr std::string_view kKernelSpecialMapping = "[kernel]";
 
 constexpr std::size_t kMaxSymbolizationCacheTotalSize = 256 * 1024;
-
-ui64 GetCpuCyclesValue(
-    const NPerforator::NProto::NPProf::ProfileLight& profile,
-    const NPerforator::NProto::NPProf::SampleLight& sample) {
-    for (std::size_t i = 0; i < profile.sample_typeSize(); ++i) {
-        const auto& sampleType = profile.sample_type(i);
-        if (profile.string_table(sampleType.type()) == kCPUCyclesType &&
-            profile.string_table(sampleType.unit()) == kCPUCyclesUnit) {
-            return sample.value(i);
-        }
-    }
-
-    return 0;
-}
 
 struct TLifetimeSoundnessReason final {
     explicit constexpr TLifetimeSoundnessReason(std::string_view) {}
@@ -64,128 +51,161 @@ public:
     operator TString() const {
         return TString{Data_};
     }
+
 private:
     TStringBuf Data_;
 };
 
+// Returns the index into sample value types that corresponds to cpu/cycles, or -1.
+i32 FindCpuCyclesValueTypeIndex(const NProfile::TProfile& profile) {
+    i32 i = 0;
+    for (NProfile::TValueType valueType : profile.ValueTypes()) {
+        if (valueType.GetType().View() == kCPUCyclesType && valueType.GetUnit().View() == kCPUCyclesUnit) {
+            return i;
+        }
+        ++i;
+    }
+    return -1;
+}
+
+i32 StackFrameCount(const NProfile::TProfile& profile) {
+    return static_cast<i32>(std::ranges::size(profile.StackFrames()));
+}
+
 struct SymbolizedProfileData final {
     std::vector<std::string_view> AllFunctions;
 
-    // Indexes into AllFunctions
+    // Indices into AllFunctions that belong to kernel frames.
     std::vector<ui64> KernelFunctions;
 
-    // Indexes into AllFunctions
-    absl::flat_hash_map<ui64, TSmallVector<ui64>> FramesByLocationId;
+    // Per stack frame (indexed by TStackFrameId internal index, i.e. position
+    // in the stack_frames arrays): list of indices into AllFunctions.
+    // Order within each entry: [0] = most-inlined (leaf), [back] = outermost.
+    std::vector<TSmallVector<ui64>> FramesByFrameId;
 };
 
 SymbolizedProfileData SymbolizeProfile(
     absl::flat_hash_map<TString, TCachingGSYMSymbolizer>& symbolizers,
-    const NPerforator::NProto::NPProf::ProfileLight& profile
+    const NProfile::TProfile& profile
 ) {
-    absl::flat_hash_map<ui64, const NPerforator::NProto::NPProf::Function*> functionByIdMap;
-    for (const auto& function : profile.Getfunction()) {
-        functionByIdMap[function.id()] = &function;
-    }
-
-    absl::flat_hash_map<ui64, const NPerforator::NProto::NPProf::Mapping*> mappingByIdMap;
-    for (const auto& mapping : profile.Getmapping()) {
-        mappingByIdMap[mapping.id()] = &mapping;
-    }
-
-    absl::flat_hash_map<ui64, const NPerforator::NProto::NPProf::Location*> locationByIdMap;
-    for (const auto& location : profile.Getlocation()) {
-        locationByIdMap[location.id()] = &location;
-    }
-
     SymbolizedProfileData result{};
     auto& allFunctions = result.AllFunctions;
     auto& kernelFunctions = result.KernelFunctions;
-    auto& framesByLocationId = result.FramesByLocationId;
+    auto& framesByFrameId = result.FramesByFrameId;
 
-    allFunctions.reserve(profile.locationSize() * 2);
-    framesByLocationId.reserve(profile.locationSize());
+    const i32 frameCount = StackFrameCount(profile);
+    framesByFrameId.resize(frameCount);
+    allFunctions.reserve(frameCount * 2);
 
-    // Every string, for which the views in this map are stored, outlives the map:
-    // * some strings are static/constexpr
-    // * some strings belong to the profile
-    // * some strings belong to the TPerfTopAggregator (i.e. symbolization cache)
+    // All string_view-s stored here either:
+    // * point to compile-time constants (static storage duration), or
+    // * point into profile strtab (alive for the duration of AddProfile), or
+    // * point into TCachingGSYMSymbolizer caches (lifetime tied to the aggregator).
     absl::flat_hash_map<std::string_view, ui64> symbolizedFunctionsMapping;
-    symbolizedFunctionsMapping.reserve(profile.locationSize() * 2);
+    symbolizedFunctionsMapping.reserve(frameCount * 2);
 
-    for (const auto& location : profile.Getlocation()) {
+    for (NProfile::TStackFrame frame : profile.StackFrames()) {
+        const i32 frameIdx = frame.GetIndex().GetInternalIndex();
+        auto& frames = framesByFrameId[frameIdx];
+
         TSmallVector<TStringViewConvertibleToString> symbolized{};
-        if (location.lineSize() > 0) {
-            for (const auto& line : location.Getline()) {
-                const auto functionId = line.function_id();
-                if (functionId == 0) {
-                    symbolized.emplace_back(kUnknownFunction, TLifetimeSoundnessReason{"kUnknownFunction is static"});
-                    continue;
-                }
-                const auto& function = *functionByIdMap.at(functionId);
+
+        const NProfile::TInlineChain inlineChain = frame.GetInlineChain();
+        if (inlineChain.GetIndex() != NProfile::TInlineChainId::Zero()) {
+            // Frame is already symbolized: use pre-existing inline chain.
+            if (std::ranges::empty(inlineChain.GetLines())) {
                 symbolized.emplace_back(
-                    profile.string_table(function.name()),
-                    TLifetimeSoundnessReason{"profile outlives everything in this function"}
+                    kUnknownFunction,
+                    TLifetimeSoundnessReason{"kUnknownFunction is static"}
                 );
+            } else {
+                // Inline chains are stored innermost-first (leaf-to-root); see flamegraph/build.cpp.
+                for (NProfile::TSourceLine sourceLine : inlineChain.GetLines()) {
+                    NProfile::TFunction func = sourceLine.GetFunction();
+                    if (func.GetIndex() == NProfile::TFunctionId::Zero()) {
+                        // Original pprof Line.function_id == 0 (no function ref).
+                        // ConvertFromPProf maps it to the sentinel zero function;
+                        // preserve the old "<UNKNOWN (No function)>" behavior.
+                        symbolized.emplace_back(
+                            kUnknownFunction,
+                            TLifetimeSoundnessReason{"kUnknownFunction is static"}
+                        );
+                    } else {
+                        symbolized.emplace_back(
+                            func.GetName().View(),
+                            TLifetimeSoundnessReason{"string lives in rawProfile strtab"}
+                        );
+                    }
+                }
             }
         } else {
-            [&symbolized, &location, &mappingByIdMap, &profile, &symbolizers]() {
-                const auto mappingId = location.mapping_id();
-                if (mappingId == 0) {
-                    symbolized.emplace_back(kUnknownMapping, TLifetimeSoundnessReason{"kUnknownMapping is static"});
+            // Frame not symbolized: look up GSYM by buildId + address.
+            [&]() {
+                const NProfile::TBinary binary = frame.GetBinary();
+                if (binary.GetIndex() == NProfile::TBinaryId::Zero()) {
+                    symbolized.emplace_back(
+                        kUnknownMapping,
+                        TLifetimeSoundnessReason{"kUnknownMapping is static"}
+                    );
                     return;
                 }
-                const auto& mapping = *mappingByIdMap.at(mappingId);
-
-                if (mapping.build_id() == 0) {
-                    symbolized.emplace_back(kUnknownBuildId, TLifetimeSoundnessReason{"kUnknownBuildId is static"});
+                const TStringBuf buildId = binary.GetBuildId().View();
+                if (buildId.empty()) {
+                    symbolized.emplace_back(
+                        kUnknownBuildId,
+                        TLifetimeSoundnessReason{"kUnknownBuildId is static"}
+                    );
                     return;
                 }
-                const auto& buildId = profile.string_table(mapping.build_id());
-
-                auto symbolizerIt = symbolizers.find(buildId);
+                auto symbolizerIt = symbolizers.find(TString{buildId});
                 if (symbolizerIt == symbolizers.end()) {
-                    symbolized.emplace_back(kNoGSYMLocation, TLifetimeSoundnessReason{"kNoGSYMLocation is static"});
+                    symbolized.emplace_back(
+                        kNoGSYMLocation,
+                        TLifetimeSoundnessReason{"kNoGSYMLocation is static"}
+                    );
                     return;
                 }
-                auto& symbolizer = symbolizerIt->second;
 
-                const auto address = location.address() + mapping.file_offset() - mapping.memory_start();
-                const auto& symbolizationResult = symbolizer.Symbolize(address);
+                // NProfile stores address in binary address space directly —
+                // no file_offset/memory_start arithmetic needed.
+                const ui64 addr = frame.GetAddress();
+                const auto& symbolizationResult = symbolizerIt->second.Symbolize(addr);
 
                 if (symbolizationResult.empty()) {
-                    symbolized.emplace_back(kUnknownNoFrames, TLifetimeSoundnessReason{"kUnknownNoFrames is static"});
+                    symbolized.emplace_back(
+                        kUnknownNoFrames,
+                        TLifetimeSoundnessReason{"kUnknownNoFrames is static"}
+                    );
                     return;
                 }
 
-                for (const auto& frame : symbolizationResult) {
+                for (const auto& funcName : symbolizationResult) {
                     symbolized.emplace_back(
-                        frame,
-                        TLifetimeSoundnessReason{"symbolizationResult is cached in symbolizer, thus its lifetime is tied to the aggregator"}
+                        funcName,
+                        TLifetimeSoundnessReason{"result is cached in TCachingGSYMSymbolizer"}
                     );
                 }
             }();
         }
 
-        const auto isKernelLocation = [&mappingByIdMap, &profile] (ui64 mappingId) {
-            if (mappingId == 0) {
+        const bool isKernel = [&]() {
+            const NProfile::TBinary binary = frame.GetBinary();
+            if (binary.GetIndex() == NProfile::TBinaryId::Zero()) {
                 return false;
             }
+            return binary.GetPath().View() == kKernelSpecialMapping;
+        }();
 
-            const auto& mapping = *mappingByIdMap.at(mappingId);
-            return profile.string_table(mapping.filename()) == kKernelSpecialMapping;
-        }(location.mapping_id());
-
-        auto& frames = framesByLocationId[location.id()];
-        for (const auto& function : symbolized) {
-            const auto [it, inserted] = symbolizedFunctionsMapping.try_emplace(function, allFunctions.size());
+        for (const auto& funcName : symbolized) {
+            const auto [it, inserted] = symbolizedFunctionsMapping.try_emplace(
+                funcName, allFunctions.size()
+            );
             if (inserted) {
-                allFunctions.push_back(function);
+                allFunctions.push_back(funcName);
             }
             const auto functionIdx = it->second;
-
             frames.push_back(functionIdx);
-
-            if (isKernelLocation) {
+            if (isKernel) {
                 kernelFunctions.push_back(functionIdx);
             }
         }
@@ -194,7 +214,8 @@ SymbolizedProfileData SymbolizeProfile(
     return result;
 }
 
-}
+} // namespace
+
 
 TCachingGSYMSymbolizer::TCachingGSYMSymbolizer(std::string_view gsymPath) : Symbolizer_{gsymPath} {
     SymbolizationCache_.reserve(128 * 1024);
@@ -231,26 +252,22 @@ void TPerfTopAggregator::InitializeSymbolizer(
     );
 }
 
-void TPerfTopAggregator::AddProfile(TArrayRef<const char> profileBytes) {
-    if (profileBytes.data() == nullptr || profileBytes.size() == 0) {
-        return;
-    }
-
-    auto& profile = ProfileForMemoryReuse_;
-    if (!profile.ParseFromString(std::string_view{profileBytes.data(), profileBytes.size()})) {
-        return;
-    }
-
-    AddProfile(profile);
-}
-
-void TPerfTopAggregator::AddProfile(const NPerforator::NProto::NPProf::ProfileLight& profile) {
+void TPerfTopAggregator::AddProfile(
+    const NPerforator::NProto::NProfile::Profile& rawProfile
+) {
     MaybePruneCaches();
 
-    const auto symbolizedProfileData = SymbolizeProfile(Symbolizers_, profile);
-    const auto& allFunctions = symbolizedProfileData.AllFunctions;
-    const auto& kernelFunctions = symbolizedProfileData.KernelFunctions;
-    const auto& framesByLocationId = symbolizedProfileData.FramesByLocationId;
+    NProfile::TProfile profile{&rawProfile};
+
+    const i32 cpuValueIdx = FindCpuCyclesValueTypeIndex(profile);
+    if (cpuValueIdx < 0) {
+        return;
+    }
+
+    const auto symbolizedData = SymbolizeProfile(Symbolizers_, profile);
+    const auto& allFunctions = symbolizedData.AllFunctions;
+    const auto& kernelFunctions = symbolizedData.KernelFunctions;
+    const auto& framesByFrameId = symbolizedData.FramesByFrameId;
 
     std::vector<ui128> cumulativeCyclesCountByFunctionId;
     cumulativeCyclesCountByFunctionId.assign(allFunctions.size(), 0);
@@ -259,11 +276,13 @@ void TPerfTopAggregator::AddProfile(const NPerforator::NProto::NPProf::ProfileLi
     ui64 currentSampleIdx = 0;
     lastSampleIdxForFunction.assign(allFunctions.size(), currentSampleIdx);
 
-    for (const auto& sample : profile.Getsample()) {
+    for (NProfile::TSample sample : profile.Samples()) {
         ++currentSampleIdx;
 
-        const auto value = GetCpuCyclesValue(profile, sample);
+        const ui64 value = sample.GetValues()[cpuValueIdx].GetValue();
         TotalCycles_ += value;
+
+        NProfile::TSampleKey sampleKey = sample.GetKey();
 
         {
             // We must only account every unique function once here, otherwise
@@ -275,39 +294,47 @@ void TPerfTopAggregator::AddProfile(const NPerforator::NProto::NPProf::ProfileLi
             // We implement the "unique functions in a sample" by keeping track
             // for each function when it was last encountered, this way we can avoid
             // sorting/hashing functionIds within the sample, which is noticeably faster.
-            for (const auto& locationId : sample.Getlocation_id()) {
-                const auto it = framesByLocationId.find(locationId);
-                if (it == framesByLocationId.end()) {
-                    continue;
-                }
-                for (const auto functionId : it->second) {
-                    if (lastSampleIdxForFunction[functionId] != currentSampleIdx) {
-                        cumulativeCyclesCountByFunctionId[functionId] += value;
-                        lastSampleIdxForFunction[functionId] = currentSampleIdx;
+            for (NProfile::TStack stack : sampleKey.GetStacks()) {
+                for (NProfile::TStackFrame frame : stack.GetFrames()) {
+                    const i32 frameId = frame.GetIndex().GetInternalIndex();
+                    if (frameId < 0 || static_cast<std::size_t>(frameId) >= framesByFrameId.size()) {
+                        continue;
+                    }
+                    for (const ui64 functionIdx : framesByFrameId[frameId]) {
+                        if (lastSampleIdxForFunction[functionIdx] != currentSampleIdx) {
+                            cumulativeCyclesCountByFunctionId[functionIdx] += value;
+                            lastSampleIdxForFunction[functionIdx] = currentSampleIdx;
+                        }
                     }
                 }
             }
         }
 
-        if (sample.location_idSize() == 0) {
+        // Self cycles belong to the innermost inline function of the top (leaf)
+        // frame of the first stack. Inline chains are ordered leaf-to-root.
+        auto stacks = sampleKey.GetStacks();
+        const auto stacksIt = std::ranges::begin(stacks);
+        if (stacksIt == std::ranges::end(stacks)) {
+            continue;
+        }
+        const NProfile::TStackFrame leafFrame = (*stacksIt).GetTopFrame();
+        const i32 leafFrameId = leafFrame.GetIndex().GetInternalIndex();
+        if (leafFrameId < 0 || static_cast<std::size_t>(leafFrameId) >= framesByFrameId.size()) {
+            continue;
+        }
+        const auto& leafFrameFunctions = framesByFrameId[leafFrameId];
+        if (leafFrameFunctions.empty()) {
             continue;
         }
 
-        const auto leafFrameIt = framesByLocationId.find(sample.location_id(0));
-        if (leafFrameIt == framesByLocationId.end()) {
-            continue;
-        }
-        const auto& leafFrame = leafFrameIt->second;
-
-        if (!leafFrame.empty()) {
-            CyclesByFunction_.try_emplace<TStringViewConvertibleToString>(
-                TStringViewConvertibleToString{
-                    allFunctions[leafFrame.back()],
-                    TLifetimeSoundnessReason{"string_view-s in allFunctions are valid by construction, see SymbolizeProfile implementation"}
-                },
-                0
-            ).first->second.SelfCycles += value;
-        }
+        const ui64 leafFunctionIdx = leafFrameFunctions.front();
+        CyclesByFunction_.try_emplace<TStringViewConvertibleToString>(
+            TStringViewConvertibleToString{
+                allFunctions[leafFunctionIdx],
+                TLifetimeSoundnessReason{"string_view-s in allFunctions are valid by construction, see SymbolizeProfile"}
+            },
+            0
+        ).first->second.SelfCycles += value;
     }
 
     for (std::size_t i = 0; i < cumulativeCyclesCountByFunctionId.size(); ++i) {
@@ -316,17 +343,17 @@ void TPerfTopAggregator::AddProfile(const NPerforator::NProto::NPProf::ProfileLi
             CyclesByFunction_.try_emplace<TStringViewConvertibleToString>(
                 TStringViewConvertibleToString{
                     allFunctions[i],
-                    TLifetimeSoundnessReason{"string_view-s in allFunctions are valid by construction, see SymbolizeProfile implementation"}
+                    TLifetimeSoundnessReason{"string_view-s in allFunctions are valid by construction, see SymbolizeProfile"}
                 },
                 0
             ).first->second.CumulativeCycles += value;
         }
     }
 
-    for (const auto kernelFunctionIdx : kernelFunctions) {
+    for (const ui64 kernelFunctionIdx : kernelFunctions) {
         KernelFunctions_.emplace<TStringViewConvertibleToString>(TStringViewConvertibleToString{
             allFunctions[kernelFunctionIdx],
-            TLifetimeSoundnessReason{"string_view-s in allFunctions are valid by construction, see SymbolizeProfile implementation"}
+            TLifetimeSoundnessReason{"string_view-s in allFunctions are valid by construction, see SymbolizeProfile"}
         });
     }
 

@@ -31,6 +31,10 @@ IF (CGO_ENABLED)
     )
 
     CGO_SRCS(symbolize.go)
+    GO_TEST_SRCS(
+        one_shot_job_processor_test.go
+        symbolize_test.go
+    )
 ELSE()
     SRCS(symbolize_stub.go)
 ENDIF()

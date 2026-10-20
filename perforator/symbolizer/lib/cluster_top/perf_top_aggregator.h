@@ -6,7 +6,7 @@
 
 #include <perforator/symbolizer/lib/gsym/gsym_symbolizer.h>
 
-#include <perforator/proto/pprofprofile/lightweightprofile.pb.h>
+#include <perforator/proto/profile/profile.pb.h>
 
 #include <util/generic/array_ref.h>
 
@@ -39,7 +39,7 @@ public:
 
     void InitializeSymbolizer(TArrayRef<const char> buildId, TArrayRef<const char> gsymPath);
 
-    void AddProfile(TArrayRef<const char> profileBytes);
+    void AddProfile(const NPerforator::NProto::NProfile::Profile& profile);
 
     void MergeAggregator(const TPerfTopAggregator& other);
 
@@ -55,8 +55,6 @@ public:
     PerfTop ExtractEntries();
 
 private:
-    void AddProfile(const NPerforator::NProto::NPProf::ProfileLight& profile);
-
     void MaybePruneCaches();
 
     absl::flat_hash_map<TString, TCachingGSYMSymbolizer> Symbolizers_;
@@ -71,8 +69,6 @@ private:
     ui128 TotalCycles_{0};
 
     ui64 TotalProfiles_{0};
-
-    NPerforator::NProto::NPProf::ProfileLight ProfileForMemoryReuse_;
 };
 
 }

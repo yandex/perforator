@@ -6,12 +6,12 @@ package cluster_top
 import "C"
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"unsafe"
 
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
-	"github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -92,20 +92,26 @@ func (a *PerfTopAggregator) InitializeSymbolizersWithGSYMs(
 	}
 }
 
-func (a *PerfTopAggregator) AddProfiles(
+func (a *PerfTopAggregator) AddYaprofProfiles(
 	ctx context.Context,
-	profiles []profile.ProfileData,
+	profiles [][]byte,
 ) error {
 	for _, profile := range profiles {
 		if len(profile) == 0 {
 			continue
 		}
 
-		C.AddProfileIntoPerfTopAggregator(
+		profileErr := C.AddYaprofIntoPerfTopAggregator(
 			a.aggregator,
 			(*C.char)(unsafe.Pointer(&profile[0])),
 			C.ui64(len(profile)),
 		)
+
+		if profileErr != nil {
+			message := C.GoString(C.PerforatorErrorString(profileErr))
+			C.PerforatorErrorDispose(profileErr)
+			return fmt.Errorf("failed to aggregate profile: %s", message)
+		}
 
 		if err := ctx.Err(); err != nil {
 			return err
