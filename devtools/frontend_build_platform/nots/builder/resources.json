@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-19T12:33:52.768Z",
+    "created": "2026-10-20T07:43:28.883Z",
     "pr": {
-      "id": 16551999,
+      "id": 16567371,
       "author": "baymer",
-      "summary": "FBP-3529: отключить lockfileIncludeTarballUrl"
+      "summary": "FBP-3542: Передавать registry в окружение pnpm в Python builder"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14084745327"
+      "uri": "sbr:14089323870"
     },
     "darwin-arm64": {
-      "uri": "sbr:14084743970"
+      "uri": "sbr:14089322632"
     },
     "linux": {
-      "uri": "sbr:14084748486"
+      "uri": "sbr:14089326233"
     },
     "linux-aarch64": {
-      "uri": "sbr:14084746866"
+      "uri": "sbr:14089325094"
     }
   }
 }

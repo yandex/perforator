@@ -2,6 +2,7 @@ import importlib
 import json
 import os
 from pathlib import Path
+from unittest.mock import Mock
 
 import yaml
 import fcntl
@@ -10,6 +11,36 @@ import pytest
 from build.plugins.lib.nots.package_manager import PackageJson
 
 package_manager_module = importlib.import_module("devtools.frontend_build_platform.nots.builder.api.package_manager")
+
+
+@pytest.mark.parametrize("override_registry", [False, True])
+def test_exec_command_passes_platform_registry_to_pnpm(monkeypatch, tmp_path, override_registry):
+    registry = "https://npm.example.test"
+    monkeypatch.setattr(package_manager_module, "pnpm_defaults", lambda: {"registry": registry})
+    process = Mock(returncode=0)
+    process.communicate.return_value = ("", "")
+    popen = Mock(return_value=process)
+    monkeypatch.setattr(package_manager_module.subprocess, "Popen", popen)
+    package_manager = package_manager_module.PackageManager(
+        build_root=str(tmp_path),
+        build_path=str(tmp_path / "build"),
+        sources_path=str(tmp_path / "source"),
+        nodejs_bin_path="/node",
+        script_path="/pnpm.cjs",
+        module_path="module",
+    )
+    env = {"CUSTOM_SETTING": "preserved"}
+    if override_registry:
+        env.update(npm_config_registry="https://registry.npmjs.org", pnpm_config_registry="https://registry.npmjs.org")
+    original_env = env.copy()
+
+    package_manager._exec_command(["install"], cwd=str(tmp_path), env=env)
+
+    command_env = popen.call_args.kwargs["env"]
+    assert command_env["npm_config_registry"] == registry
+    assert command_env["pnpm_config_registry"] == registry
+    assert command_env["CUSTOM_SETTING"] == "preserved"
+    assert env == original_env
 
 
 def test_sync_mutex_file_uses_four_slots_by_default(monkeypatch, tmp_path):

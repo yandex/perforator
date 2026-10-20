@@ -235,6 +235,10 @@ class PackageManager(BasePackageManager):
 
         cmd_env = env.copy()
         cmd_env["PNPM_MAX_WORKERS"] = os.environ.get("PNPM_MAX_WORKERS", "4")
+        # pnpm 10 computes its registry map before applying workspace YAML settings.
+        registry = pnpm_defaults()["registry"]
+        cmd_env["npm_config_registry"] = registry
+        cmd_env["pnpm_config_registry"] = registry
 
         if self.ld_library_path:
             cmd_env["LD_LIBRARY_PATH"] = self.ld_library_path
