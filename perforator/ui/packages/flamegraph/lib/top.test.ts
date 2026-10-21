@@ -62,6 +62,95 @@ describe('top', () => {
         )).not.toThrow();
     });
 
+    it.each([
+        {
+            scenario: 'adjacent symbol ids with different inline flags',
+            first: { textId: 1, inlined: true },
+            second: { textId: 2, inlined: false },
+        },
+        {
+            scenario: 'textId/file boundary',
+            first: { kind: 0, file: 0, textId: 2, inlined: true },
+            second: { kind: 0, file: 1, textId: 1, inlined: false },
+        },
+        {
+            scenario: 'file/kind boundary',
+            first: { kind: 0, file: 2, textId: 2, inlined: true },
+            second: { kind: 1, file: 0, textId: 1, inlined: false },
+        },
+    ])('should keep distinct functions separate: $scenario', ({ first, second }) => {
+        const distinctRows: ProfileData['rows'] = [
+            [{ parentIndex: -1, textId: 0, eventCount: 100, sampleCount: 10 }],
+            [
+                { parentIndex: 0, ...first, eventCount: 30, sampleCount: 3 },
+                { parentIndex: 0, ...second, eventCount: 70, sampleCount: 7 },
+            ],
+        ];
+
+        const topData = calculateTopForTable(distinctRows, 3);
+
+        expect(topData).toHaveLength(3);
+        expect(topData.find((entry) => entry.textId === first.textId)).toMatchObject({
+            ...first,
+            'self.eventCount': 30,
+            'all.eventCount': 30,
+            'self.sampleCount': 3,
+            'all.sampleCount': 3,
+        });
+        expect(topData.find((entry) => entry.textId === second.textId)).toMatchObject({
+            ...second,
+            'self.eventCount': 70,
+            'all.eventCount': 70,
+            'self.sampleCount': 7,
+            'all.sampleCount': 7,
+        });
+    });
+
+    it('should keep a focused child whose parent has an adjacent symbol id', () => {
+        const focusedRows: ProfileData['rows'] = [
+            [{ parentIndex: -1, textId: 0, eventCount: 100, sampleCount: 10 }],
+            [{ parentIndex: 0, textId: 1, inlined: true, eventCount: 100, sampleCount: 10 }],
+            [{ parentIndex: 0, textId: 2, inlined: false, eventCount: 70, sampleCount: 7 }],
+        ];
+
+        const topData = calculateTopForTable(focusedRows, 3, {
+            rootCoords: [2, 0], omitted: [], keepCoords: null,
+        });
+
+        expect(topData).toHaveLength(1);
+        expect(topData[0]).toMatchObject({
+            textId: 2,
+            inlined: false,
+            'self.eventCount': 70,
+            'all.eventCount': 70,
+            'self.sampleCount': 7,
+            'all.sampleCount': 7,
+        });
+    });
+
+    it('should keep inline and non-inline occurrences of one symbol separate', () => {
+        const inlineRows: ProfileData['rows'] = [
+            [{ parentIndex: -1, textId: 0, eventCount: 100, sampleCount: 10 }],
+            [
+                { parentIndex: 0, textId: 1, inlined: true, eventCount: 30, sampleCount: 3 },
+                { parentIndex: 0, textId: 1, inlined: false, eventCount: 70, sampleCount: 7 },
+            ],
+        ];
+
+        const topData = calculateTopForTable(inlineRows, 2);
+        const symbolEntries = topData.filter((entry) => entry.textId === 1);
+
+        expect(symbolEntries).toHaveLength(2);
+        expect(symbolEntries.find((entry) => entry.inlined)).toMatchObject({
+            'self.eventCount': 30,
+            'all.eventCount': 30,
+        });
+        expect(symbolEntries.find((entry) => !entry.inlined)).toMatchObject({
+            'self.eventCount': 70,
+            'all.eventCount': 70,
+        });
+    });
+
     it('should populate exact self counts for generated rows', () => {
         fc.assert(fc.property(profileRowsArbitrary(), ({ rows: generatedRows }) => {
             const rowsWithSelf = cloneRows(generatedRows);

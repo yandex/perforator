@@ -66,7 +66,7 @@ type FunctionTop = Record<TopKeys, number> & Pick<FormatNode, StringifiableField
 { shortestPath?: I[] }
 
 function getNodeKeyFull(len: number, n: FormatNode) {
-    return len ** 2 * (n.kind ?? 0) + (n.file ?? 0) * len + n.textId + (n.inlined ? 1 : 0);
+    return 2 * (len ** 2 * (n.kind ?? 0) + (n.file ?? 0) * len + n.textId) + (n.inlined ? 1 : 0);
 }
 
 export function calculateTop(rows: ProfileData['rows'], stringTableLength: number, opts: TopOpts = { omitted: [], rootCoords: [0, 0], keepCoords: null }) {
