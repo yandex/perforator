@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-20T07:43:28.883Z",
+    "created": "2026-10-20T11:30:07.036Z",
     "pr": {
-      "id": 16567371,
-      "author": "baymer",
-      "summary": "FBP-3542: Передавать registry в окружение pnpm в Python builder"
+      "id": 16574310,
+      "author": "zaverden",
+      "summary": "FBP-3456: подготовить builder и nots/cli к pnpm@11"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14089323870"
+      "uri": "sbr:14090990715"
     },
     "darwin-arm64": {
-      "uri": "sbr:14089322632"
+      "uri": "sbr:14090988683"
     },
     "linux": {
-      "uri": "sbr:14089326233"
+      "uri": "sbr:14090995902"
     },
     "linux-aarch64": {
-      "uri": "sbr:14089325094"
+      "uri": "sbr:14090993676"
     }
   }
 }

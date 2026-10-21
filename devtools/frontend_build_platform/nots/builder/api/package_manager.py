@@ -18,7 +18,7 @@ from build.plugins.lib.nots.package_manager.utils import (
     build_nots_path,
     build_pj_path,
 )
-from .pnpm_workspace import PnpmWorkspace, pnpm_defaults
+from .pnpm_workspace import PnpmWorkspace, pnpm_defaults, pnpm_runtime_env
 from .utils import copy_writable_file
 from build.plugins.lib.nots.package_manager.common_config import (
     load_common_config,
@@ -211,6 +211,18 @@ class PackageManager(BasePackageManager):
         package_json = self.load_package_json(source_path)
         should_write = False
 
+        engines = package_json.data.get("engines", {})
+        if "packageManager" in package_json.data or "pnpm" in engines:
+            pnpm_package_json = self.load_package_json(
+                build_pj_path(os.path.dirname(os.path.dirname(self.script_path)))
+            )
+            pnpm_version = pnpm_package_json.data["version"]
+            if "packageManager" in package_json.data:
+                package_json.data["packageManager"] = "pnpm@" + pnpm_version
+            if "pnpm" in engines:
+                engines["pnpm"] = pnpm_version
+            should_write = True
+
         if "name" not in package_json.data:
             parts = self.module_path.split("/")
             package_json.data["name"] = "@{}/{}".format(parts[0], parts[-1])
@@ -234,11 +246,8 @@ class PackageManager(BasePackageManager):
             raise PackageManagerError("Unable to execute command: nodejs_bin_path is not configured")
 
         cmd_env = env.copy()
+        cmd_env.update(pnpm_runtime_env())
         cmd_env["PNPM_MAX_WORKERS"] = os.environ.get("PNPM_MAX_WORKERS", "4")
-        # pnpm 10 computes its registry map before applying workspace YAML settings.
-        registry = pnpm_defaults()["registry"]
-        cmd_env["npm_config_registry"] = registry
-        cmd_env["pnpm_config_registry"] = registry
 
         if self.ld_library_path:
             cmd_env["LD_LIBRARY_PATH"] = self.ld_library_path

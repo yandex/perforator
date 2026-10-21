@@ -1,3 +1,5 @@
+import copy
+
 import yaml
 
 from build.plugins.lib.nots.package_manager import PackageJson
@@ -161,3 +163,25 @@ def test_workspace_comments_preserve_values_and_regenerate_after_runtime_setting
         assert PnpmWorkspace._comment(comments["descriptions"][key] + "\n" + comments[rule]) + key + ":" in text
     restored.write()
     assert workspace_path.read_text() == text
+
+
+def test_workspace_preserves_overrides_only_order(tmp_path):
+    package_json = PackageJson(str(tmp_path / "package.json"))
+    package_json.data = {
+        "pnpm": {
+            "overrides": {
+                "js-yaml@>=3.0.0 <3.13.0": "3.13.0",
+                "js-yaml@<3.13.1": "3.13.1",
+            }
+        }
+    }
+    original = copy.deepcopy(package_json.data)
+    workspace = PnpmWorkspace(str(tmp_path / "pnpm-workspace.yaml"))
+    workspace.set_from_package_json(package_json)
+    workspace.write()
+    written = PnpmWorkspace.load(workspace.path)
+    assert list(written.settings["overrides"].items()) == [
+        ("js-yaml@>=3.0.0 <3.13.0", "3.13.0"),
+        ("js-yaml@<3.13.1", "3.13.1"),
+    ]
+    assert package_json.data == original

@@ -13,6 +13,7 @@ from build.plugins.lib.nots.package_manager import (
 )
 from devtools.frontend_build_platform.libraries.logging import timeit
 from ..models import BuildError, BaseBuildersOptions
+from ..pnpm_workspace import pnpm_runtime_env
 from ..utils import (
     copy_writable_file,
     extract_peer_tars,
@@ -133,7 +134,7 @@ class BaseBuilder(object):
         self.__extract_peer_tars(self.options.bindir, build_root=self.options.arcadia_build_root)
 
     def _get_base_env(self, extra_paths: list[str] = []) -> dict[str, str]:
-        env = {}
+        env = pnpm_runtime_env()
 
         # MODDIR is persistent API for users. Do not change without project changes.
         # Other variables is not persistent and can not be exposed to users application

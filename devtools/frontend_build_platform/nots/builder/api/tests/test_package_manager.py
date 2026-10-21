@@ -14,9 +14,18 @@ package_manager_module = importlib.import_module("devtools.frontend_build_platfo
 
 
 @pytest.mark.parametrize("override_registry", [False, True])
-def test_exec_command_passes_platform_registry_to_pnpm(monkeypatch, tmp_path, override_registry):
-    registry = "https://npm.example.test"
-    monkeypatch.setattr(package_manager_module, "pnpm_defaults", lambda: {"registry": registry})
+def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, override_registry):
+    defaults = {
+        "managePackageManagerVersions": False,
+        "pmOnFail": "warn",
+        "registry": "https://npm.example.test/CaseSensitive",
+        "trustLockfile": True,
+        "verifyDepsBeforeRun": False,
+    }
+    monkeypatch.setattr(
+        "devtools.frontend_build_platform.nots.builder.api.pnpm_workspace.pnpm_defaults",
+        Mock(return_value=defaults),
+    )
     process = Mock(returncode=0)
     process.communicate.return_value = ("", "")
     popen = Mock(return_value=process)
@@ -37,8 +46,12 @@ def test_exec_command_passes_platform_registry_to_pnpm(monkeypatch, tmp_path, ov
     package_manager._exec_command(["install"], cwd=str(tmp_path), env=env)
 
     command_env = popen.call_args.kwargs["env"]
-    assert command_env["npm_config_registry"] == registry
-    assert command_env["pnpm_config_registry"] == registry
+    for prefix in ("npm_config_", "pnpm_config_"):
+        assert command_env[prefix + "manage_package_manager_versions"] == "false"
+        assert command_env[prefix + "pm_on_fail"] == "warn"
+        assert command_env[prefix + "registry"] == "https://npm.example.test/CaseSensitive"
+        assert command_env[prefix + "trust_lockfile"] == "true"
+        assert command_env[prefix + "verify_deps_before_run"] == "false"
     assert command_env["CUSTOM_SETTING"] == "preserved"
     assert env == original_env
 
@@ -284,6 +297,49 @@ def test_build_package_json_adds_missing_pack_metadata(tmp_path):
         "name": "@project/module",
         "version": "0.0.0",
     }
+
+
+@pytest.mark.parametrize("indent", ["  ", "    ", "\t"])
+@pytest.mark.parametrize("pnpm_version", ["10.33.4", "11.27.0", "11.28.0"])
+@pytest.mark.parametrize(
+    "fields, expected_fields",
+    [
+        ({}, {}),
+        ({"engines": {"node": ">=22.13"}}, {"engines": {"node": ">=22.13"}}),
+        ({"packageManager": "pnpm@10.33.4"}, {"packageManager": "pnpm@{version}"}),
+        ({"engines": {"pnpm": "10"}}, {"engines": {"pnpm": "{version}"}}),
+        (
+            {"packageManager": "pnpm@10.33.4+sha512.old", "engines": {"pnpm": "<11", "node": ">=22.13"}},
+            {"packageManager": "pnpm@{version}", "engines": {"pnpm": "{version}", "node": ">=22.13"}},
+        ),
+    ],
+)
+def test_build_package_json_uses_resource_pnpm_version(tmp_path, pnpm_version, fields, expected_fields, indent):
+    source_path = tmp_path / "source"
+    build_path = tmp_path / "build"
+    pnpm_path = tmp_path / "resource" / "node_modules" / "pnpm"
+    source_path.mkdir()
+    pnpm_path.mkdir(parents=True)
+    (pnpm_path / "package.json").write_text(json.dumps({"version": pnpm_version}))
+    source_data = {"name": "example", "version": "1.0.0", **fields}
+    source_content = json.dumps(source_data, indent=indent) + "\n"
+    (source_path / "package.json").write_text(source_content)
+
+    package_manager = package_manager_module.PackageManager(
+        build_root=str(tmp_path),
+        build_path=str(build_path),
+        sources_path=str(source_path),
+        module_path="project/module",
+        nodejs_bin_path="/node",
+        script_path=str(pnpm_path / "dist" / "pnpm.mjs"),
+    )
+    package_manager._build_package_json()
+
+    expected = json.loads(json.dumps(expected_fields).replace("{version}", pnpm_version))
+    assert (build_path / "package.json").read_text() == json.dumps(
+        {"name": "example", "version": "1.0.0", **expected}, indent=indent
+    ) + "\n"
+    assert (source_path / "package.json").read_text() == source_content
 
 
 def test_build_workspace_without_lockfile(tmp_path):

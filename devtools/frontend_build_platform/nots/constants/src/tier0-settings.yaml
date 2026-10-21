@@ -29,7 +29,9 @@ pnpm:
         ignorePnpmfile: true
         ignoreScripts: true
         injectWorkspacePackages: true
+        managePackageManagerVersions: false
         modulesDir: node_modules
+        pmOnFail: ignore
         packageImportMethod: hardlink
         preferSymlinkedExecutables: true
         preferWorkspacePackages: true
@@ -40,6 +42,7 @@ pnpm:
         gitChecks: false
         lockfileIncludeTarballUrl: false
         trustLockfile: true
+        verifyDepsBeforeRun: false
 
     # storeDir вычисляется при запуске и передаётся аргументом pnpm: ~/.nots для CLI, build-root для builder.
     # Параметры операции остаются в argv: frozenLockfile, preferFrozenLockfile,
@@ -173,6 +176,19 @@ pnpm:
             injectWorkspacePackages: |-
                 Зависимости между модулями подключаются через inject.
                 https://pnpm.io/10.x/workspaces#injectworkspacepackages
+
+            managePackageManagerVersions: |-
+                Не скачивать и не переключать pnpm по packageManager: версию поставляет Tier 0.
+                https://pnpm.io/10.x/settings#managepackagemanagerversions
+
+            pmOnFail: |-
+                Не переключать версию pnpm автоматически (pnpm 11): инструмент выбирается Tier 0.
+                В pnpm 10 это контролирует managePackageManagerVersions.
+                https://pnpm.io/10.x/settings#managepackagemanagerversions
+
+            verifyDepsBeforeRun: |-
+                run/exec используют подготовленный node_modules без повторного install (pnpm 11).
+                https://pnpm.io/10.x/cli/run
 
             modulesDir: |-
                 Каталог, в котором pnpm размещает node_modules.

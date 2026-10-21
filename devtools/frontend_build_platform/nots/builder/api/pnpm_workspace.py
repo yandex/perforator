@@ -1,5 +1,6 @@
 import copy
 import os
+import re
 
 from build.plugins.lib.nots.package_manager.common_config import load_tier0_settings, select_pnpm_settings
 
@@ -11,6 +12,18 @@ except Exception:
 
 def pnpm_defaults():
     return load_tier0_settings()["pnpm"]["defaults"]
+
+
+def pnpm_runtime_env():
+    defaults = pnpm_defaults()
+    return {
+        prefix
+        + re.sub(r"[A-Z]", lambda match: "_" + match.group().lower(), key): (
+            str(defaults[key]).lower() if isinstance(defaults[key], bool) else str(defaults[key])
+        )
+        for key in ("managePackageManagerVersions", "pmOnFail", "registry", "trustLockfile", "verifyDepsBeforeRun")
+        for prefix in ("npm_config_", "pnpm_config_")
+    }
 
 
 class PnpmWorkspace(object):
@@ -51,7 +64,7 @@ class PnpmWorkspace(object):
                 data["catalogs"] = self.catalogs
             policy = load_tier0_settings()["pnpm"]
             comments = policy["workspaceComments"]
-            serialized = yaml.dump(data, Dumper=yaml.CSafeDumper)
+            serialized = yaml.dump(data, Dumper=yaml.CSafeDumper, sort_keys=False)
             f.write(self._comment(comments["header"]))
             # Only top-level option names receive comments; nested YAML is left intact.
             for line in serialized.splitlines(keepends=True):
