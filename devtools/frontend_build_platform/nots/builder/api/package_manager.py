@@ -562,6 +562,7 @@ class PackageManager(BasePackageManager):
         self._exec_command(
             [
                 "apply-addons",
+                "--overrides-source=package-json",
                 "--virtual-store",
                 virtual_store_dir,
             ],

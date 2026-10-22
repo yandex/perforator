@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-20T11:30:07.036Z",
+    "created": "2026-10-22T09:21:23.736Z",
     "pr": {
-      "id": 16574310,
+      "id": 16621693,
       "author": "zaverden",
-      "summary": "FBP-3456: подготовить builder и nots/cli к pnpm@11"
+      "summary": "FBP-3460: Подготовить builder к prebuilder@2.0.0"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14090990715"
+      "uri": "sbr:14105783294"
     },
     "darwin-arm64": {
-      "uri": "sbr:14090988683"
+      "uri": "sbr:14105781275"
     },
     "linux": {
-      "uri": "sbr:14090995902"
+      "uri": "sbr:14105787074"
     },
     "linux-aarch64": {
-      "uri": "sbr:14090993676"
+      "uri": "sbr:14105785219"
     }
   }
 }
