@@ -14,7 +14,7 @@ import (
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	binarypg "github.com/yandex/perforator/perforator/pkg/storage/binary/meta/pg"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob"
-	blobmodels "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
+	blobs3 "github.com/yandex/perforator/perforator/pkg/storage/blob/s3"
 	clustertop "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
 	clustertop_factory "github.com/yandex/perforator/perforator/pkg/storage/cluster_top/factory"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
@@ -221,9 +221,9 @@ func (b *StorageBundle) createOptsFromClusterTopGenerationsStorageType(config cl
 	return opts, nil
 }
 
-func (b *StorageBundle) newS3BlobStorage(l xlog.Logger, reg metrics.Registry, bucket string) (blobmodels.Storage, error) {
+func (b *StorageBundle) newS3BlobStorage(l xlog.Logger, reg metrics.Registry, bucket string) (blob.Storage, error) {
 	if b.DBs.S3Client == nil {
 		return nil, ErrS3StorageIsNotSpecified
 	}
-	return blob.NewStorage(l, reg, blob.WithS3(b.DBs.S3Client, bucket))
+	return blobs3.NewS3Storage(l, reg.WithPrefix("blob"), b.DBs.S3Client, bucket)
 }

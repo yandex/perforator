@@ -15,8 +15,8 @@ import (
 
 	metricsmock "github.com/yandex/perforator/library/go/core/metrics/mock"
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
+	"github.com/yandex/perforator/perforator/pkg/storage/blob"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob/fs"
-	blobmodels "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -110,7 +110,7 @@ func testMeta(buildID, blobID string, method compressionpb.CompressionMethod, un
 	}
 }
 
-func newStoreTestStorage(t *testing.T, claim binarymeta.UploadClaim, blobStorage blobmodels.Storage) *BinaryStorage {
+func newStoreTestStorage(t *testing.T, claim binarymeta.UploadClaim, blobStorage blob.Storage) *BinaryStorage {
 	metaStorage := &fakeMetaStorage{begin: func(context.Context, string, time.Time, ...binarymeta.Option) (binarymeta.UploadClaim, error) {
 		return claim, nil
 	}}
@@ -322,7 +322,7 @@ func TestLoadBlob_BlobLoadErrorPropagates(t *testing.T) {
 // fakeBlobStorage overrides Get; every other Storage method panics via the nil
 // embedded interface.
 type fakeBlobStorage struct {
-	blobmodels.Storage
+	blob.Storage
 	put    func(ctx context.Context, key string, src io.Reader) error
 	get    func(ctx context.Context, key string) (io.ReadCloser, error)
 	delete func(ctx context.Context, key string) error

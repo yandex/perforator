@@ -17,22 +17,19 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
-	"github.com/yandex/perforator/library/go/ptr"
 	s3client "github.com/yandex/perforator/perforator/pkg/s3"
-	"github.com/yandex/perforator/perforator/pkg/storage/blob/models"
-	"github.com/yandex/perforator/perforator/pkg/storage/storage"
+	"github.com/yandex/perforator/perforator/pkg/storage/blob"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
 const (
 	defaultDownloadConcurrency = 20
-	MaximumShards              = 256
 	UploadConcurrency          = 20
 
 	AwsNotFoundCode = "NotFound"
 )
 
-var _ models.Storage = (*S3Storage)(nil)
+var _ blob.Storage = (*S3Storage)(nil)
 
 type mdsStorageMetrics struct {
 	bytesDownloaded metrics.Counter
@@ -59,8 +56,6 @@ type S3Storage struct {
 
 	metrics *mdsStorageMetrics
 }
-
-type WriteAtBuffer = aws.WriteAtBuffer
 
 func NewS3Storage(l xlog.Logger, reg metrics.Registry, client *s3client.Client, bucket string) (*S3Storage, error) {
 	return &S3Storage{
@@ -173,7 +168,7 @@ func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) 
 			return s.getSequential(ctx, key)
 		}
 		if isNoExistError(err) {
-			err = &models.ErrNoExist{Err: err, Key: key}
+			err = &blob.ErrNotExist{Err: err, Key: key}
 		}
 		s.keylog(key).Error(ctx, "Failed to fetch blob", log.Error(err))
 		return nil, err
@@ -308,7 +303,7 @@ func (s *S3Storage) getSequential(ctx context.Context, key string) (io.ReadClose
 	})
 	if err != nil {
 		if isNoExistError(err) {
-			err = &models.ErrNoExist{Err: err, Key: key}
+			err = &blob.ErrNotExist{Err: err, Key: key}
 		}
 		return nil, err
 	}
@@ -340,7 +335,7 @@ func (s *S3Storage) Size(ctx context.Context, key string) (uint64, error) {
 
 	if err != nil {
 		if isNoExistError(err) {
-			err = &models.ErrNoExist{Err: err, Key: key}
+			err = &blob.ErrNotExist{Err: err, Key: key}
 		} else {
 			l.Warn(ctx, "Failed to get value size", log.Error(err))
 		}
@@ -384,44 +379,26 @@ func (s *S3Storage) Put(ctx context.Context, key string, src io.Reader) (err err
 	return err
 }
 
-func getShardPrefix(shardParams *storage.ShardParams) (string, error) {
-	if shardParams.NumShards > MaximumShards {
-		return "", fmt.Errorf("num shards must be <= %d", MaximumShards)
+func (s *S3Storage) List(ctx context.Context, after string, limit uint32) ([]string, error) {
+	var startAfter *string
+	if after != "" {
+		startAfter = aws.String(after)
 	}
 
-	return fmt.Sprintf("%02x", shardParams.ShardIndex), nil
-}
-
-func (s *S3Storage) List(ctx context.Context, pagination *models.Pagination, shards *storage.ShardParams) (result []string, err error) {
-	var output *s3.ListObjectsV2Output
-	var keyFrom *string
-	if pagination.KeyFrom != "" {
-		keyFrom = &pagination.KeyFrom
-	}
-
-	shardPrefix, err := getShardPrefix(shards)
-	if err != nil {
-		return nil, err
-	}
-	output, err = s.client.ListObjectsV2WithContext(
-		ctx,
-		&s3.ListObjectsV2Input{
-			Bucket:     &s.bucket,
-			MaxKeys:    ptr.Int64(int64(pagination.Limit)),
-			StartAfter: keyFrom,
-			Prefix:     &shardPrefix,
-		},
-	)
+	output, err := s.client.ListObjectsV2WithContext(ctx, &s3.ListObjectsV2Input{
+		Bucket:     &s.bucket,
+		MaxKeys:    aws.Int64(int64(limit)),
+		StartAfter: startAfter,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	result = []string{}
+	keys := make([]string, 0, len(output.Contents))
 	for _, object := range output.Contents {
-		result = append(result, *object.Key)
+		keys = append(keys, *object.Key)
 	}
-
-	return
+	return keys, nil
 }
 
 func (s *S3Storage) keylog(key string) xlog.Logger {

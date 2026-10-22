@@ -33,6 +33,8 @@ type fakeS3 struct {
 	shiftRange    int64
 	unrangedCalls int
 	headSize      *int64
+	listInput     *awss3.ListObjectsV2Input
+	listKeys      []string
 
 	mu          sync.Mutex
 	calls       []string
@@ -122,6 +124,15 @@ func (f *fakeS3) GetObjectWithContext(_ aws.Context, in *awss3.GetObjectInput, _
 	}, nil
 }
 
+func (f *fakeS3) ListObjectsV2WithContext(_ aws.Context, input *awss3.ListObjectsV2Input, _ ...request.Option) (*awss3.ListObjectsV2Output, error) {
+	f.listInput = input
+	contents := make([]*awss3.Object, 0, len(f.listKeys))
+	for _, key := range f.listKeys {
+		contents = append(contents, &awss3.Object{Key: aws.String(key)})
+	}
+	return &awss3.ListObjectsV2Output{Contents: contents}, nil
+}
+
 func newTestS3Storage(fake *fakeS3) *S3Storage {
 	reg := metricsmock.NewRegistry(nil)
 	return &S3Storage{
@@ -139,6 +150,23 @@ func newTestS3Storage(fake *fakeS3) *S3Storage {
 			degradedDownloads: reg.CounterVec("degraded_downloads.count", []string{"reason"}),
 		},
 	}
+}
+
+func TestListRange(t *testing.T) {
+	fake := &fakeS3{listKeys: []string{"b", "c"}}
+	storage := newTestS3Storage(fake)
+
+	keys, err := storage.List(context.Background(), "a", 2)
+	require.NoError(t, err)
+	require.Equal(t, []string{"b", "c"}, keys)
+	require.Equal(t, "test", aws.StringValue(fake.listInput.Bucket))
+	require.Equal(t, "a", aws.StringValue(fake.listInput.StartAfter))
+	require.Equal(t, int64(2), aws.Int64Value(fake.listInput.MaxKeys))
+	require.Nil(t, fake.listInput.Prefix)
+
+	_, err = storage.List(context.Background(), "", 2)
+	require.NoError(t, err)
+	require.Nil(t, fake.listInput.StartAfter)
 }
 
 // TestFetchPart_SingleRangedCall pins that an explicit Range keeps the SDK

@@ -10,12 +10,11 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/pkg/atomicfs"
-	"github.com/yandex/perforator/perforator/pkg/storage/blob/models"
-	"github.com/yandex/perforator/perforator/pkg/storage/storage"
+	"github.com/yandex/perforator/perforator/pkg/storage/blob"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-var _ models.Storage = (*FSStorage)(nil)
+var _ blob.Storage = (*FSStorage)(nil)
 
 type FSStorageConfig struct {
 	Root string `yaml:"root"`
@@ -36,7 +35,7 @@ func (s *FSStorage) Delete(ctx context.Context, key string) error {
 	err := os.Remove(s.makepath(key))
 	if err != nil {
 		if os.IsNotExist(err) {
-			err = &models.ErrNoExist{Err: err, Key: key}
+			err = &blob.ErrNotExist{Err: err, Key: key}
 		}
 		s.keylog(key).Error(ctx, "Failed to remove value", log.Error(err))
 		return fmt.Errorf("failed to remove value: %w", err)
@@ -54,7 +53,7 @@ func (s *FSStorage) Get(ctx context.Context, key string) (io.ReadCloser, error) 
 	f, err := os.Open(s.makepath(key))
 	if err != nil {
 		if os.IsNotExist(err) {
-			err = &models.ErrNoExist{Err: err, Key: key}
+			err = &blob.ErrNotExist{Err: err, Key: key}
 		}
 		return nil, fmt.Errorf("failed to locate key %s: %w", key, err)
 	}
@@ -66,6 +65,9 @@ func (s *FSStorage) Size(ctx context.Context, key string) (uint64, error) {
 	path := s.makepath(key)
 	info, err := os.Stat(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			err = &blob.ErrNotExist{Err: err, Key: key}
+		}
 		return 0, fmt.Errorf("failed os.Stat on %s: %w", path, err)
 	}
 
@@ -102,7 +104,7 @@ func (s *FSStorage) Put(ctx context.Context, key string, src io.Reader) (err err
 	return file.Close()
 }
 
-func (s *FSStorage) List(ctx context.Context, pagination *models.Pagination, shards *storage.ShardParams) ([]string, error) {
+func (s *FSStorage) List(context.Context, string, uint32) ([]string, error) {
 	return nil, fmt.Errorf("operation not supported")
 }
 

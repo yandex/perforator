@@ -14,7 +14,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
-	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
+	"github.com/yandex/perforator/perforator/pkg/storage/blob"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xio"
@@ -240,7 +240,7 @@ func (s *BinaryStorage) fillBlobSize(ctx context.Context, meta *binarymeta.Binar
 	var err error
 	meta.BlobInfo.Size, err = s.blobStorage.Size(ctx, meta.BlobInfo.ID)
 	if err != nil {
-		noExistErr := &blob.ErrNoExist{}
+		noExistErr := &blob.ErrNotExist{}
 		if !errors.As(err, &noExistErr) {
 			return err
 		}
@@ -317,7 +317,7 @@ func (s *BinaryStorage) Delete(
 
 		err = s.blobStorage.Delete(ctx, meta.BuildID)
 		if err != nil {
-			var noExistErr *blob.ErrNoExist
+			var noExistErr *blob.ErrNotExist
 			if errors.As(err, &noExistErr) {
 				l.Info(ctx, "Blob to delete was not found")
 			} else {

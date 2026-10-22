@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
+	"github.com/yandex/perforator/perforator/pkg/storage/blob"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -266,7 +266,7 @@ func (p *oneShotJobProcessor) fetchProfiles(
 			profileBundle, err := p.profileStorage.FetchProfile(ctx, profileMetas[i])
 			fetchNs.Add(time.Since(fetchStart).Nanoseconds())
 			if err != nil {
-				noExistErr := &blob.ErrNoExist{}
+				noExistErr := &blob.ErrNotExist{}
 				if errors.As(err, &noExistErr) {
 					return nil
 				}

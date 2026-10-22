@@ -30,7 +30,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/profile/interpreterstack"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
-	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
+	"github.com/yandex/perforator/perforator/pkg/storage/blob"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
@@ -896,7 +896,7 @@ func (s *PerforatorServer) fetchProfiles(
 
 			profileBundle, err := s.profileStorage.FetchProfile(ctx, meta)
 			if err != nil {
-				noExistErr := &blob.ErrNoExist{}
+				noExistErr := &blob.ErrNotExist{}
 				if errors.As(err, &noExistErr) {
 					return nil
 				}

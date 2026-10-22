@@ -11,7 +11,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
+	"github.com/yandex/perforator/perforator/pkg/storage/blob"
 	gsymmeta "github.com/yandex/perforator/perforator/pkg/storage/gsym/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"

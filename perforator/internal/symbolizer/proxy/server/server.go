@@ -44,7 +44,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/polyheapprof"
 	profilebundle "github.com/yandex/perforator/perforator/pkg/profile/bundle"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
-	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
+	"github.com/yandex/perforator/perforator/pkg/storage/blob"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob/s3"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	clustertop "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"

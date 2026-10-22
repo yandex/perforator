@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/yandex/perforator/library/go/core/metrics"
-	"github.com/yandex/perforator/perforator/pkg/storage/blob"
+	blobs3 "github.com/yandex/perforator/perforator/pkg/storage/blob/s3"
 	storage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta/clickhouse"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -28,7 +28,7 @@ func NewStorage(
 		return nil, errors.New("no blob storage is specified")
 	}
 
-	blobStorage, err := blob.NewStorage(logger, reg.WithPrefix("profile_storage"), blob.WithS3(options.s3client, options.s3bucket))
+	blobStorage, err := blobs3.NewS3Storage(logger, reg.WithPrefix("profile_storage").WithPrefix("blob"), options.s3client, options.s3bucket)
 	if err != nil {
 		return nil, err
 	}

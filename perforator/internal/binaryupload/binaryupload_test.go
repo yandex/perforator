@@ -17,7 +17,6 @@ import (
 	metricsmock "github.com/yandex/perforator/library/go/core/metrics/mock"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
-	blobmodels "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -107,7 +106,7 @@ func (f *fakeBlobStorage) Delete(_ context.Context, key string) error {
 
 func (f *fakeBlobStorage) DeleteObjects(context.Context, []string) error { return nil }
 
-func (f *fakeBlobStorage) List(context.Context, *blobmodels.Pagination, *storage.ShardParams) ([]string, error) {
+func (f *fakeBlobStorage) List(context.Context, string, uint32) ([]string, error) {
 	panic("unused")
 }
 
