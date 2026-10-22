@@ -9,6 +9,8 @@ SRCS(
     diff_ut.cpp
     merge_ut.cpp
     pprof_ut.cpp
+    strtab_ut.cpp
+    validate_ut.cpp
 )
 
 PEERDIR(

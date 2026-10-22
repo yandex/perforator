@@ -108,7 +108,8 @@ public:
         ui32 offset = strtab.offset(*Index_);
         ui32 length = strtab.length(*Index_);
         TStringBuf strings = strtab.strings();
-        Y_ENSURE(offset + length <= strings.size());
+        const size_t size = strings.size();
+        Y_ENSURE(offset <= size && length <= size - offset);
         return strings.SubString(offset, length);
     }
 

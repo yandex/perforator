@@ -49,8 +49,9 @@ private:
         Y_ENSURE(strtab.length(0) == 0);
 
         if (Options_.CheckIndices) {
+            const size_t size = strtab.strings().size();
             for (auto [offset, length] : Zip(strtab.offset(), strtab.length())) {
-                Y_ENSURE(offset + length <= strtab.strings().size());
+                Y_ENSURE(offset <= size && length <= size - offset);
             }
         }
     }
@@ -132,6 +133,7 @@ private:
         ExpectEntityArray(inlineChains.lines().function_id(), Profile_.functions().name(), "function");
 
         // Check that the first inline chain is empty.
+        Y_ENSURE(inlineChains.lines_offset_size() > 0);
         Y_ENSURE(inlineChains.lines_offset(0) == 0);
         Y_ENSURE(inlineChains.lines_offset_size() == 1 || inlineChains.lines_offset(1) == 0);
     }
@@ -158,11 +160,13 @@ private:
         ExpectEntityArray(stackSegments.frame_ids(), Profile_.stack_frames().binary_id(), "stack_frame");
 
         // Check that the first stack frame is empty.
+        Y_ENSURE(stackSegments.frame_ids_offset_size() > 0);
         Y_ENSURE(stackSegments.frame_ids_offset(0) == 0);
         Y_ENSURE(stackSegments.frame_ids_offset_size() == 1 || stackSegments.frame_ids_offset(1) == 0);
     }
 
     void VisitStacks(const NProto::NProfile::Stacks& stacks) override {
+        RequireCongruentContainers(stacks.top_frame_id(), stacks.stack_segment_id());
         ExpectEntityArray(stacks.top_frame_id(), Profile_.stack_frames().binary_id(), "stack_frame");
         ExpectEntityArray(stacks.stack_segment_id(), Profile_.stack_segments().frame_ids_offset(), "stack_segment");
     }
