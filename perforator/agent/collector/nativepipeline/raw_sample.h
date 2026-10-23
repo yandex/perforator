@@ -4,15 +4,20 @@
 
 #include <util/generic/strbuf.h>
 
-#include <cstddef>
-#include <cstring>
 #include <array>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <type_traits>
 
 namespace NPerforator::NAgent::NNativePipeline {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+template <typename T>
 class TRawSection {
+    static_assert(std::is_trivially_copyable_v<T>);
+
 public:
     TRawSection() = default;
     TRawSection(const char* data, std::size_t size)
@@ -29,14 +34,12 @@ public:
         return TStringBuf{Data_, Size_};
     }
 
-    template <typename T>
     std::size_t Count() const noexcept {
         return Size_ / sizeof(T);
     }
 
     // Perf-buffer records are normally aligned, but memcpy keeps the parser
     // correct for arbitrary byte slices used by tests and fuzzing.
-    template <typename T>
     T Read(std::size_t index) const {
         T value;
         std::memcpy(&value, Data_ + index * sizeof(T), sizeof(T));
@@ -63,15 +66,14 @@ public:
     }
 
     std::size_t Count() const noexcept {
-        return ElementSize_ == 0 ? 0 : Data_.Bytes().size() / ElementSize_;
+        return ElementSize_ == 0 ? 0 : Data_.size() / ElementSize_;
     }
 
     TStringBuf Element(std::size_t index) const noexcept {
-        const auto bytes = Data_.Bytes();
         if (ElementSize_ == 0 || index >= Count()) {
             return {};
         }
-        return {bytes.data() + index * ElementSize_, ElementSize_};
+        return {Data_.data() + index * ElementSize_, ElementSize_};
     }
 
 private:
@@ -80,7 +82,7 @@ private:
     NWire::ELanguage Language_{};
     NWire::ELanguagePayloadKind PayloadKind_{};
     std::size_t ElementSize_ = 0;
-    TRawSection Data_;
+    TStringBuf Data_;
 };
 
 class TRawSample {
@@ -93,12 +95,12 @@ public:
         return Header_;
     }
 
-    TRawSection KernelStack() const noexcept;
-    TRawSection UserStack() const noexcept;
-    TRawSection Lbr() const noexcept;
-    TRawSection Tls() const noexcept;
-    TRawSection Cgroups() const noexcept;
-    TRawSection LanguageSections() const noexcept;
+    TRawSection<std::uint64_t> KernelStack() const noexcept;
+    TRawSection<std::uint64_t> UserStack() const noexcept;
+    TRawSection<NWire::TBranchRecord> Lbr() const noexcept;
+    TRawSection<NWire::TTlsCollectResult> Tls() const noexcept;
+    TRawSection<std::uint64_t> Cgroups() const noexcept;
+    TStringBuf LanguageSections() const noexcept;
     const TRawLanguageSection* LanguageSection(NWire::ELanguage language) const noexcept;
     std::size_t LanguageSectionCount() const noexcept {
         return LanguageCount_;
@@ -108,7 +110,10 @@ public:
     }
 
 private:
-    TRawSection GetSection(const NWire::TSectionDesc& desc) const noexcept;
+    template <typename T>
+    TRawSection<T> GetSection(const NWire::TSectionDesc& desc) const noexcept {
+        return {Data_ + desc.offset, desc.size};
+    }
 
 private:
     NWire::TRecordSampleHeader Header_{};

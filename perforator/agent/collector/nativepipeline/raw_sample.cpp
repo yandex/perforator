@@ -90,7 +90,7 @@ TRawSample TRawSample::Parse(TStringBuf record) {
         expectedOffset += size;
     }
 
-    const TStringBuf languages = result.LanguageSections().Bytes();
+    const TStringBuf languages = result.LanguageSections();
     std::size_t position = 0;
     while (position != languages.size()) {
         if (languages.size() - position < sizeof(TLanguageSectionHeader)) {
@@ -142,32 +142,28 @@ TRawSample TRawSample::Parse(TStringBuf record) {
     return result;
 }
 
-TRawSection TRawSample::GetSection(const NWire::TSectionDesc& desc) const noexcept {
-    return {Data_ + desc.offset, desc.size};
+TRawSection<std::uint64_t> TRawSample::KernelStack() const noexcept {
+    return GetSection<std::uint64_t>(Header_.kern_stack);
 }
 
-TRawSection TRawSample::KernelStack() const noexcept {
-    return GetSection(Header_.kern_stack);
+TRawSection<std::uint64_t> TRawSample::UserStack() const noexcept {
+    return GetSection<std::uint64_t>(Header_.user_stack);
 }
 
-TRawSection TRawSample::UserStack() const noexcept {
-    return GetSection(Header_.user_stack);
+TRawSection<NWire::TBranchRecord> TRawSample::Lbr() const noexcept {
+    return GetSection<NWire::TBranchRecord>(Header_.lbr);
 }
 
-TRawSection TRawSample::Lbr() const noexcept {
-    return GetSection(Header_.lbr);
+TRawSection<NWire::TTlsCollectResult> TRawSample::Tls() const noexcept {
+    return GetSection<NWire::TTlsCollectResult>(Header_.tls);
 }
 
-TRawSection TRawSample::Tls() const noexcept {
-    return GetSection(Header_.tls);
+TRawSection<std::uint64_t> TRawSample::Cgroups() const noexcept {
+    return GetSection<std::uint64_t>(Header_.cgroups);
 }
 
-TRawSection TRawSample::Cgroups() const noexcept {
-    return GetSection(Header_.cgroups);
-}
-
-TRawSection TRawSample::LanguageSections() const noexcept {
-    return GetSection(Header_.language_sections);
+TStringBuf TRawSample::LanguageSections() const noexcept {
+    return {Data_ + Header_.language_sections.offset, Header_.language_sections.size};
 }
 
 const TRawLanguageSection* TRawSample::LanguageSection(NWire::ELanguage language) const noexcept {
