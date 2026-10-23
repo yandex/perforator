@@ -2,9 +2,10 @@
 
 #include <library/cpp/testing/unittest/registar.h>
 
-#include <cstring>
-
 #include <util/string/hex.h>
+
+#include <cstdint>
+#include <cstring>
 
 namespace NPerforator::NAgent::NNativePipeline {
 namespace {
@@ -18,14 +19,14 @@ constexpr size_t PythonSectionSize = sizeof(TLanguageSectionHeader) + PythonFram
 
 TString MakeRecord() {
     TRecordSampleHeader header{};
-    header.Tag = ERecordTag::Sample;
-    header.SampleType = ESampleType::PerfEvent;
-    header.KernStack = {.Offset = 0, .Size = 2 * sizeof(std::uint64_t)};
-    header.UserStack = {.Offset = 16, .Size = sizeof(std::uint64_t)};
-    header.Lbr = {.Offset = 24, .Size = 0};
-    header.Tls = {.Offset = 24, .Size = 0};
-    header.Cgroups = {.Offset = 24, .Size = sizeof(std::uint64_t)};
-    header.LanguageSections = {.Offset = 32, .Size = PythonSectionSize};
+    header.tag = ERecordTag::RECORD_TAG_SAMPLE;
+    header.sample_type = ESampleType::SAMPLE_TYPE_PERF_EVENT;
+    header.kern_stack = {.offset = 0, .size = 2 * sizeof(std::uint64_t)};
+    header.user_stack = {.offset = 16, .size = sizeof(std::uint64_t)};
+    header.lbr = {.offset = 24, .size = 0};
+    header.tls = {.offset = 24, .size = 0};
+    header.cgroups = {.offset = 24, .size = sizeof(std::uint64_t)};
+    header.language_sections = {.offset = 32, .size = PythonSectionSize};
 
     TString record(sizeof(header) + 32 + PythonSectionSize, '\0');
     std::memcpy(record.begin(), &header, sizeof(header));
@@ -38,10 +39,10 @@ TString MakeRecord() {
     std::memcpy(record.begin() + sizeof(header) + 24, &cgroup, sizeof(cgroup));
 
     TLanguageSectionHeader language{
-        .ByteSize = PythonFrameSize,
-        .Language = ELanguage::Python,
-        .PayloadKind = ELanguagePayloadKind::InterpreterFrames,
-        .ElementSize = PythonFrameSize,
+        .byte_size = PythonFrameSize,
+        .language = ELanguage::LANGUAGE_PYTHON,
+        .payload_kind = ELanguagePayloadKind::LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
+        .element_size = PythonFrameSize,
     };
     struct {
         std::uint64_t ObjectAddress;
@@ -135,38 +136,38 @@ Y_UNIT_TEST_SUITE(RawSample) {
             if (!accepted) {
                 continue;
             }
-            UNIT_ASSERT_VALUES_EQUAL(sample.Header().Cpu, 3);
-            UNIT_ASSERT(sample.Header().Kthread);
-            UNIT_ASSERT_VALUES_EQUAL(sample.Header().Runtime, 1000);
-            UNIT_ASSERT_VALUES_EQUAL(sample.Header().StartTime, 555);
+            UNIT_ASSERT_VALUES_EQUAL(sample.Header().cpu, 3);
+            UNIT_ASSERT(sample.Header().kthread);
+            UNIT_ASSERT_VALUES_EQUAL(sample.Header().runtime, 1000);
+            UNIT_ASSERT_VALUES_EQUAL(sample.Header().starttime, 555);
             UNIT_ASSERT_VALUES_EQUAL(sample.KernelStack().Read<std::uint64_t>(1), 0x20);
             UNIT_ASSERT_VALUES_EQUAL(sample.UserStack().Read<std::uint64_t>(0), 0x30);
             UNIT_ASSERT_VALUES_EQUAL(sample.Cgroups().Read<std::uint64_t>(0), 42);
             UNIT_ASSERT_VALUES_EQUAL(sample.Lbr().Count<TBranchRecord>(), 2);
             const auto firstBranch = sample.Lbr().Read<TBranchRecord>(0);
-            UNIT_ASSERT_VALUES_EQUAL(firstBranch.From, 0x40);
-            UNIT_ASSERT_VALUES_EQUAL(firstBranch.To, 0x50);
-            UNIT_ASSERT_VALUES_EQUAL(firstBranch.Flags, 7);
+            UNIT_ASSERT_VALUES_EQUAL(firstBranch.from, 0x40);
+            UNIT_ASSERT_VALUES_EQUAL(firstBranch.to, 0x50);
+            UNIT_ASSERT_VALUES_EQUAL(firstBranch.flags, 7);
             const auto secondBranch = sample.Lbr().Read<TBranchRecord>(1);
-            UNIT_ASSERT_VALUES_EQUAL(secondBranch.From, 0x60);
-            UNIT_ASSERT_VALUES_EQUAL(secondBranch.To, 0x70);
-            UNIT_ASSERT_VALUES_EQUAL(secondBranch.Flags, 9);
+            UNIT_ASSERT_VALUES_EQUAL(secondBranch.from, 0x60);
+            UNIT_ASSERT_VALUES_EQUAL(secondBranch.to, 0x70);
+            UNIT_ASSERT_VALUES_EQUAL(secondBranch.flags, 9);
             UNIT_ASSERT_VALUES_EQUAL(sample.Tls().Count<TTlsCollectResult>(), 2);
             const auto firstTls = sample.Tls().Read<TTlsCollectResult>(0);
-            UNIT_ASSERT_VALUES_EQUAL(firstTls.Offset, 64);
-            UNIT_ASSERT(firstTls.Type == ETlsVariableType::Uint64);
-            UNIT_ASSERT_VALUES_EQUAL(firstTls.Value.Number, 99);
+            UNIT_ASSERT_VALUES_EQUAL(firstTls.offset, 64);
+            UNIT_ASSERT(firstTls.type == ETlsVariableType::THREAD_LOCAL_UINT64_TYPE);
+            UNIT_ASSERT_VALUES_EQUAL(firstTls.value.number, 99);
             const auto secondTls = sample.Tls().Read<TTlsCollectResult>(1);
-            UNIT_ASSERT_VALUES_EQUAL(secondTls.Offset, 128);
-            UNIT_ASSERT(secondTls.Type == ETlsVariableType::String);
-            UNIT_ASSERT_VALUES_EQUAL(secondTls.Value.String.Length, 5);
-            UNIT_ASSERT_VALUES_EQUAL(TStringBuf(secondTls.Value.String.Data, 5), "hello");
+            UNIT_ASSERT_VALUES_EQUAL(secondTls.offset, 128);
+            UNIT_ASSERT(secondTls.type == ETlsVariableType::THREAD_LOCAL_STRING_TYPE);
+            UNIT_ASSERT_VALUES_EQUAL(secondTls.value.string.len, 5);
+            UNIT_ASSERT_VALUES_EQUAL(TStringBuf(secondTls.value.string.string, 5), "hello");
             UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSectionCount(), 4);
-            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::Python)->Element(0).size(),
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_PYTHON)->Element(0).size(),
                                      TStringBuf(test.Name) == "opaque_interpreter_size" ? 16 : 32);
-            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::Php)->Count(), 1);
-            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::Jvm)->Count(), 1);
-            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::Lua)->Count(), 1);
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_PHP)->Count(), 1);
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_JVM)->Count(), 1);
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_LUA)->Count(), 1);
         }
     }
 
@@ -181,13 +182,13 @@ Y_UNIT_TEST_SUITE(RawSample) {
         };
         for (const auto& test : cases) {
             TRecordSampleHeader header{};
-            header.Tag = ERecordTag::Sample;
-            header.SampleType = ESampleType::PerfEvent;
-            header.Lbr = {.Offset = 0, .Size = test.LbrSize};
-            header.Tls = {.Offset = test.LbrSize, .Size = test.TlsSize};
+            header.tag = ERecordTag::RECORD_TAG_SAMPLE;
+            header.sample_type = ESampleType::SAMPLE_TYPE_PERF_EVENT;
+            header.lbr = {.offset = 0, .size = test.LbrSize};
+            header.tls = {.offset = test.LbrSize, .size = test.TlsSize};
             const auto dataSize = static_cast<std::uint16_t>(test.LbrSize + test.TlsSize);
-            header.Cgroups = {.Offset = dataSize, .Size = 0};
-            header.LanguageSections = {.Offset = dataSize, .Size = 0};
+            header.cgroups = {.offset = dataSize, .size = 0};
+            header.language_sections = {.offset = dataSize, .size = 0};
 
             // All sections are contiguous and 8-byte aligned; only the
             // selected section's size is not a multiple of its element size.
@@ -200,9 +201,9 @@ Y_UNIT_TEST_SUITE(RawSample) {
     Y_UNIT_TEST(AcceptsValidKthreadRepresentations) {
         for (unsigned value : {0u, 1u}) {
             TString record = MakeRecord();
-            record[offsetof(TRecordSampleHeader, Kthread)] = static_cast<char>(value);
+            record[offsetof(TRecordSampleHeader, kthread)] = static_cast<char>(value);
             const auto sample = TRawSample::Parse(record);
-            UNIT_ASSERT_VALUES_EQUAL(sample.Header().Kthread, value != 0);
+            UNIT_ASSERT_VALUES_EQUAL(sample.Header().kthread, value != 0);
         }
     }
 
@@ -210,7 +211,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
         for (unsigned value = 2; value <= 255; ++value) {
             TString record = MakeRecord();
             auto* bytes = reinterpret_cast<unsigned char*>(record.begin());
-            bytes[offsetof(TRecordSampleHeader, Kthread)] = value;
+            bytes[offsetof(TRecordSampleHeader, kthread)] = value;
             UNIT_ASSERT_EXCEPTION_CONTAINS(TRawSample::Parse(record), yexception,
                                            "invalid kthread flag");
         }
@@ -222,7 +223,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
         const auto sample = TRawSample::Parse(TStringBuf(storage).SubStr(1));
         UNIT_ASSERT_VALUES_EQUAL(sample.KernelStack().Read<std::uint64_t>(1), 0x20);
         UNIT_ASSERT(sample.KernelStack().Bytes().data() == storage.data() + 1 + sizeof(TRecordSampleHeader));
-        UNIT_ASSERT(sample.LanguageSection(ELanguage::Python)->Element(1).empty());
+        UNIT_ASSERT(sample.LanguageSection(ELanguage::LANGUAGE_PYTHON)->Element(1).empty());
     }
 
     Y_UNIT_TEST(AcceptsKernel54FixedSizeRecordWithPerfPadding) {
@@ -232,7 +233,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
         const auto sample = TRawSample::Parse(record);
         UNIT_ASSERT_VALUES_EQUAL(sample.UserStack().Read<std::uint64_t>(0), 0x30);
         UNIT_ASSERT_VALUES_EQUAL(sample.Cgroups().Read<std::uint64_t>(0), 42);
-        UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::Python)->Count(), 1);
+        UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_PYTHON)->Count(), 1);
     }
 
     Y_UNIT_TEST(AcceptsVariableSizeRecordWithPerfPadding) {
@@ -247,7 +248,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
         TString record = MakeRecord();
         record.append(4, '\x5a');
         auto* header = reinterpret_cast<TRecordSampleHeader*>(record.begin());
-        header->LanguageSections.Size += 4;
+        header->language_sections.size += 4;
         UNIT_ASSERT_EXCEPTION_CONTAINS(TRawSample::Parse(record), yexception,
                                        "language sections section exceeds packed sample");
     }
@@ -268,9 +269,9 @@ Y_UNIT_TEST_SUITE(RawSample) {
         UNIT_ASSERT_VALUES_EQUAL(sample.UserStack().Read<std::uint64_t>(0), 0x30);
         UNIT_ASSERT_VALUES_EQUAL(sample.Cgroups().Read<std::uint64_t>(0), 42);
         UNIT_ASSERT_VALUES_EQUAL(
-            static_cast<std::uint32_t>(sample.Header().SampleType),
-            static_cast<std::uint32_t>(ESampleType::PerfEvent));
-        const auto* language = sample.LanguageSection(ELanguage::Python);
+            static_cast<std::uint32_t>(sample.Header().sample_type),
+            static_cast<std::uint32_t>(ESampleType::SAMPLE_TYPE_PERF_EVENT));
+        const auto* language = sample.LanguageSection(ELanguage::LANGUAGE_PYTHON);
         UNIT_ASSERT(language);
         UNIT_ASSERT_VALUES_EQUAL(language->ElementSize(), PythonFrameSize);
         UNIT_ASSERT_VALUES_EQUAL(language->Count(), 1);
@@ -286,21 +287,21 @@ Y_UNIT_TEST_SUITE(RawSample) {
     Y_UNIT_TEST(RejectsNonContiguousSections) {
         TString record = MakeRecord();
         auto* header = reinterpret_cast<TRecordSampleHeader*>(record.begin());
-        header->UserStack.Offset += 8;
+        header->user_stack.offset += 8;
         UNIT_ASSERT_EXCEPTION(TRawSample::Parse(record), yexception);
     }
 
     Y_UNIT_TEST(RejectsPartialElements) {
         TString record = MakeRecord();
         auto* header = reinterpret_cast<TRecordSampleHeader*>(record.begin());
-        header->KernStack.Size -= 1;
+        header->kern_stack.size -= 1;
         UNIT_ASSERT_EXCEPTION(TRawSample::Parse(record), yexception);
     }
 
     Y_UNIT_TEST(RejectsDuplicateLanguage) {
         TString record = MakeRecord();
         auto* header = reinterpret_cast<TRecordSampleHeader*>(record.begin());
-        header->LanguageSections.Size *= 2;
+        header->language_sections.size *= 2;
         const TString duplicate{record.data() + sizeof(TRecordSampleHeader) + 32, PythonSectionSize};
         record.append(duplicate);
         UNIT_ASSERT_EXCEPTION(TRawSample::Parse(record), yexception);
@@ -310,20 +311,20 @@ Y_UNIT_TEST_SUITE(RawSample) {
         TString record = MakeRecord();
         auto* language = reinterpret_cast<TLanguageSectionHeader*>(
             record.begin() + sizeof(TRecordSampleHeader) + 32);
-        language->Language = static_cast<ELanguage>(PERFORATOR_LANGUAGE_COUNT);
+        language->language = static_cast<ELanguage>(PERFORATOR_LANGUAGE_COUNT);
         UNIT_ASSERT_EXCEPTION(TRawSample::Parse(record), yexception);
     }
 
     Y_UNIT_TEST(AcceptsExactMaximumPackedDataSize) {
         TRecordSampleHeader header{};
-        header.Tag = ERecordTag::Sample;
-        header.SampleType = ESampleType::PerfEvent;
-        header.KernStack = {.Offset = 0, .Size = MaxPackedDataSize};
-        header.UserStack = {.Offset = MaxPackedDataSize, .Size = 0};
-        header.Lbr = {.Offset = MaxPackedDataSize, .Size = 0};
-        header.Tls = {.Offset = MaxPackedDataSize, .Size = 0};
-        header.Cgroups = {.Offset = MaxPackedDataSize, .Size = 0};
-        header.LanguageSections = {.Offset = MaxPackedDataSize, .Size = 0};
+        header.tag = ERecordTag::RECORD_TAG_SAMPLE;
+        header.sample_type = ESampleType::SAMPLE_TYPE_PERF_EVENT;
+        header.kern_stack = {.offset = 0, .size = MaxPackedDataSize};
+        header.user_stack = {.offset = MaxPackedDataSize, .size = 0};
+        header.lbr = {.offset = MaxPackedDataSize, .size = 0};
+        header.tls = {.offset = MaxPackedDataSize, .size = 0};
+        header.cgroups = {.offset = MaxPackedDataSize, .size = 0};
+        header.language_sections = {.offset = MaxPackedDataSize, .size = 0};
 
         TString record(sizeof(header) + MaxPackedDataSize, '\0');
         std::memcpy(record.begin(), &header, sizeof(header));
@@ -337,7 +338,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
         UNIT_ASSERT(paddedSample.LanguageSections().Empty());
 
         auto* paddedHeader = reinterpret_cast<TRecordSampleHeader*>(record.begin());
-        paddedHeader->LanguageSections.Size = 4;
+        paddedHeader->language_sections.size = 4;
         UNIT_ASSERT_EXCEPTION_CONTAINS(TRawSample::Parse(record), yexception,
                                        "language sections section exceeds packed sample");
     }

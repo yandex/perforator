@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core.h"
-#include "contract/wire_types.inc"
+#include "contract/wire_types.h"
 
 #include <bpf/bpf.h>
 

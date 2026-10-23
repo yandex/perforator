@@ -1,6 +1,6 @@
 #pragma once
 
-#include "contract/wire_types.inc"
+#include "contract/wire_types.h"
 #include "cgroups.h"
 #include "thread_local.h"
 #include "lbr.h"

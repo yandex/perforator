@@ -3,6 +3,7 @@
 #include <util/generic/yexception.h>
 
 #include <array>
+#include <cstdint>
 #include <cstring>
 
 namespace NPerforator::NAgent::NNativePipeline {
@@ -39,7 +40,7 @@ TRawSample TRawSample::Parse(TStringBuf record) {
     }
 
     // Validate the wire byte before it becomes a bool in the copied header.
-    const unsigned kthread = static_cast<unsigned char>(record[offsetof(TRecordSampleHeader, Kthread)]);
+    const unsigned kthread = static_cast<unsigned char>(record[offsetof(TRecordSampleHeader, kthread)]);
     if (kthread > 1) {
         ythrow yexception() << "invalid kthread flag " << kthread;
     }
@@ -52,30 +53,30 @@ TRawSample TRawSample::Parse(TStringBuf record) {
     // variable-size records, while still accepting unpadded payloads.
     const std::size_t dataSize = (record.size() - sizeof(result.Header_)) / PackedAlignment * PackedAlignment;
 
-    if (result.Header_.Tag != ERecordTag::Sample) {
+    if (result.Header_.tag != ERecordTag::RECORD_TAG_SAMPLE) {
         ythrow yexception() << "unexpected perf record tag "
-                            << static_cast<unsigned>(result.Header_.Tag);
+                            << static_cast<unsigned>(result.Header_.tag);
     }
-    if (result.Header_.SampleType <= ESampleType::Undefined ||
-        result.Header_.SampleType > ESampleType::Uprobe)
+    if (result.Header_.sample_type <= ESampleType::SAMPLE_TYPE_UNDEFINED ||
+        result.Header_.sample_type > ESampleType::SAMPLE_TYPE_UPROBE)
     {
         ythrow yexception() << "unknown sample type "
-                            << static_cast<std::uint32_t>(result.Header_.SampleType);
+                            << static_cast<std::uint32_t>(result.Header_.sample_type);
     }
 
     const std::array<TSectionSpec, 6> sections{{
-        {&result.Header_.KernStack, sizeof(std::uint64_t), "kernel stack"},
-        {&result.Header_.UserStack, sizeof(std::uint64_t), "user stack"},
-        {&result.Header_.Lbr, sizeof(TBranchRecord), "last branch records"},
-        {&result.Header_.Tls, sizeof(TTlsCollectResult), "TLS"},
-        {&result.Header_.Cgroups, sizeof(std::uint64_t), "cgroups"},
-        {&result.Header_.LanguageSections, 1, "language sections"},
+        {&result.Header_.kern_stack, sizeof(std::uint64_t), "kernel stack"},
+        {&result.Header_.user_stack, sizeof(std::uint64_t), "user stack"},
+        {&result.Header_.lbr, sizeof(TBranchRecord), "last branch records"},
+        {&result.Header_.tls, sizeof(TTlsCollectResult), "TLS"},
+        {&result.Header_.cgroups, sizeof(std::uint64_t), "cgroups"},
+        {&result.Header_.language_sections, 1, "language sections"},
     }};
 
     std::size_t expectedOffset = 0;
     for (const auto& section : sections) {
-        const std::size_t offset = section.Desc->Offset;
-        const std::size_t size = section.Desc->Size;
+        const std::size_t offset = section.Desc->offset;
+        const std::size_t size = section.Desc->size;
         if (offset != expectedOffset) {
             ythrow yexception() << section.Name << " section is not contiguous: expected offset "
                                 << expectedOffset << ", got " << offset;
@@ -98,75 +99,75 @@ TRawSample TRawSample::Parse(TStringBuf record) {
         TLanguageSectionHeader header;
         std::memcpy(&header, languages.data() + position, sizeof(header));
         position += sizeof(header);
-        if (static_cast<std::uint8_t>(header.Language) >= PERFORATOR_LANGUAGE_COUNT) {
+        if (static_cast<std::uint8_t>(header.language) >= PERFORATOR_LANGUAGE_COUNT) {
             ythrow yexception() << "unknown language id "
-                                << static_cast<unsigned>(header.Language);
+                                << static_cast<unsigned>(header.language);
         }
         if (result.LanguageCount_ == result.Languages_.size()) {
             ythrow yexception() << "too many language sections";
         }
         for (std::size_t i = 0; i < result.LanguageCount_; ++i) {
-            if (result.Languages_[i].Language() == header.Language) {
+            if (result.Languages_[i].Language() == header.language) {
                 ythrow yexception() << "duplicate language section "
-                                    << static_cast<unsigned>(header.Language);
+                                    << static_cast<unsigned>(header.language);
             }
         }
-        if (header.PayloadKind != ELanguagePayloadKind::InterpreterFrames &&
-            header.PayloadKind != ELanguagePayloadKind::NativeAnnotations)
+        if (header.payload_kind != ELanguagePayloadKind::LANGUAGE_PAYLOAD_INTERPRETER_FRAMES &&
+            header.payload_kind != ELanguagePayloadKind::LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS)
         {
             ythrow yexception() << "unknown language payload kind "
-                                << static_cast<unsigned>(header.PayloadKind);
+                                << static_cast<unsigned>(header.payload_kind);
         }
-        const std::size_t elementSize = header.ElementSize;
+        const std::size_t elementSize = header.element_size;
         if (elementSize == 0 || elementSize % alignof(std::uint64_t) != 0 ||
-            header.ByteSize == 0 || header.ByteSize % elementSize != 0)
+            header.byte_size == 0 || header.byte_size % elementSize != 0)
         {
-            ythrow yexception() << "invalid language section size " << header.ByteSize;
+            ythrow yexception() << "invalid language section size " << header.byte_size;
         }
-        if (header.PayloadKind == ELanguagePayloadKind::NativeAnnotations &&
-            (header.Language != ELanguage::Jvm || elementSize != sizeof(TJvmLanguageEntry)))
+        if (header.payload_kind == ELanguagePayloadKind::LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS &&
+            (header.language != ELanguage::LANGUAGE_JVM || elementSize != sizeof(TJvmLanguageEntry)))
         {
             ythrow yexception() << "unsupported native language annotation layout";
         }
-        if (header.ByteSize > languages.size() - position) {
+        if (header.byte_size > languages.size() - position) {
             ythrow yexception() << "language section exceeds packed sample";
         }
         auto& section = result.Languages_[result.LanguageCount_++];
-        section.Language_ = header.Language;
-        section.PayloadKind_ = header.PayloadKind;
+        section.Language_ = header.language;
+        section.PayloadKind_ = header.payload_kind;
         section.ElementSize_ = elementSize;
-        section.Data_ = {languages.data() + position, header.ByteSize};
-        position += header.ByteSize;
+        section.Data_ = {languages.data() + position, header.byte_size};
+        position += header.byte_size;
     }
     return result;
 }
 
 TRawSection TRawSample::GetSection(const NWire::TSectionDesc& desc) const noexcept {
-    return {Data_ + desc.Offset, desc.Size};
+    return {Data_ + desc.offset, desc.size};
 }
 
 TRawSection TRawSample::KernelStack() const noexcept {
-    return GetSection(Header_.KernStack);
+    return GetSection(Header_.kern_stack);
 }
 
 TRawSection TRawSample::UserStack() const noexcept {
-    return GetSection(Header_.UserStack);
+    return GetSection(Header_.user_stack);
 }
 
 TRawSection TRawSample::Lbr() const noexcept {
-    return GetSection(Header_.Lbr);
+    return GetSection(Header_.lbr);
 }
 
 TRawSection TRawSample::Tls() const noexcept {
-    return GetSection(Header_.Tls);
+    return GetSection(Header_.tls);
 }
 
 TRawSection TRawSample::Cgroups() const noexcept {
-    return GetSection(Header_.Cgroups);
+    return GetSection(Header_.cgroups);
 }
 
 TRawSection TRawSample::LanguageSections() const noexcept {
-    return GetSection(Header_.LanguageSections);
+    return GetSection(Header_.language_sections);
 }
 
 const TRawLanguageSection* TRawSample::LanguageSection(NWire::ELanguage language) const noexcept {
