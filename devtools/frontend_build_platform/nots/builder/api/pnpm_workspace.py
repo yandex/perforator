@@ -21,7 +21,7 @@ def pnpm_runtime_env():
         + re.sub(r"[A-Z]", lambda match: "_" + match.group().lower(), key): (
             str(defaults[key]).lower() if isinstance(defaults[key], bool) else str(defaults[key])
         )
-        for key in ("managePackageManagerVersions", "pmOnFail", "registry", "trustLockfile", "verifyDepsBeforeRun")
+        for key in ("pmOnFail", "registry", "trustLockfile", "verifyDepsBeforeRun")
         for prefix in ("npm_config_", "pnpm_config_")
     }
 

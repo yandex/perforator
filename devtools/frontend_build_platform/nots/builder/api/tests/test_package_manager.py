@@ -16,7 +16,6 @@ package_manager_module = importlib.import_module("devtools.frontend_build_platfo
 @pytest.mark.parametrize("override_registry", [False, True])
 def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, override_registry):
     defaults = {
-        "managePackageManagerVersions": False,
         "pmOnFail": "warn",
         "registry": "https://npm.example.test/CaseSensitive",
         "trustLockfile": True,
@@ -47,7 +46,6 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
 
     command_env = popen.call_args.kwargs["env"]
     for prefix in ("npm_config_", "pnpm_config_"):
-        assert command_env[prefix + "manage_package_manager_versions"] == "false"
         assert command_env[prefix + "pm_on_fail"] == "warn"
         assert command_env[prefix + "registry"] == "https://npm.example.test/CaseSensitive"
         assert command_env[prefix + "trust_lockfile"] == "true"

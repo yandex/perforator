@@ -1,24 +1,22 @@
 {
   "info": {
-    "created": "2026-10-23T14:24:34.897Z",
-    "pr": {
-      "id": 16653313,
-      "author": "zaverden",
-      "summary": "FBP-3456: переносить транзитивные workspace-манифесты на RAM-диск"
-    }
+    "created": "2026-10-23T17:56:40Z",
+    "commit": "67f8d0d882fb0f3e69ae1a905778bded4da3bdc6",
+    "branch": "users/zaverden/FBP-3456-pnpm-11",
+    "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14117020641"
+      "uri": "sbr:14117591793"
     },
     "darwin-arm64": {
-      "uri": "sbr:14117019596"
+      "uri": "sbr:14117592200"
     },
     "linux": {
-      "uri": "sbr:14117023238"
+      "uri": "sbr:14117590777"
     },
     "linux-aarch64": {
-      "uri": "sbr:14117021802"
+      "uri": "sbr:14117591272"
     }
   }
 }

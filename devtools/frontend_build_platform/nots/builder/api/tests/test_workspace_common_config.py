@@ -93,7 +93,7 @@ def test_build_workspace_uses_only_target_config(tmp_path):
     pm.build_workspace("__tarballs__", True)
     workspace_text = (build / "pnpm-workspace.yaml").read_text()
     assert "# НЕ РЕДАКТИРУЙТЕ ЕГО ВРУЧНУЮ" in workspace_text
-    assert "https://pnpm.io/10.x/settings#overrides" in workspace_text
+    assert "https://pnpm.io/11.x/settings/dependency-resolution#overrides" in workspace_text
     result = yaml.safe_load(workspace_text)
     assert result == {
         "packages": [],

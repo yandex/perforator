@@ -43,7 +43,6 @@ def test_workspace_set_from_package_json_writes_only_supported_settings(tmp_path
             "neverBuiltDependencies": ["core-js"],
             "ignoredBuiltDependencies": ["sharp"],
             "allowNonAppliedPatches": True,
-            "managePackageManagerVersions": False,
             "packageManagerStrict": False,
             "packageManagerStrictVersion": True,
         }
@@ -185,3 +184,28 @@ def test_workspace_preserves_overrides_only_order(tmp_path):
         ("js-yaml@<3.13.1", "3.13.1"),
     ]
     assert package_json.data == original
+
+
+def test_pnpm_runtime_env_uses_shared_defaults(monkeypatch):
+    from devtools.frontend_build_platform.nots.builder.api import pnpm_workspace
+
+    monkeypatch.setattr(
+        pnpm_workspace,
+        "pnpm_defaults",
+        lambda: {
+            "pmOnFail": "warn",
+            "trustLockfile": False,
+            "verifyDepsBeforeRun": True,
+            "registry": "https://npm.example.test/CaseSensitive",
+        },
+    )
+    assert pnpm_workspace.pnpm_runtime_env() == {
+        "npm_config_registry": "https://npm.example.test/CaseSensitive",
+        "pnpm_config_registry": "https://npm.example.test/CaseSensitive",
+        "npm_config_pm_on_fail": "warn",
+        "pnpm_config_pm_on_fail": "warn",
+        "npm_config_trust_lockfile": "false",
+        "npm_config_verify_deps_before_run": "true",
+        "pnpm_config_trust_lockfile": "false",
+        "pnpm_config_verify_deps_before_run": "true",
+    }
