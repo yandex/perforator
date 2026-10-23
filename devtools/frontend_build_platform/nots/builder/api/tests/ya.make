@@ -22,4 +22,8 @@ PEERDIR(
     devtools/frontend_build_platform/nots/builder/cli
 )
 
+DATA(
+    arcadia/devtools/frontend_build_platform/nots/constants/src/tier0-settings.yaml
+)
+
 END()

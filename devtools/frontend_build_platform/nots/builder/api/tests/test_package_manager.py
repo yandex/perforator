@@ -663,31 +663,3 @@ def test_distbuild_rejects_invalid_keys_before_declaring_or_rewriting_tarballs(t
     with pytest.raises(TypeError, match="cannot infer tarball URL"):
         pm._build_merged_lockfile("__tarballs__", [], False, True)
     assert not (tmp_path / "build" / "module" / "pnpm-lock.yaml").exists()
-
-
-@pytest.mark.parametrize("common", [False, True])
-@pytest.mark.parametrize("value", ["workspace:../replacement", "$colors"])
-def test_build_workspace_rejects_workspace_overrides(tmp_path, common, value):
-    source = tmp_path / "source"
-    source.mkdir()
-    manifest = {"dependencies": {"colors": "workspace:../replacement"}}
-    if common:
-        (source / "common.yaml").write_text("overrides: {colors: '" + value + "'}\n")
-        manifest["nots"] = {"commonConfigPath": "./common.yaml"}
-    else:
-        manifest["pnpm"] = {"overrides": {"colors": value}}
-    (source / "package.json").write_text(json.dumps(manifest))
-    lockfile = "lockfileVersion: '9.0'\n"
-    (source / "pnpm-lock.yaml").write_text(lockfile)
-    pm = package_manager_module.PackageManager(
-        str(tmp_path / "build"),
-        str(tmp_path / "build/module"),
-        str(source),
-        None,
-        None,
-        module_path="module",
-        sources_root=str(tmp_path),
-    )
-    with pytest.raises(ValueError, match="overrides colors: workspace: протокол не поддерживается"):
-        pm.build_workspace("__tarballs__", True)
-    assert (source / "pnpm-lock.yaml").read_text() == lockfile

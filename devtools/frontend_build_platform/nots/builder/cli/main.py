@@ -7,6 +7,7 @@ import sys
 from pprint import pformat
 
 from build.plugins.lib.nots.package_manager import constants as pm_constants, utils as pm_utils
+from build.plugins.lib.nots.package_manager.common_config import set_tier0_sources_root
 from devtools.frontend_build_platform.libraries.logging import init_logging, timeit_options
 from devtools.frontend_build_platform.nots.builder.api import BuildError
 from devtools.frontend_build_platform.nots.builder.cli.cli_args import AllOptions, get_args_parser, parse_args
@@ -94,6 +95,8 @@ def main():
 
     args_parser = get_args_parser()
     args: AllOptions = parse_args(args_parser)
+
+    set_tier0_sources_root(args.arcadia_root)
 
     if args.verbose:
         sys.stderr.write(

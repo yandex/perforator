@@ -1,5 +1,5 @@
 pnpm:
-    # Разрешённые пользовательские настройки. Типы используются builder и CLI; TypeScript-типы генерируются при сборке.
+    # Разрешённые пользовательские настройки. Типы используются builder и CLI при чтении YAML.
     supportedCustomSettings:
         catalogs: catalogs
         overrides: dependency-map
@@ -15,7 +15,7 @@ pnpm:
         forceLegacyDeploy: boolean
         strictPeerDependencies: boolean
 
-    # Общая политика Tier 0. Файл встроен в CLI bundle и Python builder resource.
+    # Общая политика Tier 0. Builder и CLI читают этот файл из Аркадии в рантайме.
     # Пользовательские значения игнорируются, кроме параметров из supportedCustomSettings.
     defaults:
         allowUnusedPatches: true
@@ -29,9 +29,10 @@ pnpm:
         ignorePnpmfile: true
         ignoreScripts: true
         injectWorkspacePackages: true
+        managePackageManagerVersions: false
         modulesDir: node_modules
         pmOnFail: ignore
-        packageImportMethod: hardlink
+        packageImportMethod: auto
         preferSymlinkedExecutables: true
         preferWorkspacePackages: true
         registry: https://npm.yandex-team.ru
@@ -51,7 +52,7 @@ pnpm:
     # https://pnpm.io/11.x/filtering
     # virtualStoreDir не входит в defaults: при GVS pnpm выбирает storeDir/links.
 
-    # Общие тексты для генерируемого workspace и документации TypeScript-типов.
+    # Общие тексты для генерируемого workspace.
     workspaceComments:
         header: |-
             ========================================================================
@@ -177,6 +178,10 @@ pnpm:
             injectWorkspacePackages: |-
                 Зависимости между модулями подключаются через inject.
                 https://pnpm.io/11.x/workspaces#injectworkspacepackages
+
+            managePackageManagerVersions: |-
+                Не скачивать и не переключать pnpm по packageManager: версию поставляет Tier 0.
+                https://pnpm.io/10.x/settings#managepackagemanagerversions
 
             pmOnFail: |-
                 Не переключать версию pnpm автоматически: инструмент выбирается платформой Tier 0.

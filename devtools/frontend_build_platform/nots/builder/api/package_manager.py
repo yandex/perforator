@@ -21,7 +21,7 @@ from build.plugins.lib.nots.package_manager.common_config import (
     load_common_config,
     rebase_pnpm_settings,
     join_pnpm_settings,
-    PNPM_SETTINGS,
+    pnpm_settings,
 )
 from build.plugins.lib.nots.package_manager.timeit import timeit
 
@@ -480,7 +480,7 @@ class PackageManager(BasePackageManager):
         ws.write()
         # pnpm 10 prefers package.json#pnpm over workspace YAML for these fields.
         # Only the generated manifest receives shared settings.
-        shared_fields = {key: ws.settings[key] for key in PNPM_SETTINGS if key in ws.settings}
+        shared_fields = {key: ws.settings[key] for key in pnpm_settings() if key in ws.settings}
         if shared_fields != pj.data.get("pnpm", {}):
             if shared_fields:
                 pj.data["pnpm"] = shared_fields

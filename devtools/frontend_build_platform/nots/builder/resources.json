@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-10-23T17:56:40Z",
-    "commit": "67f8d0d882fb0f3e69ae1a905778bded4da3bdc6",
-    "branch": "users/zaverden/FBP-3456-pnpm-11",
+    "created": "2026-10-23T21:08:10Z",
+    "commit": "3817727b938f4c3ff991e89dac70dc89b8611b71",
+    "branch": "ts0-settings-runtime",
     "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14117591793"
+      "uri": "sbr:14118581963"
     },
     "darwin-arm64": {
-      "uri": "sbr:14117592200"
+      "uri": "sbr:14118582429"
     },
     "linux": {
-      "uri": "sbr:14117590777"
+      "uri": "sbr:14118580405"
     },
     "linux-aarch64": {
-      "uri": "sbr:14117591272"
+      "uri": "sbr:14118581329"
     }
   }
 }
