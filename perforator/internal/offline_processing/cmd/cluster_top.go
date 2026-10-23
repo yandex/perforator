@@ -51,10 +51,12 @@ var (
 	clusterTopDegreeOfParallelism uint
 	clusterTopMetricsPort         uint32
 
-	clusterTopSchedulerGenerationInterval time.Duration
-	clusterTopSchedulerProfileLag         time.Duration
-	clusterTopSchedulerMaxConflictErrors  uint32
-	clusterTopSchedulerBucketCount        uint16
+	clusterTopSchedulerGenerationInterval                   time.Duration
+	clusterTopSchedulerProfileLag                           time.Duration
+	clusterTopSchedulerMaxConflictErrors                    uint32
+	clusterTopSchedulerBucketCount                          uint16
+	clusterTopSchedulerRebuildMaxMemoryUsage                uint64
+	clusterTopSchedulerRebuildMaxBytesBeforeExternalGroupBy uint64
 
 	clusterTopCommand = &cobra.Command{
 		Use:   "cluster-top",
@@ -179,6 +181,12 @@ var (
 			}
 
 			schedulerConf.ServingTables = conf.ServingTables
+			if cmd.Flags().Changed("serving-rebuild-max-memory-usage") {
+				schedulerConf.ServingTables.Rebuild.MaxMemoryUsage = clusterTopSchedulerRebuildMaxMemoryUsage
+			}
+			if cmd.Flags().Changed("serving-rebuild-max-bytes-before-external-group-by") {
+				schedulerConf.ServingTables.Rebuild.MaxBytesBeforeExternalGroupBy = clusterTopSchedulerRebuildMaxBytesBeforeExternalGroupBy
+			}
 			snapshots, err := aggregated.NewSnapshotStorage(logger, conf.Storage.DBs.ClickhouseConfig)
 			if err != nil {
 				return fmt.Errorf("initialize serving snapshots: %w", err)
@@ -290,6 +298,18 @@ func init() {
 		"partition-bucket-count",
 		scheduler.DefaultBucketCount,
 		"Partition bucket count frozen for each new generation",
+	)
+	clusterTopSchedulerCommand.Flags().Uint64Var(
+		&clusterTopSchedulerRebuildMaxMemoryUsage,
+		"serving-rebuild-max-memory-usage",
+		0,
+		"Override the serving snapshot rebuild memory limit in bytes",
+	)
+	clusterTopSchedulerCommand.Flags().Uint64Var(
+		&clusterTopSchedulerRebuildMaxBytesBeforeExternalGroupBy,
+		"serving-rebuild-max-bytes-before-external-group-by",
+		0,
+		"Override the serving snapshot aggregation spill threshold in bytes",
 	)
 	clusterTopCommand.AddCommand(clusterTopSchedulerCommand)
 

@@ -18,9 +18,10 @@ const clusterTopServingTable = "cluster_top_by_function_v3_serving"
 
 // SnapshotConfig bounds the entire rebuild, not individual retry attempts.
 type SnapshotConfig struct {
-	Timeout        time.Duration `yaml:"timeout"`
-	MaxThreads     uint64        `yaml:"max_threads"`
-	MaxMemoryUsage uint64        `yaml:"max_memory_usage"` // Per-query memory budget in bytes.
+	Timeout                       time.Duration `yaml:"timeout"`
+	MaxThreads                    uint64        `yaml:"max_threads"`
+	MaxMemoryUsage                uint64        `yaml:"max_memory_usage"` // Per-query memory budget in bytes.
+	MaxBytesBeforeExternalGroupBy uint64        `yaml:"max_bytes_before_external_group_by"`
 }
 
 func (c *SnapshotConfig) FillDefault() {
@@ -31,7 +32,11 @@ func (c *SnapshotConfig) FillDefault() {
 		c.MaxThreads = 2
 	}
 	if c.MaxMemoryUsage == 0 {
-		c.MaxMemoryUsage = 8 << 30 // 8 GiB.
+		c.MaxMemoryUsage = 16 << 30 // 16 GiB.
+	}
+	if c.MaxBytesBeforeExternalGroupBy == 0 {
+		// Leave headroom for merging aggregation states and writing the snapshot.
+		c.MaxBytesBeforeExternalGroupBy = c.MaxMemoryUsage / 4
 	}
 }
 
@@ -39,16 +44,20 @@ func (c SnapshotConfig) Validate() error {
 	if c.Timeout < time.Second || c.MaxThreads == 0 || c.MaxMemoryUsage == 0 {
 		return fmt.Errorf("invalid serving rebuild limits: require timeout >= 1s, max_threads > 0 and max_memory_usage > 0")
 	}
+	if c.MaxBytesBeforeExternalGroupBy == 0 || c.MaxBytesBeforeExternalGroupBy >= c.MaxMemoryUsage {
+		return fmt.Errorf("serving rebuild max_bytes_before_external_group_by must be positive and less than max_memory_usage")
+	}
 	return nil
 }
 
 func (c SnapshotConfig) settings() clickhousego.Settings {
 	return clickhousego.Settings{
-		"max_threads":        c.MaxThreads,
-		"max_insert_threads": uint64(1),
-		"max_memory_usage":   c.MaxMemoryUsage,
-		"max_execution_time": uint64(c.Timeout / time.Second),
-		"alter_sync":         1, // Wait for publication on this replica, not all replicas.
+		"max_threads":                        c.MaxThreads,
+		"max_insert_threads":                 uint64(1),
+		"max_memory_usage":                   c.MaxMemoryUsage,
+		"max_bytes_before_external_group_by": c.MaxBytesBeforeExternalGroupBy,
+		"max_execution_time":                 uint64(c.Timeout / time.Second),
+		"alter_sync":                         1, // Wait for publication on this replica, not all replicas.
 	}
 }
 
