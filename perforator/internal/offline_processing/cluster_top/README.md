@@ -94,9 +94,9 @@ The worker always uses `wait_for_async_insert=1`. `SaveClusterTopEntry` therefor
 
 INSERT retries are disabled unless `retryable_error_codes` is configured. Production and prestable retry only error code 252 (`Too many parts`) with bounded exponential backoff and jitter. Other errors are returned immediately because their insert outcome may be ambiguous.
 
-Each non-empty job makes one source INSERT with `async_insert_deduplicate=1` and token `cluster-top:v3:<generation>:<job-id>:primary-v1:0`. Retries use `ExecWithRetries` with operation `cluster_top_v3_insert` and reuse this token. Change the output identity if the computation or batching contract changes. Deduplication is bounded by ClickHouse's time/count windows; configure them to cover the retry horizon and use a patched 26.3 LTS build as described in the v3 RFC.
+Each non-empty job makes one source INSERT with `async_insert_deduplicate=1` and token `cluster-top:v3:<generation>:<job-id>:primary-v2:0`. Retries use `ExecWithRetries` with operation `cluster_top_v3_insert` and reuse this token. Change the output identity if the computation or batching contract changes. Deduplication is bounded by ClickHouse's time/count windows; configure them to cover the retry horizon and use a patched 26.3 LTS build as described in the v3 RFC.
 
-The partition bucket is FNV-1a 64-bit over the service string bytes, modulo the generation's bucket count. It is computed, not stored in PostgreSQL jobs. Current writes contain `event_type = 'cpu.cycles'`; language, binary/build/commit and source coordinates retain empty/zero defaults until the processing pipeline provides them.
+The partition bucket is FNV-1a 64-bit over the service string bytes, modulo the generation's bucket count. It is computed, not stored in PostgreSQL jobs. Current writes contain `event_type = 'cpu.cycles'`; language, binary path and commit ID retain empty defaults until the processing pipeline provides them.
 
 The bucket-count scheduler must precede the workers. Handle old generations with missing counts before starting workers; no automatic backfill or cleanup is performed. The lease-based workers additionally require migrations 028–030 and a finisher/GC that recognize `running` jobs.
 

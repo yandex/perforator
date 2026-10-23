@@ -20,16 +20,6 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-type clusterTopRow struct {
-	Generation       int     `ch:"generation"`
-	PartitionBucket  uint16  `ch:"partition_bucket"`
-	EventType        string  `ch:"event_type"`
-	Service          string  `ch:"service"`
-	Function         string  `ch:"function"`
-	SelfCycles       big.Int `ch:"self_cycles"`
-	CumulativeCycles big.Int `ch:"cumulative_cycles"`
-}
-
 type ClickhouseAggregationStorage struct {
 	l                 xlog.Logger
 	conn              *clickhouse.Connection
@@ -259,32 +249,7 @@ func partitionBucket(service string, bucketCount uint16) (uint16, error) {
 // One job produces one logical source INSERT. The output identity must change
 // if the computation or batching contract changes; attempts reuse this token.
 func insertDeduplicationToken(generation int, jobID int64) string {
-	return fmt.Sprintf("cluster-top:v3:%d:%d:primary-v1:0", generation, jobID)
-}
-
-func buildClusterTopRows(result *JobResult, bucket uint16) []clusterTopRow {
-	if result == nil || len(result.Functions) == 0 {
-		return nil
-	}
-
-	rows := make([]clusterTopRow, 0, len(result.Functions))
-	for _, function := range result.Functions {
-		functionName := function.Name
-		if len(functionName) > kMaxFunctionNameLength {
-			functionName = functionName[:kMaxFunctionNameLength]
-		}
-
-		rows = append(rows, clusterTopRow{
-			Generation:       result.Generation,
-			PartitionBucket:  bucket,
-			EventType:        clusterTopEventType,
-			Service:          result.ServiceName,
-			Function:         functionName,
-			SelfCycles:       function.SelfCycles,
-			CumulativeCycles: function.CumulativeCycles,
-		})
-	}
-	return rows
+	return fmt.Sprintf("cluster-top:v3:%d:%d:primary-v2:0", generation, jobID)
 }
 
 func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, result *JobResult) error {
@@ -301,28 +266,36 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 	if err != nil {
 		return err
 	}
-	rows := buildClusterTopRows(result, bucket)
-	if len(rows) == 0 {
+	if len(result.Functions) == 0 {
 		return nil
 	}
 
-	const valuesPlaceholder = "(?, ?, ?, ?, ?, ?, ?)"
+	const valuesPlaceholder = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	var query strings.Builder
-	query.Grow(len(rows) * (len(valuesPlaceholder) + 2))
-	args := make([]any, 0, len(rows)*7)
-	for i := range rows {
+	query.Grow(len(result.Functions) * (len(valuesPlaceholder) + 2))
+	args := make([]any, 0, len(result.Functions)*11)
+	for i := range result.Functions {
+		function := &result.Functions[i]
+		functionName := function.Name
+		if len(functionName) > kMaxFunctionNameLength {
+			functionName = functionName[:kMaxFunctionNameLength]
+		}
 		if i > 0 {
 			query.WriteString(", ")
 		}
 		query.WriteString(valuesPlaceholder)
 		args = append(args,
-			rows[i].Generation,
-			rows[i].PartitionBucket,
-			rows[i].EventType,
-			rows[i].Service,
-			rows[i].Function,
-			&rows[i].SelfCycles,
-			&rows[i].CumulativeCycles,
+			result.Generation,
+			bucket,
+			clusterTopEventType,
+			result.ServiceName,
+			functionName,
+			function.BuildID,
+			function.SourceFile,
+			function.SourceLine,
+			function.SourceColumn,
+			&function.SelfCycles,
+			&function.CumulativeCycles,
 		)
 	}
 
@@ -346,14 +319,13 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 		clickhousego.WithSettings(settings),
 	)
 
-	// Omitted build, language and source dimensions use the table's empty/zero
-	// defaults until they are available from the processing pipeline.
+	// Language, binary_path and commit_id still use the table's defaults.
 	if err := clickhouse.ExecWithRetries(
 		s.l,
 		ctx,
 		s.conn,
 		"cluster_top_v3_insert",
-		fmt.Sprintf("INSERT INTO %s(generation, partition_bucket, event_type, service, function, self_cycles, cumulative_cycles) VALUES %s", clusterTopTable, query.String()),
+		fmt.Sprintf("INSERT INTO %s(generation, partition_bucket, event_type, service, function, build_id, source_file, source_line, source_column, self_cycles, cumulative_cycles) VALUES %s", clusterTopTable, query.String()),
 		args...,
 	); err != nil {
 		return fmt.Errorf("failed to execute async cluster top insert: %w", err)

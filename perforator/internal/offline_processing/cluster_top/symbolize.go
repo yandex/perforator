@@ -127,31 +127,30 @@ func (a *PerfTopAggregator) MergeWith(otherA *PerfTopAggregator) {
 
 func (a *PerfTopAggregator) Extract() []Function {
 	var cEntries C.ui64
-	var cFunctions **C.char
-	var cSelfCycles, cCumulativeCycles *C.char
+	var cFunctions *C.TClusterTopFunction
 
 	C.FinalizePerfTopAggregator(
 		a.aggregator,
 		&cEntries,
 		&cFunctions,
-		&cSelfCycles,
-		&cCumulativeCycles,
 	)
 
-	functionsArray := (*[1 << 30]*C.char)(unsafe.Pointer(cFunctions))
-	selfCyclesArray := (*[1 << 30]byte)(unsafe.Pointer(cSelfCycles))
-	cumulativeCyclesArray := (*[1 << 30]byte)(unsafe.Pointer(cCumulativeCycles))
-	defer C.FreePerfTopAggregatorResult(cEntries, cFunctions, cSelfCycles, cCumulativeCycles)
+	functionsArray := unsafe.Slice(cFunctions, int(cEntries))
+	defer C.FreePerfTopAggregatorResult(cEntries, cFunctions)
 
 	functions := make([]Function, 0, int(cEntries))
-	for i := uint64(0); i < uint64(cEntries); i += 1 {
+	for _, function := range functionsArray {
 		var selfCycles, cumulativeCycles big.Int
 
-		selfCycles.SetBytes(selfCyclesArray[i*16 : (i+1)*16])
-		cumulativeCycles.SetBytes(cumulativeCyclesArray[i*16 : (i+1)*16])
+		selfCycles.SetBytes(unsafe.Slice((*byte)(unsafe.Pointer(&function.SelfCycles[0])), 16))
+		cumulativeCycles.SetBytes(unsafe.Slice((*byte)(unsafe.Pointer(&function.CumulativeCycles[0])), 16))
 
 		functions = append(functions, Function{
-			Name:             C.GoString(functionsArray[i]),
+			Name:             C.GoString(function.Name),
+			BuildID:          C.GoString(function.BuildId),
+			SourceFile:       C.GoString(function.SourceFile),
+			SourceLine:       uint32(function.SourceLine),
+			SourceColumn:     uint32(function.SourceColumn),
 			SelfCycles:       selfCycles,
 			CumulativeCycles: cumulativeCycles,
 		})

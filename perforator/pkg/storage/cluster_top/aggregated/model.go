@@ -58,6 +58,10 @@ type AggregationStorage interface {
 
 type Function struct {
 	Name             string
+	BuildID          string
+	SourceFile       string
+	SourceLine       uint32
+	SourceColumn     uint32
 	SelfCycles       big.Int
 	CumulativeCycles big.Int
 }

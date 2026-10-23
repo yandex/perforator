@@ -25,18 +25,20 @@ TPerforatorError AddYaprofIntoPerfTopAggregator(
 
 void MergePerfTopAggregators(void *aggregator, void *otherAggregator);
 
-void FinalizePerfTopAggregator(
-    void *aggregator,
-    ui64* nEntries,
-    const char*** functions,
-    // selfCycles would be an array of 16 * nEntries bytes,
-    // where each block of 16 bytes is a big-endian representation of a ui128
-    char** selfCycles,
-    // ditto
-    char** cumulativeCycles
-);
+typedef struct {
+    char* Name;
+    char* BuildId;
+    char* SourceFile;
+    ui32 SourceLine;
+    ui32 SourceColumn;
+    // Big-endian UInt128 counters.
+    char SelfCycles[16];
+    char CumulativeCycles[16];
+} TClusterTopFunction;
 
-void FreePerfTopAggregatorResult(ui64 nEntries, const char** functions, char* selfCycles, char* cumulativeCycles);
+void FinalizePerfTopAggregator(void* aggregator, ui64* nEntries, TClusterTopFunction** functions);
+
+void FreePerfTopAggregatorResult(ui64 nEntries, TClusterTopFunction* functions);
 
 #ifdef __cplusplus
 }

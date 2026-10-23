@@ -9,6 +9,11 @@
 
 #include <library/cpp/testing/gtest/gtest.h>
 
+#include <llvm/DebugInfo/GSYM/GsymCreator.h>
+#include <llvm/DebugInfo/GSYM/OutputAggregator.h>
+#include <util/system/tempfile.h>
+
+#include <limits>
 #include <unordered_map>
 
 namespace NPerforator::NClusterTop {
@@ -294,6 +299,8 @@ TEST(TopAggregatorTest, LineWithZeroFunctionId) {
     loc->set_address(0x110000);
     auto* line = loc->add_line();
     line->set_function_id(0);
+    line->set_line(42);
+    line->set_column(7);
 
     auto* s = profile.add_sample();
     s->add_location_id(1);
@@ -309,6 +316,11 @@ TEST(TopAggregatorTest, LineWithZeroFunctionId) {
     ASSERT_TRUE(m_top.count("<UNKNOWN (No function)>"))
         << "function_id == 0 must yield <UNKNOWN (No function)>";
     EXPECT_EQ(m_top["<UNKNOWN (No function)>"].first, ui128{100});
+    ASSERT_EQ(top.Functions.size(), 1u);
+    EXPECT_EQ(top.Functions[0].BuildId, "userBuild");
+    EXPECT_TRUE(top.Functions[0].SourceFile.empty());
+    EXPECT_EQ(top.Functions[0].SourceLine, 42u);
+    EXPECT_EQ(top.Functions[0].SourceColumn, 7u);
 }
 
 // Verify that a Location without a mapping yields "<UNKNOWN (No mapping)>".
@@ -379,6 +391,11 @@ TEST(TopAggregatorTest, MappingWithoutGSYM) {
 
     EXPECT_EQ(top.TotalCycles, ui128{7});
     ASSERT_TRUE(m_top.count("<UNKNOWN (No GSYM)>"));
+    ASSERT_EQ(top.Functions.size(), 1u);
+    EXPECT_EQ(top.Functions[0].BuildId, "buildIdNoGsym");
+    EXPECT_TRUE(top.Functions[0].SourceFile.empty());
+    EXPECT_EQ(top.Functions[0].SourceLine, 0u);
+    EXPECT_EQ(top.Functions[0].SourceColumn, 0u);
 }
 
 // Verify that a profile without cpu/cycles sample type is silently skipped
@@ -415,7 +432,7 @@ TEST(TopAggregatorTest, InlineChainSelfAttribution) {
     NPerforator::NProto::NPProf::Profile profile;
 
     // 0:"", 1:"cpu", 2:"cycles", 3:"inlinedLeaf", 4:"outerCaller", 5:"buildId"
-    for (const char* s : {"", "cpu", "cycles", "inlinedLeaf", "outerCaller", "buildId"}) {
+    for (const char* s : {"", "cpu", "cycles", "inlinedLeaf", "outerCaller", "buildId", "inline.h", "caller.cpp"}) {
         profile.add_string_table(s);
     }
 
@@ -432,10 +449,13 @@ TEST(TopAggregatorTest, InlineChainSelfAttribution) {
     auto* fInlined = profile.add_function();
     fInlined->set_id(1);
     fInlined->set_name(3); // "inlinedLeaf"
+    fInlined->set_filename(6);
+    fInlined->set_start_line(1);
 
     auto* fOuter = profile.add_function();
     fOuter->set_id(2);
     fOuter->set_name(4); // "outerCaller"
+    fOuter->set_filename(7);
 
     // Location with inline chain: leaf-to-root order.
     // [0] = inlinedLeaf (most-inlined), [1] = outerCaller (root).
@@ -443,8 +463,14 @@ TEST(TopAggregatorTest, InlineChainSelfAttribution) {
     loc->set_id(1);
     loc->set_mapping_id(1);
     loc->set_address(0x110000);
-    loc->add_line()->set_function_id(1); // inlinedLeaf
-    loc->add_line()->set_function_id(2); // outerCaller (back -> outermost)
+    auto* inlineLine = loc->add_line();
+    inlineLine->set_function_id(1);
+    inlineLine->set_line(42);
+    inlineLine->set_column(7);
+    auto* callerLine = loc->add_line();
+    callerLine->set_function_id(2);
+    callerLine->set_line(81);
+    callerLine->set_column(9);
 
     auto* s = profile.add_sample();
     s->add_location_id(1);
@@ -467,6 +493,144 @@ TEST(TopAggregatorTest, InlineChainSelfAttribution) {
     ASSERT_TRUE(m_top.count("inlinedLeaf"));
     EXPECT_EQ(m_top["inlinedLeaf"].first, ui128{123});
     EXPECT_EQ(m_top["inlinedLeaf"].second, ui128{123});
+    for (const auto& function : top.Functions) {
+        EXPECT_EQ(function.BuildId, "buildId");
+        const bool leaf = function.Name == "inlinedLeaf";
+        EXPECT_EQ(function.SourceFile, leaf ? "inline.h" : "caller.cpp");
+        EXPECT_EQ(function.SourceLine, leaf ? 42u : 81u);
+        EXPECT_EQ(function.SourceColumn, leaf ? 7u : 9u);
+    }
+}
+
+TEST(TopAggregatorTest, SourceLocationsRemainDistinctAcrossProfilesAndMerges) {
+    NProto::NPProf::Profile profile;
+    for (const char* value : {"", "cpu", "cycles", "same", "a.cpp", "b.cpp", "build-a", "build-b"}) {
+        profile.add_string_table(value);
+    }
+    auto* type = profile.add_sample_type();
+    type->set_type(1);
+    type->set_unit(2);
+    for (ui64 id = 1; id <= 2; ++id) {
+        auto* mapping = profile.add_mapping();
+        mapping->set_id(id);
+        mapping->set_build_id(5 + id);
+        auto* function = profile.add_function();
+        function->set_id(id);
+        function->set_name(3);
+        function->set_filename(3 + id);
+    }
+    for (ui64 id = 1; id <= 5; ++id) {
+        auto* location = profile.add_location();
+        location->set_id(id);
+        location->set_mapping_id(id == 4 ? 2 : 1);
+        auto* line = location->add_line();
+        line->set_function_id(id == 3 ? 2 : 1);
+        line->set_line(id == 2 ? 11 : 10);
+        line->set_column(id == 5 ? 3 : 2);
+    }
+    auto* recursive = profile.add_sample();
+    for (ui64 id : {1, 2, 1}) {
+        recursive->add_location_id(id);
+    }
+    recursive->add_value(100);
+    for (ui64 id = 3; id <= 5; ++id) {
+        auto* sample = profile.add_sample();
+        sample->add_location_id(id);
+        sample->add_value(7);
+    }
+
+    TTopAggregatorSession destination;
+    {
+        TTopAggregatorSession source;
+        const auto bytes = BuildYaprofBytes(profile);
+        source.AddYaprofBytes({bytes.data(), bytes.size()});
+        destination.MergeAggregator(source);
+    }
+    // Reuse the session's protobuf storage, then destroy all input strings.
+    const auto bytes = BuildYaprofBytes(profile);
+    destination.AddYaprofBytes({bytes.data(), bytes.size()});
+    profile.Clear();
+    const auto top = destination.ExtractEntries();
+    EXPECT_EQ(top.TotalCycles, ui128{242});
+    ASSERT_EQ(top.Functions.size(), 5u);
+    for (const auto& function : top.Functions) {
+        EXPECT_EQ(function.Name, "same");
+        if (function.SourceLine == 11) {
+            EXPECT_EQ(function.SelfCycles, ui128{0});
+            EXPECT_EQ(function.CumulativeCycles, ui128{200});
+        } else if (function.BuildId == "build-a" && function.SourceFile == "a.cpp" && function.SourceColumn == 2) {
+            EXPECT_EQ(function.SelfCycles, ui128{200});
+            EXPECT_EQ(function.CumulativeCycles, ui128{200});
+        } else {
+            EXPECT_EQ(function.SelfCycles, ui128{14});
+            EXPECT_EQ(function.CumulativeCycles, ui128{14});
+        }
+    }
+}
+
+TEST(TopAggregatorTest, GsymSourceLocationsSurviveCachingAndAggregation) {
+    TTempFileHandle file;
+    llvm::gsym::GsymCreator creator(true);
+    creator.setBaseAddress(0);
+    const auto leafFile = creator.insertFile("src/inline.h");
+    const auto callerFile = creator.insertFile("src/caller.cpp");
+    llvm::gsym::FunctionInfo function(0x1000, 0x100, creator.insertString("outer"));
+    function.OptLineTable.emplace();
+    function.OptLineTable->push(llvm::gsym::LineEntry(0x1000, leafFile, 42));
+    function.Inline.emplace();
+    function.Inline->Name = function.Name;
+    function.Inline->Ranges.insert(llvm::AddressRange(0x1000, 0x1100));
+    auto& inner = function.Inline->Children.emplace_back();
+    inner.Name = creator.insertString("inner");
+    inner.CallFile = callerFile;
+    inner.CallLine = 81;
+    inner.Ranges.insert(llvm::AddressRange(0x1000, 0x1100));
+    creator.addFunctionInfo(std::move(function));
+    llvm::gsym::OutputAggregator output(nullptr);
+    ASSERT_TRUE(llvm::toString(creator.finalize(output)).empty());
+    ASSERT_TRUE(llvm::toString(creator.save(file.Name().c_str(), llvm::endianness::little)).empty());
+
+    TCachingGSYMSymbolizer cache(file.Name());
+    for (int i = 0; i < 2; ++i) {
+        const auto& frames = cache.Symbolize(0x1000);
+        ASSERT_EQ(frames.size(), 2u);
+        EXPECT_EQ(frames[0].Name, "inner");
+        EXPECT_EQ(frames[0].SourceFile, "src/inline.h");
+        EXPECT_EQ(frames[0].SourceLine, 42u);
+        EXPECT_EQ(frames[0].SourceColumn, 0u);
+        EXPECT_EQ(frames[1].Name, "outer");
+        EXPECT_EQ(frames[1].SourceFile, "src/caller.cpp");
+        EXPECT_EQ(frames[1].SourceLine, 81u);
+        EXPECT_EQ(frames[1].SourceColumn, 0u);
+    }
+    cache.PruneCaches();
+    EXPECT_EQ(cache.Symbolize(0x1000)[0].SourceLine, 42u);
+
+    NProto::NProfile::Profile native;
+    NProfile::TProfileBuilder builder{&native};
+    const auto cpu = builder.AddValueType("cpu", "cycles");
+    const auto binary = builder.AddBinary().SetBuildId("gsym-build").Finish();
+    const auto frame = builder.AddStackFrame(NProfile::TStackFrameInfo{.Binary = binary, .Address = 0x1000});
+    const auto stack = builder.AddStack(NProfile::TStackInfo{.TopFrame = frame});
+    const auto key = builder.AddSampleKey(NProfile::TSampleKeyInfo{.Stacks = {stack}});
+    builder.AddSample(NProfile::TSampleInfo{.Key = key, .Values = {{cpu, 123}}});
+    std::move(builder).Finish();
+    TPerfTopAggregator aggregator;
+    const TString buildId = "gsym-build";
+    aggregator.InitializeSymbolizer({buildId.data(), buildId.size()}, {file.Name().data(), file.Name().size()});
+    aggregator.AddProfile(native);
+    aggregator.AddProfile(native);
+    const auto top = aggregator.ExtractEntries();
+    ASSERT_EQ(top.Functions.size(), 2u);
+    for (const auto& entry : top.Functions) {
+        const bool leaf = entry.Name == "inner";
+        EXPECT_EQ(entry.BuildId, buildId);
+        EXPECT_EQ(entry.SourceFile, leaf ? "src/inline.h" : "src/caller.cpp");
+        EXPECT_EQ(entry.SourceLine, leaf ? 42u : 81u);
+        EXPECT_EQ(entry.SourceColumn, 0u);
+        EXPECT_EQ(entry.SelfCycles, leaf ? ui128{246} : ui128{0});
+        EXPECT_EQ(entry.CumulativeCycles, ui128{246});
+    }
 }
 
 TEST(TopAggregatorTest, ReusesProfileStorageWithoutLosingAggregatedNames) {
@@ -497,6 +661,98 @@ TEST(TopAggregatorTest, EmptyStackHasNoFunctions) {
     const auto top = session.ExtractEntries();
     EXPECT_EQ(top.TotalCycles, ui128{17});
     EXPECT_TRUE(top.Functions.empty());
+}
+
+TEST(TopAggregatorTest, ZeroCycleSamplePreservesOnlyLeafRow) {
+    auto profile = BuildTestProfile();
+    profile.clear_sample();
+    auto* sample = profile.add_sample();
+    sample->add_location_id(1);
+    sample->add_location_id(2);
+    sample->add_value(0);
+
+    TPerfTopAggregator aggregator;
+    aggregator.AddProfile(ConvertPProf(profile));
+    const auto top = aggregator.ExtractEntries();
+    EXPECT_EQ(top.TotalCycles, ui128{0});
+    ASSERT_EQ(top.Functions.size(), 1u);
+    EXPECT_EQ(top.Functions[0].Name, "funcA");
+    EXPECT_EQ(top.Functions[0].SelfCycles, ui128{0});
+    EXPECT_EQ(top.Functions[0].CumulativeCycles, ui128{0});
+}
+
+TEST(TopAggregatorTest, PerProfileCountersDoNotTruncateToUint64) {
+    auto profile = BuildTestProfile();
+    profile.clear_sample();
+    const auto labelId = profile.string_table_size();
+    profile.add_string_table("sample_id");
+    constexpr auto value = std::numeric_limits<i64>::max();
+    for (int i = 0; i < 3; ++i) {
+        auto* sample = profile.add_sample();
+        sample->add_location_id(1);
+        sample->add_location_id(2);
+        sample->add_value(value);
+        // Keep samples distinct: pprof conversion otherwise coalesces their UInt64 values.
+        auto* label = sample->add_label();
+        label->set_key(labelId);
+        label->set_num(i);
+    }
+
+    const auto native = ConvertPProf(profile);
+    TPerfTopAggregator aggregator;
+    aggregator.AddProfile(native);
+    aggregator.AddProfile(native);
+    const auto top = aggregator.ExtractEntries();
+    const ui128 expected = ui128{static_cast<ui64>(value)} * 6;
+    EXPECT_EQ(top.TotalCycles, expected);
+    const auto functions = ToMap(top.Functions);
+    ASSERT_EQ(functions.size(), 2u);
+    EXPECT_EQ(functions.at("funcA").first, expected);
+    EXPECT_EQ(functions.at("funcA").second, expected);
+    EXPECT_EQ(functions.at("funcB").first, ui128{0});
+    EXPECT_EQ(functions.at("funcB").second, expected);
+}
+
+TEST(TopAggregatorTest, DemanglingPreservesLocationsAndKernelTags) {
+    auto profile = BuildTestProfile();
+    for (int index : {3, 4, 6}) {
+        profile.set_string_table(index, "_Z3foov");
+    }
+    const auto fileId = profile.string_table_size();
+    profile.add_string_table("same.cpp");
+    for (auto& function : *profile.mutable_function()) {
+        function.set_filename(fileId);
+    }
+    for (int i = 0; i < profile.location_size(); ++i) {
+        profile.mutable_location(i)->mutable_line(0)->set_line((i + 1) * 10);
+    }
+    TPerfTopAggregator aggregator;
+    aggregator.AddProfile(ConvertPProf(profile));
+    // A distinct raw name that demangles to the same output must still merge.
+    profile.set_string_table(3, "foo()");
+    aggregator.AddProfile(ConvertPProf(profile));
+    for (int i = 0; i < 2; ++i) {
+        const auto top = aggregator.ExtractEntries();
+        EXPECT_EQ(top.TotalCycles, ui128{700});
+        ASSERT_EQ(top.Functions.size(), 3u);
+        for (const auto& function : top.Functions) {
+            EXPECT_EQ(function.SourceFile, "same.cpp");
+            if (function.SourceLine == 10) {
+                EXPECT_EQ(function.Name, "foo()");
+                EXPECT_EQ(function.SelfCycles, ui128{600});
+                EXPECT_EQ(function.CumulativeCycles, ui128{600});
+            } else if (function.SourceLine == 20) {
+                EXPECT_EQ(function.Name, "foo()");
+                EXPECT_EQ(function.SelfCycles, ui128{0});
+                EXPECT_EQ(function.CumulativeCycles, ui128{600});
+            } else {
+                EXPECT_EQ(function.SourceLine, 30u);
+                EXPECT_EQ(function.Name, "[kernel] foo()");
+                EXPECT_EQ(function.SelfCycles, ui128{100});
+                EXPECT_EQ(function.CumulativeCycles, ui128{100});
+            }
+        }
+    }
 }
 
 TEST(TopAggregatorTest, MalformedProfilesReturnErrorsAcrossCAbi) {

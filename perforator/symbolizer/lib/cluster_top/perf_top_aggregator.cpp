@@ -5,7 +5,6 @@
 
 #include <library/cpp/yt/compact_containers/compact_vector.h>
 
-#include <algorithm>
 #include <ranges>
 #include <string_view>
 
@@ -29,33 +28,6 @@ constexpr std::string_view kKernelSpecialMapping = "[kernel]";
 
 constexpr std::size_t kMaxSymbolizationCacheTotalSize = 256 * 1024;
 
-struct TLifetimeSoundnessReason final {
-    explicit constexpr TLifetimeSoundnessReason(std::string_view) {}
-};
-
-// A string_view-like class, *implicitly* convertible to TString.
-// Used for try_emplace-ing a string_view into a HashMap<TString, ...>
-class TStringViewConvertibleToString final {
-public:
-    TStringViewConvertibleToString(const TString&) = delete;
-    TStringViewConvertibleToString(const std::string&) = delete;
-
-    TStringViewConvertibleToString(const TString& data, TLifetimeSoundnessReason) : Data_{data} {}
-    TStringViewConvertibleToString(const std::string& data, TLifetimeSoundnessReason) : Data_{data} {}
-    TStringViewConvertibleToString(std::string_view data, TLifetimeSoundnessReason) : Data_{data} {}
-
-    constexpr operator TStringBuf() const {
-        return Data_;
-    }
-
-    operator TString() const {
-        return TString{Data_};
-    }
-
-private:
-    TStringBuf Data_;
-};
-
 // Returns the index into sample value types that corresponds to cpu/cycles, or -1.
 i32 FindCpuCyclesValueTypeIndex(const NProfile::TProfile& profile) {
     i32 i = 0;
@@ -73,10 +45,7 @@ i32 StackFrameCount(const NProfile::TProfile& profile) {
 }
 
 struct SymbolizedProfileData final {
-    std::vector<std::string_view> AllFunctions;
-
-    // Indices into AllFunctions that belong to kernel frames.
-    std::vector<ui64> KernelFunctions;
+    std::vector<TFunctionLocation> AllFunctions;
 
     // Per stack frame (indexed by TStackFrameId internal index, i.e. position
     // in the stack_frames arrays): list of indices into AllFunctions.
@@ -90,79 +59,61 @@ SymbolizedProfileData SymbolizeProfile(
 ) {
     SymbolizedProfileData result{};
     auto& allFunctions = result.AllFunctions;
-    auto& kernelFunctions = result.KernelFunctions;
     auto& framesByFrameId = result.FramesByFrameId;
 
     const i32 frameCount = StackFrameCount(profile);
     framesByFrameId.resize(frameCount);
     allFunctions.reserve(frameCount * 2);
 
-    // All string_view-s stored here either:
-    // * point to compile-time constants (static storage duration), or
-    // * point into profile strtab (alive for the duration of AddProfile), or
-    // * point into TCachingGSYMSymbolizer caches (lifetime tied to the aggregator).
-    absl::flat_hash_map<std::string_view, ui64> symbolizedFunctionsMapping;
+    absl::flat_hash_map<TFunctionLocation, ui64, TFunctionLocationHash> symbolizedFunctionsMapping;
     symbolizedFunctionsMapping.reserve(frameCount * 2);
 
     for (NProfile::TStackFrame frame : profile.StackFrames()) {
         const i32 frameIdx = frame.GetIndex().GetInternalIndex();
         auto& frames = framesByFrameId[frameIdx];
 
-        TSmallVector<TStringViewConvertibleToString> symbolized{};
+        TSmallVector<TFunctionLocation> symbolized{};
+        const NProfile::TBinary binary = frame.GetBinary();
+        const bool hasBinary = binary.GetIndex() != NProfile::TBinaryId::Zero();
+        const TString buildId = hasBinary ? TString{binary.GetBuildId().View()} : TString{};
+        const bool isKernel = hasBinary && binary.GetPath().View() == kKernelSpecialMapping;
+        const auto unknown = [&](std::string_view name) {
+            symbolized.push_back(TFunctionLocation{.Name = TString{name}});
+        };
 
         const NProfile::TInlineChain inlineChain = frame.GetInlineChain();
         if (inlineChain.GetIndex() != NProfile::TInlineChainId::Zero()) {
             // Frame is already symbolized: use pre-existing inline chain.
             if (std::ranges::empty(inlineChain.GetLines())) {
-                symbolized.emplace_back(
-                    kUnknownFunction,
-                    TLifetimeSoundnessReason{"kUnknownFunction is static"}
-                );
+                unknown(kUnknownFunction);
             } else {
                 // Inline chains are stored innermost-first (leaf-to-root); see flamegraph/build.cpp.
                 for (NProfile::TSourceLine sourceLine : inlineChain.GetLines()) {
                     NProfile::TFunction func = sourceLine.GetFunction();
-                    if (func.GetIndex() == NProfile::TFunctionId::Zero()) {
-                        // Original pprof Line.function_id == 0 (no function ref).
-                        // ConvertFromPProf maps it to the sentinel zero function;
-                        // preserve the old "<UNKNOWN (No function)>" behavior.
-                        symbolized.emplace_back(
-                            kUnknownFunction,
-                            TLifetimeSoundnessReason{"kUnknownFunction is static"}
-                        );
-                    } else {
-                        symbolized.emplace_back(
-                            func.GetName().View(),
-                            TLifetimeSoundnessReason{"string lives in rawProfile strtab"}
-                        );
-                    }
+                    // A zero function reference can still carry a source position.
+                    const bool hasFunction = func.GetIndex() != NProfile::TFunctionId::Zero();
+                    symbolized.push_back(TFunctionLocation{
+                        .Name = hasFunction ? TString{func.GetName().View()} : TString{kUnknownFunction},
+                        .SourceFile = hasFunction ? TString{func.GetFileName().View()} : TString{},
+                        .SourceLine = sourceLine.GetLine(),
+                        .SourceColumn = sourceLine.GetColumn(),
+                    });
                 }
             }
         } else {
             // Frame not symbolized: look up GSYM by buildId + address.
             [&]() {
-                const NProfile::TBinary binary = frame.GetBinary();
-                if (binary.GetIndex() == NProfile::TBinaryId::Zero()) {
-                    symbolized.emplace_back(
-                        kUnknownMapping,
-                        TLifetimeSoundnessReason{"kUnknownMapping is static"}
-                    );
+                if (!hasBinary) {
+                    unknown(kUnknownMapping);
                     return;
                 }
-                const TStringBuf buildId = binary.GetBuildId().View();
                 if (buildId.empty()) {
-                    symbolized.emplace_back(
-                        kUnknownBuildId,
-                        TLifetimeSoundnessReason{"kUnknownBuildId is static"}
-                    );
+                    unknown(kUnknownBuildId);
                     return;
                 }
-                auto symbolizerIt = symbolizers.find(TString{buildId});
+                auto symbolizerIt = symbolizers.find(buildId);
                 if (symbolizerIt == symbolizers.end()) {
-                    symbolized.emplace_back(
-                        kNoGSYMLocation,
-                        TLifetimeSoundnessReason{"kNoGSYMLocation is static"}
-                    );
+                    unknown(kNoGSYMLocation);
                     return;
                 }
 
@@ -172,42 +123,27 @@ SymbolizedProfileData SymbolizeProfile(
                 const auto& symbolizationResult = symbolizerIt->second.Symbolize(addr);
 
                 if (symbolizationResult.empty()) {
-                    symbolized.emplace_back(
-                        kUnknownNoFrames,
-                        TLifetimeSoundnessReason{"kUnknownNoFrames is static"}
-                    );
+                    unknown(kUnknownNoFrames);
                     return;
                 }
 
-                for (const auto& funcName : symbolizationResult) {
-                    symbolized.emplace_back(
-                        funcName,
-                        TLifetimeSoundnessReason{"result is cached in TCachingGSYMSymbolizer"}
-                    );
+                for (const auto& location : symbolizationResult) {
+                    symbolized.push_back(location);
                 }
             }();
         }
 
-        const bool isKernel = [&]() {
-            const NProfile::TBinary binary = frame.GetBinary();
-            if (binary.GetIndex() == NProfile::TBinaryId::Zero()) {
-                return false;
-            }
-            return binary.GetPath().View() == kKernelSpecialMapping;
-        }();
-
-        for (const auto& funcName : symbolized) {
+        for (auto& location : symbolized) {
+            location.BuildId = buildId;
+            location.IsKernel = isKernel;
             const auto [it, inserted] = symbolizedFunctionsMapping.try_emplace(
-                funcName, allFunctions.size()
+                location, allFunctions.size()
             );
             if (inserted) {
-                allFunctions.push_back(funcName);
+                allFunctions.push_back(std::move(location));
             }
             const auto functionIdx = it->second;
             frames.push_back(functionIdx);
-            if (isKernel) {
-                kernelFunctions.push_back(functionIdx);
-            }
         }
     }
 
@@ -221,7 +157,7 @@ TCachingGSYMSymbolizer::TCachingGSYMSymbolizer(std::string_view gsymPath) : Symb
     SymbolizationCache_.reserve(128 * 1024);
 }
 
-const std::vector<std::string>& TCachingGSYMSymbolizer::Symbolize(ui64 addr) {
+const std::vector<TFunctionLocation>& TCachingGSYMSymbolizer::Symbolize(ui64 addr) {
     auto [it, inserted] = SymbolizationCache_.try_emplace(addr);
     if (inserted) {
         auto& frames = it->second;
@@ -229,7 +165,12 @@ const std::vector<std::string>& TCachingGSYMSymbolizer::Symbolize(ui64 addr) {
         auto symbolizationResult = Symbolizer_.Symbolize(addr);
         frames.reserve(symbolizationResult.size());
         for (auto& frame : symbolizationResult) {
-            frames.push_back(std::move(frame.FunctionName));
+            frames.push_back(TFunctionLocation{
+                .Name = TString{std::move(frame.FunctionName)},
+                .SourceFile = TString{std::move(frame.FileName)},
+                .SourceLine = frame.Line,
+                .SourceColumn = frame.Column,
+            });
         }
     }
 
@@ -266,11 +207,10 @@ void TPerfTopAggregator::AddProfile(
 
     const auto symbolizedData = SymbolizeProfile(Symbolizers_, profile);
     const auto& allFunctions = symbolizedData.AllFunctions;
-    const auto& kernelFunctions = symbolizedData.KernelFunctions;
     const auto& framesByFrameId = symbolizedData.FramesByFrameId;
 
-    std::vector<ui128> cumulativeCyclesCountByFunctionId;
-    cumulativeCyclesCountByFunctionId.assign(allFunctions.size(), 0);
+    std::vector<TFunctionStats> cyclesCountByFunctionId(allFunctions.size());
+    std::vector<bool> hasSelfSamples(allFunctions.size(), false);
 
     std::vector<ui64> lastSampleIdxForFunction;
     ui64 currentSampleIdx = 0;
@@ -285,15 +225,8 @@ void TPerfTopAggregator::AddProfile(
         NProfile::TSampleKey sampleKey = sample.GetKey();
 
         {
-            // We must only account every unique function once here, otherwise
-            // recursive and/or UNKNOWN functions get wrong cumulative values:
-            // imagine a stack "A -> A -> B" with 5 cycles spent in it,
-            // if we increment every function present by 5, we will get 10 for A,
-            // which is obviously wrong.
-            //
-            // We implement the "unique functions in a sample" by keeping track
-            // for each function when it was last encountered, this way we can avoid
-            // sorting/hashing functionIds within the sample, which is noticeably faster.
+            // Count each source location once per sample. Different lines of a
+            // recursive function are separate contributions to the function MV.
             for (NProfile::TStack stack : sampleKey.GetStacks()) {
                 for (NProfile::TStackFrame frame : stack.GetFrames()) {
                     const i32 frameId = frame.GetIndex().GetInternalIndex();
@@ -302,7 +235,7 @@ void TPerfTopAggregator::AddProfile(
                     }
                     for (const ui64 functionIdx : framesByFrameId[frameId]) {
                         if (lastSampleIdxForFunction[functionIdx] != currentSampleIdx) {
-                            cumulativeCyclesCountByFunctionId[functionIdx] += value;
+                            cyclesCountByFunctionId[functionIdx].CumulativeCycles += value;
                             lastSampleIdxForFunction[functionIdx] = currentSampleIdx;
                         }
                     }
@@ -328,33 +261,18 @@ void TPerfTopAggregator::AddProfile(
         }
 
         const ui64 leafFunctionIdx = leafFrameFunctions.front();
-        CyclesByFunction_.try_emplace<TStringViewConvertibleToString>(
-            TStringViewConvertibleToString{
-                allFunctions[leafFunctionIdx],
-                TLifetimeSoundnessReason{"string_view-s in allFunctions are valid by construction, see SymbolizeProfile"}
-            },
-            0
-        ).first->second.SelfCycles += value;
+        cyclesCountByFunctionId[leafFunctionIdx].SelfCycles += value;
+        hasSelfSamples[leafFunctionIdx] = true;
     }
 
-    for (std::size_t i = 0; i < cumulativeCyclesCountByFunctionId.size(); ++i) {
-        const auto value = cumulativeCyclesCountByFunctionId[i];
-        if (value != 0) {
-            CyclesByFunction_.try_emplace<TStringViewConvertibleToString>(
-                TStringViewConvertibleToString{
-                    allFunctions[i],
-                    TLifetimeSoundnessReason{"string_view-s in allFunctions are valid by construction, see SymbolizeProfile"}
-                },
-                0
-            ).first->second.CumulativeCycles += value;
+    for (std::size_t i = 0; i < cyclesCountByFunctionId.size(); ++i) {
+        const auto& cycles = cyclesCountByFunctionId[i];
+        // Keep zero-valued leaf rows, but hash each full location only once per profile.
+        if (hasSelfSamples[i] || cycles.CumulativeCycles != 0) {
+            auto& count = CyclesByFunction_[allFunctions[i]];
+            count.SelfCycles += cycles.SelfCycles;
+            count.CumulativeCycles += cycles.CumulativeCycles;
         }
-    }
-
-    for (const ui64 kernelFunctionIdx : kernelFunctions) {
-        KernelFunctions_.emplace<TStringViewConvertibleToString>(TStringViewConvertibleToString{
-            allFunctions[kernelFunctionIdx],
-            TLifetimeSoundnessReason{"string_view-s in allFunctions are valid by construction, see SymbolizeProfile"}
-        });
     }
 
     ++TotalProfiles_;
@@ -367,59 +285,39 @@ void TPerfTopAggregator::MergeAggregator(const TPerfTopAggregator& other) {
         cyclesCount.CumulativeCycles += v.CumulativeCycles;
     }
 
-    KernelFunctions_.insert(other.KernelFunctions_.begin(), other.KernelFunctions_.end());
-
     TotalCycles_ += other.TotalCycles_;
     TotalProfiles_ += other.TotalProfiles_;
 }
 
 TPerfTopAggregator::PerfTop TPerfTopAggregator::ExtractEntries() {
-    const auto sortAndDemangle = [this](const auto& valueSelector) {
-        std::vector<std::pair<TString, ui128>> total;
-        total.reserve(CyclesByFunction_.size());
-        for (const auto& [k, v] : CyclesByFunction_) {
-            total.emplace_back(
-                std::piecewise_construct,
-                std::forward_as_tuple(k),
-                std::forward_as_tuple(valueSelector(v))
-            );
+    absl::flat_hash_map<TFunctionLocation, TFunctionStats, TFunctionLocationHash> cyclesCount;
+    cyclesCount.reserve(CyclesByFunction_.size());
+    // Raw names live in the unchanged accumulator throughout extraction.
+    absl::flat_hash_map<TStringBuf, TString> demangledNames;
+    for (const auto& [location, cycles] : CyclesByFunction_) {
+        auto [nameIt, inserted] = demangledNames.try_emplace(location.Name);
+        if (inserted) {
+            nameIt->second = NDemangle::Demangle(location.Name);
         }
-        std::sort(total.begin(), total.end(), [](const auto& lhs, const auto& rhs) {
-            return lhs.second > rhs.second;
-        });
-
-        for (auto& [name, _] : total) {
-            const auto isKernelFunction = KernelFunctions_.contains(name);
-            name = NDemangle::Demangle(name);
-
-            if (isKernelFunction) {
-                name = "[kernel] " + name;
-            }
+        auto demangled = location;
+        demangled.Name = nameIt->second;
+        if (location.IsKernel) {
+            demangled.Name = "[kernel] " + demangled.Name;
         }
-
-        return total;
-    };
-
-    auto selfCycles = sortAndDemangle([](const auto& cyclesCount) { return cyclesCount.SelfCycles; });
-    auto cumulativeCycles = sortAndDemangle([](const auto& cyclesCount) { return cyclesCount.CumulativeCycles; });
-
-    struct CyclesCount final {
-        ui128 SelfCycles = 0;
-        ui128 CumulativeCycles = 0;
-    };
-    absl::flat_hash_map<TStringBuf, CyclesCount> cyclesCount;
-    for (const auto& [name, cycles] : selfCycles) {
-        cyclesCount[name].SelfCycles += cycles;
-    }
-    for (const auto& [name, cycles] : cumulativeCycles) {
-        cyclesCount[name].CumulativeCycles += cycles;
+        auto& count = cyclesCount[std::move(demangled)];
+        count.SelfCycles += cycles.SelfCycles;
+        count.CumulativeCycles += cycles.CumulativeCycles;
     }
 
     std::vector<Function> functions;
     functions.reserve(cyclesCount.size());
-    for (const auto& [name, cycles] : cyclesCount) {
+    for (const auto& [location, cycles] : cyclesCount) {
         functions.push_back(Function{
-            .Name = TString{name},
+            .Name = location.Name,
+            .BuildId = location.BuildId,
+            .SourceFile = location.SourceFile,
+            .SourceLine = location.SourceLine,
+            .SourceColumn = location.SourceColumn,
             .SelfCycles = cycles.SelfCycles,
             .CumulativeCycles = cycles.CumulativeCycles,
         });

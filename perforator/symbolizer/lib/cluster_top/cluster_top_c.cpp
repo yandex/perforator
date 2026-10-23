@@ -11,8 +11,6 @@ NPerforator::NClusterTop::TTopAggregatorSession* FromOpaque(void *aggregator) {
     return reinterpret_cast<NPerforator::NClusterTop::TTopAggregatorSession*>(aggregator);
 }
 
-constexpr std::size_t kBigIntSizeof = 16;
-
 }
 
 extern "C" {
@@ -62,12 +60,9 @@ void MergePerfTopAggregators(void *aggregator, void *otherAggregator) {
 void FinalizePerfTopAggregator(
     void *aggregator,
     ui64* nEntries,
-    const char*** functions,
-    char** selfCycles,
-    char** cumulativeCycles
+    TClusterTopFunction** functions
 ) {
-    if (nEntries == nullptr || functions == nullptr ||
-        selfCycles == nullptr || cumulativeCycles == nullptr) {
+    if (nEntries == nullptr || functions == nullptr) {
         return;
     }
 
@@ -75,9 +70,7 @@ void FinalizePerfTopAggregator(
 
     const auto valuesCount = top.Functions.size();
     *nEntries = valuesCount;
-    *functions = new const char*[valuesCount];
-    *selfCycles = new char[valuesCount * kBigIntSizeof];
-    *cumulativeCycles = new char[valuesCount * kBigIntSizeof];
+    *functions = new TClusterTopFunction[valuesCount];
 
     const auto serializeUint128 = [](char* buf, const ui128& value) {
         const auto serializeInBigEndian = [](char *buf, ui64 value) {
@@ -93,20 +86,24 @@ void FinalizePerfTopAggregator(
 
     for (std::size_t i = 0; i < valuesCount; ++i) {
         const auto& function = top.Functions[i];
-        (*functions)[i] = ::strndup(function.Name.data(), function.Name.size());
-
-        serializeUint128(*selfCycles + i * kBigIntSizeof, function.SelfCycles);
-        serializeUint128(*cumulativeCycles + i * kBigIntSizeof, function.CumulativeCycles);
+        auto& output = (*functions)[i];
+        output.Name = ::strndup(function.Name.data(), function.Name.size());
+        output.BuildId = ::strndup(function.BuildId.data(), function.BuildId.size());
+        output.SourceFile = ::strndup(function.SourceFile.data(), function.SourceFile.size());
+        output.SourceLine = function.SourceLine;
+        output.SourceColumn = function.SourceColumn;
+        serializeUint128(output.SelfCycles, function.SelfCycles);
+        serializeUint128(output.CumulativeCycles, function.CumulativeCycles);
     }
 }
 
-void FreePerfTopAggregatorResult(ui64 nEntries, const char** functions, char* selfCycles, char* cumulativeCycles) {
+void FreePerfTopAggregatorResult(ui64 nEntries, TClusterTopFunction* functions) {
     for (ui64 i = 0; i < nEntries; ++i) {
-        free(const_cast<char*>(functions[i]));
+        free(functions[i].Name);
+        free(functions[i].BuildId);
+        free(functions[i].SourceFile);
     }
     delete[] functions;
-    delete[] selfCycles;
-    delete[] cumulativeCycles;
 }
 
 }
