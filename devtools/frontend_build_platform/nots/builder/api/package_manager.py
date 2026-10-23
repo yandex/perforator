@@ -7,9 +7,6 @@ import sys
 import time
 
 from build.plugins.lib.nots.package_manager import PackageManager as BasePackageManager, PackageManagerError
-from build.plugins.lib.nots.package_manager.constants import (
-    VIRTUAL_STORE_DIRNAME,
-)
 from build.plugins.lib.nots.package_manager.lockfile import Lockfile
 from build.plugins.lib.nots.package_manager.utils import (
     build_lockfile_path,
@@ -340,18 +337,16 @@ class PackageManager(BasePackageManager):
         node_modules_path = node_modules_path or default_node_modules_path
         os.makedirs(store_dir, exist_ok=True)
         os.makedirs(os.path.dirname(node_modules_path), exist_ok=True)
-        virtual_store_dir = os.path.join(node_modules_path, VIRTUAL_STORE_DIRNAME)
 
         self._run_pnpm_install(
             store_dir,
             self.build_path,
             local_cli,
-            virtual_store_dir,
             node_modules_path,
             prod=prod,
         )
 
-        self._run_apply_addons_if_need(yatool_prebuilder_path, virtual_store_dir)
+        self._run_apply_addons_if_need(yatool_prebuilder_path)
 
         return ws
 
@@ -377,7 +372,7 @@ class PackageManager(BasePackageManager):
 
     This method executes the pnpm install command with various flags and options, ensuring it's run exclusively
     using a mutex file and only if the specified files have changed (using a hash check). The command is executed
-    in the given working directory (cwd) with the provided store and virtual store directories.
+    in the given working directory (cwd) with the provided store and node_modules directories.
 
     Args:
         store_dir (str): Path to the store directory where packages will be stored.
@@ -394,7 +389,6 @@ class PackageManager(BasePackageManager):
         store_dir: str,
         cwd: str,
         local_cli: bool,
-        virtual_store_dir: str,
         node_modules_path: str,
         prod: bool = False,
     ):
@@ -413,7 +407,6 @@ class PackageManager(BasePackageManager):
                 **{key: value for key, value in ws.settings.items() if key in defaults},
                 "modulesDir": os.path.relpath(node_modules_path, cwd) if custom_node_modules_path else "node_modules",
                 "packageImportMethod": package_import_method,
-                "virtualStoreDir": virtual_store_dir,
             }
             copy_writable_file(ws.path, ws.path)
             ws.write()
@@ -555,7 +548,7 @@ class PackageManager(BasePackageManager):
         lf.update_tarball_resolutions(rebase)
 
     @timeit
-    def _run_apply_addons_if_need(self, yatool_prebuilder_path, virtual_store_dir):
+    def _run_apply_addons_if_need(self, yatool_prebuilder_path):
         if not yatool_prebuilder_path:
             return
 
@@ -563,8 +556,6 @@ class PackageManager(BasePackageManager):
             [
                 "apply-addons",
                 "--overrides-source=package-json",
-                "--virtual-store",
-                virtual_store_dir,
             ],
             cwd=self.build_path,
             include_defaults=False,

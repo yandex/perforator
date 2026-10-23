@@ -161,7 +161,6 @@ def test_pnpm_install_copies_external_node_modules_across_filesystems(monkeypatc
     package_manager, commands = _package_manager(monkeypatch)
     cwd = str(tmp_path / "build" / "project" / "module")
     node_modules_path = str(tmp_path / "ram" / "project" / "module" / "node_modules")
-    virtual_store_dir = os.path.join(node_modules_path, ".pnpm")
     os.makedirs(tmp_path / "build" / "store")
     os.makedirs(os.path.dirname(node_modules_path))
     monkeypatch.setattr(package_manager_module, "_same_filesystem", lambda source, destination: False)
@@ -172,7 +171,6 @@ def test_pnpm_install_copies_external_node_modules_across_filesystems(monkeypatc
         str(tmp_path / "build" / "store"),
         cwd,
         False,
-        virtual_store_dir,
         node_modules_path,
     )
 
@@ -180,8 +178,7 @@ def test_pnpm_install_copies_external_node_modules_across_filesystems(monkeypatc
     assert actual_cwd == cwd
     settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
     assert settings["modulesDir"] == os.path.relpath(node_modules_path, cwd)
-    settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
-    assert settings["virtualStoreDir"] == virtual_store_dir
+    assert "virtualStoreDir" not in settings
     assert settings["packageImportMethod"] == "copy"
     assert settings["registry"] == "https://npm.yandex-team.ru"
     assert settings["dedupePeerDependents"] is True
@@ -194,7 +191,6 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
     cwd = str(tmp_path / "build" / "project" / "module")
     store_dir = str(tmp_path / "ram" / "pnpm-ca-store")
     node_modules_path = str(tmp_path / "ram" / "project" / "module" / "node_modules")
-    virtual_store_dir = os.path.join(node_modules_path, ".pnpm")
     os.makedirs(store_dir)
     os.makedirs(os.path.dirname(node_modules_path))
 
@@ -204,7 +200,6 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
         store_dir,
         cwd,
         False,
-        virtual_store_dir,
         node_modules_path,
     )
 
@@ -215,21 +210,22 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
     assert settings["packageImportMethod"] == "hardlink"
 
 
-def test_pnpm_install_uses_module_node_modules_layout(monkeypatch, tmp_path):
+@pytest.mark.parametrize("global_virtual_store", [False, True])
+def test_pnpm_install_leaves_virtual_store_layout_to_pnpm(monkeypatch, tmp_path, global_virtual_store):
     package_manager, commands = _package_manager(monkeypatch)
     cwd = str(tmp_path / "build" / "project" / "module")
     node_modules_path = os.path.join(cwd, "node_modules")
-    virtual_store_dir = os.path.join(node_modules_path, ".pnpm")
     os.makedirs(tmp_path / "build" / "store")
     os.makedirs(cwd)
 
     os.makedirs(cwd, exist_ok=True)
-    package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml")).write()
+    workspace = package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml"))
+    workspace.settings = {"enableGlobalVirtualStore": global_virtual_store}
+    workspace.write()
     package_manager._run_pnpm_install(
         str(tmp_path / "build" / "store"),
         cwd,
         False,
-        virtual_store_dir,
         node_modules_path,
     )
 
@@ -237,7 +233,9 @@ def test_pnpm_install_uses_module_node_modules_layout(monkeypatch, tmp_path):
     assert actual_cwd == cwd
     assert "--modules-dir" not in command
     settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
-    assert settings["virtualStoreDir"] == virtual_store_dir
+    assert "--virtual-store-dir" not in command
+    assert "virtualStoreDir" not in settings
+    assert settings["enableGlobalVirtualStore"] is global_virtual_store
     assert settings["packageImportMethod"] == "hardlink"
 
 
@@ -485,7 +483,7 @@ def test_production_install_reuses_install_flags(monkeypatch, tmp_path):
         ws = package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml"))
         ws.settings = {"strictPeerDependencies": prod}
         ws.write()
-        package_manager._run_pnpm_install(store, cwd, False, node_modules + "/.pnpm", node_modules, prod=prod)
+        package_manager._run_pnpm_install(store, cwd, False, node_modules, prod=prod)
         settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
         assert settings["strictPeerDependencies"] is prod
     ordinary, production = [cmd for cmd, cwd in commands]
@@ -528,7 +526,7 @@ def test_pnpm_install_detaches_readonly_workspace_input(monkeypatch, tmp_path):
     store = tmp_path / "store"
     store.mkdir()
     package_manager._run_pnpm_install(
-        str(store), str(cwd), False, str(cwd / "node_modules/.pnpm"), str(cwd / "node_modules")
+        str(store), str(cwd), False, str(cwd / "node_modules")
     )
     assert source.read_bytes() == original
     assert source.stat().st_mode & 0o222 == 0

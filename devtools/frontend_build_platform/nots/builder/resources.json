@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-22T09:21:23.736Z",
+    "created": "2026-10-23T09:28:05.551Z",
     "pr": {
-      "id": 16621693,
-      "author": "zaverden",
-      "summary": "FBP-3460: Подготовить builder к prebuilder@2.0.0"
+      "id": 16649246,
+      "author": "baymer",
+      "summary": "FBP-3570: позволить pnpm выбирать virtual store в builder"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14105783294"
+      "uri": "sbr:14113876631"
     },
     "darwin-arm64": {
-      "uri": "sbr:14105781275"
+      "uri": "sbr:14113874292"
     },
     "linux": {
-      "uri": "sbr:14105787074"
+      "uri": "sbr:14113881353"
     },
     "linux-aarch64": {
-      "uri": "sbr:14105785219"
+      "uri": "sbr:14113878905"
     }
   }
 }
