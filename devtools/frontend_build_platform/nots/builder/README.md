@@ -52,6 +52,36 @@ devtools/frontend_build_platform/nots/builder: Build nots-builder (from PR)
 3. Сделает PR в транк
 4. Будет ждать влития
 
+## Собрать и обновить бинарники локально, без CI
+
+Из текущего checkout можно собрать все четыре платформы, загрузить архивы в Sandbox
+и обновить локальный `resources.json`. Из корня Аркадии:
+
+```shell
+bash devtools/frontend_build_platform/nots/builder/build_resources.sh
+```
+
+Скрипт запускает `ya package` с описанием [ya_package.json](./ya_package.json).
+Все четыре платформы, release-режим и флаги `TS_USE_PREBUILT_NOTS_TOOL=no`, `STRIP=yes`
+заданы в этом файле. Пакет содержит `linux/builder`, `linux-aarch64/builder`,
+`darwin/builder` и `darwin-arm64/builder`.
+Затем скрипт переупаковывает каждый бинарник в отдельный `builder.tgz`
+с файлом `builder` в корне, как в сборке из `a.yaml`.
+Ресурсы получают тип `NOTS_BUILDER_BINARY`, владельца `FRONTEND_BUILD_PLATFORM`,
+`ttl=inf`, атрибут `platform` и сведения об исходной ревизии и checkout.
+
+Чтобы только собрать пакет без загрузки, из директории `nots/builder`:
+
+```shell
+ya package ya_package.json
+```
+
+По умолчанию сборка локальная. Результат — `nots-builder.<revision>.tar.gz`.
+
+`resources.json` заменяется после успешной сборки и загрузки всех платформ.
+Архивы и ответы загрузки остаются во временной директории, путь к ней выводится в начале.
+Скрипт не создаёт коммитов, не отправляет изменения и не запускает CI.
+
 ## Локальный запуск
 
 Чтобы отключить запуск предсобаранного бинарника и запускать с учетом изменений в ветке, то нужно указать переменную:
