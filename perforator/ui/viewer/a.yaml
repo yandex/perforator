@@ -1,0 +1,55 @@
+service: perforator
+title: "viewer"
+
+ci:
+  autocheck:
+    # Включаем strong mode https://docs.yandex-team.ru/ci-results-platform/platform/strong-mode
+    strong: true
+    # Включаем быстрый контур: https://docs.yandex-team.ru/ci-results-platform/main/fast-circuit
+    fast-targets:
+      - perforator/ui/viewer
+
+  secret: sec-01g2yv0azvpmfn076nvn0m4fa8
+
+  runtime:
+    sandbox-owner: PERFORATOR
+
+  actions:
+    e2e-on-pr:
+      title: Viewer E2E
+      flow: viewer-e2e-flow
+      tags: ci-action
+      triggers:
+        - on: pr
+          into: trunk
+          on-demand: true
+          filters:
+            - abs-paths: perforator/ui/viewer/**
+
+  flows:
+    viewer-e2e-flow:
+      jobs:
+        build:
+          task: projects/frontend_build_platform/nots_build
+          input:
+            config:
+              cache_ca_store: true
+        e2e:
+          task: common/nodejs/pnpm/run
+          needs: build
+          input:
+            config:
+              script: test:e2e
+              environment_variables:
+                QUOTA: perforator-sw-quota
+                VERSION: "128.0"
+                LOGIN: robot-perforator-e2e
+              secret_environment_variables:
+                YA_TOKEN: ci.token
+                TOKEN: surfwax.token
+              artifacts:
+                json-report:
+                  path: test-results.json
+              reports:
+                - path: "playwright-report"
+                  icon: PLAYWRIGHT

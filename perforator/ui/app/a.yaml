@@ -1,0 +1,263 @@
+# yaml-language-server: $schema=../../../devtools/schemas/public/a-yaml/a-yaml.yaml
+service: perforator
+title: Perforator UI
+
+ci:
+  autocheck:
+    # Включаем strong mode https://docs.yandex-team.ru/ci-results-platform/platform/strong-mode
+    strong: true
+    # Включаем быстрый контур: https://docs.yandex-team.ru/ci-results-platform/main/fast-circuit
+    fast-targets:
+      - perforator/ui/app
+
+  secret: sec-01g2yv0azvpmfn076nvn0m4fa8
+
+  runtime:
+    sandbox-owner: PERFORATOR
+
+  releases:
+    ui:
+      title: Release Perforator UI
+      flow: release-ui
+      start-version: 60
+      filters:
+        - discovery: dir
+          abs-paths:
+            - perforator/ui/packages/**
+            - perforator/ui/app/**
+      auto: false
+      branches:
+        pattern: releases/perforator/ui-${version}
+        default-config-source: branch
+        forbid-trunk-releases: false
+        auto-create: true
+      link-to-tracker-issues:
+        queues:
+          - PERFORATOR
+
+
+  actions:
+    neuro-review:
+      title: Позвать Шелдона (нейро ревьювер)
+      flow: neuro-review
+      triggers:
+        - on: pr
+          required: false
+          on-demand: true
+    preview-on-pr:
+      title: Preview action
+      flow: preview-flow
+      tags: ci-action
+      triggers:
+        - on: pr
+          into: trunk
+          on-demand: true
+          filters:
+            - abs-paths: perforator/ui/**
+
+  flows:
+    release-ui:
+      jobs:
+        build:
+          task: projects/frontend_build_platform/nots_build
+          input:
+            config:
+              cache_ca_store: true
+              environment_variables:
+                VITE_RELEASE_VERSION: ${context.version_info.major}
+                VITE_REVISION: ${context.target_revision.commit_id}
+        release_testing:
+          title: Build and Release UI to testing
+          needs: build
+          task: common/nodejs/static_uploader
+          input:
+            config:
+              secret_environment_variables:
+                S3_ACCESS_KEY_ID: S3_ACCESS_KEY
+                S3_SECRET_ACCESS_KEY: S3_SECRET_KEY
+              s3_configuration:
+                region: ru-central1
+                bucket: testing-perforator-ui
+                use_compression: false
+                static:
+                  path: ./dist
+                  target: .
+                  exists_strategy: overwrite
+        e2e:
+          task: common/nodejs/pnpm/run
+          needs: release_testing
+          input:
+            config:
+              script: test:e2e
+              environment_variables:
+                BASE_URL: "https://prestable.perforator.yandex-team.ru"
+                QUOTA: perforator-sw-quota
+                VERSION: "128.0"
+                LOGIN: robot-perforator-e2e
+              secret_environment_variables:
+                YA_TOKEN: ci.token
+                TOKEN: surfwax.token
+                E2E_PERFORATOR_TOKEN: E2E_PERFORATOR_TOKEN
+              artifacts:
+                json-report:
+                  path: test-results.json
+              reports:
+                - path: "playwright-report"
+                  icon: PLAYWRIGHT
+        skip:
+          task: dummy
+          needs: release_testing
+          manual: true
+        infra_beforerelease:
+          title: Start infra event before release
+          needs: [e2e, skip]
+          needs-type: any
+          task: common/monitoring/v2/infra_create_v2
+          manual: true
+          input:
+            config:
+              textual:
+                title: '${context.title}'
+                description: '${context.ci_url}'
+              status:
+                severity: MINOR
+                type: MAINTENANCE
+              placement:
+                serviceId: 8052
+                environmentId: 13633
+        release_production:
+          title: Build and Release UI to production
+          needs: infra_beforerelease
+          task: common/nodejs/static_uploader
+          input:
+            config:
+              secret_environment_variables:
+                S3_ACCESS_KEY_ID: S3_ACCESS_KEY
+                S3_SECRET_ACCESS_KEY: S3_SECRET_KEY
+              s3_configuration:
+                region: ru-central1
+                bucket: perforator-ui
+                use_compression: false
+                static:
+                  path: ./dist
+                  target: .
+                  exists_strategy: overwrite
+        infra-close:
+          title: Close infra event after release
+          task: common/monitoring/v2/infra_close_v2
+          needs: release_production
+          input:
+            config: {}  # default
+            infra_identifier: ${tasks.infra_beforerelease.infra_identifier}
+        upload_sourcemaps:
+          title: Upload sourcemaps to S3
+          needs: build
+          task: common/nodejs/pnpm/run
+          input:
+            config:
+              script: upload:sourcemaps
+              environment_variables:
+                VITE_RELEASE_VERSION: ${context.version_info.major}
+                VITE_REVISION: ${context.target_revision.commit_id}
+                STATIC_BASE_URL: https://testing.perforator.yandex-team.ru,https://prestable.perforator.yandex-team.ru,https://preprod.perforator.yandex-team.ru,https://perforator.yandex-team.ru
+              secret_environment_variables:
+                AWS_ACCESS_KEY_ID: S3_ACCESS_KEY
+                AWS_SECRET_ACCESS_KEY: S3_SECRET_KEY
+                YA_TOKEN: ci.token
+    preview-flow:
+      jobs:
+        build:
+          task: projects/frontend_build_platform/nots_build
+          input:
+            config:
+              cache_ca_store: true
+              production_mode: false
+              environment_variables:
+                RUM_DEBUG: true
+                VITE_RELEASE_VERSION: ${context.version_info.major}
+                VITE_REVISION: ${context.target_revision.commit_id}
+        upload:
+          task: common/nodejs/static_uploader
+          needs: build
+          input:
+            config:
+              secret_environment_variables:
+                S3_ACCESS_KEY_ID: S3_ACCESS_KEY
+                S3_SECRET_ACCESS_KEY: S3_SECRET_KEY
+              s3_configuration:
+                region: ru-central1
+                bucket: preview-perforator-ui
+                use_compression: false
+                static:
+                  path: ./dist
+                  target: ${context.launch_pull_request_info.pull_request.id}
+                  exists_strategy: overwrite
+        e2e:
+          task: common/nodejs/pnpm/run
+          needs: upload
+          input:
+            config:
+              script: test:e2e
+              environment_variables:
+                BASE_URL: "https://${context.launch_pull_request_info.pull_request.id}.preview.perforator.yandex-team.ru"
+                E2E_DATASET: production
+                QUOTA: perforator-sw-quota
+                VERSION: "128.0"
+                LOGIN: robot-perforator-e2e
+              secret_environment_variables:
+                YA_TOKEN: ci.token
+                TOKEN: surfwax.token
+                E2E_PERFORATOR_TOKEN: E2E_PERFORATOR_TOKEN
+              artifacts:
+                json-report:
+                  path: test-results.json
+              reports:
+                - path: "playwright-report"
+                  icon: PLAYWRIGHT
+        get-link:
+          task: common/misc/run_command
+          needs: upload
+          input:
+            config:
+              arc_mount_config:
+                enabled: true
+              secret_environment_variables_map:
+                ARCANUM_TOKEN:
+                  key: ARCANUM_TOKEN
+              environment_variables_map:
+                PULL_REQUEST_ID: ${to_string(context.launch_pull_request_info.pull_request.id)}
+              cmd_line: |
+                set -e
+                URL="https://$PULL_REQUEST_ID.preview.perforator.yandex-team.ru"
+                curl \
+                  -X POST \
+                        "https://arcanum.yandex.net/api/v1/pull-requests/$PULL_REQUEST_ID/comments" \
+                  -H "Authorization: OAuth $ARCANUM_TOKEN" \
+                  -H 'Content-Type: application/json' \
+                  -d "{ \"content\": \"Preview is ready at $URL\"}"
+                echo "{ \"id\":\"preview-link\",\"module\":\"$MODULE_ICON\",\"url\":\"$URL\",\"text\":\"Preview\",\"status\":\"SUCCESSFUL\" }" > $RESULT_BADGES_PATH/badge
+              result_badges:
+                - path: badge
+    neuro-review:
+      title: Нейро ревью
+      jobs:
+        neuro-review:
+          title: Нейро ревью
+          version: prestable
+          task: projects/portal/neuro_review
+          runtime:
+            tasklet:
+              account_name: /root/generic/perforator
+          input:
+            pr_info:
+              id: ${context.launch_pull_request_info.pull_request.id}
+            lm_config:
+              api_url: http://zeliboba.yandex-team.ru/balance/deepseek_r1/v1/chat/completions
+            lm_api_secret:
+              id: sec-01g2yv0azvpmfn076nvn0m4fa8
+              key: ZELIBOBA_TOKEN
+            arc_api_secret:
+              id: sec-01g2yv0azvpmfn076nvn0m4fa8
+              key: ARCANUM_TOKEN
+            comment_config:
+              reuse_comment: true

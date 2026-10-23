@@ -1,0 +1,33 @@
+service: perforator
+title: Perforator UI flamegraph library
+
+ci:
+  secret: sec-01g2yv0azvpmfn076nvn0m4fa8
+  runtime:
+    sandbox-owner: PERFORATOR
+
+  releases:
+    publish:
+      title: Publish @yandex-spcui/perforator-flamegraph
+      flow: publish
+      flow-vars-ui:
+        schema:
+          required:
+            - level
+          properties:
+            level:
+              title: Обновление версии
+              type: string
+              enum:
+                - patch
+                - minor
+                - major
+
+  flows:
+    publish:
+      jobs:
+        publish:
+          task: projects/frontend_build_platform/nots_publish
+          input:
+            config:
+              publish_version: ${flow-vars.level}
