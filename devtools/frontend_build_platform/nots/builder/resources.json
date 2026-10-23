@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-10-23T09:28:05.551Z",
+    "created": "2026-10-23T14:24:34.897Z",
     "pr": {
-      "id": 16649246,
-      "author": "baymer",
-      "summary": "FBP-3570: позволить pnpm выбирать virtual store в builder"
+      "id": 16653313,
+      "author": "zaverden",
+      "summary": "FBP-3456: переносить транзитивные workspace-манифесты на RAM-диск"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14113876631"
+      "uri": "sbr:14117020641"
     },
     "darwin-arm64": {
-      "uri": "sbr:14113874292"
+      "uri": "sbr:14117019596"
     },
     "linux": {
-      "uri": "sbr:14113881353"
+      "uri": "sbr:14117023238"
     },
     "linux-aarch64": {
-      "uri": "sbr:14113878905"
+      "uri": "sbr:14117021802"
     }
   }
 }

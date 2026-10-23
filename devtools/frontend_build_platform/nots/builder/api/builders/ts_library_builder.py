@@ -161,12 +161,21 @@ class TsLibraryBuilder(BaseBuilder):
         package_json_path = pm_utils.build_pj_path(bindir)
         package_json = PackageJson.load(package_json_path)
 
-        for peer_build_path in package_json.get_workspace_dep_paths():
-            source_package_json = pm_utils.build_pj_path(peer_build_path)
-            assert self._ram_disk is not None
-            ram_package_json = self._ram_disk.path(self.options.arcadia_build_root, source_package_json)
-            os.makedirs(os.path.dirname(ram_package_json), exist_ok=True)
-            shutil.copyfile(source_package_json, ram_package_json)
+        # pnpm validates the full local dependency graph even for production installs.
+        # Follow paths without validating names: build manifests may use generated names.
+        pending = [package_json]
+        visited = {os.path.normpath(bindir)}
+        while pending:
+            for peer_build_path in pending.pop().get_workspace_dep_paths():
+                if peer_build_path in visited:
+                    continue
+                visited.add(peer_build_path)
+                source_package_json = pm_utils.build_pj_path(peer_build_path)
+                pending.append(PackageJson.load(source_package_json))
+                assert self._ram_disk is not None
+                ram_package_json = self._ram_disk.path(self.options.arcadia_build_root, source_package_json)
+                os.makedirs(os.path.dirname(ram_package_json), exist_ok=True)
+                shutil.copyfile(source_package_json, ram_package_json)
 
     @timeit
     def _run_build_script(self):
