@@ -35,6 +35,9 @@ pnpm:
         preferSymlinkedExecutables: true
         preferWorkspacePackages: true
         registry: https://npm.yandex-team.ru
+        registries:
+            https://npm.yandex-team.ru:
+                serverType: npm
         strictPeerDependencies: false
         updateNotifier: false
         verifyStoreIntegrity: false
@@ -209,6 +212,11 @@ pnpm:
                 Реестр пакетов Tier 0; авторизация задаётся отдельно от этого файла.
                 https://pnpm.io/11.x/settings/dependency-resolution#registries
 
+            registries: |-
+                Тип внутреннего npm-реестра для распознавания канонических URL scoped-пакетов с %2f.
+                Такие URL не должны записываться в lockfile при lockfileIncludeTarballUrl: false.
+                https://pnpm.io/11.x/settings/dependency-resolution#registries
+
             updateNotifier: |-
                 Версию pnpm поставляет Tier 0, уведомления об обновлении не нужны.
                 https://pnpm.io/11.x/settings/other#updatenotifier
@@ -222,7 +230,8 @@ pnpm:
                 https://pnpm.io/11.x/cli/publish#--no-git-checks
 
             lockfileIncludeTarballUrl: |-
-                URL tarball нужны builder для скачивания пакетов по lockfile.
+                Не записывать канонические URL реестра: pnpm и builder восстанавливают их по имени и версии.
+                URL нестандартных источников сохраняются в lockfile.
                 https://pnpm.io/11.x/settings/store#lockfileincludetarballurl
 
             trustLockfile: |-
