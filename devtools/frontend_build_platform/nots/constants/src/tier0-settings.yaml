@@ -29,7 +29,6 @@ pnpm:
         ignorePnpmfile: true
         ignoreScripts: true
         injectWorkspacePackages: true
-        managePackageManagerVersions: false
         modulesDir: node_modules
         pmOnFail: ignore
         packageImportMethod: auto
@@ -178,10 +177,6 @@ pnpm:
             injectWorkspacePackages: |-
                 Зависимости между модулями подключаются через inject.
                 https://pnpm.io/11.x/workspaces#injectworkspacepackages
-
-            managePackageManagerVersions: |-
-                Не скачивать и не переключать pnpm по packageManager: версию поставляет Tier 0.
-                https://pnpm.io/10.x/settings#managepackagemanagerversions
 
             pmOnFail: |-
                 Не переключать версию pnpm автоматически: инструмент выбирается платформой Tier 0.
