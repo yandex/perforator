@@ -102,6 +102,13 @@ class BaseBuilder(object):
         if publish_directory and files:
             files = [os.path.join(publish_directory, f) for f in files]
 
+        # pnpm pack omits its lockfile even when package.json#files lists it.
+        # Auto-proto packages have no source lockfile: local post-build installs
+        # and consumers of these generated packages need the prepared one.
+        if pj.data.get("nots", {}).get("tsProtoAuto") is True:
+            if pm_constants.PNPM_LOCKFILE_FILENAME not in files:
+                files.append(pm_constants.PNPM_LOCKFILE_FILENAME)
+
         files.append('.npmignore')
 
         return files
