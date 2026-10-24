@@ -1,22 +1,24 @@
 {
   "info": {
-    "created": "2026-10-23T21:08:10Z",
-    "commit": "3817727b938f4c3ff991e89dac70dc89b8611b71",
-    "branch": "ts0-settings-runtime",
-    "dirty": false
+    "created": "2026-10-24T00:11:56Z",
+    "pr": {
+      "id": 16669058,
+      "author": "baymer",
+      "summary": "FBP-3580: include generated proto lockfile in output.tar"
+    }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14118581963"
+      "uri": "sbr:14119238674"
     },
     "darwin-arm64": {
-      "uri": "sbr:14118582429"
+      "uri": "sbr:14119238106"
     },
     "linux": {
-      "uri": "sbr:14118580405"
+      "uri": "sbr:14119239760"
     },
     "linux-aarch64": {
-      "uri": "sbr:14118581329"
+      "uri": "sbr:14119239205"
     }
   }
 }
