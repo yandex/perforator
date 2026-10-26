@@ -22,9 +22,18 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
         "verifyDepsBeforeRun": False,
     }
     monkeypatch.setattr(
-        "devtools.frontend_build_platform.nots.builder.api.pnpm_workspace.pnpm_defaults",
-        Mock(return_value=defaults),
+        "devtools.frontend_build_platform.nots.builder.api.pnpm_workspace.load_tier0_settings",
+        Mock(
+            return_value={
+                "pnpm": {
+                    "defaults": defaults,
+                    "runtimeEnvSettings": list(defaults),
+                    "environment": {"PNPM_MAX_WORKERS": "6"},
+                }
+            }
+        ),
     )
+    monkeypatch.setenv("PNPM_MAX_WORKERS", "191")
     process = Mock(returncode=0)
     process.communicate.return_value = ("", "")
     popen = Mock(return_value=process)
@@ -37,7 +46,7 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
         script_path="/pnpm.cjs",
         module_path="module",
     )
-    env = {"CUSTOM_SETTING": "preserved"}
+    env = {"CUSTOM_SETTING": "preserved", "PNPM_MAX_WORKERS": "127"}
     if override_registry:
         env.update(npm_config_registry="https://registry.npmjs.org", pnpm_config_registry="https://registry.npmjs.org")
     original_env = env.copy()
@@ -51,6 +60,8 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
         assert command_env[prefix + "trust_lockfile"] == "true"
         assert command_env[prefix + "verify_deps_before_run"] == "false"
     assert command_env["CUSTOM_SETTING"] == "preserved"
+    assert command_env["PNPM_MAX_WORKERS"] == "6"
+    assert os.environ["PNPM_MAX_WORKERS"] == "191"
     assert env == original_env
 
 
@@ -523,9 +534,7 @@ def test_pnpm_install_detaches_readonly_workspace_input(monkeypatch, tmp_path):
     original = source.read_bytes()
     store = tmp_path / "store"
     store.mkdir()
-    package_manager._run_pnpm_install(
-        str(store), str(cwd), False, str(cwd / "node_modules")
-    )
+    package_manager._run_pnpm_install(str(store), str(cwd), False, str(cwd / "node_modules"))
     assert source.read_bytes() == original
     assert source.stat().st_mode & 0o222 == 0
     assert source.stat().st_ino != workspace.stat().st_ino

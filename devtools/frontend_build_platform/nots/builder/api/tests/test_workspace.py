@@ -189,17 +189,26 @@ def test_workspace_preserves_overrides_only_order(tmp_path):
 def test_pnpm_runtime_env_uses_shared_defaults(monkeypatch):
     from devtools.frontend_build_platform.nots.builder.api import pnpm_workspace
 
+    defaults = {
+        "pmOnFail": "warn",
+        "trustLockfile": False,
+        "verifyDepsBeforeRun": True,
+        "registry": "https://npm.example.test/CaseSensitive",
+        "fetchRetries": 7,
+    }
     monkeypatch.setattr(
         pnpm_workspace,
-        "pnpm_defaults",
+        "load_tier0_settings",
         lambda: {
-            "pmOnFail": "warn",
-            "trustLockfile": False,
-            "verifyDepsBeforeRun": True,
-            "registry": "https://npm.example.test/CaseSensitive",
+            "pnpm": {
+                "defaults": defaults,
+                "runtimeEnvSettings": list(defaults),
+                "environment": {"PNPM_MAX_WORKERS": "6"},
+            }
         },
     )
     assert pnpm_workspace.pnpm_runtime_env() == {
+        "PNPM_MAX_WORKERS": "6",
         "npm_config_registry": "https://npm.example.test/CaseSensitive",
         "pnpm_config_registry": "https://npm.example.test/CaseSensitive",
         "npm_config_pm_on_fail": "warn",
@@ -208,4 +217,6 @@ def test_pnpm_runtime_env_uses_shared_defaults(monkeypatch):
         "npm_config_verify_deps_before_run": "true",
         "pnpm_config_trust_lockfile": "false",
         "pnpm_config_verify_deps_before_run": "true",
+        "npm_config_fetch_retries": "7",
+        "pnpm_config_fetch_retries": "7",
     }

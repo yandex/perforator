@@ -1,24 +1,22 @@
 {
   "info": {
-    "created": "2026-10-24T00:11:56Z",
-    "pr": {
-      "id": 16669058,
-      "author": "baymer",
-      "summary": "FBP-3580: include generated proto lockfile in output.tar"
-    }
+    "created": "2026-10-26T16:26:51Z",
+    "commit": "00b1c65de7af61765f059fa04759f1a6a0d7a585",
+    "branch": "FBP-3594-pnpm-local-walk",
+    "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14119238674"
+      "uri": "sbr:14131149202"
     },
     "darwin-arm64": {
-      "uri": "sbr:14119238106"
+      "uri": "sbr:14131149971"
     },
     "linux": {
-      "uri": "sbr:14119239760"
+      "uri": "sbr:14131147535"
     },
     "linux-aarch64": {
-      "uri": "sbr:14119239205"
+      "uri": "sbr:14131148467"
     }
   }
 }

@@ -1,4 +1,30 @@
+# Дефолты nots; соответствующие NOTS_CONCURRENCY_* сохраняют приоритет.
+concurrency:
+    installGroups: 4
+    link: 16
+    prebuilder: 4
+    preinstall: 16
+
 pnpm:
+    # pnpm выбирает размер worker pool по числу видимых CPU, которое в CI
+    # может превышать сотню при квоте контейнера в 4 CPU. Ограничиваем каждый
+    # процесс, включая параллельные установки CLI и pnpm из build scripts.
+    # Это переменная окружения pnpm, а не параметр pnpm-workspace.yaml.
+    environment:
+        PNPM_MAX_WORKERS: '4'
+
+    # Передаются также дочерним pnpm через npm_config_* и pnpm_config_*.
+    # Значения берутся из defaults; список общий для CLI и builder.
+    runtimeEnvSettings:
+        - gitChecks
+        - lockfileIncludeTarballUrl
+        - pmOnFail
+        - registry
+        - trustLockfile
+        - updateNotifier
+        - verifyDepsBeforeRun
+        - verifyStoreIntegrity
+
     # Разрешённые пользовательские настройки. Типы используются builder и CLI при чтении YAML.
     supportedCustomSettings:
         catalogs: catalogs

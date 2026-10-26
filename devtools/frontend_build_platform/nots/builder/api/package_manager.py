@@ -244,7 +244,6 @@ class PackageManager(BasePackageManager):
 
         cmd_env = env.copy()
         cmd_env.update(pnpm_runtime_env())
-        cmd_env["PNPM_MAX_WORKERS"] = os.environ.get("PNPM_MAX_WORKERS", "4")
 
         if self.ld_library_path:
             cmd_env["LD_LIBRARY_PATH"] = self.ld_library_path
