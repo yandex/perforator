@@ -92,6 +92,7 @@ func NewOfflineProcessingApp(
 		[]BinaryProcessor{
 			gsymProcessor,
 		},
+		conf.Parellelism,
 	)
 	if err != nil {
 		return nil, err

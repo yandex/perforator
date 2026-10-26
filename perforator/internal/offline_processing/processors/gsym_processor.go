@@ -59,7 +59,7 @@ func (p *GsymProcessor) ProcessBinary(ctx context.Context, trx models.Processing
 	}
 	defer os.Remove(output.Name())
 
-	err = gsym.ConvertDWARFToGsym(binaryPath, output.Name(), 4 /* TODO: make it configurable, PERFORATOR-426 */)
+	err = gsym.ConvertDWARFToGsym(binaryPath, output.Name(), 1)
 	if err != nil {
 		return err
 	}

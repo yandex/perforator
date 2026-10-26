@@ -19,6 +19,7 @@ type Config struct {
 	BinaryProvider BinaryProviderConfig `yaml:"binary_provider"`
 
 	GsymS3Bucket string `yaml:"gsym_s3_bucket"`
+	Parellelism  int    `yaml:"parallelism"`
 }
 
 func ParseConfig(path string) (*Config, error) {

@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"runtime"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
@@ -14,9 +17,10 @@ import (
 )
 
 type processingMetrics struct {
-	success metrics.Counter
-	failure metrics.Counter
-	lag     metrics.Gauge
+	success     metrics.Counter
+	failure     metrics.Counter
+	lag         metrics.Gauge
+	stallMillis metrics.Counter
 }
 
 type ProcessingLoop struct {
@@ -26,6 +30,7 @@ type ProcessingLoop struct {
 	binarySelector BinarySelector
 	binaryFetcher  BinaryFetcher
 	processors     []BinaryProcessor
+	parallelism    int
 
 	lastIterationCompletion atomic.Pointer[time.Time]
 }
@@ -37,17 +42,23 @@ func NewProcessingLoop(
 	binarySelector BinarySelector,
 	binaryFetcher BinaryFetcher,
 	processors []BinaryProcessor,
+	parallelism int,
 ) (*ProcessingLoop, error) {
+	if parallelism == 0 {
+		parallelism = runtime.GOMAXPROCS(0)
+	}
 	loop := &ProcessingLoop{
 		l: l,
 		metrics: processingMetrics{
-			success: reg.Counter("success"),
-			failure: reg.Counter("failure"),
-			lag:     reg.Gauge("processing_lag_seconds"),
+			success:     reg.Counter("success"),
+			failure:     reg.Counter("failure"),
+			lag:         reg.Gauge("processing_lag_seconds"),
+			stallMillis: reg.Counter("stall_millis"),
 		},
 		binarySelector: binarySelector,
 		binaryFetcher:  binaryFetcher,
 		processors:     processors,
+		parallelism:    parallelism,
 	}
 	loop.lastIterationCompletion.Store(ptr.T(time.Now()))
 	reg.FuncGauge("time_without_progress", func() float64 {
@@ -58,13 +69,18 @@ func NewProcessingLoop(
 }
 
 func (l *ProcessingLoop) Run(ctx context.Context) error {
-	l.runLoop(ctx)
-
-	return nil
+	eg, gctx := errgroup.WithContext(ctx)
+	for range l.parallelism {
+		eg.Go(func() error {
+			l.runLoop(gctx)
+			return nil
+		})
+	}
+	return eg.Wait()
 }
 
 func (l *ProcessingLoop) runLoop(ctx context.Context) {
-	for {
+	for ctx.Err() == nil {
 		err := l.loopIteration(ctx)
 
 		l.processError(ctx, err)
@@ -74,6 +90,7 @@ func (l *ProcessingLoop) runLoop(ctx context.Context) {
 func (l *ProcessingLoop) loopIteration(ctx context.Context) error {
 	// TODO : add some tracing spans here
 
+	selectStart := time.Now()
 	binaryHandler, err := l.binarySelector.SelectBinary(ctx)
 	if err != nil {
 		return err
@@ -81,6 +98,8 @@ func (l *ProcessingLoop) loopIteration(ctx context.Context) error {
 	defer func() {
 		binaryHandler.Finalize(ctx, err)
 	}()
+	stall := time.Since(selectStart)
+	l.metrics.stallMillis.Add(int64(stall.Milliseconds()))
 
 	binary, err := l.binaryFetcher.FetchBinary(ctx, binaryHandler.GetBinaryID())
 	if err != nil {
