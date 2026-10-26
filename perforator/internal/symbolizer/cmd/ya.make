@@ -1,6 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
+    cluster_top.go
     common.go
     fetch.go
     list.go

@@ -14,7 +14,9 @@ IF (NOT OPENSOURCE)
     )
 ENDIF()
 
-GO_TEST_SRCS(endpoint_test.go)
+GO_TEST_SRCS(
+    endpoint_test.go
+)
 
 END()
 

@@ -198,6 +198,11 @@ func NewClient(ctx context.Context, c *Config, l xlog.Logger) (*Client, error) {
 	}, nil
 }
 
+// ClusterTop returns the generated API client using the shared authenticated connection.
+func (c *Client) ClusterTop() perforator.ClusterTopClient {
+	return perforator.NewClusterTopClient(c.connection)
+}
+
 func (c *Client) ListServices(
 	ctx context.Context,
 	offset, limit uint64,
