@@ -73,6 +73,8 @@ var groupByAggregation = map[GroupByMode]string{
 
 const DefaultPageSize = 100
 
+var likePatternEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
 func getComparisonOperator(mode MatchMode) string {
 	switch mode {
 	case ExactMatch:
@@ -212,7 +214,7 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 		}
 		searchValue := filter.FunctionFilter
 		if filter.FunctionFilterMatchMode == SubstringMatch {
-			searchValue = fmt.Sprintf("%%%s%%", filter.FunctionFilter)
+			searchValue = "%" + likePatternEscaper.Replace(searchValue) + "%"
 		}
 		builder = builder.
 			Where(fmt.Sprintf("function %s ?", comparisonOperator), searchValue)
