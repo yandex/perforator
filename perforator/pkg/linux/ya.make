@@ -1,9 +1,14 @@
 GO_LIBRARY()
 
 SRCS(
-    inode_generation.go
     types.go
 )
+
+IF (OS_LINUX)
+    SRCS(
+        inode_generation.go
+    )
+ENDIF()
 
 END()
 
