@@ -16,6 +16,7 @@ from ..models import BuildError, BaseBuildersOptions
 from ..pnpm_workspace import pnpm_runtime_env
 from ..utils import (
     copy_writable_file,
+    get_pnpm_bin,
     extract_peer_tars,
     popen,
     bundle_fs_entries,
@@ -54,8 +55,7 @@ class BaseBuilder(object):
             f.write(npmignore_content)
 
         args = [
-            self.options.nodejs_bin,
-            self.options.pm_script,
+            'pnpm',
             'pack',
             '--json',
             '--dry-run',
@@ -148,11 +148,13 @@ class BaseBuilder(object):
         # See contract documentation: https://docs.yandex-team.ru/ya-make/manual/common/vars
         env['MODDIR'] = self.options.moddir
 
-        # Set directory with the `node` executable as the PATH
-        env_paths = [os.path.dirname(self.options.nodejs_bin)] + extra_paths
+        env_paths = [
+            os.path.dirname(self.options.nodejs_bin),
+            os.path.dirname(get_pnpm_bin(self.options.pm_script)),
+        ] + extra_paths
         if self.options.bun_bin:
             env_paths.insert(0, os.path.dirname(self.options.bun_bin))
-        env['PATH'] = os.pathsep.join(env_paths)
+        env['PATH'] = os.pathsep.join(path for path in env_paths if path)
 
         bindir_node_modules_path = os.path.join(self.options.bindir, pm_constants.NODE_MODULES_DIRNAME)
         node_path = [
@@ -203,7 +205,12 @@ class BaseBuilder(object):
             env.update(self._get_vcs_info_env(self.options.vcs_info))
 
         if self.options.env:
-            env.update(self._get_user_defined_env())
+            user_env = self._get_user_defined_env()
+            if user_env.get("PATH"):
+                user_env["PATH"] = os.pathsep.join([env["PATH"], user_env["PATH"]])
+            else:
+                user_env.pop("PATH", None)
+            env.update(user_env)
 
         return env
 

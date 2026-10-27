@@ -672,3 +672,51 @@ def test_distbuild_rejects_invalid_keys_before_declaring_or_rewriting_tarballs(t
     with pytest.raises(TypeError, match="cannot infer tarball URL"):
         pm._build_merged_lockfile("__tarballs__", [], False, True)
     assert not (tmp_path / "build" / "module" / "pnpm-lock.yaml").exists()
+
+
+@pytest.mark.parametrize("native", [False, True])
+@pytest.mark.parametrize("prebuilder", [False, True])
+def test_exec_command_uses_resource_path_without_node_interpreter(tmp_path, capsys, native, prebuilder):
+    node_dir = tmp_path / "selected node"
+    node_dir.mkdir()
+    node = node_dir / "node"
+    node.write_text('#!/bin/sh\nprintf "selected-node: %s\\n" "$@"\n')
+    node.chmod(0o755)
+    pnpm_dir = tmp_path / "resource" / "node_modules" / ".bin"
+    pnpm_dir.mkdir(parents=True)
+    launcher = pnpm_dir / "pnpm"
+    if prebuilder:
+        launcher = tmp_path / "prebuilder.js"
+    if native:
+        launcher.symlink_to("/bin/echo")
+    else:
+        launcher.write_text("#!/usr/bin/env node\n")
+        launcher.chmod(0o755)
+    package_manager = package_manager_module.PackageManager(
+        build_root=str(tmp_path),
+        build_path=str(tmp_path),
+        sources_path=str(tmp_path),
+        nodejs_bin_path=str(node),
+        script_path=str(tmp_path / "resource" / "node_modules" / "pnpm" / "dist" / "pnpm.mjs"),
+        module_path="module",
+        verbose=True,
+    )
+    env = {"PATH": "/missing-system-tools"}
+
+    package_manager._exec_command(
+        ["argument with spaces"],
+        cwd=str(tmp_path),
+        include_defaults=False,
+        script_path=str(launcher) if prebuilder else None,
+        env=env,
+    )
+
+    output = capsys.readouterr().err
+    assert f'&& {launcher.name} argument with spaces' in output
+    if native:
+        assert 'stdout: argument with spaces\n' in output
+        assert 'selected-node:' not in output
+    else:
+        assert f'stdout: selected-node: {launcher}' in output
+        assert 'selected-node: argument with spaces' in output
+    assert env == {"PATH": "/missing-system-tools"}

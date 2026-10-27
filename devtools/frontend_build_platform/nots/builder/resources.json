@@ -1,22 +1,24 @@
 {
   "info": {
-    "created": "2026-10-26T16:26:51Z",
-    "commit": "00b1c65de7af61765f059fa04759f1a6a0d7a585",
-    "branch": "FBP-3594-pnpm-local-walk",
-    "dirty": false
+    "created": "2026-10-26T22:34:06.643Z",
+    "pr": {
+      "id": 16706636,
+      "author": "baymer",
+      "summary": "FBP-3599: запускать инструменты nots через PATH"
+    }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14131149202"
+      "uri": "sbr:14136662741"
     },
     "darwin-arm64": {
-      "uri": "sbr:14131149971"
+      "uri": "sbr:14136660601"
     },
     "linux": {
-      "uri": "sbr:14131147535"
+      "uri": "sbr:14136667344"
     },
     "linux-aarch64": {
-      "uri": "sbr:14131148467"
+      "uri": "sbr:14136664919"
     }
   }
 }

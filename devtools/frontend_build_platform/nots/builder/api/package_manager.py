@@ -16,7 +16,7 @@ from build.plugins.lib.nots.package_manager.utils import (
     build_pj_path,
 )
 from .pnpm_workspace import PnpmWorkspace, pnpm_defaults, pnpm_runtime_env
-from .utils import copy_writable_file
+from .utils import copy_writable_file, get_pnpm_bin
 from build.plugins.lib.nots.package_manager.common_config import (
     load_common_config,
     rebase_pnpm_settings,
@@ -248,11 +248,19 @@ class PackageManager(BasePackageManager):
         if self.ld_library_path:
             cmd_env["LD_LIBRARY_PATH"] = self.ld_library_path
 
-        cmd = (
-            [self.nodejs_bin_path, script_path or self.script_path]
-            + args
-            + (self._get_default_options() if include_defaults else [])
+        executable = script_path or get_pnpm_bin(self.script_path)
+        cmd_env["PATH"] = os.pathsep.join(
+            path
+            for path in (
+                os.path.dirname(executable),
+                os.path.dirname(self.nodejs_bin_path),
+                os.path.dirname(get_pnpm_bin(self.script_path)),
+                cmd_env.get("PATH"),
+            )
+            if path
         )
+        command = os.path.basename(script_path) if script_path else "pnpm"
+        cmd = [command] + args + (self._get_default_options() if include_defaults else [])
         p = subprocess.Popen(
             cmd,
             cwd=cwd,

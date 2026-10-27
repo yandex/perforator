@@ -195,7 +195,7 @@ class TsLibraryBuilder(BaseBuilder):
                 package_json = json.load(package_json_file)
             build_command = package_json.get("scripts", {}).get(self.options.build_script)
 
-        args = [self.options.nodejs_bin, '--run', self.options.build_script]
+        args = ['node', '--run', self.options.build_script]
         env = self._get_envs()
 
         try:

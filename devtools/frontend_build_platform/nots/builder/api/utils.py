@@ -251,6 +251,14 @@ def print_cmd_output(stdout: str, stderr: str):
         sys.stderr.write(f"{click.style('_exec stderr:', fg='yellow')}\n{stderr}\n")
 
 
+def get_pnpm_bin(script_path: str) -> str:
+    """Resolve the package launcher for legacy PM_SCRIPT bundle paths."""
+    package_dir = os.path.dirname(os.path.dirname(script_path))
+    if os.path.basename(package_dir) == "pnpm" and os.path.basename(os.path.dirname(package_dir)) == "node_modules":
+        return os.path.join(os.path.dirname(package_dir), ".bin", "pnpm")
+    return script_path
+
+
 @timeit
 def popen(args: list[str], env: dict[str, str], cwd: str, verbose: bool = False, command_comment: str | None = None):
     if verbose:
