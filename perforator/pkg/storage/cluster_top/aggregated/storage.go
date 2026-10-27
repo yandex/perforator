@@ -201,7 +201,7 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 			Where("generation = ?", generation).
 			Where("event_type = ?", clusterTopEventType).
 			GroupBy(groupBy).
-			OrderBy(orderByCycles)
+			OrderBy(orderByCycles, "service ASC")
 	default:
 		return nil, fmt.Errorf("unknown aggregation type: %s", aggregationType)
 	}
