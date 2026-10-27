@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -14,9 +15,11 @@ import (
 )
 
 type clusterTopQueryOptions struct {
+	groupBy    string
 	generation string
 	sort       string
 	search     string
+	function   string
 	limit      uint64
 	offset     uint64
 }
@@ -41,12 +44,14 @@ type clusterTopQueryOutput struct {
 	Metric     string                     `json:"metric"`
 	Sort       string                     `json:"sort"`
 	Search     string                     `json:"search,omitempty"`
+	Function   string                     `json:"function,omitempty"`
+	GroupBy    string                     `json:"group_by"`
 	Items      []clusterTopItem           `json:"items"`
 	Pagination clusterTopPage             `json:"pagination"`
 }
 
 func newClusterTopFunctionsCommand(common *clusterTopOptions) *cobra.Command {
-	opts := &clusterTopQueryOptions{}
+	opts := &clusterTopQueryOptions{groupBy: "functions"}
 	cmd := &cobra.Command{
 		Use:   "functions",
 		Short: "Show the top functions or search their names",
@@ -59,12 +64,35 @@ func newClusterTopFunctionsCommand(common *clusterTopOptions) *cobra.Command {
 			return runClusterTopQuery(cmd, common, opts)
 		},
 	}
+	cmd.Flags().StringVar(&opts.search, "search", "", "Substring to search in function names")
+	addClusterTopQueryFlags(cmd, opts)
+	return cmd
+}
+
+func newClusterTopServicesCommand(common *clusterTopOptions) *cobra.Command {
+	opts := &clusterTopQueryOptions{groupBy: "services"}
+	cmd := &cobra.Command{
+		Use:   "services",
+		Short: "Show services using an exact function",
+		Long: "Show services ordered by descending self or cumulative CPU for an exact, full function name.\n" +
+			"Estimated average CPU over the generation interval.\n" +
+			"Self and cumulative percentages are relative to this function's respective totals across services.\n\n" +
+			clusterTopExperimental,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runClusterTopQuery(cmd, common, opts)
+		},
+	}
+	cmd.Flags().StringVar(&opts.function, "function", "", "Exact, full function name (required)")
+	addClusterTopQueryFlags(cmd, opts)
+	return cmd
+}
+
+func addClusterTopQueryFlags(cmd *cobra.Command, opts *clusterTopQueryOptions) {
 	cmd.Flags().StringVar(&opts.generation, "generation", "latest", "Generation ID or latest (highest completed ID)")
 	cmd.Flags().StringVar(&opts.sort, "sort", "self", "Sort descending by self or cumulative CPU")
-	cmd.Flags().StringVar(&opts.search, "search", "", "Substring to search in function names")
 	cmd.Flags().Uint64Var(&opts.limit, "limit", 50, "Page size (1–1000)")
 	cmd.Flags().Uint64Var(&opts.offset, "offset", 0, "Number of entries to skip")
-	return cmd
 }
 
 func (o *clusterTopQueryOptions) request() (*perforator.ClusterTopRequest, error) {
@@ -92,7 +120,12 @@ func (o *clusterTopQueryOptions) request() (*perforator.ClusterTopRequest, error
 	if o.offset > math.MaxInt64-o.limit {
 		return nil, fmt.Errorf("--offset is too large")
 	}
-	if o.search != "" {
+	if o.groupBy == "services" {
+		if strings.TrimSpace(o.function) == "" {
+			return nil, fmt.Errorf("--function must be an exact, non-empty function name")
+		}
+		req.FunctionPattern = &o.function
+	} else if o.search != "" {
 		req.FunctionPattern = &o.search
 	}
 	return req, nil
@@ -143,7 +176,12 @@ func runClusterTopQuery(cmd *cobra.Command, common *clusterTopOptions, opts *clu
 		return err
 	}
 	req.Generation = generation.ID
-	response, err := api.GetClusterTopAggregatedByFunction(ctx, req)
+	var response *perforator.ClusterTopResponse
+	if opts.groupBy == "services" {
+		response, err = api.GetClusterTopAggregatedByService(ctx, req)
+	} else {
+		response, err = api.GetClusterTopAggregatedByFunction(ctx, req)
+	}
 	if err != nil {
 		return err
 	}
@@ -152,6 +190,8 @@ func runClusterTopQuery(cmd *cobra.Command, common *clusterTopOptions, opts *clu
 		Metric:     "estimated_average_cpu",
 		Sort:       opts.sort,
 		Search:     opts.search,
+		Function:   opts.function,
+		GroupBy:    opts.groupBy,
 		Items:      make([]clusterTopItem, 0, len(response.GetInstances())),
 		Pagination: clusterTopPage{Offset: opts.offset, Limit: opts.limit, HasMore: response.GetHasMore()},
 	}
@@ -198,6 +238,11 @@ func writeClusterTopTable(cmd *cobra.Command, result clusterTopQueryOutput) erro
 		return err
 	}
 	w := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
+	if result.Function != "" {
+		if _, err := fmt.Fprintf(out, "Function: %q\n", result.Function); err != nil {
+			return err
+		}
+	}
 	if _, err := fmt.Fprintln(w, "SELF CPU\tCUMULATIVE CPU\tSELF %\tCUMULATIVE %\tNAME"); err != nil {
 		return err
 	}

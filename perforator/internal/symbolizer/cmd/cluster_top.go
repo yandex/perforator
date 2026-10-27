@@ -51,6 +51,7 @@ func newClusterTopCommand() *cobra.Command {
 	cmd.PersistentFlags().BoolVar(&opts.json, "json", false, "Write JSON instead of a human-readable table")
 	cmd.AddCommand(newClusterTopGenerationsCommand(opts))
 	cmd.AddCommand(newClusterTopFunctionsCommand(opts))
+	cmd.AddCommand(newClusterTopServicesCommand(opts))
 	return cmd
 }
 
