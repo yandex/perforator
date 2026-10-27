@@ -220,7 +220,7 @@
   },
   "@rspack/core": {
     "title": "rspack Core",
-    "description": "Альтернативный сборщик frontend проектов\n\nВ tier-0 используется в модуле/макросе [`TS_RSPACK()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_RSPACK).",
+    "description": "Альтернативный сборщик frontend проектов\n\nВ tier-0 используется через [`TS_LIBRARY()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_LIBRARY) с командой сборки в `TS_BUILD_SCRIPT`.",
     "type": "NPM_PACKAGE",
     "default": "1.7.8",
     "links": {
@@ -3279,7 +3279,7 @@
   },
   "next": {
     "title": "Next.js",
-    "description": "Сборщик-бандлер от проекта Next.js\n\nОчень opinionated, но кому-то подходит.\n\nВ tier-0 используется в модуле/макросе [`TS_NEXT()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_NEXT).",
+    "description": "Сборщик-бандлер от проекта Next.js\n\nОчень opinionated, но кому-то подходит.\n\nВ tier-0 используется через [`TS_LIBRARY()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_LIBRARY) с командой сборки в `TS_BUILD_SCRIPT`.",
     "type": "NPM_PACKAGE",
     "default": "16.1.7",
     "links": {
