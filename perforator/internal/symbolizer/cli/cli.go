@@ -42,11 +42,15 @@ type App struct {
 }
 
 func New(config *Config) (*App, error) {
+	return NewWithContext(context.Background(), config)
+}
+
+func NewWithContext(parent context.Context, config *Config) (*App, error) {
 	config.fillDefault()
 
 	var err error
 
-	ctx, cancel := context.WithTimeout(context.Background(), config.Timeout)
+	ctx, cancel := context.WithTimeout(parent, config.Timeout)
 	defer func() {
 		if err != nil {
 			cancel()

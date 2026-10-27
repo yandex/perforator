@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -49,22 +50,19 @@ func newClusterTopCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&opts.logLevel, "log-level", "warn", "Logging level")
 	cmd.PersistentFlags().BoolVar(&opts.json, "json", false, "Write JSON instead of a human-readable table")
 	cmd.AddCommand(newClusterTopGenerationsCommand(opts))
+	cmd.AddCommand(newClusterTopFunctionsCommand(opts))
 	return cmd
 }
 
-func (o *clusterTopOptions) connect() (perforator.ClusterTopClient, func(), error) {
+func newClusterTopApp(ctx context.Context, o *clusterTopOptions) (*cli.App, error) {
 	if o.timeout <= 0 {
-		return nil, nil, fmt.Errorf("--timeout must be positive")
+		return nil, fmt.Errorf("--timeout must be positive")
 	}
-	app, err := cli.New(&cli.Config{
+	return cli.NewWithContext(ctx, &cli.Config{
 		LogLevel: o.logLevel,
 		Timeout:  o.timeout,
 		Client:   &client.Config{URL: o.url},
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-	return app.Client().ClusterTop(), app.Shutdown, nil
 }
 
 func makeClusterTopGenerationOutput(g *perforator.ClusterTopGeneration) (clusterTopGenerationOutput, error) {
@@ -100,14 +98,12 @@ func newClusterTopGenerationsCommand(opts *clusterTopOptions) *cobra.Command {
 		Long:  "List generation IDs, data intervals and statuses.\n\n" + clusterTopExperimental,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx, cancel := context.WithTimeout(cmd.Context(), opts.timeout)
-			defer cancel()
-			api, shutdown, err := opts.connect()
+			app, err := newClusterTopApp(cmd.Context(), opts)
 			if err != nil {
 				return err
 			}
-			defer shutdown()
-			response, err := api.ListClusterTopGenerations(ctx, &perforator.ListClusterTopGenerationRequest{})
+			defer app.Shutdown()
+			response, err := app.Client().ClusterTop().ListClusterTopGenerations(app.Context(), &perforator.ListClusterTopGenerationRequest{})
 			if err != nil {
 				return err
 			}
@@ -120,13 +116,7 @@ func newClusterTopGenerationsCommand(opts *clusterTopOptions) *cobra.Command {
 				generations = append(generations, item)
 			}
 			slices.SortFunc(generations, func(a, b clusterTopGenerationOutput) int {
-				if a.ID > b.ID {
-					return -1
-				}
-				if a.ID < b.ID {
-					return 1
-				}
-				return 0
+				return cmp.Compare(b.ID, a.ID)
 			})
 			if opts.json {
 				return writeClusterTopJSON(cmd.OutOrStdout(), struct {
