@@ -159,6 +159,7 @@ type profilerMetrics struct {
 	unresolvedPerfEventsForSamples metrics.Counter
 
 	droppedProfiles metrics.Counter
+	failedProfiles  metrics.Counter
 
 	sampleProcessingLatencySum metrics.Counter
 	sampleProcessingCount      metrics.Counter
@@ -896,6 +897,7 @@ func (p *Profiler) registerMetrics(r metrics.Registry) error {
 	p.metrics.unresolvedPerfEventsForSamples = r.Counter("perf_event.unresolved.count")
 
 	p.metrics.droppedProfiles = r.WithTags(Labels{"kind": "dropped"}).Counter("profiles.count")
+	p.metrics.failedProfiles = r.WithTags(Labels{"kind": "failed"}).Counter("profiles.count")
 
 	r.WithTags(Labels{"kind": "tracked"}).FuncIntGauge("cgroup.count", func() int64 {
 		if p.cgroups == nil {
@@ -1227,6 +1229,7 @@ func (p *Profiler) trySaveProfile(ctx context.Context, profile client.LabeledPro
 
 	err := p.storage.StoreProfile(ctx, profile)
 	if err != nil {
+		p.metrics.failedProfiles.Inc()
 		p.log.Error("Failed to save profile", log.Error(err))
 		return
 	}

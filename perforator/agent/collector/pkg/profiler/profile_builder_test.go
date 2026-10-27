@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/yandex/perforator/library/go/core/metrics/solomon"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileresult"
@@ -125,13 +126,17 @@ func TestSaveSerializedProfileCounts(t *testing.T) {
 			storage := client.NewInMemoryStorage(&client.InMemoryStorageConfig{})
 			listener := sampleStoredListener{}
 			p := &Profiler{storage: storage, eventListener: listener, log: xlog.ForTest(t).Logger()}
+			failedProfiles := solomon.NewCounter("profiles.count", 0)
+			p.metrics.failedProfiles = &failedProfiles
 			result := client.LabeledProfile{Profile: r, Labels: flushed.Labels}
 			p.trySaveProfile(t.Context(), result)
+			require.Equal(t, int64(0), failedProfiles.Value())
 			require.Equal(t, test.stored, listener)
 			require.Len(t, storage.Profiles, 1)
 
 			p.storage = &failingProfileStorage{storage}
 			p.trySaveProfile(t.Context(), result)
+			require.Equal(t, int64(1), failedProfiles.Value())
 			require.Equal(t, test.stored, listener)
 			require.Len(t, storage.Profiles, 1)
 
@@ -140,6 +145,7 @@ func TestSaveSerializedProfileCounts(t *testing.T) {
 			require.Len(t, empty.Profiles, 1)
 			require.Zero(t, empty.Profiles[0].Meta.SampleCount)
 			p.trySaveProfile(t.Context(), client.LabeledProfile{Profile: empty.Profiles[0]})
+			require.Equal(t, int64(1), failedProfiles.Value())
 			require.Len(t, storage.Profiles, 1)
 			require.Equal(t, test.stored, listener)
 		})

@@ -1,0 +1,3 @@
+RECURSE(
+    xxh32
+)
