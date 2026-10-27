@@ -65,17 +65,7 @@ func TestClusterTopPagination(t *testing.T) {
 	}
 }
 
-// oneCpuHourCycles is the minimum CPU cycle count that produces exactly 1.0 cpu-hour
-// when passed through fromCpuCyclesToCpuHours. The function uses two integer big.Int
-// divisions, so smaller values silently truncate to 0:
-//
-//	cycles * perforatorSamplingModulo (30)
-//	────────────────────────────────── = cpuSeconds  (integer division)
-//	     estimatedCpuFreq (2.6e9)
-//
-//	cpuSeconds / intervalSec (3600) = hours  (integer division)
-//
-// Solving for cycles == 1 hour: 3600 * 2_600_000_000 / 30 = 312_000_000_000.
+// oneCpuHourCycles accounts for the estimated frequency and sampling multiplier.
 const oneCpuHourCycles = int64(312_000_000_000)
 
 // TestFromCpuCyclesToCpuHours directly exercises the cycle → cpu-hour conversion so
@@ -84,24 +74,37 @@ const oneCpuHourCycles = int64(312_000_000_000)
 func TestFromCpuCyclesToCpuHours(t *testing.T) {
 	cases := []struct {
 		name      string
-		cyclesN   int64 // multiple of oneCpuHourCycles
+		cycles    int64
 		wantHours float64
 	}{
 		{"zero cycles", 0, 0},
-		{"one hour", 1, 1},
-		{"five hours", 5, 5},
-		{"ten hours", 10, 10},
+		{"single cycle", 1, 1.0 / float64(oneCpuHourCycles)},
+		{"fraction of a second", oneCpuHourCycles / 12000, 1.0 / 12000},
+		{"half hour", oneCpuHourCycles / 2, 0.5},
+		{"one hour", oneCpuHourCycles, 1},
+		{"one and a half hours", 3 * oneCpuHourCycles / 2, 1.5},
+		{"five hours", 5 * oneCpuHourCycles, 5},
+		{"ten hours", 10 * oneCpuHourCycles, 10},
+		{"rounded only at the end", 1<<53 + 1, (1<<53 + 1) / 312_000_000_000.0},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cycles := big.NewInt(tc.cyclesN * oneCpuHourCycles)
+			cycles := big.NewInt(tc.cycles)
 			got := fromCpuCyclesToCpuHours(cycles)
-			if got != tc.wantHours {
-				t.Errorf("fromCpuCyclesToCpuHours(%d) = %v, want %v", cycles, got, tc.wantHours)
-			}
+			require.Equal(t, tc.wantHours, got)
+			require.Equal(t, tc.cycles, cycles.Int64(), "conversion must not modify its input")
 		})
 	}
+
+	t.Run("maximum UInt128", func(t *testing.T) {
+		cycles := new(big.Int).Lsh(big.NewInt(1), 128)
+		cycles.Sub(cycles, big.NewInt(1))
+		original := new(big.Int).Set(cycles)
+		const wantHours = (1<<128 - 1) / 312_000_000_000.0
+		require.Equal(t, wantHours, fromCpuCyclesToCpuHours(cycles))
+		require.Zero(t, cycles.Cmp(original), "conversion must not modify its input")
+	})
 }
 
 // TestGetClusterTopByFunction tests the "show cluster top with functions" user flow:

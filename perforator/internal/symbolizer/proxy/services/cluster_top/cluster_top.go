@@ -54,10 +54,9 @@ const perforatorSamplingModulo = 30
 const intervalSec = 3600
 
 func fromCpuCyclesToCpuHours(cpuCycles *big.Int) float64 {
-	nonSampledCycles := big.NewInt(perforatorSamplingModulo)
-	nonSampledCycles = nonSampledCycles.Mul(cpuCycles, nonSampledCycles)
-	cpuSeconds := nonSampledCycles.Div(nonSampledCycles, big.NewInt(estimatedCpuFreq))
-	hours, _ := cpuSeconds.Div(cpuSeconds, big.NewInt(intervalSec)).Float64()
+	numerator := new(big.Int).Mul(cpuCycles, big.NewInt(perforatorSamplingModulo))
+	denominator := big.NewInt(estimatedCpuFreq * intervalSec)
+	hours, _ := new(big.Rat).SetFrac(numerator, denominator).Float64()
 	return hours
 }
 
