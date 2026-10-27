@@ -1,0 +1,9 @@
+GO_PROGRAM()
+
+LICENSE(MIT)
+
+VERSION(v1.2.7)
+
+ALL_GO_SRCS()
+
+END()

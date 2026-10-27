@@ -243,7 +243,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/alitto/pond v1.9.2
 	github.com/anatol/luks.go v0.0.0-20211210165108-5d9a15b4f614
-	github.com/andybalholm/brotli v1.2.0
+	github.com/andybalholm/brotli v1.2.7
 	github.com/andybalholm/cascadia v1.3.4
 	github.com/annetutil/gnetcli v1.3.22
 	github.com/antchfx/htmlquery v1.3.2

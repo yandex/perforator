@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v1.2.0)
+VERSION(v1.2.7)
 
 SRCS(
     backward_references.go
@@ -30,6 +30,7 @@ SRCS(
     encode.go
     encoder.go
     encoder_dict.go
+    encoder_fast.go
     entropy_encode.go
     entropy_encode_static.go
     fast_log.go
@@ -72,11 +73,14 @@ SRCS(
 GO_TEST_SRCS(
     # brotli_test.go
     example_test.go
+    http_test.go
 )
 
 END()
 
 RECURSE(
+    corpus-test
+    flate
     gotest
     matchfinder
 )

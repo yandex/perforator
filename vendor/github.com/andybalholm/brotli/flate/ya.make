@@ -1,0 +1,15 @@
+GO_LIBRARY()
+
+LICENSE(MIT)
+
+VERSION(v1.2.7)
+
+ALL_GO_SRCS()
+
+ALL_GO_TEST_SRCS()
+
+END()
+
+RECURSE(
+    gotest
+)

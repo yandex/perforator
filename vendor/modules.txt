@@ -4624,9 +4624,11 @@ github.com/anchore/go-struct-converter
 # github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 ## explicit
 github.com/andreyvit/diff
-# github.com/andybalholm/brotli v1.2.0
+# github.com/andybalholm/brotli v1.2.7
 ## explicit; go 1.22
 github.com/andybalholm/brotli
+github.com/andybalholm/brotli/corpus-test
+github.com/andybalholm/brotli/flate
 github.com/andybalholm/brotli/matchfinder
 # github.com/andybalholm/cascadia v1.3.4
 ## explicit; go 1.25.0
