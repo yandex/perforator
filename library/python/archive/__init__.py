@@ -338,3 +338,13 @@ def get_archive_filter_name(filename):
 def get_archive_filenames(filename):
     with libarchive.Archive(filename) as archive:
         return [entry.pathname for entry in archive]
+
+
+def get_unpacked_size(archive_path):
+    """Return the total size in bytes of regular-file payloads, excluding links."""
+    # Use a descriptor so temporary filenames cannot restrict format detection.
+    # Entry names do not affect sizes; accept arbitrary filename bytes.
+    with open(archive_path, "rb") as source, libarchive.Archive(
+        source.fileno(), mode="rb", encoding="latin-1"
+    ) as archive:
+        return sum(entry.size for entry in archive if entry.isfile() and not entry.ishardlink())
