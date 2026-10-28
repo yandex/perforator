@@ -12,8 +12,7 @@ type CgroupConfig struct {
 	// Example - `porto/ISS-AGENT--vla-web-search-tier0-at-wljxthrh-106/pod_agent_box_base/workload_hamster_start`
 	Name string `yaml:"name"`
 
-	// Labels to put into resulting profile
-	Labels map[string]string `yaml:"labels,omitempty"`
+	Opts []TraceOption
 }
 
 type trackedCgroup struct {

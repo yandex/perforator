@@ -91,6 +91,7 @@ type Profiler struct {
 	mounts           *mountinfo.Watcher
 	kallsyms         *kallsyms.KallsymsResolver
 	events           map[perfevent.Type]*PerfEvent
+
 	// uprobes which are created on Profiler startup
 	initialUprobes []Uprobe
 	debugmu        sync.Mutex
@@ -1280,6 +1281,17 @@ func (p *Profiler) runProcessDiscovery(ctx context.Context) error {
 	}
 }
 
+// makeSimpleSampleConsumer is responsible for creating all non-CPO sample consumers
+func (p *Profiler) makeSimpleSampleConsumer(opts ...TraceOption) *simpleSampleConsumer {
+	effopts := defaultTraceOptions()
+	for _, opt := range opts {
+		opt(effopts)
+	}
+
+	labels := p.enrichProfileLabels(effopts.profileLabels)
+	return NewSimpleSampleConsumer(p, effopts.features, labels, p.uprobeRegistry.Resolver)
+}
+
 // Register cgroup in the profiler.
 // If cgroup name is empty, trace whole system.
 // Thread safety: it is safe to run AddCgroup concurrently with Run/AddCgroup.
@@ -1292,10 +1304,10 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 	p.targetsmu.Lock()
 	defer p.targetsmu.Unlock()
 
-	conf.Labels = p.enrichProfileLabels(conf.Labels)
+	consumer := p.makeSimpleSampleConsumer(conf.Opts...)
 
 	// TODO: For now we do not provide a way to enable features through AddCgroup
-	cg, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels, p.uprobeRegistry.Resolver), p.bpf.State(), p.log)
+	cg, err := p.newTrackedCgroup(conf, consumer, p.bpf.State(), p.log)
 	if err != nil {
 		return err
 	}
@@ -1308,9 +1320,9 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 	}, true /*=reopenEventIfExists*/)
 }
 
-func (p *Profiler) TraceWholeSystem(labels map[string]string) error {
-	labels = p.enrichProfileLabels(labels)
-	p.wholeSystem = NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), labels, p.uprobeRegistry.Resolver)
+func (p *Profiler) TraceWholeSystem(opts ...TraceOption) error {
+	consumer := p.makeSimpleSampleConsumer(opts...)
+	p.wholeSystem = consumer
 	return p.bpf.State().PatchConfig(func(conf *unwinder.ProfilerConfig) error {
 		conf.TraceWholeSystem = true
 		return nil
@@ -1365,15 +1377,9 @@ func WithProfileLabels(labels map[string]string) TraceOption {
 	}
 }
 
-func (p *Profiler) TracePid(pid linux.CurrentNamespacePID, optAppliers ...TraceOption) (Closer, error) {
-	opts := defaultTraceOptions()
-	for _, optApplier := range optAppliers {
-		optApplier(opts)
-	}
-
-	labels := p.enrichProfileLabels(opts.profileLabels)
-
-	trackedProcess, err := p.newTrackedProcess(pid, NewSimpleSampleConsumer(p, opts.features, labels, p.uprobeRegistry.Resolver), p.bpf.State())
+func (p *Profiler) TracePid(pid linux.CurrentNamespacePID, opts ...TraceOption) (Closer, error) {
+	consumer := p.makeSimpleSampleConsumer(opts...)
+	trackedProcess, err := p.newTrackedProcess(pid, consumer, p.bpf.State())
 	if err != nil {
 		return nil, err
 	}
@@ -1409,16 +1415,16 @@ func (p *Profiler) DeleteCgroup(name string) error {
 	return p.cgroups.Delete(name)
 }
 
-// see AddCgroup for input requirements
+// see AddCgroup for input requirements.
 func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
 	p.targetsmu.Lock()
 	defer p.targetsmu.Unlock()
 	trackedCgroups := make([]*cgroups.TrackedCgroup, 0, len(configs))
 	for _, conf := range configs {
-		conf.Labels = p.enrichProfileLabels(conf.Labels)
+		consumer := p.makeSimpleSampleConsumer(conf.Opts...)
 
 		// TODO: For now we do not provide a way to enable features through TraceCgroups
-		profiledCgroup, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels, p.uprobeRegistry.Resolver), p.bpf.State(), p.log)
+		profiledCgroup, err := p.newTrackedCgroup(conf, consumer, p.bpf.State(), p.log)
 		if err != nil {
 			return err
 		}

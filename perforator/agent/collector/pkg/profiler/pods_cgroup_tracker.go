@@ -72,8 +72,10 @@ func (t *PodsCgroupTracker) buildCgroupConfig(
 	}
 
 	cgroupConfig := &CgroupConfig{
-		Name:   pod.CgroupName(),
-		Labels: labels,
+		Name: pod.CgroupName(),
+		Opts: []TraceOption{
+			WithProfileLabels(labels),
+		},
 	}
 
 	return cgroupConfig

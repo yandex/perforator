@@ -455,7 +455,7 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 		}
 	}
 	if opts.wholeSystem {
-		err = prof.TraceWholeSystem(nil)
+		err = prof.TraceWholeSystem()
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to trace whole system: %w", err)
 		}

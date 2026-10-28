@@ -154,8 +154,10 @@ func run() error {
 	for _, cgroup := range cgroups {
 		cgroupsConfig.Cgroups = append(cgroupsConfig.Cgroups, &profiler.CgroupConfig{
 			Name: cgroup,
-			Labels: map[string]string{
-				"host": hostname,
+			Opts: []profiler.TraceOption{
+				profiler.WithProfileLabels(map[string]string{
+					"host": hostname,
+				}),
 			},
 		})
 	}
