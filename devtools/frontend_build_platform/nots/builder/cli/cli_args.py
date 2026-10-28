@@ -24,6 +24,8 @@ def register_base_args(parser: ArgumentParser) -> None:
     parser.add_argument('--arcadia-build-root', required=True, help="Absolute path for the temporary build directory")
     parser.add_argument('--moddir', required=True, help="Relative path to the target from the root of Arcadia")
 
+    parser.add_argument("--build-suffix", default=argparse.SUPPRESS, help="Isolated TS_LIBRARY_FOR build suffix")
+
     # Essential
     parser.add_argument('--nodejs-bin', required=True, help="Path to the 'node' executable file")
     parser.add_argument('--bun-bin', required=False, help="Path to the 'bun' executable file")
@@ -177,6 +179,12 @@ def parse_args(parser, custom_args: list[str] = None) -> AllOptions:
     # Calculated arguments
     curdir = os.path.join(args.arcadia_root, args.moddir)
     setattr(args, 'curdir', curdir)
+
+    args.prepared_deps_moddir = args.moddir if getattr(args, "build_suffix", "") else None
+    if args.prepared_deps_moddir:
+        args.moddir += args.build_suffix
+    else:
+        del args.prepared_deps_moddir
 
     bindir = os.path.join(args.arcadia_build_root, args.moddir)
     setattr(args, 'bindir', bindir)

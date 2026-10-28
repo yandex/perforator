@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import re
 import shutil
 import tempfile
 import textwrap
@@ -14,10 +15,12 @@ from build.plugins.lib.nots.package_manager import (
     utils as pm_utils,
 )
 from devtools.frontend_build_platform.libraries.logging import get_logger, timeit
+from build.plugins.lib.nots.package_manager.common_config import rebase_pnpm_settings
 
 from .base_builder import BaseBuilder
 from ..models import BaseBuildersOptions, BuildError
 from ..ram_disk import RamDisk, RamDiskUsage
+from ..pnpm_workspace import PnpmWorkspace
 from ..utils import copy_files_with_exclusions, popen
 
 from ..create_node_modules import (
@@ -50,6 +53,7 @@ class TsLibraryBuilderOptions(BaseTsLibraryBuilderOptions):
 
 class TsLibraryBuilder(BaseBuilder):
     def build(self):
+        self._prepare_library_for_dependencies()
         node_modules_restored = self._restore_node_modules_to_ram_disk()
         self._prepare_bindir()
 
@@ -63,6 +67,89 @@ class TsLibraryBuilder(BaseBuilder):
         self._build()
 
         bundle_workspace_node_modules(self.options, node_modules_context)
+
+    @timeit
+    def _prepare_library_for_dependencies(self):
+        prepared_deps_moddir = getattr(self.options, "prepared_deps_moddir", None)
+        if prepared_deps_moddir:
+            prepared_dir = os.path.join(self.options.arcadia_build_root, prepared_deps_moddir)
+            os.makedirs(self.options.bindir, exist_ok=True)
+            self._relocate_library_for_manifests(prepared_dir)
+            source = os.path.join(prepared_dir, "node_modules.layer")
+            if os.path.isfile(source):
+                shutil.copyfile(source, os.path.join(self.options.bindir, "node_modules.layer"))
+            elif getattr(self.options, "hermetic_node_modules", False):
+                # The parent may opt out with DISABLE_HERMETIC_NODE_MODULES().
+                # Its prepared dependencies then need installation in this workspace.
+                self.options.hermetic_node_modules = False
+
+    def _relocate_library_for_manifests(self, prepared_dir):
+        from ..package_manager import PackageManager
+
+        target_dir = self.options.bindir
+
+        def relative(value):
+            return os.path.relpath(os.path.normpath(os.path.join(prepared_dir, value)), target_dir)
+
+        def specifier(value):
+            match = re.match(r"^(workspace:|file:|link:)(.+)$", value)
+            if not match or os.path.isabs(match[2]) or (match[1] == "workspace:" and not match[2].startswith(".")):
+                return value
+            rebased = relative(match[2])
+            return match[1] + (rebased if rebased.startswith(".") else "./" + rebased)
+
+        package_json = PackageJson.load(pm_utils.build_pj_path(prepared_dir))
+        for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
+            if section in package_json.data:
+                package_json.data[section] = {
+                    name: specifier(value) for name, value in package_json.data[section].items()
+                }
+        if "pnpm" in package_json.data:
+            package_json.data["pnpm"] = rebase_pnpm_settings(package_json.data["pnpm"], prepared_dir, target_dir)
+        package_json.write(pm_utils.build_pj_path(target_dir))
+
+        workspace_path = pm_utils.build_ws_config_path(prepared_dir)
+        if os.path.isfile(workspace_path):
+            workspace = PnpmWorkspace.load(workspace_path)
+            workspace.packages = {"." if value == "." else relative(value) for value in workspace.packages}
+            workspace.settings = rebase_pnpm_settings(workspace.settings, prepared_dir, target_dir)
+            workspace.catalogs = {
+                group: {name: specifier(value) for name, value in entries.items()}
+                for group, entries in workspace.catalogs.items()
+            }
+            workspace.write(pm_utils.build_ws_config_path(target_dir))
+
+        lockfile = PackageManager.load_lockfile(pm_utils.build_lockfile_path(prepared_dir))
+
+        def file_reference(match):
+            value = match[1]
+            return "file:" + (value if os.path.isabs(value) else relative(value))
+
+        def rebase_lock(value, key=None):
+            if isinstance(value, dict):
+                return {rebase_lock(k): rebase_lock(v, k) for k, v in value.items()}
+            if isinstance(value, list):
+                return [rebase_lock(item) for item in value]
+            if isinstance(value, str) and key != "specifier":
+                if key in ("directory", "path"):
+                    return relative(value)
+                # Injected package IDs also occur in snapshot keys, dependency
+                # versions and peer contexts. Keep every reference consistent.
+                return re.sub(r"file:([^()]+)", file_reference, value)
+            return value
+
+        lockfile.data = rebase_lock(lockfile.data)
+        importers = lockfile.data.get("importers", {})
+        lockfile.data["importers"] = {"." if key == "." else relative(key): value for key, value in importers.items()}
+        for dependencies in importers.get(".", {}).values():
+            if isinstance(dependencies, dict):
+                for dependency in dependencies.values():
+                    if isinstance(dependency, dict):
+                        if "specifier" in dependency:
+                            dependency["specifier"] = specifier(dependency["specifier"])
+                        if str(dependency.get("version", "")).startswith("link:"):
+                            dependency["version"] = specifier(dependency["version"])
+        lockfile.write(pm_utils.build_lockfile_path(target_dir))
 
     def __init__(self, options: TsLibraryBuilderOptions):
         self._ram_disk_usage = RamDiskUsage.NONE
@@ -108,6 +195,14 @@ class TsLibraryBuilder(BaseBuilder):
 
         self.options = options
         return True
+
+    @timeit
+    def _get_pack_files(self) -> list[str]:
+        if getattr(self.options, "prepared_deps_moddir", None):
+            # An auxiliary build has its own outputs; the parent's publish files
+            # describe its main build and must not constrain this archive.
+            return self.options.outputs
+        return super()._get_pack_files()
 
     @timeit
     def bundle(self):

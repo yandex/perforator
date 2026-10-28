@@ -1,24 +1,22 @@
 {
   "info": {
-    "created": "2026-10-26T22:34:06.643Z",
-    "pr": {
-      "id": 16706636,
-      "author": "baymer",
-      "summary": "FBP-3599: запускать инструменты nots через PATH"
-    }
+    "created": "2026-10-27T18:30:14Z",
+    "commit": "c3639f9a41f363fb4e0ced410adccd419d7def13",
+    "branch": "FBP-3053-ts-library-for",
+    "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14136662741"
+      "uri": "sbr:14140797874"
     },
     "darwin-arm64": {
-      "uri": "sbr:14136660601"
+      "uri": "sbr:14140798990"
     },
     "linux": {
-      "uri": "sbr:14136667344"
+      "uri": "sbr:14140790372"
     },
     "linux-aarch64": {
-      "uri": "sbr:14136664919"
+      "uri": "sbr:14140796538"
     }
   }
 }

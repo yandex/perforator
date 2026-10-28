@@ -378,3 +378,26 @@ def test_nm_bundle_prod_arg(value, expected):
         f"--nm-bundle yes --nm-bundle-prod {value} create-node-modules --moddir project"
     )
     assert args["nm_bundle_prod"] is expected
+
+
+def test_library_for_separates_source_and_build_paths():
+    args = parse_args(
+        get_args_parser(),
+        BASE_ARGS
+        + [
+            "--build-suffix",
+            "__storybook",
+            "build-library",
+            "--outputs",
+            "storybook-static",
+            "--build-script",
+            "storybook",
+            "--output-file",
+            "/build/project__storybook/output.tar",
+        ],
+    )
+    assert args.curdir == "/source/project"
+    assert args.moddir == "project__storybook"
+    assert args.prepared_deps_moddir == "project"
+    assert args.bindir == "/build/project__storybook"
+    assert args.node_modules_layer == "/build/project__storybook/node_modules.layer"
