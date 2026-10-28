@@ -1253,6 +1253,8 @@ func (s *PerforatorServer) renderProfile(
 		return nil, err
 	}
 
+	trimContextTrampolinePrefix(profile)
+
 	{
 		postprocessResults := interpreterstack.Postprocess(profile, interpreterstack.OptionsFromProto(format.Postprocessing)...)
 		if len(postprocessResults.Python.Errors) > 0 {
@@ -1274,6 +1276,31 @@ func (s *PerforatorServer) renderProfile(
 		s.metrics.flamegraphBuildTimer.RecordDuration(time.Since(start))
 	}
 	return res, err
+}
+
+func trimContextTrampolinePrefix(profile *pprof.Profile) {
+	for _, sample := range profile.Sample {
+		end := len(sample.Location)
+		if end < 2 || !isContextTrampoline(sample.Location[end-1]) {
+			continue
+		}
+		for end > 1 {
+			previous := sample.Location[end-2]
+			if previous != sample.Location[end-1] && !isContextTrampoline(previous) {
+				break
+			}
+			end--
+		}
+		sample.Location = sample.Location[:end]
+	}
+}
+
+func isContextTrampoline(location *pprof.Location) bool {
+	if len(location.Line) != 1 {
+		return false
+	}
+	function := location.Line[0].Function
+	return function != nil && (function.Name == "ContextTrampoLine" || function.SystemName == "ContextTrampoLine")
 }
 
 func (s *PerforatorServer) maybeUploadProfileWithID(ctx context.Context, profile []byte, id string) (url string, err error) {
