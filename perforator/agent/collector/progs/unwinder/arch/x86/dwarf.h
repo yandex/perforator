@@ -70,6 +70,13 @@ static NOINLINE enum dwarf_unwind_step_result dwarf_unwind_step_fp(struct unwind
         return DWARF_UNWIND_STEP_FAILED;
     }
 
+    if (cfi->fp == 0) {
+        return DWARF_UNWIND_STEP_FINISHED;
+    }
+    if (cfi->fp == DWARF_CFI_UNKNOWN_REGISTER) {
+        return DWARF_UNWIND_STEP_FAILED;
+    }
+
     (*framepointers)++;
     if (!read_return_address((void*)(cfi->fp + 8), &cfi->ip)) {
         metric_increment(METRIC_FP_ERROR_READ_RETURNADDRESS_COUNT);

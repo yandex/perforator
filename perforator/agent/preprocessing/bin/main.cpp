@@ -38,6 +38,7 @@ public:
             break;
 
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kUnsupported:
+        case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kUndefined:
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kCfaMinus8:
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kPltSection:
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kConstant:
@@ -161,6 +162,7 @@ void CountCFAStats(const NPerforator::NBinaryProcessing::NUnwind::UnwindTable& t
             break;
 
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kUnsupported:
+        case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kUndefined:
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kCfaMinus8:
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kPltSection:
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kConstant:

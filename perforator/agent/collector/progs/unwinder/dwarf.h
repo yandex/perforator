@@ -167,7 +167,7 @@ static NOINLINE bool locate_rule(struct unwind_table_page_leaf* page, u64 pc, st
     }
 
     DWARF_TRACE("bs result: %d, from=%llx, to=%llx\n", l, page->pc[l], page->pc[l] + page->ranges[l]);
-    if (page->pc[l] > pc || page->pc[l] + page->ranges[l] < pc) {
+    if (page->pc[l] > pc || page->pc[l] + page->ranges[l] <= pc) {
         return false;
     }
 
@@ -545,16 +545,6 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
         return DWARF_UNWIND_STEP_FAILED;
     }
 
-    /*
-    // According to System V AMD64 ABI (3.4.1 Initial Stack and Register State),
-    // User-space runtime should mark the deepest frame with %rbp set to zero.
-    // https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf
-    if (ctx->cfi.rbp == 0) {
-        DWARF_TRACE("reached bottom of the stack\n");
-        return DWARF_UNWIND_STEP_FINISHED;
-    }
-    */
-
     // Locate unwind table rule for that %rip using page table search.
     struct unwind_rule rule = {};
     if (!dwarf_unwind_locate_rule(ctx, &rule)) {
@@ -562,6 +552,10 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
         metric_increment(METRIC_DWARF_ERROR_NORULEFORINSTRUCTION_COUNT);
         DWARF_TRACE("failed to locate rule, try fp\n");
         return dwarf_unwind_step_fp(&ctx->cfi, &ctx->framepointers);
+    }
+
+    if (rule.cfa.kind == UNWIND_RULE_STOP) {
+        return DWARF_UNWIND_STEP_FINISHED;
     }
 
 #ifdef TRACE_DWARF_UNWINDING
@@ -587,7 +581,7 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
     ctx->cfi = next;
 
     // Done!
-    if (ctx->cfi.ip == (u64)-1) {
+    if (ctx->cfi.ip == 0) {
         return DWARF_UNWIND_STEP_FINISHED;
     }
 

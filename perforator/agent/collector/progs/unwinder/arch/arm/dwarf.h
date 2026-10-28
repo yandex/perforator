@@ -48,11 +48,11 @@ ALWAYS_INLINE bool dwarf_cfi_eval_ra(
 ) {
     if (rule->offset == DWARF_UNWIND_CFA_RULE_UNDEFINED) {
         if (prev->lr == 0 || prev->lr == DWARF_CFI_UNKNOWN_REGISTER) {
-            DWARF_TRACE("RA undefined and LR invalid");
+            DWARF_TRACE("RA rule unavailable and LR invalid");
             return false;
         }
 
-        DWARF_TRACE("RA is undefined, using LR as IP");
+        DWARF_TRACE("RA rule unavailable, using LR as IP");
         next->ip = prev->lr;
 
         if (next->fp != DWARF_CFI_UNKNOWN_REGISTER) {
@@ -106,9 +106,16 @@ static NOINLINE enum dwarf_unwind_step_result dwarf_unwind_step_fp(struct unwind
         return DWARF_UNWIND_STEP_FAILED;
     }
 
+    if (cfi->fp == 0) {
+        return DWARF_UNWIND_STEP_FINISHED;
+    }
+    if (cfi->fp == DWARF_CFI_UNKNOWN_REGISTER) {
+        return DWARF_UNWIND_STEP_FAILED;
+    }
+
     (*framepointers)++;
 
-    cfi->ip = cfi->lr;
+    cfi->ip = cfi->lr == DWARF_CFI_UNKNOWN_REGISTER ? 0 : cfi->lr;
     if (!read_return_address((void*)(cfi->fp + 8), &cfi->lr)) {
         metric_increment(METRIC_FP_ERROR_READ_RETURNADDRESS_COUNT);
         return DWARF_UNWIND_STEP_FAILED;

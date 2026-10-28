@@ -291,8 +291,10 @@ UnwindTable BuildUnwindTableFromEhFrame(llvm::object::ObjectFile* objectFile, co
                 ra.set_dereference(IsDerefLocation(*loc));
 
                 switch (loc.value().getLocation()) {
-                case llvm::dwarf::UnwindLocation::Unspecified:
                 case llvm::dwarf::UnwindLocation::Undefined:
+                    ra.mutable_undefined();
+                    break;
+                case llvm::dwarf::UnwindLocation::Unspecified:
                 case llvm::dwarf::UnwindLocation::Same:
                     // These are meaningless for unwinding
                     ra.mutable_unsupported();

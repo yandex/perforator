@@ -19,6 +19,9 @@ message UnwindRule {
     message Unsupported {
     }
 
+    message Undefined {
+    }
+
     // RA rules:
     message CFAMinus8 {
     }
@@ -54,6 +57,7 @@ message UnwindRule {
         RegisterDerefOffset register_deref_offset = 5;
         PLTSection plt_section = 6;
         Constant constant = 7;
+        Undefined undefined = 8;
     }
 
     bool dereference = 100;

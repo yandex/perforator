@@ -631,7 +631,9 @@ func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int, pageStartPC 
 	}
 
 	// Should we really use separate rule for CfaMinus8?
-	if ra := row.RA(); ra != nil && ra.GetCfaPlusOffset() != nil {
+	if ra := row.RA(); ra != nil && ra.GetUndefined() != nil {
+		rule.Cfa.Kind = unwinder.UnwindRuleStop
+	} else if ra != nil && ra.GetCfaPlusOffset() != nil {
 		offset := ra.GetCfaPlusOffset().GetOffset()
 		rule.Ra = unwinder.RaUnwindRule{Offset: int8(offset)}
 	} else if ra != nil && ra.GetCfaMinus8() != nil {

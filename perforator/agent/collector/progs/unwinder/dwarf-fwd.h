@@ -17,6 +17,7 @@ enum unwind_rule_kind : u8 {
     UNWIND_RULE_REGISTER_DERREF_OFFSET = 4,
     UNWIND_RULE_PLT_SECTION = 5,
     UNWIND_RULE_CONSTANT = 6,
+    UNWIND_RULE_STOP = 7,
 };
 
 struct  __attribute__((packed)) cfa_unwind_rule {
@@ -63,9 +64,10 @@ ALWAYS_INLINE bool read_return_address(void* location, u64* ra) {
         return false;
     }
 
-    // Return address points to the next instruction after the call, not the call itself.
-    // So we need to adjust return address to point to the real call instruction.
-    *ra -= 1;
+    // Return addresses point past the call. Move inside it for symbol and unwind-rule lookup.
+    if (*ra != 0) {
+        *ra -= 1;
+    }
 
     return true;
 }
