@@ -10,9 +10,9 @@
 
 #include <util/datetime/base.h>
 #include <util/digest/city.h>
-#include <util/digest/multi.h>
 #include <util/generic/strbuf.h>
 
+#include <array>
 #include <optional>
 
 
@@ -144,11 +144,12 @@ struct TSampleKeyInfo {
     TStackVec<TLabelId, 8> Labels;
 
     ui64 StableHashValue() const {
-        return MultiHash(
-            *LabelGroup,
+        const std::array<ui64, 3> parts = {
+            static_cast<ui64>(*LabelGroup),
             HashArrayFast(Stacks),
-            HashArrayFast(Labels)
-        );
+            HashArrayFast(Labels),
+        };
+        return HashArrayFast(parts);
     }
 
     Y_DEFAULT_EQUALITY_COMPARABLE_TYPE(TSampleKeyInfo);

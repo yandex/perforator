@@ -4,3 +4,7 @@ tsconfig.tsbuildinfo
 blob-report
 playwright-report
 test-results.json
+src/generated/wasm
+
+ui-build.tar
+test-results

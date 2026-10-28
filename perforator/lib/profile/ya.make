@@ -14,6 +14,8 @@ SRCS(
 )
 
 PEERDIR(
+    contrib/libs/re2
+
     perforator/proto/pprofprofile
     perforator/proto/profile
 
@@ -29,6 +31,8 @@ END()
 
 RECURSE(
     trie
+    wasm
+    wasm/artifact
 )
 
 RECURSE_FOR_TESTS(ut)

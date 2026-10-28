@@ -40,6 +40,20 @@ TEST(AbslHashes, ValueType) {
     }));
 }
 
+TEST(ProfileBuilder, SampleKeyHashIsPlatformIndependent) {
+    TSampleKeyInfo key;
+    EXPECT_EQ(key.StableHashValue(), 0xf08ce8261344b2f0ull);
+
+    key.LabelGroup = TLabelGroupId::FromInternalIndex(5);
+    EXPECT_EQ(key.StableHashValue(), 0x9fedf695fb6a74d1ull);
+
+    key.Stacks = {TStackId::FromInternalIndex(1), TStackId::FromInternalIndex(2)};
+    EXPECT_EQ(key.StableHashValue(), 0x57382e47d27cf429ull);
+
+    key.Labels = {TLabelId::FromInternalIndex(3), TLabelId::FromInternalIndex(4)};
+    EXPECT_EQ(key.StableHashValue(), 0xfd56677d6580427full);
+}
+
 TEST(ProfileBuilder, PreservesSampleTimestamps) {
     const TSampleTimestamp timestamps[] = {
         {10, 900'000'000}, // Start timestamp, zero delta.

@@ -1,7 +1,5 @@
 PROTO_LIBRARY()
 
-GRPC()
-
 INCLUDE(${ARCADIA_ROOT}/perforator/proto/tags.inc)
 
 SRCS(
