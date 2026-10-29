@@ -914,6 +914,8 @@ struct profiler_sample_args {
     bool skip_sample_recording;
 };
 
+// TODO: Separate persistent state, per-sample state, and scratch buffers;
+// memset per-sample state here instead of resetting individual fields.
 #define PROFILER_DO_SAMPLE_COMMON_PROLOGUE \
     struct profiler_state* state = get_state(); \
     if (!state) { \
@@ -932,6 +934,7 @@ struct profiler_sample_args {
     state->normalize_walltime = args->normalize_walltime; \
     state->record_walltime = args->record_walltime; \
     state->skip_sample_recording = args->skip_sample_recording; \
+    state->php_state.frame_count = 0; \
     state->jvm_frames_count = 0; \
     state->lbr.nr = 0; \
     state->userstack.len = 0; \
