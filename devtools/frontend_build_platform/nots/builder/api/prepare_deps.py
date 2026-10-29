@@ -39,7 +39,7 @@ def prepare_deps(args: PrepareDepsOptions):
         build_path=args.bindir,
         sources_path=args.curdir,
         nodejs_bin_path=args.nodejs_bin,
-        script_path=args.pm_script,
+        pnpm_root=args.pm_root,
     )
 
     if args.ts_proto_auto_deps_path:

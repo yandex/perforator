@@ -28,8 +28,8 @@ class BaseOptions:
     """path to bun bin"""
     ld_library_path: str | None
     """path to for extra libraries for env LD_LIBRARY_PATH"""
-    pm_script: str
-    """path to package manager script to run `install` command"""
+    pm_root: str
+    """path to the pnpm resource directory"""
     pm_type: str
     """type of package manager (pnpm or npm)"""
     yatool_prebuilder_path: str | None

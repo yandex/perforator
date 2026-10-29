@@ -16,7 +16,7 @@ from ..models import BuildError, BaseBuildersOptions
 from ..pnpm_workspace import pnpm_runtime_env
 from ..utils import (
     copy_writable_file,
-    get_pnpm_bin,
+    resolve_pnpm_paths,
     extract_peer_tars,
     popen,
     bundle_fs_entries,
@@ -150,7 +150,7 @@ class BaseBuilder(object):
 
         env_paths = [
             os.path.dirname(self.options.nodejs_bin),
-            os.path.dirname(get_pnpm_bin(self.options.pm_script)),
+            os.path.dirname(resolve_pnpm_paths(self.options.pm_root).executable),
         ] + extra_paths
         if self.options.bun_bin:
             env_paths.insert(0, os.path.dirname(self.options.bun_bin))

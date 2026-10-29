@@ -16,7 +16,7 @@ from build.plugins.lib.nots.package_manager.utils import (
     build_pj_path,
 )
 from .pnpm_workspace import PnpmWorkspace, pnpm_defaults, pnpm_runtime_env
-from .utils import copy_writable_file, get_pnpm_bin
+from .utils import copy_writable_file, resolve_pnpm_paths
 from build.plugins.lib.nots.package_manager.common_config import (
     load_common_config,
     rebase_pnpm_settings,
@@ -179,7 +179,7 @@ class PackageManager(BasePackageManager):
         build_path,
         sources_path,
         nodejs_bin_path,
-        script_path,
+        pnpm_root,
         module_path=None,
         sources_root=None,
         verbose=False,
@@ -193,7 +193,7 @@ class PackageManager(BasePackageManager):
             sources_root=sources_root,
         )
         self.nodejs_bin_path = nodejs_bin_path
-        self.script_path = script_path
+        self.pnpm_root = pnpm_root
         self.verbose = verbose
         self.ld_library_path = ld_library_path
 
@@ -210,10 +210,8 @@ class PackageManager(BasePackageManager):
 
         engines = package_json.data.get("engines", {})
         if "packageManager" in package_json.data or "pnpm" in engines:
-            pnpm_package_json = self.load_package_json(
-                build_pj_path(os.path.dirname(os.path.dirname(self.script_path)))
-            )
-            pnpm_version = pnpm_package_json.data["version"]
+            pnpm_paths = resolve_pnpm_paths(self.pnpm_root)
+            pnpm_version = self.load_package_json(pnpm_paths.package_json).data["version"]
             if "packageManager" in package_json.data:
                 package_json.data["packageManager"] = "pnpm@" + pnpm_version
             if "pnpm" in engines:
@@ -248,13 +246,13 @@ class PackageManager(BasePackageManager):
         if self.ld_library_path:
             cmd_env["LD_LIBRARY_PATH"] = self.ld_library_path
 
-        executable = script_path or get_pnpm_bin(self.script_path)
+        executable = script_path or resolve_pnpm_paths(self.pnpm_root).executable
         cmd_env["PATH"] = os.pathsep.join(
             path
             for path in (
                 os.path.dirname(executable),
                 os.path.dirname(self.nodejs_bin_path),
-                os.path.dirname(get_pnpm_bin(self.script_path)),
+                os.path.dirname(resolve_pnpm_paths(self.pnpm_root).executable),
                 cmd_env.get("PATH"),
             )
             if path

@@ -8,6 +8,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+from typing import NamedTuple
 
 import click
 import library.python.archive as archive
@@ -22,6 +23,22 @@ from devtools.frontend_build_platform.libraries.logging import timeit
 from .globs import GlobMatcher
 
 logger = logging.getLogger(__name__)
+
+
+class PnpmPaths(NamedTuple):
+    executable: str
+    package_json: str
+
+
+def resolve_pnpm_paths(resource_root: str) -> PnpmPaths:
+    for executable_path, manifest_path in (
+        ("pnpm", "package.json"),
+        ("node_modules/.bin/pnpm", "node_modules/pnpm/package.json"),
+    ):
+        executable = os.path.join(resource_root, executable_path)
+        if os.path.isfile(executable):
+            return PnpmPaths(executable, os.path.join(resource_root, manifest_path))
+    raise FileNotFoundError(f"pnpm executable not found in resource {resource_root}")
 
 
 def eprint(*args, **kwargs):
@@ -249,14 +266,6 @@ def print_cmd_output(stdout: str, stderr: str):
         sys.stderr.write(f"{click.style('_exec stdout:', fg='green')}\n{stdout}\n")
     if stderr:
         sys.stderr.write(f"{click.style('_exec stderr:', fg='yellow')}\n{stderr}\n")
-
-
-def get_pnpm_bin(script_path: str) -> str:
-    """Resolve the package launcher for legacy PM_SCRIPT bundle paths."""
-    package_dir = os.path.dirname(os.path.dirname(script_path))
-    if os.path.basename(package_dir) == "pnpm" and os.path.basename(os.path.dirname(package_dir)) == "node_modules":
-        return os.path.join(os.path.dirname(package_dir), ".bin", "pnpm")
-    return script_path
 
 
 @timeit

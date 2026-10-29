@@ -43,7 +43,7 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
         build_path=str(tmp_path / "build"),
         sources_path=str(tmp_path / "source"),
         nodejs_bin_path="/node",
-        script_path="/pnpm.cjs",
+        pnpm_root=str(tmp_path),
         module_path="module",
     )
     env = {"CUSTOM_SETTING": "preserved", "PNPM_MAX_WORKERS": "127"}
@@ -51,6 +51,7 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
         env.update(npm_config_registry="https://registry.npmjs.org", pnpm_config_registry="https://registry.npmjs.org")
     original_env = env.copy()
 
+    (tmp_path / "pnpm").write_text("")
     package_manager._exec_command(["install"], cwd=str(tmp_path), env=env)
 
     command_env = popen.call_args.kwargs["env"]
@@ -307,7 +308,16 @@ def test_build_package_json_adds_missing_pack_metadata(tmp_path):
 
 
 @pytest.mark.parametrize("indent", ["  ", "    ", "\t"])
-@pytest.mark.parametrize("pnpm_version", ["10.33.4", "11.27.0", "11.28.0"])
+@pytest.mark.parametrize(
+    "pnpm_version, entrypoint",
+    [
+        ("10.33.4", "shim"),
+        ("11.27.0", "shim"),
+        ("11.28.0", "shim"),
+        ("11.28.0", "launcher"),
+        ("12.16.0", "pnpm"),
+    ],
+)
 @pytest.mark.parametrize(
     "fields, expected_fields",
     [
@@ -321,13 +331,28 @@ def test_build_package_json_adds_missing_pack_metadata(tmp_path):
         ),
     ],
 )
-def test_build_package_json_uses_resource_pnpm_version(tmp_path, pnpm_version, fields, expected_fields, indent):
+def test_build_package_json_uses_resource_pnpm_version(
+    tmp_path, pnpm_version, entrypoint, fields, expected_fields, indent
+):
     source_path = tmp_path / "source"
     build_path = tmp_path / "build"
-    pnpm_path = tmp_path / "resource" / "node_modules" / "pnpm"
+    resource_root = tmp_path / "resource"
+    pnpm_path = resource_root / "node_modules" / "pnpm" if entrypoint != "pnpm" else resource_root
     source_path.mkdir()
     pnpm_path.mkdir(parents=True)
     (pnpm_path / "package.json").write_text(json.dumps({"version": pnpm_version}))
+    if entrypoint != "pnpm":
+        executable = resource_root / "node_modules" / ".bin" / "pnpm"
+        executable.parent.mkdir()
+        target = pnpm_path / "bin" / "pnpm.mjs"
+        target.parent.mkdir()
+        target.write_text("#!/usr/bin/env node\n")
+        if entrypoint == "shim":
+            executable.symlink_to(target)
+        else:
+            executable.write_text('#!/bin/sh\nexec node "$(dirname "$0")/../pnpm/bin/pnpm.mjs" "$@"\n')
+    else:
+        (resource_root / "pnpm").write_text("")
     source_data = {"name": "example", "version": "1.0.0", **fields}
     source_content = json.dumps(source_data, indent=indent) + "\n"
     (source_path / "package.json").write_text(source_content)
@@ -338,7 +363,7 @@ def test_build_package_json_uses_resource_pnpm_version(tmp_path, pnpm_version, f
         sources_path=str(source_path),
         module_path="project/module",
         nodejs_bin_path="/node",
-        script_path=str(pnpm_path / "dist" / "pnpm.mjs"),
+        pnpm_root=str(resource_root),
     )
     package_manager._build_package_json()
 
@@ -613,7 +638,7 @@ def test_distbuild_without_tarball_uses_same_resource_and_local_path(
     (source / "pnpm-lock.yaml").write_text(source_lockfile)
     pm = package_manager_module.PackageManager(
         nodejs_bin_path="/unused/node",
-        script_path="/unused/pnpm",
+        pnpm_root="/unused",
         build_root=str(tmp_path / "build"),
         build_path=str(build),
         sources_path=str(source),
@@ -659,7 +684,7 @@ def test_distbuild_rejects_invalid_keys_before_declaring_or_rewriting_tarballs(t
     )
     pm = package_manager_module.PackageManager(
         nodejs_bin_path="/unused/node",
-        script_path="/unused/pnpm",
+        pnpm_root="/unused",
         build_root=str(tmp_path / "build"),
         build_path=str(tmp_path / "build" / "module"),
         sources_path=str(source),
@@ -674,20 +699,25 @@ def test_distbuild_rejects_invalid_keys_before_declaring_or_rewriting_tarballs(t
     assert not (tmp_path / "build" / "module" / "pnpm-lock.yaml").exists()
 
 
+@pytest.mark.parametrize("layout", ["launcher", "native"])
 @pytest.mark.parametrize("native", [False, True])
 @pytest.mark.parametrize("prebuilder", [False, True])
-def test_exec_command_uses_resource_path_without_node_interpreter(tmp_path, capsys, native, prebuilder):
+def test_exec_command_uses_resource_path_without_node_interpreter(tmp_path, capsys, native, prebuilder, layout):
     node_dir = tmp_path / "selected node"
     node_dir.mkdir()
     node = node_dir / "node"
     node.write_text('#!/bin/sh\nprintf "selected-node: %s\\n" "$@"\n')
     node.chmod(0o755)
-    pnpm_dir = tmp_path / "resource" / "node_modules" / ".bin"
+    pnpm_dir = tmp_path / "resource"
+    if layout == "launcher":
+        pnpm_dir = pnpm_dir / "node_modules" / ".bin"
     pnpm_dir.mkdir(parents=True)
     launcher = pnpm_dir / "pnpm"
+    launcher.write_text("")
     if prebuilder:
         launcher = tmp_path / "prebuilder.js"
     if native:
+        launcher.unlink(missing_ok=True)
         launcher.symlink_to("/bin/echo")
     else:
         launcher.write_text("#!/usr/bin/env node\n")
@@ -697,7 +727,7 @@ def test_exec_command_uses_resource_path_without_node_interpreter(tmp_path, caps
         build_path=str(tmp_path),
         sources_path=str(tmp_path),
         nodejs_bin_path=str(node),
-        script_path=str(tmp_path / "resource" / "node_modules" / "pnpm" / "dist" / "pnpm.mjs"),
+        pnpm_root=str(tmp_path / "resource"),
         module_path="module",
         verbose=True,
     )
@@ -720,3 +750,17 @@ def test_exec_command_uses_resource_path_without_node_interpreter(tmp_path, caps
         assert f'stdout: selected-node: {launcher}' in output
         assert 'selected-node: argument with spaces' in output
     assert env == {"PATH": "/missing-system-tools"}
+
+
+def test_pnpm_discovery_skips_directory_and_reports_missing_executable(tmp_path):
+    from devtools.frontend_build_platform.nots.builder.api.utils import resolve_pnpm_paths
+
+    with pytest.raises(FileNotFoundError, match="pnpm executable not found"):
+        resolve_pnpm_paths(str(tmp_path))
+    (tmp_path / "pnpm").mkdir()
+    launcher = tmp_path / "node_modules/.bin/pnpm"
+    launcher.parent.mkdir(parents=True)
+    launcher.write_text("")
+    paths = resolve_pnpm_paths(str(tmp_path))
+    assert paths.executable == str(launcher)
+    assert paths.package_json == str(tmp_path / "node_modules/pnpm/package.json")

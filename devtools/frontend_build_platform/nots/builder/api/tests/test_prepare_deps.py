@@ -14,7 +14,7 @@ def _prepare_deps_args(tmp_path):
         bindir=str(tmp_path / "build" / "project"),
         curdir=str(curdir),
         nodejs_bin="node",
-        pm_script="pnpm",
+        pm_root="pnpm",
         ts_proto_auto_deps_path=None,
         tarballs_store="__tarballs__",
         local_cli=False,

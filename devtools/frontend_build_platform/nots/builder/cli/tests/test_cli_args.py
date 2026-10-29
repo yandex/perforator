@@ -19,7 +19,7 @@ BASE_ARGS = [
     "project",
     "--nodejs-bin",
     "/node",
-    "--pm-script",
+    "--pm-root",
     "/pnpm",
     "--pm-type",
     "pnpm",
@@ -78,7 +78,7 @@ def test_create_node_modules_args():
         --local-cli no
         --moddir devtools/dummy_arcadia/typescript/simple/tests
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
-        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-root /Users/khoden/.ya/tools/v4/4992859933
         --pm-type pnpm
         --verbose no
         create-node-modules
@@ -93,7 +93,7 @@ def test_create_node_modules_args():
         nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
         ld_library_path=None,
         bun_bin=None,
-        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_root='/Users/khoden/.ya/tools/v4/4992859933',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
@@ -123,7 +123,7 @@ def test_create_node_modules_bundle_args():
         --local-cli no
         --moddir devtools/dummy_arcadia/typescript/simple/tests
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
-        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-root /Users/khoden/.ya/tools/v4/4992859933
         --pm-type pnpm
         --nm-bundle yes
         --verbose no
@@ -139,7 +139,7 @@ def test_create_node_modules_bundle_args():
         nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
         ld_library_path=None,
         bun_bin=None,
-        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_root='/Users/khoden/.ya/tools/v4/4992859933',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
@@ -177,7 +177,7 @@ def test_build_library_args(build_command_arg, expected_build_command):
         --arcadia-build-root /Users/khoden/.ya/build/build_root/5gxr/000067
         --moddir devtools/dummy_arcadia/typescript/library
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
-        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-root /Users/khoden/.ya/tools/v4/4992859933
         --pm-type pnpm
         --verbose no
         build-library
@@ -199,7 +199,7 @@ def test_build_library_args(build_command_arg, expected_build_command):
         nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
         ld_library_path=None,
         bun_bin=None,
-        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_root='/Users/khoden/.ya/tools/v4/4992859933',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
@@ -233,7 +233,7 @@ def test_build_package_args():
         --arcadia-build-root /Users/khoden/.ya/build/build_root/5gxr/000067
         --moddir devtools/dummy_arcadia/typescript/simple
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
-        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-root /Users/khoden/.ya/tools/v4/4992859933
         --pm-type pnpm
         --verbose no
         build-package
@@ -249,7 +249,7 @@ def test_build_package_args():
         nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
         ld_library_path=None,
         bun_bin=None,
-        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_root='/Users/khoden/.ya/tools/v4/4992859933',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
@@ -281,7 +281,7 @@ def test_build_package_nm_args():
         --arcadia-build-root /Users/khoden/.ya/build/build_root/5gxr/000067
         --moddir devtools/dummy_arcadia/typescript/simple
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
-        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-root /Users/khoden/.ya/tools/v4/4992859933
         --pm-type pnpm
         --nm-bundle yes
         --verbose no
@@ -298,7 +298,7 @@ def test_build_package_nm_args():
         nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
         ld_library_path=None,
         bun_bin=None,
-        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_root='/Users/khoden/.ya/tools/v4/4992859933',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
@@ -330,7 +330,7 @@ def test_build_verbose_args():
         --arcadia-build-root /Users/khoden/.ya/build/build_root/5gxr/000067
         --moddir devtools/dummy_arcadia/typescript/simple
         --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
-        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-root /Users/khoden/.ya/tools/v4/4992859933
         --pm-type pnpm
         build-package
         --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/output.tar
@@ -345,7 +345,7 @@ def test_build_verbose_args():
         nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
         ld_library_path=None,
         bun_bin=None,
-        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_root='/Users/khoden/.ya/tools/v4/4992859933',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         squashfs_tools_path=None,
@@ -374,7 +374,7 @@ def test_build_verbose_args():
 def test_nm_bundle_prod_arg(value, expected):
     args = __convert_args_to_dict(
         f"--arcadia-root /source --arcadia-build-root /build --moddir project "
-        f"--nodejs-bin /node --pm-script /pnpm.cjs --pm-type pnpm "
+        f"--nodejs-bin /node --pm-root /pnpm.cjs --pm-type pnpm "
         f"--nm-bundle yes --nm-bundle-prod {value} create-node-modules --moddir project"
     )
     assert args["nm_bundle_prod"] is expected

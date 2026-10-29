@@ -9,9 +9,10 @@ pnpm:
     # pnpm выбирает размер worker pool по числу видимых CPU, которое в CI
     # может превышать сотню при квоте контейнера в 4 CPU. Ограничиваем каждый
     # процесс, включая параллельные установки CLI и pnpm из build scripts.
-    # Это переменная окружения pnpm, а не параметр pnpm-workspace.yaml.
+    # Лимиты для JS pnpm 11 и нативного pnpm 12 задаются окружением, не workspace.
     environment:
         PNPM_MAX_WORKERS: '4'
+        RAYON_NUM_THREADS: '4'
 
     # Передаются также дочерним pnpm через npm_config_* и pnpm_config_*.
     # Значения берутся из defaults; список общий для CLI и builder.
