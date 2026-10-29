@@ -61,6 +61,14 @@ service Perforator {
 }
 
 service ClusterTop {
+    // Query grouped profiling data. Supported query shapes are documented in the request.
+    rpc QueryClusterTop(ClusterTopQueryRequest) returns (ClusterTopQueryResponse) {
+        option (google.api.http) = {
+            post: "/api/v0/top/query"
+            body: "*"
+        };
+    }
+
     rpc GetClusterTopAggregatedByFunction(ClusterTopRequest) returns (ClusterTopResponse) {
         option (google.api.http) = {
             get: "/api/v0/top/functions"
@@ -205,6 +213,145 @@ message GetProfileResponse {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
+enum ClusterTopDimension {
+    UnknownDimension = 0;
+    Function = 1;
+    Service = 2;
+    BuildID = 3;
+    CommitID = 4;
+    BinaryPath = 5;
+    Filename = 6;
+    SourceLine = 7;
+    SourceColumn = 8;
+}
+
+enum ClusterTopMetric {
+    UnknownMetric = 0;
+    SelfCPU = 1;
+    CumulativeCPU = 2;
+}
+
+// Selects a generation and filters its samples, independently of result layout.
+message ClusterTopQuery {
+    uint32 Generation = 1;
+    // AND between filters; OR between In values.
+    repeated ClusterTopFieldFilter Filters = 2;
+}
+
+// Invalid queries return InvalidArgument; unsupported shapes return Unimplemented
+// with ErrorInfo reason UNSUPPORTED_QUERY_SHAPE.
+message ClusterTopQueryRequest {
+    ClusterTopQuery Query = 1;
+    // Nonempty set of distinct dimensions; returned values form each row's Key.
+    repeated ClusterTopDimension GroupBy = 2;
+    // Lexicographic order. Missing group dimensions are appended ascending in enum
+    // order, which is also the default when OrderBy is empty.
+    repeated ClusterTopQueryOrder OrderBy = 3;
+    NPerforator.NProto.NPagination.Paginated Pagination = 4;
+}
+
+message ClusterTopStringValues {
+    repeated string Values = 1;
+}
+
+// Inclusive bounds; at least one must be set, and Min must not exceed Max.
+message ClusterTopUInt32Range {
+    optional uint32 Min = 1;
+    optional uint32 Max = 2;
+}
+
+message ClusterTopFieldFilter {
+    oneof Filter {
+        ClusterTopStringFilter String = 1;
+        ClusterTopIntegerFieldFilter Integer = 2;
+    }
+}
+
+message ClusterTopStringFilter {
+    enum FieldName {
+        UnknownField = 0;
+        Function = 1;
+        Service = 2;
+        BuildID = 3;
+        CommitID = 4;
+        BinaryPath = 5;
+        Filename = 6;
+    }
+
+    FieldName Field = 1;
+    // String conditions are literal and case-sensitive.
+    oneof Condition {
+        string Exact = 2;
+        ClusterTopStringValues In = 3;
+        string Prefix = 4;
+        string Contains = 5;
+    }
+}
+
+message ClusterTopIntegerFieldFilter {
+    enum FieldName {
+        UnknownField = 0;
+        SourceLine = 1;
+        SourceColumn = 2;
+    }
+
+    FieldName Field = 1;
+    oneof Condition {
+        ClusterTopUInt32Range Range = 2;
+    }
+}
+
+message ClusterTopQueryOrder {
+    enum SortDirection {
+        UnknownDirection = 0;
+        Ascending = 1;
+        Descending = 2;
+    }
+    // Ordered dimensions must belong to GroupBy.
+    oneof Key {
+        ClusterTopDimension Dimension = 1;
+        ClusterTopMetric Metric = 2;
+    }
+    SortDirection Direction = 3;
+}
+
+// Only GroupBy fields are populated. Absent selected fields mean unknown:
+// empty stored strings and zero source positions.
+message ClusterTopQueryKey {
+    optional string Function = 1;
+    optional string Service = 2;
+    optional string BuildID = 3;
+    optional string CommitID = 4;
+    optional string BinaryPath = 5;
+    // Original symbolized path; not necessarily repository-relative.
+    optional string Filename = 6;
+    optional uint32 SourceLine = 7;
+    optional uint32 SourceColumn = 8;
+}
+
+message ClusterTopQueryMetrics {
+    // Estimated average CPU over the generation interval, retaining fractions.
+    double SelfCPU = 1;
+    // Sum of location-level average inclusive CPU, without cross-location deduplication.
+    // Recursive/inline frames may count the same sample in multiple locations.
+    // Callers must ensure non-overlapping locations when interpreting groups or
+    // summed rows as CPU counted once per sample; a Function filter is insufficient.
+    double CumulativeCPU = 2;
+}
+
+message ClusterTopQueryRow {
+    ClusterTopQueryKey Key = 1;
+    ClusterTopQueryMetrics Metrics = 2;
+}
+
+message ClusterTopQueryResponse {
+    ClusterTopGeneration Generation = 1;
+    // Selected dimensions in enum order; distinguishes unknown from unselected.
+    repeated ClusterTopDimension GroupBy = 2;
+    repeated ClusterTopQueryRow Rows = 3;
+    bool HasMore = 4;
+}
 
 message ClusterTopRequest {
   optional string ServicePattern = 1;

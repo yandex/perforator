@@ -39,6 +39,10 @@ func NewService(l xlog.Logger, s clickhouse.Storage) *APIService {
 	}
 }
 
+func (s *APIService) QueryClusterTop(ctx context.Context, req *perforator.ClusterTopQueryRequest) (*perforator.ClusterTopQueryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "Cluster Top queries are not implemented yet")
+}
+
 // GetClusterTopAggregatedByFunction implements perforator.GetClusterTopAggregatedByFunction
 func (s *APIService) GetClusterTopAggregatedByFunction(ctx context.Context, req *perforator.ClusterTopRequest) (*perforator.ClusterTopResponse, error) {
 	filter := &aggregated.Filter{

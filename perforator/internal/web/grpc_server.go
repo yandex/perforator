@@ -88,3 +88,7 @@ func (s *WebService) GetClusterTopAggregatedByFunction(ctx context.Context, req 
 func (s *WebService) GetClusterTopAggregatedByService(ctx context.Context, req *perforator.ClusterTopRequest) (*perforator.ClusterTopResponse, error) {
 	return s.client.GetClusterTopAggregatedByService(ctx, req)
 }
+
+func (s *WebService) QueryClusterTop(ctx context.Context, req *perforator.ClusterTopQueryRequest) (*perforator.ClusterTopQueryResponse, error) {
+	return s.client.QueryClusterTop(ctx, req)
+}
