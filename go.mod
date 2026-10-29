@@ -432,7 +432,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/gaissmai/bart v0.26.1
-	github.com/gdamore/tcell/v2 v2.7.4
+	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/getsentry/raven-go v0.2.0
@@ -847,7 +847,7 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.26.0
 	github.com/riverqueue/river/rivershared v0.26.0
 	github.com/riverqueue/river/rivertype v0.26.0
-	github.com/rivo/tview v0.0.0-20220916081518-2e69b7385a37
+	github.com/rivo/tview v0.42.0
 	github.com/rivo/uniseg v0.4.7
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rogpeppe/go-internal v1.14.1
@@ -1800,7 +1800,7 @@ require (
 	github.com/fsnotify/fsevents v0.2.0 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
 	github.com/gavv/httpexpect v2.0.0+incompatible // indirect
-	github.com/gdamore/encoding v1.0.0 // indirect
+	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/gertd/go-pluralize v0.2.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gkampitakis/ciinfo v0.3.1 // indirect
