@@ -64,7 +64,7 @@
     "react-dom": "^18.3.1"
   },
   "engines": {
-    "node": "22.22.2"
+    "node": "22.23.4"
   },
   "dependencies": {
     "@floating-ui/core": "^1.7.2",

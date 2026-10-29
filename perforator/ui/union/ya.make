@@ -11,7 +11,7 @@ DECLARE_IN_DIRS(
 )
 
 PEERDIR(
-    build/platform/nodejs/22.22.2
+    build/platform/nodejs/22.23.4
     build/external_resources/pnpm
 )
 
@@ -19,7 +19,7 @@ RUN_PYTHON3(
     ${CURDIR}/build.py
         --curdir ${CURDIR}
         --bindir ${BINDIR}
-        --node-dir $NODEJS_22_22_2_RESOURCE_GLOBAL
+        --node-dir $NODEJS_22_23_4_RESOURCE_GLOBAL
         --pnpm-dir $PNPM_RESOURCE_GLOBAL
     IN
         ${UI_FILES}

@@ -14,7 +14,7 @@
     "test:e2e": "playwright test"
   },
   "engines": {
-    "node": "22.22.2"
+    "node": "22.23.4"
   },
   "dependencies": {
     "@bem-react/classname": "1.8.0",
