@@ -176,7 +176,15 @@ TFlameTrieResult BuildFlameTrie(
 
         // Label order: containers, pid, process name, thread name, signal. ThreadId is
         // intentionally excluded (only ThreadCommand is rendered).
-        bool hasFirstContainer = false;
+        // Match pkg/profile/labels.ExtractProcessInfo: a nanny prefix anywhere in
+        // the workload hierarchy hides its first container (the pod wrapper).
+        bool skipFirstContainer = false;
+        for (auto label : sampleKey.GetWellKnownLabel(NProto::NProfile::Workload)) {
+            if (label.IsString() && label.GetString().View().StartsWith("iss_hook_")) {
+                skipFirstContainer = true;
+                break;
+            }
+        }
         std::array<TLabelId, 4> labelNodes{{
             TLabelId::Invalid(),  // ProcessId (pid)
             TLabelId::Invalid(),  // ProcessCommand (process name)
@@ -191,11 +199,10 @@ TFlameTrieResult BuildFlameTrie(
             switch (*labelType) {
                 case NProto::NProfile::Workload:
                     if (label.IsString()) {
-                        if (!hasFirstContainer && label.GetString().View().StartsWith("iss_hook_")) {
-                            hasFirstContainer = true;
+                        if (skipFirstContainer) {
+                            skipFirstContainer = false;
                             break;
                         }
-                        hasFirstContainer = true;
                         descend(intern(TFlameNodeId{label.GetIndex()}));
                     }
                     break;
