@@ -334,6 +334,7 @@ require (
 	github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 	github.com/cloudflare/cloudflare-go v0.80.0
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2
+	github.com/cockroachdb/pebble v0.0.0-20221207173255-0f086d933dac
 	github.com/coder/websocket v1.8.14
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
 	github.com/container-storage-interface/spec v1.10.0
@@ -1593,7 +1594,6 @@ require (
 	github.com/cockroachdb/datadriven v1.0.2 // indirect
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f // indirect
-	github.com/cockroachdb/pebble v0.0.0-20221207173255-0f086d933dac // indirect
 	github.com/cockroachdb/redact v1.1.3 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/codahale/rfc6979 v0.0.0-20141003034818-6a90f24967eb // indirect
