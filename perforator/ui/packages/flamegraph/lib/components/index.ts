@@ -6,3 +6,4 @@ export * from './TopTable/TopTable';
 export * from './NegativePositiveProgress/NegativePositiveProgress';
 export * from './Hotkey/Hotkey';
 export * from './SideBySide/SideBySide';
+export * from './RenderSettings/RenderSettings';

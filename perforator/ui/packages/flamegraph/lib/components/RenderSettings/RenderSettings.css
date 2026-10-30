@@ -1,0 +1,24 @@
+.pprof-flamegraph__settings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--g-spacing-3);
+    padding: var(--g-spacing-4);
+    width: min(320px, calc(100vw - 32px));
+}
+
+.pprof-flamegraph__settings-title { margin: 0; }
+
+.pprof-flamegraph__advanced {
+    display: flex;
+    flex-direction: column;
+    gap: var(--g-spacing-3);
+}
+
+.pprof-flamegraph__settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--g-spacing-2);
+}
+
+.pprof-flamegraph__validation { color: var(--g-color-text-danger); }

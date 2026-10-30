@@ -64,6 +64,8 @@ export interface FlamegraphProps extends Pick<RenderFlamegraphOptions, 'onFinish
     useSelfAsScrollParent?: boolean;
     showLineNumbers?: boolean;
     setShowLineNumbers?: (showLineNumbers: boolean) => void;
+    disableLineNumbers?: boolean;
+    lineNumbersRef?: React.Ref<HTMLLabelElement>;
 }
 
 const MAX_FIREFOX_DEPTH = 768;
@@ -95,6 +97,8 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     onSearchReset,
     showLineNumbers,
     setShowLineNumbers,
+    disableLineNumbers,
+    lineNumbersRef,
     useSelfAsScrollParent,
 }) => {
     const flamegraphContainer = React.useRef<HTMLDivElement | null>(null);
@@ -418,7 +422,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                     }
                     {
                         showLineNumbers !== undefined && setShowLineNumbers !== undefined ?
-                            <Switch className="flamegraph__switch flamegraph__switch_left-heavy" checked={showLineNumbers} onUpdate={setShowLineNumbers}>
+                            <Switch ref={lineNumbersRef} className="flamegraph__switch flamegraph__switch_left-heavy" checked={showLineNumbers} onUpdate={setShowLineNumbers} disabled={disableLineNumbers}>
                                 Line numbers
                             </Switch>
                             : null
