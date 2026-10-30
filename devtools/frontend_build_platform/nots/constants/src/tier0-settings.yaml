@@ -47,7 +47,6 @@ pnpm:
     defaults:
         allowUnusedPatches: true
         autoInstallPeers: true
-        confirmModulesPurge: false
         dedupePeerDependents: true
         fetchRetries: 2
         fetchRetryFactor: 2
@@ -56,6 +55,7 @@ pnpm:
         ignorePnpmfile: true
         ignoreScripts: true
         injectWorkspacePackages: true
+        sharedWorkspaceLockfile: false
         modulesDir: node_modules
         pmOnFail: ignore
         packageImportMethod: auto
@@ -168,12 +168,6 @@ pnpm:
                 Автоматически устанавливать недостающие обязательные peer-зависимости.
                 https://pnpm.io/11.x/settings/peer-dependencies#autoinstallpeers
 
-            confirmModulesPurge: |-
-                Пересоздавать несовместимый node_modules без интерактивного вопроса.
-                Внутренняя настройка; отдельного раздела в справочнике нет.
-                https://pnpm.io/11.x/cli/install
-                https://github.com/pnpm/pnpm/blob/v11.28.5/pnpm11/installing/deps-installer/src/install/validateModules.ts#L194
-
             dedupePeerDependents: |-
                 Объединять совместимые экземпляры пакетов после разрешения peer-зависимостей.
                 https://pnpm.io/11.x/settings/peer-dependencies#dedupepeerdependents
@@ -207,6 +201,11 @@ pnpm:
             injectWorkspacePackages: |-
                 Зависимости между модулями подключаются через inject.
                 https://pnpm.io/11.x/workspaces#injectworkspacepackages
+
+            sharedWorkspaceLockfile: |-
+                У каждого модуля отдельный lockfile; workspace содержит только корневой проект.
+                Зависимости от других модулей устанавливаются через inject из их каталогов.
+                https://pnpm.io/workspaces#sharedworkspacelockfile
 
             pmOnFail: |-
                 Не переключать версию pnpm автоматически: инструмент выбирается платформой Tier 0.

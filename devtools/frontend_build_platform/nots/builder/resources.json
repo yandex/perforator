@@ -1,24 +1,22 @@
 {
   "info": {
-    "created": "2026-10-28T06:43:48.599Z",
-    "pr": {
-      "id": 16718656,
-      "author": "zaverden",
-      "summary": "подготовка к pnpm 12"
-    }
+    "created": "2026-10-30T16:36:50Z",
+    "commit": "e653ceeea30aff2d9eec8e269d7a5d2fe319bf15",
+    "branch": "pr-16770943-rebase-20261030",
+    "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14143975475"
+      "uri": "sbr:14167729619"
     },
     "darwin-arm64": {
-      "uri": "sbr:14143974611"
+      "uri": "sbr:14167736795"
     },
     "linux": {
-      "uri": "sbr:14143977063"
+      "uri": "sbr:14167708949"
     },
     "linux-aarch64": {
-      "uri": "sbr:14143976258"
+      "uri": "sbr:14167720205"
     }
   }
 }

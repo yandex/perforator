@@ -400,17 +400,13 @@ class PackageManager(BasePackageManager):
         # Use fcntl to lock a temp file
 
         def execute_install_cmd():
-            default_node_modules_path = build_nm_path(cwd)
-            custom_node_modules_path = os.path.normpath(node_modules_path) != os.path.normpath(
-                default_node_modules_path
-            )
+            # Install through the existing node_modules symlink into RAM so package links stay relocatable.
             package_import_method = "hardlink" if _same_filesystem(store_dir, node_modules_path) else "copy"
             ws = PnpmWorkspace.load(build_ws_config_path(cwd))
             defaults = pnpm_defaults()
             ws.runtime_settings = {
                 **defaults,
                 **{key: value for key, value in ws.settings.items() if key in defaults},
-                "modulesDir": os.path.relpath(node_modules_path, cwd) if custom_node_modules_path else "node_modules",
                 "packageImportMethod": package_import_method,
             }
             copy_writable_file(ws.path, ws.path)

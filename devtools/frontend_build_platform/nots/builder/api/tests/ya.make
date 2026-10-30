@@ -4,6 +4,7 @@ TEST_SRCS(
     __init__.py
     test_create_node_modules.py
     test_globs.py
+    test_local_directory_extensions.py
     test_node_modules_build_lifecycle.py
     test_node_modules_bundler.py
     test_node_modules_layer.py
@@ -18,6 +19,8 @@ TEST_SRCS(
 )
 
 PEERDIR(
+    build/external_resources/pnpm
+    build/platform/nodejs/24.22.1
     devtools/frontend_build_platform/nots/builder/api
     devtools/frontend_build_platform/nots/builder/cli
 )
@@ -25,5 +28,9 @@ PEERDIR(
 DATA(
     arcadia/devtools/frontend_build_platform/nots/constants/src/tier0-settings.yaml
 )
+
+ENV(NOTS_TEST_PNPM_ROOT=$PNPM_RESOURCE_GLOBAL)
+
+ENV(NOTS_TEST_NODEJS_ROOT=$NODEJS_24_22_1_RESOURCE_GLOBAL)
 
 END()

@@ -187,7 +187,7 @@ def test_pnpm_install_copies_external_node_modules_across_filesystems(monkeypatc
     command, actual_cwd = commands[0]
     assert actual_cwd == cwd
     settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
-    assert settings["modulesDir"] == os.path.relpath(node_modules_path, cwd)
+    assert settings["modulesDir"] == "node_modules"
     assert "virtualStoreDir" not in settings
     assert settings["packageImportMethod"] == "copy"
     assert settings["registry"] == "https://npm.yandex-team.ru"
@@ -216,7 +216,7 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
     command, actual_cwd = commands[0]
     assert actual_cwd == cwd
     settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
-    assert settings["modulesDir"] == os.path.relpath(node_modules_path, cwd)
+    assert settings["modulesDir"] == "node_modules"
     assert settings["packageImportMethod"] == "hardlink"
 
 
