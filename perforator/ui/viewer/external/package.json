@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@bem-react/classname": "1.8.0",
+    "@discoveryjs/json-ext": "0.6.3",
     "@gravity-ui/components": "4.19.1",
     "@gravity-ui/i18n": "1.8.0",
     "@gravity-ui/icons": "2.18.0",

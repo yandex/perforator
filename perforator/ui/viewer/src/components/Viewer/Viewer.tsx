@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 
 import { BrowserRouter } from 'react-router-dom';
 
+import { parseFromWebStream } from '@discoveryjs/json-ext';
+
 import { ThemeProvider, useThemeType } from '@gravity-ui/uikit';
 
 import { Visualisation } from '../Visualisation/Visualisation';
 import { base64toUint8Array } from '../../utils/base64';
-import { decompressData } from '../../utils/decompressData';
 
 import './Viewer.css';
 
@@ -20,8 +21,8 @@ const VisualisationImpl = () => {
             try {
                 const rawData = window.__data__;
                 const bytes = base64toUint8Array(rawData);
-                const decompressed = await decompressData(bytes);
-                const parsed = JSON.parse(decompressed);
+                const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+                const parsed = await parseFromWebStream(stream);
                 setData(parsed);
             } catch (error) {
                 console.error('Failed to load data:', error);
