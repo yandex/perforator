@@ -2,6 +2,10 @@
 #define __KERNEL__
 #endif
 
+// libc header must be included before libbpf, otherwise
+// libbpf will define standard macros and musl build will fail
+#include <stddef.h>
+
 #ifdef __x86_64__
 
 #include "arch/x86/regs.h"
@@ -16,7 +20,6 @@
 
 #endif
 
-#include <stddef.h>
 
 #include "cgroups.h"
 #include "core.h"
