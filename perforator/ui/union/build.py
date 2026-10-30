@@ -52,12 +52,16 @@ def main():
     os.environ['PATH'] = args.node_dir + ':' + os.environ.get('PATH', '')
 
     node = os.path.join(args.node_dir, 'node')
-    pnpm = os.path.join(args.pnpm_dir, 'node_modules', 'pnpm', 'dist', 'pnpm.cjs')
+    pnpm_bin = os.path.join(args.pnpm_dir, 'pnpm')
+    if os.path.isfile(pnpm_bin):
+        pnpm_cmd = [pnpm_bin]
+    else:
+        pnpm_cmd = [node, os.path.join(args.pnpm_dir, 'node_modules', 'pnpm', 'bin', 'pnpm.cjs')]
 
-    run_command([node, pnpm, 'install'])
-    run_command([node, pnpm, '--filter', '../packages/**', 'run', 'build'])
-    run_command([node, pnpm, '--filter', '../viewer', 'run', 'build'])
-    run_command([node, pnpm, 'run', 'build'])
+    run_command(pnpm_cmd + ['install'])
+    run_command(pnpm_cmd + ['--filter', '../packages/**', 'run', 'build'])
+    run_command(pnpm_cmd + ['--filter', '../viewer', 'run', 'build'])
+    run_command(pnpm_cmd + ['run', 'build'])
 
     with tarfile.open(os.path.join(args.bindir, 'output.tar'), 'w') as tar:
         tar.add(os.path.join(app, 'dist'), arcname='dist')
