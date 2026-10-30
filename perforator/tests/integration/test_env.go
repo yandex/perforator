@@ -605,7 +605,7 @@ func (s *IntegrationTestEnv) makeStorageBundleConfig(ctx context.Context) *bundl
 		CustomProfilingOperationStorage: ptr.T(custom_profiling_operation_storage.Postgres),
 		ClusterTopStorage: &clustertop.Config{
 			GenerationsStorage: clustertop.Postgres,
-			AggregationStorage: clustertop.Clickhouse,
+			AggregationStorage: clustertop.AggregatedStorageConfig{Type: clustertop.Clickhouse},
 		},
 	}
 }

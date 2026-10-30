@@ -21,9 +21,9 @@ import (
 )
 
 type ClickhouseAggregationStorage struct {
-	l                 xlog.Logger
-	conn              *clickhouse.Connection
-	asyncInsertConfig AsyncInsertConfig
+	config Config
+	l      xlog.Logger
+	conn   *clickhouse.Connection
 }
 
 type AsyncInsertConfig struct {
@@ -41,13 +41,14 @@ var (
 	_ AggregationStorage = (*ClickhouseAggregationStorage)(nil)
 )
 
-func NewStorage(l xlog.Logger, conn *clickhouse.Connection, asyncInsertConfig AsyncInsertConfig) *ClickhouseAggregationStorage {
+func NewStorage(l xlog.Logger, conn *clickhouse.Connection, config Config) *ClickhouseAggregationStorage {
+	config.FillDefault()
 	l = l.WithName("clustertop_clickhouse")
 
 	return &ClickhouseAggregationStorage{
-		l:                 l,
-		conn:              conn,
-		asyncInsertConfig: asyncInsertConfig,
+		l:      l,
+		conn:   conn,
+		config: config,
 	}
 }
 
@@ -305,14 +306,14 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 		"async_insert_deduplicate":   1,
 		"insert_deduplication_token": insertDeduplicationToken(result.Generation, result.JobID),
 	}
-	if s.asyncInsertConfig.BusyTimeoutMin > 0 {
-		settings["async_insert_busy_timeout_min_ms"] = s.asyncInsertConfig.BusyTimeoutMin.Milliseconds()
+	if s.config.AsyncInsert.BusyTimeoutMin > 0 {
+		settings["async_insert_busy_timeout_min_ms"] = s.config.AsyncInsert.BusyTimeoutMin.Milliseconds()
 	}
-	if s.asyncInsertConfig.BusyTimeoutMax > 0 {
-		settings["async_insert_busy_timeout_max_ms"] = s.asyncInsertConfig.BusyTimeoutMax.Milliseconds()
+	if s.config.AsyncInsert.BusyTimeoutMax > 0 {
+		settings["async_insert_busy_timeout_max_ms"] = s.config.AsyncInsert.BusyTimeoutMax.Milliseconds()
 	}
-	if s.asyncInsertConfig.MaxDataSize > 0 {
-		settings["async_insert_max_data_size"] = s.asyncInsertConfig.MaxDataSize
+	if s.config.AsyncInsert.MaxDataSize > 0 {
+		settings["async_insert_max_data_size"] = s.config.AsyncInsert.MaxDataSize
 	}
 
 	ctx = clickhousego.Context(

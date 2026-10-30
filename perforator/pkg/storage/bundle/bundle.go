@@ -214,7 +214,7 @@ func (b *StorageBundle) createOptsFromClusterTopGenerationsStorageType(config cl
 			opts,
 			clustertop_factory.WithPostgresCluster(b.DBs.PostgresCluster),
 			clustertop_factory.WithClickhouseConnection(b.DBs.ClickhouseConn),
-			clustertop_factory.WithAsyncInsertConfig(config.AsyncInsert),
+			clustertop_factory.WithAggregationConfig(config.AggregationStorage.Config),
 		)
 	}
 

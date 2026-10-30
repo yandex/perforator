@@ -7,14 +7,15 @@ import (
 
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
 	clustertop "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
+	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/aggregated"
 	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/combined"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
 type options struct {
+	aggregationConfig    aggregated.Config
 	postgresCluster      *hasql.Cluster
 	clickhouseConnection *clickhouse.Connection
-	asyncInsertConfig    clustertop.AsyncInsertConfig
 }
 
 type Option = func(*options)
@@ -35,9 +36,9 @@ func WithClickhouseConnection(connection *clickhouse.Connection) Option {
 	}
 }
 
-func WithAsyncInsertConfig(config clustertop.AsyncInsertConfig) Option {
+func WithAggregationConfig(config aggregated.Config) Option {
 	return func(o *options) {
-		o.asyncInsertConfig = config
+		o.aggregationConfig = config
 	}
 }
 
@@ -58,6 +59,6 @@ func NewStorage(
 		return nil, errors.New("clickhouse connection is not specified")
 	}
 
-	return combined.NewCombinedClusterTopStorage(logger, options.clickhouseConnection, options.postgresCluster, options.asyncInsertConfig), nil
+	return combined.NewCombinedClusterTopStorage(logger, options.clickhouseConnection, options.postgresCluster, options.aggregationConfig), nil
 
 }

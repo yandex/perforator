@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
+	"github.com/yandex/perforator/perforator/proto/perforator"
 )
 
 type GroupByMode string
@@ -49,7 +50,26 @@ func WithFunctionFilter(function string) CountTotalSelfCyclesOption {
 	}
 }
 
+type QueryRow struct {
+	Function         string  `ch:"function"`
+	Service          string  `ch:"service"`
+	BuildID          string  `ch:"build_id"`
+	CommitID         string  `ch:"commit_id"`
+	BinaryPath       string  `ch:"binary_path"`
+	Filename         string  `ch:"source_file"`
+	SourceLine       uint32  `ch:"source_line"`
+	SourceColumn     uint32  `ch:"source_column"`
+	SelfCycles       big.Int `ch:"self_cycles"`
+	CumulativeCycles big.Int `ch:"cumulative_cycles"`
+}
+
+type QueryResult struct {
+	Rows    []*QueryRow
+	HasMore bool
+}
+
 type AggregationStorage interface {
+	QueryClusterTop(ctx context.Context, req *perforator.ClusterTopQueryRequest) (*QueryResult, error)
 	SaveClusterTopEntry(ctx context.Context, result *JobResult) error
 	AggregateClusterTop(ctx context.Context, generation uint32, filter *Filter, aggregationType GroupByMode, pagination util.Pagination, sortOrder SortOrder) ([]*AggregationValue, error)
 	CountTotalSelfCycles(ctx context.Context, generation uint32, options ...CountTotalSelfCyclesOption) (*big.Int, error)

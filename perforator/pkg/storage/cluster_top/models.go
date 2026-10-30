@@ -21,15 +21,18 @@ const (
 	Clickhouse AggregationStorageType = "clickhouse"
 )
 
-type AsyncInsertConfig = aggregated.AsyncInsertConfig
+type AggregatedStorageConfig struct {
+	Type              AggregationStorageType `yaml:"aggregation_storage"`
+	aggregated.Config `yaml:",inline"`
+}
 
 type Config struct {
-	GenerationsStorage GenerationsStorageType `yaml:"generations_storage"`
-	AggregationStorage AggregationStorageType `yaml:"aggregation_storage"`
-	AsyncInsert        AsyncInsertConfig      `yaml:"async_insert"`
+	GenerationsStorage GenerationsStorageType  `yaml:"generations_storage"`
+	AggregationStorage AggregatedStorageConfig `yaml:",inline"`
 }
 
 type Storage interface {
+	QueryClusterTop(ctx context.Context, req *perforator.ClusterTopQueryRequest) (*aggregated.QueryResult, error)
 	Exists(ctx context.Context, id uint32) (bool, error)
 	ListGenerations(ctx context.Context) ([]*perforator.ClusterTopGeneration, error)
 	AggregateClusterTop(ctx context.Context, generation uint32, filter *aggregated.Filter, aggregationType aggregated.GroupByMode, pagination util.Pagination, sortOrder aggregated.SortOrder) ([]*aggregated.AggregationValue, error)
