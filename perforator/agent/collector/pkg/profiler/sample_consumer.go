@@ -500,29 +500,35 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 
 		m.Finish()
 	} else if jvmFrame != nil {
-		fb := loc.AddFrame()
-		if c.p.conf.JVM.DisableInterpretedMethodSymbolization {
-			fb.
-				SetName(models.UnsymbolizedInterpreterLocation).
-				SetMangledName(models.UnsymbolizedInterpreterLocation)
-		} else {
-			name, err := c.p.jvmRegistry.SymbolizeInterpreted(ctx, linux.CurrentNamespacePID(c.sample.Pid), jvmFrame.MethodAddr)
-			if err != nil {
-				name = models.UnsymbolizedInterpreterLocation
-				xlog.Wrap(c.p.log).Error(ctx, "Failed to symbolize interpreted JVM method", log.Error(err))
-			} else if name != "" && name != models.UnsymbolizedInterpreterLocation && !preserveAddress {
-				loc.ClearAddress()
-			}
-			fb.SetName(name).SetMangledName(name)
-		}
-
-		fb.Finish()
-
-		loc.SetMapping().SetPath(profile.JVMSpecialMapping).Finish()
+		c.processUserSpaceLocationJava(ctx, loc, jvmFrame, preserveAddress)
+		return
 	} else {
 		c.p.procs.MaybeRescanProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
 	}
 
+	loc.Finish()
+}
+
+func (c *oneShotSampleConsumer) processUserSpaceLocationJava(ctx context.Context, loc *profile.LocationBuilder, jvmFrame *unwinder.JvmFrame, preserveAddress bool) {
+	fb := loc.AddFrame()
+	if c.p.conf.JVM.DisableInterpretedMethodSymbolization {
+		fb.
+			SetName(models.UnsymbolizedInterpreterLocation).
+			SetMangledName(models.UnsymbolizedInterpreterLocation)
+	} else {
+		name, err := c.p.jvmRegistry.SymbolizeInterpreted(ctx, linux.CurrentNamespacePID(c.sample.Pid), jvmFrame.MethodAddr)
+		if err != nil {
+			name = models.UnsymbolizedInterpreterLocation
+			xlog.Wrap(c.p.log).Error(ctx, "Failed to symbolize interpreted JVM method", log.Error(err))
+		} else if name != "" && name != models.UnsymbolizedInterpreterLocation && !preserveAddress {
+			loc.ClearAddress()
+		}
+		fb.SetName(name).SetMangledName(name)
+	}
+
+	fb.Finish()
+
+	loc.SetMapping().SetPath(profile.JVMSpecialMapping).Finish()
 	loc.Finish()
 }
 
