@@ -328,6 +328,7 @@ class PackageManager(BasePackageManager):
         node_modules_path=None,
         store_dir=None,
         prod=False,
+        portable=False,
     ):
         """
         Creates node_modules directory according to the lockfile.
@@ -349,6 +350,7 @@ class PackageManager(BasePackageManager):
             local_cli,
             node_modules_path,
             prod=prod,
+            portable=portable,
         )
 
         self._run_apply_addons_if_need(yatool_prebuilder_path)
@@ -370,6 +372,7 @@ class PackageManager(BasePackageManager):
             yatool_prebuilder_path=yatool_prebuilder_path,
             local_cli=local_cli,
             prod=True,
+            portable=True,
         )
 
     """
@@ -396,6 +399,7 @@ class PackageManager(BasePackageManager):
         local_cli: bool,
         node_modules_path: str,
         prod: bool = False,
+        portable: bool = False,
     ):
         # Use fcntl to lock a temp file
 
@@ -409,6 +413,9 @@ class PackageManager(BasePackageManager):
                 **{key: value for key, value in ws.settings.items() if key in defaults},
                 "packageImportMethod": package_import_method,
             }
+            if portable:
+                # Layers and exported bundles must not link outside node_modules.
+                ws.runtime_settings["enableGlobalVirtualStore"] = False
             copy_writable_file(ws.path, ws.path)
             ws.write()
             install_cmd = [

@@ -221,7 +221,11 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
 
 
 @pytest.mark.parametrize("global_virtual_store", [False, True])
-def test_pnpm_install_leaves_virtual_store_layout_to_pnpm(monkeypatch, tmp_path, global_virtual_store):
+@pytest.mark.parametrize("portable", [False, True])
+@pytest.mark.parametrize("local_cli", [False, True])
+def test_pnpm_install_uses_local_virtual_store_for_portable_modules(
+    monkeypatch, tmp_path, global_virtual_store, portable, local_cli
+):
     package_manager, commands = _package_manager(monkeypatch)
     cwd = str(tmp_path / "build" / "project" / "module")
     node_modules_path = os.path.join(cwd, "node_modules")
@@ -235,8 +239,9 @@ def test_pnpm_install_leaves_virtual_store_layout_to_pnpm(monkeypatch, tmp_path,
     package_manager._run_pnpm_install(
         str(tmp_path / "build" / "store"),
         cwd,
-        False,
+        local_cli,
         node_modules_path,
+        portable=portable,
     )
 
     command, actual_cwd = commands[0]
@@ -245,7 +250,7 @@ def test_pnpm_install_leaves_virtual_store_layout_to_pnpm(monkeypatch, tmp_path,
     settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
     assert "--virtual-store-dir" not in command
     assert "virtualStoreDir" not in settings
-    assert settings["enableGlobalVirtualStore"] is global_virtual_store
+    assert settings["enableGlobalVirtualStore"] is (False if portable else global_virtual_store)
     assert settings["packageImportMethod"] == "hardlink"
 
 
@@ -544,7 +549,7 @@ def test_production_reinstall_removes_restored_node_modules(monkeypatch, tmp_pat
 
     package_manager.create_node_modules = create_node_modules
     package_manager.prune_node_modules(yatool_prebuilder_path="/prebuilder", local_cli=False)
-    assert calls == [{"yatool_prebuilder_path": "/prebuilder", "local_cli": False, "prod": True}]
+    assert calls == [{"yatool_prebuilder_path": "/prebuilder", "local_cli": False, "prod": True, "portable": True}]
 
 
 def test_pnpm_install_detaches_readonly_workspace_input(monkeypatch, tmp_path):

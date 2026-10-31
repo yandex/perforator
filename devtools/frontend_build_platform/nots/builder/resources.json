@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-10-30T16:36:50Z",
-    "commit": "e653ceeea30aff2d9eec8e269d7a5d2fe319bf15",
-    "branch": "pr-16770943-rebase-20261030",
-    "dirty": false
+    "created": "2026-10-30T23:30:35Z",
+    "commit": "65134c8c78cbf316a305f7e3fc3741364f1fd83e",
+    "branch": "FBP-3627-builder-portable-gvs",
+    "dirty": true
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14167729619"
+      "uri": "sbr:14169679879"
     },
     "darwin-arm64": {
-      "uri": "sbr:14167736795"
+      "uri": "sbr:14169681119"
     },
     "linux": {
-      "uri": "sbr:14167708949"
+      "uri": "sbr:14169677909"
     },
     "linux-aarch64": {
-      "uri": "sbr:14167720205"
+      "uri": "sbr:14169678521"
     }
   }
 }
