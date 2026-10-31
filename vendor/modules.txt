@@ -15270,8 +15270,8 @@ github.com/pion/dtls/v2/pkg/protocol/alert
 github.com/pion/dtls/v2/pkg/protocol/extension
 github.com/pion/dtls/v2/pkg/protocol/handshake
 github.com/pion/dtls/v2/pkg/protocol/recordlayer
-# github.com/pion/dtls/v3 v3.0.8
-## explicit; go 1.21
+# github.com/pion/dtls/v3 v3.1.14
+## explicit; go 1.24.0
 github.com/pion/dtls/v3
 github.com/pion/dtls/v3/e2e
 github.com/pion/dtls/v3/examples/dial/cid
@@ -15296,6 +15296,7 @@ github.com/pion/dtls/v3/pkg/crypto/clientcertificate
 github.com/pion/dtls/v3/pkg/crypto/elliptic
 github.com/pion/dtls/v3/pkg/crypto/fingerprint
 github.com/pion/dtls/v3/pkg/crypto/hash
+github.com/pion/dtls/v3/pkg/crypto/keyschedule
 github.com/pion/dtls/v3/pkg/crypto/prf
 github.com/pion/dtls/v3/pkg/crypto/selfsign
 github.com/pion/dtls/v3/pkg/crypto/signature
@@ -15421,6 +15422,12 @@ github.com/pion/transport/v3/test
 github.com/pion/transport/v3/udp
 github.com/pion/transport/v3/utils/xor
 github.com/pion/transport/v3/vnet
+# github.com/pion/transport/v5 v5.1.1
+## explicit; go 1.24.0
+github.com/pion/transport/v5/deadline
+github.com/pion/transport/v5/netctx
+github.com/pion/transport/v5/replaydetector
+github.com/pion/transport/v5/test
 # github.com/pion/turn/v2 v2.1.6
 ## explicit; go 1.13
 github.com/pion/turn/v2
