@@ -147,6 +147,7 @@ require (
 	codeberg.org/go-pdf/fpdf v0.11.1
 	connectrpc.com/connect v1.20.0
 	connectrpc.com/vanguard v0.3.0
+	contrib.go.opencensus.io/exporter/prometheus v0.4.2
 	cuelang.org/go v0.4.3
 	firebase.google.com/go v3.13.0+incompatible
 	fyne.io/systray v1.12.2
@@ -206,6 +207,7 @@ require (
 	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/semver/v3 v3.5.0
+	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/MicahParks/jwkset v0.11.0
 	github.com/MicahParks/keyfunc/v2 v2.1.0
@@ -1268,7 +1270,6 @@ require (
 	connectrpc.com/otelconnect v0.9.0 // indirect
 	contrib.go.opencensus.io/exporter/aws v0.0.0-20200617204711-c478e41e60e9 // indirect
 	contrib.go.opencensus.io/exporter/ocagent v0.7.0 // indirect
-	contrib.go.opencensus.io/exporter/prometheus v0.4.2 // indirect
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.15-0.20230702191903-2de6d2748484 // indirect
 	contrib.go.opencensus.io/integrations/ocsql v0.1.7 // indirect
 	contrib.go.opencensus.io/resource v0.1.2 // indirect
@@ -1353,7 +1354,6 @@ require (
 	github.com/MarvinJWendt/testza v0.5.2 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
-	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/vcs v1.13.3 // indirect
 	github.com/MichaelTJones/walk v0.0.0-20161122175330-4748e29d5718 // indirect
 	github.com/Microsoft/hcsshim v0.14.0-rc.1 // indirect

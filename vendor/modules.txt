@@ -1343,6 +1343,8 @@ connectrpc.com/vanguard/vanguardgrpc
 ## explicit; go 1.13
 # contrib.go.opencensus.io/exporter/prometheus v0.4.2
 ## explicit; go 1.13
+contrib.go.opencensus.io/exporter/prometheus
+contrib.go.opencensus.io/exporter/prometheus/example
 # contrib.go.opencensus.io/exporter/stackdriver v0.13.15-0.20230702191903-2de6d2748484
 ## explicit; go 1.18
 contrib.go.opencensus.io/exporter/stackdriver
@@ -15912,6 +15914,9 @@ github.com/prometheus/prometheus/web/ui
 github.com/prometheus/sigv4
 # github.com/prometheus/statsd_exporter v0.22.7
 ## explicit; go 1.17
+github.com/prometheus/statsd_exporter/pkg/level
+github.com/prometheus/statsd_exporter/pkg/mapper
+github.com/prometheus/statsd_exporter/pkg/mapper/fsm
 # github.com/prometheus/tsdb v0.10.0
 ## explicit
 # github.com/protocolbuffers/txtpbfmt v0.0.0-20240116145035-ef3ab179eed6
