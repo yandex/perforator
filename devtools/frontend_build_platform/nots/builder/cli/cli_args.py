@@ -100,41 +100,6 @@ def __with_base_builders_options(parser: ArgumentParser) -> ArgumentParser:
 
 
 @timeit
-def __with_common_builders_options(parser: ArgumentParser) -> ArgumentParser:
-    """Compatibility arguments still emitted by the proto configuration."""
-
-    __with_base_builders_options(parser)  # Add base options first
-
-    parser.add_argument(
-        "--with-after-build",
-        action='store_true',
-        required=False,
-        default=False,
-        help="Shows if should run after build script",
-    )
-
-    parser.add_argument(
-        "--after-build-js",
-        required=False,
-        help="Path of the script to run after build",
-    )
-
-    parser.add_argument(
-        "--after-build-args",
-        required=False,
-        help="List of args for the script to run after build",
-    )
-
-    parser.add_argument(
-        "--after-build-outdir",
-        required=False,
-        help="Output directory for the script to run after build",
-    )
-
-    return parser
-
-
-@timeit
 def register_builders(subparsers):
     prepare_deps_parser(subparsers)
 
@@ -146,8 +111,7 @@ def register_builders(subparsers):
 
     __with_base_builders_options(build_package_parser(subparsers))
 
-    # Proto still accepts the legacy after-build arguments emitted by ts.conf.
-    __with_common_builders_options(build_ts_proto_parser(subparsers))
+    __with_base_builders_options(build_ts_proto_parser(subparsers))
 
 
 @timeit

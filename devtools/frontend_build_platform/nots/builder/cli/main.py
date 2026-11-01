@@ -60,10 +60,6 @@ def __write_output_meta(bindir: str, output_file: str, outputs: list[str] | None
 def _postprocess_output(args: AllOptions, outputs: list[str]) -> None:
     output_file = getattr(args, 'output_file', args.node_modules_bundle)
     outputs.extend(getattr(args, 'outputs', []))
-    outputs.extend(getattr(args, 'output_dirs', []))
-    after_build_outdir = getattr(args, 'after_build_outdir', [])
-    if after_build_outdir:
-        outputs.append(after_build_outdir)
 
     if output_file and output_file != args.node_modules_bundle and os.path.isfile(output_file):
         __write_output_meta(args.bindir, output_file, outputs, getattr(args, "output_prefix", ""))

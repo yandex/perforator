@@ -4994,7 +4994,7 @@
   },
   "vite": {
     "title": "Vite",
-    "description": "Современный сборщик frontend проектов\n\nПод капотом используется более низкоуровневый сборщик [rollup](https://rollupjs.org/).\n\nДля транспиляции TypeScript может использовать нативные способы: [esbuild](https://esbuild.github.io/), [SWC](https://swc.rs/)\n\nПоэтому, если требуется использовать `rollup` или `esbuild`/`SWC` на проекте - то `vite` - ваш выбор.\n\nВ tier-0 используется в модуле/макросе [`TS_VITE()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_VITE).",
+    "description": "Современный сборщик frontend проектов\n\nПод капотом используется более низкоуровневый сборщик [rollup](https://rollupjs.org/).\n\nДля транспиляции TypeScript может использовать нативные способы: [esbuild](https://esbuild.github.io/), [SWC](https://swc.rs/)\n\nПоэтому, если требуется использовать `rollup` или `esbuild`/`SWC` на проекте - то `vite` - ваш выбор.\n\nВ tier-0 используется через [`TS_LIBRARY()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_LIBRARY) с командой сборки в `TS_BUILD_SCRIPT`.",
     "type": "NPM_PACKAGE",
     "default": "8.0.0",
     "links": {
@@ -5002,7 +5002,7 @@
       "Sources": "https://github.com/vitejs/vite/tree/main",
       "Changelog": "https://github.com/vitejs/vite/blob/main/packages/vite/CHANGELOG.md",
       "Docs": "https://vitejs.dev/guide/",
-      "TS_VITE docs": "https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_VITE"
+      "TS_LIBRARY docs": "https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_LIBRARY"
     },
     "useDirectly": true,
     "versions": {
@@ -5445,7 +5445,7 @@
   },
   "webpack": {
     "title": "webpack",
-    "description": "Классический сборщик frontend проектов\n\nВ tier-0 используется в модуле/макросе [`TS_WEBPACK()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_WEBPACK).",
+    "description": "Классический сборщик frontend проектов\n\nВ tier-0 используется через [`TS_LIBRARY()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_LIBRARY) с командой сборки в `TS_BUILD_SCRIPT`.",
     "type": "NPM_PACKAGE",
     "default": "5.105.4",
     "links": {
@@ -5453,7 +5453,7 @@
       "Sources": "https://github.com/webpack/webpack",
       "Changelog": "https://github.com/webpack/webpack/releases",
       "Docs": "https://webpack.js.org/concepts/",
-      "TS_WEBPACK docs": "https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_WEBPACK"
+      "TS_LIBRARY docs": "https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_LIBRARY"
     },
     "useDirectly": true,
     "versions": {

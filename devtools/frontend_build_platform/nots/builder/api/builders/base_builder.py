@@ -75,8 +75,6 @@ class BaseBuilder(object):
             is_pj_need_update = True
         if 'files' not in pj.data:
             files = []
-            if hasattr(self.options, 'output_dirs') and self.options.output_dirs is not None:
-                files.extend(self.options.output_dirs)
             if hasattr(self.options, 'outputs') and self.options.outputs is not None:
                 files.extend(self.options.outputs)
 
