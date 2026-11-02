@@ -65,6 +65,7 @@ pnpm:
         registries:
             https://npm.yandex-team.ru:
                 serverType: npm
+        shellEmulator: true
         strictPeerDependencies: false
         updateNotifier: false
         verifyStoreIntegrity: false
@@ -242,6 +243,10 @@ pnpm:
                 Тип внутреннего npm-реестра для распознавания канонических URL scoped-пакетов с %2f.
                 Такие URL не должны записываться в lockfile при lockfileIncludeTarballUrl: false.
                 https://pnpm.io/11.x/settings/dependency-resolution#registries
+
+            shellEmulator: |-
+                Выполнять скрипты pnpm через встроенный эмулятор bash-подобного shell.
+                https://pnpm.io/11.x/settings/other#shellemulator
 
             updateNotifier: |-
                 Версию pnpm поставляет Tier 0, уведомления об обновлении не нужны.
