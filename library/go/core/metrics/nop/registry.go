@@ -9,6 +9,7 @@ import (
 
 var _ metrics.Registry = (*Registry)(nil)
 var _ metrics.MetricsStreamer = (*Registry)(nil)
+var _ metrics.GaugeWithInitialValueRegistry = (*Registry)(nil)
 
 type Registry struct{}
 
@@ -33,6 +34,10 @@ func (r Registry) FuncCounter(_ string, function func() int64) metrics.FuncCount
 }
 
 func (r Registry) Gauge(_ string) metrics.Gauge {
+	return Gauge{}
+}
+
+func (r Registry) GaugeWithInitialValue(_ string, _ float64) metrics.Gauge {
 	return Gauge{}
 }
 

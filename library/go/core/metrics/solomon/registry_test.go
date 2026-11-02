@@ -15,6 +15,34 @@ import (
 	"go.uber.org/atomic"
 )
 
+func TestRegistry_GaugeWithInitialValue(t *testing.T) {
+	for _, initialValue := range []float64{0, 17.5, -17.5} {
+		t.Run(fmt.Sprint(initialValue), func(t *testing.T) {
+			r := NewRegistry(NewRegistryOpts().SetUseNameTag(true))
+			scope := r.WithPrefix("worker").WithTags(map[string]string{"job_index": "1"}).(*Registry)
+			gauge := scope.GaugeWithInitialValue("lag", initialValue).(*Gauge)
+			snapshot, err := r.Gather()
+			require.NoError(t, err)
+			require.Len(t, snapshot.List(), 1)
+			sample := snapshot.List()[0]
+			require.Equal(t, "worker.lag", sample.Name())
+			require.Equal(t, map[string]string{"job_index": "1"}, sample.Labels())
+			require.Equal(t, "name", sample.getNameTag())
+			require.Equal(t, initialValue, sample.Value())
+
+			gauge.Add(1)
+			existing := scope.GaugeWithInitialValue("lag", initialValue+100).(*Gauge)
+			require.Same(t, gauge, existing)
+			require.Equal(t, initialValue+1, existing.Value())
+			existing.Set(42)
+			require.Equal(t, float64(42), gauge.Value())
+			require.Same(t, gauge, scope.Gauge("lag"))
+			require.Equal(t, float64(42), gauge.Value())
+			require.Equal(t, float64(0), r.Gauge("default").(*Gauge).Value())
+		})
+	}
+}
+
 func TestRegistry_Gather(t *testing.T) {
 	counter := NewCounter("myprefix.mycounter", 42, WithTags(map[string]string{"ololo": "trololo"}))
 	gauge := NewGauge("myprefix.mygauge", 14.89, WithTags(map[string]string{"shimba": "boomba"}))

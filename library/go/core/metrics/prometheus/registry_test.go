@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -10,11 +11,74 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/library/go/ptr"
 )
+
+type gaugeRegistrationObserver struct {
+	PrometheusRegistry
+	beforeRegister func(prometheus.Collector)
+}
+
+var _ PrometheusRegistry = (*gaugeRegistrationObserver)(nil)
+
+func (r *gaugeRegistrationObserver) Register(collector prometheus.Collector) error {
+	r.beforeRegister(collector)
+	return r.PrometheusRegistry.Register(collector)
+}
+
+func TestRegistry_GaugeWithInitialValue(t *testing.T) {
+	for _, initialValue := range []float64{0, 17.5, -17.5} {
+		t.Run(fmt.Sprint(initialValue), func(t *testing.T) {
+			expectedAtRegistration := initialValue
+			observed := &gaugeRegistrationObserver{
+				PrometheusRegistry: prometheus.NewRegistry(),
+				beforeRegister: func(collector prometheus.Collector) {
+					// Check before Register makes the metric visible to a scrape.
+					sample := new(dto.Metric)
+					require.NoError(t, collector.(prometheus.Gauge).Write(sample))
+					require.Equal(t, expectedAtRegistration, sample.GetGauge().GetValue())
+				},
+			}
+			r := NewRegistry(NewRegistryOpts().SetRegistry(observed).SetNameSanitizer(func(name string) string {
+				return strings.ReplaceAll(name, ".", "_")
+			}))
+			scope := r.WithPrefix("worker").WithTags(map[string]string{"job_index": "1"}).(*Registry)
+			gauge := scope.GaugeWithInitialValue("row.lag", initialValue).(*Gauge)
+			families, err := r.Gather()
+			require.NoError(t, err)
+			require.Len(t, families, 1)
+			require.Equal(t, "worker_row_lag", families[0].GetName())
+			require.Len(t, families[0].GetMetric(), 1)
+			sample := families[0].GetMetric()[0]
+			require.Equal(t, initialValue, sample.GetGauge().GetValue())
+			require.Len(t, sample.GetLabel(), 1)
+			require.Equal(t, "job_index", sample.GetLabel()[0].GetName())
+			require.Equal(t, "1", sample.GetLabel()[0].GetValue())
+
+			gauge.Add(1)
+			expectedAtRegistration = initialValue + 100
+			existing := scope.GaugeWithInitialValue("row.lag", expectedAtRegistration).(*Gauge)
+			require.Same(t, gauge.gg, existing.gg)
+			require.NoError(t, existing.gg.Write(sample))
+			require.Equal(t, initialValue+1, sample.GetGauge().GetValue())
+			existing.Set(42)
+			require.NoError(t, gauge.gg.Write(sample))
+			require.Equal(t, float64(42), sample.GetGauge().GetValue())
+
+			expectedAtRegistration = 0
+			scope.Gauge("row.lag")
+			require.NoError(t, gauge.gg.Write(sample))
+			require.Equal(t, float64(42), sample.GetGauge().GetValue())
+			defaultGauge := r.Gauge("default").(*Gauge)
+			require.NoError(t, defaultGauge.gg.Write(sample))
+			require.Equal(t, float64(0), sample.GetGauge().GetValue())
+		})
+	}
+}
 
 func TestNewRegistry(t *testing.T) {
 	expected := &Registry{

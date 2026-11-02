@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	_ metrics.Registry        = (*Registry)(nil)
-	_ metrics.MetricsStreamer = (*Registry)(nil)
+	_ metrics.Registry                      = (*Registry)(nil)
+	_ metrics.MetricsStreamer               = (*Registry)(nil)
+	_ metrics.GaugeWithInitialValueRegistry = (*Registry)(nil)
 )
 
 type Registry struct {
@@ -119,7 +120,11 @@ func (r Registry) FuncCounter(name string, function func() int64) metrics.FuncCo
 }
 
 func (r Registry) Gauge(name string) metrics.Gauge {
-	m := NewGauge(r.newMetricName(name), 0, WithTags(r.tags), WithNameTag(r.useNameTag))
+	return r.GaugeWithInitialValue(name, 0)
+}
+
+func (r Registry) GaugeWithInitialValue(name string, initialValue float64) metrics.Gauge {
+	m := NewGauge(r.newMetricName(name), initialValue, WithTags(r.tags), WithNameTag(r.useNameTag))
 
 	return r.registerMetric(&m).(metrics.Gauge)
 }

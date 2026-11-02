@@ -156,6 +156,14 @@ type Registry interface {
 	DurationHistogramVec(name string, buckets DurationBuckets, labels []string) TimerVec
 }
 
+// GaugeWithInitialValueRegistry is an optional Registry extension for publishing
+// a gauge with its initial value already set. Existing duplicate-registration
+// policies still apply; if an existing gauge is returned, its value is preserved.
+type GaugeWithInitialValueRegistry interface {
+	Registry
+	GaugeWithInitialValue(name string, initialValue float64) Gauge
+}
+
 // MetricsStreamer represents a registry that can stream collected metrics data to some destination
 type MetricsStreamer interface {
 	Stream(context.Context, io.Writer) (int, error)

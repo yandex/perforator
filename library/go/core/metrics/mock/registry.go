@@ -11,6 +11,7 @@ import (
 )
 
 var _ metrics.Registry = (*Registry)(nil)
+var _ metrics.GaugeWithInitialValueRegistry = (*Registry)(nil)
 
 type Registry struct {
 	separator                  string
@@ -89,10 +90,14 @@ func (r Registry) FuncCounter(name string, function func() int64) metrics.FuncCo
 }
 
 func (r Registry) Gauge(name string) metrics.Gauge {
+	return r.GaugeWithInitialValue(name, 0)
+}
+
+func (r Registry) GaugeWithInitialValue(name string, initialValue float64) metrics.Gauge {
 	s := &Gauge{
 		Name:  r.newMetricName(name),
 		Tags:  r.tags,
-		Value: new(atomic.Float64),
+		Value: atomic.NewFloat64(initialValue),
 	}
 
 	key := registryutil.BuildRegistryKey(s.Name, r.tags)
