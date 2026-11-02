@@ -457,24 +457,14 @@ func (c *oneShotSampleConsumer) collectKernelStackInto(builder *profile.SampleBu
 	}
 }
 
-func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, loc *profile.LocationBuilder, ip uint64, jvmFrame *unwinder.JvmFrame, preserveAddress bool) {
-	for _, s := range c.p.jitSymbolizers {
-		out, ok := s.Resolve(linux.CurrentNamespacePID(c.sample.Pid), ip)
-		if !ok {
-			continue
-		}
-		fullySymbolized := len(out.Symbols) > 0
-		for _, symbol := range out.Symbols {
-			fullySymbolized = fullySymbolized && symbol.Name != "" && symbol.Name != models.UnsymbolizedInterpreterLocation
-			loc.AddFrame().SetName(symbol.Name).SetMangledName(symbol.Name).Finish()
-		}
-		if fullySymbolized && !preserveAddress {
-			loc.ClearAddress()
-		}
-		loc.SetMapping().SetPath(out.MappingName).Finish()
-		loc.Finish()
-		return
-	}
+// processUserSpaceLocationNative records location, filling it if it corresponds to a
+// file-backed mapping.
+// It triggers a rescan if such a mapping was not found.
+func (c *oneShotSampleConsumer) processUserSpaceLocationNative(
+	ctx context.Context,
+	loc *profile.LocationBuilder,
+	ip uint64,
+) {
 	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
 	if err == nil {
 		offset := mapping.Offset
@@ -499,17 +489,44 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 		}
 
 		m.Finish()
-	} else if jvmFrame != nil {
-		c.processUserSpaceLocationJava(ctx, loc, jvmFrame, preserveAddress)
-		return
 	} else {
 		c.p.procs.MaybeRescanProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
 	}
-
 	loc.Finish()
 }
 
-func (c *oneShotSampleConsumer) processUserSpaceLocationJava(ctx context.Context, loc *profile.LocationBuilder, jvmFrame *unwinder.JvmFrame, preserveAddress bool) {
+func (c *oneShotSampleConsumer) processUserSpaceLocation(
+	ctx context.Context,
+	loc *profile.LocationBuilder,
+	ip uint64,
+	jvmFrame *unwinder.JvmFrame,
+) {
+	for _, s := range c.p.jitSymbolizers {
+		out, ok := s.Resolve(linux.CurrentNamespacePID(c.sample.Pid), ip)
+		if !ok {
+			continue
+		}
+		fullySymbolized := len(out.Symbols) > 0
+		for _, symbol := range out.Symbols {
+			fullySymbolized = fullySymbolized && symbol.Name != "" && symbol.Name != models.UnsymbolizedInterpreterLocation
+			loc.AddFrame().SetName(symbol.Name).SetMangledName(symbol.Name).Finish()
+		}
+		if fullySymbolized {
+			loc.ClearAddress()
+		}
+		loc.SetMapping().SetPath(out.MappingName).Finish()
+		loc.Finish()
+		return
+	}
+	if jvmFrame != nil {
+		c.processUserSpaceLocationJava(ctx, loc, jvmFrame)
+		return
+	}
+
+	c.processUserSpaceLocationNative(ctx, loc, ip)
+}
+
+func (c *oneShotSampleConsumer) processUserSpaceLocationJava(ctx context.Context, loc *profile.LocationBuilder, jvmFrame *unwinder.JvmFrame) {
 	fb := loc.AddFrame()
 	if c.p.conf.JVM.DisableInterpretedMethodSymbolization {
 		fb.
@@ -520,7 +537,7 @@ func (c *oneShotSampleConsumer) processUserSpaceLocationJava(ctx context.Context
 		if err != nil {
 			name = models.UnsymbolizedInterpreterLocation
 			xlog.Wrap(c.p.log).Error(ctx, "Failed to symbolize interpreted JVM method", log.Error(err))
-		} else if name != "" && name != models.UnsymbolizedInterpreterLocation && !preserveAddress {
+		} else if name != "" && name != models.UnsymbolizedInterpreterLocation {
 			loc.ClearAddress()
 		}
 		fb.SetName(name).SetMangledName(name)
@@ -559,7 +576,7 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 		} else {
 			loc = builder.AddNativeLocation(ip)
 		}
-		c.processUserSpaceLocation(ctx, loc, ip, matchingJVMFrame, false)
+		c.processUserSpaceLocation(ctx, loc, ip, matchingJVMFrame)
 	}
 }
 
@@ -609,7 +626,7 @@ func (c *oneShotSampleConsumer) collectLBRStackInto(ctx context.Context, builder
 
 		processAddress := func(ip uint64) {
 			loc := builder.AddNativeLocation(ip)
-			c.processUserSpaceLocation(ctx, loc, ip, nil, true)
+			c.processUserSpaceLocationNative(ctx, loc, ip)
 		}
 		processAddress(from)
 		processAddress(to)
