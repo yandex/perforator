@@ -65,7 +65,7 @@ pnpm:
         registries:
             https://npm.yandex-team.ru:
                 serverType: npm
-        shellEmulator: true
+        shellEmulator: false
         strictPeerDependencies: false
         updateNotifier: false
         verifyStoreIntegrity: false
