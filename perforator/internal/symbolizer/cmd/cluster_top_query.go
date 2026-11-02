@@ -1,20 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
-	"text/tabwriter"
-	"time"
-
-	"github.com/spf13/cobra"
 
 	"github.com/yandex/perforator/perforator/proto/lib/pagination"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 )
 
-type clusterTopQueryOptions struct {
+type clusterTopAggregateRPCOptions struct {
 	groupBy    string
 	generation string
 	sort       string
@@ -24,14 +21,6 @@ type clusterTopQueryOptions struct {
 	offset     uint64
 }
 
-type clusterTopItem struct {
-	Name          string  `json:"name"`
-	SelfCPU       float64 `json:"self_cpu"`
-	CumulativeCPU float64 `json:"cumulative_cpu"`
-	SelfPct       float64 `json:"self_pct"`
-	CumulativePct float64 `json:"cumulative_pct"`
-}
-
 type clusterTopPage struct {
 	Offset     uint64  `json:"offset"`
 	Limit      uint64  `json:"limit"`
@@ -39,63 +28,7 @@ type clusterTopPage struct {
 	NextOffset *uint64 `json:"next_offset,omitempty"`
 }
 
-type clusterTopQueryOutput struct {
-	Generation clusterTopGenerationOutput `json:"generation"`
-	Metric     string                     `json:"metric"`
-	Sort       string                     `json:"sort"`
-	Search     string                     `json:"search,omitempty"`
-	Function   string                     `json:"function,omitempty"`
-	GroupBy    string                     `json:"group_by"`
-	Items      []clusterTopItem           `json:"items"`
-	Pagination clusterTopPage             `json:"pagination"`
-}
-
-func newClusterTopFunctionsCommand(common *clusterTopOptions) *cobra.Command {
-	opts := &clusterTopQueryOptions{groupBy: "functions"}
-	cmd := &cobra.Command{
-		Use:   "functions",
-		Short: "Show the top functions or search their names",
-		Long: "Show functions ordered by descending self or cumulative CPU. Search uses a substring of the function name.\n" +
-			"Estimated average CPU over the generation interval.\n" +
-			"Percentages are relative to the generation's total self cycles, even when searching; cumulative percentages need not sum to 100.\n\n" +
-			clusterTopExperimental,
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runClusterTopQuery(cmd, common, opts)
-		},
-	}
-	cmd.Flags().StringVar(&opts.search, "search", "", "Substring to search in function names")
-	addClusterTopQueryFlags(cmd, opts)
-	return cmd
-}
-
-func newClusterTopServicesCommand(common *clusterTopOptions) *cobra.Command {
-	opts := &clusterTopQueryOptions{groupBy: "services"}
-	cmd := &cobra.Command{
-		Use:   "services",
-		Short: "Show services using an exact function",
-		Long: "Show services ordered by descending self or cumulative CPU for an exact, full function name.\n" +
-			"Estimated average CPU over the generation interval.\n" +
-			"Self and cumulative percentages are relative to this function's respective totals across services.\n\n" +
-			clusterTopExperimental,
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runClusterTopQuery(cmd, common, opts)
-		},
-	}
-	cmd.Flags().StringVar(&opts.function, "function", "", "Exact, full function name (required)")
-	addClusterTopQueryFlags(cmd, opts)
-	return cmd
-}
-
-func addClusterTopQueryFlags(cmd *cobra.Command, opts *clusterTopQueryOptions) {
-	cmd.Flags().StringVar(&opts.generation, "generation", "latest", "Generation ID or latest (highest completed ID)")
-	cmd.Flags().StringVar(&opts.sort, "sort", "self", "Sort descending by self or cumulative CPU")
-	cmd.Flags().Uint64Var(&opts.limit, "limit", 50, "Page size (1–1000)")
-	cmd.Flags().Uint64Var(&opts.offset, "offset", 0, "Number of entries to skip")
-}
-
-func (o *clusterTopQueryOptions) request() (*perforator.ClusterTopRequest, error) {
+func (o *clusterTopAggregateRPCOptions) request() (*perforator.ClusterTopRequest, error) {
 	req := &perforator.ClusterTopRequest{
 		Pagination: &pagination.Paginated{Limit: o.limit, Offset: o.offset},
 	}
@@ -156,24 +89,14 @@ func resolveClusterTopGeneration(generations []*perforator.ClusterTopGeneration,
 	return makeClusterTopGenerationOutput(selected)
 }
 
-func runClusterTopQuery(cmd *cobra.Command, common *clusterTopOptions, opts *clusterTopQueryOptions) error {
-	req, err := opts.request()
-	if err != nil {
-		return err
-	}
-	app, err := newClusterTopApp(cmd.Context(), common)
-	if err != nil {
-		return err
-	}
-	defer app.Shutdown()
-	ctx, api := app.Context(), app.Client().ClusterTop()
+func fetchClusterTopAggregateRPC(ctx context.Context, api perforator.ClusterTopClient, opts *clusterTopAggregateRPCOptions, req *perforator.ClusterTopRequest, groups []string) (*clusterTopOutput, error) {
 	generations, err := api.ListClusterTopGenerations(ctx, &perforator.ListClusterTopGenerationRequest{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	generation, err := resolveClusterTopGeneration(generations.GetGenerations(), req.Generation)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Generation = generation.ID
 	var response *perforator.ClusterTopResponse
@@ -183,80 +106,51 @@ func runClusterTopQuery(cmd *cobra.Command, common *clusterTopOptions, opts *clu
 		response, err = api.GetClusterTopAggregatedByFunction(ctx, req)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
-	result := clusterTopQueryOutput{
-		Generation: generation,
-		Metric:     "estimated_average_cpu",
-		Sort:       opts.sort,
-		Search:     opts.search,
-		Function:   opts.function,
-		GroupBy:    opts.groupBy,
-		Items:      make([]clusterTopItem, 0, len(response.GetInstances())),
-		Pagination: clusterTopPage{Offset: opts.offset, Limit: opts.limit, HasMore: response.GetHasMore()},
+	result := clusterTopOutput{
+		Generation:      generation,
+		Rows:            make([]clusterTopRow, 0, len(response.GetInstances())),
+		Pagination:      clusterTopPage{Offset: opts.offset, Limit: opts.limit, HasMore: response.GetHasMore()},
+		PercentageBasis: "generation_self_cpu",
+	}
+	if opts.groupBy == "services" {
+		result.PercentageBasis = "function_cpu_across_services"
 	}
 	hours := generation.To.Sub(generation.From).Hours()
 	for _, entry := range response.GetInstances() {
 		if entry == nil || entry.Count == nil {
-			return fmt.Errorf("server returned an entry without counts")
+			return nil, fmt.Errorf("server returned an entry without counts")
 		}
 		count := entry.GetCount()
-		item := clusterTopItem{
-			Name: entry.GetName(), SelfCPU: count.GetSelf() / hours, CumulativeCPU: count.GetCumulative() / hours,
-			SelfPct: count.GetSelfPct(), CumulativePct: count.GetCumulativePct(),
-		}
-		for _, value := range []float64{item.SelfCPU, item.CumulativeCPU, item.SelfPct, item.CumulativePct} {
-			if math.IsNaN(value) || math.IsInf(value, 0) {
-				return fmt.Errorf("server returned non-finite counts for %q", item.Name)
+		key := make(map[string]any)
+		for _, group := range groups {
+			value := entry.GetName()
+			if opts.groupBy == "services" && group == "function" {
+				value = opts.function
+			}
+			if value != "" {
+				key[group] = value
 			}
 		}
-		result.Items = append(result.Items, item)
+		selfPct, cumulativePct := count.GetSelfPct(), count.GetCumulativePct()
+		row := clusterTopRow{
+			Key: key, SelfCPU: count.GetSelf() / hours, CumulativeCPU: count.GetCumulative() / hours,
+			SelfPct: &selfPct, CumulativePct: &cumulativePct,
+		}
+		for _, value := range []float64{row.SelfCPU, row.CumulativeCPU, selfPct, cumulativePct} {
+			if math.IsNaN(value) || math.IsInf(value, 0) {
+				return nil, fmt.Errorf("server returned non-finite counts for %q", entry.GetName())
+			}
+		}
+		result.Rows = append(result.Rows, row)
 	}
 	if result.Pagination.HasMore {
-		if len(result.Items) == 0 {
-			return fmt.Errorf("server returned an empty page with has_more")
+		if len(result.Rows) == 0 {
+			return nil, fmt.Errorf("server returned an empty page with has_more")
 		}
-		next := opts.offset + uint64(len(result.Items))
+		next := opts.offset + uint64(len(result.Rows))
 		result.Pagination.NextOffset = &next
 	}
-	if generation.Status != "completed" {
-		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "Warning: generation %d is %s; snapshots and pages may change.\n", generation.ID, generation.Status); err != nil {
-			return err
-		}
-	}
-	if common.json {
-		return writeClusterTopJSON(cmd.OutOrStdout(), result)
-	}
-	return writeClusterTopTable(cmd, result)
-}
-
-func writeClusterTopTable(cmd *cobra.Command, result clusterTopQueryOutput) error {
-	out := cmd.OutOrStdout()
-	if _, err := fmt.Fprintf(out, "Generation %d (%s), %s — %s\nEstimated average CPU over the generation interval.\n",
-		result.Generation.ID, result.Generation.Status,
-		result.Generation.From.Format(time.RFC3339), result.Generation.To.Format(time.RFC3339)); err != nil {
-		return err
-	}
-	w := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
-	if result.Function != "" {
-		if _, err := fmt.Fprintf(out, "Function: %q\n", result.Function); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintln(w, "SELF CPU\tCUMULATIVE CPU\tSELF %\tCUMULATIVE %\tNAME"); err != nil {
-		return err
-	}
-	for _, item := range result.Items {
-		if _, err := fmt.Fprintf(w, "%.2f\t%.2f\t%.2f\t%.2f\t%q\n", item.SelfCPU, item.CumulativeCPU, item.SelfPct, item.CumulativePct, item.Name); err != nil {
-			return err
-		}
-	}
-	if err := w.Flush(); err != nil {
-		return err
-	}
-	if result.Pagination.NextOffset != nil {
-		_, err := fmt.Fprintf(out, "More results: repeat with --generation %d --offset %d and the same filters and sort.\n", result.Generation.ID, *result.Pagination.NextOffset)
-		return err
-	}
-	return nil
+	return &result, nil
 }
