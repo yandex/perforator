@@ -48,7 +48,7 @@ func TestClusterTopPagination(t *testing.T) {
 				aggregated.GroupByFunction, util.Pagination{Offset: 2, Limit: 2}, aggregated.SelfTimeSortOrder).
 				Return(entries, nil)
 			storage.EXPECT().CountTotalSelfCycles(gomock.Any(), uint32(42)).Return(big.NewInt(0), nil)
-			resp, err := NewService(xlog.ForTest(t), storage).GetClusterTopAggregatedByFunction(t.Context(), &perforator.ClusterTopRequest{
+			resp, err := NewService(xlog.ForTest(t), storage, Config{}).GetClusterTopAggregatedByFunction(t.Context(), &perforator.ClusterTopRequest{
 				Generation: 42,
 				Pagination: &pagination.Paginated{Offset: 2, Limit: 1},
 			})
@@ -119,7 +119,7 @@ func TestGetClusterTopByFunction(t *testing.T) {
 	storageMock := mocks.NewMockStorage(ctrl)
 	storageMock.EXPECT().Exists(gomock.Any(), uint32(42)).Return(true, nil)
 
-	svc := NewService(xlog.ForTest(t), storageMock)
+	svc := NewService(xlog.ForTest(t), storageMock, Config{})
 	ctx := context.Background()
 
 	var generation uint32 = 42
@@ -194,7 +194,7 @@ func TestGetClusterTopByServiceForFunction(t *testing.T) {
 	storageMock := mocks.NewMockStorage(ctrl)
 	storageMock.EXPECT().Exists(gomock.Any(), uint32(42)).Return(true, nil)
 
-	svc := NewService(xlog.ForTest(t), storageMock)
+	svc := NewService(xlog.ForTest(t), storageMock, Config{})
 	ctx := context.Background()
 
 	var generation uint32 = 42
@@ -276,7 +276,7 @@ func TestUnavailableGenerationIsNotRead(t *testing.T) {
 		t.Run(fmt.Sprint(readErr), func(t *testing.T) {
 			storage := mocks.NewMockStorage(gomock.NewController(t))
 			storage.EXPECT().Exists(gomock.Any(), uint32(42)).Return(false, readErr)
-			_, err := NewService(xlog.ForTest(t), storage).GetClusterTopAggregatedByFunction(t.Context(), &perforator.ClusterTopRequest{Generation: 42})
+			_, err := NewService(xlog.ForTest(t), storage, Config{}).GetClusterTopAggregatedByFunction(t.Context(), &perforator.ClusterTopRequest{Generation: 42})
 			if readErr == nil {
 				require.Equal(t, codes.NotFound, status.Code(err))
 			} else {

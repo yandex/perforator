@@ -2,6 +2,8 @@ package generations
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -100,4 +102,22 @@ SELECT EXISTS (
     SELECT 1 FROM cluster_top_generations WHERE id = $1 AND status IS DISTINCT FROM 'deleting'
 )`, id)
 	return exists, err
+}
+
+// GetGeneration returns nil for missing or deleting generations.
+func (s *PostgresGenerationsStorage) GetGeneration(ctx context.Context, id uint32) (*perforator.ClusterTopGeneration, error) {
+	primary, err := s.cluster.WaitForPrimary(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var row clusterTopGenerationRow
+	err = primary.DBx().GetContext(ctx, &row, `SELECT id, from_ts, to_ts, COALESCE(status, 'finished') AS status
+        FROM cluster_top_generations WHERE id = $1 AND status IS DISTINCT FROM 'deleting'`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get Cluster Top generation: %w", err)
+	}
+	return mapToProto([]*clusterTopGenerationRow{&row})[0], nil
 }

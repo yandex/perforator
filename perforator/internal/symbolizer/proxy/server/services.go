@@ -11,6 +11,7 @@ import (
 
 func newServices(
 	features *FeaturesConfig,
+	clusterTopConfig cluster_top.Config,
 	l xlog.Logger,
 	reg metrics.Registry,
 	storageBundle *bundle.StorageBundle,
@@ -20,7 +21,7 @@ func newServices(
 	}
 
 	if features.EnableClusterTopService != nil && *features.EnableClusterTopService {
-		res = append(res, cluster_top.NewService(l, storageBundle.ClusterTopGenerationsStorage))
+		res = append(res, cluster_top.NewService(l, storageBundle.ClusterTopGenerationsStorage, clusterTopConfig))
 	}
 
 	return res, nil

@@ -347,8 +347,6 @@ message ClusterTopQueryRow {
 
 message ClusterTopQueryResponse {
     ClusterTopGeneration Generation = 1;
-    // Selected dimensions in enum order; distinguishes unknown from unselected.
-    repeated ClusterTopDimension GroupBy = 2;
     repeated ClusterTopQueryRow Rows = 3;
     bool HasMore = 4;
 }

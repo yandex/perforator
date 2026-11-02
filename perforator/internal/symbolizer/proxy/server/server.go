@@ -243,7 +243,7 @@ func NewPerforatorServer(
 		}
 	}
 
-	additionalGrpcServices, err := newServices(&conf.FeaturesConfig, l, reg, storageBundle)
+	additionalGrpcServices, err := newServices(&conf.FeaturesConfig, conf.ClusterTop, l, reg, storageBundle)
 	if err != nil {
 		return nil, err
 	}

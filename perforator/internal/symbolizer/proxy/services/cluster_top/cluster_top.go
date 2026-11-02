@@ -27,20 +27,19 @@ var (
 )
 
 type APIService struct {
+	conf                        Config
 	l                           xlog.Logger
 	clusterTopGenerationStorage clickhouse.Storage
 }
 
-func NewService(l xlog.Logger, s clickhouse.Storage) *APIService {
+func NewService(l xlog.Logger, s clickhouse.Storage, conf Config) *APIService {
+	conf.FillDefault()
 
 	return &APIService{
+		conf:                        conf,
 		l:                           l,
 		clusterTopGenerationStorage: s,
 	}
-}
-
-func (s *APIService) QueryClusterTop(ctx context.Context, req *perforator.ClusterTopQueryRequest) (*perforator.ClusterTopQueryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "Cluster Top queries are not implemented yet")
 }
 
 // GetClusterTopAggregatedByFunction implements perforator.GetClusterTopAggregatedByFunction

@@ -11,6 +11,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/ptr"
 	bpclient "github.com/yandex/perforator/perforator/internal/binaryprocessor/client"
+	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/services/cluster_top"
 	"github.com/yandex/perforator/perforator/pkg/filecache"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/tracing"
@@ -97,6 +98,7 @@ func (c *FeaturesConfig) FillDefault() {
 }
 
 type Config struct {
+	ClusterTop                  cluster_top.Config    `yaml:"cluster_top"`
 	StorageConfig               bundle.Config         `yaml:"storage"`
 	BinaryProvider              BinaryProviderConfig  `yaml:"binary_provider"`
 	BinaryUpload                BinaryUploadConfig    `yaml:"binary_upload"`
@@ -153,6 +155,9 @@ func newInvalidFieldError(fieldName string, err error) error {
 
 func (c *Config) Validate() error {
 	var errs []error
+	if err := c.ClusterTop.Validate(); err != nil {
+		errs = append(errs, newInvalidFieldError("cluster_top", err))
+	}
 	if c.BinaryProcessorClientConfig != nil {
 		err := c.BinaryProcessorClientConfig.Validate()
 		if err != nil {
