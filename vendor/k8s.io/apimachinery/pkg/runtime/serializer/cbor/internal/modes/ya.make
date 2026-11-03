@@ -2,19 +2,19 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.33.0)
+VERSION(v0.34.3)
 
 SRCS(
     buffers.go
-    custom.go
     decode.go
     diagnostic.go
     encode.go
+    transcoding.go
 )
 
 GO_TEST_SRCS(
     buffers_test.go
-    custom_test.go
+    transcoding_test.go
 )
 
 GO_XTEST_SRCS(

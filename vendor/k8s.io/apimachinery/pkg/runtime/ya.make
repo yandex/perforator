@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.33.0)
+VERSION(v0.34.3)
 
 SRCS(
     allocator.go
@@ -31,6 +31,7 @@ SRCS(
 
 GO_TEST_SRCS(
     allocator_test.go
+    converter_zero_test.go
     local_scheme_test.go
     mapper_test.go
     swagger_doc_generator_test.go
