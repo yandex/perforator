@@ -24953,6 +24953,7 @@ src.yandex.cloud/yc/quantum/license/lib/online
 ## explicit; go 1.20
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
+tags.cncf.io/container-device-interface/specs-go
 # www.velocidex.com/golang/regparser v0.0.0-20240404115756-2169ac0e3c09
 ## explicit; go 1.18
 www.velocidex.com/golang/regparser

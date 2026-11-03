@@ -1246,6 +1246,7 @@ require (
 	sigs.k8s.io/yaml v1.6.0
 	software.sslmate.com/src/go-pkcs12 v0.7.3
 	src.yandex.cloud/yc/quantum/license/lib v0.0.0-20260827090626-385a126ca950
+	tags.cncf.io/container-device-interface/specs-go v1.0.0
 )
 
 require (
@@ -2807,7 +2808,6 @@ require (
 	sourcegraph.com/sourcegraph/appdash v0.0.0-20211028080628-e2786a622600 // indirect
 	sourcegraph.com/sourcegraph/appdash-data v0.0.0-20151005221446-73f23eafcf67 // indirect
 	tags.cncf.io/container-device-interface v1.0.1 // indirect
-	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 	www.velocidex.com/golang/regparser v0.0.0-20240404115756-2169ac0e3c09 // indirect
 )
 
