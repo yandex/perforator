@@ -21,7 +21,7 @@ var (
 	branchRecordSize       = int(unsafe.Sizeof(BranchRecord{}))
 	pythonFrameSize        = int(unsafe.Sizeof(PythonFrame{}))
 	phpFrameSize           = int(unsafe.Sizeof(PhpFrame{}))
-	jvmLangEntrySize       = int(unsafe.Sizeof(JvmLangEntry{}))
+	jvmFrameSize           = int(unsafe.Sizeof(JvmFrame{}))
 	luaFrameSize           = int(unsafe.Sizeof(LuaFrame{}))
 	langSectionHeaderSize  = int(unsafe.Sizeof(LanguageSectionHeader{}))
 )
@@ -205,7 +205,7 @@ func parseLangSections(data []byte, base int, off, size uint16, out *RecordSampl
 			return fmt.Errorf("unknown or duplicate language: %d", language)
 		}
 		seen[language] = true
-		expectedSize := [...]int{pythonFrameSize, phpFrameSize, jvmLangEntrySize, luaFrameSize}[language]
+		expectedSize := [...]int{pythonFrameSize, phpFrameSize, jvmFrameSize, luaFrameSize}[language]
 		expectedKind := LanguagePayloadInterpreterFrames
 		if language == LanguageJvm {
 			expectedKind = LanguagePayloadNativeAnnotations
@@ -276,14 +276,14 @@ func decodeLuaFrames(data []byte, stack *LuaStack) {
 }
 
 func decodeJvmEntries(data []byte, jstack *JvmStack) {
-	n := len(data) / jvmLangEntrySize
+	n := len(data) / jvmFrameSize
 	if n > len(jstack.Frames) {
 		n = len(jstack.Frames)
 	}
 	jstack.FramesLen = uint32(n)
 	for i := 0; i < n; i++ {
-		off := i * jvmLangEntrySize
-		jstack.Frames[i].Index = uint32(le.Uint16(data[off : off+2]))
+		off := i * jvmFrameSize
+		jstack.Frames[i].Index = le.Uint16(data[off : off+2])
 		jstack.Frames[i].MethodAddr = le.Uint64(data[off+8 : off+16])
 	}
 }

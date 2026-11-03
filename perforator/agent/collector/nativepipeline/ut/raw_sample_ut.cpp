@@ -12,15 +12,13 @@ namespace {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-using namespace NWire;
-
 constexpr size_t PythonFrameSize = 32;
-constexpr size_t PythonSectionSize = sizeof(TLanguageSectionHeader) + PythonFrameSize;
+constexpr size_t PythonSectionSize = sizeof(language_section_header) + PythonFrameSize;
 
 TString MakeRecord() {
-    TRecordSampleHeader header{};
-    header.tag = ERecordTag::RECORD_TAG_SAMPLE;
-    header.sample_type = ESampleType::SAMPLE_TYPE_PERF_EVENT;
+    record_sample_header header{};
+    header.tag = RECORD_TAG_SAMPLE;
+    header.sample_type = SAMPLE_TYPE_PERF_EVENT;
     header.kern_stack = {.offset = 0, .size = 2 * sizeof(std::uint64_t)};
     header.user_stack = {.offset = 16, .size = sizeof(std::uint64_t)};
     header.lbr = {.offset = 24, .size = 0};
@@ -38,10 +36,10 @@ TString MakeRecord() {
     std::memcpy(record.begin() + sizeof(header) + 16, &user, sizeof(user));
     std::memcpy(record.begin() + sizeof(header) + 24, &cgroup, sizeof(cgroup));
 
-    TLanguageSectionHeader language{
+    language_section_header language{
         .byte_size = PythonFrameSize,
-        .language = ELanguage::LANGUAGE_PYTHON,
-        .payload_kind = ELanguagePayloadKind::LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
+        .language = LANGUAGE_PYTHON,
+        .payload_kind = LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
         .element_size = PythonFrameSize,
     };
     struct {
@@ -114,7 +112,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
             {"truncated_language_header", 656, 150, 1, 1, false},
             {"language_out_of_bounds", 656, 536, 4096, 2, false},
             {"duplicate_language", 656, 578, 0, 1, false},
-            {"non_jvm_annotations", 656, 539, 2, 1, false},
+            {"non_jvm_annotations", 656, 539, 2, 1, true},
             // Opaque interpreter payloads are accepted here but rejected by Go.
             {"opaque_interpreter_size", 656, 540, 16, 1, true},
             {"jvm_interpreter_payload", 656, 603, 1, 1, true},
@@ -155,19 +153,19 @@ Y_UNIT_TEST_SUITE(RawSample) {
             UNIT_ASSERT_VALUES_EQUAL(sample.Tls().Count(), 2);
             const auto firstTls = sample.Tls().Read(0);
             UNIT_ASSERT_VALUES_EQUAL(firstTls.offset, 64);
-            UNIT_ASSERT(firstTls.type == ETlsVariableType::THREAD_LOCAL_UINT64_TYPE);
+            UNIT_ASSERT(firstTls.type == THREAD_LOCAL_UINT64_TYPE);
             UNIT_ASSERT_VALUES_EQUAL(firstTls.value.number, 99);
             const auto secondTls = sample.Tls().Read(1);
             UNIT_ASSERT_VALUES_EQUAL(secondTls.offset, 128);
-            UNIT_ASSERT(secondTls.type == ETlsVariableType::THREAD_LOCAL_STRING_TYPE);
+            UNIT_ASSERT(secondTls.type == THREAD_LOCAL_STRING_TYPE);
             UNIT_ASSERT_VALUES_EQUAL(secondTls.value.string.len, 5);
             UNIT_ASSERT_VALUES_EQUAL(TStringBuf(secondTls.value.string.string, 5), "hello");
             UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSectionCount(), 4);
-            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_PYTHON)->Element(0).size(),
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_PYTHON)->Element(0).size(),
                                      TStringBuf(test.Name) == "opaque_interpreter_size" ? 16 : 32);
-            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_PHP)->Count(), 1);
-            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_JVM)->Count(), 1);
-            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_LUA)->Count(), 1);
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_PHP)->Count(), 1);
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_JVM)->Count(), 1);
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_LUA)->Count(), 1);
         }
     }
 
@@ -181,9 +179,9 @@ Y_UNIT_TEST_SUITE(RawSample) {
             {0, 8, "invalid TLS section alignment/size"},
         };
         for (const auto& test : cases) {
-            TRecordSampleHeader header{};
-            header.tag = ERecordTag::RECORD_TAG_SAMPLE;
-            header.sample_type = ESampleType::SAMPLE_TYPE_PERF_EVENT;
+            record_sample_header header{};
+            header.tag = RECORD_TAG_SAMPLE;
+            header.sample_type = SAMPLE_TYPE_PERF_EVENT;
             header.lbr = {.offset = 0, .size = test.LbrSize};
             header.tls = {.offset = test.LbrSize, .size = test.TlsSize};
             const auto dataSize = static_cast<std::uint16_t>(test.LbrSize + test.TlsSize);
@@ -201,7 +199,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
     Y_UNIT_TEST(AcceptsValidKthreadRepresentations) {
         for (unsigned value : {0u, 1u}) {
             TString record = MakeRecord();
-            record[offsetof(TRecordSampleHeader, kthread)] = static_cast<char>(value);
+            record[offsetof(record_sample_header, kthread)] = static_cast<char>(value);
             const auto sample = TRawSample::Parse(record);
             UNIT_ASSERT_VALUES_EQUAL(sample.Header().kthread, value != 0);
         }
@@ -211,7 +209,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
         for (unsigned value = 2; value <= 255; ++value) {
             TString record = MakeRecord();
             auto* bytes = reinterpret_cast<unsigned char*>(record.begin());
-            bytes[offsetof(TRecordSampleHeader, kthread)] = value;
+            bytes[offsetof(record_sample_header, kthread)] = value;
             UNIT_ASSERT_EXCEPTION_CONTAINS(TRawSample::Parse(record), yexception,
                                            "invalid kthread flag");
         }
@@ -222,18 +220,18 @@ Y_UNIT_TEST_SUITE(RawSample) {
         const TString storage = TString("x") + record;
         const auto sample = TRawSample::Parse(TStringBuf(storage).SubStr(1));
         UNIT_ASSERT_VALUES_EQUAL(sample.KernelStack().Read(1), 0x20);
-        UNIT_ASSERT(sample.KernelStack().Bytes().data() == storage.data() + 1 + sizeof(TRecordSampleHeader));
-        UNIT_ASSERT(sample.LanguageSection(ELanguage::LANGUAGE_PYTHON)->Element(1).empty());
+        UNIT_ASSERT(sample.KernelStack().Bytes().data() == storage.data() + 1 + sizeof(record_sample_header));
+        UNIT_ASSERT(sample.LanguageSection(LANGUAGE_PYTHON)->Element(1).empty());
     }
 
     Y_UNIT_TEST(AcceptsKernel54FixedSizeRecordWithPerfPadding) {
         TString record = MakeRecord();
-        record.resize(sizeof(TRecordSampleHeader) + MaxPackedDataSize, '\0');
+        record.resize(sizeof(record_sample_header) + NWire::MaxPackedDataSize, '\0');
         record.append(4, '\x5a');
         const auto sample = TRawSample::Parse(record);
         UNIT_ASSERT_VALUES_EQUAL(sample.UserStack().Read(0), 0x30);
         UNIT_ASSERT_VALUES_EQUAL(sample.Cgroups().Read(0), 42);
-        UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(ELanguage::LANGUAGE_PYTHON)->Count(), 1);
+        UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_PYTHON)->Count(), 1);
     }
 
     Y_UNIT_TEST(AcceptsVariableSizeRecordWithPerfPadding) {
@@ -247,7 +245,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
     Y_UNIT_TEST(RejectsSectionExtendingIntoPerfPadding) {
         TString record = MakeRecord();
         record.append(4, '\x5a');
-        auto* header = reinterpret_cast<TRecordSampleHeader*>(record.begin());
+        auto* header = reinterpret_cast<record_sample_header*>(record.begin());
         header->language_sections.size += 4;
         UNIT_ASSERT_EXCEPTION_CONTAINS(TRawSample::Parse(record), yexception,
                                        "language sections section exceeds packed sample");
@@ -255,7 +253,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
 
     Y_UNIT_TEST(RejectsRecordLargerThanMaximumWithPerfPadding) {
         TString record = MakeRecord();
-        record.resize(sizeof(TRecordSampleHeader) + MaxPackedDataSize + 5, '\0');
+        record.resize(sizeof(record_sample_header) + NWire::MaxPackedDataSize + 5, '\0');
         UNIT_ASSERT_EXCEPTION_CONTAINS(TRawSample::Parse(record), yexception,
                                        "packed sample is too large");
     }
@@ -270,8 +268,8 @@ Y_UNIT_TEST_SUITE(RawSample) {
         UNIT_ASSERT_VALUES_EQUAL(sample.Cgroups().Read(0), 42);
         UNIT_ASSERT_VALUES_EQUAL(
             static_cast<std::uint32_t>(sample.Header().sample_type),
-            static_cast<std::uint32_t>(ESampleType::SAMPLE_TYPE_PERF_EVENT));
-        const auto* language = sample.LanguageSection(ELanguage::LANGUAGE_PYTHON);
+            static_cast<std::uint32_t>(SAMPLE_TYPE_PERF_EVENT));
+        const auto* language = sample.LanguageSection(LANGUAGE_PYTHON);
         UNIT_ASSERT(language);
         UNIT_ASSERT_VALUES_EQUAL(language->ElementSize(), PythonFrameSize);
         UNIT_ASSERT_VALUES_EQUAL(language->Count(), 1);
@@ -286,58 +284,58 @@ Y_UNIT_TEST_SUITE(RawSample) {
 
     Y_UNIT_TEST(RejectsNonContiguousSections) {
         TString record = MakeRecord();
-        auto* header = reinterpret_cast<TRecordSampleHeader*>(record.begin());
+        auto* header = reinterpret_cast<record_sample_header*>(record.begin());
         header->user_stack.offset += 8;
         UNIT_ASSERT_EXCEPTION(TRawSample::Parse(record), yexception);
     }
 
     Y_UNIT_TEST(RejectsPartialElements) {
         TString record = MakeRecord();
-        auto* header = reinterpret_cast<TRecordSampleHeader*>(record.begin());
+        auto* header = reinterpret_cast<record_sample_header*>(record.begin());
         header->kern_stack.size -= 1;
         UNIT_ASSERT_EXCEPTION(TRawSample::Parse(record), yexception);
     }
 
     Y_UNIT_TEST(RejectsDuplicateLanguage) {
         TString record = MakeRecord();
-        auto* header = reinterpret_cast<TRecordSampleHeader*>(record.begin());
+        auto* header = reinterpret_cast<record_sample_header*>(record.begin());
         header->language_sections.size *= 2;
-        const TString duplicate{record.data() + sizeof(TRecordSampleHeader) + 32, PythonSectionSize};
+        const TString duplicate{record.data() + sizeof(record_sample_header) + 32, PythonSectionSize};
         record.append(duplicate);
         UNIT_ASSERT_EXCEPTION(TRawSample::Parse(record), yexception);
     }
 
     Y_UNIT_TEST(RejectsUnknownLanguage) {
         TString record = MakeRecord();
-        auto* language = reinterpret_cast<TLanguageSectionHeader*>(
-            record.begin() + sizeof(TRecordSampleHeader) + 32);
-        language->language = static_cast<ELanguage>(PERFORATOR_LANGUAGE_COUNT);
+        auto* language = reinterpret_cast<language_section_header*>(
+            record.begin() + sizeof(record_sample_header) + 32);
+        language->language = static_cast<language_id>(PERFORATOR_LANGUAGE_COUNT);
         UNIT_ASSERT_EXCEPTION(TRawSample::Parse(record), yexception);
     }
 
     Y_UNIT_TEST(AcceptsExactMaximumPackedDataSize) {
-        TRecordSampleHeader header{};
-        header.tag = ERecordTag::RECORD_TAG_SAMPLE;
-        header.sample_type = ESampleType::SAMPLE_TYPE_PERF_EVENT;
-        header.kern_stack = {.offset = 0, .size = MaxPackedDataSize};
-        header.user_stack = {.offset = MaxPackedDataSize, .size = 0};
-        header.lbr = {.offset = MaxPackedDataSize, .size = 0};
-        header.tls = {.offset = MaxPackedDataSize, .size = 0};
-        header.cgroups = {.offset = MaxPackedDataSize, .size = 0};
-        header.language_sections = {.offset = MaxPackedDataSize, .size = 0};
+        record_sample_header header{};
+        header.tag = RECORD_TAG_SAMPLE;
+        header.sample_type = SAMPLE_TYPE_PERF_EVENT;
+        header.kern_stack = {.offset = 0, .size = NWire::MaxPackedDataSize};
+        header.user_stack = {.offset = NWire::MaxPackedDataSize, .size = 0};
+        header.lbr = {.offset = NWire::MaxPackedDataSize, .size = 0};
+        header.tls = {.offset = NWire::MaxPackedDataSize, .size = 0};
+        header.cgroups = {.offset = NWire::MaxPackedDataSize, .size = 0};
+        header.language_sections = {.offset = NWire::MaxPackedDataSize, .size = 0};
 
-        TString record(sizeof(header) + MaxPackedDataSize, '\0');
+        TString record(sizeof(header) + NWire::MaxPackedDataSize, '\0');
         std::memcpy(record.begin(), &header, sizeof(header));
         const auto sample = TRawSample::Parse(record);
-        UNIT_ASSERT_VALUES_EQUAL(sample.KernelStack().Bytes().size(), MaxPackedDataSize);
+        UNIT_ASSERT_VALUES_EQUAL(sample.KernelStack().Bytes().size(), NWire::MaxPackedDataSize);
         UNIT_ASSERT(sample.LanguageSections().empty());
 
         record.append(4, '\x5a');
         const auto paddedSample = TRawSample::Parse(record);
-        UNIT_ASSERT_VALUES_EQUAL(paddedSample.KernelStack().Bytes().size(), MaxPackedDataSize);
+        UNIT_ASSERT_VALUES_EQUAL(paddedSample.KernelStack().Bytes().size(), NWire::MaxPackedDataSize);
         UNIT_ASSERT(paddedSample.LanguageSections().empty());
 
-        auto* paddedHeader = reinterpret_cast<TRecordSampleHeader*>(record.begin());
+        auto* paddedHeader = reinterpret_cast<record_sample_header*>(record.begin());
         paddedHeader->language_sections.size = 4;
         UNIT_ASSERT_EXCEPTION_CONTAINS(TRawSample::Parse(record), yexception,
                                        "language sections section exceeds packed sample");

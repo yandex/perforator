@@ -2,111 +2,139 @@
 
 #include "runtime.h"
 
-#include <util/generic/string.h>
-#include <util/generic/vector.h>
+#include <util/generic/strbuf.h>
 #include <util/system/types.h>
-
-#include <array>
-#include <memory>
-#include <utility>
 
 namespace NPerforator::NAgent::NNativePipeline {
 
-// Stable semantic identity of the yaprof location produced for a runtime
-// frame. It is independent of the native LRU lifetime and of opaque fields
-// (for example, different Python instruction pointers on the same line).
-struct TInterpreterFrameId {
-    ui64 First = 0;
-    ui64 Second = 0;
+inline TStringBuf RuntimeStringView(const char* arena, TPerforatorRuntimeString value) noexcept {
+    return value.Size ? TStringBuf{arena + value.Offset, value.Size} : TStringBuf{};
+}
 
-    bool operator==(const TInterpreterFrameId&) const noexcept = default;
+class TResolvedSymbolView {
+public:
+    TStringBuf Name() const noexcept {
+        return RuntimeStringView(Arena_, Symbol_->Name);
+    }
 
-    template <typename H>
-    friend H AbslHashValue(H hash, const TInterpreterFrameId& id) {
-        return H::combine(std::move(hash), id.First, id.Second);
+    TStringBuf FileName() const noexcept {
+        return RuntimeStringView(Arena_, Symbol_->File);
+    }
+
+    ui32 StartLine() const noexcept {
+        return Symbol_->StartLine;
+    }
+
+    ui32 Line() const noexcept {
+        return Symbol_->Line;
+    }
+
+private:
+    friend class TResolvedFrameView;
+
+    TResolvedSymbolView(
+        const char* arena,
+        const TPerforatorResolvedSymbol* symbol
+    ) noexcept
+        : Arena_{arena}
+        , Symbol_{symbol}
+    {
+    }
+
+    const char* Arena_;
+    const TPerforatorResolvedSymbol* Symbol_;
+};
+
+// Views borrow the immutable batch arena and require retaining its owner.
+class TResolvedFrameView {
+public:
+    ui64 Address() const noexcept {
+        return Frame_->Address;
+    }
+
+    TStringBuf MappingName() const noexcept {
+        return RuntimeStringView(Arena_, Frame_->Mapping);
+    }
+
+    size_t SymbolCount() const noexcept {
+        return Frame_->SymbolCount;
+    }
+
+    TResolvedSymbolView Symbol(size_t index) const noexcept {
+        return TResolvedSymbolView{Arena_, reinterpret_cast<const TPerforatorResolvedSymbol*>(Arena_ + Frame_->SymbolsOffset) + index};
+    }
+
+private:
+    friend struct TRuntimeFrameBatch;
+
+    TResolvedFrameView(
+        const char* arena,
+        const TPerforatorResolvedFrame* frame
+    ) noexcept
+        : Arena_{arena}
+        , Frame_{frame}
+    {
+    }
+
+    const char* Arena_;
+    const TPerforatorResolvedFrame* Frame_;
+};
+
+// Owns the malloc-allocated arena returned by Go. Moving transfers ownership
+// without invalidating views; copying is disabled.
+struct TRuntimeFrameBatch {
+    TRuntimeFrameBatch() = default;
+    explicit TRuntimeFrameBatch(TPerforatorRuntimeResult data) noexcept;
+    ~TRuntimeFrameBatch();
+    TRuntimeFrameBatch(TRuntimeFrameBatch&& other) noexcept;
+    TRuntimeFrameBatch& operator=(TRuntimeFrameBatch&& other) noexcept;
+
+    TPerforatorRuntimeResult Data = {};
+
+    size_t FrameCount() const noexcept {
+        return Data.FrameCount;
+    }
+
+    size_t NativeFrameCount() const noexcept {
+        return Data.NativeFrameCount;
+    }
+
+    size_t LanguageCount() const noexcept {
+        return Data.LanguageCount;
+    }
+
+    const TPerforatorResolvedLanguageSection& Language(size_t index) const noexcept {
+        return reinterpret_cast<const TPerforatorResolvedLanguageSection*>(Data.Arena + Data.LanguagesOffset)[index];
+    }
+
+    TResolvedFrameView Frame(size_t index) const noexcept {
+        return TResolvedFrameView{Data.Arena, reinterpret_cast<const TPerforatorResolvedFrame*>(Data.Arena + Data.FramesOffset) + index};
     }
 };
 
-struct TResolvedInterpreterFrame {
-    TString Mapping;
-    TString Name;
-    TString FileName;
-    ui64 Address = 0;
-    TInterpreterFrameId ProfileId;
-    i32 StartLine = 0;
-    i32 Line = 0;
-    bool Unsymbolized = false;
-    bool HasStartLine = false;
-    bool HasLine = false;
-    TPerforatorLineInfoOutcome LineInfo = PerforatorLineInfoSkipped;
-};
-
-struct TResolvedNativeFrame {
-    TString JitMapping;
-    TVector<TString> JitSymbols;
-    TString JvmName;
-    bool ClearAddress = false;
-};
-
-inline constexpr size_t LanguageCount = PERFORATOR_LANGUAGE_COUNT;
-
-struct TInterpreterLanguageCacheOptions {
-    ui64 MaxEntries = 8192;
-    ui64 TtlNanos = 5ull * 60 * 1'000'000'000;
-};
-
-struct TInterpreterCacheOptions {
-    std::array<TInterpreterLanguageCacheOptions, LanguageCount> Languages;
-};
-
-struct TInterpreterCacheStats {
-    std::array<ui64, LanguageCount> Hits{};
-    std::array<ui64, LanguageCount> Misses{};
-    std::array<ui64, LanguageCount> Evictions{};
-    std::array<ui64, LanguageCount> Size{};
-    std::array<ui64, LanguageCount> Capacity{};
-    // Non-empty interpreter miss batches, including failed resolutions.
-    // Arena resize retries belong to the same batch.
-    ui64 MissBatches = 0;
-};
-
-// Requests are borrowed for the call; returned frames own their strings and
-// remain valid after subsequent calls and resolver destruction.
+// Requests are borrowed for the call. Returned results survive subsequent calls
+// and resolver destruction; views require retaining the batch arena.
 class IRuntimeResolver {
 public:
     virtual ~IRuntimeResolver() = default;
 
-    virtual TVector<std::shared_ptr<const TResolvedInterpreterFrame>> ResolveInterpreterFrames(
-        const TVector<TPerforatorInterpreterFrameRequest>& requests
-    ) = 0;
-
-    virtual TVector<TResolvedNativeFrame> ResolveNativeFrames(
-        const TVector<TPerforatorNativeFrameRequest>& requests
+    virtual TRuntimeFrameBatch ResolveRuntimeFrames(
+        const TPerforatorRuntimeRequest& request
     ) = 0;
 };
 
-// Calls, including GetCacheStats, require external serialization. The Go
-// callback handle must remain live for every resolution call.
+// Calls require external serialization. The Go callback handle must remain live
+// for every resolution call.
 class TGoRuntimeResolver final: public IRuntimeResolver {
 public:
-    TGoRuntimeResolver(ui64 resolverId, TInterpreterCacheOptions options);
-    ~TGoRuntimeResolver();
+    explicit TGoRuntimeResolver(ui64 resolverId);
 
-    TVector<std::shared_ptr<const TResolvedInterpreterFrame>> ResolveInterpreterFrames(
-        const TVector<TPerforatorInterpreterFrameRequest>& requests
+    TRuntimeFrameBatch ResolveRuntimeFrames(
+        const TPerforatorRuntimeRequest& request
     ) override;
-
-    TVector<TResolvedNativeFrame> ResolveNativeFrames(
-        const TVector<TPerforatorNativeFrameRequest>& requests
-    ) override;
-
-    TInterpreterCacheStats GetCacheStats() const noexcept;
 
 private:
-    class TImpl;
-
     ui64 ResolverId_;
-    std::unique_ptr<TImpl> Impl_;
 };
 
 } // namespace NPerforator::NAgent::NNativePipeline

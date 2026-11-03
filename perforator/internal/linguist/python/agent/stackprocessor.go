@@ -2,6 +2,7 @@ package agent
 
 import (
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/nativepipeline/runtimewriter"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	python_models "github.com/yandex/perforator/perforator/internal/linguist/python/models"
@@ -102,7 +103,6 @@ func (p *StackProcessor) addLocation(
 	return loc
 }
 
-// ResolveFrame leaves name caching and per-occurrence metrics to the caller.
-func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame) models.ResolvedInterpreterFrame {
-	return p.symbolizer.resolveFrame(process, frame)
+func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame, output runtimewriter.Frame) error {
+	return p.symbolizer.resolveFrame(process, frame, output)
 }

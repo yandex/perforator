@@ -24,7 +24,8 @@ BPF_MAP(jvm_binaries, BPF_MAP_TYPE_HASH, binary_id, struct jvm_binary_config, MA
 BPF_MAP(jvm_processes, BPF_MAP_TYPE_HASH, u32, struct jvm_process_config, MAX_JVM_PROCESSES);
 
 struct jvm_frame {
-    u32 index;
+    u16 index;
+    u8 _pad[6];
     u64 method_addr;
 };
 

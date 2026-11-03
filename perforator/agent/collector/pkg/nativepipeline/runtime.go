@@ -3,45 +3,32 @@ package nativepipeline
 import (
 	"context"
 
-	"github.com/yandex/perforator/perforator/internal/linguist/models"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/nativepipeline/runtimewriter"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
-type Language uint8
-
-// InterpreterFrameRequest identifies a frame in a process. Data is
-// borrowed and valid only until ResolveInterpreterFrames returns.
-type InterpreterFrameRequest struct {
-	Language Language
-	Key      linux.ProcessKey
-	Data     []byte
+// LanguageSection contains an array of BPF frames, without the section header.
+// Data uses the layout selected by Language: python_frame, php_frame, lua_frame
+// or jvm_frame: see progs/unwinder/python/types.h, php/types.h, lua/types.h and
+// jvm/api.h. pack_sample_lang produces them; nativeRuntimeResolver decodes the
+// matching types generated in internal/unwinder.
+// Data is read-only and borrowed until ResolveRuntimeFrames returns.
+type LanguageSection struct {
+	Language    Language
+	PayloadKind uint8
+	FrameSize   uint16
+	Data        []byte
 }
 
-type ResolvedInterpreterFrame = models.ResolvedInterpreterFrame
-
-type JITRuntimeID uint8
-
-type NativeFrameRequest struct {
-	Key     linux.ProcessKey
-	Address uint64
-	// Optional method metadata; JIT lookup uses Address regardless of runtime ID.
-	JITRuntimeID     JITRuntimeID
-	JITMethodAddress uint64
+type RuntimeRequest struct {
+	Key         linux.ProcessKey
+	NativeStack []uint64
+	Languages   []LanguageSection
 }
 
-type ResolvedNativeFrame struct {
-	JITMapping string
-	JITSymbols []string
-	JVMName    string
-	// Targets that preserve the sampled address ignore ClearAddress.
-	ClearAddress bool
-}
-
-// RuntimeResolver returns one result per request in the same order. Methods
-// must not retain requests or their payloads. Returned strings and slices must
-// remain immutable; a resolution can be retained for an arena resize retry.
+// RuntimeResolver must not modify or retain the borrowed input or writer.
+// The caller validates section buffers and known, unique language IDs.
+// An error discards all output written during the call.
 type RuntimeResolver interface {
-	// A batch error discards all results; unresolved frames use Unsymbolized.
-	ResolveInterpreterFrames(ctx context.Context, requests []InterpreterFrameRequest) ([]ResolvedInterpreterFrame, error)
-	ResolveNativeFrames(ctx context.Context, requests []NativeFrameRequest) []ResolvedNativeFrame
+	ResolveRuntimeFrames(ctx context.Context, request RuntimeRequest, writer *runtimewriter.Writer) error
 }

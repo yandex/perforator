@@ -558,7 +558,7 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 		}
 		var matchingJVMFrame *unwinder.JvmFrame
 		for jvmStackIdx < int(jvmStack.FramesLen) {
-			curLocIdx := jvmStack.Frames[jvmStackIdx].Index
+			curLocIdx := uint32(jvmStack.Frames[jvmStackIdx].Index)
 			locIdxU32 := uint32(locIdx)
 			if curLocIdx == locIdxU32 {
 				matchingJVMFrame = &jvmStack.Frames[jvmStackIdx]

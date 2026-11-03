@@ -14,114 +14,75 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
 
 typedef struct {
-    uint8_t Language;
-    uint32_t Pid;
-    uint64_t ProcessStartTime;
-    uint64_t ProcessImageId;
-    const void* FrameData;
+    const void* Data;
+    size_t Size;
     uint16_t FrameSize;
-} TPerforatorInterpreterFrameRequest;
-
-enum TPerforatorResolvedFrameFlags {
-    PerforatorResolvedFrameUnsymbolized = 1u << 0,
-    PerforatorResolvedFrameHasStartLine = 1u << 1,
-    PerforatorResolvedFrameHasLine = 1u << 2,
-    // The resolution was valid for this sample but depended on transient
-    // state that should be retried on the next occurrence.
-    PerforatorResolvedFrameDoNotCache = 1u << 3,
-};
-
-enum TPerforatorLineInfoOutcome {
-    PerforatorLineInfoSkipped = 0,
-    PerforatorLineInfoResolved = 1,
-    PerforatorLineInfoUnavailable = 2,
-    PerforatorLineInfoNoLine = 3,
-    PerforatorLineInfoFailed = 4,
-};
-
-typedef struct {
-    TPerforatorStringView Mapping;
-    TPerforatorStringView Name;
-    TPerforatorStringView File;
-    uint64_t Address;
-    int32_t StartLine;
-    int32_t Line;
-    uint32_t Flags;
-    uint8_t LineInfo;
-} TPerforatorResolvedInterpreterFrame;
-
-enum TPerforatorResolveStatus {
-    PerforatorResolveOk = 0,
-    PerforatorResolveInsufficientCapacity = 1,
-    PerforatorResolveFailed = 2,
-};
-
-// Implemented by Go. The caller owns requests, results and arena. Calls sharing
-// a resolver must be serialized; its cgo handle must remain live until they return.
-// Requests and their payloads are borrowed for the call. Results are valid only
-// on Ok; their strings point into arena and remain valid until it is reused.
-// Buffer capacities must match available storage; null buffers have zero capacity.
-// On Ok or InsufficientCapacity, requiredArenaBytes contains the required byte count.
-// Initialize *resolution to zero. InsufficientCapacity retains a ready result in this
-// handle; retry the same operation and requestCount with it (requests are ignored).
-// Ok and Failed release and clear the handle. The caller must release it
-// when stopping after InsufficientCapacity without retrying.
-// Optional errorMessage receives a malloc-allocated error or null.
-// The caller frees it before reuse.
-int PerforatorGoResolveInterpreterFrames(
-    uint64_t resolver,
-    TPerforatorInterpreterFrameRequest* requests,
-    size_t requestCount,
-    TPerforatorResolvedInterpreterFrame* results,
-    char* arena,
-    size_t arenaCapacity,
-    size_t* requiredArenaBytes,
-    uint64_t* resolution,
-    char** errorMessage
-);
-
-// Releases a live resolution handle; zero is allowed.
-void PerforatorGoReleaseRuntimeResolution(uint64_t resolution);
-
-// Optional method metadata; JIT lookup by frame address is independent.
-enum TPerforatorJitRuntimeId {
-    PerforatorJitRuntimeNone = 0,
-    PerforatorJitRuntimeJvm = 1,
-};
+    TPerforatorLanguage Language;
+    uint8_t PayloadKind;
+} TPerforatorLanguageSection;
 
 typedef struct {
     TPerforatorProcessKey Key;
-    uint8_t JitRuntimeId;
+    const uint64_t* NativeStack;
+    size_t NativeStackSize;
+    const TPerforatorLanguageSection* Languages;
+    size_t LanguageCount;
+} TPerforatorRuntimeRequest;
+
+typedef const TPerforatorRuntimeRequest* TPerforatorRuntimeRequestPtr;
+
+typedef struct {
+    size_t Offset;
+    size_t Size;
+} TPerforatorRuntimeString;
+
+typedef struct {
+    TPerforatorRuntimeString Name;
+    TPerforatorRuntimeString File;
+    uint32_t StartLine;
+    uint32_t Line;
+} TPerforatorResolvedSymbol;
+
+typedef struct {
+    TPerforatorRuntimeString Mapping;
     uint64_t Address;
-    uint64_t JitMethodAddress;
-} TPerforatorNativeFrameRequest;
-
-typedef struct {
-    TPerforatorStringView Name;
-} TPerforatorResolvedNativeSymbol;
-
-typedef struct {
-    TPerforatorStringView JitMapping;
-    uint32_t SymbolBegin;
+    size_t SymbolsOffset;
     uint32_t SymbolCount;
-    TPerforatorStringView JvmName;
-    uint8_t ClearAddress;
-} TPerforatorResolvedNativeFrame;
+} TPerforatorResolvedFrame;
 
-// The same ownership and retry contract applies. symbolCount is the required
-// number of symbols on Ok or InsufficientCapacity; results index the caller-owned array.
-int PerforatorGoResolveNativeFrames(
+typedef struct {
+    TPerforatorLanguage Language;
+    size_t FrameBegin;
+    size_t FrameCount;
+} TPerforatorResolvedLanguageSection;
+
+enum TPerforatorResolveStatus {
+    PerforatorResolveOk = 0,
+    PerforatorResolveFailed = 1,
+};
+
+typedef struct {
+    char* Arena;
+    size_t ArenaBytes;
+    size_t FramesOffset;
+    size_t FrameCount;
+    size_t NativeFrameCount;
+    size_t LanguagesOffset;
+    size_t LanguageCount;
+} TPerforatorRuntimeResult;
+
+// Inputs are read-only and borrowed for the call. Calls sharing a resolver must be
+// serialized; its cgo handle stays live. Initialize result to zero before calling.
+// On Ok, the caller owns Arena and frees it with free; all offsets are from Arena.
+// Records are aligned for their C types. Native frames follow NativeStack, then
+// interpreter frames follow section/frame order. Languages indexes each input
+// section; native annotations have an empty interpreter range. No Go pointers are stored.
+// On Failed, result is zero. Optional errorMessage receives a malloc-allocated
+// error or null; the caller frees it before reuse.
+int PerforatorGoResolveRuntimeFrames(
     uint64_t resolver,
-    TPerforatorNativeFrameRequest* requests,
-    size_t requestCount,
-    TPerforatorResolvedNativeFrame* results,
-    TPerforatorResolvedNativeSymbol* symbols,
-    size_t symbolCapacity,
-    size_t* symbolCount,
-    char* arena,
-    size_t arenaCapacity,
-    size_t* requiredArenaBytes,
-    uint64_t* resolution,
+    TPerforatorRuntimeRequestPtr request,
+    TPerforatorRuntimeResult* result,
     char** errorMessage
 );
 

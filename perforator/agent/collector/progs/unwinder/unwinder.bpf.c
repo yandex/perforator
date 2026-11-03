@@ -93,7 +93,7 @@ struct profiler_state {
     struct stack userstack;
 
     // JVM scratch: only needed for mixed unwinding (interleaved native/JVM frames).
-    struct jvm_lang_entry jvm_entries[MAX_JVM_FRAMES];
+    struct jvm_frame jvm_entries[MAX_JVM_FRAMES];
     u8 jvm_frames_count;
 
     struct python_state python_state;
@@ -373,7 +373,7 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
         .max       = MAX_JVM_FRAMES,
         .src       = state->jvm_entries,
         .src_size  = sizeof(state->jvm_entries),
-        .elem_size = sizeof(struct jvm_lang_entry),
+        .elem_size = sizeof(struct jvm_frame),
     });
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){

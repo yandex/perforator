@@ -9,8 +9,6 @@ SRCS(
 
 PEERDIR(
     contrib/libs/linux-headers
-    library/cpp/cache
-    library/cpp/containers/absl
     perforator/lib/profile/c
 )
 

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/nativepipeline/runtimewriter"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
@@ -138,22 +139,19 @@ func (p *StackProcessor) processFrame(
 	loc.Finish()
 }
 
-// ResolveFrame leaves name caching and per-occurrence metrics to the caller.
-func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.LuaFrame) models.ResolvedInterpreterFrame {
+func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.LuaFrame, output runtimewriter.Frame) error {
 	name := "[lua] "
 	filename := ""
 	line := int64(0)
 	clearAddress := false
-	var key profile.InterpreterLocationKey
-	unsymbolized := false
+	var address uint64
 
 	switch frame.Type {
 	case unwinder.LuaFrameTypeLua:
 		luaFrame := frame.Value.GetLuaFrame()
-		symbol, exists := p.symbolizer.SymbolizeUncached(models.Language(unwinder.LanguageLua), process, &luaFrame)
+		symbol, exists := p.symbolizer.Symbolize(models.Language(unwinder.LanguageLua), process, &luaFrame)
 
 		if !exists {
-			unsymbolized = true
 			name += fmt.Sprintf("unsymbolized lua function: 0x%x", luaFrame.ObjectAddr)
 		} else {
 			if len(symbol.Name) == 0 {
@@ -173,11 +171,7 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 		line = int64(luaFrame.Linestart)
 		clearAddress = exists && (symbol.Name != "" || (filename != "" && line > 0))
 
-		key = profile.InterpreterLocationKey{
-			ObjectAddress: luaFrame.ObjectAddr,
-			Linestart:     luaFrame.Linestart,
-			Language:      models.Language(unwinder.LanguageLua),
-		}
+		address = luaFrame.ObjectAddr
 	case unwinder.LuaFrameTypeC:
 		cFrame := frame.Value.GetCFrame()
 
@@ -188,11 +182,7 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 			clearAddress = true
 		}
 
-		key = profile.InterpreterLocationKey{
-			ObjectAddress: cFrame.ObjectAddr,
-			Linestart:     int32(cFrame.Ffid),
-			Language:      models.Language(unwinder.LanguageLua),
-		}
+		address = cFrame.ObjectAddr
 	case unwinder.LuaFrameTypeInvalid:
 		invalidFrame := frame.Value.GetInvalidFrame()
 		name += "<invalid lua frame>"
@@ -201,26 +191,17 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 			name += ": " + luaStackWalkErrorDescriptions[invalidFrame.Error]
 		}
 
-		key = profile.InterpreterLocationKey{
-			ObjectAddress: uint64(invalidFrame.Error),
-			Linestart:     0,
-			Language:      models.Language(unwinder.LanguageLua),
-		}
+		address = uint64(invalidFrame.Error)
+	default:
+		return fmt.Errorf("unsupported Lua frame type %d", frame.Type)
 	}
 
-	result := models.ResolvedInterpreterFrame{
-		Mapping:      profile.LuaSpecialMapping,
-		Name:         name,
-		Filename:     filename,
-		Address:      key.ObjectAddress,
-		StartLine:    int32(line),
-		Line:         int32(line),
-		HasStartLine: true,
-		HasLine:      true,
-		Unsymbolized: unsymbolized,
+	if err := output.SetMappingName(profile.LuaSpecialMapping); err != nil {
+		return err
 	}
 	if clearAddress {
-		result.Address = 0
+		address = 0
 	}
-	return result
+	output.SetAddress(address)
+	return output.AddInlineFunction(name, filename, int32(line), int32(line))
 }

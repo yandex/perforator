@@ -134,7 +134,7 @@ func TestParsePackedSampleWithJVM(t *testing.T) {
 	// User stack: 2 IPs at offset 0
 	putSectionDesc(data, sdUserStack, 0, 16)
 	// Language sections at offset 16
-	langDataSize := langSectionHeaderSize + jvmLangEntrySize // 8 + 16 = 24
+	langDataSize := langSectionHeaderSize + jvmFrameSize // 8 + 16 = 24
 	putSectionDesc(data, sdLangSect, 16, uint16(langDataSize))
 
 	// User IPs
@@ -146,13 +146,13 @@ func TestParsePackedSampleWithJVM(t *testing.T) {
 
 	// Language section header
 	lsh := make([]byte, langSectionHeaderSize)
-	le.PutUint16(lsh, uint16(jvmLangEntrySize)) // byte_size
-	lsh[2] = 2                                  // language = JVM
+	le.PutUint16(lsh, uint16(jvmFrameSize)) // byte_size
+	lsh[2] = 2                              // language = JVM
 	setLanguageLayout(lsh, LanguageJvm)
 	data = append(data, lsh...)
 
 	// JVM entry
-	entry := make([]byte, jvmLangEntrySize)
+	entry := make([]byte, jvmFrameSize)
 	le.PutUint16(entry[0:2], 1)           // user_stack_index = 1
 	le.PutUint64(entry[8:16], 0xdeadbeef) // method_addr
 	data = append(data, entry...)
@@ -310,7 +310,7 @@ func buildPackedSampleWithMixedLanguageStacks() []byte {
 	pythonFrames := appendPythonFrame(nil, 0x1000, 101, 0x1100, 0x1200)
 	phpFrames := appendPhpFrame(nil, 0x2000, 202)
 
-	jvmFrames := make([]byte, jvmLangEntrySize)
+	jvmFrames := make([]byte, jvmFrameSize)
 	le.PutUint16(jvmFrames[0:2], 3)
 	le.PutUint64(jvmFrames[8:16], 0x3000)
 
@@ -466,6 +466,6 @@ func setLanguageLayout(header []byte, language LanguageId) {
 	if language == LanguageJvm {
 		header[3] = byte(LanguagePayloadNativeAnnotations)
 	}
-	size := [...]int{pythonFrameSize, phpFrameSize, jvmLangEntrySize, luaFrameSize}[language]
+	size := [...]int{pythonFrameSize, phpFrameSize, jvmFrameSize, luaFrameSize}[language]
 	le.PutUint16(header[4:], uint16(size))
 }

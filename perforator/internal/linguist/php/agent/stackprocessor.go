@@ -2,6 +2,7 @@ package agent
 
 import (
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/nativepipeline/runtimewriter"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
@@ -73,23 +74,17 @@ func (p *StackProcessor) processFrame(
 		Finish()
 }
 
-// ResolveFrame leaves name caching and per-occurrence metrics to the caller.
-func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.PhpFrame) models.ResolvedInterpreterFrame {
-	result := models.ResolvedInterpreterFrame{
-		Mapping:      profile.PHPSpecialMapping,
-		Address:      frame.SymbolKey.ObjectAddr,
-		StartLine:    frame.SymbolKey.Linestart,
-		HasStartLine: true,
+func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.PhpFrame, output runtimewriter.Frame) error {
+	if err := output.SetMappingName(profile.PHPSpecialMapping); err != nil {
+		return err
 	}
-	symbol, exists := p.symbolizer.SymbolizeUncached(models.Language(unwinder.LanguagePhp), process, &frame.SymbolKey)
+	output.SetAddress(frame.SymbolKey.ObjectAddr)
+	symbol, exists := p.symbolizer.Symbolize(models.Language(unwinder.LanguagePhp), process, &frame.SymbolKey)
 	if !exists {
-		result.Unsymbolized = true
-		result.Name = models.UnsymbolizedInterpreterLocation
-		return result
+		return output.AddInlineFunction(models.UnsymbolizedInterpreterLocation, "", frame.SymbolKey.Linestart, 0)
 	}
-	result.Name, result.Filename = symbol.Name, symbol.FileName
 	if symbol.Name != "" {
-		result.Address = 0
+		output.SetAddress(0)
 	}
-	return result
+	return output.AddInlineFunction(symbol.Name, symbol.FileName, frame.SymbolKey.Linestart, 0)
 }

@@ -43,7 +43,6 @@ type Symbol struct {
 
 type SymbolSource interface {
 	Symbolize(models.Language, linux.ProcessKey, *unwinder.SymbolKey) (*Symbol, bool)
-	SymbolizeUncached(models.Language, linux.ProcessKey, *unwinder.SymbolKey) (*Symbol, bool)
 }
 
 type symbolSource interface {
@@ -217,15 +216,14 @@ func (s *Symbolizer) Symbolize(language models.Language, process linux.ProcessKe
 
 	s.metrics.cacheMisses.Inc()
 
-	symbol, ok := s.SymbolizeUncached(language, process, key)
+	symbol, ok := s.symbolize(language, process, key)
 	if ok {
 		_ = s.cache.Add(cacheKey, symbol)
 	}
 	return symbol, ok
 }
 
-// SymbolizeUncached leaves caching to the caller, including process-image identity.
-func (s *Symbolizer) SymbolizeUncached(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (*Symbol, bool) {
+func (s *Symbolizer) symbolize(language models.Language, process linux.ProcessKey, key *unwinder.SymbolKey) (*Symbol, bool) {
 	symbol, exists := s.state.SymbolizeInterpreter(language, process, key)
 	if !exists {
 		return nil, false

@@ -53,11 +53,11 @@ private:
 
 class TRawLanguageSection {
 public:
-    NWire::ELanguage Language() const noexcept {
+    language_id Language() const noexcept {
         return Language_;
     }
 
-    NWire::ELanguagePayloadKind PayloadKind() const noexcept {
+    language_payload_kind PayloadKind() const noexcept {
         return PayloadKind_;
     }
 
@@ -79,8 +79,8 @@ public:
 private:
     friend class TRawSample;
 
-    NWire::ELanguage Language_{};
-    NWire::ELanguagePayloadKind PayloadKind_{};
+    language_id Language_{};
+    language_payload_kind PayloadKind_{};
     std::size_t ElementSize_ = 0;
     TStringBuf Data_;
 };
@@ -91,17 +91,17 @@ public:
     // alive until all sections have been consumed.
     static TRawSample Parse(TStringBuf record);
 
-    const NWire::TRecordSampleHeader& Header() const noexcept {
+    const record_sample_header& Header() const noexcept {
         return Header_;
     }
 
     TRawSection<std::uint64_t> KernelStack() const noexcept;
     TRawSection<std::uint64_t> UserStack() const noexcept;
-    TRawSection<NWire::TBranchRecord> Lbr() const noexcept;
-    TRawSection<NWire::TTlsCollectResult> Tls() const noexcept;
+    TRawSection<branch_record> Lbr() const noexcept;
+    TRawSection<thread_local_variable_collect_result> Tls() const noexcept;
     TRawSection<std::uint64_t> Cgroups() const noexcept;
     TStringBuf LanguageSections() const noexcept;
-    const TRawLanguageSection* LanguageSection(NWire::ELanguage language) const noexcept;
+    const TRawLanguageSection* LanguageSection(language_id language) const noexcept;
     std::size_t LanguageSectionCount() const noexcept {
         return LanguageCount_;
     }
@@ -111,12 +111,12 @@ public:
 
 private:
     template <typename T>
-    TRawSection<T> GetSection(const NWire::TSectionDesc& desc) const noexcept {
+    TRawSection<T> GetSection(const section_desc& desc) const noexcept {
         return {Data_ + desc.offset, desc.size};
     }
 
 private:
-    NWire::TRecordSampleHeader Header_{};
+    record_sample_header Header_{};
     const char* Data_ = nullptr;
     static constexpr std::size_t MaxLanguageSections = PERFORATOR_LANGUAGE_COUNT;
     std::array<TRawLanguageSection, MaxLanguageSections> Languages_{};

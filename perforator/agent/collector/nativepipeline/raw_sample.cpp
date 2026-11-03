@@ -11,10 +11,8 @@ namespace {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-using namespace NWire;
-
 constexpr std::size_t PackedAlignment = sizeof(std::uint64_t);
-constexpr std::size_t MaxPackedSize = sizeof(TRecordSampleHeader) + MaxPackedDataSize;
+constexpr std::size_t MaxPackedSize = sizeof(record_sample_header) + NWire::MaxPackedDataSize;
 static_assert(MaxPackedSize % PackedAlignment == 0);
 // PERF_SAMPLE_RAW includes the padding that aligns its u32 size prefix
 // plus the payload to 8 bytes. Our packed payload is already 8-byte
@@ -22,7 +20,7 @@ static_assert(MaxPackedSize % PackedAlignment == 0);
 constexpr std::size_t PerfPaddingSize = PackedAlignment - sizeof(std::uint32_t);
 
 struct TSectionSpec {
-    const TSectionDesc* Desc;
+    const section_desc* Desc;
     std::size_t ElementSize;
     TStringBuf Name;
 };
@@ -30,9 +28,7 @@ struct TSectionSpec {
 } // anonymous namespace
 
 TRawSample TRawSample::Parse(TStringBuf record) {
-    using namespace NWire;
-
-    if (record.size() < sizeof(TRecordSampleHeader)) {
+    if (record.size() < sizeof(record_sample_header)) {
         ythrow yexception() << "packed sample is too short: " << record.size();
     }
     if (record.size() > MaxPackedSize + PerfPaddingSize) {
@@ -40,7 +36,7 @@ TRawSample TRawSample::Parse(TStringBuf record) {
     }
 
     // Validate the wire byte before it becomes a bool in the copied header.
-    const unsigned kthread = static_cast<unsigned char>(record[offsetof(TRecordSampleHeader, kthread)]);
+    const unsigned kthread = static_cast<unsigned char>(record[offsetof(record_sample_header, kthread)]);
     if (kthread > 1) {
         ythrow yexception() << "invalid kthread flag " << kthread;
     }
@@ -53,12 +49,12 @@ TRawSample TRawSample::Parse(TStringBuf record) {
     // variable-size records, while still accepting unpadded payloads.
     const std::size_t dataSize = (record.size() - sizeof(result.Header_)) / PackedAlignment * PackedAlignment;
 
-    if (result.Header_.tag != ERecordTag::RECORD_TAG_SAMPLE) {
+    if (result.Header_.tag != RECORD_TAG_SAMPLE) {
         ythrow yexception() << "unexpected perf record tag "
                             << static_cast<unsigned>(result.Header_.tag);
     }
-    if (result.Header_.sample_type <= ESampleType::SAMPLE_TYPE_UNDEFINED ||
-        result.Header_.sample_type > ESampleType::SAMPLE_TYPE_UPROBE)
+    if (result.Header_.sample_type <= SAMPLE_TYPE_UNDEFINED ||
+        result.Header_.sample_type > SAMPLE_TYPE_UPROBE)
     {
         ythrow yexception() << "unknown sample type "
                             << static_cast<std::uint32_t>(result.Header_.sample_type);
@@ -67,8 +63,8 @@ TRawSample TRawSample::Parse(TStringBuf record) {
     const std::array<TSectionSpec, 6> sections{{
         {&result.Header_.kern_stack, sizeof(std::uint64_t), "kernel stack"},
         {&result.Header_.user_stack, sizeof(std::uint64_t), "user stack"},
-        {&result.Header_.lbr, sizeof(TBranchRecord), "last branch records"},
-        {&result.Header_.tls, sizeof(TTlsCollectResult), "TLS"},
+        {&result.Header_.lbr, sizeof(branch_record), "last branch records"},
+        {&result.Header_.tls, sizeof(thread_local_variable_collect_result), "TLS"},
         {&result.Header_.cgroups, sizeof(std::uint64_t), "cgroups"},
         {&result.Header_.language_sections, 1, "language sections"},
     }};
@@ -93,10 +89,10 @@ TRawSample TRawSample::Parse(TStringBuf record) {
     const TStringBuf languages = result.LanguageSections();
     std::size_t position = 0;
     while (position != languages.size()) {
-        if (languages.size() - position < sizeof(TLanguageSectionHeader)) {
+        if (languages.size() - position < sizeof(language_section_header)) {
             ythrow yexception() << "truncated language section header at " << position;
         }
-        TLanguageSectionHeader header;
+        language_section_header header;
         std::memcpy(&header, languages.data() + position, sizeof(header));
         position += sizeof(header);
         if (static_cast<std::uint8_t>(header.language) >= PERFORATOR_LANGUAGE_COUNT) {
@@ -112,8 +108,8 @@ TRawSample TRawSample::Parse(TStringBuf record) {
                                     << static_cast<unsigned>(header.language);
             }
         }
-        if (header.payload_kind != ELanguagePayloadKind::LANGUAGE_PAYLOAD_INTERPRETER_FRAMES &&
-            header.payload_kind != ELanguagePayloadKind::LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS)
+        if (header.payload_kind != LANGUAGE_PAYLOAD_INTERPRETER_FRAMES &&
+            header.payload_kind != LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS)
         {
             ythrow yexception() << "unknown language payload kind "
                                 << static_cast<unsigned>(header.payload_kind);
@@ -123,11 +119,6 @@ TRawSample TRawSample::Parse(TStringBuf record) {
             header.byte_size == 0 || header.byte_size % elementSize != 0)
         {
             ythrow yexception() << "invalid language section size " << header.byte_size;
-        }
-        if (header.payload_kind == ELanguagePayloadKind::LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS &&
-            (header.language != ELanguage::LANGUAGE_JVM || elementSize != sizeof(TJvmLanguageEntry)))
-        {
-            ythrow yexception() << "unsupported native language annotation layout";
         }
         if (header.byte_size > languages.size() - position) {
             ythrow yexception() << "language section exceeds packed sample";
@@ -150,12 +141,12 @@ TRawSection<std::uint64_t> TRawSample::UserStack() const noexcept {
     return GetSection<std::uint64_t>(Header_.user_stack);
 }
 
-TRawSection<NWire::TBranchRecord> TRawSample::Lbr() const noexcept {
-    return GetSection<NWire::TBranchRecord>(Header_.lbr);
+TRawSection<branch_record> TRawSample::Lbr() const noexcept {
+    return GetSection<branch_record>(Header_.lbr);
 }
 
-TRawSection<NWire::TTlsCollectResult> TRawSample::Tls() const noexcept {
-    return GetSection<NWire::TTlsCollectResult>(Header_.tls);
+TRawSection<thread_local_variable_collect_result> TRawSample::Tls() const noexcept {
+    return GetSection<thread_local_variable_collect_result>(Header_.tls);
 }
 
 TRawSection<std::uint64_t> TRawSample::Cgroups() const noexcept {
@@ -166,7 +157,7 @@ TStringBuf TRawSample::LanguageSections() const noexcept {
     return {Data_ + Header_.language_sections.offset, Header_.language_sections.size};
 }
 
-const TRawLanguageSection* TRawSample::LanguageSection(NWire::ELanguage language) const noexcept {
+const TRawLanguageSection* TRawSample::LanguageSection(language_id language) const noexcept {
     for (std::size_t i = 0; i < LanguageCount_; ++i) {
         if (Languages_[i].Language() == language) {
             return &Languages_[i];

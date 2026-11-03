@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/nativepipeline/runtimewriter"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/python/agent/linetable"
@@ -212,34 +213,20 @@ func validLine(line int32, ok bool) (int32, lineInfoOutcome) {
 	return line, lineResolved
 }
 
-func (s *Symbolizer) resolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame) models.ResolvedInterpreterFrame {
-	result := models.ResolvedInterpreterFrame{
-		Mapping: profile.PythonSpecialMapping,
-		Address: frame.SymbolKey.ObjectAddr,
+func (s *Symbolizer) resolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame, output runtimewriter.Frame) error {
+	if err := output.SetMappingName(profile.PythonSpecialMapping); err != nil {
+		return err
 	}
+	output.SetAddress(frame.SymbolKey.ObjectAddr)
 	if frame.SymbolKey.Linestart == trampolineLinestart {
-		result.Name = python_models.PythonTrampolineFrame
-		return result
+		return output.AddInlineFunction(python_models.PythonTrampolineFrame, "", 0, 0)
 	}
-	result.StartLine = frame.SymbolKey.Linestart
-	result.HasStartLine = true
-	result.Name = models.UnsymbolizedInterpreterLocation
-	result.Unsymbolized = true
-	if s == nil || s.symbols == nil {
-		return result
-	}
-	symbol, ok := s.symbols.SymbolizeUncached(models.Language(unwinder.LanguagePython), process, &frame.SymbolKey)
+	symbol, line, ok := s.SymbolizeFrame(process, frame)
 	if !ok {
-		return result
+		return output.AddInlineFunction(models.UnsymbolizedInterpreterLocation, "", frame.SymbolKey.Linestart, 0)
 	}
-	result.Unsymbolized = false
-	result.Name, result.Filename = symbol.Name, symbol.FileName
 	if symbol.Name != "" {
-		result.Address = 0
+		output.SetAddress(0)
 	}
-	result.Line, result.LineInfo = s.resolveLine(process, frame)
-	result.HasLine = result.Line > 0
-	// The linetable cache owns negative-result expiry and transient retries.
-	result.DoNotCache = result.LineInfo != lineSkipped && result.LineInfo != lineResolved
-	return result
+	return output.AddInlineFunction(symbol.Name, symbol.FileName, frame.SymbolKey.Linestart, line)
 }

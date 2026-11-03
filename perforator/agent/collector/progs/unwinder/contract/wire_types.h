@@ -2,20 +2,16 @@
 
 #include "language_ids.h"
 
-#ifdef __cplusplus
-    #include <linux/types.h>
-#else
-    #include <perforator/ebpf/include/bpf/types.h>
-#endif
+#include <perforator/ebpf/include/bpf/types.h>
 
 // Canonical perf-buffer ABI shared by the BPF producer and userspace consumers.
 
-enum record_tag: __u8 {
+enum record_tag: u8 {
     RECORD_TAG_SAMPLE = 0,
     RECORD_TAG_NEW_PROCESS = 1,
 };
 
-enum sample_type: __u32 {
+enum sample_type: u32 {
     SAMPLE_TYPE_UNDEFINED = 0,
     SAMPLE_TYPE_PERF_EVENT = 1,
     SAMPLE_TYPE_KPROBE_FINISH_TASK_SWITCH = 2,
@@ -24,22 +20,21 @@ enum sample_type: __u32 {
     SAMPLE_TYPE_UPROBE = 5,
 };
 
-enum language_id: __u8 {
+enum language_id: u8 {
     LANGUAGE_PYTHON = PERFORATOR_LANGUAGE_PYTHON,
     LANGUAGE_PHP = PERFORATOR_LANGUAGE_PHP,
     LANGUAGE_JVM = PERFORATOR_LANGUAGE_JVM,
     LANGUAGE_LUA = PERFORATOR_LANGUAGE_LUA,
 };
 
-enum language_payload_kind: __u8 {
+enum language_payload_kind: u8 {
     // Interpreter frames; the native parser keeps their payload opaque.
     LANGUAGE_PAYLOAD_INTERPRETER_FRAMES = 1,
-    // Entries annotate native stack positions and therefore have to be
-    // interpreted by the native stack builder (currently JVM only).
+    // Entries annotate positions in the native stack.
     LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS = 2,
 };
 
-enum tls_variable_type: __u8 {
+enum tls_variable_type: u8 {
     THREAD_LOCAL_UINT64_TYPE = 1,
     THREAD_LOCAL_STRING_TYPE = 2,
 };
@@ -53,74 +48,68 @@ enum cgroup_limits {
     PARENT_CGROUP_MAX_LEVELS = 16,
 };
 
-enum cgroup_consts: __u64 {
-    END_OF_CGROUP_LIST = (__u64)-1,
+enum cgroup_consts: u64 {
+    END_OF_CGROUP_LIST = (u64)-1,
 };
 
 struct branch_record {
-    __u64 from;
-    __u64 to;
+    u64 from;
+    u64 to;
     // Preserve the 24-byte perf_branch_entry layout used by bpf_read_branch_records.
-    __u64 flags;
+    u64 flags;
 };
 
 struct thread_local_string {
-    __u64 len;
+    u64 len;
     char string[MAX_THREAD_LOCAL_STRING_LENGTH];
 };
 
 union thread_local_variable {
     struct thread_local_string string;
-    __u64 number;
+    u64 number;
 };
 
 struct thread_local_variable_collect_result {
-    __u64 offset;
+    u64 offset;
     enum tls_variable_type type;
     union thread_local_variable value;
 };
 
 struct perf_event_attr_subset {
-    __u32 type;
-    __u64 config;
+    u32 type;
+    u64 config;
 };
 
 struct perf_event_subset {
     struct perf_event_attr_subset attr;
-    __u64 id;
+    u64 id;
 };
 
 union sample_config {
-    __s32 sig;
+    i32 sig;
     struct perf_event_subset perf_event;
-    __u64 ip;
+    u64 ip;
 };
 
 struct record_new_process {
     enum record_tag tag;
-    __u32 pid;
-    __u64 starttime;
+    u32 pid;
+    u64 starttime;
 };
 
 struct language_section_header {
     // Payload size in bytes, excluding this header.
-    __u16 byte_size;
+    u16 byte_size;
     enum language_id language;
     enum language_payload_kind payload_kind;
-    __u16 element_size;
-    __u8 _pad[2];
-};
-
-struct jvm_lang_entry {
-    __u16 user_stack_index;
-    __u8 _pad[6];
-    __u64 method_addr;
+    u16 element_size;
+    u8 _pad[2];
 };
 
 struct section_desc {
     // Byte offset from the start of packed_sample.data.
-    __u16 offset;
-    __u16 size;
+    u16 offset;
+    u16 size;
 };
 
 struct record_sample_header {
@@ -128,19 +117,19 @@ struct record_sample_header {
     enum sample_type sample_type;
     union sample_config sample_config;
     bool kthread;
-    __u16 cpu;
-    __u32 runtime;
-    __u64 collection_time;
-    __u8 thread_comm[16];
-    __u8 process_comm[16];
-    __u32 pid;
-    __u32 tid;
-    __u32 innermost_pidns_tid;
-    __u32 innermost_pidns_pid;
-    __u64 parent_cgroup;
-    __u64 starttime;
-    __u64 value;
-    __u64 timedelta;
+    u16 cpu;
+    u32 runtime;
+    u64 collection_time;
+    u8 thread_comm[16];
+    u8 process_comm[16];
+    u32 pid;
+    u32 tid;
+    u32 innermost_pidns_tid;
+    u32 innermost_pidns_pid;
+    u64 parent_cgroup;
+    u64 starttime;
+    u64 value;
+    u64 timedelta;
     struct section_desc kern_stack;
     struct section_desc user_stack;
     struct section_desc lbr;

@@ -72,12 +72,11 @@ enum {
 // Staging context for JVM frame collection (passed as single pointer to
 // stay within BPF's 5-argument limit for function calls).
 struct jvm_staging {
-    struct jvm_lang_entry* entries;
+    struct jvm_frame* entries;
     u8* count;
 };
 
-// Collect one JVM interpreted frame. Stores the real native IP in stack->ips[]
-// and records (user_stack_index, method_addr) in the JVM staging buffer.
+// Collect one JVM interpreted frame and annotate its native-stack position.
 static NOINLINE int jvm_collect_stack_v2(
     struct unwind_context* regs,
     struct jvm_binary_config* jc,
@@ -103,13 +102,13 @@ static NOINLINE int jvm_collect_stack_v2(
         return -JVM_UNWIND_STATUS_OVERFLOW;
     }
 
-    // Store JVM placeholder in user stack (actual method resolved via jvm_lang_entry)
+    // Store JVM placeholder in user stack (actual method resolved via jvm_frame)
     u32 idx = stack->len;
     stack->ips[idx] = 0xFFFFFFFFDEADF00D;
     stack->len++;
 
     // Store (index, method_addr) in JVM staging
-    staging->entries[jvm_idx].user_stack_index = (u16)idx;
+    staging->entries[jvm_idx].index = (u16)idx;
     staging->entries[jvm_idx].method_addr = method_addr;
     *staging->count = jvm_idx + 1;
 

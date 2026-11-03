@@ -5,10 +5,10 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/nativepipeline/runtimewriter"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
-	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -139,6 +139,6 @@ func (r *Registry) invalidateProcessImage(pid linux.CurrentNamespacePID) {
 	r.symbolizer.InvalidatePid(uint32(pid))
 }
 
-func (r *Registry) ResolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame) models.ResolvedInterpreterFrame {
-	return r.processor.ResolveFrame(process, frame)
+func (r *Registry) ResolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame, output runtimewriter.Frame) error {
+	return r.processor.ResolveFrame(process, frame, output)
 }

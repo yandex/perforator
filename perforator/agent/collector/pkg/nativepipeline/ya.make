@@ -16,3 +16,7 @@ SRCS(
 )
 
 END()
+
+RECURSE(
+    runtimewriter
+)
