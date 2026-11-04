@@ -4688,7 +4688,7 @@
   },
   "stylelint": {
     "title": "Stylelint",
-    "description": "Инструмент для линтинга файлов стилей.\n\nИспользуется в макросе [TS_STYLELINT()](https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-stylelint).",
+    "description": "Инструмент для линтинга файлов стилей.\n\nДля проверок в Аркадии подключается через [TS_LINT](https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-lint).",
     "type": "NPM_PACKAGE",
     "default": "17.4.0",
     "links": {
@@ -4696,7 +4696,7 @@
       "Sources": "https://github.com/stylelint/stylelint",
       "Changelog": "https://github.com/stylelint/stylelint/blob/main/CHANGELOG.md",
       "Docs": "https://stylelint.io/",
-      "TS_STYLELINT()": "https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-stylelint"
+      "TS_LINT": "https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-lint"
     },
     "useDirectly": true,
     "versions": {
@@ -4884,7 +4884,7 @@
   },
   "typescript": {
     "title": "TypeScript",
-    "description": "Официальная реализация языка TypeScript\n\nВ проекте используется только `tsc` - компилятор/траспиллер TS в JS.\nТакже ожидается наличие `tsconfig.json` на проекте.\n\nВ tier-0 используется напрямую в модуле/макросе [`TS_TSC()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_TSC).\nНо опосредованно может использоваться и в других макросах.",
+    "description": "Официальная реализация языка TypeScript\n\nВ проекте используется только `tsc` - компилятор/траспиллер TS в JS.\nТакже ожидается наличие `tsconfig.json` на проекте.\n\nВ Tier 0 команда компиляции задаётся через TS_BUILD_SCRIPT в TS_LIBRARY.\nНо опосредованно может использоваться и в других макросах.",
     "type": "NPM_PACKAGE",
     "default": "5.9.3",
     "links": {
@@ -4893,7 +4893,7 @@
       "Changelog": "https://github.com/microsoft/TypeScript/wiki/Roadmap",
       "Docs": "https://www.typescriptlang.org/docs/",
       "Breaking Changes": "https://github.com/microsoft/TypeScript/wiki/Breaking-Changes",
-      "TS_TSC docs": "https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_TSC"
+      "TS_LIBRARY docs": "https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_LIBRARY"
     },
     "useDirectly": true,
     "defaultBinName": "tsc",

@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-10-31T10:49:09Z",
-    "commit": "ef5279c1c3cae3c0a0fcb3e9c7ae2bc14bfb9515",
-    "branch": "FBP-3478-platform-rebuild-20261031",
+    "created": "2026-11-03T23:44:07Z",
+    "commit": "04d412093e69a2b47ce67b678b010974139f7995",
+    "branch": "FBP-3478-remove-tsc",
     "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14171147154"
+      "uri": "sbr:14193700099"
     },
     "darwin-arm64": {
-      "uri": "sbr:14171147498"
+      "uri": "sbr:14193700413"
     },
     "linux": {
-      "uri": "sbr:14171146543"
+      "uri": "sbr:14193699513"
     },
     "linux-aarch64": {
-      "uri": "sbr:14171146949"
+      "uri": "sbr:14193699761"
     }
   }
 }
