@@ -4,7 +4,6 @@ TS_LINT(lint)
 TS_LINT(lint:css)
 TS_LINT(typecheck)
 
-USE_LEGACY_PNPM_VIRTUAL_STORE()
 
 TS_BUILD_SCRIPT(nots:build)
 
