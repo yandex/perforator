@@ -295,7 +295,6 @@ static NOINLINE u32 pack_sample_core(struct packed_sample* packed, struct profil
 // Descriptor for a single language section to be packed.
 struct lang_section_desc {
     u8 lang_id;
-    u8 payload_kind;
     u32 count;
     u32 max;
     void* src;
@@ -329,7 +328,7 @@ static ALWAYS_INLINE void pack_lang_section(
             (struct language_section_header*)(packed->data + off);
         lsh->byte_size = bytes;
         lsh->language = desc->lang_id;
-        lsh->payload_kind = desc->payload_kind;
+        lsh->_pad0 = 0;
         lsh->element_size = desc->elem_size;
         __builtin_memset(lsh->_pad, 0, sizeof(lsh->_pad));
         off += sizeof(struct language_section_header);
@@ -348,7 +347,6 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_PYTHON,
-        .payload_kind = LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
         .count     = state->python_state.frame_count,
         .max       = PYTHON_MAX_STACK_DEPTH,
         .src       = state->python_state.frames,
@@ -358,7 +356,6 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_PHP,
-        .payload_kind = LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
         .count     = state->php_state.frame_count,
         .max       = PHP_MAX_STACK_DEPTH,
         .src       = state->php_state.frames,
@@ -368,7 +365,6 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_JVM,
-        .payload_kind = LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS,
         .count     = state->jvm_frames_count,
         .max       = MAX_JVM_FRAMES,
         .src       = state->jvm_entries,
@@ -378,7 +374,6 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_LUA,
-        .payload_kind = LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
         .count     = state->lua_state.stack.len,
         .max       = LUA_MAX_STACK_DEPTH,
         .src       = state->lua_state.stack.frames,

@@ -27,7 +27,6 @@ BTF_EXPORT(struct section_desc);
 BTF_EXPORT(struct record_sample_header);
 BTF_EXPORT(struct language_section_header);
 BTF_EXPORT(enum language_id);
-BTF_EXPORT(enum language_payload_kind);
 
 struct packed_sample {
     struct record_sample_header header;

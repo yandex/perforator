@@ -11,11 +11,10 @@ import (
 	"unsafe"
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/nativepipeline/runtimewriter"
-	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
-type Language = C.TPerforatorLanguage
+type Language = C.EPerforatorLanguage
 
 const (
 	LanguagePython Language = C.PERFORATOR_LANGUAGE_PYTHON
@@ -61,22 +60,22 @@ func PerforatorGoResolveRuntimeFrames(
 		return fail(fmt.Errorf("missing runtime request"))
 	case request.NativeStackSize != 0 && request.NativeStack == nil:
 		return fail(fmt.Errorf("missing native stack"))
-	case request.LanguageCount > C.size_t(LanguageCount):
-		return fail(fmt.Errorf("too many runtime language sections: %d", request.LanguageCount))
-	case request.LanguageCount != 0 && request.Languages == nil:
+	case request.LanguagesSize > C.size_t(LanguageCount):
+		return fail(fmt.Errorf("too many runtime language sections: %d", request.LanguagesSize))
+	case request.LanguagesSize != 0 && request.Languages == nil:
 		return fail(fmt.Errorf("missing language sections"))
 	}
 	input := RuntimeRequest{
 		Key:         processKeyFromC(request.Key.Pid, request.Key.StartTime),
 		NativeStack: unsafe.Slice((*uint64)(unsafe.Pointer(request.NativeStack)), int(request.NativeStackSize)),
-		Languages:   make([]LanguageSection, int(request.LanguageCount)),
+		Languages:   make([]LanguageSection, int(request.LanguagesSize)),
 	}
-	for i, section := range unsafe.Slice(request.Languages, int(request.LanguageCount)) {
+	for i, section := range unsafe.Slice(request.Languages, int(request.LanguagesSize)) {
 		if section.Data == nil || section.FrameSize == 0 || section.Size == 0 || section.Size%C.size_t(section.FrameSize) != 0 {
 			return fail(fmt.Errorf("invalid language section %d", i))
 		}
 		input.Languages[i] = LanguageSection{
-			Language: section.Language, PayloadKind: uint8(section.PayloadKind), FrameSize: uint16(section.FrameSize),
+			Language: section.Language, FrameSize: uint16(section.FrameSize),
 			Data: unsafe.Slice((*byte)(section.Data), int(section.Size)),
 		}
 	}
@@ -105,16 +104,12 @@ func newRuntimeWriter(request RuntimeRequest) (*runtimewriter.Writer, error) {
 			return nil, fmt.Errorf("unknown or duplicate language %d", section.Language)
 		}
 		seen[section.Language] = true
-		switch section.PayloadKind {
-		case uint8(unwinder.LanguagePayloadInterpreterFrames):
+		if section.Language != LanguageJVM {
 			count := len(section.Data) / int(section.FrameSize)
 			if count > int(^uint(0)>>1)-totalFrameCount {
 				return nil, fmt.Errorf("runtime frame count overflow")
 			}
 			totalFrameCount += count
-		case uint8(unwinder.LanguagePayloadNativeAnnotations):
-		default:
-			return nil, fmt.Errorf("unknown runtime payload kind %d", section.PayloadKind)
 		}
 	}
 	writer, err := runtimewriter.New(totalFrameCount, len(request.NativeStack), len(request.Languages))
@@ -124,7 +119,7 @@ func newRuntimeWriter(request RuntimeRequest) (*runtimewriter.Writer, error) {
 	firstFrameIndex := len(request.NativeStack)
 	for i, section := range request.Languages {
 		count := 0
-		if section.PayloadKind == uint8(unwinder.LanguagePayloadInterpreterFrames) {
+		if section.Language != LanguageJVM {
 			count = len(section.Data) / int(section.FrameSize)
 		}
 		if err := writer.SetLanguageRange(i, uint8(section.Language), firstFrameIndex, count); err != nil {

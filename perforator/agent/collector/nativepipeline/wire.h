@@ -25,7 +25,7 @@ static_assert(offsetof(record_sample_header, kern_stack) == 128);
 static_assert(offsetof(record_sample_header, language_sections) == 148);
 static_assert(sizeof(branch_record) == 24);
 static_assert(sizeof(language_section_header) == 8);
-static_assert(offsetof(language_section_header, payload_kind) == 3);
+static_assert(offsetof(language_section_header, language) == 2);
 static_assert(offsetof(language_section_header, element_size) == 4);
 static_assert(sizeof(thread_local_variable_collect_result) == 152);
 static_assert(offsetof(thread_local_variable_collect_result, type) == 8);

@@ -57,10 +57,6 @@ public:
         return Language_;
     }
 
-    language_payload_kind PayloadKind() const noexcept {
-        return PayloadKind_;
-    }
-
     std::size_t ElementSize() const noexcept {
         return ElementSize_;
     }
@@ -80,7 +76,6 @@ private:
     friend class TRawSample;
 
     language_id Language_{};
-    language_payload_kind PayloadKind_{};
     std::size_t ElementSize_ = 0;
     TStringBuf Data_;
 };

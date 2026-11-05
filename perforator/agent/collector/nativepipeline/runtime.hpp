@@ -95,8 +95,8 @@ struct TRuntimeFrameBatch {
         return Data.FrameCount;
     }
 
-    size_t NativeFrameCount() const noexcept {
-        return Data.NativeFrameCount;
+    size_t NativePrefixSize() const noexcept {
+        return Data.NativePrefixSize;
     }
 
     size_t LanguageCount() const noexcept {

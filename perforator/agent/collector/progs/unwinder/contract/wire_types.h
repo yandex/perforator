@@ -27,13 +27,6 @@ enum language_id: u8 {
     LANGUAGE_LUA = PERFORATOR_LANGUAGE_LUA,
 };
 
-enum language_payload_kind: u8 {
-    // Interpreter frames; the native parser keeps their payload opaque.
-    LANGUAGE_PAYLOAD_INTERPRETER_FRAMES = 1,
-    // Entries annotate positions in the native stack.
-    LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS = 2,
-};
-
 enum tls_variable_type: u8 {
     THREAD_LOCAL_UINT64_TYPE = 1,
     THREAD_LOCAL_STRING_TYPE = 2,
@@ -101,7 +94,7 @@ struct language_section_header {
     // Payload size in bytes, excluding this header.
     u16 byte_size;
     enum language_id language;
-    enum language_payload_kind payload_kind;
+    u8 _pad0;
     u16 element_size;
     u8 _pad[2];
 };

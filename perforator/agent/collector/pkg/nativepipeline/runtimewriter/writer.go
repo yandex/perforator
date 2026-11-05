@@ -29,8 +29,8 @@ type Writer struct {
 }
 
 // New allocates a C arena for the complete frame sequence and language ranges.
-func New(totalFrameCount, nativeFrameCount, languageCount int) (*Writer, error) {
-	if nativeFrameCount < 0 || nativeFrameCount > totalFrameCount {
+func New(totalFrameCount, nativePrefixSize, languageCount int) (*Writer, error) {
+	if nativePrefixSize < 0 || nativePrefixSize > totalFrameCount {
 		return nil, fmt.Errorf("invalid native frame count")
 	}
 	writer := &Writer{}
@@ -46,7 +46,7 @@ func New(totalFrameCount, nativeFrameCount, languageCount int) (*Writer, error) 
 	}
 	writer.result.FramesOffset = C.size_t(frames)
 	writer.result.FrameCount = C.size_t(totalFrameCount)
-	writer.result.NativeFrameCount = C.size_t(nativeFrameCount)
+	writer.result.NativePrefixSize = C.size_t(nativePrefixSize)
 	writer.result.LanguagesOffset = C.size_t(languages)
 	writer.result.LanguageCount = C.size_t(languageCount)
 	return writer, nil
@@ -60,7 +60,7 @@ func (a *Writer) SetLanguageRange(sectionIndex int, language uint8, firstFrameIn
 		return fmt.Errorf("invalid runtime language range")
 	}
 	*a.language(sectionIndex) = C.TPerforatorResolvedLanguageSection{
-		Language: C.TPerforatorLanguage(language), FrameBegin: C.size_t(firstFrameIndex), FrameCount: C.size_t(frameCount),
+		Language: C.EPerforatorLanguage(language), FrameBegin: C.size_t(firstFrameIndex), FrameCount: C.size_t(frameCount),
 	}
 	return nil
 }

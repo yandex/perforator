@@ -108,12 +108,6 @@ TRawSample TRawSample::Parse(TStringBuf record) {
                                     << static_cast<unsigned>(header.language);
             }
         }
-        if (header.payload_kind != LANGUAGE_PAYLOAD_INTERPRETER_FRAMES &&
-            header.payload_kind != LANGUAGE_PAYLOAD_NATIVE_ANNOTATIONS)
-        {
-            ythrow yexception() << "unknown language payload kind "
-                                << static_cast<unsigned>(header.payload_kind);
-        }
         const std::size_t elementSize = header.element_size;
         if (elementSize == 0 || elementSize % alignof(std::uint64_t) != 0 ||
             header.byte_size == 0 || header.byte_size % elementSize != 0)
@@ -125,7 +119,6 @@ TRawSample TRawSample::Parse(TStringBuf record) {
         }
         auto& section = result.Languages_[result.LanguageCount_++];
         section.Language_ = header.language;
-        section.PayloadKind_ = header.payload_kind;
         section.ElementSize_ = elementSize;
         section.Data_ = {languages.data() + position, header.byte_size};
         position += header.byte_size;

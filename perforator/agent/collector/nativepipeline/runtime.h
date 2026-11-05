@@ -17,8 +17,7 @@ typedef struct {
     const void* Data;
     size_t Size;
     uint16_t FrameSize;
-    TPerforatorLanguage Language;
-    uint8_t PayloadKind;
+    EPerforatorLanguage Language;
 } TPerforatorLanguageSection;
 
 typedef struct {
@@ -26,7 +25,7 @@ typedef struct {
     const uint64_t* NativeStack;
     size_t NativeStackSize;
     const TPerforatorLanguageSection* Languages;
-    size_t LanguageCount;
+    size_t LanguagesSize;
 } TPerforatorRuntimeRequest;
 
 typedef const TPerforatorRuntimeRequest* TPerforatorRuntimeRequestPtr;
@@ -51,12 +50,12 @@ typedef struct {
 } TPerforatorResolvedFrame;
 
 typedef struct {
-    TPerforatorLanguage Language;
+    EPerforatorLanguage Language;
     size_t FrameBegin;
     size_t FrameCount;
 } TPerforatorResolvedLanguageSection;
 
-enum TPerforatorResolveStatus {
+enum EPerforatorResolveStatus {
     PerforatorResolveOk = 0,
     PerforatorResolveFailed = 1,
 };
@@ -66,7 +65,7 @@ typedef struct {
     size_t ArenaBytes;
     size_t FramesOffset;
     size_t FrameCount;
-    size_t NativeFrameCount;
+    size_t NativePrefixSize; // Frames [0, NativePrefixSize) are native.
     size_t LanguagesOffset;
     size_t LanguageCount;
 } TPerforatorRuntimeResult;

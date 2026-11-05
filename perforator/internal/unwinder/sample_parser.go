@@ -199,21 +199,16 @@ func parseLangSections(data []byte, base int, off, size uint16, out *RecordSampl
 		}
 		byteSize := int(le.Uint16(raw[pos:]))
 		language := LanguageId(raw[pos+2])
-		kind := LanguagePayloadKind(raw[pos+3])
 		elementSize := int(le.Uint16(raw[pos+4:]))
 		if int(language) >= len(seen) || seen[language] {
 			return fmt.Errorf("unknown or duplicate language: %d", language)
 		}
 		seen[language] = true
 		expectedSize := [...]int{pythonFrameSize, phpFrameSize, jvmFrameSize, luaFrameSize}[language]
-		expectedKind := LanguagePayloadInterpreterFrames
-		if language == LanguageJvm {
-			expectedKind = LanguagePayloadNativeAnnotations
-		}
 		// Go materializes known frames, while the native parser can retain
 		// opaque interpreter payloads for a future resolver.
-		if kind != expectedKind || elementSize != expectedSize || byteSize == 0 || byteSize%elementSize != 0 {
-			return fmt.Errorf("unsupported language payload layout: %d/%d/%d", language, kind, elementSize)
+		if elementSize != expectedSize || byteSize == 0 || byteSize%elementSize != 0 {
+			return fmt.Errorf("unsupported language payload layout: %d/%d", language, elementSize)
 		}
 		pos += langSectionHeaderSize
 		if pos+byteSize > len(raw) {

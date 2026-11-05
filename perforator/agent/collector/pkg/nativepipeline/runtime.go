@@ -14,10 +14,9 @@ import (
 // matching types generated in internal/unwinder.
 // Data is read-only and borrowed until ResolveRuntimeFrames returns.
 type LanguageSection struct {
-	Language    Language
-	PayloadKind uint8
-	FrameSize   uint16
-	Data        []byte
+	Language  Language
+	FrameSize uint16
+	Data      []byte
 }
 
 type RuntimeRequest struct {

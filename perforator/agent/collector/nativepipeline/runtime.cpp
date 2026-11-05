@@ -71,7 +71,7 @@ TRuntimeFrameBatch TGoRuntimeResolver::ResolveRuntimeFrames(
     const TPerforatorRuntimeRequest& request
 )
 {
-    if (request.NativeStackSize == 0 && request.LanguageCount == 0) {
+    if (request.NativeStackSize == 0 && request.LanguagesSize == 0) {
         return {};
     }
     Y_ENSURE(PerforatorGoResolveRuntimeFrames, "Go runtime resolver callback is not linked");
@@ -85,8 +85,8 @@ TRuntimeFrameBatch TGoRuntimeResolver::ResolveRuntimeFrames(
     Y_ENSURE(status == PerforatorResolveOk,
              "Go runtime resolver failed: " << (errorMessage ? errorMessage : "unspecified failure"));
     const auto& data = batch.Data;
-    Y_ENSURE(data.Arena && data.NativeFrameCount == request.NativeStackSize &&
-                 data.FrameCount >= data.NativeFrameCount && data.LanguageCount == request.LanguageCount,
+    Y_ENSURE(data.Arena && data.NativePrefixSize == request.NativeStackSize &&
+                 data.FrameCount >= data.NativePrefixSize && data.LanguageCount == request.LanguagesSize,
              "runtime resolver returned invalid result sizes");
     ValidateArenaRange(data, data.FramesOffset, data.FrameCount, sizeof(TPerforatorResolvedFrame), alignof(TPerforatorResolvedFrame));
     ValidateArenaRange(data, data.LanguagesOffset, data.LanguageCount, sizeof(TPerforatorResolvedLanguageSection), alignof(TPerforatorResolvedLanguageSection));

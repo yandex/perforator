@@ -54,7 +54,7 @@ func TestWireFormat(t *testing.T) {
 		{"misaligned_section", 656, 128, 1, 1, false},
 		{"section_out_of_bounds", 656, 150, 65535, 2, false},
 		{"unknown_language", 656, 538, 4, 1, false},
-		{"unknown_payload_kind", 656, 539, 0, 1, false},
+		{"reserved_language_byte_zero", 656, 539, 0, 1, true},
 		{"zero_element_size", 656, 540, 0, 1, false},
 		{"misaligned_element_size", 656, 540, 7, 1, false},
 		{"zero_payload_size", 656, 536, 0, 1, false},
@@ -62,10 +62,10 @@ func TestWireFormat(t *testing.T) {
 		{"truncated_language_header", 656, 150, 1, 1, false},
 		{"language_out_of_bounds", 656, 536, 4096, 2, false},
 		{"duplicate_language", 656, 578, 0, 1, false},
-		{"non_jvm_annotations", 656, 539, 2, 1, false},
+		{"reserved_language_byte_nonzero", 656, 539, 2, 1, true},
 		// Go requires known frame layouts; C++ keeps these interpreter payloads opaque.
 		{"opaque_interpreter_size", 656, 540, 16, 1, false},
-		{"jvm_interpreter_payload", 656, 603, 1, 1, false},
+		{"reserved_jvm_byte_nonzero", 656, 603, 1, 1, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -462,10 +462,6 @@ func BenchmarkParsePackedSampleMinimal(b *testing.B) {
 }
 
 func setLanguageLayout(header []byte, language LanguageId) {
-	header[3] = byte(LanguagePayloadInterpreterFrames)
-	if language == LanguageJvm {
-		header[3] = byte(LanguagePayloadNativeAnnotations)
-	}
 	size := [...]int{pythonFrameSize, phpFrameSize, jvmFrameSize, luaFrameSize}[language]
 	le.PutUint16(header[4:], uint16(size))
 }

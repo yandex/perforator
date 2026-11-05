@@ -39,7 +39,6 @@ TString MakeRecord() {
     language_section_header language{
         .byte_size = PythonFrameSize,
         .language = LANGUAGE_PYTHON,
-        .payload_kind = LANGUAGE_PAYLOAD_INTERPRETER_FRAMES,
         .element_size = PythonFrameSize,
     };
     struct {
@@ -104,7 +103,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
             {"misaligned_section", 656, 128, 1, 1, false},
             {"section_out_of_bounds", 656, 150, 65535, 2, false},
             {"unknown_language", 656, 538, 4, 1, false},
-            {"unknown_payload_kind", 656, 539, 0, 1, false},
+            {"reserved_language_byte_zero", 656, 539, 0, 1, true},
             {"zero_element_size", 656, 540, 0, 1, false},
             {"misaligned_element_size", 656, 540, 7, 1, false},
             {"zero_payload_size", 656, 536, 0, 1, false},
@@ -112,10 +111,10 @@ Y_UNIT_TEST_SUITE(RawSample) {
             {"truncated_language_header", 656, 150, 1, 1, false},
             {"language_out_of_bounds", 656, 536, 4096, 2, false},
             {"duplicate_language", 656, 578, 0, 1, false},
-            {"non_jvm_annotations", 656, 539, 2, 1, true},
+            {"reserved_language_byte_nonzero", 656, 539, 2, 1, true},
             // Opaque interpreter payloads are accepted here but rejected by Go.
             {"opaque_interpreter_size", 656, 540, 16, 1, true},
-            {"jvm_interpreter_payload", 656, 603, 1, 1, true},
+            {"reserved_jvm_byte_nonzero", 656, 603, 1, 1, true},
         };
         for (const auto& test : cases) {
             TString record = base;

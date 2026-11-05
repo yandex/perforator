@@ -8,4 +8,4 @@ typedef enum {
     PERFORATOR_LANGUAGE_JVM = 2,
     PERFORATOR_LANGUAGE_LUA = 3,
     PERFORATOR_LANGUAGE_COUNT = 4,
-} TPerforatorLanguage;
+} EPerforatorLanguage;

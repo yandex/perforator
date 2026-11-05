@@ -41,23 +41,17 @@ func (r *nativeRuntimeResolver) ResolveRuntimeFrames(
 	writer *runtimewriter.Writer,
 ) error {
 	var annotations *nativepipeline.LanguageSection
-	for i, section := range request.Languages {
-		switch section.PayloadKind {
-		case uint8(unwinder.LanguagePayloadInterpreterFrames):
-		case uint8(unwinder.LanguagePayloadNativeAnnotations):
-			if annotations != nil {
-				return fmt.Errorf("multiple native annotation sections")
-			}
+	for i := range request.Languages {
+		if request.Languages[i].Language == nativepipeline.LanguageJVM {
 			annotations = &request.Languages[i]
-		default:
-			return fmt.Errorf("unsupported language payload kind %d", section.PayloadKind)
+			break
 		}
 	}
 	if err := r.resolveNativeFrames(ctx, request, annotations, writer); err != nil {
 		return err
 	}
 	for _, section := range request.Languages {
-		if section.PayloadKind == uint8(unwinder.LanguagePayloadInterpreterFrames) {
+		if section.Language != nativepipeline.LanguageJVM {
 			if err := r.resolveInterpreterSection(request.Key, section, writer); err != nil {
 				return err
 			}
@@ -94,21 +88,41 @@ func (r *nativeRuntimeResolver) resolveInterpreterSection(key linux.ProcessKey, 
 }
 
 func (r *nativeRuntimeResolver) resolveNativeFrames(ctx context.Context, request nativepipeline.RuntimeRequest, annotations *nativepipeline.LanguageSection, writer *runtimewriter.Writer) error {
+	var frames []unwinder.JvmFrame
 	if annotations != nil {
-		switch annotations.Language {
-		case nativepipeline.LanguageJVM:
-			return r.resolveJVMAnnotatedNativeFrames(ctx, request, *annotations, writer)
-		default:
-			return fmt.Errorf("unsupported native annotation language %d", annotations.Language)
+		var err error
+		frames, err = viewRuntimeFrames[unwinder.JvmFrame](*annotations)
+		if err != nil {
+			return fmt.Errorf("decode JVM annotations: %w", err)
+		}
+		previous := -1
+		for _, frame := range frames {
+			index := int(frame.Index)
+			if index <= previous || index >= len(request.NativeStack) {
+				return fmt.Errorf("invalid JVM native stack index %d", index)
+			}
+			previous = index
 		}
 	}
-	for _, address := range request.NativeStack {
+	next := 0
+	for index, address := range request.NativeStack {
+		var frame *unwinder.JvmFrame
+		if next < len(frames) && int(frames[next].Index) == index {
+			frame = &frames[next]
+			next++
+		}
 		matched := false
 		if address != 0 {
 			var err error
 			matched, err = r.tryAppendJITFrame(request.Key, address, writer)
 			if err != nil {
 				return err
+			}
+			if !matched && frame != nil {
+				if err := r.resolveJVMFrame(ctx, request.Key, address, frame.MethodAddr, writer); err != nil {
+					return err
+				}
+				matched = true
 			}
 		}
 		if !matched {
@@ -144,48 +158,6 @@ func (r *nativeRuntimeResolver) tryAppendJITFrame(key linux.ProcessKey, address 
 		return true, nil
 	}
 	return false, nil
-}
-
-func (r *nativeRuntimeResolver) resolveJVMAnnotatedNativeFrames(ctx context.Context, request nativepipeline.RuntimeRequest, section nativepipeline.LanguageSection, writer *runtimewriter.Writer) error {
-	frames, err := viewRuntimeFrames[unwinder.JvmFrame](section)
-	if err != nil {
-		return fmt.Errorf("decode JVM annotations: %w", err)
-	}
-	previous := -1
-	for _, frame := range frames {
-		index := int(frame.Index)
-		if index <= previous || index >= len(request.NativeStack) {
-			return fmt.Errorf("invalid JVM native stack index %d", index)
-		}
-		previous = index
-	}
-	next := 0
-	for index, address := range request.NativeStack {
-		var frame *unwinder.JvmFrame
-		if next < len(frames) && int(frames[next].Index) == index {
-			frame = &frames[next]
-			next++
-		}
-		matched := false
-		if address != 0 {
-			matched, err = r.tryAppendJITFrame(request.Key, address, writer)
-			if err != nil {
-				return err
-			}
-			if !matched && frame != nil {
-				if err := r.resolveJVMFrame(ctx, request.Key, address, frame.MethodAddr, writer); err != nil {
-					return err
-				}
-				matched = true
-			}
-		}
-		if !matched {
-			if _, err := writer.AddFrame(address, 0); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 func (r *nativeRuntimeResolver) resolveJVMFrame(ctx context.Context, key linux.ProcessKey, address, method uint64, writer *runtimewriter.Writer) error {
