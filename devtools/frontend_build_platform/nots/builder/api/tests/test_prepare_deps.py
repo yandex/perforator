@@ -47,7 +47,7 @@ importers:
     monkeypatch.setattr(
         prepare_deps_module,
         "TsProtoGenerator",
-        lambda args: SimpleNamespace(refresh_generated_peer_lockfile=lambda: None),
+        lambda args: pytest.fail("ordinary consumers must use their source lockfile"),
     )
     monkeypatch.setattr(prepare_deps_module, "PackageManager", PackageManager)
 
@@ -58,37 +58,24 @@ importers:
         prepare_deps_module.prepare_deps(args)
 
 
-def test_prepare_deps_accepts_dependency_free_lockfile(monkeypatch, tmp_path):
+@pytest.mark.parametrize(
+    "content",
+    [None, "", " \n\t\n", "# no dependencies\n", "{}\n", "lockfileVersion: '9.0'\nimporters:\n  .: {}\n"],
+)
+def test_prepare_deps_accepts_dependency_free_lockfile(tmp_path, content):
     args = _prepare_deps_args(tmp_path)
-    (tmp_path / "project" / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\nimporters:\n  .: {}\n")
-    built_lockfile = tmp_path / "build" / "project" / "pnpm-lock.yaml"
-
-    class PackageManager:
-        def __init__(self, **kwargs):
-            pass
-
-        def load_package_json_from_dir(self, path):
-            return SimpleNamespace(has_dependencies=lambda: False)
-
-        def load_lockfile(self, path):
-            return prepare_deps_module.Lockfile.load(path)
-
-        def build_workspace(self, tarballs_store, local_cli):
-            built_lockfile.parent.mkdir(parents=True)
-            built_lockfile.write_text("lockfileVersion: '9.0'\nimporters:\n  .: {}\n")
-
-    monkeypatch.setattr(
-        prepare_deps_module,
-        "TsProtoGenerator",
-        lambda args: SimpleNamespace(refresh_generated_peer_lockfile=lambda: None),
-    )
-    monkeypatch.setattr(prepare_deps_module, "PackageManager", PackageManager)
-    monkeypatch.setattr(
-        prepare_deps_module,
-        "_copy_tarballs",
-        lambda *args: pytest.fail("tarballs must not be copied without package.json dependencies"),
-    )
+    project = tmp_path / "project"
+    (project / "package.json").write_text('{"name": "project"}\n')
+    source_lockfile = project / "pnpm-lock.yaml"
+    if content is not None:
+        source_lockfile.write_text(content)
 
     prepare_deps_module.prepare_deps(args)
 
-    assert (built_lockfile.parent / "pnpm-lock.yaml").read_text() == built_lockfile.read_text()
+    built_lockfile = prepare_deps_module.Lockfile.load(str(tmp_path / "build" / "project" / "pnpm-lock.yaml"))
+    assert built_lockfile.data["lockfileVersion"] == "9.0"
+    assert built_lockfile.get_importers().get(".", {}) == {}
+    if content is None:
+        assert not source_lockfile.exists()
+    else:
+        assert source_lockfile.read_text() == content

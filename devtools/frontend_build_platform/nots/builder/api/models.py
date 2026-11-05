@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 from library.python import color
 
-from build.plugins.lib.nots.typescript.ts_errors import TsError
 from .utils import simplify_colors
 
 
@@ -96,7 +95,7 @@ class BaseBuildersOptions(BaseOptions):
     """Environment variables lint in VAR format"""
 
 
-class BuildError(TsError):
+class BuildError(RuntimeError):
     def __init__(self, command: str, code: int, stdout: str, stderr: str):
         self.command = command
         self.code = code

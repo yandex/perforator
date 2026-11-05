@@ -499,7 +499,7 @@ def test_rebase_file_tarball_resolutions(tmp_path):
         },
     }
 
-    package_manager_module.PackageManager._rebase_file_tarball_resolutions(lockfile, str(target_dir))
+    package_manager_module.relocate_proto_lockfile(lockfile, str(target_dir))
 
     tarball = lockfile.data["packages"]["pkg@1.0.0"]["resolution"]["tarball"]
     assert tarball == "file:../../source/module/__tarballs__/pkg/-/pkg-1.0.0.tgz"
@@ -619,7 +619,6 @@ def test_build_workspace_rebases_common_file_override(tmp_path):
     assert _load_package_json(str(build_path / "package.json")).data["pnpm"]["overrides"] == workspace["overrides"]
 
 
-@pytest.mark.parametrize("lockfile_version", ["6.0", "9.0"])
 @pytest.mark.parametrize(
     "name, version, package_path",
     [
@@ -627,16 +626,14 @@ def test_build_workspace_rebases_common_file_override(tmp_path):
         ("lodash", "4.17.21", "lodash/-/lodash-4.17.21.tgz"),
     ],
 )
-def test_distbuild_without_tarball_uses_same_resource_and_local_path(
-    tmp_path, lockfile_version, name, version, package_path
-):
+def test_distbuild_without_tarball_uses_same_resource_and_local_path(tmp_path, name, version, package_path):
     source = tmp_path / "source" / "module"
     build = tmp_path / "build" / "module"
     source.mkdir(parents=True)
     (source / "package.json").write_text('{"dependencies": {"' + name + '": "' + version + '"}}')
-    key = ("/" if lockfile_version == "6.0" else "") + name + "@" + version
+    key = name + "@" + version
     data = {
-        "lockfileVersion": lockfile_version,
+        "lockfileVersion": "9.0",
         "packages": {key: {"resolution": {"integrity": "sha512-aGFzaA=="}}},
     }
     source_lockfile = yaml.safe_dump(data)
@@ -700,7 +697,7 @@ def test_distbuild_rejects_invalid_keys_before_declaring_or_rewriting_tarballs(t
     with pytest.raises(package_manager_module.PackageManagerError, match="cannot infer tarball URL"):
         pm.calc_prepare_deps_inouts_and_resources("__tarballs__", True, False)
     with pytest.raises(TypeError, match="cannot infer tarball URL"):
-        pm._build_merged_lockfile("__tarballs__", [], False, True)
+        pm._build_lockfile("__tarballs__", False, True)
     assert not (tmp_path / "build" / "module" / "pnpm-lock.yaml").exists()
 
 
@@ -769,3 +766,34 @@ def test_pnpm_discovery_skips_directory_and_reports_missing_executable(tmp_path)
     paths = resolve_pnpm_paths(str(tmp_path))
     assert paths.executable == str(launcher)
     assert paths.package_json == str(tmp_path / "node_modules/pnpm/package.json")
+
+
+@pytest.mark.parametrize("local_cli", [False, True])
+def test_source_lockfile_preserves_graph_and_only_distbuild_rewrites_tarballs(tmp_path, local_cli):
+    import copy
+
+    source = tmp_path / "source"
+    target = tmp_path / "build"
+    source.mkdir()
+    target.mkdir()
+    lockfile = package_manager_module.Lockfile(str(source / "pnpm-lock.yaml"))
+    lockfile.data = {
+        "lockfileVersion": "9.0",
+        "settings": {"autoInstallPeers": True},
+        "importers": {".": {"dependencies": {"runtime": {"specifier": "1.0.0", "version": "1.0.0"}}}},
+        "packages": {"runtime@1.0.0": {"resolution": {"integrity": "sha512-YQ=="}}},
+        "snapshots": {"runtime@1.0.0": {}},
+    }
+    lockfile.write()
+    original_bytes = (source / "pnpm-lock.yaml").read_bytes()
+    expected = copy.deepcopy(lockfile.data)
+    pm = object.__new__(package_manager_module.PackageManager)
+    pm.sources_path = str(source)
+    pm.build_path = str(target)
+    pm.build_root = str(target)
+    pm.module_path = ""
+    pm._build_lockfile("__tarballs__", local_cli, True)
+    if not local_cli:
+        expected["packages"]["runtime@1.0.0"]["resolution"]["tarball"] = "file:__tarballs__/runtime/-/runtime-1.0.0.tgz"
+    assert package_manager_module.Lockfile.load(str(target / "pnpm-lock.yaml")).data == expected
+    assert (source / "pnpm-lock.yaml").read_bytes() == original_bytes

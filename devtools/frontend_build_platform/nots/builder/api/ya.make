@@ -9,6 +9,7 @@ PY_SRCS(
     builders/package_builder.py
     builders/ts_library_builder.py
     generators/default_ts_proto_opt.py
+    generators/ts_proto_lockfile.py
     generators/ts_proto_generator.py
     create_node_modules.py
     globs.py
@@ -25,7 +26,6 @@ PY_SRCS(
 
 PEERDIR(
     build/plugins/lib/nots/package_manager
-    build/plugins/lib/nots/typescript
     contrib/python/PyYAML
     contrib/python/click
     devtools/frontend_build_platform/libraries/logging

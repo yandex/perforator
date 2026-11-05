@@ -15,6 +15,7 @@ from build.plugins.lib.nots.package_manager.utils import (
     build_nots_path,
     build_pj_path,
 )
+from .generators.ts_proto_lockfile import relocate_proto_lockfile
 from .pnpm_workspace import PnpmWorkspace, pnpm_defaults, pnpm_runtime_env
 from .utils import copy_writable_file, resolve_pnpm_paths
 from build.plugins.lib.nots.package_manager.common_config import (
@@ -495,8 +496,7 @@ class PackageManager(BasePackageManager):
             else:
                 pj.data.pop("pnpm", None)
             pj.write()
-        dep_paths = ws.get_paths(ignore_self=True)
-        self._build_merged_lockfile(tarballs_store, dep_paths, local_cli, pj.has_dependencies())
+        self._build_lockfile(tarballs_store, local_cli, pj.has_dependencies())
 
         return ws
 
@@ -512,15 +512,14 @@ class PackageManager(BasePackageManager):
         deps_lockfile_path = build_lockfile_path(os.path.join(self.build_root, deps_mod))
         lockfile_path = build_lockfile_path(self.build_path)
         lf = self.load_lockfile(deps_lockfile_path)
-        self._rebase_file_tarball_resolutions(lf, self.build_path)
+        relocate_proto_lockfile(lf, self.build_path)
         lf.write(lockfile_path)
 
         return ws
 
     @timeit
-    def _build_merged_lockfile(self, tarballs_store, dep_paths, local_cli: bool, has_deps: bool):
+    def _build_lockfile(self, tarballs_store, local_cli: bool, has_deps: bool):
         """
-        :type dep_paths: list of str
         :rtype: PnpmLockfile
         """
         lockfile_path = build_lockfile_path(self.sources_path)
@@ -529,7 +528,7 @@ class PackageManager(BasePackageManager):
         else:
             lf = Lockfile(lockfile_path)
             lf.data = {"lockfileVersion": "9.0"}
-        # Change to the output path for correct path calcs on merging.
+        # Only the build copy receives local distbuild tarball paths.
         lf.path = build_lockfile_path(self.build_path)
         if not local_cli:
             lf.update_tarball_resolutions(
@@ -541,19 +540,6 @@ class PackageManager(BasePackageManager):
             )
 
         lf.write()
-
-    @staticmethod
-    def _rebase_file_tarball_resolutions(lf, target_dir):
-        source_dir = os.path.dirname(lf.path)
-
-        def rebase(pkg):
-            if not pkg.tarball_url.startswith("file:"):
-                return pkg.tarball_url
-
-            source_path = os.path.normpath(os.path.join(source_dir, pkg.tarball_url[len("file:") :]))
-            return "file:" + os.path.relpath(source_path, target_dir)
-
-        lf.update_tarball_resolutions(rebase)
 
     @timeit
     def _run_apply_addons_if_need(self, yatool_prebuilder_path):

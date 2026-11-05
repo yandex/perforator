@@ -59,7 +59,6 @@ def prepare_deps(args: PrepareDepsOptions):
             _validate_dependency_free_lockfile(pm.load_lockfile(lockfile_path))
 
         pm.build_workspace(args.tarballs_store, args.local_cli)
-        TsProtoGenerator(args).refresh_generated_peer_lockfile()
         if has_dependencies and not args.local_cli and os.path.exists(lockfile_path):
             _copy_tarballs(args, pm.load_lockfile(lockfile_path))
 

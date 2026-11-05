@@ -89,7 +89,7 @@ def test_build_workspace_uses_only_target_config(tmp_path):
         module_path="project/target",
         sources_root=str(root),
     )
-    pm._build_merged_lockfile = lambda *args: None
+    pm._build_lockfile = lambda *args: None
     pm.build_workspace("__tarballs__", True)
     workspace_text = (build / "pnpm-workspace.yaml").read_text()
     assert "# НЕ РЕДАКТИРУЙТЕ ЕГО ВРУЧНУЮ" in workspace_text
@@ -147,7 +147,7 @@ def test_build_workspace_imports_prepared_override_peer_catalogs_without_peer_so
         module_path="project/target",
         sources_root=str(root),
     )
-    pm._build_merged_lockfile = lambda *args: None
+    pm._build_lockfile = lambda *args: None
     result = pm.build_workspace("__tarballs__", True)
     assert result.catalogs == peer.catalogs
     assert result.settings == {"overrides": {"peer": "file:../peer"}}

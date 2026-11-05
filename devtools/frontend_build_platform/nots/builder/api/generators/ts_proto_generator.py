@@ -13,7 +13,6 @@ from build.plugins.lib.nots.package_manager import (
 )
 
 from ..models import BaseOptions
-from ..package_manager import PackageManager
 from ..pnpm_workspace import PnpmWorkspace
 from ..utils import (
     dict_to_ts_proto_opt,
@@ -21,6 +20,7 @@ from ..utils import (
     parse_opt_to_dict,
 )
 
+from .ts_proto_lockfile import ProtoLockfileAdapter, rebase_proto_specifier
 from .default_ts_proto_opt import DEFAULT_TS_PROTO_OPT, DEFAULT_TS_PROTO_AUTO_OPT
 
 
@@ -42,8 +42,14 @@ def generate_ts_proto_auto_package(
         "files": ["build", "pnpm-lock.yaml", "ya.make"],
         "repository": {"type": "arc", "directory": moddir},
         "nots": {"tsProtoAuto": True},
-        "dependencies": deps_pj.data.get("dependencies", {}),
-        "devDependencies": deps_pj.data.get("devDependencies", {}),
+        "dependencies": {
+            name: rebase_proto_specifier(specifier, auto_deps_build_path, bindir)
+            for name, specifier in deps_pj.data.get("dependencies", {}).items()
+        },
+        "devDependencies": {
+            name: rebase_proto_specifier(specifier, auto_deps_build_path, bindir)
+            for name, specifier in deps_pj.data.get("devDependencies", {}).items()
+        },
         "exports": {
             "./*": {
                 "import": os.path.join(".", "build", "esm", "generated", moddir, "*.js"),
@@ -252,9 +258,29 @@ class TsProtoGenerator:
             for package_key, metadata in packages.items()
             if metadata.get("resolution", {}).get("type") == "directory"
         }
-        for package_key in workspace_package_keys:
+        # Keep local packages reachable from the retained source importer,
+        # including transitive directory dependencies and their peer contexts.
+        reachable = set()
+        pending = []
+        for key in (PackageJson.DEP_KEY, PackageJson.DEV_DEP_KEY, PackageJson.OPT_DEP_KEY):
+            pending.extend((name, entry["version"]) for name, entry in root_importer.get(key, {}).items())
+        snapshots = lockfile.data.get("snapshots", {})
+        while pending:
+            name, version = pending.pop()
+            snapshot_id = f"{name}@{version}"
+            if snapshot_id not in snapshots and version in snapshots:
+                snapshot_id = version
+            if snapshot_id in reachable:
+                continue
+            reachable.add(snapshot_id)
+            for key in (PackageJson.DEP_KEY, PackageJson.OPT_DEP_KEY):
+                pending.extend(snapshots.get(snapshot_id, {}).get(key, {}).items())
+        reachable_packages = {key.split("(", 1)[0] for key in reachable}
+        for package_key in workspace_package_keys - reachable_packages:
             packages.pop(package_key, None)
-            lockfile.data.get("snapshots", {}).pop(package_key, None)
+            for snapshot_id in list(snapshots):
+                if snapshot_id.split("(", 1)[0] == package_key:
+                    snapshots.pop(snapshot_id)
 
         lockfile.write()
 
@@ -289,94 +315,22 @@ class TsProtoGenerator:
             )
         return dependencies
 
-    def refresh_generated_peer_lockfile(self) -> None:
-        """Refresh dynamic proto snapshots in an ordinary consumer's frozen lockfile."""
-        # The consumer workspace contains packages: []; discover prepared peers
-        # from manifests instead of relying on the former workspace grouping.
-        visited = {self.options.bindir}
-        pending = [self.options.bindir]
-        peer_dirs = []
-        while pending:
-            directory = pending.pop()
-            package = PackageJson.load(pm_utils.build_pj_path(directory))
-            for _, relative_path in package.get_workspace_dep_spec_paths():
-                peer_dir = os.path.normpath(os.path.join(directory, relative_path))
-                if peer_dir in visited:
-                    continue
-                visited.add(peer_dir)
-                manifest_path = pm_utils.build_pj_path(peer_dir)
-                if not os.path.isfile(manifest_path):
-                    continue
-                metadata = PackageJson.load(manifest_path).data.get("nots")
-                if isinstance(metadata, dict) and metadata.get("tsProtoAuto") is True:
-                    extract_all_output_tars(peer_dir, build_root=self.options.arcadia_build_root)
-                    peer_dirs.append(peer_dir)
-                pending.append(peer_dir)
-        if peer_dirs:
-            self._update_peer_lockfile(peer_dirs, {})
-
     def _update_peer_lockfile(self, peer_dirs: list[str], peer_dependencies: dict[str, str]) -> None:
         lockfile_path = pm_utils.build_lockfile_path(self.options.bindir)
         lockfile = Lockfile.load(lockfile_path)
 
+        if peer_dependencies:
+            importer = lockfile.data.setdefault("importers", {}).setdefault(".", {})
+            dependencies = importer.setdefault(PackageJson.DEP_KEY, {})
+            for package_name, specifier in peer_dependencies.items():
+                relative_path = specifier[len(PackageJson.WORKSPACE_SCHEMA) :]
+                dependencies[package_name] = {"specifier": specifier, "version": "file:" + relative_path}
+
+        adapter = ProtoLockfileAdapter(lockfile)
         for peer_dir in peer_dirs:
-            peer_lockfile_path = pm_utils.build_lockfile_path(peer_dir)
-            if os.path.isfile(peer_lockfile_path):
-                peer_lockfile = Lockfile.load(peer_lockfile_path)
-                PackageManager._rebase_file_tarball_resolutions(peer_lockfile, self.options.bindir)
-                lockfile.merge(peer_lockfile)
-
-        importer = lockfile.get_importers().setdefault(".", {})
-        dependencies = importer.setdefault(PackageJson.DEP_KEY, {})
-        packages = lockfile.data.setdefault("packages", {})
-
-        for package_name, specifier in peer_dependencies.items():
-            relative_path = specifier[len(PackageJson.WORKSPACE_SCHEMA) :]
-            version = "file:" + relative_path
-            package_key = f"{package_name}@{version}"
-            dependencies[package_name] = {"specifier": specifier, "version": version}
-            packages.setdefault(
-                package_key,
-                {"resolution": {"directory": relative_path, "type": "directory"}},
-            )
-
-        for peer_dir in peer_dirs:
-            self._add_peer_snapshot(lockfile, peer_dir, set())
+            adapter.add_peer(peer_dir)
 
         lockfile.write()
-
-    def _add_peer_snapshot(self, lockfile: Lockfile, peer_dir: str, visited: set[str]) -> None:
-        if peer_dir in visited:
-            return
-        visited.add(peer_dir)
-        package = PackageJson.load(pm_utils.build_pj_path(peer_dir))
-        relative_path = os.path.relpath(peer_dir, self.options.bindir)
-        package_key = f"{package.data['name']}@file:{relative_path}"
-        peer_lockfile_path = pm_utils.build_lockfile_path(peer_dir)
-        peer_importer = (
-            Lockfile.load(peer_lockfile_path).get_importers().get(".", {}) if os.path.isfile(peer_lockfile_path) else {}
-        )
-        snapshot = {}
-        for dependency_key in (PackageJson.DEP_KEY, PackageJson.OPT_DEP_KEY):
-            resolved = {}
-            for name, specifier in package.data.get(dependency_key, {}).items():
-                if specifier.startswith(PackageJson.WORKSPACE_SCHEMA):
-                    dependency_dir = os.path.normpath(
-                        os.path.join(peer_dir, specifier[len(PackageJson.WORKSPACE_SCHEMA) :])
-                    )
-                    self._add_peer_snapshot(lockfile, dependency_dir, visited)
-                    resolved[name] = "file:" + os.path.relpath(dependency_dir, self.options.bindir)
-                else:
-                    metadata = peer_importer.get(dependency_key, {}).get(name, {})
-                    if "version" not in metadata:
-                        raise ValueError(f"Cannot resolve {name} of TS_PROTO peer {peer_dir}: missing lockfile entry")
-                    resolved[name] = metadata["version"]
-            if resolved:
-                snapshot[dependency_key] = resolved
-        lockfile.data.setdefault("packages", {})[package_key] = {
-            "resolution": {"directory": relative_path, "type": "directory"}
-        }
-        lockfile.data.setdefault("snapshots", {})[package_key] = snapshot
 
     def get_import_mappings(self) -> dict[str, str]:
         for peer_dir in self._get_ts_proto_peer_dirs():

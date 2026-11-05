@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-11-03T23:44:07Z",
-    "commit": "04d412093e69a2b47ce67b678b010974139f7995",
-    "branch": "FBP-3478-remove-tsc",
+    "created": "2026-11-04T17:19:45Z",
+    "commit": "41ab1d6832258a905b43430f66e944bd0ecb2282",
+    "branch": "FBP-3478-python-tsconfig-cleanup",
     "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14193700099"
+      "uri": "sbr:14196400379"
     },
     "darwin-arm64": {
-      "uri": "sbr:14193700413"
+      "uri": "sbr:14196400821"
     },
     "linux": {
-      "uri": "sbr:14193699513"
+      "uri": "sbr:14196399461"
     },
     "linux-aarch64": {
-      "uri": "sbr:14193699761"
+      "uri": "sbr:14196399935"
     }
   }
 }

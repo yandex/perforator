@@ -202,7 +202,7 @@ def test_peer_lockfile_preserves_tarball_locations(tmp_path):
     peer = tmp_path / "peer"
     peer.mkdir()
     consumer.mkdir()
-    (peer / "package.json").write_text(json.dumps({"name": "@test/peer"}))
+    (peer / "package.json").write_text(json.dumps({"name": "@test/peer", "dependencies": {"runtime": "1.0.0"}}))
     tarball = peer / "__tarballs__" / "runtime-1.0.0.tgz"
     tarball.parent.mkdir()
     tarball.write_bytes(b"peer tarball")
@@ -210,6 +210,8 @@ def test_peer_lockfile_preserves_tarball_locations(tmp_path):
         lockfile = Lockfile(str(directory / "pnpm-lock.yaml"))
         lockfile.data = {"lockfileVersion": "9.0", "importers": {".": {}}}
         if directory == peer:
+            lockfile.data["importers"]["."] = {"dependencies": {"runtime": {"version": "1.0.0"}}}
+            lockfile.data["snapshots"] = {"runtime@1.0.0": {}}
             lockfile.data["packages"] = {
                 "runtime@1.0.0": {
                     "resolution": {"tarball": "file:__tarballs__/runtime-1.0.0.tgz", "integrity": "sha512-YQ=="}
@@ -256,13 +258,18 @@ def test_peer_snapshot_uses_own_runtime_and_transitive_workspace_dependencies(tm
         (nested, {"dependencies": {"protobufjs": {"version": "7.2.6"}}}),
     ]:
         lf = Lockfile(str(directory / "pnpm-lock.yaml"))
-        lf.data = {"lockfileVersion": "9.0", "importers": {".": importer}}
+        versions = {f"{name}@{meta['version']}": {} for deps in importer.values() for name, meta in deps.items()}
+        lf.data = {"lockfileVersion": "9.0", "importers": {".": importer}, "packages": versions, "snapshots": versions}
         lf.write()
     lockfile = Lockfile(str(consumer / "pnpm-lock.yaml"))
     lockfile.data = {"lockfileVersion": "9.0", "importers": {".": {"dependencies": {"long": {"version": "5.3.2"}}}}}
-    generator = TsProtoGenerator(SimpleNamespace(bindir=str(consumer)))
-    generator._add_peer_snapshot(lockfile, str(peer), set())
+    from devtools.frontend_build_platform.nots.builder.api.generators.ts_proto_lockfile import ProtoLockfileAdapter
+
+    ProtoLockfileAdapter(lockfile).add_peer(str(peer))
     assert lockfile.data["snapshots"] == {
+        "long@5.2.3": {},
+        "optional@1.0.0": {},
+        "protobufjs@7.2.6": {},
         "@test/peer@file:../peer": {
             "dependencies": {"long": "5.2.3", "@test/nested": "file:../nested"},
             "optionalDependencies": {"optional": "1.0.0"},
@@ -301,56 +308,346 @@ def test_import_mappings_follow_custom_package_exports(tmp_path):
     assert generator._get_import_mappings() == {"proto/peer/nested/model.proto": "@test/custom/models/nested/model"}
 
 
-def test_refresh_generated_peer_snapshot_preserves_consumer_dependencies(tmp_path, monkeypatch):
+def test_proto_adaptation_copies_only_runtime_closure_and_preserves_inputs(tmp_path):
+    import copy
     from build.plugins.lib.nots.package_manager import Lockfile
 
-    build_root = tmp_path / "build"
-    consumer = build_root / "app"
-    peer = build_root / "proto"
-    nested = build_root / "nested"
-    custom = build_root / "custom"
-    for directory in (consumer, peer, nested, custom):
-        directory.mkdir(parents=True)
-    (consumer / "package.json").write_text(json.dumps({"dependencies": {"@test/alias": "workspace:../proto"}}))
-    (consumer / "pnpm-workspace.yaml").write_text("packages: []\n")
-    # A custom package's source manifest need not be present in distbuild.
-    # Its existing snapshot must remain untouched without the auto-proto marker.
-    (custom / "package.json").write_text(json.dumps({"name": "@test/custom"}))
-    (custom / pm_constants.OUTPUT_TAR_UUID_FILENAME).write_text("output.tar:uuid")
-    for directory, name, dependencies in (
-        (peer, "@test/proto", {"@test/nested": "workspace:../nested"}),
-        (nested, "@test/nested", {}),
-    ):
-        (directory / "package.json").write_text(
-            json.dumps({"name": name, "dependencies": dependencies, "nots": {"tsProtoAuto": True}})
+    consumer = tmp_path / "app"
+    peer = tmp_path / "proto" / "peer"
+    peer.mkdir(parents=True)
+    consumer.mkdir()
+    (consumer / "package.json").write_text(json.dumps({"dependencies": {"@test/peer": "workspace:../proto/peer"}}))
+    (peer / "package.json").write_text(
+        json.dumps(
+            {
+                "name": "@test/peer",
+                "nots": {"tsProtoAuto": True},
+                "dependencies": {"alias": "npm:runtime@1.0.0"},
+                "devDependencies": {"compiler": "9.0.0"},
+            }
         )
-        (directory / pm_constants.OUTPUT_TAR_UUID_FILENAME).write_text("output.tar:uuid")
-        lf = Lockfile(str(directory / "pnpm-lock.yaml"))
-        lf.data = {"lockfileVersion": "9.0", "importers": {".": {}}}
-        lf.write()
-    lf = Lockfile(str(consumer / "pnpm-lock.yaml"))
-    root_importer = {
-        "dependencies": {"@test/alias": {"specifier": "workspace:../proto", "version": "@test/proto@file:../proto"}}
-    }
-    lf.data = {
+    )
+    peer_lf = Lockfile(str(peer / "pnpm-lock.yaml"))
+    peer_lf.data = {
         "lockfileVersion": "9.0",
-        "importers": {".": root_importer},
+        "importers": {
+            ".": {
+                "dependencies": {"alias": {"version": "runtime@1.0.0(host@file:../../host)"}},
+                "devDependencies": {"compiler": {"version": "9.0.0"}},
+            },
+            "../../unused-importer": {},
+        },
+        "packages": {
+            "runtime@1.0.0": {"resolution": {"tarball": "file:__tarballs__/runtime.tgz", "integrity": "sha512-YQ=="}},
+            "host@file:../../host": {"resolution": {"directory": "../../host", "type": "directory"}},
+            "optional@1.0.0": {},
+            "compiler@9.0.0": {},
+            "unused@1.0.0": {},
+        },
         "snapshots": {
-            "@test/proto@file:../proto": {"dependencies": {"stale": "1.0.0"}},
-            "@test/custom@file:../custom": {"dependencies": {"keep": "1.0.0"}},
+            "runtime@1.0.0(host@file:../../host)": {
+                "dependencies": {"host": "file:../../host"},
+                "optionalDependencies": {"optional": "1.0.0"},
+            },
+            "host@file:../../host": {"dependencies": {"alias": "runtime@1.0.0(host@file:../../host)"}},
+            "optional@1.0.0": {},
+            "compiler@9.0.0": {},
+            "unused@1.0.0": {},
         },
     }
+    peer_lf.write()
+    peer_bytes = (peer / "pnpm-lock.yaml").read_bytes()
+    lf = Lockfile(str(consumer / "pnpm-lock.yaml"))
+    lf.data = {
+        "lockfileVersion": "9.0",
+        "settings": {"autoInstallPeers": True},
+        "importers": {
+            ".": {
+                "dependencies": {
+                    "@test/peer": {"specifier": "workspace:../proto/peer", "version": "file:../proto/peer"},
+                    "runtime": {"specifier": "2.0.0", "version": "2.0.0"},
+                }
+            }
+        },
+        "packages": {"runtime@2.0.0": {"resolution": {"tarball": "file:__tarballs__/keep.tgz"}}},
+        "snapshots": {"runtime@2.0.0": {"dependencies": {"keep": "1.0.0"}}},
+    }
     lf.write()
-    monkeypatch.setattr(
-        "devtools.frontend_build_platform.nots.builder.api.generators.ts_proto_generator.extract_all_output_tars",
-        lambda *args, **kwargs: None,
+    original = copy.deepcopy(lf.data)
+    generator = TsProtoGenerator(SimpleNamespace(bindir=str(consumer)))
+    generator._update_peer_lockfile([str(peer)], {"@test/peer": "workspace:../proto/peer"})
+    result = Lockfile.load(lf.path).data
+    assert result["importers"] == original["importers"]
+    assert result["settings"] == original["settings"]
+    assert result["packages"]["runtime@2.0.0"] == original["packages"]["runtime@2.0.0"]
+    assert result["snapshots"]["runtime@2.0.0"] == original["snapshots"]["runtime@2.0.0"]
+    assert set(result["packages"]) == {
+        "runtime@2.0.0",
+        "runtime@1.0.0",
+        "host@file:../host",
+        "optional@1.0.0",
+        "@test/peer@file:../proto/peer",
+    }
+    assert result["snapshots"]["runtime@1.0.0(host@file:../host)"]["dependencies"] == {"host": "file:../host"}
+    assert result["snapshots"]["host@file:../host"]["dependencies"] == {"alias": "runtime@1.0.0(host@file:../host)"}
+    assert result["packages"]["host@file:../host"]["resolution"]["directory"] == "../host"
+    assert result["packages"]["runtime@1.0.0"]["resolution"]["tarball"] == "file:../proto/peer/__tarballs__/runtime.tgz"
+    assert (peer / "pnpm-lock.yaml").read_bytes() == peer_bytes
+    # A repeat must produce the same graph and locations.
+    generator._update_peer_lockfile([str(peer)], {})
+    assert Lockfile.load(lf.path).data == result
+
+
+def test_auto_workspace_relocates_build_copy_without_changing_source(tmp_path):
+    from build.plugins.lib.nots.package_manager import Lockfile
+    from devtools.frontend_build_platform.nots.builder.api.package_manager import PackageManager
+
+    source = tmp_path / "deps"
+    target = tmp_path / "proto" / "generated"
+    source.mkdir()
+    target.mkdir(parents=True)
+    lf = Lockfile(str(source / "pnpm-lock.yaml"))
+    lf.data = {
+        "lockfileVersion": "9.0",
+        "importers": {
+            ".": {
+                "dependencies": {
+                    "local": {"specifier": "workspace:../local", "version": "file:../local(host@file:../host)"},
+                }
+            }
+        },
+        "packages": {
+            "local@file:../local": {"resolution": {"type": "directory", "directory": "../local"}},
+            "registry@1.0.0": {"resolution": {"tarball": "file:__tarballs__/registry.tgz", "integrity": "sha512-YQ=="}},
+        },
+        "snapshots": {"local@file:../local(host@file:../host)": {"dependencies": {"host": "link:../host"}}},
+    }
+    lf.write()
+    (source / "package.json").write_text(json.dumps({"dependencies": {"local": "workspace:../local"}}))
+    generate_ts_proto_auto_package(str(tmp_path), str(target), "proto/generated", "@test/*", "deps")
+    assert json.loads((target / "package.json").read_text())["dependencies"] == {"local": "workspace:../../local"}
+    original = (source / "pnpm-lock.yaml").read_bytes()
+    pm = PackageManager(str(tmp_path), str(target), str(source), None, None)
+    pm.build_ts_proto_auto_workspace("deps")
+    TsProtoGenerator(SimpleNamespace(bindir=str(target)))._reset_peer_metadata()
+    result = Lockfile.load(str(target / "pnpm-lock.yaml")).data
+    assert result["importers"]["."]["dependencies"]["local"] == {
+        "specifier": "workspace:../../local",
+        "version": "file:../../local(host@file:../../host)",
+    }
+    assert result["packages"]["local@file:../../local"]["resolution"]["directory"] == "../../local"
+    assert result["snapshots"]["local@file:../../local(host@file:../../host)"] == {
+        "dependencies": {"host": "link:../../host"}
+    }
+    assert result["packages"]["registry@1.0.0"]["resolution"]["tarball"] == "file:../../deps/__tarballs__/registry.tgz"
+    assert (source / "pnpm-lock.yaml").read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    ("runtime_alias", "peer_lockfile"), [("runtime", True), ("runtime", False), ("alias", False)]
+)
+def test_auto_proto_lockfile_supports_offline_frozen_install(tmp_path, runtime_alias, peer_lockfile):
+    import os
+    from build.plugins.lib.nots.package_manager import Lockfile
+    from devtools.frontend_build_platform.nots.builder.api.package_manager import PackageManager
+    from devtools.frontend_build_platform.nots.builder.api.pnpm_workspace import PnpmWorkspace, pnpm_defaults
+
+    app = tmp_path / "app"
+    peer = tmp_path / "peer"
+    runtime = tmp_path / "runtime"
+    for directory, manifest in (
+        (app, {"name": "app", "dependencies": {"proto": "workspace:../peer"}}),
+        (peer, {"name": "proto", "version": "1.0.0", "nots": {"tsProtoAuto": True}}),
+        (runtime, {"name": "runtime", "version": "1.0.0"}),
+    ):
+        directory.mkdir()
+        (directory / "package.json").write_text(json.dumps(manifest))
+        workspace = PnpmWorkspace(str(directory / "pnpm-workspace.yaml"))
+        workspace.runtime_settings = pnpm_defaults()
+        workspace.write()
+    pm = PackageManager(
+        build_root=str(tmp_path),
+        build_path=str(app),
+        sources_path=str(app),
+        nodejs_bin_path=os.path.join(os.environ["NOTS_TEST_NODEJS_ROOT"], "node"),
+        pnpm_root=os.environ["NOTS_TEST_PNPM_ROOT"],
     )
-    generator = TsProtoGenerator(
-        SimpleNamespace(arcadia_root=str(tmp_path / "source"), arcadia_build_root=str(build_root), bindir=str(consumer))
+    store = str(tmp_path / "store")
+    pm._exec_command(["install", "--lockfile-only", "--offline", "--store-dir", store], cwd=str(app))
+    original_importer = Lockfile.load(str(app / "pnpm-lock.yaml")).get_importers()
+    manifest = json.loads((peer / "package.json").read_text())
+    manifest["dependencies"] = {runtime_alias: "file:../runtime" if peer_lockfile else "workspace:../runtime"}
+    (peer / "package.json").write_text(json.dumps(manifest))
+    if peer_lockfile:
+        pm._exec_command(["install", "--lockfile-only", "--offline", "--store-dir", store], cwd=str(peer))
+    original_peer = (peer / "pnpm-lock.yaml").read_bytes() if peer_lockfile else None
+    TsProtoGenerator(SimpleNamespace(bindir=str(app)))._update_peer_lockfile([str(peer)], {})
+    assert Lockfile.load(str(app / "pnpm-lock.yaml")).get_importers() == original_importer
+    pm._exec_command(["install", "--frozen-lockfile", "--offline", "--store-dir", store], cwd=str(app))
+    import subprocess
+
+    subprocess.run(
+        [
+            os.path.join(os.environ["NOTS_TEST_NODEJS_ROOT"], "node"),
+            "-e",
+            f"require.resolve('{runtime_alias}/package.json', {{paths: [require('fs').realpathSync('node_modules/proto')]}})",
+        ],
+        cwd=str(app),
+        check=True,
     )
-    generator.refresh_generated_peer_lockfile()
-    result = Lockfile.load(str(consumer / "pnpm-lock.yaml"))
-    assert result.get_importers()["."] == root_importer
-    assert result.data["snapshots"]["@test/proto@file:../proto"] == {"dependencies": {"@test/nested": "file:../nested"}}
-    assert result.data["snapshots"]["@test/nested@file:../nested"] == {}
-    assert result.data["snapshots"]["@test/custom@file:../custom"] == {"dependencies": {"keep": "1.0.0"}}
+    if peer_lockfile:
+        assert (peer / "pnpm-lock.yaml").read_bytes() == original_peer
+    else:
+        assert not (peer / "pnpm-lock.yaml").exists()
+
+
+@pytest.mark.parametrize("consumer_optional", [False, True])
+@pytest.mark.parametrize("peer_optional", [False, True])
+def test_proto_optional_runtime_is_merged_by_reachability(tmp_path, consumer_optional, peer_optional):
+    import os
+    import subprocess
+
+    from build.plugins.lib.nots.package_manager import Lockfile
+    from devtools.frontend_build_platform.nots.builder.api.package_manager import PackageManager
+    from devtools.frontend_build_platform.nots.builder.api.pnpm_workspace import PnpmWorkspace, pnpm_defaults
+
+    app = tmp_path / "app"
+    peer = tmp_path / "peer"
+    consumer_key = "optionalDependencies" if consumer_optional else "dependencies"
+    peer_key = "optionalDependencies" if peer_optional else "dependencies"
+    app_manifest = {"name": "app", "dependencies": {"proto": "workspace:../peer"}}
+    app_manifest.setdefault(consumer_key, {})["runtime"] = "file:../runtime"
+    for directory, manifest in (
+        (app, app_manifest),
+        (peer, {"name": "proto", "version": "1.0.0", "nots": {"tsProtoAuto": True}}),
+        (
+            tmp_path / "runtime",
+            {"name": "runtime", "version": "1.0.0", "dependencies": {"leaf": "file:../leaf"}},
+        ),
+        (tmp_path / "leaf", {"name": "leaf", "version": "1.0.0"}),
+    ):
+        directory.mkdir()
+        (directory / "package.json").write_text(json.dumps(manifest))
+        workspace = PnpmWorkspace(str(directory / "pnpm-workspace.yaml"))
+        workspace.runtime_settings = pnpm_defaults()
+        workspace.write()
+    pm = PackageManager(
+        build_root=str(tmp_path),
+        build_path=str(app),
+        sources_path=str(app),
+        nodejs_bin_path=os.path.join(os.environ["NOTS_TEST_NODEJS_ROOT"], "node"),
+        pnpm_root=os.environ["NOTS_TEST_PNPM_ROOT"],
+    )
+    store = str(tmp_path / "store")
+    install = ["install", "--lockfile-only", "--offline", "--store-dir", store]
+    pm._exec_command(install, cwd=str(app))
+    original_importers = Lockfile.load(str(app / "pnpm-lock.yaml")).get_importers()
+    manifest = json.loads((peer / "package.json").read_text())
+    manifest[peer_key] = {"runtime": "file:../runtime"}
+    (peer / "package.json").write_text(json.dumps(manifest))
+    pm._exec_command(install, cwd=str(peer))
+    original_peer = (peer / "pnpm-lock.yaml").read_bytes()
+
+    TsProtoGenerator(SimpleNamespace(bindir=str(app)))._update_peer_lockfile([str(peer)], {})
+
+    result = Lockfile.load(str(app / "pnpm-lock.yaml"))
+    assert result.get_importers() == original_importers
+    for name in ("runtime", "leaf"):
+        assert bool(result.data["snapshots"][f"{name}@file:../{name}"].get("optional")) == (
+            consumer_optional and peer_optional
+        )
+    pm._exec_command(["install", "--frozen-lockfile", "--offline", "--store-dir", store], cwd=str(app))
+    subprocess.run(
+        [
+            os.path.join(os.environ["NOTS_TEST_NODEJS_ROOT"], "node"),
+            "-e",
+            "const proto = require('fs').realpathSync('node_modules/proto');"
+            "const runtime = require.resolve('runtime/package.json', {paths: [proto]});"
+            "require.resolve('leaf/package.json', {paths: [require('path').dirname(runtime)]});",
+        ],
+        cwd=str(app),
+        check=True,
+    )
+    assert (peer / "pnpm-lock.yaml").read_bytes() == original_peer
+
+
+def test_proto_workspace_dependency_preserves_resolved_peer_context(tmp_path):
+    import os
+    import subprocess
+
+    from build.plugins.lib.nots.package_manager import Lockfile
+    from devtools.frontend_build_platform.nots.builder.api.package_manager import PackageManager
+    from devtools.frontend_build_platform.nots.builder.api.pnpm_workspace import PnpmWorkspace, pnpm_defaults
+
+    app = tmp_path / "app"
+    peer = tmp_path / "peer"
+    for directory, manifest in (
+        (app, {"name": "app", "dependencies": {"proto": "workspace:../peer"}}),
+        (peer, {"name": "proto", "version": "1.0.0", "nots": {"tsProtoAuto": True}}),
+        (tmp_path / "nested", {"name": "nested", "version": "1.0.0", "peerDependencies": {"host": "*"}}),
+        (tmp_path / "host", {"name": "host", "version": "1.0.0"}),
+    ):
+        directory.mkdir()
+        (directory / "package.json").write_text(json.dumps(manifest))
+        workspace = PnpmWorkspace(str(directory / "pnpm-workspace.yaml"))
+        workspace.runtime_settings = pnpm_defaults()
+        workspace.write()
+    pm = PackageManager(
+        build_root=str(tmp_path),
+        build_path=str(app),
+        sources_path=str(app),
+        nodejs_bin_path=os.path.join(os.environ["NOTS_TEST_NODEJS_ROOT"], "node"),
+        pnpm_root=os.environ["NOTS_TEST_PNPM_ROOT"],
+    )
+    store = str(tmp_path / "store")
+    install = ["install", "--lockfile-only", "--offline", "--store-dir", store]
+    pm._exec_command(install, cwd=str(app))
+    manifest = json.loads((peer / "package.json").read_text())
+    manifest["dependencies"] = {"nested": "workspace:../nested", "host": "file:../host"}
+    (peer / "package.json").write_text(json.dumps(manifest))
+    pm._exec_command(install, cwd=str(peer))
+    original_peer = (peer / "pnpm-lock.yaml").read_bytes()
+
+    TsProtoGenerator(SimpleNamespace(bindir=str(app)))._update_peer_lockfile([str(peer)], {})
+
+    result = Lockfile.load(str(app / "pnpm-lock.yaml")).data
+    assert result["packages"]["nested@file:../nested"]["peerDependencies"] == {"host": "*"}
+    assert result["snapshots"]["nested@file:../nested(host@file:../host)"]["dependencies"] == {
+        "host": "file:../host"
+    }
+    pm._exec_command(["install", "--frozen-lockfile", "--offline", "--store-dir", store], cwd=str(app))
+    subprocess.run(
+        [
+            os.path.join(os.environ["NOTS_TEST_NODEJS_ROOT"], "node"),
+            "-e",
+            "const proto = require('fs').realpathSync('node_modules/proto');"
+            "const nested = require.resolve('nested/package.json', {paths: [proto]});"
+            "require.resolve('host/package.json', {paths: [require('path').dirname(nested)]});",
+        ],
+        cwd=str(app),
+        check=True,
+    )
+    assert (peer / "pnpm-lock.yaml").read_bytes() == original_peer
+
+
+def test_conflicting_runtime_snapshot_does_not_rewrite_consumer(tmp_path):
+    from build.plugins.lib.nots.package_manager import Lockfile
+
+    peer = tmp_path / "peer"
+    app = tmp_path / "app"
+    peer.mkdir()
+    app.mkdir()
+    (peer / "package.json").write_text(json.dumps({"name": "proto", "dependencies": {"runtime": "1.0.0"}}))
+    for directory, dependency in ((peer, "incoming"), (app, "existing")):
+        lf = Lockfile(str(directory / "pnpm-lock.yaml"))
+        lf.data = {
+            "lockfileVersion": "9.0",
+            "importers": {".": {"dependencies": {"runtime": {"version": "1.0.0"}}}},
+            "packages": {"runtime@1.0.0": {}},
+            "snapshots": {"runtime@1.0.0": {"dependencies": {dependency: "1.0.0"}}},
+        }
+        lf.write()
+    original = (app / "pnpm-lock.yaml").read_bytes()
+    with pytest.raises(ValueError, match="Conflicting TS_PROTO snapshots entry runtime@1.0.0"):
+        TsProtoGenerator(SimpleNamespace(bindir=str(app)))._update_peer_lockfile([str(peer)], {})
+    assert (app / "pnpm-lock.yaml").read_bytes() == original
