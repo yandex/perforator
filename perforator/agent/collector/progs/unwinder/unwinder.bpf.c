@@ -185,6 +185,10 @@ static ALWAYS_INLINE void try_get_stack(void* ctx, struct stack* stack, u64 flag
     }
     // bpf_get_stack returns bytes; normalize to frame count.
     stack->len = res / sizeof(u64);
+    for (u32 i = 1; i < sizeof(stack->ips) / sizeof(u64) && i < stack->len; i++) {
+        // maintain same convention as in read_return_address
+        stack->ips[i] -= 1;
+    }
 }
 
 // Copy `bytes` from src into packed->data at offset.

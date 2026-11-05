@@ -399,8 +399,8 @@ func (r *Registry) findProcess(pid linux.CurrentNamespacePID) *trackedProcess {
 	return r.procs[pid]
 }
 
-func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
-	symbol, ok := r.syms.Find(pid, ip)
+func (r *Registry) Resolve(pid linux.CurrentNamespacePID, addr profilerext.Address) (profilerext.JITSymbolizerOutput, bool) {
+	symbol, ok := r.syms.Find(pid, addr.IP)
 	if ok {
 		return profilerext.JITSymbolizerOutput{
 			Symbols: []profilerext.JITSymbol{
@@ -414,8 +414,8 @@ func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerex
 	return profilerext.JITSymbolizerOutput{}, false
 }
 
-func (r *Registry) ResolveForProcess(key linux.ProcessKey, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
-	symbol, ok := r.syms.Find(key.Pid, ip)
+func (r *Registry) ResolveForProcess(key linux.ProcessKey, addr profilerext.Address) (profilerext.JITSymbolizerOutput, bool) {
+	symbol, ok := r.syms.Find(key.Pid, addr.IP)
 	if !ok || key.ProcessStartTime == 0 || symbol.key != key {
 		return profilerext.JITSymbolizerOutput{}, false
 	}

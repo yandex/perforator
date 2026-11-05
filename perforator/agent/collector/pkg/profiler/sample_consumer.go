@@ -16,6 +16,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profilerext"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
@@ -495,14 +496,19 @@ func (c *oneShotSampleConsumer) processUserSpaceLocationNative(
 	loc.Finish()
 }
 
-func (c *oneShotSampleConsumer) processUserSpaceLocation(
-	ctx context.Context,
+// processUserSpaceLocationJIT records JIT locations. It returns true
+// if location is processed.
+func (c *oneShotSampleConsumer) processUserSpaceLocationJIT(
 	loc *profile.LocationBuilder,
 	ip uint64,
-	jvmFrame *unwinder.JvmFrame,
-) {
+	isLeaf bool,
+) bool {
+	jitAddr := profilerext.Address{
+		IP:   ip,
+		Leaf: isLeaf,
+	}
 	for _, s := range c.p.jitSymbolizers {
-		out, ok := s.Resolve(linux.CurrentNamespacePID(c.sample.Pid), ip)
+		out, ok := s.Resolve(linux.CurrentNamespacePID(c.sample.Pid), jitAddr)
 		if !ok {
 			continue
 		}
@@ -516,8 +522,22 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(
 		}
 		loc.SetMapping().SetPath(out.MappingName).Finish()
 		loc.Finish()
+		return true
+	}
+	return false
+}
+
+func (c *oneShotSampleConsumer) processUserSpaceLocation(
+	ctx context.Context,
+	loc *profile.LocationBuilder,
+	ip uint64,
+	jvmFrame *unwinder.JvmFrame,
+	isLeaf bool,
+) {
+	if c.processUserSpaceLocationJIT(loc, ip, isLeaf) {
 		return
 	}
+
 	if jvmFrame != nil {
 		c.processUserSpaceLocationJava(ctx, loc, jvmFrame)
 		return
@@ -552,6 +572,7 @@ func (c *oneShotSampleConsumer) processUserSpaceLocationJava(ctx context.Context
 func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builder *profile.SampleBuilder) {
 	jvmStack := c.sample.JvmStack
 	jvmStackIdx := 0
+	isLeaf := true
 	for locIdx, ip := range c.sample.UserStack {
 		if ip == 0 {
 			continue
@@ -576,7 +597,8 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 		} else {
 			loc = builder.AddNativeLocation(ip)
 		}
-		c.processUserSpaceLocation(ctx, loc, ip, matchingJVMFrame)
+		c.processUserSpaceLocation(ctx, loc, ip, matchingJVMFrame, isLeaf)
+		isLeaf = false
 	}
 }
 

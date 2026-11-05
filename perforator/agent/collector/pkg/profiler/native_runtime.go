@@ -114,7 +114,8 @@ func (r *nativeRuntimeResolver) resolveNativeFrames(ctx context.Context, request
 		matched := false
 		if address != 0 {
 			var err error
-			matched, err = r.tryAppendJITFrame(request.Key, address, writer)
+			isLeaf := index == 0
+			matched, err = r.tryAppendJITFrame(request.Key, address, isLeaf, writer)
 			if err != nil {
 				return err
 			}
@@ -134,12 +135,15 @@ func (r *nativeRuntimeResolver) resolveNativeFrames(ctx context.Context, request
 	return nil
 }
 
-func (r *nativeRuntimeResolver) tryAppendJITFrame(key linux.ProcessKey, address uint64, writer *runtimewriter.Writer) (bool, error) {
+func (r *nativeRuntimeResolver) tryAppendJITFrame(key linux.ProcessKey, address uint64, isLeaf bool, writer *runtimewriter.Writer) (bool, error) {
 	if key.ProcessStartTime == 0 {
 		return false, nil
 	}
 	for _, symbolizer := range r.jit {
-		resolved, ok := symbolizer.ResolveForProcess(key, address)
+		resolved, ok := symbolizer.ResolveForProcess(key, profilerext.Address{
+			IP:   address,
+			Leaf: isLeaf,
+		})
 		if !ok {
 			continue
 		}

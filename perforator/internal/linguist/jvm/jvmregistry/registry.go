@@ -78,7 +78,7 @@ type binaryData struct {
 	version    uint32
 }
 
-type symFunc = func(addr uint64) []string
+type symFunc = func(addr profilerext.Address) []string
 
 type compiledSymbol struct {
 	key     linux.ProcessKey
@@ -371,11 +371,11 @@ func (r *Registry) symbolizeInterpreted(ctx context.Context, process linux.Proce
 	return name, nil
 }
 
-func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
-	symbol, ok := r.compiledSyms.Find(pid, ip)
+func (r *Registry) Resolve(pid linux.CurrentNamespacePID, addr profilerext.Address) (profilerext.JITSymbolizerOutput, bool) {
+	symbol, ok := r.compiledSyms.Find(pid, addr.IP)
 	if ok {
 		r.compiledMethodResolveSuccess.Inc()
-		names := symbol.resolve(ip)
+		names := symbol.resolve(addr)
 		var syms []profilerext.JITSymbol
 		for _, n := range names {
 			syms = append(syms, profilerext.JITSymbol{
@@ -391,14 +391,14 @@ func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerex
 	return profilerext.JITSymbolizerOutput{}, false
 }
 
-func (r *Registry) ResolveForProcess(key linux.ProcessKey, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
-	symbol, ok := r.compiledSyms.Find(key.Pid, ip)
+func (r *Registry) ResolveForProcess(key linux.ProcessKey, addr profilerext.Address) (profilerext.JITSymbolizerOutput, bool) {
+	symbol, ok := r.compiledSyms.Find(key.Pid, addr.IP)
 	if !ok || key.ProcessStartTime == 0 || symbol.key != key {
 		r.compiledMethodResolveFailure.Inc()
 		return profilerext.JITSymbolizerOutput{}, false
 	}
 	r.compiledMethodResolveSuccess.Inc()
-	names := symbol.resolve(ip)
+	names := symbol.resolve(addr)
 	symbols := make([]profilerext.JITSymbol, len(names))
 	for i, name := range names {
 		symbols[i].Name = name
@@ -476,14 +476,20 @@ func (r *Registry) updateSymbols(ctx context.Context, key linux.ProcessKey, meth
 				name = name + methodKindSuffixStubs
 			}
 		}
-		var symfunc func(uint64) []string
+		var symfunc func(profilerext.Address) []string
 		if m.SymbolizationTable != nil {
-			symfunc = func(addr uint64) []string {
-				offset := addr - m.CodeBegin
+			symfunc = func(addr profilerext.Address) []string {
+				offset := addr.IP - m.CodeBegin
+				if !addr.Leaf {
+					// When symbolizing caller, we need to use actual return address,
+					// i.e. pointer to first byte of unrelated instruction, following the CALL.
+					// So we add 1 to compensate for decrement in read_return_address
+					offset += 1
+				}
 				return r.symbolizeLocation(ctx, m, offset)
 			}
 		} else {
-			symfunc = func(addr uint64) []string {
+			symfunc = func(_ profilerext.Address) []string {
 				return []string{name}
 			}
 		}

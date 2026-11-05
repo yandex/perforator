@@ -37,15 +37,10 @@ static ALWAYS_INLINE int jvm_process_interpreted_frame(
     BPF_TRACE("[jvm] method_ptr: %llX\n", *method_ptr);
 
     u64 caller_ip_addr = regs->fp + jc->stack_frame_return_addr_offset * 8;
-    BPF_TRACE("[jvm] return address located af %llX\n", caller_ip_addr);
-    u64 caller_ip = 0;
-    ret = jvm_read(&caller_ip, sizeof(caller_ip), caller_ip_addr);
-    if (ret < 0) {
-        BPF_TRACE("[jvm] failed to read return address: %lld\n", -ret);
+    if (!read_return_address((void*) caller_ip_addr, &regs->ip)) {
         return -1;
     }
-    BPF_TRACE("[jvm] return address: %llX\n", caller_ip);
-    regs->ip = caller_ip;
+    BPF_TRACE("[jvm] return address: %llX\n", regs->ip);
     ret = jvm_read(&regs->cfa, sizeof(regs->cfa), regs->fp - 8);
     if (ret < 0) {
         BPF_TRACE("[jvm] failed to read CFA: %lld\n", -ret);
