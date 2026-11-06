@@ -344,6 +344,8 @@ require (
 	github.com/containerd/containerd v1.7.34
 	github.com/containerd/containerd/v2 v2.2.0
 	github.com/containerd/continuity v0.4.5
+	github.com/containerd/errdefs v1.0.0
+	github.com/containerd/errdefs/pkg v0.3.0
 	github.com/containerd/go-cni v1.1.13
 	github.com/containernetworking/cni v1.3.0
 	github.com/containernetworking/plugins v1.8.0
@@ -1607,8 +1609,6 @@ require (
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/console v1.0.5 // indirect
 	github.com/containerd/containerd/api v1.10.0 // indirect
-	github.com/containerd/errdefs v1.0.0 // indirect
-	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containerd/fuse-overlayfs-snapshotter/v2 v2.1.7 // indirect
 	github.com/containerd/go-runc v1.1.0 // indirect
