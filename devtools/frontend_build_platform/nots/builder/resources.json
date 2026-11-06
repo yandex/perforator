@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-11-06T17:28:52Z",
-    "commit": "532f2aa9762eb3241db08bc905f157743ef84285",
-    "branch": "install-concurrency-8",
+    "created": "2026-11-06T19:29:36Z",
+    "commit": "9f261d6eaa5087562d2d5dd2a2d9672f526c79ab",
+    "branch": "FBP-3688-install-concurrency-policy",
     "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14212944031"
+      "uri": "sbr:14213611502"
     },
     "darwin-arm64": {
-      "uri": "sbr:14212945064"
+      "uri": "sbr:14213612035"
     },
     "linux": {
-      "uri": "sbr:14212941554"
+      "uri": "sbr:14213609707"
     },
     "linux-aarch64": {
-      "uri": "sbr:14212942909"
+      "uri": "sbr:14213610642"
     }
   }
 }

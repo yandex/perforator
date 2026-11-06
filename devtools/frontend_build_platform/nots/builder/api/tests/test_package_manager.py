@@ -66,7 +66,13 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
     assert env == original_env
 
 
-def test_sync_mutex_file_uses_eight_slots_by_default(monkeypatch, tmp_path):
+@pytest.mark.parametrize("concurrency", [2, 6, 8])
+def test_sync_mutex_file_reads_default_slots_from_tier0_settings(monkeypatch, tmp_path, concurrency):
+    monkeypatch.setattr(
+        package_manager_module,
+        "load_tier0_settings",
+        lambda: {"concurrency": {"installGroups": concurrency}},
+    )
     opened_paths = []
     locked_slots = []
 
@@ -86,7 +92,7 @@ def test_sync_mutex_file_uses_eight_slots_by_default(monkeypatch, tmp_path):
         if operation & fcntl.LOCK_UN:
             return
         locked_slots.append(mutex.path)
-        if len(locked_slots) < package_manager_module.LOCAL_PNPM_INSTALL_CONCURRENCY:
+        if len(locked_slots) < concurrency:
             raise BlockingIOError
 
     monkeypatch.setattr(package_manager_module, "open", open_mutex, raising=False)
@@ -97,7 +103,7 @@ def test_sync_mutex_file_uses_eight_slots_by_default(monkeypatch, tmp_path):
 
     assert result == "installed"
     assert opened_paths == [
-        "{}.{}".format(mutex_path, slot) for slot in range(package_manager_module.LOCAL_PNPM_INSTALL_CONCURRENCY)
+        "{}.{}".format(mutex_path, slot) for slot in range(concurrency)
     ]
     assert locked_slots == opened_paths
 

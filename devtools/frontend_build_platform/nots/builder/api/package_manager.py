@@ -20,13 +20,13 @@ from .pnpm_workspace import PnpmWorkspace, pnpm_defaults, pnpm_runtime_env
 from .utils import copy_writable_file, resolve_pnpm_paths
 from build.plugins.lib.nots.package_manager.common_config import (
     load_common_config,
+    load_tier0_settings,
     rebase_pnpm_settings,
     join_pnpm_settings,
     pnpm_settings,
 )
 from build.plugins.lib.nots.package_manager.timeit import timeit
 
-LOCAL_PNPM_INSTALL_CONCURRENCY = 8
 LOCAL_PNPM_INSTALL_MUTEX_FILENAME = ".__install_mutex__"
 
 
@@ -77,7 +77,9 @@ def _wait_for_pnpm_lock(mutexes):
         time.sleep(0.1)
 
 
-def sync_mutex_file(mutex_filename, concurrency=LOCAL_PNPM_INSTALL_CONCURRENCY):
+def sync_mutex_file(mutex_filename, concurrency=None):
+    if concurrency is None:
+        concurrency = load_tier0_settings()["concurrency"]["installGroups"]
     if concurrency < 1:
         raise ValueError("concurrency must be at least 1")
 
