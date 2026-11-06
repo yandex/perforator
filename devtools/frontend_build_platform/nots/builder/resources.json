@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-11-04T17:19:45Z",
-    "commit": "41ab1d6832258a905b43430f66e944bd0ecb2282",
-    "branch": "FBP-3478-python-tsconfig-cleanup",
-    "dirty": false
+    "created": "2026-11-06T11:55:12Z",
+    "commit": "921d4e0ff027077e6a722e20a73ca44dcab47d19",
+    "branch": "921d4e0ff027077e6a722e20a73ca44dcab47d19",
+    "dirty": true
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14196400379"
+      "uri": "sbr:14209936798"
     },
     "darwin-arm64": {
-      "uri": "sbr:14196400821"
+      "uri": "sbr:14209937994"
     },
     "linux": {
-      "uri": "sbr:14196399461"
+      "uri": "sbr:14209934735"
     },
     "linux-aarch64": {
-      "uri": "sbr:14196399935"
+      "uri": "sbr:14209935727"
     }
   }
 }

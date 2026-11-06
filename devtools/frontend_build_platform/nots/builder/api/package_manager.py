@@ -417,6 +417,10 @@ class PackageManager(BasePackageManager):
             if portable:
                 # Layers and exported bundles must not link outside node_modules.
                 ws.runtime_settings["enableGlobalVirtualStore"] = False
+                # pnpm 12.18 can mix logical and physical paths when node_modules
+                # points into RAM. Anchor the virtual store there so links remain
+                # relative within node_modules after the layer is relocated.
+                ws.runtime_settings["virtualStoreDir"] = os.path.join(os.path.realpath(node_modules_path), ".pnpm")
             copy_writable_file(ws.path, ws.path)
             ws.write()
             install_cmd = [

@@ -249,7 +249,10 @@ def test_pnpm_install_uses_local_virtual_store_for_portable_modules(
     assert "--modules-dir" not in command
     settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
     assert "--virtual-store-dir" not in command
-    assert "virtualStoreDir" not in settings
+    if portable:
+        assert settings["virtualStoreDir"] == os.path.join(os.path.realpath(node_modules_path), ".pnpm")
+    else:
+        assert "virtualStoreDir" not in settings
     assert settings["enableGlobalVirtualStore"] is (False if portable else global_virtual_store)
     assert settings["packageImportMethod"] == "hardlink"
 
@@ -797,3 +800,61 @@ def test_source_lockfile_preserves_graph_and_only_distbuild_rewrites_tarballs(tm
         expected["packages"]["runtime@1.0.0"]["resolution"]["tarball"] = "file:__tarballs__/runtime/-/runtime-1.0.0.tgz"
     assert package_manager_module.Lockfile.load(str(target / "pnpm-lock.yaml")).data == expected
     assert (source / "pnpm-lock.yaml").read_bytes() == original_bytes
+
+
+@pytest.mark.parametrize("symlinked", [False, True])
+def test_portable_install_survives_relocation(tmp_path, symlinked):
+    import shutil
+    import subprocess
+    import tarfile
+
+    project = tmp_path / "build" / "app"
+    project.mkdir(parents=True)
+    package = tmp_path / "package"
+    package.mkdir()
+    (package / "package.json").write_text(
+        json.dumps({"name": "portable-tool", "version": "1.0.0", "bin": {"portable-tool": "cli.js"}})
+    )
+    (package / "cli.js").write_text("#!/usr/bin/env node\nconsole.log('portable-ok')\n")
+    (package / "cli.js").chmod(0o755)
+    tarball = project / "tool.tgz"
+    with tarfile.open(tarball, "w:gz") as archive:
+        archive.add(package, arcname="package")
+    (project / "package.json").write_text(
+        json.dumps({"name": "app", "version": "1.0.0", "dependencies": {"portable-tool": "file:./tool.tgz"}})
+    )
+    workspace = package_manager_module.PnpmWorkspace(str(project / "pnpm-workspace.yaml"))
+    workspace.runtime_settings = package_manager_module.pnpm_defaults()
+    workspace.runtime_settings["enableGlobalVirtualStore"] = False
+    workspace.write()
+    store = tmp_path / "store"
+    store.mkdir()
+    node = os.path.join(os.environ["NOTS_TEST_NODEJS_ROOT"], "node")
+    pm = package_manager_module.PackageManager(
+        build_root=str(tmp_path / "build"),
+        build_path=str(project),
+        sources_path=str(project),
+        nodejs_bin_path=node,
+        pnpm_root=os.environ["NOTS_TEST_PNPM_ROOT"],
+    )
+    pm._exec_command(["install", "--lockfile-only", "--offline", "--store-dir", str(store)], cwd=str(project))
+    modules = project / "node_modules"
+    if symlinked:
+        physical_modules = tmp_path / "ram" / "app" / "node_modules"
+        physical_modules.mkdir(parents=True)
+        modules.symlink_to(physical_modules)
+    pm._run_pnpm_install(str(store), str(project), False, str(modules), portable=True)
+
+    relocated = tmp_path / "relocated"
+    shutil.copytree(modules, relocated, symlinks=True)
+    shutil.rmtree(tmp_path / "build")
+    if symlinked:
+        shutil.rmtree(tmp_path / "ram")
+    for path in relocated.rglob("*"):
+        if path.is_symlink():
+            assert path.exists(), path
+            assert path.resolve().is_relative_to(relocated), path
+    executable = relocated / ".bin" / "portable-tool"
+    env = {"PATH": os.path.dirname(node) + os.pathsep + os.defpath}
+    result = subprocess.run([str(executable)], env=env, capture_output=True, text=True, check=True)
+    assert result.stdout.strip() == "portable-ok"
