@@ -1,3 +1,7 @@
 packages:
   - ../packages/*
   - ../viewer
+
+allowBuilds:
+  "@swc/core": false
+  unrs-resolver: false
