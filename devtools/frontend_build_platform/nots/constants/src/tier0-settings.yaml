@@ -1,6 +1,6 @@
 # Дефолты nots; соответствующие NOTS_CONCURRENCY_* сохраняют приоритет.
 concurrency:
-    installGroups: 4
+    installGroups: 8
     link: 16
     prebuilder: 4
     preinstall: 16

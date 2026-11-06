@@ -66,7 +66,7 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
     assert env == original_env
 
 
-def test_sync_mutex_file_uses_four_slots_by_default(monkeypatch, tmp_path):
+def test_sync_mutex_file_uses_eight_slots_by_default(monkeypatch, tmp_path):
     opened_paths = []
     locked_slots = []
 

@@ -26,7 +26,7 @@ from build.plugins.lib.nots.package_manager.common_config import (
 )
 from build.plugins.lib.nots.package_manager.timeit import timeit
 
-LOCAL_PNPM_INSTALL_CONCURRENCY = 4
+LOCAL_PNPM_INSTALL_CONCURRENCY = 8
 LOCAL_PNPM_INSTALL_MUTEX_FILENAME = ".__install_mutex__"
 
 
