@@ -23,6 +23,7 @@ PEERDIR(
     contrib/libs/llvm22
     contrib/libs/llvm22/lib/Demangle
     contrib/libs/zlib
+    contrib/libs/zstd
     library/cpp/sanitizer/include
 )
 

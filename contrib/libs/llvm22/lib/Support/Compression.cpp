@@ -21,7 +21,7 @@
 #include <zlib.h>
 #endif
 #if LLVM_ENABLE_ZSTD
-#error #include <zstd.h>
+#include <contrib/libs/zstd/include/zstd.h>
 #endif
 
 using namespace llvm;
@@ -163,7 +163,7 @@ Error zlib::decompress(ArrayRef<uint8_t> Input,
 
 bool zstd::isAvailable() { return true; }
 
-#error #include <zstd.h> // Ensure ZSTD library is included
+#include <contrib/libs/zstd/include/zstd.h> // Ensure ZSTD library is included
 
 void zstd::compress(ArrayRef<uint8_t> Input,
                     SmallVectorImpl<uint8_t> &CompressedBuffer, int Level,
