@@ -1,22 +1,24 @@
 {
   "info": {
-    "created": "2026-11-08T15:53:15Z",
-    "commit": "076b112626286136467f87139a4a2ac765fb65da",
-    "branch": "DEVTOOLSSUPPORT-99546-binddir-node-modules",
-    "dirty": false
+    "created": "2026-11-08T19:38:24.138Z",
+    "pr": {
+      "id": 16941841,
+      "author": "zaverden",
+      "summary": "FBP-3684: nots/builder: работа с архивами через бинарь nots-tar"
+    }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14219454876"
+      "uri": "sbr:14219896499"
     },
     "darwin-arm64": {
-      "uri": "sbr:14219455033"
+      "uri": "sbr:14219895977"
     },
     "linux": {
-      "uri": "sbr:14219454485"
+      "uri": "sbr:14219897799"
     },
     "linux-aarch64": {
-      "uri": "sbr:14219454624"
+      "uri": "sbr:14219897066"
     }
   }
 }

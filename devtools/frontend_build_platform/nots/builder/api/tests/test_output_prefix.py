@@ -37,7 +37,7 @@ def test_output_prefix_roundtrip(tmp_path, prefix):
     assert (destination / "package.json").read_text() == "existing"
     assert os.readlink(destination / "dist" / "link.js") == "index.js"
     assert (destination / "dist" / "link.js").read_text() == "dist"
-    assert (destination / "dist" / "hard.js").read_text() == "dist"
+    assert os.path.samefile(destination / "dist" / "hard.js", destination / "dist" / "index.js")
 
 
 @pytest.mark.parametrize(
@@ -50,7 +50,8 @@ def test_legacy_output(tmp_path, metadata):
     source = tmp_path / "source"
     source.mkdir()
     (source / "file").write_text("old archive")
-    bundle_fs_entries(["file"], str(source), str(tmp_path / "output.tar"))
+    with tarfile.open(tmp_path / "output.tar", "w", format=tarfile.GNU_FORMAT) as archive:
+        archive.add(source / "file", arcname="file")
     if metadata is not None:
         (tmp_path / "output.tar.uuid").write_text(metadata)
     extract_output_tar(str(tmp_path))

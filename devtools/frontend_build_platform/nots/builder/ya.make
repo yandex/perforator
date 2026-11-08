@@ -10,4 +10,5 @@ ENDIF()
 RECURSE(
     api
     cli
+    tar
 )

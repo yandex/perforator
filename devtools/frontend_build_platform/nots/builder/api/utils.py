@@ -11,8 +11,6 @@ import tempfile
 from typing import NamedTuple
 
 import click
-import library.python.archive as archive
-import libarchive
 
 from build.plugins.lib.nots.package_manager import (
     constants as pm_constants,
@@ -20,6 +18,7 @@ from build.plugins.lib.nots.package_manager import (
     utils as pm_utils,
 )
 from devtools.frontend_build_platform.libraries.logging import timeit
+from . import tar_tool
 from .globs import GlobMatcher
 
 logger = logging.getLogger(__name__)
@@ -121,25 +120,7 @@ def extract_output_tar(moddir_abs: str):
     output_tar = meta.get("outputTar", {}) if isinstance(meta, dict) else {}
     prefix = normalize_output_prefix(output_tar.get("prefix", "")) if isinstance(output_tar, dict) else ""
 
-    def strip_prefix(name):
-        name = os.fsdecode(name)
-        if name.rstrip('/') == prefix:
-            return ""
-        if not name.startswith(prefix + '/'):
-            raise ValueError(f"Archive entry {name!r} is outside output prefix {prefix!r}")
-        return name[len(prefix) + 1 :]
-
-    def pj_filter(e: libarchive.Entry):
-        if prefix:
-            # Strip entry paths and hardlink targets, but preserve relative symlink targets.
-            e.pathname = strip_prefix(e.pathname)
-            if not e.pathname:
-                return False
-            if e.ishardlink():
-                e.hardlink = os.fsencode(strip_prefix(e.hardlink))
-        return not os.path.exists(os.path.join(moddir_abs, e.pathname))
-
-    archive.extract_tar(output_tar_path, moddir_abs, fail_on_duplicates=False, entry_filter=pj_filter)
+    tar_tool.unpack_tar(output_tar_path, moddir_abs, prefix, keep_existing=True)
 
 
 def add_write_permissions(path):
@@ -346,14 +327,7 @@ def bundle_fs_entries(dirs_and_files: list[str], build_path: str, bundle_path: s
 
         paths_to_pack[path_to_pack] = posixpath.join(output_prefix, arcname) if output_prefix else arcname
 
-    archive.tar(
-        list(paths_to_pack.items()),
-        bundle_path,
-        compression_filter=None,
-        compression_level=None,
-        fixed_mtime=0,
-        dereference=False,
-    )
+    tar_tool.pack(paths_to_pack.items(), bundle_path)
 
 
 def is_symlink_safe(symlink: Path, boundary: Path) -> bool:

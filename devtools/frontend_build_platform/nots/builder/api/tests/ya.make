@@ -23,6 +23,7 @@ PEERDIR(
     build/platform/nodejs/24.22.1
     devtools/frontend_build_platform/nots/builder/api
     devtools/frontend_build_platform/nots/builder/cli
+    library/python/archive
 )
 
 DATA(

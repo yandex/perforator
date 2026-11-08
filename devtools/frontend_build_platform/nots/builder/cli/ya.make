@@ -22,7 +22,6 @@ PY_SRCS(
 PEERDIR(
     build/plugins/lib/nots
     devtools/frontend_build_platform/nots/builder/api
-    library/python/archive
     library/python/testing/recipe
     library/python/testing/yatest_common
 )

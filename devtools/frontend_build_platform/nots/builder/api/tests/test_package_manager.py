@@ -836,8 +836,7 @@ def test_portable_install_survives_relocation(tmp_path, symlinked):
         json.dumps({"name": "app", "version": "1.0.0", "dependencies": {"portable-tool": "file:./tool.tgz"}})
     )
     workspace = package_manager_module.PnpmWorkspace(str(project / "pnpm-workspace.yaml"))
-    workspace.runtime_settings = package_manager_module.pnpm_defaults()
-    workspace.runtime_settings["enableGlobalVirtualStore"] = False
+    workspace.runtime_settings = {**package_manager_module.pnpm_defaults(), "enableGlobalVirtualStore": False}
     workspace.write()
     store = tmp_path / "store"
     store.mkdir()

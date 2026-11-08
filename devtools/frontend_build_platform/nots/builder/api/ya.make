@@ -2,6 +2,17 @@ PY3_LIBRARY()
 
 STYLE_PYTHON()
 
+BUNDLE_OUTPUT(
+    devtools/frontend_build_platform/nots/builder/tar
+    nots-tar
+    RENAME
+    nots-tar-embedded
+)
+
+RESOURCE(
+    ${BINDIR}/nots-tar-embedded nots/builder/nots-tar
+)
+
 PY_SRCS(
     __init__.py
     builders/__init__.py
@@ -21,6 +32,7 @@ PY_SRCS(
     pnpm_workspace.py
     prepare_deps.py
     ram_disk.py
+    tar_tool.py
     utils.py
 )
 
@@ -30,7 +42,6 @@ PEERDIR(
     contrib/python/click
     devtools/frontend_build_platform/libraries/logging
     devtools/ya/yalibrary/fetcher/uri_parser
-    library/python/archive
     library/python/color
     library/python/fs
     library/python/resource
