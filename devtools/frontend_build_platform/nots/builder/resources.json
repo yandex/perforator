@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-11-08T10:32:53Z",
-    "commit": "4ab7b8ffd9a45449efa3dbfe2955929ad1a38784",
-    "branch": "FBP-3689-virtual-store-option",
+    "created": "2026-11-08T15:53:15Z",
+    "commit": "076b112626286136467f87139a4a2ac765fb65da",
+    "branch": "DEVTOOLSSUPPORT-99546-binddir-node-modules",
     "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14218830519"
+      "uri": "sbr:14219454876"
     },
     "darwin-arm64": {
-      "uri": "sbr:14218830806"
+      "uri": "sbr:14219455033"
     },
     "linux": {
-      "uri": "sbr:14218829780"
+      "uri": "sbr:14219454485"
     },
     "linux-aarch64": {
-      "uri": "sbr:14218830118"
+      "uri": "sbr:14219454624"
     }
   }
 }
