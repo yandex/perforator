@@ -62,6 +62,9 @@ class PnpmWorkspace(object):
         with open(path, "w", encoding="utf-8") as f:
             data = copy.deepcopy(self.settings)
             data.update(self.runtime_settings)
+            legacy_global_store = data.pop("enableGlobalVirtualStore", None)
+            if "virtualStoreType" not in data and legacy_global_store is not None:
+                data["virtualStoreType"] = "global" if legacy_global_store else "project"
             data["packages"] = sorted(self.packages)
             if self.catalogs:
                 data["catalogs"] = self.catalogs

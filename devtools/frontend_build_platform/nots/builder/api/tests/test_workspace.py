@@ -1,5 +1,6 @@
 import copy
 
+import pytest
 import yaml
 
 from build.plugins.lib.nots.package_manager import PackageJson
@@ -220,3 +221,30 @@ def test_pnpm_runtime_env_uses_shared_defaults(monkeypatch):
         "npm_config_fetch_retries": "7",
         "pnpm_config_fetch_retries": "7",
     }
+
+
+@pytest.mark.parametrize("legacy_global_store", [False, True])
+@pytest.mark.parametrize("virtual_store_type", [None, "project", "global"])
+@pytest.mark.parametrize("runtime_virtual_store_type", [None, "project", "global"])
+def test_workspace_converts_legacy_global_store_without_mutating_settings(
+    tmp_path, legacy_global_store, virtual_store_type, runtime_virtual_store_type
+):
+    workspace_path = tmp_path / "pnpm-workspace.yaml"
+    workspace = PnpmWorkspace(str(workspace_path))
+    workspace.settings = {"enableGlobalVirtualStore": legacy_global_store}
+    if virtual_store_type is not None:
+        workspace.settings["virtualStoreType"] = virtual_store_type
+    if runtime_virtual_store_type is not None:
+        workspace.runtime_settings["virtualStoreType"] = runtime_virtual_store_type
+    original = copy.deepcopy(workspace.settings)
+    original_runtime = copy.deepcopy(workspace.runtime_settings)
+
+    workspace.write()
+
+    written = yaml.safe_load(workspace_path.read_text())
+    assert written["virtualStoreType"] == (
+        runtime_virtual_store_type or virtual_store_type or ("global" if legacy_global_store else "project")
+    )
+    assert "enableGlobalVirtualStore" not in written
+    assert workspace.settings == original
+    assert workspace.runtime_settings == original_runtime

@@ -416,9 +416,14 @@ class PackageManager(BasePackageManager):
                 **{key: value for key, value in ws.settings.items() if key in defaults},
                 "packageImportMethod": package_import_method,
             }
+            if "virtualStoreType" not in ws.settings and "enableGlobalVirtualStore" in ws.settings:
+                ws.runtime_settings["virtualStoreType"] = (
+                    "global" if ws.settings["enableGlobalVirtualStore"] else "project"
+                )
             if portable:
                 # Layers and exported bundles must not link outside node_modules.
                 ws.runtime_settings["enableGlobalVirtualStore"] = False
+                ws.runtime_settings["virtualStoreType"] = "project"
                 # pnpm 12.18 can mix logical and physical paths when node_modules
                 # points into RAM. Anchor the virtual store there so links remain
                 # relative within node_modules after the layer is relocated.

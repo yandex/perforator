@@ -226,11 +226,12 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
     assert settings["packageImportMethod"] == "hardlink"
 
 
-@pytest.mark.parametrize("global_virtual_store", [False, True])
+@pytest.mark.parametrize("virtual_store_type", [None, "global", "project"])
+@pytest.mark.parametrize("global_virtual_store", [None, False, True])
 @pytest.mark.parametrize("portable", [False, True])
 @pytest.mark.parametrize("local_cli", [False, True])
 def test_pnpm_install_uses_local_virtual_store_for_portable_modules(
-    monkeypatch, tmp_path, global_virtual_store, portable, local_cli
+    monkeypatch, tmp_path, virtual_store_type, global_virtual_store, portable, local_cli
 ):
     package_manager, commands = _package_manager(monkeypatch)
     cwd = str(tmp_path / "build" / "project" / "module")
@@ -240,7 +241,10 @@ def test_pnpm_install_uses_local_virtual_store_for_portable_modules(
 
     os.makedirs(cwd, exist_ok=True)
     workspace = package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml"))
-    workspace.settings = {"enableGlobalVirtualStore": global_virtual_store}
+    if global_virtual_store is not None:
+        workspace.settings["enableGlobalVirtualStore"] = global_virtual_store
+    if virtual_store_type is not None:
+        workspace.settings["virtualStoreType"] = virtual_store_type
     workspace.write()
     package_manager._run_pnpm_install(
         str(tmp_path / "build" / "store"),
@@ -259,7 +263,9 @@ def test_pnpm_install_uses_local_virtual_store_for_portable_modules(
         assert settings["virtualStoreDir"] == os.path.join(os.path.realpath(node_modules_path), ".pnpm")
     else:
         assert "virtualStoreDir" not in settings
-    assert settings["enableGlobalVirtualStore"] is (False if portable else global_virtual_store)
+    expected_type = virtual_store_type or ("global" if global_virtual_store is True else "project")
+    assert settings["virtualStoreType"] == ("project" if portable else expected_type)
+    assert "enableGlobalVirtualStore" not in settings
     assert settings["packageImportMethod"] == "hardlink"
 
 

@@ -39,6 +39,7 @@ pnpm:
         ignoredOptionalDependencies: string-list
         dedupePeers: boolean
         enableGlobalVirtualStore: boolean
+        virtualStoreType: virtual-store-type
         forceLegacyDeploy: boolean
         strictPeerDependencies: boolean
 
@@ -57,6 +58,7 @@ pnpm:
         injectWorkspacePackages: true
         sharedWorkspaceLockfile: false
         modulesDir: node_modules
+        virtualStoreType: project
         pmOnFail: ignore
         packageImportMethod: auto
         preferSymlinkedExecutables: true
@@ -149,8 +151,12 @@ pnpm:
                 https://pnpm.io/11.x/settings/peer-dependencies#dedupepeers
 
             enableGlobalVirtualStore: |-
-                Пользовательское включение global virtual store.
+                Совместимый флаг global virtual store; virtualStoreType имеет приоритет.
                 https://pnpm.io/11.x/settings/node-modules#enableglobalvirtualstore
+
+            virtualStoreType: |-
+                Проектный virtual store по умолчанию; global включает общий store.
+                https://pnpm.io/settings/node-modules#virtualstoretype
 
             forceLegacyDeploy: |-
                 Точечный возврат к legacy deploy для несовместимых проектов.
