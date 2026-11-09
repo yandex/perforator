@@ -71,6 +71,34 @@ func (f *Selector) UniqueFieldValues(field string) []Value {
 	return mapKeys(values)
 }
 
+func (f *Selector) StringFieldValues(field string) (values []string, allValues bool, err error) {
+	for _, matcher := range f.Matchers {
+		if matcher.Field != field {
+			continue
+		}
+		for _, condition := range matcher.Conditions {
+			if condition.Operator == operator.Exists && !condition.Inverse {
+				allValues = true
+				continue
+			}
+			value, ok := condition.Value.(String)
+			if !ok || !condition.IsStrictEq() {
+				return nil, false, fmt.Errorf("values for field %q must be explicitly listed or matched with %s=\"*\"", field, field)
+			}
+			if !slices.Contains(values, value.Value) {
+				values = append(values, value.Value)
+			}
+		}
+	}
+	if allValues {
+		return nil, true, nil
+	}
+	if len(values) == 0 {
+		return nil, false, fmt.Errorf("zero values for field %q in selector", field)
+	}
+	return values, false, nil
+}
+
 // StrictMap returns a field-value mapping of Selector
 // if there are only strict equality operators are used
 // and any field corresponds to exactly 1 string value.
