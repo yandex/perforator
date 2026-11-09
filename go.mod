@@ -726,7 +726,7 @@ require (
 	github.com/nginxinc/nginx-go-crossplane v0.4.86
 	github.com/nishanths/exhaustive v0.12.0
 	github.com/nishanths/predeclared v0.2.2
-	github.com/nttcom/pola v1.3.1
+	github.com/nttcom/pola v1.3.3
 	github.com/nxadm/tail v1.4.8
 	github.com/oapi-codegen/nethttp-middleware v1.1.2
 	github.com/oapi-codegen/nullable v1.1.0
@@ -774,7 +774,7 @@ require (
 	github.com/opentracing-contrib/go-stdlib v1.0.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/osrg/gobgp v0.0.0-20211201041502-6248c576b118
-	github.com/osrg/gobgp/v4 v4.5.0
+	github.com/osrg/gobgp/v4 v4.7.0
 	github.com/otiai10/copy v1.14.1
 	github.com/ozontech/allure-go v0.6.32
 	github.com/ozontech/allure-go/pkg/allure v0.6.13
@@ -1160,7 +1160,7 @@ require (
 	go.uber.org/multierr v1.11.0
 	go.uber.org/nilaway v0.0.0-20260213150243-937701de96c7
 	go.uber.org/ratelimit v0.3.1
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	go.uber.org/zap/exp v0.3.0
 	go.withmatt.com/connect-brotli v0.4.0
 	go.yaml.in/yaml/v3 v3.0.5

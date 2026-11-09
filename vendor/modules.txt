@@ -14052,21 +14052,21 @@ github.com/nishanths/predeclared/passes/predeclared
 # github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
 ## explicit; go 1.16
 github.com/nsf/jsondiff
-# github.com/nttcom/pola v1.3.1
-## explicit; go 1.25.5
+# github.com/nttcom/pola v1.3.3
+## explicit; go 1.26.5
 github.com/nttcom/pola
 github.com/nttcom/pola/api/pola/v1
 github.com/nttcom/pola/cmd/pola
 github.com/nttcom/pola/cmd/pola/grpc
 github.com/nttcom/pola/cmd/polad
 github.com/nttcom/pola/internal/config
-github.com/nttcom/pola/internal/pkg/cspf
 github.com/nttcom/pola/internal/pkg/gobgp
-github.com/nttcom/pola/internal/pkg/table
 github.com/nttcom/pola/internal/pkg/version
+github.com/nttcom/pola/pkg/cspf
 github.com/nttcom/pola/pkg/logger
 github.com/nttcom/pola/pkg/packet/pcep
 github.com/nttcom/pola/pkg/server
+github.com/nttcom/pola/pkg/table
 github.com/nttcom/pola/tools/grpc/go/add_sr-policy
 github.com/nttcom/pola/tools/grpc/go/add_sr-policy_no_ls
 github.com/nttcom/pola/tools/grpc/go/del_session
@@ -14937,7 +14937,7 @@ github.com/osrg/gobgp/pkg/packet/mrt
 github.com/osrg/gobgp/pkg/packet/rtr
 github.com/osrg/gobgp/pkg/server
 github.com/osrg/gobgp/tools/config
-# github.com/osrg/gobgp/v4 v4.5.0
+# github.com/osrg/gobgp/v4 v4.7.0
 ## explicit; go 1.24.5
 github.com/osrg/gobgp/v4
 github.com/osrg/gobgp/v4/api
@@ -21407,7 +21407,7 @@ go.uber.org/nilaway/util/typeshelper
 go.uber.org/ratelimit
 # go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
 ## explicit
-# go.uber.org/zap v1.27.1
+# go.uber.org/zap v1.28.0
 ## explicit; go 1.19
 go.uber.org/zap
 go.uber.org/zap/buffer
