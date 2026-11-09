@@ -26,6 +26,7 @@ RECURSE(
     profile_event
     profilequerylang
     prototext
+    provenance
     pubsub
     s3
     sampletype
