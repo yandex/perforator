@@ -1,3 +1,4 @@
+import argparse
 from argparse import ArgumentParser
 
 from devtools.frontend_build_platform.libraries.logging import timeit
@@ -6,6 +7,8 @@ from devtools.frontend_build_platform.nots.builder.api import (
     prepare_node_modules_layer,
     PrepareDepsOptions,
 )
+
+from ...api.utils import normalize_output_prefix
 
 
 def prepare_deps_parser(subparsers) -> ArgumentParser:
@@ -27,6 +30,7 @@ def prepare_deps_parser(subparsers) -> ArgumentParser:
         help="Arcadia-relative built TS_PROTO peers to include in generated workspace metadata",
     )
 
+    subparser.add_argument('--output-prefix', type=normalize_output_prefix, default=argparse.SUPPRESS)
     subparser.set_defaults(func=prepare_deps_func)
 
     return subparser
