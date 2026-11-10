@@ -6,7 +6,7 @@ LICENSE(
     MIT
 )
 
-VERSION(v1.18.5)
+VERSION(v1.19.0)
 
 SRCS(
     bitreader.go
@@ -25,6 +25,7 @@ SRCS(
     enc_better.go
     enc_dfast.go
     enc_fast.go
+    enc_jobs.go
     encoder.go
     encoder_options.go
     framedec.go
@@ -46,8 +47,10 @@ GO_TEST_SRCS(
     decodeheader_test.go
     decoder_test.go
     dict_test.go
+    enc_jobs_test.go
     encoder_options_test.go
     encoder_test.go
+    fse_decoder_bench_test.go
     fuzz_test.go
     seqdec_test.go
     simple_go124_test.go
@@ -62,12 +65,13 @@ GO_XTEST_SRCS(
 
 IF (ARCH_X86_64)
     SRCS(
-        fse_decoder_amd64.go
         fse_decoder_amd64.s
+        fse_decoder_asm.go
         matchlen_amd64.go
         matchlen_amd64.s
         seqdec_amd64.go
         seqdec_amd64.s
+        seqdec_asm.go
     )
 
     GO_TEST_SRCS(seqdec_amd64_test.go)
@@ -75,10 +79,15 @@ ENDIF()
 
 IF (ARCH_ARM64)
     SRCS(
-        fse_decoder_generic.go
+        fse_decoder_arm64.s
+        fse_decoder_asm.go
         matchlen_generic.go
-        seqdec_generic.go
+        seqdec_arm64.go
+        seqdec_arm64.s
+        seqdec_asm.go
     )
+
+    GO_TEST_SRCS(fse_decoder_arm64_test.go)
 ENDIF()
 
 IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)

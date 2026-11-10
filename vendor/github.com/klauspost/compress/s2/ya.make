@@ -6,7 +6,7 @@ LICENSE(
     MIT
 )
 
-VERSION(v1.18.5)
+VERSION(v1.19.0)
 
 SRCS(
     decode.go
@@ -15,6 +15,7 @@ SRCS(
     encode_all.go
     encode_best.go
     encode_better.go
+    hashtable_pool.go
     index.go
     lz4convert.go
     lz4sconvert.go

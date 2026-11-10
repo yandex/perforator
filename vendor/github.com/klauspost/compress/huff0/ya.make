@@ -6,17 +6,19 @@ LICENSE(
     MIT
 )
 
-VERSION(v1.18.5)
+VERSION(v1.19.0)
 
 SRCS(
     bitreader.go
     bitwriter.go
+    build_table.go
     compress.go
     decompress.go
     huff0.go
 )
 
 GO_TEST_SRCS(
+    build_table_test.go
     compress_test.go
     decompress_test.go
     fuzz_test.go

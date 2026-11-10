@@ -309,6 +309,7 @@ require (
 	github.com/boombuler/barcode v1.0.1
 	github.com/bradfitz/gomemcache v0.0.0-20230611145640-acc696258285
 	github.com/brianvoe/gofakeit/v6 v6.28.0
+	github.com/buchgr/bazel-remote/v2 v2.6.2
 	github.com/bufbuild/buf v1.31.0
 	github.com/bufbuild/protocompile v0.14.1
 	github.com/bufbuild/protovalidate-go v0.9.2
@@ -462,7 +463,7 @@ require (
 	github.com/go-faster/jx v1.2.0
 	github.com/go-git/go-billy/v5 v5.6.2
 	github.com/go-git/go-git/v5 v5.14.0
-	github.com/go-ldap/ldap/v3 v3.4.5
+	github.com/go-ldap/ldap/v3 v3.4.12
 	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/go-mysql-org/go-mysql v1.14.0
@@ -656,7 +657,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/keybase/go-keychain v0.0.1
 	github.com/kisielk/og-rek v1.3.0
-	github.com/klauspost/compress v1.18.5
+	github.com/klauspost/compress v1.19.0
 	github.com/klauspost/cpuid/v2 v2.3.0
 	github.com/klauspost/reedsolomon v1.10.1-0.20220820100202-797d62e03058
 	github.com/kolesa-team/go-webp v1.0.5
@@ -701,7 +702,7 @@ require (
 	github.com/mikespook/gorbac v2.3.0+incompatible
 	github.com/milvus-io/milvus-sdk-go/v2 v2.4.2
 	github.com/minio/md5-simd v1.1.3-0.20220930112006-92dcf22dd9de
-	github.com/minio/minio-go/v7 v7.0.76
+	github.com/minio/minio-go/v7 v7.0.98
 	github.com/minio/sha256-simd v1.0.0
 	github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
 	github.com/mistifyio/go-zfs/v3 v3.0.1
@@ -727,7 +728,7 @@ require (
 	github.com/nishanths/exhaustive v0.12.0
 	github.com/nishanths/predeclared v0.2.2
 	github.com/nttcom/pola v1.3.3
-	github.com/nxadm/tail v1.4.8
+	github.com/nxadm/tail v1.4.11
 	github.com/oapi-codegen/nethttp-middleware v1.1.2
 	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oapi-codegen/oapi-codegen/v2 v2.5.0
@@ -911,7 +912,7 @@ require (
 	github.com/swaggo/swag v1.16.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/tc-hib/winres v0.2.0
-	github.com/tdewolff/minify/v2 v2.12.9
+	github.com/tdewolff/minify/v2 v2.20.37
 	github.com/temporalio/cli v1.4.1
 	github.com/temporalio/omes v1.0.0
 	github.com/temporalio/omes/workers/go v0.0.0-20240701113332-211647aa9dae
@@ -926,7 +927,7 @@ require (
 	github.com/timakin/bodyclose v0.0.0-20230421092635-574207250966
 	github.com/timonwong/loggercheck v0.11.0
 	github.com/tink-crypto/tink-go/v2 v2.6.0
-	github.com/tinylib/msgp v1.5.0
+	github.com/tinylib/msgp v1.6.3
 	github.com/tmccombs/hcl2json v0.5.0
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1
 	github.com/trim21/go-phpserialize v0.1.4
@@ -1194,7 +1195,7 @@ require (
 	google.golang.org/genai v1.40.0
 	google.golang.org/genproto v0.0.0-20260319201613-d00831a3d3e7
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260720211330-0afa2a65878a
 	google.golang.org/grpc v1.83.2
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/grpc/examples v0.0.0-20250407062114-b368379ef8f6
@@ -1304,7 +1305,7 @@ require (
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
-	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
+	github.com/Azure/go-ntlmssp v0.1.1 // indirect
 	github.com/AzureAD/microsoft-authentication-extensions-for-go/cache v0.1.1 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.7.0 // indirect
 	github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc // indirect
@@ -1373,7 +1374,7 @@ require (
 	github.com/RaveNoX/go-jsonmerge v1.0.0 // indirect
 	github.com/Sereal/Sereal/Go/sereal v0.0.0-20231009093132-b9187f1a92c6 // indirect
 	github.com/SherClockHolmes/webpush-go v1.2.0 // indirect
-	github.com/Shopify/goreferrer v0.0.0-20220729165902-8cddb4f5de06 // indirect
+	github.com/Shopify/goreferrer v0.0.0-20240724165105-aceaa0259138 // indirect
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d // indirect
 	github.com/Shopify/toxiproxy v2.1.4+incompatible // indirect
 	github.com/Shopify/toxiproxy/v2 v2.5.0 // indirect
@@ -1388,6 +1389,7 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/Yiling-J/theine-go v0.6.1 // indirect
+	github.com/abbot/go-http-auth v0.4.1-0.20220112235402-e1cee1c72f2f // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/aclements/go-moremath v0.0.0-20241023150245-c8bbc672ef66 // indirect
 	github.com/actgardner/gogen-avro/v10 v10.2.1 // indirect
@@ -1416,7 +1418,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b // indirect
 	github.com/aler9/gortsplib v0.0.0-20211126155859-1876546d0542 // indirect
 	github.com/aler9/writerseeker v1.1.0 // indirect
-	github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74 // indirect
+	github.com/alexbrainman/sspi v0.0.0-20250919150558-7d374ff0d59e // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1699 // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
@@ -1810,7 +1812,7 @@ require (
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
 	github.com/glycerine/go-unsnap-stream v0.1.0 // indirect
 	github.com/go-acme/lego/v3 v3.9.0 // indirect
-	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
+	github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667 // indirect
 	github.com/go-check/check v0.0.0-20180628173108-788fd7840127 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-delve/liner v1.2.3-0.20231231155935-4726ab1d7f62 // indirect
@@ -2083,11 +2085,11 @@ require (
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/karlseguin/expect v1.0.8 // indirect
 	github.com/karrick/godirwalk v1.17.0 // indirect
-	github.com/kataras/blocks v0.0.7 // indirect
-	github.com/kataras/golog v0.1.9 // indirect
-	github.com/kataras/iris/v12 v12.2.6-0.20230908161203-24ba4e8933b9 // indirect
-	github.com/kataras/neffos v0.0.22 // indirect
-	github.com/kataras/pio v0.0.12 // indirect
+	github.com/kataras/blocks v0.0.8 // indirect
+	github.com/kataras/golog v0.1.12 // indirect
+	github.com/kataras/iris/v12 v12.2.11 // indirect
+	github.com/kataras/neffos v0.0.24-0.20240408172741-99c879ba0ede // indirect
+	github.com/kataras/pio v0.0.13 // indirect
 	github.com/kataras/sitemap v0.0.6 // indirect
 	github.com/kataras/tunnel v0.0.4 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
@@ -2098,6 +2100,7 @@ require (
 	github.com/kisielk/sqlstruct v0.0.0-20210630145711-dae28ed37023 // indirect
 	github.com/klauspost/asmfmt v1.3.2 // indirect
 	github.com/klauspost/cpuid v1.3.1 // indirect
+	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
 	github.com/knadh/koanf/providers/confmap v1.0.1 // indirect
@@ -2200,6 +2203,7 @@ require (
 	github.com/milvus-io/milvus-proto/go-api/v2 v2.4.10-0.20240819025435-512e3b98866a // indirect
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
+	github.com/minio/crc64nvme v1.1.1 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/mitchellh/cli v1.1.5 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
@@ -2238,6 +2242,7 @@ require (
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mostynb/go-grpc-compression v1.2.3 // indirect
+	github.com/mostynb/zstdpool-syncpool v0.0.13 // indirect
 	github.com/moul/http2curl v1.0.0 // indirect
 	github.com/mozilla/tls-observatory v0.0.0-20210609171429-7bc42856d2e5 // indirect
 	github.com/mpvl/unique v0.0.0-20150818121801-cbe035fff7de // indirect
@@ -2387,7 +2392,7 @@ require (
 	github.com/prometheus/alertmanager v0.30.0 // indirect
 	github.com/prometheus/exporter-toolkit v0.15.1 // indirect
 	github.com/prometheus/sigv4 v0.3.0 // indirect
-	github.com/prometheus/statsd_exporter v0.22.7 // indirect
+	github.com/prometheus/statsd_exporter v0.27.1 // indirect
 	github.com/prometheus/tsdb v0.10.0 // indirect
 	github.com/pseudomuto/protokit v0.2.0 // indirect
 	github.com/pterm/pterm v0.12.82 // indirect
@@ -2439,7 +2444,7 @@ require (
 	github.com/sanity-io/litter v1.5.5 // indirect
 	github.com/sasha-s/go-deadlock v0.3.5 // indirect
 	github.com/sassoftware/go-rpmutils v0.2.0 // indirect
-	github.com/savsgio/gotils v0.0.0-20220323135742-7576ce6963fd // indirect
+	github.com/savsgio/gotils v0.0.0-20240704082632-aef3928b8a38 // indirect
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.36 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 	github.com/schollz/jsonstore v1.1.0 // indirect
@@ -2470,6 +2475,7 @@ require (
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/slackhq/nebula v1.6.1 // indirect
+	github.com/slok/go-http-metrics v0.13.0 // indirect
 	github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262 // indirect
 	github.com/smallstep/certinfo v1.12.0 // indirect
 	github.com/smallstep/go-attestation v0.4.4-0.20240109183208-413678f90935 // indirect
@@ -2515,8 +2521,8 @@ require (
 	github.com/tadglines/go-pkgs v0.0.0-20210623144937-b983b20f54f9 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
-	github.com/tdewolff/parse/v2 v2.6.8 // indirect
-	github.com/tdewolff/test v1.0.9 // indirect
+	github.com/tdewolff/parse/v2 v2.7.15 // indirect
+	github.com/tdewolff/test v1.0.11-0.20240106005702-7de5f7df4739 // indirect
 	github.com/temporalio/features v0.0.0-20231218231852-27c681667dae // indirect
 	github.com/temporalio/features/features v1.0.0 // indirect
 	github.com/temporalio/features/harness/go v1.0.0 // indirect
@@ -2577,6 +2583,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.69.0 // indirect
 	github.com/valyala/fastrand v1.1.0 // indirect
+	github.com/valyala/gozstd v1.24.0 // indirect
 	github.com/valyala/histogram v1.2.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect

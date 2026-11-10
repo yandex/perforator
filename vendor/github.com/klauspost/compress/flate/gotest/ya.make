@@ -6,7 +6,7 @@ LICENSE(
     MIT
 )
 
-VERSION(v1.18.5)
+VERSION(v1.19.0)
 
 DATA(
     arcadia/vendor/github.com/klauspost/compress/testdata
