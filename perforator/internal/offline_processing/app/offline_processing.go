@@ -13,6 +13,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/filecache"
+	"github.com/yandex/perforator/perforator/pkg/provenance/factory"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -83,15 +84,17 @@ func NewOfflineProcessingApp(
 	if err != nil {
 		return nil, err
 	}
+	binaryProcessors := []BinaryProcessor{gsymProcessor}
+	if reader := factory.NewReader(); reader != nil {
+		binaryProcessors = append(binaryProcessors, processors.NewProvenanceProcessor(l, reg, reader, storageBundle.BinaryStorage))
+	}
 
 	processingLoop, err := NewProcessingLoop(
 		l.WithName("ProcessingLoop"),
 		reg.WithPrefix("binary_processing"),
 		binarySelector,
 		binaryFetcher,
-		[]BinaryProcessor{
-			gsymProcessor,
-		},
+		binaryProcessors,
 		conf.Parellelism,
 	)
 	if err != nil {

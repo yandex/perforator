@@ -6,6 +6,10 @@ SRCS(
 
 END()
 
+RECURSE(
+    factory
+)
+
 IF (NOT OPENSOURCE)
     RECURSE(
         yandex-specific/arcadia

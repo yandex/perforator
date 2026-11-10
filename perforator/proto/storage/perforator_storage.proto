@@ -70,8 +70,14 @@ message BinaryUploadMetadata {
     string Filename = 3;
 }
 
+message BinaryBuildInfo {
+    string CommitID = 1;
+    string BuildTargetPath = 2;
+}
+
 message BinaryAttributes {
     optional BinaryUploadMetadata Upload = 1;
+    optional BinaryBuildInfo BuildInfo = 2;
 }
 
 message PushBinaryRequestHead {

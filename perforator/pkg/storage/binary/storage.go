@@ -20,6 +20,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xio"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 var (
@@ -133,6 +134,10 @@ func (s *BinaryStorage) StoreBinary(
 
 	logger.Info(ctx, "Successfully stored binary")
 	return counted.bytesRead, nil
+}
+
+func (s *BinaryStorage) MergeAttributes(ctx context.Context, buildID string, attributes *perforatorstorage.BinaryAttributes) error {
+	return s.metaStorage.MergeAttributes(ctx, buildID, attributes)
 }
 
 func (s *BinaryStorage) loadBinaryMeta(

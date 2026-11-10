@@ -1,6 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
+    attributes.go
     upload_claim.go
     pg.go
     row.go

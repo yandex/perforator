@@ -79,6 +79,10 @@ func (f *fakeMetaStorage) CollectExpiredBinaries(context.Context, time.Duration,
 
 func (f *fakeMetaStorage) RemoveBinaries(context.Context, []string) error { return nil }
 
+func (f *fakeMetaStorage) MergeAttributes(context.Context, string, *perforatorstorage.BinaryAttributes) error {
+	return errors.New("unexpected MergeAttributes call")
+}
+
 type fakeBlobStorage struct {
 	blobs map[string][]byte
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	compressionpb "github.com/yandex/perforator/perforator/proto/lib/compression"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 func bg() context.Context { return context.Background() }
@@ -49,6 +50,10 @@ func (f *fakeMetaStorage) CollectExpiredBinaries(context.Context, time.Duration,
 }
 
 func (f *fakeMetaStorage) RemoveBinaries(context.Context, []string) error { return nil }
+
+func (f *fakeMetaStorage) MergeAttributes(context.Context, string, *perforatorstorage.BinaryAttributes) error {
+	return errors.New("unexpected MergeAttributes call")
+}
 
 type fakeUploadClaim struct {
 	commit func(context.Context, *storage.BlobInfo) error

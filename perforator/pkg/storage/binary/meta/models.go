@@ -105,6 +105,9 @@ type (
 )
 
 type Storage interface {
+	// MergeAttributes replaces supplied top-level attributes, preserving omitted ones.
+	MergeAttributes(ctx context.Context, buildID string, attributes *perforatorstorage.BinaryAttributes) error
+
 	BeginUpload(
 		ctx context.Context,
 		buildID string,

@@ -7,6 +7,7 @@ import (
 
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
 
 var (
@@ -35,6 +36,10 @@ func (s *CombinedStorage) BeginUpload(
 	opts ...binarymeta.Option,
 ) (binarymeta.UploadClaim, error) {
 	return s.writeStorage.BeginUpload(ctx, buildID, timestamp, opts...)
+}
+
+func (s *CombinedStorage) MergeAttributes(ctx context.Context, buildID string, attributes *perforatorstorage.BinaryAttributes) error {
+	return s.writeStorage.MergeAttributes(ctx, buildID, attributes)
 }
 
 func removeDuplicates(metas []*binarymeta.BinaryMeta) []*binarymeta.BinaryMeta {
