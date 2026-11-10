@@ -1183,8 +1183,8 @@ require (
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
 	golang.org/x/tools/godoc v0.1.0-deprecated
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
-	golang.yandex/di v0.19.1
-	golang.yandex/di/digrpc v0.4.0
+	golang.yandex/di v0.20.0
+	golang.yandex/di/digrpc v0.5.0
 	golang.yandex/hasql v1.1.1
 	golang.yandex/hasql/v2 v2.1.1
 	golang.yandex/linters v1.3.3

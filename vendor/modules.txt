@@ -22144,12 +22144,12 @@ golang.org/x/vuln/scan
 ## explicit; go 1.18
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# golang.yandex/di v0.19.1
+# golang.yandex/di v0.20.0
 ## explicit; go 1.27
 golang.yandex/di
 golang.yandex/di/dihttp
 golang.yandex/di/dislog
-# golang.yandex/di/digrpc v0.4.0
+# golang.yandex/di/digrpc v0.5.0
 ## explicit; go 1.27
 golang.yandex/di/digrpc
 # golang.yandex/hasql v1.1.1
