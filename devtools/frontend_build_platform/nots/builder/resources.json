@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-11-09T18:10:52Z",
-    "commit": "d75c7069a8e0bb5dcd7fad50f2259b26792eb724",
-    "branch": "FBP-3700-hermetic-prod-bundle",
+    "created": "2026-11-09T23:14:44Z",
+    "commit": "c37e0848e50e9306af9e7300447ee97663d044a6",
+    "branch": "FBP-3697-platform-tarballs",
     "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14227610370"
+      "uri": "sbr:14229140627"
     },
     "darwin-arm64": {
-      "uri": "sbr:14227615782"
+      "uri": "sbr:14229140944"
     },
     "linux": {
-      "uri": "sbr:14227605861"
+      "uri": "sbr:14229140091"
     },
     "linux-aarch64": {
-      "uri": "sbr:14227609548"
+      "uri": "sbr:14229140331"
     }
   }
 }

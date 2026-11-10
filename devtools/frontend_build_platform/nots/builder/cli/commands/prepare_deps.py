@@ -16,6 +16,12 @@ def prepare_deps_parser(subparsers) -> ArgumentParser:
 
     subparser.add_argument('--resource-root', required=False, help="Root location of build node resources")
     subparser.add_argument(
+        '--tarballs-platform',
+        nargs=3,
+        metavar=('OS', 'CPU', 'LIBC'),
+        help="Install action platform for optional tarball selection",
+    )
+    subparser.add_argument(
         '--tarballs-store', required=True, help="Relative path to the tarballs store from the CURDIR"
     )
     subparser.add_argument(

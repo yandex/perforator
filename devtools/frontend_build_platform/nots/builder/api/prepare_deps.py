@@ -32,6 +32,9 @@ class PrepareDepsOptions(BaseOptions):
     proto_peers: list[str]
     """Arcadia-relative TS_PROTO peers to include in the generated workspace package"""
 
+    tarballs_platform: list[str] | None = None
+    """Install action platform, shared with graph resource selection"""
+
 
 def prepare_deps(args: PrepareDepsOptions):
     pm = PackageManager(
@@ -58,9 +61,15 @@ def prepare_deps(args: PrepareDepsOptions):
         if not has_dependencies and os.path.exists(lockfile_path):
             _validate_dependency_free_lockfile(pm.load_lockfile(lockfile_path))
 
-        pm.build_workspace(args.tarballs_store, args.local_cli)
+        workspace = pm.build_workspace(args.tarballs_store, args.local_cli)
         if has_dependencies and not args.local_cli and os.path.exists(lockfile_path):
-            _copy_tarballs(args, pm.load_lockfile(lockfile_path))
+            lockfile = pm.load_lockfile(lockfile_path)
+            packages = pm.extract_packages_meta_from_lockfiles(
+                [lockfile],
+                platform=args.tarballs_platform,
+                supported_architectures=workspace.settings.get("supportedArchitectures"),
+            )
+            _copy_tarballs(args, packages)
 
 
 def _validate_dependency_free_lockfile(lockfile: Lockfile) -> None:
@@ -87,12 +96,8 @@ def _get_resource_path(args: PrepareDepsOptions, pkg) -> str:
     return os.path.join(args.resource_root, "http", parsed_uri.resource_id, "resource")
 
 
-def _copy_tarballs(args: PrepareDepsOptions, lf: Lockfile):
-    # Tarballs can be used several times in a single pnpm-lock.yaml by different keys
-    # We need to remove duplicates
-    tarball_paths = {pkg.tarball_path: pkg for pkg in lf.get_packages_meta()}
-
-    for pkg in tarball_paths.values():
+def _copy_tarballs(args: PrepareDepsOptions, packages):
+    for pkg in packages:
         resource_tarball_path = _get_resource_path(args, pkg)
         local_tarball_path = os.path.join(args.bindir, args.tarballs_store, pkg.tarball_path)
         os.makedirs(os.path.dirname(local_tarball_path), exist_ok=True)
