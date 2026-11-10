@@ -9,7 +9,7 @@ import (
 	"github.com/antlr4-go/antlr/v4"
 
 	"github.com/yandex/perforator/observability/lib/querylang"
-	"github.com/yandex/perforator/observability/lib/querylang/operator"
+	"github.com/yandex/perforator/observability/lib/querylang/condition"
 	parser "github.com/yandex/perforator/observability/lib/querylang/parser/v2/generated"
 )
 
@@ -173,14 +173,14 @@ func (l *selectorListener) handleStringSelector(opCtx parser.ISelectorOpStringCo
 
 		if op.isEq() {
 			if v == "-" {
-				cond.Operator = operator.Exists
+				cond.Operator = condition.Exists
 				cond.Inverse = !cond.Inverse
 				cond.Value = querylang.Empty{}
 			} else if v == "*" {
-				cond.Operator = operator.Exists
+				cond.Operator = condition.Exists
 				cond.Value = querylang.Empty{}
 			} else if isGlobPatternRegex.MatchString(v) {
-				cond.Operator = operator.Glob
+				cond.Operator = condition.Glob
 			}
 		}
 		l.appendCondition(cond)
@@ -189,7 +189,7 @@ func (l *selectorListener) handleStringSelector(opCtx parser.ISelectorOpStringCo
 
 func (l *selectorListener) handleStringExactSelector(opCtx parser.ISelectorOpStringContext, right string) {
 	l.appendCondition(&querylang.Condition{
-		Operator: operator.Eq,
+		Operator: condition.Eq,
 		Inverse:  opCtx.NOT_EQUIV() != nil,
 		Value:    querylang.String{Value: unquote(right)},
 	})
@@ -197,7 +197,7 @@ func (l *selectorListener) handleStringExactSelector(opCtx parser.ISelectorOpStr
 
 func (l *selectorListener) handleStringRegexSelector(opCtx parser.ISelectorOpStringContext, right string) {
 	l.appendCondition(&querylang.Condition{
-		Operator: operator.Regex,
+		Operator: condition.Regex,
 		Inverse:  opCtx.NOT_REGEX() != nil,
 		Value:    querylang.String{Value: unquote(right)},
 	})
@@ -225,7 +225,7 @@ func (l *selectorListener) handleNumericSelector(opCtx parser.ISelectorOpNumberC
 
 func (l *selectorListener) handleNotExists() {
 	l.appendCondition(&querylang.Condition{
-		Operator: operator.Exists,
+		Operator: condition.Exists,
 		Inverse:  true,
 		Value:    querylang.Empty{},
 	})

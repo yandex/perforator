@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/yandex/perforator/observability/lib/querylang/operator"
+	"github.com/yandex/perforator/observability/lib/querylang/condition"
 )
 
 // Repr returns string representation of Selector.
@@ -40,10 +40,10 @@ func matcherRepr(m *Matcher) string {
 }
 
 func conditionRepr(field string, cond *Condition) string {
-	if cond.Operator == operator.Exists {
-		return fmt.Sprintf(`%s %s`, strconv.Quote(field), operator.Repr(cond.Operator, cond.Inverse))
+	if cond.Operator == condition.Exists {
+		return fmt.Sprintf(`%s %s`, strconv.Quote(field), condition.Repr(cond.Operator, cond.Inverse))
 	}
 
 	value := cond.Value.Repr()
-	return fmt.Sprintf(`%s %s %s`, strconv.Quote(field), operator.Repr(cond.Operator, cond.Inverse), value)
+	return fmt.Sprintf(`%s %s %s`, strconv.Quote(field), condition.Repr(cond.Operator, cond.Inverse), value)
 }

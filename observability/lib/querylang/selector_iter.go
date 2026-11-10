@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/yandex/perforator/observability/lib/querylang/operator"
+	"github.com/yandex/perforator/observability/lib/querylang/condition"
 )
 
 func (f *Selector) Clone() *Selector {
@@ -76,13 +76,13 @@ func (f *Selector) StringFieldValues(field string) (values []string, allValues b
 		if matcher.Field != field {
 			continue
 		}
-		for _, condition := range matcher.Conditions {
-			if condition.Operator == operator.Exists && !condition.Inverse {
+		for _, cond := range matcher.Conditions {
+			if cond.Operator == condition.Exists && !cond.Inverse {
 				allValues = true
 				continue
 			}
-			value, ok := condition.Value.(String)
-			if !ok || !condition.IsStrictEq() {
+			value, ok := cond.Value.(String)
+			if !ok || !cond.IsStrictEq() {
 				return nil, false, fmt.Errorf("values for field %q must be explicitly listed or matched with %s=\"*\"", field, field)
 			}
 			if !slices.Contains(values, value.Value) {
@@ -186,7 +186,7 @@ func (f *Selector) AddStringFieldInMatcher(field string, values ...string) {
 	conditions := make([]*Condition, len(values))
 	for i, value := range values {
 		conditions[i] = &Condition{
-			Operator: operator.Eq,
+			Operator: condition.Eq,
 			Value:    String{Value: value},
 		}
 	}
@@ -246,7 +246,7 @@ func matches(value Value, m *Matcher) bool {
 	matched := 0
 	notMatched := 0
 	for _, cond := range m.Conditions {
-		if cond.Operator != operator.Eq {
+		if cond.Operator != condition.Eq {
 			continue
 		}
 		processed++

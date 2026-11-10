@@ -21,6 +21,7 @@ END()
 
 RECURSE(
     gotest
+    condition
     operator
     parser
     template

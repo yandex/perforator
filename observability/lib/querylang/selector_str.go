@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yandex/perforator/observability/lib/querylang/operator"
+	"github.com/yandex/perforator/observability/lib/querylang/condition"
 )
 
 var (
@@ -74,7 +74,7 @@ func matcherReprStable(m *Matcher) ([]string, error) {
 
 	for _, cond := range m.Conditions {
 		v := cond.Value.raw()
-		if cond.Operator == operator.Exists {
+		if cond.Operator == condition.Exists {
 			if cond.Inverse {
 				v = "-"
 			} else {
@@ -102,10 +102,10 @@ func matcherReprStable(m *Matcher) ([]string, error) {
 
 func matcherCouldBeProcessedAsOr(m *Matcher) bool {
 	for _, c := range m.Conditions {
-		if c.Operator == operator.Regex || c.Operator == operator.ISubstring {
+		if c.Operator == condition.Regex || c.Operator == condition.ISubstring {
 			return false
 		}
-		if c.Operator != operator.Exists && c.Inverse {
+		if c.Operator != condition.Exists && c.Inverse {
 			return false
 		}
 	}
@@ -129,32 +129,32 @@ func fieldWithConditionReprStable(field string, cond *Condition) (string, error)
 func conditionReprStable(cond *Condition) (string, error) {
 	var op string
 	switch cond.Operator {
-	case operator.Exists:
+	case condition.Exists:
 		if cond.Inverse {
 			return `= "-"`, nil
 		}
 		return `= "*"`, nil
-	case operator.LT:
+	case condition.LT:
 		op = "<"
-	case operator.LTE:
+	case condition.LTE:
 		op = "<="
-	case operator.GT:
+	case condition.GT:
 		op = ">"
-	case operator.GTE:
+	case condition.GTE:
 		op = ">="
-	case operator.Regex:
+	case condition.Regex:
 		if cond.Inverse {
 			op = "!~"
 		} else {
 			op = "=~"
 		}
-	case operator.Glob:
+	case condition.Glob:
 		if cond.Inverse {
 			op = "!="
 		} else {
 			op = "="
 		}
-	case operator.Eq:
+	case condition.Eq:
 		op = "="
 		if cond.Inverse {
 			op = "!" + op
@@ -162,7 +162,7 @@ func conditionReprStable(cond *Condition) (string, error) {
 		if hasSpecialSymbols(cond.Value.raw()) {
 			op += "="
 		}
-	case operator.ISubstring:
+	case condition.ISubstring:
 		if cond.Inverse {
 			op = "!=*"
 		} else {

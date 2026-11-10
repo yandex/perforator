@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/yandex/perforator/observability/lib/querylang/operator"
+	"github.com/yandex/perforator/observability/lib/querylang/condition"
 )
 
 type ToStringer interface {
@@ -24,11 +24,11 @@ func arrayToString[T ToStringer](arr []T) ([]string, error) {
 }
 
 func (c *Condition) IsStrictEq() bool {
-	return c.Operator == operator.Eq && !c.Inverse
+	return c.Operator == condition.Eq && !c.Inverse
 }
 
 func (c *Condition) IsEqOrNotEqOrExists() bool {
-	return c.Operator == operator.Eq || c.Operator == operator.Exists
+	return c.Operator == condition.Eq || c.Operator == condition.Exists
 }
 
 var errSmartquoteNotApplicable = errors.New("smartquote not applicable")

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yandex/perforator/observability/lib/querylang/operator"
+	"github.com/yandex/perforator/observability/lib/querylang/condition"
 )
 
 type LogicalOperator int
@@ -34,7 +34,7 @@ type Matcher struct {
 }
 
 type Condition struct {
-	Operator operator.Operator
+	Operator condition.ConditionType
 	Inverse  bool
 	Value    Value
 }
