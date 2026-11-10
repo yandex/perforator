@@ -233,8 +233,11 @@ func (l *testProcessListener) waitForProcessRegistration(ctx context.Context, pi
 
 func setupProfiler(t testing.TB, c config.Config, opts ...profiler.Option) (xlog.Logger, xmetrics.Registry, *testEventListener, *testProcessListener, *profiler.Profiler) {
 	t.Helper()
-	l := xlog.ForTest(t)
+	return setupProfilerWithLogger(t, xlog.ForTest(t), c, opts...)
+}
 
+func setupProfilerWithLogger(t testing.TB, l xlog.Logger, c config.Config, opts ...profiler.Option) (xlog.Logger, xmetrics.Registry, *testEventListener, *testProcessListener, *profiler.Profiler) {
+	t.Helper()
 	ctx := t.Context()
 	release, err := uname.SystemRelease()
 	require.NoError(t, err)

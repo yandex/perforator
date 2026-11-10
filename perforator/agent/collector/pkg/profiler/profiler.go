@@ -51,6 +51,10 @@ import (
 const (
 	PerfReaderTimeout      = 5 * time.Second
 	mainSampleConsumerName = "main_sample_consumer"
+
+	// InitializedMessage is logged at INFO once the eBPF program is loaded and the profiler is ready to collect
+	// samples. Users of `perforator record` wait for it to start a workload, so keep it stable.
+	InitializedMessage = "Successfully initialized profiler"
 )
 
 type initialTargets struct {
@@ -316,7 +320,7 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 		return nil, err
 	}
 
-	l.Info("Successfully initialized profiler")
+	l.Info(InitializedMessage)
 	return profiler, nil
 }
 
