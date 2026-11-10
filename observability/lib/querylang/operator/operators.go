@@ -16,6 +16,7 @@ const (
 	Exists     = condition.Exists
 	Glob       = condition.Glob
 	ISubstring = condition.ISubstring
+	Grep       = condition.Grep
 )
 
 func Repr(op Operator, inverse bool) string {

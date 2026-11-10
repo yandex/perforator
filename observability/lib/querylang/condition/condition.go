@@ -12,6 +12,7 @@ const (
 	Exists
 	Glob
 	ISubstring
+	Grep
 )
 
 func (c ConditionType) IsOperator() bool {
@@ -66,6 +67,11 @@ func Repr(op ConditionType, inverse bool) string {
 			return "!isubstring"
 		}
 		return "isubstring"
+	case Grep:
+		if inverse {
+			return "!grep"
+		}
+		return "grep"
 	default:
 		return "unknown_operator"
 	}
@@ -91,6 +97,8 @@ func (c ConditionType) String() string {
 		return "Glob"
 	case ISubstring:
 		return "ISubstring"
+	case Grep:
+		return "Grep"
 	default:
 		return "Unknown"
 	}
