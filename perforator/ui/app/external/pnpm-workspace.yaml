@@ -1,6 +1,8 @@
 packages:
   - ../packages/*
   - ../viewer
+overrides:
+  'perforator>@perforator/flamegraph': file:../packages/flamegraph
 
 allowBuilds:
   "@swc/core": false

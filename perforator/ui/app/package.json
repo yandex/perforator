@@ -2,6 +2,12 @@
   "name": "perforator",
   "version": "0.0.0",
   "private": true,
+  "pnpm": {
+    "forceLegacyDeploy": true,
+    "overrides": {
+      "perforator>@perforator/flamegraph": "file:../packages/flamegraph"
+    }
+  },
   "scripts": {
     "build": "tsc && vite build",
     "nots:build": "vite build --config vite.config.ts",

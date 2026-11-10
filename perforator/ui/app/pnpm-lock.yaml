@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  perforator>@perforator/flamegraph: file:../packages/flamegraph
+
 importers:
 
   .:
@@ -54,7 +57,7 @@ importers:
         specifier: 7.36.1
         version: 7.36.1(@babel/runtime@7.26.7)(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perforator/flamegraph':
-        specifier: workspace:../packages/flamegraph
+        specifier: file:../packages/flamegraph
         version: link:../packages/flamegraph
       '@tanstack/react-query':
         specifier: 5.100.1
