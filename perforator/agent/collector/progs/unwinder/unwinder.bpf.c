@@ -47,11 +47,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-struct perf_event_value {
-    u64 counter;
-    u64 samples;
-};
-
 struct stack_key {
     u32 pid;
     u32 tid;
@@ -85,8 +80,7 @@ struct profiler_state {
     bool skip_sample_recording;
     bool should_trace_process;
 
-    u64 event_count;
-    struct perf_event_value sum;
+    struct perf_event_value event_count;
     struct bpf_perf_event_value prev_counter;
 
     struct stack kernstack;
@@ -397,13 +391,12 @@ static ALWAYS_INLINE u32 pack_sample(struct packed_sample* packed, struct profil
 
 static ALWAYS_INLINE void record_sample(
     void* ctx,
-    struct profiler_state* state,
-    u64 value
+    struct profiler_state* state
 ) {
     struct record_sample_header* hdr = &state->packed.header;
 
     hdr->parent_cgroup = state->traced_cgroup;
-    hdr->value = value;
+    hdr->value = state->event_count;
     hdr->cpu = bpf_get_smp_processor_id();
 
     u64 ktime = bpf_ktime_get_ns();
@@ -412,11 +405,6 @@ static ALWAYS_INLINE void record_sample(
 
     u32 size = pack_sample(&state->packed, state);
     submit_packed_sample(ctx, &state->packed, size);
-
-    if (value) {
-        __sync_fetch_and_add(&state->sum.counter, value);
-    }
-    __sync_fetch_and_add(&state->sum.samples, 1);
 }
 
 static NOINLINE struct process_info* lookup_process(
@@ -469,18 +457,19 @@ static ALWAYS_INLINE u64 get_perf_event_config(struct bpf_perf_event_data* ctx) 
     return BPF_CORE_READ(kctx, event, attr.config);
 }
 
-static NOINLINE u64 calculate_perf_counter_delta(struct bpf_perf_event_data* ctx, u64 id) {
+static NOINLINE void calculate_perf_counter_delta(struct perf_event_value* out, struct bpf_perf_event_data* ctx, u64 id) {
     struct bpf_perf_event_value zero = {};
     struct bpf_perf_event_value* prev = bpf_map_lookup_elem(&perf_event_values, &id);
     if (!prev) {
         prev = &zero;
     }
 
+    struct perf_event_value zero_val = {};
     struct bpf_perf_event_value value;
     int err = bpf_perf_prog_read_value(ctx, &value, sizeof(value));
     if (err != 0) {
         BPF_TRACE("bpf_perf_prog_read_value failed: %d\n", err);
-        return 0;
+        *out = zero_val;
     }
 
     if (prev->counter > value.counter) {
@@ -489,7 +478,7 @@ static NOINLINE u64 calculate_perf_counter_delta(struct bpf_perf_event_data* ctx
         prev->enabled = 0;
     }
 
-    struct bpf_perf_event_value delta = {
+    struct perf_event_value delta = {
         .counter = value.counter - prev->counter,
         .enabled = value.enabled - prev->enabled,
         .running = value.running - prev->running,
@@ -500,23 +489,14 @@ static NOINLINE u64 calculate_perf_counter_delta(struct bpf_perf_event_data* ctx
     err = bpf_map_update_elem(&perf_event_values, &id, prev, BPF_ANY);
     if (err != 0) {
         BPF_TRACE("bpf_map_update_elem failed: %d", err);
-        return 0;
+        *out = zero_val;
     }
 
-    if (delta.counter == 0 || delta.enabled == 0 || delta.running == 0) {
-        BPF_TRACE("zero event: %lld, %lld, %lld\n", delta.counter, delta.enabled, delta.running);
-        return 0;
-    }
-
-    u64 ratio = delta.running * 100 / delta.enabled;
-    u64 count = delta.counter * delta.enabled / delta.running;
-    if (ratio != 100) {
+    *out = delta;
+    if (delta.enabled != delta.running) {
         metric_add(METRIC_PERFEVENT_MULTIPLEXED_COUNT, 1);
-        BPF_TRACE("unexpected ratio: %lld, scaling %lld -> %lld\n", ratio, delta.counter, count);
         BPF_TRACE("dcounter: %lld, drunning: %lld, denabled: %lld\n", delta.counter, delta.running, delta.enabled);
     }
-
-    return count;
 }
 
 static ALWAYS_INLINE struct profiler_state* get_state() {
@@ -890,7 +870,7 @@ static NOINLINE int profiler_stage_record_sample(
     get_current_process_comm(hdr->process_comm);
     bpf_get_current_comm(hdr->thread_comm, ARRAY_SIZE(hdr->thread_comm));
 
-    record_sample(ctx, state, state->event_count);
+    record_sample(ctx, state);
     return 0;
 }
 
@@ -906,7 +886,7 @@ static NOINLINE int profiler_stage_collect_lbr_stack(void* ctx, struct profiler_
 ////////////////////////////////////////////////////////////////////////////////
 
 struct profiler_sample_args {
-    u64 event_count;
+    struct perf_event_value event_count;
     u64 starttime;
     enum sample_type sample_type;
     union sample_config sample_config;
@@ -989,7 +969,7 @@ static NOINLINE int profiler_do_sample_impl_other(void* ctx, struct user_regs* r
 // - profiler_do_sample_finish
 // In order to reduce stack usage.
 static NOINLINE void profiler_do_sample_start(struct profiler_sample_args* args) {
-    metric_add(METRIC_EVENT_COUNT, args->event_count);
+    metric_add(METRIC_UNSCALED_EVENT_COUNT, args->event_count.counter);
     metric_increment(METRIC_SAMPLE_COUNT);
 }
 
@@ -1027,11 +1007,16 @@ int perforator_perf_event(struct bpf_perf_event_data* ctx) {
     args.sample_config.perf_event.attr.type = get_perf_event_type(ctx);
     args.sample_config.perf_event.attr.config = get_perf_event_config(ctx);
     args.sample_config.perf_event.id = get_perf_event_id(ctx);
-    args.event_count = calculate_perf_counter_delta(ctx, args.sample_config.perf_event.id);
-    if (args.event_count == 0) {
+    calculate_perf_counter_delta(&args.event_count, ctx, args.sample_config.perf_event.id);
+    if (args.event_count.counter == 0) {
         return 0;
     }
-    BPF_TRACE("Got event count %llu\n", args.event_count);
+    BPF_TRACE(
+        "Got event count %llu, running/enabled=%llu/%llu\n",
+        args.event_count.counter,
+        args.event_count.running,
+        args.event_count.enabled
+    );
 
     struct user_regs* regs = map_lookup_zero(&percpu_user_regs);
     if (regs == NULL) {
@@ -1071,11 +1056,16 @@ int perforator_amd_fam19h_brs_event(struct bpf_perf_event_data* ctx) {
     args.sample_config.perf_event.attr.type = get_perf_event_type(ctx);
     args.sample_config.perf_event.attr.config = get_perf_event_config(ctx);
     args.sample_config.perf_event.id = get_perf_event_id(ctx);
-    args.event_count = calculate_perf_counter_delta(ctx, args.sample_config.perf_event.id);
-    if (args.event_count == 0) {
+    calculate_perf_counter_delta(&args.event_count, ctx, args.sample_config.perf_event.id);
+    if (args.event_count.counter == 0) {
         return 0;
     }
-    BPF_TRACE("Got event count %llu\n", args.event_count);
+    BPF_TRACE(
+        "Got event count %llu, running/enabled=%llu/%llu\n",
+        args.event_count.counter,
+        args.event_count.running,
+        args.event_count.enabled
+    );
 
     profiler_do_sample_start(&args);
     int err = profiler_do_sample_amd_fam19h_brs_perfevent(ctx, &args);
@@ -1103,12 +1093,18 @@ static NOINLINE bool sample_sched_event() {
     return rng % config->sched_sample_modulo == 0;
 }
 
+static ALWAYS_INLINE void init_event_count(struct perf_event_value* ec, u64 counter) {
+    ec->counter = counter;
+    ec->enabled = 1;
+    ec->running = 1;
+}
+
 SEC("kprobe/finish_task_switch")
 int perforator_finish_task_switch(struct pt_regs* ctx) {
     struct profiler_sample_args args = {};
     args.starttime = bpf_ktime_get_ns();
     args.sample_type = SAMPLE_TYPE_KPROBE_FINISH_TASK_SWITCH;
-    args.event_count = 0;
+    init_event_count(&args.event_count, 0);
     args.needs_lbr_stack = false;
     args.normalize_walltime = true;
     args.record_walltime = true;
@@ -1157,7 +1153,7 @@ int perforator_signal_deliver(struct trace_event_signal_deliver* ctx) {
     args.starttime = bpf_ktime_get_ns();
     args.sample_type = SAMPLE_TYPE_TRACEPOINT_SIGNAL_DELIVER;
     args.sample_config.sig = ctx->sig;
-    args.event_count = 0;
+    init_event_count(&args.event_count, 0);
     args.needs_lbr_stack = false;
     args.record_walltime = false;
 
@@ -1185,7 +1181,7 @@ int perforator_uprobe(struct pt_regs* ctx) {
     struct profiler_sample_args args = {};
     args.starttime = bpf_ktime_get_ns();
     args.sample_type = SAMPLE_TYPE_UPROBE;
-    args.event_count = 1;
+    init_event_count(&args.event_count, 1);
     args.needs_lbr_stack = false;
     args.record_walltime = false;
 

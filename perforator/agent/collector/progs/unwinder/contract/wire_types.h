@@ -78,6 +78,12 @@ struct perf_event_subset {
     u64 id;
 };
 
+struct perf_event_value {
+    u64 counter;
+    u64 running;
+    u64 enabled;
+};
+
 union sample_config {
     i32 sig;
     struct perf_event_subset perf_event;
@@ -121,7 +127,7 @@ struct record_sample_header {
     u32 innermost_pidns_pid;
     u64 parent_cgroup;
     u64 starttime;
-    u64 value;
+    struct perf_event_value value;
     u64 timedelta;
     struct section_desc kern_stack;
     struct section_desc user_stack;

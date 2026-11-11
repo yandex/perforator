@@ -78,7 +78,7 @@ func ParsePackedSample(data []byte, out *RecordSampleParsed) error {
 	for _, section := range sections {
 		offset, size := int(section.desc.Offset), int(section.desc.Size)
 		if offset != expectedOffset || offset%8 != 0 || size%section.elementSize != 0 {
-			return fmt.Errorf("invalid section offset/size: %d/%d", offset, size)
+			return fmt.Errorf("invalid section offset/size: %d/%d (expected %d)", offset, size, expectedOffset)
 		}
 		if offset+size > len(data)-recordSampleHeaderSize {
 			return errTooShort

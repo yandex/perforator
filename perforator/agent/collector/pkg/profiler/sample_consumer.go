@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
+	"math/bits"
 	"sync"
 	"syscall"
 	"time"
@@ -629,8 +631,17 @@ func (c *oneShotSampleConsumer) collectWallTime(builder *profile.SampleBuilder) 
 	builder.AddValue(int64(c.sample.Timedelta))
 }
 
+func scalePerfCounterDelta(delta unwinder.PerfEventValue) int64 {
+	hi, lo := bits.Mul64(delta.Counter, delta.Enabled)
+	if hi >= delta.Running {
+		return math.MaxInt64
+	}
+	q, _ := bits.Div64(hi, lo, delta.Running)
+	return int64(q)
+}
+
 func (c *oneShotSampleConsumer) collectEventCount(builder *profile.SampleBuilder) {
-	builder.AddValue(int64(c.sample.Value))
+	builder.AddValue(scalePerfCounterDelta(c.sample.Value))
 }
 
 func (c *oneShotSampleConsumer) collectSignalInto(builder *profile.SampleBuilder) {

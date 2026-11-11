@@ -26,8 +26,10 @@ func buildMinimalPackedSample() []byte {
 	le.PutUint32(buf[84:88], 43)    // tid
 	le.PutUint64(buf[96:104], 99)   // parent_cgroup
 	le.PutUint64(buf[104:112], 555) // starttime
-	le.PutUint64(buf[112:120], 100) // value
-	le.PutUint64(buf[120:128], 200) // timedelta
+	le.PutUint64(buf[112:120], 100) // value.counter
+	le.PutUint64(buf[120:128], 1)   // value.running
+	le.PutUint64(buf[128:136], 1)   // value.enabled
+	le.PutUint64(buf[136:144], 200) // timedelta
 	// All section descriptors are zero (offset=0, size=0)
 
 	return buf
@@ -73,8 +75,14 @@ func TestParsePackedSampleMinimal(t *testing.T) {
 	if out.Cpu != 3 {
 		t.Errorf("Cpu = %d, want 3", out.Cpu)
 	}
-	if out.Value != 100 {
-		t.Errorf("Value = %d, want 100", out.Value)
+	if out.Value.Counter != 100 {
+		t.Errorf("Value.Counter = %d, want 100", out.Value.Counter)
+	}
+	if out.Value.Enabled != 1 {
+		t.Errorf("Value.Enabled = %d, want 1", out.Value.Enabled)
+	}
+	if out.Value.Running != 1 {
+		t.Errorf("Value.Running = %d, want 1", out.Value.Running)
 	}
 	if len(out.KernStack) != 0 || len(out.UserStack) != 0 || len(out.Cgroups) != 0 {
 		t.Errorf("expected empty stacks/cgroups")

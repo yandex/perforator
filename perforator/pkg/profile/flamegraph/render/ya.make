@@ -42,11 +42,11 @@ GO_TEST_SRCS(text_format_test.go)
 
 GO_EMBED_PATTERN(tmpl.html)
 
-RESOURCE(
-    ${ARCADIA_BUILD_ROOT}/perforator/ui/union/viewer.js viewer.js
-)
+#RESOURCE(
+#    ${ARCADIA_BUILD_ROOT}/perforator/ui/union/viewer.js viewer.js
+#)
 
-PEERDIR(perforator/ui/union)
+#PEERDIR(perforator/ui/union)
 
 END()
 
