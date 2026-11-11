@@ -23,12 +23,14 @@ PEERDIR(
     contrib/libs/llvm22
     contrib/libs/llvm22/lib/Demangle
     contrib/libs/zlib
+    contrib/libs/zstd
     library/cpp/sanitizer/include
 )
 
 ADDINCL(
     contrib/libs/llvm22/lib/Support
     contrib/libs/llvm22/lib/Support/BLAKE3
+    contrib/libs/zstd/include
 )
 
 NO_COMPILER_WARNINGS()
