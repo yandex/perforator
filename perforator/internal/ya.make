@@ -9,6 +9,7 @@ RECURSE(
     linguist
     logfield
     offline_processing
+    profilingevent
     pgo
     symbolizer
     symboltable

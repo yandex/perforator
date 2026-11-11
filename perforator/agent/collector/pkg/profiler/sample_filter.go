@@ -8,7 +8,6 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
-	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 )
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -63,21 +62,21 @@ func NewPerfEventSampleFilter() SampleFilterFunc {
 	}
 }
 
-func NewPerfEventIDSampleFilter(events ...*PerfEvent) SampleFilterFunc {
+func NewPerfEventIDSampleFilter(profiler *Profiler, events ...*PerfEvent) SampleFilterFunc {
 	return func(ctx context.Context, sample *unwinder.RecordSampleParsed) bool {
 		if sample.SampleType != unwinder.SampleTypePerfEvent {
 			return false
 		}
 
 		perfEvent := sample.SampleConfig.GetPerfEvent()
-		id := perfevent.PerfEventID(perfEvent.Id)
+		id := PerfEventID(perfEvent.Id)
+		owner := profiler.perfEventManager.eventmanager.GetEvent(id)
 
 		for _, event := range events {
-			if event.ContainsID(id) {
+			if event.Bundle == owner.Bundle {
 				return true
 			}
 		}
-
 		return false
 	}
 }

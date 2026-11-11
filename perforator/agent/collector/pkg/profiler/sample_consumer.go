@@ -21,6 +21,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/logfield"
+	"github.com/yandex/perforator/perforator/internal/profilingevent"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -685,8 +686,9 @@ func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 	switch c.sample.SampleType {
 	case unwinder.SampleTypePerfEvent:
 		perfEvent := c.sample.SampleConfig.GetPerfEvent()
+
 		// TODO: remove this if and implement per-perf-event sample consuming logic using custom perf event filters from sample_filter.go
-		if perfEvent.Attr.Type != perfevent.AMDFam19hBRS.Type || perfEvent.Attr.Config != perfevent.AMDFam19hBRS.Config {
+		if perfEvent.Attr.Type != profilingevent.AMDFam19hBRS.Type || perfEvent.Attr.Config != profilingevent.AMDFam19hBRS.Config {
 			c.recordCPUSample(ctx)
 		}
 		c.recordLBRSample(ctx)
@@ -742,9 +744,9 @@ func (c *oneShotSampleConsumer) finishSample(builder *profile.SampleBuilder) {
 func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
 	hasWallTime := c.p.conf.BPF.TraceWallTime != nil && *c.p.conf.BPF.TraceWallTime
 
-	var resolvedPerfEvent *perfevent.Event
+	var resolvedPerfEvent *perfevent.EventInfo
 	if c.sample.SampleType == unwinder.SampleTypePerfEvent {
-		resolvedPerfEvent = c.p.eventmanager.GetEvent(perfevent.PerfEventID(c.sample.SampleConfig.GetPerfEvent().Id))
+		resolvedPerfEvent = c.p.perfEventManager.eventmanager.GetEvent(perfevent.ID(c.sample.SampleConfig.GetPerfEvent().Id))
 		if resolvedPerfEvent == nil {
 			c.p.metrics.unresolvedPerfEventsForSamples.Inc()
 			c.p.log.Debug("Skipped sample of unresolved perf event", log.Any("perf_event", c.sample.SampleConfig.GetPerfEvent()))
@@ -753,11 +755,11 @@ func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
 	}
 
 	// In case of a kprobe_finish_task_switch sample we assume cpu cycles profile
-	sampleType := perfevent.CPUCycles.Name()
-	unit := perfevent.CPUCycles.Unit()
+	sampleType := profilingevent.CPUCycles.Name()
+	unit := profilingevent.CPUCycles.Unit()
 	if resolvedPerfEvent != nil {
-		sampleType = resolvedPerfEvent.Type().Name()
-		unit = resolvedPerfEvent.Type().Unit()
+		sampleType = resolvedPerfEvent.Type.Name()
+		unit = resolvedPerfEvent.Type.Unit()
 	}
 
 	sampleTypes := []profile.SampleType{{Kind: sampleType, Unit: unit}}

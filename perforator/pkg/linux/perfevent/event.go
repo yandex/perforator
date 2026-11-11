@@ -52,15 +52,16 @@ type Target struct {
 
 	// If set, trace whole system.
 	WholeSystem bool
+}
 
-	// ID of the CPU core to trace.
-	// If CPU is nil, trace every core.
-	CPU *int
+type eventTarget struct {
+	t   Target
+	cpu int
 }
 
 type Options struct {
 	// Type of the perf event.
-	Type *PerfEventType
+	Type Type
 
 	// Event sampling rate.
 	SampleRate *uint64
@@ -75,76 +76,48 @@ type Options struct {
 	// Create perf event enabled by default.
 	Enable bool
 
-	// Try to enable branch sampling (PERF_SAMPLE_BRANCH_STACK)
-	TryToSampleBranchStack bool
+	// Enable branch sampling (PERF_SAMPLE_BRANCH_STACK)
+	SampleBranchStack bool
 }
 
-type branchStackOptions struct {
-	// Sample branch stack
-	Enable bool
-}
-
-type Handle struct {
+type handle struct {
 	fd *os.File
-	id PerfEventID
-}
-
-// TODO(sskvor): Use less hardcoded values, add more options
-func NewHandle(target *Target, options *Options) (*Handle, error) {
-	if options.TryToSampleBranchStack {
-		// Branch stack sampling could be not supported by either hardware, kernel or event type.
-		// We try to create a perf event with it for LBR collection,
-		// but if it fails we just fall back to not using it.
-		handle, err := newHandle(target, options, branchStackOptions{Enable: true})
-		if err == nil {
-			return handle, nil
-		}
-	}
-
-	return newHandle(target, options, branchStackOptions{Enable: false})
+	id ID
 }
 
 // Close this perf event. Stop generating samples, detach attached eBPF programs.
-func (h *Handle) Close() error {
+func (h *handle) close() error {
 	return h.fd.Close()
 }
 
 // Start generating events by this perf event.
 // New events by default are enabled.
-func (h *Handle) Enable() error {
+func (h *handle) enable() error {
 	return unix.IoctlSetInt(int(h.fd.Fd()), unix.PERF_EVENT_IOC_ENABLE, 1)
 }
 
 // Stop generating events by this perf event.
-func (h *Handle) Disable() error {
+func (h *handle) disable() error {
 	return unix.IoctlSetInt(int(h.fd.Fd()), unix.PERF_EVENT_IOC_DISABLE, 1)
 }
 
 // Attach existing eBPF program to the perf event.
-func (h *Handle) AttachBPF(bpfFD int) error {
+func (h *handle) attachBPF(bpfFD int) error {
 	return unix.IoctlSetInt(int(h.fd.Fd()), unix.PERF_EVENT_IOC_SET_BPF, bpfFD)
 }
 
-// Get system-wide unique id of the perf event.
-func (h *Handle) ID() PerfEventID {
-	return h.id
-}
-
-func getPerfEventID(fd *os.File) (id PerfEventID, err error) {
+func getPerfEventID(fd *os.File) (id ID, err error) {
 	var rawID uint64
 	_, _, errno := unix.Syscall(syscall.SYS_IOCTL, fd.Fd(), unix.PERF_EVENT_IOC_ID, uintptr(unsafe.Pointer(&rawID)))
 	if errno != 0 {
 		err = errno
 		return
 	}
-	return PerfEventID(rawID), nil
+	return ID(rawID), nil
 }
 
-func newHandle(target *Target, options *Options, branchStackOptions branchStackOptions) (*Handle, error) {
-	attr, err := makePerfEventAttr(options, &branchStackOptions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare perf event attributes: %w", err)
-	}
+func newHandle(target *eventTarget, options *Options) (*handle, error) {
+	attr := makePerfEventAttr(options)
 
 	h, err := newHandleFromAttr(attr, target)
 	if err != nil {
@@ -153,24 +126,21 @@ func newHandle(target *Target, options *Options, branchStackOptions branchStackO
 	return h, nil
 }
 
-func newHandleFromAttr(attr *unix.PerfEventAttr, target *Target) (hndl *Handle, err error) {
+func newHandleFromAttr(attr *unix.PerfEventAttr, target *eventTarget) (hndl *handle, err error) {
 	flags := 0
 	flags |= unix.PERF_FLAG_FD_CLOEXEC
 
 	pid := -1
-	if target.ProcessID != nil {
-		pid = *target.ProcessID
-	} else if target.CgroupFD != nil {
-		pid = *target.CgroupFD
+	if target.t.ProcessID != nil {
+		pid = *target.t.ProcessID
+	} else if target.t.CgroupFD != nil {
+		pid = *target.t.CgroupFD
 		flags |= unix.PERF_FLAG_PID_CGROUP
 	}
 
-	cpu := -1
-	if target.CPU != nil {
-		cpu = *target.CPU
-	}
+	cpu := target.cpu
 
-	fd, err := unix.PerfEventOpen(attr, pid, cpu, -1 /*groupFd*/, flags)
+	fd, err := unix.PerfEventOpen(attr, pid, cpu, -1 /* groupFd */, flags)
 	if err != nil {
 		return nil, fmt.Errorf("syscall perf_event_open(attr=%+v, pid=%d, cpu=%d, flags=%d) failed: %w", attr, pid, cpu, flags, err)
 	}
@@ -187,10 +157,10 @@ func newHandleFromAttr(attr *unix.PerfEventAttr, target *Target) (hndl *Handle, 
 		return nil, fmt.Errorf("failed to get perf event id: %w", err)
 	}
 
-	return &Handle{file, id}, nil
+	return &handle{file, id}, nil
 }
 
-func makePerfEventAttr(options *Options, branchStackOptions *branchStackOptions) (*unix.PerfEventAttr, error) {
+func makePerfEventAttr(options *Options) *unix.PerfEventAttr {
 	attr := &unix.PerfEventAttr{}
 	attr.Size = uint32(unsafe.Sizeof(*attr))
 
@@ -202,7 +172,7 @@ func makePerfEventAttr(options *Options, branchStackOptions *branchStackOptions)
 		unix.PERF_SAMPLE_IP |
 		unix.PERF_SAMPLE_TID
 
-	if branchStackOptions.Enable {
+	if options.SampleBranchStack {
 		attr.Sample_type |= unix.PERF_SAMPLE_BRANCH_STACK
 		attr.Branch_sample_type = 0 |
 			unix.PERF_SAMPLE_BRANCH_USER |
@@ -214,8 +184,6 @@ func makePerfEventAttr(options *Options, branchStackOptions *branchStackOptions)
 		attr.Bits |= unix.PerfBitFreq
 	} else if options.SampleRate != nil {
 		attr.Sample = *options.SampleRate
-	} else {
-		return nil, fmt.Errorf("no Frequency or SampleRate is set")
 	}
 
 	if options.Pinned {
@@ -226,5 +194,5 @@ func makePerfEventAttr(options *Options, branchStackOptions *branchStackOptions)
 		attr.Bits |= unix.PerfBitDisabled
 	}
 
-	return attr, nil
+	return attr
 }

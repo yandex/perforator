@@ -34,12 +34,12 @@ import (
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/custom_profiling_operation"
 	storage_service "github.com/yandex/perforator/perforator/internal/agent_gateway/server/storage"
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
+	"github.com/yandex/perforator/perforator/internal/profilingevent"
 	proxyserver "github.com/yandex/perforator/perforator/internal/symbolizer/proxy/server"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/certifi"
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
 	"github.com/yandex/perforator/perforator/pkg/filecache"
-	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/postgres"
 	s3client "github.com/yandex/perforator/perforator/pkg/s3"
 	"github.com/yandex/perforator/perforator/pkg/storage/binary"
@@ -792,7 +792,7 @@ func testEnvConfig() *Config {
 					TraceWallTime: ptr.Bool(false),
 				},
 				PerfEvents: []profiler_config.PerfEventConfig{{
-					Type:      perfevent.CPUCycles.Name(),
+					Type:      profilingevent.CPUCycles.Name(),
 					Frequency: ptr.Uint64(99),
 				}},
 				FeatureFlagsConfig: profiler_config.FeatureFlagsConfig{

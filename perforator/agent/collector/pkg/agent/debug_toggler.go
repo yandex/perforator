@@ -40,12 +40,12 @@ func (d *debugModeTogglerWatcher) run(ctx context.Context) error {
 		}
 
 		if _, err := os.Stat(d.conf.TogglerPath); err == nil {
-			err = d.profiler.SetDebugMode(true)
+			err = d.profiler.SetDebugMode(ctx, true)
 			if err != nil {
 				d.l.Error("Failed to enable debug mode", log.Error(err))
 			}
 		} else {
-			err = d.profiler.SetDebugMode(false)
+			err = d.profiler.SetDebugMode(ctx, false)
 			if err != nil {
 				d.l.Error("Failed to disable debug mode", log.Error(err))
 			}

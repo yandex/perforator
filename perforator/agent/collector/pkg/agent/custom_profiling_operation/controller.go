@@ -15,6 +15,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	cpo_internal "github.com/yandex/perforator/perforator/internal/custom_profiling_operation"
+	"github.com/yandex/perforator/perforator/internal/profilingevent"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
@@ -227,17 +228,17 @@ func (o *operationController) createUprobesForEvent(ctx context.Context, eventSe
 }
 
 func (o *operationController) createPerfEvents(ctx context.Context, eventSettings *cpo_proto.EventSettings_PerfEvent, target *cpo_proto.Target) error {
-	typ := perfevent.GetTypeByNameOrAlias(eventSettings.PerfEvent.Type)
+	typ := profilingevent.GetTypeByNameOrAlias(eventSettings.PerfEvent.Type)
 	if typ == nil {
 		return fmt.Errorf("unknown event type: %s", eventSettings.PerfEvent.Type)
 	}
-	perfEventType, ok := typ.(*perfevent.PerfEventType)
+	perfEventType, ok := typ.(*perfevent.Type)
 	if !ok {
 		return fmt.Errorf("[BUG] event type %s is not a perf event", eventSettings.PerfEvent.Type)
 	}
 
 	options := &perfevent.Options{
-		Type:   perfEventType,
+		Type:   *perfEventType,
 		Enable: true,
 	}
 
@@ -265,7 +266,7 @@ func (o *operationController) createPerfEvents(ctx context.Context, eventSetting
 		return fmt.Errorf("failed to create perf event: %w", err)
 	}
 
-	err = perfEvent.Attach()
+	err = perfEvent.Attach(ctx)
 	if err != nil {
 		closeErr := perfEvent.Close()
 		if closeErr != nil {
@@ -344,7 +345,7 @@ func (o *operationController) setupSampleConsumer(ctx context.Context) (err erro
 		profiler.NewUprobeSampleFilter(o.profiler, allowedUprobes),
 	}
 	if len(o.perfEvents) > 0 {
-		eventSampleFilters = append(eventSampleFilters, profiler.NewPerfEventIDSampleFilter(o.perfEvents...))
+		eventSampleFilters = append(eventSampleFilters, profiler.NewPerfEventIDSampleFilter(o.profiler, o.perfEvents...))
 	}
 
 	for _, feature := range o.spec.Features {

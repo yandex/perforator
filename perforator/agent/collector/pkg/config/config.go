@@ -16,7 +16,7 @@ import (
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
-	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
+	"github.com/yandex/perforator/perforator/internal/profilingevent"
 )
 
 type ProcessDiscoveryConfig struct {
@@ -322,7 +322,7 @@ func (c *Config) FillDefault() {
 
 	if (c.BPF.TraceSignals == nil || !*c.BPF.TraceSignals) && len(c.PerfEvents) == 0 && len(uprobes) == 0 {
 		c.PerfEvents = []PerfEventConfig{{
-			Type:      perfevent.CPUCycles.Name(),
+			Type:      profilingevent.CPUCycles.Name(),
 			Frequency: ptr.Uint64(99),
 		}}
 	}

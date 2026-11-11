@@ -36,6 +36,7 @@ import (
 	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/logfield"
+	"github.com/yandex/perforator/perforator/internal/profilingevent"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/graceful"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -89,7 +90,6 @@ type Profiler struct {
 	sampleConsumerRegistry SampleConsumerRegistry
 
 	bpf              *machine.BPF
-	eventmanager     *perfevent.EventManager
 	perfEventManager *PerfEventManager
 	uprobeRegistry   *uprobeRegistry
 	mounts           *mountinfo.Watcher
@@ -255,8 +255,8 @@ func validateConfig(c *config.Config) error {
 	if c.BPF.TraceWallTime == nil || *c.BPF.TraceWallTime {
 		foundCPUCyclesPerfEvent := false
 		for _, perfEventConfig := range c.PerfEvents {
-			resolvedPerfEvent := perfevent.GetTypeByNameOrAlias(perfEventConfig.Type)
-			if resolvedPerfEvent.Name() == perfevent.CPUCycles.Name() {
+			resolvedPerfEvent := profilingevent.GetTypeByNameOrAlias(perfEventConfig.Type)
+			if resolvedPerfEvent.Name() == profilingevent.CPUCycles.Name() {
 				foundCPUCyclesPerfEvent = true
 				break
 			}
@@ -314,7 +314,7 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 		}
 	}
 
-	err = profiler.initialize(r)
+	err = profiler.initialize(context.TODO(), r)
 	if err != nil {
 		l.Error("Failed to initialize profiler", log.Error(err))
 		return nil, err
@@ -402,7 +402,7 @@ func (p *Profiler) initializeStorage(r metrics.Registry) (err error) {
 
 // Initialize the profiler.
 // Prepare and load eBPF programs, tune rlimits, ...
-func (p *Profiler) initialize(r metrics.Registry) (err error) {
+func (p *Profiler) initialize(ctx context.Context, r metrics.Registry) (err error) {
 	if p.conf.JVM.Identity != "" {
 		p.identity = p.conf.JVM.Identity
 	}
@@ -422,13 +422,11 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		return fmt.Errorf("failed to initialize eBPF subsystem: %w", err)
 	}
 
-	// Prepare perf event manager
-	p.eventmanager, err = perfevent.NewEventManager(p.log, r)
+	perfEventManager, err := perfevent.NewManager(p.log, r)
 	if err != nil {
 		return fmt.Errorf("failed to initialize perf event subsystem: %w", err)
 	}
-
-	p.perfEventManager = NewPerfEventManager(p.bpf, p.eventmanager)
+	p.perfEventManager = NewPerfEventManager(p.bpf, perfEventManager)
 
 	// Prepare uprobe registry
 	p.uprobeRegistry = newUprobeRegistry(p.bpf)
@@ -445,7 +443,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	p.setupUprobes()
 
 	// Link perf events with the eBPF program.
-	err = p.installPerfEventBPF()
+	err = p.installPerfEventBPF(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to link bpf program with perf events: %w", err)
 	}
@@ -459,7 +457,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	// Thus, we have to create an additional perf-event, to which we only attach
 	// the LBR-collecting ebpf-program.
 	if p.conf.BPF.TraceLBR != nil && *p.conf.BPF.TraceLBR && p.conf.BPF.TraceLBROnAMD != nil && *p.conf.BPF.TraceLBROnAMD {
-		p.maybeInitializeAmdFam19hBRSPerfEvent()
+		p.maybeInitializeAmdFam19hBRSPerfEvent(ctx)
 	}
 
 	// Load common profile labels (e.g. nodename or cpu model).
@@ -702,7 +700,7 @@ func (p *Profiler) registerMainSampleConsumer() error {
 		newContinuousProfilingSampleConsumer(p),
 		NewORSampleFilter(
 			NewUprobeSampleFilter(p, allowedUprobes),
-			NewPerfEventIDSampleFilter(mainPerfEvents...),
+			NewPerfEventIDSampleFilter(p, mainPerfEvents...),
 			NewOtherSampleTypesFilter(),
 		),
 	)
@@ -751,19 +749,17 @@ func (p *Profiler) initializeTargets() error {
 
 func (p *Profiler) setupPerfEvents() error {
 	for _, event := range p.conf.PerfEvents {
-		event := event
-
 		p.log.Debug("Trying to open perf event bundle", log.Any("config", event))
 
-		typ := perfevent.GetTypeByNameOrAlias(event.Type)
+		typ := profilingevent.GetTypeByNameOrAlias(event.Type)
 		if typ == nil {
 			return fmt.Errorf("failed to find event %q", event.Type)
 		}
-		eventType, ok := typ.(*perfevent.PerfEventType)
+		eventType, ok := typ.(*perfevent.Type)
 		if !ok {
 			return fmt.Errorf("found event %q, but it is not a perf event", event.Type)
 		}
-		if p.events[eventType] != nil {
+		if p.events[*eventType] != nil {
 			return fmt.Errorf("duplicate perf event type %s", event.Type)
 		}
 
@@ -772,27 +768,34 @@ func (p *Profiler) setupPerfEvents() error {
 		}
 
 		options := &perfevent.Options{
-			Type:                   eventType,
-			Frequency:              event.Frequency,
-			SampleRate:             event.SampleRate,
-			TryToSampleBranchStack: perfevent.ShouldTryToEnableBranchSampling(),
+			Type:              *eventType,
+			Frequency:         event.Frequency,
+			SampleRate:        event.SampleRate,
+			SampleBranchStack: perfevent.ShouldTryToEnableBranchSampling(),
 		}
 
-		bundle, err := p.perfEventManager.Open(target, options)
+		var bundle *PerfEvent
+		var err error
+
+		bundle, err = p.perfEventManager.Open(target, options)
+		if err != nil && perfevent.ShouldTryToEnableBranchSampling() {
+			options.SampleBranchStack = false
+			bundle, err = p.perfEventManager.Open(target, options)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to create perf event bundle: %w", err)
 		}
 
-		p.events[eventType] = bundle
+		p.events[*eventType] = bundle
 		p.log.Debug("Successfully opened perf event bundle")
 	}
 
 	return nil
 }
 
-func (p *Profiler) installPerfEventBPF() error {
+func (p *Profiler) installPerfEventBPF(ctx context.Context) error {
 	for _, bundle := range p.events {
-		err := bundle.Attach()
+		err := bundle.Attach(ctx)
 		if err != nil {
 			return err
 		}
@@ -832,7 +835,7 @@ func (p *Profiler) PidNamespaceIndex() process.PidNamespaceIndex {
 	return p.procs
 }
 
-func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
+func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent(ctx context.Context) {
 	if !(cpuid.CPU.VendorID == cpuid.AMD && cpuid.CPU.Family == 0x19) {
 		// Family19h is Zen 3, Zen 3+ and Zen 4 (https://en.wikipedia.org/wiki/List_of_AMD_CPU_microarchitectures)
 		//
@@ -858,15 +861,15 @@ func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
 		WholeSystem: true,
 	}
 	options := &perfevent.Options{
-		Type: perfevent.AMDFam19hBRS,
+		Type: *profilingevent.AMDFam19hBRS,
 		// Frequency is not supported here, so we have to provide sampling period.
-		SampleRate:             ptr.T(sampleRate),
-		TryToSampleBranchStack: true,
+		SampleRate:        ptr.T(sampleRate),
+		SampleBranchStack: true,
 	}
 
 	bundle, err := p.perfEventManager.openImpl(target, options, amdBRSProgram)
 	if err != nil {
-		p.log.Warn("Failed to enable AMD BRS perf-event")
+		p.log.Warn("Failed to enable AMD BRS perf-event", log.Error(err))
 		// Failure here is okay, BRS support is best-effort.
 		return
 	}
@@ -876,7 +879,7 @@ func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
 		}
 	}()
 
-	err = bundle.Attach()
+	err = bundle.Attach(ctx)
 	if err != nil {
 		p.log.Warn("Failed to attach eBPF-program to the AMD BRS perf-event")
 		return
@@ -1452,7 +1455,7 @@ func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
 	return nil
 }
 
-func (p *Profiler) SetDebugMode(debug bool) (err error) {
+func (p *Profiler) SetDebugMode(ctx context.Context, debug bool) (err error) {
 	p.debugmu.Lock()
 	defer p.debugmu.Unlock()
 
@@ -1478,7 +1481,7 @@ func (p *Profiler) SetDebugMode(debug bool) (err error) {
 		return fmt.Errorf("failed to reload program: %w", err)
 	}
 
-	err = p.installPerfEventBPF()
+	err = p.installPerfEventBPF(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to install new program to the perf events: %w", err)
 	}

@@ -1,202 +1,197 @@
 package perfevent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/linux/cpulist"
+	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// The perf_event subsystem does not allow reinstalling eBPF programs
-// after the first call to PERF_EVENT_IOC_SET_BPF ioctl.
-// So we respawn events in the userspace.
-type Event struct {
-	mu      sync.Mutex
-	logger  log.Logger
-	handle  *Handle
+// The perf_event subsystem does not allow reinstalling eBPF programs after
+// the first call to PERF_EVENT_IOC_SET_BPF ioctl, and there is no ioctl to
+// detach a program — the kernel releases it only when the perf event is closed.
+// So we respawn events in the userspace to replace a program (see reopen).
+// Note that a respawned event gets a new fd and perf event id.
+
+type factory struct {
 	target  *Target
 	options *Options
-	bpfprog *int
 }
 
-func (e *Event) Reopen() error {
-	l := log.With(e.logger,
-		log.Any("target", e.target),
-		log.Any("options", e.options),
-	)
-
-	l.Debug("Trying to open perf event")
-	next, err := NewHandle(e.target, e.options)
+func (f *factory) open(cpu int) (*handle, error) {
+	evTarget := &eventTarget{
+		t:   *f.target,
+		cpu: cpu,
+	}
+	newEvent, err := newHandle(evTarget, f.options)
 	if err != nil {
-		l.Error("Failed to open perf event", log.Error(err))
-		return err
+		return nil, fmt.Errorf("failed to open perf event at cpu %d: %w", cpu, err)
 	}
-	l.Debug("Successfully opened perf event", log.UInt64("id", uint64(next.ID())))
-
-	defer func() {
-		if err != nil {
-			_ = next.Close()
-		}
-	}()
-
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	if e.handle != nil {
-		err = e.handle.Close()
-		if err != nil {
-			return err
-		}
-	}
-
-	e.handle = next
-
-	return nil
+	return newEvent, err
 }
 
-func (e *Event) Close() error {
-	return e.handle.Close()
+type cpuEvent struct {
+	handle *handle
+	cpu    int
 }
 
-func (e *Event) Handle() *Handle {
-	return e.handle
+// Bundle represents a mutable set of identically configured perf_event
+// opened on different CPUs.
+type Bundle struct {
+	mgr     *Manager
+	logger  xlog.Logger
+	factory *factory
+
+	closed   atomic.Bool
+	mu       sync.RWMutex
+	events   []cpuEvent
+	attached bool
 }
 
-func (e *Event) Type() *PerfEventType {
-	return e.options.Type
-}
-
-func (e *Event) AttachBPF(progfd int) error {
-	defer func() {
-		e.bpfprog = &progfd
-	}()
-
-	if e.bpfprog == nil {
-		return e.handle.AttachBPF(progfd)
-	}
-
-	err := e.Reopen()
-	if err != nil {
-		return err
-	}
-
-	err = e.handle.AttachBPF(progfd)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-type EventBundle struct {
-	mu     sync.RWMutex
-	typ    Type
-	done   func()
-	events []*Event
-	ids    map[PerfEventID]struct{}
-}
-
-func (e *EventBundle) foreach(cb func(e *Event) error) error {
-	errs := make([]error, 0, len(e.events))
-	for _, event := range e.events {
-		errs = append(errs, cb(event))
+func foreach[E any](items []E, cb func(E) error) error {
+	var errs []error
+	for _, it := range items {
+		errs = append(errs, cb(it))
 	}
 	return errors.Join(errs...)
 }
 
-func (e *EventBundle) Enable() error {
-	return e.foreach(func(e *Event) error {
-		return e.handle.Enable()
+func (b *Bundle) ContainsEvent(id ID) bool {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	for _, event := range b.events {
+		if event.handle.id == id {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *Bundle) Enable() error {
+	return foreach(b.events, func(h cpuEvent) error {
+		return h.handle.enable()
 	})
 }
 
-func (e *EventBundle) Disable() error {
-	return e.foreach(func(e *Event) error {
-		return e.handle.Disable()
+func (b *Bundle) Disable() error {
+	return foreach(b.events, func(h cpuEvent) error {
+		return h.handle.disable()
 	})
 }
 
-func (e *EventBundle) AttachBPF(progfd int) error {
-	err := e.foreach(func(e *Event) error {
-		return e.AttachBPF(progfd)
+func (b *Bundle) reopen(ctx context.Context) (err error) {
+	newEvents := make([]cpuEvent, 0, len(b.events))
+
+	defer func() {
+		if err == nil {
+			return
+		}
+		closeErr := foreach(newEvents, func(h cpuEvent) error {
+			return h.handle.close()
+		})
+		if closeErr != nil {
+			b.logger.Warn(ctx, "Failed to close new events during failed reopen", log.Error(closeErr))
+		}
+	}()
+
+	var oldIDs []ID
+	for _, event := range b.events {
+		newEvent, err := b.factory.open(event.cpu)
+		if err != nil {
+			return fmt.Errorf("failed to open new event: %w", err)
+		}
+
+		newEvents = append(newEvents, cpuEvent{
+			handle: newEvent,
+			cpu:    event.cpu,
+		})
+	}
+
+	closeErr := foreach(b.events, func(h cpuEvent) error {
+		id := h.handle.id
+		e := h.handle.close()
+		if e == nil {
+			oldIDs = append(oldIDs, id)
+		}
+		return e
+	})
+	if closeErr != nil {
+		b.logger.Warn(ctx, "Failed to close old events during reopen", log.Error(closeErr))
+	}
+	b.events = newEvents
+	b.mgr.onReload(b, oldIDs)
+	return nil
+}
+
+// attachBPF attaches the given eBPF program to every event of the bundle,
+// replacing any program attached earlier.
+func (b *Bundle) AttachBPF(ctx context.Context, progfd int) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b.attached {
+		err := b.reopen(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to recreate perf_events: %w", err)
+		}
+	}
+	b.attached = true
+	err := foreach(b.events, func(h cpuEvent) error {
+		return h.handle.attachBPF(progfd)
 	})
 	if err != nil {
 		return err
 	}
 
-	e.refreshIDs()
 	return nil
 }
 
-func (e *EventBundle) ContainsID(id PerfEventID) bool {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	_, ok := e.ids[id]
-	return ok
-}
-
-func (e *EventBundle) refreshIDs() {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	e.ids = make(map[PerfEventID]struct{})
-	for _, event := range e.events {
-		e.ids[event.handle.ID()] = struct{}{}
-	}
-}
-
-func (e *EventBundle) clearIDs() {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	e.ids = nil
-}
-
-func (e *EventBundle) Type() Type {
-	return e.typ
-}
-
-func (e *EventBundle) IDs() []PerfEventID {
-	ids := make([]PerfEventID, 0, len(e.events))
-	for _, event := range e.events {
-		ids = append(ids, event.handle.ID())
-	}
-	return ids
-}
-
-func (e *EventBundle) Close() error {
-	if e.done != nil {
-		e.done()
-	}
-	e.clearIDs()
-	return e.foreach(func(e *Event) error {
-		return e.Close()
+func (b *Bundle) closeImpl() error {
+	return foreach(b.events, func(h cpuEvent) error {
+		return h.handle.close()
 	})
+}
+
+// Close destroys bundle.
+// Any other call must complete before Close may be called.
+// Close may not be called more than once.
+func (b *Bundle) Close() error {
+	if b.closed.Swap(true) {
+		// double call to done will mess up tracker state,
+		// let's prevent this
+		panic("trying to close already closed bundle")
+	}
+	if !b.mu.TryLock() {
+		panic("trying to close in-use bundle")
+	}
+	b.mgr.unregister(b)
+
+	return b.closeImpl()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// EventManager manages all the perf events opened by the profiler.
-type EventManager struct {
-	mu      sync.Mutex
-	logger  log.Logger
-	bundles map[*EventBundle]any
-	events  map[PerfEventID]*Event
-	cpus    []int
+// Manager manages all the perf events opened by the profiler.
+type Manager struct {
+	logger log.Logger
+	cpus   []int
 
 	eventCount       metrics.IntGauge
 	eventCountByType metrics.IntGaugeVec
+	mu               sync.RWMutex
+	events           map[ID]*Bundle
 }
 
-func NewEventManager(l log.Logger, r metrics.Registry) (*EventManager, error) {
+func NewManager(l log.Logger, reg metrics.Registry) (*Manager, error) {
 	l = l.WithName("perfevent")
-	r = r.WithPrefix("perfevent")
 
 	l.Info("Parsing CPU list")
 	cpus, err := cpulist.ListOnlineCPUs()
@@ -204,97 +199,113 @@ func NewEventManager(l log.Logger, r metrics.Registry) (*EventManager, error) {
 		return nil, fmt.Errorf("failed to parse online CPUs: %w", err)
 	}
 	l.Info("Parsed CPU list", log.Int("cpu_count", len(cpus)))
+	reg = reg.WithPrefix("perfevents")
 
-	e := &EventManager{
-		logger:  l,
-		bundles: make(map[*EventBundle]any),
-		events:  make(map[PerfEventID]*Event),
-		cpus:    cpus,
+	vec := reg.IntGaugeVec("event.count", []string{"type"})
+
+	e := &Manager{
+		logger:           l,
+		cpus:             cpus,
+		events:           make(map[ID]*Bundle),
+		eventCountByType: vec,
+		eventCount:       vec.With(map[string]string{"type": "-"}),
 	}
-
-	e.instrument(r.WithPrefix("perfevents"))
 
 	return e, nil
 }
 
-func (e *EventManager) instrument(r metrics.Registry) {
-	e.eventCountByType = r.IntGaugeVec("event.count", []string{"type"})
-	e.eventCount = e.eventCountByType.With(map[string]string{"type": "-"})
-}
-
-func (e *EventManager) countEvents(count int64, typ Type) {
-	e.eventCount.Add(count)
-	e.eventCountByType.With(map[string]string{"type": typ.Name()}).Add(count)
-}
-
-func (e *EventManager) Open(
+func (m *Manager) Open(
 	target *Target,
 	options *Options,
-) (bundle *EventBundle, err error) {
-	var cpus []int
-	if target.CPU != nil {
-		cpus = []int{*target.CPU}
-	} else {
-		cpus = e.cpus
+) (bundle *Bundle, err error) {
+	factory := &factory{
+		options: options,
+		target:  target,
 	}
 
-	bundle = &EventBundle{
-		typ:    options.Type,
-		events: make([]*Event, 0, len(cpus)),
+	bundle = &Bundle{
+		mgr:     m,
+		logger:  xlog.Wrap(m.logger),
+		factory: factory,
+		events:  make([]cpuEvent, 0, len(m.cpus)),
+	}
+	if options.Frequency == nil && options.SampleRate == nil {
+		return nil, fmt.Errorf("either frequency or sample rate must be specified")
 	}
 
-	for _, cpu := range cpus {
-		cpu := cpu
-		target := *target
-		options := *options
-		target.CPU = &cpu
-
-		event := &Event{logger: e.logger, target: &target, options: &options}
-		err = event.Reopen()
+	for _, cpu := range m.cpus {
+		var event *handle
+		event, err = factory.open(cpu)
 		if err != nil {
-			closeErr := bundle.Close()
+			closeErr := bundle.closeImpl()
 			if closeErr != nil {
-				e.logger.Warn("Failed to close event bundle", log.Error(closeErr))
+				m.logger.Warn("Failed to close event bundle", log.Error(closeErr))
 			}
 			return nil, err
 		}
 
-		bundle.events = append(bundle.events, event)
+		bundle.events = append(bundle.events, cpuEvent{
+			cpu:    cpu,
+			handle: event,
+		})
 	}
-
-	e.register(bundle)
-	bundle.refreshIDs()
+	m.register(bundle)
 
 	return bundle, nil
 }
 
-func (e *EventManager) register(b *EventBundle) {
-	b.done = func() {
-		e.unregister(b)
-	}
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	e.bundles[b] = nil
-	for _, event := range b.events {
-		e.events[event.handle.ID()] = event
-	}
-	e.countEvents(int64(len(b.events)), b.typ)
+func (m *Manager) countEvents(count int64, typ Type) {
+	m.eventCount.Add(count)
+	m.eventCountByType.With(map[string]string{"type": typ.Name()}).Add(count)
 }
 
-func (e *EventManager) unregister(b *EventBundle) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	delete(e.bundles, b)
-	for _, event := range b.events {
-		delete(e.events, event.handle.ID())
+func (m *Manager) register(b *Bundle) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, ev := range b.events {
+		m.events[ev.handle.id] = b
 	}
-	e.countEvents(-int64(len(b.events)), b.typ)
+	m.countEvents(int64(len(b.events)), b.factory.options.Type)
 }
 
-func (e *EventManager) GetEvent(id PerfEventID) *Event {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.events[id]
+func (m *Manager) unregister(b *Bundle) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.countEvents(-int64(len(b.events)), b.factory.options.Type)
+	for _, ev := range b.events {
+		delete(m.events, ev.handle.id)
+	}
 }
 
-////////////////////////////////////////////////////////////////////////////////
+func (m *Manager) onReload(b *Bundle, oldEvents []ID) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, ev := range oldEvents {
+		delete(m.events, ev)
+	}
+	for _, ev := range b.events {
+		m.events[ev.handle.id] = b
+	}
+}
+
+type EventInfo struct {
+	Type   Type
+	Bundle *Bundle
+}
+
+func (m *Manager) GetEvent(id ID) *EventInfo {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	bundle, ok := m.events[id]
+	if !ok {
+		return nil
+	}
+
+	return &EventInfo{
+		Type:   bundle.factory.options.Type,
+		Bundle: bundle,
+	}
+}

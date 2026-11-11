@@ -33,6 +33,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
+	"github.com/yandex/perforator/perforator/internal/profilingevent"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/cli"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/server"
@@ -40,7 +41,6 @@ import (
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/debuginfod"
 	"github.com/yandex/perforator/perforator/pkg/linux"
-	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
 	"github.com/yandex/perforator/perforator/pkg/profile/interpreterstack"
 	"github.com/yandex/perforator/perforator/pkg/profile/merge"
@@ -286,7 +286,7 @@ func parsePerfEvent(event string, opts *recordOptions) (*config.PerfEventConfig,
 			return nil, nil
 		}
 
-		event = perfevent.CPUCycles.Name()
+		event = profilingevent.CPUCycles.Name()
 	}
 
 	cfg := config.PerfEventConfig{
@@ -310,7 +310,7 @@ type events struct {
 
 func parseEvents(opts *recordOptions) (events events, err error) {
 	if len(opts.events) == 0 && !opts.signals {
-		opts.events = []string{perfevent.CPUCycles.Name()}
+		opts.events = []string{profilingevent.CPUCycles.Name()}
 	}
 
 	for _, event := range opts.events {
@@ -362,7 +362,7 @@ func parseEvents(opts *recordOptions) (events events, err error) {
 			events.sampleTypeName = sampletype.SampleTypeUprobe
 		}
 	default:
-		if eventType := perfevent.GetTypeByNameOrAlias(opts.events[0]); eventType != nil {
+		if eventType := profilingevent.GetTypeByNameOrAlias(opts.events[0]); eventType != nil {
 			events.sampleTypeName = eventType.Name()
 		} else {
 			events.sampleTypeName = opts.events[0]
