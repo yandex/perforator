@@ -34,7 +34,7 @@ enum lua_stack_step_result {
     struct lua_frame* lua_frame = &context->lua_frame;
 
     if (!frame_function) {
-        LUA_TRACE("[error] lua_stack_process_frame: invalid frame=%px, GCfunc is NULL.", frame);
+        LUA_LOG_ERROR("Invalid frame=%px, GCfunc is NULL.", frame);
         lua_frame_set_invalid(lua_frame, LUA_FRAME_ERROR_GCFUNC_IS_NULL);
         return false;
     }
@@ -42,10 +42,12 @@ enum lua_stack_step_result {
     // Probably it's impossible to cover every possible case to always get a valid top frame.
     // Probably the top frame is invalid, but others below are valid. Continue, mark frame as invalid.
     if (!luajit_tvisfunc(frame - LUAJIT_LJ_FR2)) {
-        LUA_TRACE("[error] lua_stack_process_frame: invalid frame=%px, frame doesn't contain a function, got %d", frame, ~luajit_itype(frame - LUAJIT_LJ_FR2));
+        LUA_LOG_ERROR("Invalid frame=%px, frame doesn't contain a function, got %d", frame, ~luajit_itype(frame - LUAJIT_LJ_FR2));
         lua_frame_set_invalid(lua_frame, LUA_FRAME_ERROR_GCFUNC_WRONG_TYPE);
         return true;
     }
+
+    LUA_LOG_DEBUG("Processing frame=%px", frame_function);
 
     if (luajit_isluafunc(frame_function)) {
         return lua_frame_set_lua(
@@ -97,7 +99,7 @@ enum lua_stack_step_result {
 [[nodiscard]] NOINLINE enum lua_stack_step_result lua_stack_step() {
     struct lua_stack_context* context = lua_stack_context_get();
     if (context == NULL) {
-        LUA_TRACE("[error] lua_stack_step: failed to get lua_stack_context");
+        LUA_LOG_ERROR("Failed to get lua_stack_context");
         return LUA_STACK_STEP_RESULT_STOP;
     }
 
@@ -105,12 +107,14 @@ enum lua_stack_step_result {
     const luajit_tvalue* max_stack = (const luajit_tvalue*)context->max_stack;
     const luajit_tvalue* bottom = (const luajit_tvalue*)context->bottom;
 
+    // Including NULL
     if (frame <= bottom) {
+        LUA_LOG_DEBUG("Frame reached bottom of stack eq=%d", frame == bottom);
         return LUA_STACK_STEP_RESULT_STOP;
     }
 
     if (frame >= max_stack) {
-        LUA_TRACE("[error] lua_stack_step: broken frame");
+        LUA_LOG_ERROR("Broken frame=%px (max_stack=%px)", frame, max_stack);
         return LUA_STACK_STEP_RESULT_STOP;
     }
 
@@ -169,6 +173,7 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
 
     // VM is idle
     if (vmstate == ~LUAJIT_VM_STATE_INTERPRETING && !luajit_state_get_cframe(lua_state)) {
+        LUA_LOG_DEBUG("VM is idle");
         return;
     }
 
@@ -192,13 +197,13 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
     }
 
     if (frame >= max_stack) {
-        LUA_TRACE("[error] lua_stack_walk: broken frame");
+        LUA_LOG_ERROR("lua_stack_walk: broken frame");
         return;
     }
 
     struct lua_stack_context* context = lua_stack_context_get();
     if (context == NULL) {
-        LUA_TRACE("[error] lua_stack_walk: failed to get lua_stack_context");
+        LUA_LOG_ERROR("Failed to get lua_stack_context");
         return;
     }
     lua_stack_context_init(context, state, frame, max_stack, bottom);
@@ -211,7 +216,10 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
         }
 
         if (!(status & LUA_STACK_STEP_RESULT_CONTINUE)) {
+            LUA_LOG_DEBUG("Stopped at frame %d. Frames: %d", i, state->stack.len);
             return;
         }
     }
+
+    LUA_LOG_INFO("Loop reached max stack depth. Frames: %d", state->stack.len);
 }
