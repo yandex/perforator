@@ -33,14 +33,21 @@ enum {
 // Tagged value.
 // TValue
 typedef u64 luajit_tvalue;
+typedef struct luajit_gc_obj luajit_gc_obj; // Predefining
 
 static const u32 LUAJIT_LJ_TFUNC = (~8u);
 static const u64 LUAJIT_LJ_GCVMASK = (1ULL << 47) - 1;
 
 // GCstr
+typedef struct luajit_gc_str luajit_gc_str;
 enum {
     LUAJIT_GC_STR_SIZEOF = 24, // sizeof(GCstr)
 };
+
+[[nodiscard]] static ALWAYS_INLINE const char* luajit_strdata(luajit_gc_str* string) {
+    // #define strdata(s)       ((const char *)((s)+1))
+    return (const char*)LUAJIT_GET_OFFSET(string, LUAJIT_GC_STR_SIZEOF);
+}
 
 // GCproto
 typedef struct luajit_gc_proto luajit_gc_proto;
@@ -58,7 +65,7 @@ static const int LUAJIT_PROTO_VARARG = 0x02; // Vararg function.
 
 LUAJIT_DEFINE_FIELD_GETTER(u32, luajit_gc_proto, sizebc, LUAJIT_GC_PROTO_SIZEBC);
 LUAJIT_DEFINE_FIELD_GETTER(u8, luajit_gc_proto, flags, LUAJIT_GC_PROTO_FLAGS);
-LUAJIT_DEFINE_FIELD_GETTER(void*, luajit_gc_proto, chunkname, LUAJIT_GC_PROTO_CHUNKNAME);
+LUAJIT_DEFINE_FIELD_GETTER(luajit_gc_str*, luajit_gc_proto, chunkname, LUAJIT_GC_PROTO_CHUNKNAME);
 LUAJIT_DEFINE_FIELD_GETTER(i32, luajit_gc_proto, firstline, LUAJIT_GC_PROTO_FIRSTLINE);
 LUAJIT_DEFINE_FIELD_GETTER(i32, luajit_gc_proto, numline, LUAJIT_GC_PROTO_NUMLINE);
 LUAJIT_DEFINE_FIELD_GETTER(const void*, luajit_gc_proto, lineinfo, LUAJIT_GC_PROTO_LINEINFO);
@@ -76,9 +83,8 @@ LUAJIT_DEFINE_FIELD_GETTER(const void*, luajit_gc_proto, lineinfo, LUAJIT_GC_PRO
 [[nodiscard]] static ALWAYS_INLINE const char* luajit_proto_chunknamestr(luajit_gc_proto* proto) {
     // #define strref(r)        (&gcref((r))->str)
     // #define proto_chunkname(pt)      (strref((pt)->chunkname))
-    // #define strdata(s)       ((const char *)((s)+1))
     // #define proto_chunknamestr(pt)   (strdata(proto_chunkname((pt))))
-    return (char*)luajit_gc_proto_get_chunkname(proto) + LUAJIT_GC_STR_SIZEOF;
+    return luajit_strdata(luajit_gc_proto_get_chunkname(proto));
 }
 
 // GCfunc
@@ -101,7 +107,7 @@ static const int LUAJIT_FF_LUA = 0;
 
 [[nodiscard]] static ALWAYS_INLINE luajit_gc_proto* luajit_funcproto(luajit_gc_func* function) {
     // #define funcproto(fn) (GCproto *)(mref((fn)->l.pc, char)-sizeof(GCproto))
-    return (luajit_gc_proto*)((char*)(luajit_gc_func_get_pc(function)) - LUAJIT_GC_PROTO_SIZEOF);
+    return (luajit_gc_proto*)LUAJIT_GET_OFFSET(luajit_gc_func_get_pc(function), -LUAJIT_GC_PROTO_SIZEOF);
 }
 
 enum {
@@ -178,7 +184,7 @@ LUAJIT_DEFINE_FIELD_GETTER(luajit_tvalue*, luajit_state, stack, LUAJIT_LUA_STATE
 LUAJIT_DEFINE_FIELD_GETTER(void*, luajit_state, cframe, LUAJIT_LUA_STATE_CFRAME);
 
 // GCobj
-typedef union luajit_gc_obj luajit_gc_obj;
+typedef struct luajit_gc_obj luajit_gc_obj;
 
 [[nodiscard]] static ALWAYS_INLINE u32 luajit_itype(const luajit_tvalue* value) {
     // #define itype(o) ((uint32_t)((o)->it64 >> 47))
@@ -202,7 +208,7 @@ static const u32 LUAJIT_NO_BCPOS = ~0u; // Invalid bytecode position.
 
 [[nodiscard]] static ALWAYS_INLINE u32 luajit_bc_a(u32 instruction) {
     // #define bc_a(i)          ((BCReg)(((i)>>8)&0xff))
-    return (u32)((instruction >> 8) & 0xff);
+    return (instruction >> 8) & 0xff;
 }
 
 // lj_frame.h
@@ -312,4 +318,3 @@ LUAJIT_DEFINE_FIELD_GETTER(u32*, luajit_cframe, pc, LUAJIT_CFRAME_PC);
     // #define cframe_raw(cf)		((void *)((intptr_t)(cf) & CFRAME_RAWMASK))
     return (luajit_cframe*)((u64)cframe & LUAJIT_CFRAME_RAWMASK);
 }
-
