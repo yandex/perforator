@@ -253,22 +253,13 @@ static ALWAYS_INLINE u32 lua_frame_get_pc(struct lua_frame_context* frame_contex
     }
 
     struct symbol* symbol = &stack_context->symbol;
-    char* caret = symbol->data;
-    u8 name_length = 0;
-
-    if (!first_line && luajit_gc_proto_get_numline(proto)) {
-        name_length = (u8)LUA_SYMBOL_APPEND_LITERAL(symbol->data, "in main chunk");
-    }
-
-    symbol->name_length = name_length;
-    caret += name_length;
 
     // This must be written inline for least amount of verifier checks
     const char* filename = luajit_proto_chunknamestr(proto);
-    long status = bpf_probe_read_user_str(caret, SYMBOL_BUFFER_SIZE - name_length, filename);
+    long status = bpf_probe_read_user_str(symbol->data, SYMBOL_BUFFER_SIZE, filename);
     if (status <= 0) {
         LUA_LOG_ERROR("Failed to read proto=%px filename (%d)", proto, status);
-        symbol->filename_length = (u8)lua_symbol_append_fail(caret);
+        symbol->filename_length = (u8)lua_symbol_append_fail(symbol->data);
     } else {
         --status;
         symbol->filename_length = status > 255 ? 255 : (u8)status;
