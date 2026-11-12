@@ -289,7 +289,7 @@ func (t *TextFormatRenderer) writeStackTrace(indent string, sample *pprof.Sample
 func (t *TextFormatRenderer) renderToPlainText(p *pprof.Profile, w io.Writer) error {
 	defer t.clearLocationsCache()
 
-	sampleIndex := 0
+	sampleIndex := len(p.SampleType) - 1
 	for i, st := range p.SampleType {
 		if st.Type == p.DefaultSampleType {
 			sampleIndex = i

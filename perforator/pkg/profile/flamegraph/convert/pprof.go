@@ -11,7 +11,7 @@ import (
 )
 
 func PProfToCollapsed(prof *profile.Profile) (*collapsed.Profile, error) {
-	sampleTypeIdx := 0
+	sampleTypeIdx := len(prof.SampleType) - 1
 	for i, value := range prof.SampleType {
 		if value.Type == prof.DefaultSampleType {
 			sampleTypeIdx = i
