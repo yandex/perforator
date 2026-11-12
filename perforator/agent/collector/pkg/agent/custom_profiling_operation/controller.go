@@ -59,14 +59,15 @@ func newOperationController(l xlog.Logger, profiler *profiler.Profiler, id model
 func (o *operationController) disableEventSources() error {
 	errs := []error{}
 	for _, uprobe := range o.uprobes {
-		err := uprobe.Close()
+		err := uprobe.Detach()
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
 
 	for _, bundle := range o.perfEvents {
-		err := bundle.Close()
+		// Keep event IDs registered until buffered samples have been consumed.
+		err := bundle.Disable()
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -76,9 +77,15 @@ func (o *operationController) disableEventSources() error {
 }
 
 func (o *operationController) releaseProfilerResources() error {
-	err := o.disableEventSources()
+	var errs []error
+	for _, uprobe := range o.uprobes {
+		errs = append(errs, uprobe.Close())
+	}
+	for _, event := range o.perfEvents {
+		errs = append(errs, event.Close())
+	}
 	o.profiler.SampleConsumerRegistry().Unregister(o.sampleConsumerName)
-	return err
+	return errors.Join(errs...)
 }
 
 func buildIDString(id models.OperationID) string {
@@ -239,7 +246,7 @@ func (o *operationController) createPerfEvents(ctx context.Context, eventSetting
 
 	options := &perfevent.Options{
 		Type:   *perfEventType,
-		Enable: true,
+		Enable: false,
 	}
 
 	if eventSettings.PerfEvent.Frequency > 0 {
@@ -420,6 +427,11 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to setup sample consumer: %w", err)
 	}
+	for _, event := range o.perfEvents {
+		if err := event.Enable(); err != nil {
+			return fmt.Errorf("failed to enable perf event: %w", err)
+		}
+	}
 
 	return nil
 }
@@ -454,8 +466,11 @@ func (o *operationController) Stop(ctx context.Context) error {
 		}
 	}
 
-	// 4. Unregister the sample consumer.
-	o.profiler.SampleConsumerRegistry().Unregister(o.sampleConsumerName)
+	// 4. Release event IDs only after buffered samples have been consumed.
+	if err := o.releaseProfilerResources(); err != nil {
+		o.l.Error(ctx, "Failed to release profiler resources", log.Error(err))
+		errs = append(errs, models.NewResourceLeakError(err))
+	}
 
 	return errors.Join(errs...)
 }

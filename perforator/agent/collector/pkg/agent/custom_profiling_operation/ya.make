@@ -11,6 +11,7 @@ SRCS(
 
 GO_TEST_SRCS(
     binary_detector_test.go
+    controller_test.go
     execution_test.go
 )
 
