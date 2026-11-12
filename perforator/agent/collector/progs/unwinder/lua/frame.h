@@ -59,6 +59,40 @@ static ALWAYS_INLINE void lua_frame_save_symbol(
 }
 
 /**
+ * @brief Check the top vararg frame for correct initialization.
+ *
+ * Sample might interrupt in-between vararg function which has 2 frames: `FRAME_VARG` and `FRAME_*`.
+ * If the top frame is not `FRAME_VARG` but holds a vararg function, it should be skipped.
+ *
+ * @param frame Top frame.
+ * @return `true` is first frame is valid vararg or not a vararg
+ */
+static ALWAYS_INLINE bool lua_frame_should_skip_vararg(const luajit_tvalue* frame) {
+    if (luajit_frame_isvarg(frame)) {
+        return true;
+    }
+
+    luajit_gc_func* frame_function = (luajit_gc_func*)luajit_frame_func(frame);
+    if (frame_function == NULL) {
+        LUA_LOG_ERROR("First frame=%px function is NULL", frame);
+        return true;
+    }
+
+    if (!luajit_isluafunc(frame_function)) {
+        return true;
+    }
+
+    luajit_gc_proto* proto = luajit_funcproto(frame_function);
+    if (proto == NULL) {
+        LUA_LOG_ERROR("First frame=%px function=%px proto is NULL", frame, frame_function);
+        return false;
+    }
+
+    // Function must not have a vararg flag
+    return (luajit_gc_proto_get_flags(proto) & LUAJIT_PROTO_VARARG) == 0;
+}
+
+/**
  * @brief Set frame as invalid frame.
  *
  * @param lua_frame Current frame.
