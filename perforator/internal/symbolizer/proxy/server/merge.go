@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	_ "net/http/pprof"
+	"strings"
 	"time"
 
 	pprof "github.com/google/pprof/profile"
@@ -79,7 +80,7 @@ func (s *PerforatorServer) MergeProfiles(
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to fill merge options: %v", err)
 		}
-		profile, metas, err = s.fetchAndMergeProfilesFast(ctx, metas, query.Selector, opts)
+		profile, metas, err = s.fetchAndMergeProfilesFast(ctx, metas, query.Selector, targetEventType, opts)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to merge profiles: %v", err)
 		}
@@ -150,6 +151,7 @@ func (s *PerforatorServer) fetchAndMergeProfilesFast(
 	ctx context.Context,
 	metas []*meta.ProfileMetadata,
 	selector *querylang.Selector,
+	targetEventType string,
 	mergeOpts *profileproto.MergeOptions,
 ) (_ *pprof.Profile, _ []*meta.ProfileMetadata, err error) {
 	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.fetchAndMergeProfilesFast")
@@ -188,8 +190,21 @@ func (s *PerforatorServer) fetchAndMergeProfilesFast(
 	if err != nil {
 		return nil, nil, err
 	}
+	// Merged profiles may carry several sample types, so we explicitly
+	// mark user-specified one as the default.
+	setDefaultSampleType(mergedProfile, targetEventType)
 
 	return mergedProfile, metas, nil
+}
+
+func setDefaultSampleType(profile *pprof.Profile, targetEventType string) {
+	typeName := targetEventType
+	if idx := strings.Index(typeName, "."); idx >= 0 {
+		typeName = typeName[:idx]
+	}
+	if typeName != "" {
+		profile.DefaultSampleType = typeName
+	}
 }
 
 func (s *PerforatorServer) downloadAndAddProfiles(
