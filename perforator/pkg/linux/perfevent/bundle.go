@@ -24,6 +24,7 @@ import (
 type factory struct {
 	target  *Target
 	options *Options
+	leader  *Bundle
 }
 
 func (f *factory) open(cpu int) (*handle, error) {
@@ -31,7 +32,14 @@ func (f *factory) open(cpu int) (*handle, error) {
 		t:   *f.target,
 		cpu: cpu,
 	}
-	newEvent, err := newHandle(evTarget, f.options)
+	evOptions := &eventOptions{
+		o:             *f.options,
+		groupLeaderFD: -1,
+	}
+	if f.leader != nil {
+		evOptions.groupLeaderFD = f.leader.FDs()[cpu]
+	}
+	newEvent, err := newHandle(evTarget, evOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open perf event at cpu %d: %w", cpu, err)
 	}
@@ -49,11 +57,42 @@ type Bundle struct {
 	mgr     *Manager
 	logger  xlog.Logger
 	factory *factory
+	// whether AttachBPF is allowed
+	allowsAttach bool
 
 	closed   atomic.Bool
 	mu       sync.RWMutex
 	events   []cpuEvent
+	fds      map[int]int
 	attached bool
+}
+
+// cpus returns the list of CPUs the bundle has events on.
+func (b *Bundle) cpus() []int {
+	cpus := make([]int, 0, len(b.events))
+	for _, event := range b.events {
+		cpus = append(cpus, event.cpu)
+	}
+	return cpus
+}
+
+// rebuildFDs updates fds field.
+// It expectes that b.mu is read-locked.
+func (b *Bundle) rebuildFDs() {
+	res := make(map[int]int)
+	for _, event := range b.events {
+		res[event.cpu] = int(event.handle.fd.Fd())
+	}
+	b.fds = res
+}
+
+// FDs returns current file descriptors of all underlying events.
+// Returned map may not be modified.
+func (b *Bundle) FDs() map[int]int {
+	res := make(map[int]int)
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return res
 }
 
 func foreach[E any](items []E, cb func(E) error) error {
@@ -127,6 +166,7 @@ func (b *Bundle) reopen(ctx context.Context) (err error) {
 		b.logger.Warn(ctx, "Failed to close old events during reopen", log.Error(closeErr))
 	}
 	b.events = newEvents
+	b.rebuildFDs()
 	b.mgr.onReload(b, oldIDs)
 	return nil
 }
@@ -214,29 +254,56 @@ func NewManager(l log.Logger, reg metrics.Registry) (*Manager, error) {
 	return e, nil
 }
 
-func (m *Manager) Open(
+type openImplConfig struct {
+	leader     *Bundle
+	bestEffort bool
+}
+
+func (m *Manager) openImpl(
 	target *Target,
 	options *Options,
+	cfg openImplConfig,
 ) (bundle *Bundle, err error) {
+	var cpus []int
+	if cfg.leader != nil {
+		cpus = cfg.leader.cpus()
+	} else {
+		cpus = m.cpus
+	}
+
 	factory := &factory{
 		options: options,
 		target:  target,
+		leader:  cfg.leader,
 	}
 
 	bundle = &Bundle{
 		mgr:     m,
 		logger:  xlog.Wrap(m.logger),
 		factory: factory,
-		events:  make([]cpuEvent, 0, len(m.cpus)),
+		events:  make([]cpuEvent, 0, len(cpus)),
 	}
-	if options.Frequency == nil && options.SampleRate == nil {
-		return nil, fmt.Errorf("either frequency or sample rate must be specified")
+	if options.Frequency != nil || options.SampleRate != nil {
+		bundle.allowsAttach = true
 	}
 
-	for _, cpu := range m.cpus {
+	var errs []error
+
+	for _, cpu := range cpus {
 		var event *handle
 		event, err = factory.open(cpu)
+
 		if err != nil {
+			if cfg.bestEffort {
+				m.logger.Warn("Failed to open perf event, skipping CPU",
+					log.Int("cpu", cpu),
+					log.Any("type", options.Type),
+					log.Error(err),
+				)
+				errs = append(errs, err)
+				continue
+			}
+
 			closeErr := bundle.closeImpl()
 			if closeErr != nil {
 				m.logger.Warn("Failed to close event bundle", log.Error(closeErr))
@@ -249,6 +316,13 @@ func (m *Manager) Open(
 			handle: event,
 		})
 	}
+	if len(bundle.events) == 0 {
+		if len(errs) > 0 {
+			return nil, fmt.Errorf("open failed on all CPUs: %w", errors.Join(errs...))
+		}
+		return nil, errors.New("no perf events were opened")
+	}
+	bundle.rebuildFDs()
 	m.register(bundle)
 
 	return bundle, nil
@@ -289,6 +363,16 @@ func (m *Manager) onReload(b *Bundle, oldEvents []ID) {
 	for _, ev := range b.events {
 		m.events[ev.handle.id] = b
 	}
+}
+
+type OpenConfig struct {
+	BestEffort bool
+}
+
+func (m *Manager) Open(target *Target, options *Options, cfg OpenConfig) (*Bundle, error) {
+	return m.openImpl(target, options, openImplConfig{
+		bestEffort: cfg.BestEffort,
+	})
 }
 
 type EventInfo struct {

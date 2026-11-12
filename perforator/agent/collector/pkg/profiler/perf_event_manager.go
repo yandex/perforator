@@ -40,7 +40,7 @@ func (m *PerfEventManager) openImpl(
 	options *perfevent.Options,
 	progType perfEventProgramType,
 ) (*PerfEvent, error) {
-	bundle, err := m.eventmanager.Open(target, options)
+	bundle, err := m.eventmanager.Open(target, options, perfevent.OpenConfig{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to open perf event bundle: %w", err)
 	}

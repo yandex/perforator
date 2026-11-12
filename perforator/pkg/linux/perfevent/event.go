@@ -80,6 +80,11 @@ type Options struct {
 	SampleBranchStack bool
 }
 
+type eventOptions struct {
+	o             Options
+	groupLeaderFD int
+}
+
 type handle struct {
 	fd *os.File
 	id ID
@@ -116,17 +121,17 @@ func getPerfEventID(fd *os.File) (id ID, err error) {
 	return ID(rawID), nil
 }
 
-func newHandle(target *eventTarget, options *Options) (*handle, error) {
+func newHandle(target *eventTarget, options *eventOptions) (*handle, error) {
 	attr := makePerfEventAttr(options)
 
-	h, err := newHandleFromAttr(attr, target)
+	h, err := newHandleFromAttr(attr, target, options.groupLeaderFD)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create perf event: %w", err)
 	}
 	return h, nil
 }
 
-func newHandleFromAttr(attr *unix.PerfEventAttr, target *eventTarget) (hndl *handle, err error) {
+func newHandleFromAttr(attr *unix.PerfEventAttr, target *eventTarget, groupFD int) (hndl *handle, err error) {
 	flags := 0
 	flags |= unix.PERF_FLAG_FD_CLOEXEC
 
@@ -140,9 +145,9 @@ func newHandleFromAttr(attr *unix.PerfEventAttr, target *eventTarget) (hndl *han
 
 	cpu := target.cpu
 
-	fd, err := unix.PerfEventOpen(attr, pid, cpu, -1 /* groupFd */, flags)
+	fd, err := unix.PerfEventOpen(attr, pid, cpu, groupFD, flags)
 	if err != nil {
-		return nil, fmt.Errorf("syscall perf_event_open(attr=%+v, pid=%d, cpu=%d, flags=%d) failed: %w", attr, pid, cpu, flags, err)
+		return nil, fmt.Errorf("syscall perf_event_open(attr=%+v, pid=%d, cpu=%d, group_fd=%d, flags=%d) failed: %w", attr, pid, cpu, groupFD, flags, err)
 	}
 
 	file := os.NewFile(uintptr(fd), fmt.Sprintf("perf_event_open/%d/%d", pid, cpu))
@@ -160,37 +165,37 @@ func newHandleFromAttr(attr *unix.PerfEventAttr, target *eventTarget) (hndl *han
 	return &handle{file, id}, nil
 }
 
-func makePerfEventAttr(options *Options) *unix.PerfEventAttr {
+func makePerfEventAttr(options *eventOptions) *unix.PerfEventAttr {
 	attr := &unix.PerfEventAttr{}
 	attr.Size = uint32(unsafe.Sizeof(*attr))
 
-	attr.Type = options.Type.Type
-	attr.Config = options.Type.Config
+	attr.Type = options.o.Type.Type
+	attr.Config = options.o.Type.Config
 
 	attr.Sample_type = 0 |
 		unix.PERF_SAMPLE_CALLCHAIN |
 		unix.PERF_SAMPLE_IP |
 		unix.PERF_SAMPLE_TID
 
-	if options.SampleBranchStack {
+	if options.o.SampleBranchStack {
 		attr.Sample_type |= unix.PERF_SAMPLE_BRANCH_STACK
 		attr.Branch_sample_type = 0 |
 			unix.PERF_SAMPLE_BRANCH_USER |
 			unix.PERF_SAMPLE_BRANCH_ANY
 	}
 
-	if options.Frequency != nil {
-		attr.Sample = *options.Frequency
+	if options.o.Frequency != nil {
+		attr.Sample = *options.o.Frequency
 		attr.Bits |= unix.PerfBitFreq
-	} else if options.SampleRate != nil {
-		attr.Sample = *options.SampleRate
+	} else if options.o.SampleRate != nil {
+		attr.Sample = *options.o.SampleRate
 	}
 
-	if options.Pinned {
+	if options.o.Pinned {
 		attr.Bits |= unix.PerfBitPinned
 	}
 
-	if !options.Enable {
+	if !options.o.Enable {
 		attr.Bits |= unix.PerfBitDisabled
 	}
 
