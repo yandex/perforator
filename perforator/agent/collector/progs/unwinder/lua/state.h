@@ -53,6 +53,7 @@ static ALWAYS_INLINE void lua_state_init_registers(struct lua_state* state, cons
     state->dispatch_register = user_registers->r14;
     state->lua_state_register = user_registers->rdi;
     state->base_register = user_registers->rdx;
+    state->bytecode_pc_register = user_registers->rbx;
 }
 
 /**
