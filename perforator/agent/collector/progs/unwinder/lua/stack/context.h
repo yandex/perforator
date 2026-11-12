@@ -20,6 +20,8 @@ struct lua_stack_context {
     u64 max_stack;                                  // Last free slot in the stack.
     u64 bottom;                                     // Last frame in the stack.
     u64 lua_state;                                  // Current `lua_State*`.
+    u64 internal_c_func_bytecode;                   // Bytecode for internal C function calls.
+    u64 external_c_func_bytecode;                   // Bytecode for external C function calls.
     struct lua_frame lua_frame;                     // Current interpreter frame.
     u64 bytecode_pc_register;                       // Value of register potentially holding the PC pointer for the top Lua frame.
     struct interpreter_symbol_key symbol_cache_key; // Key for Lua frame.
@@ -47,7 +49,6 @@ BPF_MAP(lua_stack_context, BPF_MAP_TYPE_PERCPU_ARRAY, u32, struct lua_stack_cont
  * @param max_stack Last free slot in the stack.
  * @param bottom Last frame in the stack.
  * @param bytecode_pc_register Potential PC pointer for the top Lua frame.
- * @param pid Current PID.
  */
 static ALWAYS_INLINE void lua_stack_context_init(
     struct lua_stack_context* context, const struct lua_state* state,
@@ -59,6 +60,9 @@ static ALWAYS_INLINE void lua_stack_context_init(
     context->max_stack = (u64)max_stack;
     context->bottom = (u64)bottom;
     context->lua_state = state->current_lua_state;
+    // Two BCIns fields immediately precede cur_L in the supported GC64 layout.
+    context->internal_c_func_bytecode = state->global_state + state->config.offset_g_to_l - (sizeof(u32) * 2);
+    context->external_c_func_bytecode = state->global_state + state->config.offset_g_to_l - sizeof(u32);
 
     context->lua_frame = (struct lua_frame) {
         .type = LUA_FRAME_TYPE_C,

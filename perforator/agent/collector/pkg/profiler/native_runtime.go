@@ -155,7 +155,7 @@ func (r *nativeRuntimeResolver) tryAppendJITFrame(key linux.ProcessKey, address 
 			return true, err
 		}
 		for _, symbol := range resolved.Symbols {
-			if err := frame.AddInlineFunction(symbol.Name, "", 0, 0); err != nil {
+			if err := frame.AddInlineFunction(symbol.Name, "", 0, 0, "", 0); err != nil {
 				return true, err
 			}
 		}
@@ -183,7 +183,7 @@ func (r *nativeRuntimeResolver) resolveJVMFrame(ctx context.Context, key linux.P
 	if err := frame.SetMappingName("[jvm]"); err != nil {
 		return err
 	}
-	return frame.AddInlineFunction(name, "", 0, 0)
+	return frame.AddInlineFunction(name, "", 0, 0, "", 0)
 }
 
 func resolveInterpreterSection[T runtimeFrame](resolve func(linux.ProcessKey, *T, runtimewriter.Frame) error, key linux.ProcessKey, section nativepipeline.LanguageSection, writer *runtimewriter.Writer) error {

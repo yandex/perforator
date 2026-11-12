@@ -282,18 +282,42 @@ static ALWAYS_INLINE u32 lua_frame_get_pc(struct lua_frame_context* frame_contex
 }
 
 /**
- * @brief Set frame as C/FF frame.
- * FF means FastFunction.
+ * @brief Set a native C, ASM fast-function, or protected fast-function marker.
+ * For ffid > 1, canonical G->bc_cfunc_int/ext entry PCs distinguish native C
+ * from ASM FFs even when C fallback handlers are shared. A callee PCALL(H) link
+ * identifies pcall/xpcall, which must not introduce a native stitching boundary.
  *
- * @param lua_frame Current frame.
- * @param function C/FF function
+ * @param context Stack context with canonical C entry PCs and output frame.
+ * @param frame_context Current function and its callee link.
  */
-static ALWAYS_INLINE void lua_frame_set_c(struct lua_frame* lua_frame, luajit_gc_func* function) {
+static ALWAYS_INLINE void lua_frame_set_c(struct lua_stack_context* context, struct lua_frame_context* frame_context) {
+    struct lua_frame* lua_frame = &context->lua_frame;
+    luajit_gc_func* function = frame_context->frame_function;
+
+    u8 ffid = luajit_gc_func_get_ffid(function);
+    enum lua_c_frame_kind kind = LUA_C_FRAME_KIND_NATIVE;
+
+    if (ffid > LUAJIT_FF_C) {
+        u64 pc = (u64)luajit_gc_func_get_pc(function);
+        if (pc != context->internal_c_func_bytecode && pc != context->external_c_func_bytecode) {
+            kind = LUA_C_FRAME_KIND_ASM_FF;
+
+            const luajit_tvalue* callee = frame_context->next_frame;
+            if (callee) {
+                enum luajit_frame_type type = luajit_frame_typep(callee);
+                if (type == LUAJIT_FRAME_PCALL || type == LUAJIT_FRAME_PCALLH) {
+                    kind = LUA_C_FRAME_KIND_PROTECTED_FF;
+                }
+            }
+        }
+    }
+
     *lua_frame = (struct lua_frame) {
         .type = LUA_FRAME_TYPE_C,
         .value.c_frame = {
             .function_address = (u64)luajit_gc_func_get_f(function),
-            .ffid = luajit_gc_func_get_ffid(function),
+            .ffid = ffid,
+            .kind = kind,
         },
     };
 

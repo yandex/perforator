@@ -15,6 +15,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
 	"github.com/yandex/perforator/perforator/pkg/filecache"
 	"github.com/yandex/perforator/perforator/pkg/must"
+	profilelua "github.com/yandex/perforator/perforator/pkg/profile/lua"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
@@ -109,6 +110,7 @@ var (
 				return err
 			}
 
+			profilelua.StripVMInfo(profile)
 			return profile.WriteUncompressed(outputFile)
 		},
 	}
@@ -212,6 +214,7 @@ var (
 				return err
 			}
 
+			profilelua.StripVMInfo(symbolizedProfile)
 			return symbolizedProfile.WriteUncompressed(outputFile)
 		},
 	}

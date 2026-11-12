@@ -58,6 +58,34 @@ func TestLanguageFrameSizes(t *testing.T) {
 	}
 }
 
+func TestLuaVMInfoAndCFrameKinds(t *testing.T) {
+	data := make([]byte, 4*luaFrameSize)
+	data[0] = byte(LuaFrameTypeVmInfo)
+	binary.LittleEndian.PutUint64(data[8:], 0x1000)
+	binary.LittleEndian.PutUint64(data[16:], 0x2000)
+	binary.LittleEndian.PutUint32(data[24:], 2)
+	kinds := []LuaCFrameKind{LuaCFrameKindNative, LuaCFrameKindAsmFf, LuaCFrameKindProtectedFf}
+	for i, kind := range kinds {
+		frame := data[(i+1)*luaFrameSize:]
+		frame[0] = byte(LuaFrameTypeC)
+		binary.LittleEndian.PutUint64(frame[8:], 0x3000)
+		frame[16] = 42
+		frame[17] = byte(kind)
+	}
+	var stack LuaStack
+	decodeLuaFrames(data, &stack)
+	info := stack.Frames[0].Value.GetVmInfo()
+	if stack.Len != 3 || info.VmStart != 0x1000 || info.VmEnd != 0x2000 || info.Flags != 2 {
+		t.Fatalf("bad VM header: %+v", info)
+	}
+	for i, kind := range kinds {
+		frame := stack.Frames[i+1].Value.GetCFrame()
+		if frame.FunctionAddress != 0x3000 || frame.Ffid != 42 || frame.Kind != kind {
+			t.Fatalf("kind %d decoded as %+v", kind, frame)
+		}
+	}
+}
+
 func TestParsePackedSampleMinimal(t *testing.T) {
 	data := buildMinimalPackedSample()
 	out := NewRecordSampleParsed()
@@ -207,6 +235,14 @@ func appendPhpFrame(dst []byte, objectAddr uint64, linestart int32) []byte {
 //
 //	u8 type | padding[7] | u64 proto_address | i32 first_line | i32 current_line | u32 bytecode_index | padding[4].
 func appendLuaFrame(dst []byte, protoAddress uint64, firstLine, currentLine int32, bytecodeIndex uint32) []byte {
+	if len(dst) == 0 {
+		header := make([]byte, luaFrameSize)
+		header[0] = byte(LuaFrameTypeVmInfo)
+		le.PutUint64(header[8:], 0x1000)
+		le.PutUint64(header[16:], 0x2000)
+		dst = append(dst, header...)
+	}
+
 	frame := make([]byte, luaFrameSize)
 	frame[0] = byte(LuaFrameTypeLua)
 	le.PutUint64(frame[8:16], protoAddress)
@@ -309,11 +345,46 @@ func TestParsePackedSampleWithLuaStack(t *testing.T) {
 	if out.LuaStack.Len != 1 {
 		t.Fatalf("LuaStack.Len = %d, want 1", out.LuaStack.Len)
 	}
-	got := out.LuaStack.Frames[0]
+	got := out.LuaStack.Frames[1]
 	lua := got.Value.GetLuaFrame()
 	if got.Type != LuaFrameTypeLua || lua.ProtoAddress != 0x1a2b3c ||
 		lua.FirstLine != 77 || lua.CurrentLine != 81 || lua.BytecodeIndex != 12 {
 		t.Errorf("frame = %+v", got)
+	}
+}
+
+func TestLuaMetadataAndFrameCount(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		count  int
+		header bool
+		valid  bool
+	}{
+		{"header only", 1, true, false},
+		{"missing header", 2, false, false},
+		{"one frame", 2, true, true},
+		{"full stack", len(LuaStack{}.Frames), true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			frames := make([]byte, tc.count*luaFrameSize)
+			if tc.header {
+				frames[0] = byte(LuaFrameTypeVmInfo)
+			}
+			if tc.count > 1 {
+				frames[(tc.count-1)*luaFrameSize] = byte(LuaFrameTypeInvalid)
+			}
+			langData := appendLanguageSection(nil, LanguageLua, frames)
+			data := buildMinimalPackedSample()
+			putSectionDesc(data, sdLangSect, 0, uint16(len(langData)))
+			out := NewRecordSampleParsed()
+			err := ParsePackedSample(append(data, langData...), out)
+			if (err == nil) != tc.valid {
+				t.Fatalf("parse result: %v", err)
+			}
+			if tc.valid && (int(out.LuaStack.Len) != tc.count-1 || out.LuaStack.Frames[tc.count-1].Type != LuaFrameTypeInvalid) {
+				t.Fatalf("metadata changed frame count or dropped the last frame: %+v", out.LuaStack)
+			}
+		})
 	}
 }
 
@@ -353,7 +424,7 @@ func TestParsePackedSampleWithMixedLanguageStacks(t *testing.T) {
 	if out.JvmStack.FramesLen != 1 || out.JvmStack.Frames[0].MethodAddr != 0x3000 {
 		t.Errorf("JvmStack = %+v", out.JvmStack)
 	}
-	lua := out.LuaStack.Frames[0].Value.GetLuaFrame()
+	lua := out.LuaStack.Frames[1].Value.GetLuaFrame()
 	if out.LuaStack.Len != 1 || lua.ProtoAddress != 0x4000 ||
 		lua.FirstLine != 404 || lua.CurrentLine != 405 || lua.BytecodeIndex != 9 {
 		t.Errorf("LuaStack = %+v", out.LuaStack)

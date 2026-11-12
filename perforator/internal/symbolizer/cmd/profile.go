@@ -11,6 +11,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/collapsed"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/convert"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
+	profilelua "github.com/yandex/perforator/perforator/pkg/profile/lua"
 	"github.com/yandex/perforator/perforator/pkg/profile/parse/perf"
 )
 
@@ -116,7 +117,11 @@ func loadProfile(path string) (*profile.Profile, error) {
 	}
 	defer done()
 
-	return profile.Parse(input)
+	p, err := profile.Parse(input)
+	if err == nil {
+		profilelua.StripVMInfo(p)
+	}
+	return p, err
 }
 
 func loadFoldedProfile(path string) (*collapsed.Profile, error) {

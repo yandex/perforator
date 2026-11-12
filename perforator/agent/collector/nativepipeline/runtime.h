@@ -37,9 +37,11 @@ typedef struct {
 
 typedef struct {
     TPerforatorRuntimeString Name;
+    TPerforatorRuntimeString SystemName;
     TPerforatorRuntimeString File;
     uint32_t StartLine;
     uint32_t Line;
+    int64_t Column;
 } TPerforatorResolvedSymbol;
 
 typedef struct {

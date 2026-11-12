@@ -16,6 +16,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/procmem"
+	profilelua "github.com/yandex/perforator/perforator/pkg/profile/lua"
 )
 
 // Internal frame decoding errors, see lua_frame_error in perforator/agent/collector/progs/unwinder/lua/types.h
@@ -23,10 +24,6 @@ var luaStackWalkErrorDescriptions = []string{
 	"GCfunc is null",
 	"bad function in frame",
 }
-
-const (
-	LuaCFunctionId = 1
-)
 
 // StackProcessor renders a Lua stack collected by the unwinder into pprof locations.
 type StackProcessor struct {
@@ -55,22 +52,35 @@ func (p *StackProcessor) Process(
 	builder *profile.SampleBuilder,
 	stack *unwinder.LuaStack,
 	process linux.ProcessKey,
+	processNativeLocation func(*profile.LocationBuilder, uint64),
 ) {
-	var frames uint32
-	for i := 0; i < int(stack.Len); i++ {
+	if stack.Len == 0 {
+		return
+	}
+
+	for i := 0; i <= int(stack.Len); i++ {
 		frame := &stack.Frames[i]
+
+		if i == 0 && frame.Type == unwinder.LuaFrameTypeVmInfo {
+			info := frame.Value.GetVmInfo()
+
+			loc := profilelua.AddVMInfo(builder, info.VmStart, info.VmEnd, info.Flags)
+			processNativeLocation(loc, info.VmStart)
+
+			continue
+		}
+
 		var callerFrame *unwinder.LuaFrame
 
 		// Frames run from callee to caller. The caller's PC names callee's frame.
-		if i+1 < int(stack.Len) {
+		if i < int(stack.Len) {
 			callerFrame = &stack.Frames[i+1]
 		}
 
 		p.processFrame(builder, frame, callerFrame, process)
-		frames++
 	}
 
-	p.collectedFrameCount.Add(int64(frames))
+	p.collectedFrameCount.Add(int64(stack.Len))
 }
 
 func (p *StackProcessor) processFrame(
@@ -84,6 +94,7 @@ func (p *StackProcessor) processFrame(
 	firstLine := int64(0)
 	currentLine := int64(0)
 	clearAddress := false
+	systemName := ""
 	var loc *profile.LocationBuilder
 
 	switch frame.Type {
@@ -95,7 +106,7 @@ func (p *StackProcessor) processFrame(
 		if !exists {
 			p.unsymbolizedFrameCount.Inc()
 			p.unsymbolizedNameCount.Inc()
-			name += fmt.Sprintf("unsymbolized lua proto: 0x%x", luaFrame.ProtoAddress)
+			name += fmt.Sprintf("(unsymbolized lua proto: 0x%x)", luaFrame.ProtoAddress)
 		} else {
 			funcname := p.getFrameName(process, frame, callerFrame, symbol.Name)
 			foundName = funcname != ""
@@ -128,7 +139,16 @@ func (p *StackProcessor) processFrame(
 	case unwinder.LuaFrameTypeC:
 		cFrame := frame.Value.GetCFrame()
 
-		if int(cFrame.Ffid) == LuaCFunctionId {
+		switch cFrame.Kind {
+		case unwinder.LuaCFrameKindNative:
+			systemName = profilelua.NativeCSystemName
+		case unwinder.LuaCFrameKindAsmFf:
+			systemName = profilelua.ASMFFSystemName
+		case unwinder.LuaCFrameKindProtectedFf:
+			systemName = profilelua.ProtectedFFSystemName
+		}
+
+		if cFrame.Kind == unwinder.LuaCFrameKindNative {
 			name += fmt.Sprintf("function: 0x%x", cFrame.FunctionAddress)
 		} else {
 			name += "function: builtin#" + strconv.Itoa(int(cFrame.Ffid))
@@ -139,6 +159,7 @@ func (p *StackProcessor) processFrame(
 			ObjectAddress: cFrame.FunctionAddress,
 			Linestart:     int32(cFrame.Ffid),
 			Language:      models.Language(unwinder.LanguageLua),
+			Name:          systemName,
 		})
 	case unwinder.LuaFrameTypeInvalid:
 		invalidFrame := frame.Value.GetInvalidFrame()
@@ -153,6 +174,8 @@ func (p *StackProcessor) processFrame(
 			Linestart:     0,
 			Language:      models.Language(unwinder.LanguageLua),
 		})
+	default:
+		return
 	}
 
 	if clearAddress {
@@ -162,6 +185,7 @@ func (p *StackProcessor) processFrame(
 	loc.SetMapping().SetPath(string(profile.LuaSpecialMapping)).Finish()
 	loc.AddFrame().
 		SetName(name).
+		SetMangledName(systemName).
 		SetFilename(filename).
 		SetLine(currentLine).
 		SetStartLine(firstLine).
@@ -175,9 +199,14 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 	firstLine := int64(0)
 	currentLine := int64(0)
 	clearAddress := false
+	systemName := ""
 	var address uint64
 
 	switch frame.Type {
+	case unwinder.LuaFrameTypeVmInfo:
+		info := frame.Value.GetVmInfo()
+		output.SetAddress(info.VmStart)
+		return output.AddInlineFunction(profilelua.VMInfoDisplayName, "", 0, int32(info.Flags), profilelua.VMInfoSystemName, profilelua.VMInfoColumn(info.VmStart, info.VmEnd))
 	case unwinder.LuaFrameTypeLua:
 		luaFrame := frame.Value.GetLuaFrame()
 		foundName := false
@@ -186,7 +215,7 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 		if !exists {
 			p.unsymbolizedFrameCount.Inc()
 			p.unsymbolizedNameCount.Inc()
-			name += fmt.Sprintf("unsymbolized lua proto: 0x%x", luaFrame.ProtoAddress)
+			name += fmt.Sprintf("(unsymbolized lua proto: 0x%x)", luaFrame.ProtoAddress)
 		} else {
 			funcname := p.getFrameName(process, frame, callerFrame, symbol.Name)
 			foundName = funcname != ""
@@ -214,7 +243,16 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 	case unwinder.LuaFrameTypeC:
 		cFrame := frame.Value.GetCFrame()
 
-		if int(cFrame.Ffid) == LuaCFunctionId {
+		switch cFrame.Kind {
+		case unwinder.LuaCFrameKindNative:
+			systemName = profilelua.NativeCSystemName
+		case unwinder.LuaCFrameKindAsmFf:
+			systemName = profilelua.ASMFFSystemName
+		case unwinder.LuaCFrameKindProtectedFf:
+			systemName = profilelua.ProtectedFFSystemName
+		}
+
+		if cFrame.Kind == unwinder.LuaCFrameKindNative {
 			name += fmt.Sprintf("function: 0x%x", cFrame.FunctionAddress)
 		} else {
 			name += "function: builtin#" + strconv.Itoa(int(cFrame.Ffid))
@@ -244,7 +282,7 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 	}
 
 	output.SetAddress(address)
-	return output.AddInlineFunction(name, filename, int32(firstLine), int32(currentLine))
+	return output.AddInlineFunction(name, filename, int32(firstLine), int32(currentLine), systemName, 0)
 }
 
 // Agent read/cache budgets, not LuaJIT's maximum allocation sizes.

@@ -81,10 +81,10 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 	output.SetAddress(frame.SymbolKey.ObjectAddr)
 	symbol, exists := p.symbolizer.Symbolize(models.Language(unwinder.LanguagePhp), process, &frame.SymbolKey)
 	if !exists {
-		return output.AddInlineFunction(models.UnsymbolizedInterpreterLocation, "", frame.SymbolKey.Linestart, 0)
+		return output.AddInlineFunction(models.UnsymbolizedInterpreterLocation, "", frame.SymbolKey.Linestart, 0, "", 0)
 	}
 	if symbol.Name != "" {
 		output.SetAddress(0)
 	}
-	return output.AddInlineFunction(symbol.Name, symbol.FileName, frame.SymbolKey.Linestart, 0)
+	return output.AddInlineFunction(symbol.Name, symbol.FileName, frame.SymbolKey.Linestart, 0, "", 0)
 }

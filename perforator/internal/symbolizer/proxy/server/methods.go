@@ -1257,6 +1257,8 @@ func (s *PerforatorServer) renderProfile(
 
 	{
 		postprocessResults := interpreterstack.Postprocess(profile, interpreterstack.OptionsFromProto(format.Postprocessing)...)
+		s.metrics.mergedLuaStacks.Add(int64(postprocessResults.Lua.MergedStacksCount))
+		s.metrics.unmergedLuaStacks.Add(int64(postprocessResults.Lua.UnmergedStacksCount))
 		if len(postprocessResults.Python.Errors) > 0 {
 			s.l.Warn(ctx, "Found errors on joining python and native stacks", log.Error(errors.Join(postprocessResults.Python.Errors...)))
 		}

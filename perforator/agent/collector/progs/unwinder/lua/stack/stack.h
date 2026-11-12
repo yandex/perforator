@@ -14,9 +14,10 @@
  * @brief `lua_stack_step` function flags.
  */
 enum lua_stack_step_result {
-    LUA_STACK_STEP_RESULT_STOP = 0,          // Stop the loop
-    LUA_STACK_STEP_RESULT_CONTINUE = 1 << 0, // Continue the loop
-    LUA_STACK_STEP_RESULT_HAS_FRAME = 1 << 1 // New frame was made
+    LUA_STACK_STEP_RESULT_STOP = 0,           // Stop the loop
+    LUA_STACK_STEP_RESULT_CONTINUE = 1 << 0,  // Continue the loop
+    LUA_STACK_STEP_RESULT_HAS_FRAME = 1 << 1, // New frame was made
+    LUA_STACK_STEP_RESULT_FAILED = 1 << 2,   // Stop with an incomplete stack; may also emit an invalid frame.
 };
 
 /**
@@ -54,7 +55,7 @@ enum lua_stack_step_result {
     }
 
     // C and FF functions are handled in the same way
-    lua_frame_set_c(lua_frame, frame_function);
+    lua_frame_set_c(stack_context, frame_context);
     return true;
 }
 
@@ -85,7 +86,7 @@ enum lua_stack_step_result {
     }
     if (frame >= max_stack) {
         LUA_LOG_ERROR("Broken frame=%px (max_stack=%px)", frame, max_stack);
-        return LUA_STACK_STEP_RESULT_STOP;
+        return LUA_STACK_STEP_RESULT_FAILED;
     }
 
     // Before leaving the function, update context for next iteration.
@@ -109,7 +110,7 @@ enum lua_stack_step_result {
 
     if (!lua_stack_process_frame(stack_context, &frame_context)) {
         metric_increment(METRIC_LUA_PROCESSED_FRAMES_FAIL_COUNT);
-        return LUA_STACK_STEP_RESULT_STOP | LUA_STACK_STEP_RESULT_HAS_FRAME;
+        return LUA_STACK_STEP_RESULT_FAILED | LUA_STACK_STEP_RESULT_HAS_FRAME;
     }
 
     metric_increment(METRIC_LUA_PROCESSED_FRAMES_COUNT);
@@ -117,12 +118,13 @@ enum lua_stack_step_result {
 }
 
 /**
- * @brief Reset the stack to empty state.
+ * @brief Reset frames and Lua walk status for the current sample.
  *
  * @param state Lua unwind state.
  */
 static ALWAYS_INLINE void lua_stack_reset(struct lua_state* state) {
     state->stack.len = 0;
+    state->stack_flags = 0;
 }
 
 /**
@@ -140,7 +142,8 @@ static NOINLINE void lua_stack_push(struct lua_state* state, struct lua_frame* l
 /**
  * @brief Main function that walks Lua stack.
  *
- * `L` and `G` are valid.
+ * `L` and `G` are valid; stack.len reserves the first slot for VM_INFO.
+ * Leaves partial frames intact and records failure/truncation for postprocessing.
  *
  * @param state Lua unwind state.
  */
@@ -171,12 +174,14 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
     const luajit_tvalue* frame = base - 1;
 
     if (frame <= bottom || frame >= max_stack) {
+        state->stack_flags |= LUA_STACK_FLAGS_LUA_FAILED;
         LUA_LOG_ERROR("Broken frame bottom=%px max_stack=%px frame=%px", bottom, max_stack, frame);
         return;
     }
 
     struct lua_stack_context* stack_context = lua_stack_context_get();
     if (stack_context == NULL) {
+        state->stack_flags |= LUA_STACK_FLAGS_LUA_FAILED;
         LUA_LOG_ERROR("Failed to get lua_stack_context");
         return;
     }
@@ -196,7 +201,15 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
         enum lua_stack_step_result status = lua_stack_step();
 
         if (status & LUA_STACK_STEP_RESULT_HAS_FRAME) {
+            if (state->stack.len >= LUA_MAX_STACK_DEPTH) {
+                state->stack_flags |= LUA_STACK_FLAGS_LUA_TRUNCATED;
+                return;
+            }
             lua_stack_push(state, &stack_context->lua_frame);
+        }
+
+        if (status & LUA_STACK_STEP_RESULT_FAILED) {
+            state->stack_flags |= LUA_STACK_FLAGS_LUA_FAILED;
         }
 
         if (!(status & LUA_STACK_STEP_RESULT_CONTINUE)) {
@@ -206,4 +219,5 @@ static ALWAYS_INLINE void lua_stack_walk(struct lua_state* state) {
     }
 
     LUA_LOG_INFO("Loop reached max stack depth. Frames: %d", state->stack.len);
+    state->stack_flags |= LUA_STACK_FLAGS_LUA_TRUNCATED;
 }

@@ -14,7 +14,7 @@ func TestWireFormat(t *testing.T) {
 		"000000000000000000000000000000002a0000002b0000000000000000000000" +
 		"00000000000000002b0200000000000064000000000000000100000000000000" +
 		"0100000000000000c80000000000000000001000100008001800300048003001" +
-		"7801080080018000100000000000000020000000000000003000000000000000" +
+		"780108008001a000100000000000000020000000000000003000000000000000" +
 		"4000000000000000500000000000000007000000000000006000000000000000" +
 		"7000000000000000090000000000000040000000000000000100000000000000" +
 		"6300000000000000000000000000000000000000000000000000000000000000" +
@@ -29,9 +29,10 @@ func TestWireFormat(t *testing.T) {
 		"2a00000000000000200000012000000034120000000000000b00000000000000" +
 		"3812000000000000785600000000000010000101100000004523000000000000" +
 		"0c00000000000000100002021000000000000000000000005634000000000000" +
-		"2000030120000000000000000000000067450000000000000d00000011000000" +
+		"4000030120000000030000000000000000100000000000000020000000000000" +
+		"0000000000000000000000000000000067450000000000000d00000011000000" +
 		"0500000000000000"
-	const recordSize = 680
+	const recordSize = 712
 	base, err := hex.DecodeString(recordHex)
 	if err != nil {
 		t.Fatal(err)
@@ -92,11 +93,12 @@ func TestWireFormat(t *testing.T) {
 				out.PythonStack.Frames[0].SymbolKey.Linestart != 11 || out.PythonStack.Frames[0].InstrPtr != 0x1238 || out.PhpStack.Frames[0].SymbolKey.ObjectAddr != 0x2345 ||
 				out.PhpStack.Frames[0].SymbolKey.Linestart != 12 ||
 				out.JvmStack.Frames[0].MethodAddr != 0x3456 || out.LuaStack.Len != 1 ||
-				out.LuaStack.Frames[0].Type != LuaFrameTypeLua ||
-				out.LuaStack.Frames[0].Value.GetLuaFrame().ProtoAddress != 0x4567 ||
-				out.LuaStack.Frames[0].Value.GetLuaFrame().FirstLine != 13 ||
-				out.LuaStack.Frames[0].Value.GetLuaFrame().CurrentLine != 17 ||
-				out.LuaStack.Frames[0].Value.GetLuaFrame().BytecodeIndex != 5 {
+				out.LuaStack.Frames[0].Type != LuaFrameTypeVmInfo ||
+				out.LuaStack.Frames[1].Type != LuaFrameTypeLua ||
+				out.LuaStack.Frames[1].Value.GetLuaFrame().ProtoAddress != 0x4567 ||
+				out.LuaStack.Frames[1].Value.GetLuaFrame().FirstLine != 13 ||
+				out.LuaStack.Frames[1].Value.GetLuaFrame().CurrentLine != 17 ||
+				out.LuaStack.Frames[1].Value.GetLuaFrame().BytecodeIndex != 5 {
 				t.Fatalf("unexpected decoded fixture: %+v", out)
 			}
 			if len(out.LBR) != 2 || len(out.TLS) != 2 {

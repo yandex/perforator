@@ -74,6 +74,8 @@ type perforatorServerMetrics struct {
 	unmergedPythonStacks     metrics.Counter
 	mergedPythonStacks       metrics.Counter
 	mergedPythonStacksRatios metrics.Histogram
+	mergedLuaStacks          metrics.Counter
+	unmergedLuaStacks        metrics.Counter
 
 	flamegraphBuildTimer metrics.Timer
 	mergeProfilesTimer   metrics.Timer
@@ -391,6 +393,8 @@ func (s *PerforatorServer) registerMetrics() {
 		mergeProfilesTimer:   s.reg.Timer("profile.merge"),
 
 		unmergedPythonStacks: s.reg.WithTags(Tags{"result": "ok"}).Counter("python.merge_stacks.count"),
+		mergedLuaStacks:      s.reg.WithTags(Tags{"result": "ok"}).Counter("lua.merge_stacks.count"),
+		unmergedLuaStacks:    s.reg.WithTags(Tags{"result": "fail"}).Counter("lua.merge_stacks.count"),
 		mergedPythonStacks:   s.reg.WithTags(Tags{"result": "fail"}).Counter("python.merge_stacks.count"),
 		mergedPythonStacksRatios: s.reg.Histogram(
 			"python.merge_stacks.ratio.hist",

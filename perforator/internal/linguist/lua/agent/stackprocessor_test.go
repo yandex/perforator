@@ -10,12 +10,41 @@ import (
 	"unsafe"
 
 	"github.com/yandex/perforator/library/go/core/metrics/nop"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/nativepipeline/runtimewriter"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
+	profilelua "github.com/yandex/perforator/perforator/pkg/profile/lua"
 )
+
+func TestLuaCFrameKindsPreserveLocationIdentity(t *testing.T) {
+	p, _ := newLuaNameTestProcessor(t)
+	process := linux.ProcessKey{Pid: 42}
+	b := profile.NewBuilder().AddSampleType("cpu", "cycles")
+	want := []string{profilelua.NativeCSystemName, profilelua.ASMFFSystemName, profilelua.ProtectedFFSystemName}
+	for _, kind := range []unwinder.LuaCFrameKind{unwinder.LuaCFrameKindNative, unwinder.LuaCFrameKindAsmFf, unwinder.LuaCFrameKindProtectedFf} {
+		stack := unwinder.LuaStack{Len: 1}
+		stack.Frames[0].Type = unwinder.LuaFrameTypeVmInfo
+		stack.Frames[1].Type = unwinder.LuaFrameTypeC
+		binary.LittleEndian.PutUint64(stack.Frames[1].Value.UnionBuf[:], 0x1234)
+		stack.Frames[1].Value.UnionBuf[8] = 42
+		stack.Frames[1].Value.UnionBuf[9] = byte(kind)
+		sample := b.Add(process).AddValue(1)
+		p.Process(sample, &stack, process, func(loc *profile.LocationBuilder, _ uint64) { loc.Finish() })
+		sample.Finish()
+	}
+	result := b.FinishRaw()
+	if len(result.Location) != 6 || len(result.Sample) != 3 {
+		t.Fatalf("location kinds collapsed: %d locations, %d samples", len(result.Location), len(result.Sample))
+	}
+	for i, sample := range result.Sample {
+		if len(sample.Location) != 2 || sample.Location[0].Line[0].Function.SystemName != profilelua.VMInfoSystemName || sample.Location[1].Line[0].Function.SystemName != want[i] {
+			t.Fatalf("kind %d lost its metadata", i)
+		}
+	}
+}
 
 // Offsets within the unwinder's Lua frame union (unwinder/lua/types.h).
 const (
@@ -408,5 +437,90 @@ func TestLuaLocationsPreserveCallerNames(t *testing.T) {
 	p := b.FinishRaw()
 	if len(p.Location) != 2 || p.Sample[0].Location[0] != p.Sample[2].Location[0] || p.Sample[1].Location[0].Line[0].Function.Name != "alias" {
 		t.Fatal("locations merged different caller names or failed to deduplicate the same name")
+	}
+}
+
+func TestLuaVMInfoProcessing(t *testing.T) {
+	p, _ := newLuaNameTestProcessor(t)
+	for _, bounds := range [][2]uint64{{0x100000, 0x101000}, {0x100000, 0x100000}, {0x100000, 0xfffff}, {0, 1 << 63}} {
+		t.Run(fmt.Sprintf("%x-%x", bounds[0], bounds[1]), func(t *testing.T) {
+			stack := unwinder.LuaStack{Len: 1}
+			header := &stack.Frames[0]
+			header.Type = unwinder.LuaFrameTypeVmInfo
+			binary.LittleEndian.PutUint64(header.Value.UnionBuf[:], bounds[0])
+			binary.LittleEndian.PutUint64(header.Value.UnionBuf[8:], bounds[1])
+			binary.LittleEndian.PutUint32(header.Value.UnionBuf[16:], 2)
+			stack.Frames[1].Type = unwinder.LuaFrameTypeInvalid
+			b := profile.NewBuilder().AddSampleType("cpu", "cycles")
+			sample := b.Add(linux.ProcessKey{Pid: 1}).AddValue(1)
+			mapped := 0
+			p.Process(sample, &stack, linux.ProcessKey{Pid: 1}, func(loc *profile.LocationBuilder, ip uint64) {
+				mapped++
+				if ip != bounds[0] {
+					t.Fatalf("mapping lookup address = %#x, want %#x", ip, bounds[0])
+				}
+				loc.SetMapping().SetBegin(0x100000).SetEnd(0x110000).SetPath("luajit").Finish()
+				loc.Finish()
+			})
+			sample.Finish()
+			result := b.FinishRaw()
+			locations := result.Sample[0].Location
+			if mapped != 1 || len(locations) != 2 || locations[0].Address != bounds[0] || locations[0].Mapping == nil || locations[0].Mapping.File != "luajit" {
+				t.Fatalf("invalid header location: %+v", locations)
+			}
+			line := locations[0].Line[0]
+			wantSpan := int64(0)
+			if bounds[1] == 0x101000 {
+				wantSpan = 0x1000
+			}
+			if line.Function.SystemName != profilelua.VMInfoSystemName || line.Line != 2 || line.Column != wantSpan {
+				t.Fatalf("metadata lost: %+v", line)
+			}
+			profilelua.Postprocess(result.Profile, false)
+			if len(result.Sample[0].Location) != 1 || len(result.Location) != 1 {
+				t.Fatal("disabled merging retained metadata")
+			}
+		})
+	}
+}
+
+func TestResolveLuaMetadataAndCFrames(t *testing.T) {
+	p, _ := newLuaNameTestProcessor(t)
+	for _, tc := range []struct {
+		frameType  unwinder.LuaFrameType
+		kind       unwinder.LuaCFrameKind
+		systemName string
+	}{
+		{unwinder.LuaFrameTypeVmInfo, 0, profilelua.VMInfoSystemName},
+		{unwinder.LuaFrameTypeC, unwinder.LuaCFrameKindNative, profilelua.NativeCSystemName},
+		{unwinder.LuaFrameTypeC, unwinder.LuaCFrameKindAsmFf, profilelua.ASMFFSystemName},
+		{unwinder.LuaFrameTypeC, unwinder.LuaCFrameKindProtectedFf, profilelua.ProtectedFFSystemName},
+	} {
+		t.Run(tc.systemName, func(t *testing.T) {
+			frame := unwinder.LuaFrame{Type: tc.frameType}
+			binary.LittleEndian.PutUint64(frame.Value.UnionBuf[:], 0x1000)
+			if tc.frameType == unwinder.LuaFrameTypeVmInfo {
+				binary.LittleEndian.PutUint64(frame.Value.UnionBuf[8:], 0x2000)
+			} else {
+				frame.Value.UnionBuf[8] = 18
+				frame.Value.UnionBuf[9] = byte(tc.kind)
+			}
+			writer, err := runtimewriter.New(2, 0, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer writer.Close()
+			output, err := writer.AddFrame(0, 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := p.ResolveFrame(linux.ProcessKey{Pid: 1}, &frame, nil, output); err != nil {
+				t.Fatal(err)
+			}
+			// Starting the next frame validates that exactly one symbol was written.
+			if _, err := writer.AddFrame(0, 0); err != nil {
+				t.Fatalf("incomplete resolved frame: %v", err)
+			}
+		})
 	}
 }

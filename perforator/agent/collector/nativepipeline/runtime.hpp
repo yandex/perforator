@@ -17,6 +17,10 @@ public:
         return RuntimeStringView(Arena_, Symbol_->Name);
     }
 
+    TStringBuf SystemName() const noexcept {
+        return RuntimeStringView(Arena_, Symbol_->SystemName);
+    }
+
     TStringBuf FileName() const noexcept {
         return RuntimeStringView(Arena_, Symbol_->File);
     }
@@ -27,6 +31,10 @@ public:
 
     ui32 Line() const noexcept {
         return Symbol_->Line;
+    }
+
+    i64 Column() const noexcept {
+        return Symbol_->Column;
     }
 
 private:

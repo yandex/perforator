@@ -69,6 +69,7 @@ func fillBaseRenderFormat(enableSymbolization, enableStackMerge bool, prettifyLe
 		Postprocessing: &proto.PostprocessOptions{
 			MergePythonAndNativeStacks: ptr.Bool(enableStackMerge),
 			MergePHPAndNativeStacks:    ptr.Bool(enableStackMerge),
+			MergeLuaAndNativeStacks:    ptr.Bool(enableStackMerge),
 			PrettifyPythonStacksLevel:  &prettifyLevel,
 		},
 	}

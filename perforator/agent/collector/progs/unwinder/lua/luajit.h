@@ -99,6 +99,7 @@ LUAJIT_DEFINE_FIELD_GETTER(void*, luajit_gc_func, pc, LUAJIT_GC_FUNC_PC);
 LUAJIT_DEFINE_FIELD_GETTER(void*, luajit_gc_func, f, LUAJIT_GC_FUNC_F);
 
 static const int LUAJIT_FF_LUA = 0;
+static const int LUAJIT_FF_C = 1;
 
 [[nodiscard]] static ALWAYS_INLINE bool luajit_isluafunc(luajit_gc_func* function) {
     // #define isluafunc(fn)    ((fn)->c.ffid == FF_LUA)
