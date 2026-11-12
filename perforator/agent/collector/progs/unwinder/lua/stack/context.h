@@ -16,13 +16,13 @@
  */
 struct lua_stack_context {
     u64 frame;                                      // Current frame.
-    u64 next_frame;                                 // TODO: Next (above current) frame. Was read before `frame`.
+    u64 next_frame;                                 // Callee frame.
     u64 max_stack;                                  // Last free slot in the stack.
     u64 bottom;                                     // Last frame in the stack.
     u64 lua_state;                                  // Current `lua_State*`.
     struct lua_frame lua_frame;                     // Current interpreter frame.
     u64 bytecode_pc_register;                       // Value of register potentially holding the PC pointer for the top Lua frame.
-    struct interpreter_symbol_key symbol_cache_key; // Key for Lua frame. TODO
+    struct interpreter_symbol_key symbol_cache_key; // Key for Lua frame.
     struct symbol symbol;                           // Temporary buffer for frame information.
 };
 
@@ -42,7 +42,7 @@ BPF_MAP(lua_stack_context, BPF_MAP_TYPE_PERCPU_ARRAY, u32, struct lua_stack_cont
  * @brief Initialize stack context before walking the stack.
  *
  * @param context Stack context.
- * @param lua_state Current Lua state.
+ * @param state Lua unwind state.
  * @param frame Current frame.
  * @param max_stack Last free slot in the stack.
  * @param bottom Last frame in the stack.

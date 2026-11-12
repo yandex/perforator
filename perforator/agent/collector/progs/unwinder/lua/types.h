@@ -42,7 +42,7 @@ enum lua_frame_error : u8 {
 /**
  * @brief Frame in the Lua stack.
  *
- * `value` can be one of three types, depending on `type`:
+ * `value` depends on `type`:
  *  - `LUA_FRAME_TYPE_LUA`     - Lua function. Uses `lua_frame` value.
  *  - `LUA_FRAME_TYPE_C`       - C or FastFunction. Uses `c_frame` value.
  *  - `LUA_FRAME_TYPE_INVALID` - Invalid frame. Uses `invalid_frame` value.

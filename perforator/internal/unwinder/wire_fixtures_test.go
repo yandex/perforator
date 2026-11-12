@@ -7,14 +7,14 @@ import (
 )
 
 func TestWireFormat(t *testing.T) {
-	// The same little-endian record and mutations are checked in raw_sample_ut.cpp.
+	// Cases mirror raw_sample_ut.cpp, using the current Lua frame layout here.
 	// Header, kernel/user stacks, LBR, TLS, cgroups, then Python/PHP/JVM/Lua.
 	const recordHex = "0000000001000000000000000000000000000000000000000000000000000000" +
 		"01000300e8030000393000000000000000000000000000000000000000000000" +
 		"000000000000000000000000000000002a0000002b0000000000000000000000" +
 		"00000000000000002b0200000000000064000000000000000100000000000000" +
 		"0100000000000000c80000000000000000001000100008001800300048003001" +
-		"7801080080017800100000000000000020000000000000003000000000000000" +
+		"7801080080018000100000000000000020000000000000003000000000000000" +
 		"4000000000000000500000000000000007000000000000006000000000000000" +
 		"7000000000000000090000000000000040000000000000000100000000000000" +
 		"6300000000000000000000000000000000000000000000000000000000000000" +
@@ -29,7 +29,9 @@ func TestWireFormat(t *testing.T) {
 		"2a00000000000000200000012000000034120000000000000b00000000000000" +
 		"3812000000000000785600000000000010000101100000004523000000000000" +
 		"0c00000000000000100002021000000000000000000000005634000000000000" +
-		"1800030118000000000000000000000067450000000000000d00000000000000"
+		"2000030120000000000000000000000067450000000000000d00000011000000" +
+		"0500000000000000"
+	const recordSize = 680
 	base, err := hex.DecodeString(recordHex)
 	if err != nil {
 		t.Fatal(err)
@@ -41,31 +43,31 @@ func TestWireFormat(t *testing.T) {
 		width        int
 		accept       bool
 	}{
-		{"all_sections", 672, 0, 0, 0, true},
-		{"perf_padding", 676, 0, 0, 0, true},
+		{"all_sections", recordSize, 0, 0, 0, true},
+		{"perf_padding", recordSize + 4, 0, 0, 0, true},
 		{"short_header", 167, 0, 0, 0, false},
-		{"truncated_payload", 671, 0, 0, 0, false},
-		{"wrong_tag", 672, 0, 1, 1, false},
-		{"undefined_sample_type", 672, 4, 0, 1, false},
-		{"unknown_sample_type", 672, 4, 6, 1, false},
-		{"overlapping_sections", 672, 148, 8, 1, false},
-		{"gap_between_sections", 672, 148, 24, 1, false},
-		{"partial_stack", 672, 146, 15, 1, false},
-		{"misaligned_section", 672, 144, 1, 1, false},
-		{"section_out_of_bounds", 672, 166, 65535, 2, false},
-		{"unknown_language", 672, 554, 4, 1, false},
-		{"reserved_language_byte_zero", 672, 555, 0, 1, true},
-		{"zero_element_size", 672, 556, 0, 1, false},
-		{"misaligned_element_size", 672, 556, 7, 1, false},
-		{"zero_payload_size", 672, 552, 0, 1, false},
-		{"partial_language_element", 672, 552, 31, 1, false},
-		{"truncated_language_header", 672, 166, 1, 1, false},
-		{"language_out_of_bounds", 672, 552, 4096, 2, false},
-		{"duplicate_language", 672, 594, 0, 1, false},
-		{"reserved_language_byte_nonzero", 672, 555, 2, 1, true},
+		{"truncated_payload", recordSize - 1, 0, 0, 0, false},
+		{"wrong_tag", recordSize, 0, 1, 1, false},
+		{"undefined_sample_type", recordSize, 4, 0, 1, false},
+		{"unknown_sample_type", recordSize, 4, 6, 1, false},
+		{"overlapping_sections", recordSize, 148, 8, 1, false},
+		{"gap_between_sections", recordSize, 148, 24, 1, false},
+		{"partial_stack", recordSize, 146, 15, 1, false},
+		{"misaligned_section", recordSize, 144, 1, 1, false},
+		{"section_out_of_bounds", recordSize, 166, 65535, 2, false},
+		{"unknown_language", recordSize, 554, 4, 1, false},
+		{"reserved_language_byte_zero", recordSize, 555, 0, 1, true},
+		{"zero_element_size", recordSize, 556, 0, 1, false},
+		{"misaligned_element_size", recordSize, 556, 7, 1, false},
+		{"zero_payload_size", recordSize, 552, 0, 1, false},
+		{"partial_language_element", recordSize, 552, 31, 1, false},
+		{"truncated_language_header", recordSize, 166, 1, 1, false},
+		{"language_out_of_bounds", recordSize, 552, 4096, 2, false},
+		{"duplicate_language", recordSize, 594, 0, 1, false},
+		{"reserved_language_byte_nonzero", recordSize, 555, 2, 1, true},
 		// Go requires known frame layouts; C++ keeps these interpreter payloads opaque.
-		{"opaque_interpreter_size", 672, 556, 16, 1, false},
-		{"reserved_jvm_byte_nonzero", 672, 619, 1, 1, true},
+		{"opaque_interpreter_size", recordSize, 556, 16, 1, false},
+		{"reserved_jvm_byte_nonzero", recordSize, 619, 1, 1, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -90,7 +92,11 @@ func TestWireFormat(t *testing.T) {
 				out.PythonStack.Frames[0].SymbolKey.Linestart != 11 || out.PythonStack.Frames[0].InstrPtr != 0x1238 || out.PhpStack.Frames[0].SymbolKey.ObjectAddr != 0x2345 ||
 				out.PhpStack.Frames[0].SymbolKey.Linestart != 12 ||
 				out.JvmStack.Frames[0].MethodAddr != 0x3456 || out.LuaStack.Len != 1 ||
-				out.LuaStack.Frames[0].Value.GetLuaFrame().Linestart != 13 {
+				out.LuaStack.Frames[0].Type != LuaFrameTypeLua ||
+				out.LuaStack.Frames[0].Value.GetLuaFrame().ProtoAddress != 0x4567 ||
+				out.LuaStack.Frames[0].Value.GetLuaFrame().FirstLine != 13 ||
+				out.LuaStack.Frames[0].Value.GetLuaFrame().CurrentLine != 17 ||
+				out.LuaStack.Frames[0].Value.GetLuaFrame().BytecodeIndex != 5 {
 				t.Fatalf("unexpected decoded fixture: %+v", out)
 			}
 			if len(out.LBR) != 2 || len(out.TLS) != 2 {

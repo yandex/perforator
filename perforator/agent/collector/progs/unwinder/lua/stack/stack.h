@@ -129,7 +129,7 @@ static ALWAYS_INLINE void lua_stack_reset(struct lua_state* state) {
  * @brief Add frame to the stack.
  *
  * @param state Lua unwind state.
- * @param frame Interpreter frame.
+ * @param lua_frame Interpreter frame. The caller must check remaining capacity.
  */
 static NOINLINE void lua_stack_push(struct lua_state* state, struct lua_frame* lua_frame) {
     state->stack.len &= LUA_MAX_STACK_DEPTH_VERIFIER_MASK;
