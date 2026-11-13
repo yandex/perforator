@@ -19,6 +19,14 @@ const (
 
 const VMInfoDisplayName = "[lua VM info]"
 
+// VMEntryColumn marks a protected native entry on a Lua location. Lua frames
+// have no source columns, and this marker is cleared after postprocessing.
+const VMEntryColumn = 1
+
+func hasVMEntry(loc *pprof.Location) bool {
+	return isLua(loc) && len(loc.Line) == 1 && loc.Line[0].Column == VMEntryColumn
+}
+
 // VMInfoColumn encodes the VM range length in the header's pprof Column.
 func VMInfoColumn(start, end uint64) int64 {
 	if end <= start || end-start > math.MaxInt64 {
@@ -70,13 +78,24 @@ func isKernel(loc *pprof.Location) bool {
 	return loc != nil && loc.Mapping != nil && loc.Mapping.File == string(profile.KernelSpecialMapping)
 }
 
-// StripVMInfo removes transport metadata even when interpreter merging is disabled.
+// StripVMInfo removes Lua transport metadata even when merging is disabled.
 // Remove table entries too: pprof serializes unreferenced locations.
 func StripVMInfo(p *pprof.Profile) {
+	clearVMEntry := func(loc *pprof.Location) {
+		if hasVMEntry(loc) {
+			loc.Line[0].Column = 0
+		}
+	}
 	for _, sample := range p.Sample {
+		for _, loc := range sample.Location {
+			clearVMEntry(loc)
+		}
 		sample.Location = slices.DeleteFunc(sample.Location, func(loc *pprof.Location) bool {
 			return hasSystemName(loc, VMInfoSystemName)
 		})
+	}
+	for _, loc := range p.Location {
+		clearVMEntry(loc)
 	}
 	p.Location = slices.DeleteFunc(p.Location, func(loc *pprof.Location) bool {
 		return hasSystemName(loc, VMInfoSystemName)
@@ -171,21 +190,31 @@ func mergeSample(sample *pprof.Sample, header *pprof.Location, luaEnd, kernelEnd
 	// Each native C placeholder closes one Lua segment, including an empty one.
 	var segments [][]*pprof.Location
 	var segment []*pprof.Location
-	endsAtNativeCall := false
+	segmentStarted := false
 	for i := luaEnd - 1; i >= 0; i-- {
 		loc := locs[i]
+		if hasVMEntry(loc) {
+			// FRAME_CP starts a segment before this callee. Reuse the boundary
+			// if an older native C marker already closed the previous segment.
+			if segmentStarted {
+				segments = append(segments, segment)
+				segment = nil
+			}
+			segmentStarted = true
+		}
 		if hasSystemName(loc, ProtectedFFSystemName) {
 			continue
 		}
 		if hasSystemName(loc, NativeCSystemName) {
 			segments = append(segments, segment)
 			segment = nil
-			endsAtNativeCall = true
+			segmentStarted = false
 		} else {
 			segment = append(segment, loc)
-			endsAtNativeCall = false
+			segmentStarted = true
 		}
 	}
+	endsAtNativeCall := !segmentStarted && len(segments) != 0
 	if !endsAtNativeCall {
 		segments = append(segments, segment)
 	}

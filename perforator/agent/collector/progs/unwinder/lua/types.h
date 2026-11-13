@@ -64,6 +64,7 @@ enum lua_frame_error : u8 {
  */
 struct lua_frame {
     enum lua_frame_type type;
+    u8 vm_entry_before; // FRAME_CP on this callee's effective link.
     union {
         struct {
             u64 proto_address;
@@ -89,6 +90,7 @@ struct lua_frame {
 };
 
 _Static_assert(sizeof(struct lua_frame) == 32, "Lua wire frame size changed");
+_Static_assert(__builtin_offsetof(struct lua_frame, vm_entry_before) == 1, "Lua VM entry flag offset changed");
 _Static_assert(__builtin_offsetof(struct lua_frame, value.c_frame.kind) == 17, "Lua C kind wire offset changed");
 _Static_assert(__builtin_offsetof(struct lua_frame, value.vm_info.ffi_call_size) == 24, "Lua FFI tail size wire offset changed");
 _Static_assert(__builtin_offsetof(struct lua_frame, value.vm_info.flags) == 28, "Lua header flags wire offset changed");

@@ -30,6 +30,8 @@ func mergeFixture(lua, native []string, kernel bool, base uint64) *pprof.Profile
 	header.Line[0].Column = 0x1000
 	locations := []*pprof.Location{header}
 	for _, name := range slices.Backward(lua) {
+		entry := strings.HasPrefix(name, "cp:")
+		name = strings.TrimPrefix(name, "cp:")
 		system := ""
 		switch name {
 		case "C", "D":
@@ -39,7 +41,11 @@ func mergeFixture(lua, native []string, kernel bool, base uint64) *pprof.Profile
 		case "P":
 			system = ProtectedFFSystemName
 		}
-		locations = append(locations, add(name, system, luaMapping, 0))
+		loc := add(name, system, luaMapping, 0)
+		if entry {
+			loc.Line[0].Column = VMEntryColumn
+		}
+		locations = append(locations, loc)
 	}
 	if kernel {
 		locations = append(locations, add("kernel", "", kernelMapping, 0))
@@ -70,6 +76,9 @@ func rootNames(sample *pprof.Sample) []string {
 func assertNoHeader(t *testing.T, p *pprof.Profile) {
 	t.Helper()
 	for _, loc := range p.Location {
+		if hasVMEntry(loc) {
+			t.Fatal("VM entry marker left in location table")
+		}
 		if hasSystemName(loc, VMInfoSystemName) {
 			t.Fatal("VM metadata left in location table")
 		}
@@ -95,10 +104,19 @@ func TestPostprocess(t *testing.T) {
 	}{
 		{"only C frames", []string{"C", "D"}, []string{"main", "vm0", "C", "lua_call", "vm1", "D"}, []string{"main", "C", "lua_call", "D", "kernel"}, false},
 		{"C-only fallback", []string{"C", "D"}, []string{"main", "helper"}, []string{"main", "helper", "C", "D", "kernel"}, true},
-		{"C entry before Lua", []string{"C", "B"}, []string{"main", "vm0", "C", "vm1"}, []string{"main", "C", "B", "kernel"}, false},
+		{"C entry before Lua", []string{"cp:C", "cp:B"}, []string{"main", "vm0", "C", "vm1"}, []string{"main", "C", "B", "kernel"}, false},
 		{"VM helper with lost root", []string{"A"}, []string{"vmhelper"}, []string{"vmhelper", "A", "kernel"}, true},
 		{"pure Lua", []string{"A", "B"}, []string{"main", "lua_pcall", "vm"}, []string{"main", "lua_pcall", "A", "B", "kernel"}, false},
 		{"interleaved", []string{"A", "C", "B"}, []string{"main", "vm0", "C", "lua_pcall", "vm1"}, []string{"main", "A", "C", "lua_pcall", "B", "kernel"}, false},
+		{"GC finalizer", []string{"cp:C", "cp:chunk", "fn", "cp:finalizer", "hash_walk", "FF"},
+			[]string{"main", "lua_cpcall", "vm_funcc", "pmain", "lua_pcall", "vm_tnew", "lj_gc_step", "gc_call_finalizer", "vm_tostring", "lj_strfmt_num"},
+			[]string{"main", "lua_cpcall", "pmain", "lua_pcall", "chunk", "fn", "lj_gc_step", "gc_call_finalizer", "finalizer", "hash_walk", "vm_tostring", "lj_strfmt_num", "kernel"}, false},
+		{"protected entry with C callee", []string{"A", "cp:C", "cp:B"},
+			[]string{"main", "vm0", "gc_call_finalizer", "vm1", "C", "lua_pcall", "vm2"},
+			[]string{"main", "A", "gc_call_finalizer", "C", "lua_pcall", "B", "kernel"}, false},
+		{"protected FF at native entry", []string{"A", "cp:P", "B"},
+			[]string{"main", "vm0", "helper", "vm1"},
+			[]string{"main", "A", "helper", "B", "kernel"}, false},
 		{"repeated C", []string{"A", "C", "B", "C", "B"}, []string{"main", "vm0", "C", "vm1", "C", "vm2"}, []string{"main", "A", "C", "B", "C", "B", "kernel"}, false},
 		{"protected FF", []string{"A", "P", "B"}, []string{"main", "vm"}, []string{"main", "A", "B", "kernel"}, false},
 		{"ASM FF", []string{"A", "FF"}, []string{"main", "vm"}, []string{"main", "A", "vm", "kernel"}, false},
@@ -112,10 +130,10 @@ func TestPostprocess(t *testing.T) {
 		{"extra Lua leaf", []string{"A", "C", "B"}, []string{"main", "vm", "C"}, []string{"main", "A", "C", "B", "kernel"}, false},
 		{"unmatched ASM FF leaf", []string{"A", "C", "FF"}, []string{"main", "vm", "C"}, []string{"main", "A", "C", "FF", "kernel"}, false},
 		{"native root lost", []string{"A", "C", "B"}, []string{"vm"}, []string{"vm", "A", "C", "B", "kernel"}, true},
-		{"Lua root lost", []string{"B"}, []string{"main", "vm0", "C", "vm1"}, []string{"main", "vm0", "C", "vm1", "B", "kernel"}, true},
+		{"Lua root lost", []string{"cp:B"}, []string{"main", "vm0", "C", "vm1"}, []string{"main", "vm0", "C", "vm1", "B", "kernel"}, true},
 		{"internal mismatch", []string{"A", "C", "B", "D", "E"}, []string{"main", "vm0", "C", "vm1"}, []string{"main", "vm0", "C", "vm1", "A", "C", "B", "D", "E", "kernel"}, true},
 		{"adjacent VM", []string{"A"}, []string{"main", "vm0", "vm1"}, []string{"main", "vm0", "vm1", "A", "kernel"}, true},
-		{"no VM", []string{"A", "C", "FF"}, []string{"main", "helper"}, []string{"main", "helper", "A", "C", "FF", "kernel"}, true},
+		{"no VM", []string{"A", "C", "cp:FF"}, []string{"main", "helper"}, []string{"main", "helper", "A", "C", "FF", "kernel"}, true},
 		{"no native", []string{"A", "P", "B"}, nil, []string{"A", "P", "B", "kernel"}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -170,7 +188,7 @@ func TestHeaderGuardsAndDisabledMerging(t *testing.T) {
 			assertNoHeader(t, p)
 		})
 	}
-	p := mergeFixture([]string{"A", "C", "B"}, []string{"main", "vm"}, false, 0x100000)
+	p := mergeFixture([]string{"cp:A", "C", "cp:B"}, []string{"main", "vm"}, false, 0x100000)
 	want := rootNames(p.Sample[0])
 	want = want[:len(want)-1]
 	if res := Postprocess(p, false); res != (PostProcessResults{}) || !slices.Equal(rootNames(p.Sample[0]), want) {
@@ -188,8 +206,8 @@ func TestHeaderSurvivesProfileConversions(t *testing.T) {
 	for _, format := range []string{"pprof merge", "yaprof"} {
 		t.Run(format, func(t *testing.T) {
 			p, err := pprof.Merge([]*pprof.Profile{
-				mergeFixture([]string{"A", "C", "B", "FF"}, []string{"main", "vm0", "lj_ccall_func", "ffi trampoline", "qsort", "vm1", "lj_strfmt_num"}, true, 0x100000),
-				mergeFixture([]string{"A", "C", "B", "FF"}, []string{"main", "vm0", "lj_ccall_func", "ffi trampoline", "qsort", "vm1", "lj_strfmt_num"}, true, 0x800000),
+				mergeFixture([]string{"cp:A", "C", "cp:B", "cp:finalizer", "FF"}, []string{"main", "vm0", "lj_ccall_func", "ffi trampoline", "qsort", "vm1", "gc_call_finalizer", "vm2", "lj_strfmt_num"}, true, 0x100000),
+				mergeFixture([]string{"cp:A", "C", "cp:B", "cp:finalizer", "FF"}, []string{"main", "vm0", "lj_ccall_func", "ffi trampoline", "qsort", "vm1", "gc_call_finalizer", "vm2", "lj_strfmt_num"}, true, 0x800000),
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -231,7 +249,7 @@ func TestHeaderSurvivesProfileConversions(t *testing.T) {
 						got = append(got, loc.Line[0].Function.Name)
 					}
 				}
-				want := []string{"0x3000", "A", "0x3020", "0x1f00", "0x3040", "B", "0x1050", "0x3060", "kernel"}
+				want := []string{"0x3000", "A", "0x3020", "0x1f00", "0x3040", "B", "0x3060", "finalizer", "0x1070", "0x3080", "kernel"}
 				if !slices.Equal(got, want) {
 					t.Fatalf("got %v, want %v", got, want)
 				}

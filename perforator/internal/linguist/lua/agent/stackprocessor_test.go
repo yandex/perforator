@@ -46,6 +46,28 @@ func TestLuaCFrameKindsPreserveLocationIdentity(t *testing.T) {
 	}
 }
 
+func TestProtectedEntryPreservesLocationIdentity(t *testing.T) {
+	p, _ := newLuaNameTestProcessor(t)
+	process := linux.ProcessKey{Pid: 42}
+	b := profile.NewBuilder().AddSampleType("cpu", "cycles")
+	frame := unwinder.LuaFrame{Type: unwinder.LuaFrameTypeC}
+	for _, entry := range []uint8{0, 1, 0} {
+		frame.VmEntryBefore = entry
+		sample := b.Add(process).AddValue(1)
+		p.processFrame(sample, &frame, nil, process)
+		sample.Finish()
+	}
+	result := b.FinishRaw()
+	if len(result.Location) != 2 {
+		t.Fatalf("got %d locations, want 2", len(result.Location))
+	}
+	plain, marked := result.Location[0].Line[0], result.Location[1].Line[0]
+	if plain.Column != 0 || marked.Column != profilelua.VMEntryColumn ||
+		marked.Function.SystemName != profilelua.NativeCSystemName || marked.Function != plain.Function {
+		t.Fatalf("entry marker changed the frame kind or was lost: %+v, %+v", plain, marked)
+	}
+}
+
 // Offsets within the unwinder's Lua frame union (unwinder/lua/types.h).
 const (
 	testLuaFrameFirstLineOffset = 8
