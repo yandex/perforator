@@ -14,9 +14,10 @@ interface BuildProfileAttempt {
     taskId: string | undefined;
     setTaskFormat: (format: string | undefined) => void;
     finish: (outcome?: Outcome) => void;
+    skip: () => void;
 }
 
-type Outcome = 'error' | 'abandoned';
+type Outcome = 'error' | 'abandoned' | 'cancelled';
 
 // One attempt spans /build and its task redirect. Keep its identity so late
 // promises from an earlier navigation cannot finish a newer measurement.
@@ -60,7 +61,6 @@ export class BuildProfileRum {
         const page = 'build-flamegraph';
         const dimensions = {
             profileKind: query.has('diffSelector') ? 'diff' : 'merge',
-            renderEngine: 'unknown',
             tab: query.get('tab') ?? 'flame',
         };
         const started = performance.now();
@@ -76,15 +76,20 @@ export class BuildProfileRum {
                 if (finished || !format) {
                     return;
                 }
-                if (format !== 'JSONFlamegraph') {
-                    finished = true;
-                    window.removeEventListener('pagehide', leave);
-                    return;
+                if (format === 'JSONFlamegraph' || format === 'RawProfile') {
+                    if (subpage) {
+                        subpage.additional = encodeURIComponent(JSON.stringify({
+                            ...dimensions,
+                            renderEngine: format === 'RawProfile' ? 'wasm' : 'backend',
+                        }));
+                    }
+                } else {
+                    attempt.skip();
                 }
-                dimensions.renderEngine = 'backend';
-                if (subpage) {
-                    subpage.additional = encodeURIComponent(JSON.stringify(dimensions));
-                }
+            },
+            skip: () => {
+                finished = true;
+                window.removeEventListener('pagehide', leave);
             },
             finish: (outcome?: Outcome) => {
                 if (finished) {

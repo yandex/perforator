@@ -1,0 +1,43 @@
+.pprof-flamegraph {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+
+    &__progress {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        align-self: flex-end;
+        max-width: calc(100% - var(--g-spacing-4));
+        border-radius: var(--g-border-radius-m);
+        background: var(--g-color-base-float);
+        box-shadow: 0 2px 8px var(--g-color-sfx-shadow);
+
+        &_overlay {
+            position: absolute;
+            top: var(--g-spacing-2);
+            right: var(--g-spacing-2);
+            z-index: 2;
+        }
+
+        .pprof-flamegraph__controls {
+            margin-bottom: 0;
+            padding: var(--g-spacing-2);
+        }
+    }
+
+    &__status:not(:empty) {
+        padding: var(--g-spacing-2);
+    }
+
+    &__controls {
+        display: flex;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--g-spacing-2);
+        margin-bottom: var(--g-spacing-3);
+    }
+
+}

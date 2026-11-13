@@ -31,7 +31,7 @@ export interface BuildProfileProps {}
 
 export const BuildProfile: React.FC<BuildProfileProps> = () => {
     const [error, setError] = React.useState<string | undefined>(undefined);
-    const { userSettings: { pythonPrettifyLevel } } = useUserSettings();
+    const { userSettings: { pythonPrettifyLevel, mergeIntoPprofByDefault } } = useUserSettings();
     const [searchParams] = useSearchParams();
     const { key } = useLocation();
     const navigate = useNavigate();
@@ -44,7 +44,7 @@ export const BuildProfile: React.FC<BuildProfileProps> = () => {
         // completions after leaving /build or starting a different build.
         if (request.current?.key !== key) {
             setError(undefined);
-            request.current = { key, result: startProfileTask(setupQuery(searchParams), { pythonPrettifyLevel }) };
+            request.current = { key, result: startProfileTask(setupQuery(searchParams), { pythonPrettifyLevel, mergeIntoPprofByDefault }) };
         }
         request.current.result.then(taskId => {
             if (!active) {
@@ -62,7 +62,7 @@ export const BuildProfile: React.FC<BuildProfileProps> = () => {
             }
         });
         return () => { active = false; };
-    }, [key, navigate, searchParams, pythonPrettifyLevel]);
+    }, [key, navigate, searchParams, pythonPrettifyLevel, mergeIntoPprofByDefault]);
 
     return error ? <ErrorPanel message={error} /> : <Loader />;
 };

@@ -27,7 +27,6 @@ export function usePprofProfile(source: string | Blob, {
     onCommit,
     onStartRequest,
     onResult,
-    onNavigationCancel,
 }: {
     createWorker: () => Worker;
     engine?: Blob;
@@ -36,7 +35,6 @@ export function usePprofProfile(source: string | Blob, {
     onCommit: (options: PprofRenderOptions) => void;
     onStartRequest?: () => void;
     onResult?: () => void;
-    onNavigationCancel?: () => void;
 }) {
     const sessionRef = React.useRef<PprofSession>();
     const [state, setState] = React.useState<State>({ busy: false, cancelled: false, revision: 0 });
@@ -49,8 +47,6 @@ export function usePprofProfile(source: string | Blob, {
     onStartRequestRef.current = onStartRequest;
     const onResultRef = React.useRef(onResult);
     onResultRef.current = onResult;
-    const onNavigationCancelRef = React.useRef(onNavigationCancel);
-    onNavigationCancelRef.current = onNavigationCancel;
     const lastRequest = React.useRef<{ options: PprofRenderOptions; commit: boolean }>();
 
     React.useEffect(() => {
@@ -140,7 +136,6 @@ export function usePprofProfile(source: string | Blob, {
         const requestedKey = requested && pprofOptionsKey(requested);
         const pendingKey = lastRequest.current && pprofOptionsKey(lastRequest.current.options);
         if (stateRef.current.busy && pendingKey !== requestedKey) {
-            onNavigationCancelRef.current?.();
             cancelForNavigation();
         }
         const shownKey = stateRef.current.options && pprofOptionsKey(stateRef.current.options);

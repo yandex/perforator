@@ -18,8 +18,12 @@ export function navigateToLineNumbers(navigate: NavigateFunction, query: Profile
         localCache = {};
     }
     const q = preserveWellKnownQueryParams(new URLSearchParams(window.location.search));
-    if (localCache[currentTaskId]) {
-        navigate(`${generatePath(routes.task, { taskId: localCache[currentTaskId] })}?${q.toString()}`);
+    if (query.lineNumbers) {
+        q.set('lineNumbers', query.lineNumbers);
+    }
+    const cached = localCache?.[currentTaskId];
+    if (query.format === 'json' && typeof cached === 'string') {
+        navigate(`${generatePath(routes.task, { taskId: cached })}?${q.toString()}`);
     } else {
         query.prevTask = currentTaskId;
         query = {

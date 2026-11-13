@@ -3,13 +3,16 @@ import { createSearchParams, generatePath } from 'react-router-dom';
 import { LocalStorageKey } from 'src/const/localStorage';
 import { routes } from 'src/const/routes';
 import { uiFactory } from 'src/factory';
-import type { FlamegraphOptions, PostprocessOptions, RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
+import type { FlamegraphOptions, PostprocessOptions } from 'src/generated/perforator/proto/perforator/perforator';
 import { PythonStackPrettifyLevel } from 'src/generated/perforator/proto/perforator/perforator';
-import type { ProfileTaskQuery } from 'src/models/Task';
+import type { ProfileTaskQuery, TaskResult } from 'src/models/Task';
 import type { PythonPrettifyLevel } from 'src/providers/UserSettingsProvider/UserSettings';
 
 import { apiClient } from '../api';
+import { getFormat } from '../renderingFormat';
 import { makeSelector } from '../selector';
+
+import { getRenderFlamegraph } from './getRenderFlamegraph';
 
 
 export const taskQueryToSearchParams = (query: ProfileTaskQuery): { [key: string]: string } => (
@@ -26,17 +29,11 @@ export const defaultProfileTaskQuery = (): ProfileTaskQuery => ({
     maxProfiles: uiFactory().defaultSampleSize(),
 });
 
+export const taskFormatToQueryFormat = (task: TaskResult | null): ProfileTaskQuery['format'] => {
+    const format = getFormat(task?.Spec?.MergeProfiles?.Format ?? task?.Spec?.DiffProfiles?.RenderFormat);
+    return format === 'RawProfile' ? 'raw' : format === 'TextProfile' ? 'text' : 'json';
+};
 
-function getRenderFlamegraph(query: ProfileTaskQuery, flamegraphOptions: FlamegraphOptions): Partial<RenderFormat> {
-    if (query.rawProfile === 'true' || query.format === 'raw') {
-        return { RawProfile: flamegraphOptions };
-    }
-    if (query.format === 'text') {
-        return { TextProfile: flamegraphOptions };
-    }
-    return { JSONFlamegraph: flamegraphOptions };
-
-}
 
 function toPythonStackPrettifyLevelProto(level: PythonPrettifyLevel | undefined): PythonStackPrettifyLevel {
     switch (level) {
@@ -51,7 +48,7 @@ function toPythonStackPrettifyLevelProto(level: PythonPrettifyLevel | undefined)
 
 export const startProfileTask = async (
     query: ProfileTaskQuery,
-    settings: {pythonPrettifyLevel?: PythonPrettifyLevel},
+    settings: {pythonPrettifyLevel?: PythonPrettifyLevel; mergeIntoPprofByDefault?: boolean},
 ): Promise<string> => {
     const diffSelector = query.diffSelector;
 
@@ -71,7 +68,10 @@ export const startProfileTask = async (
     };
 
     const maxProfiles = query.maxProfiles;
-    const flamegraphRender = getRenderFlamegraph(query, flamegraphOptions);
+    const flamegraphRender = getRenderFlamegraph(query, flamegraphOptions, {
+        wasmEnabled: uiFactory().wasmEnabled(),
+        mergeIntoPprofByDefault: settings.mergeIntoPprofByDefault,
+    });
     const prettifyLevel = toPythonStackPrettifyLevelProto(settings.pythonPrettifyLevel);
     const postprocessingOptions: PostprocessOptions = prettifyLevel !== PythonStackPrettifyLevel.PYTHON_STACK_PRETTIFY_OFF
         ? { MergePythonAndNativeStacks: true, MergePHPAndNativeStacks: true, PrettifyPythonStacksLevel: prettifyLevel }
@@ -120,7 +120,7 @@ export const startProfileTask = async (
     const response = await apiClient.startTask(request);
     const taskId = response?.data?.TaskID;
 
-    if (query.prevTask) {
+    if (query.prevTask && flamegraphRender.JSONFlamegraph) {
         try {
             const cache = localStorage.getItem(LocalStorageKey.CachedLineNumberTasks);
             const cachedLineNumberTasks = cache ? JSON.parse(cache) : {};

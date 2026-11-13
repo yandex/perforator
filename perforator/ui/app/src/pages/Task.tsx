@@ -34,6 +34,7 @@ const TaskPage: Page = ({ embed, header }) => {
     const { taskId } = useParams();
     const [task, setTask] = React.useState<TaskResult | null>(null);
     const [error, setError] = React.useState<Error | undefined>(undefined);
+    const [headerActions, setHeaderActions] = React.useState<HTMLDivElement | null>(null);
     const attempt = buildProfileRum.forTask(taskId);
 
     const getTask = async (isActive: () => boolean) => {
@@ -94,13 +95,14 @@ const TaskPage: Page = ({ embed, header }) => {
             />
         );
     const taskReport = (task && state !== TaskState.Created && state !== TaskState.Running)
-        ? (<TaskReport taskId={taskId} task={task} />)
+        ? (<TaskReport taskId={taskId} task={task} headerActions={headerActions} />)
         : <Loader/>;
 
     const timeline = (task) ? <TaskHeader
         task={task}
         embed={embed}
         header={header}
+        actionsRef={setHeaderActions}
     /> : null;
 
     return (

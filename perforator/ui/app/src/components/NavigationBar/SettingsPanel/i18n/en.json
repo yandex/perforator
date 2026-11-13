@@ -18,5 +18,6 @@
     "pythonPrettification": "Python stack prettification",
     "off": "Off",
     "mixed": "Mixed",
-    "pythonOnly": "Python only"
+    "pythonOnly": "Python only",
+    "localRendering": "Use WASM and native profile for flamegraph"
 }

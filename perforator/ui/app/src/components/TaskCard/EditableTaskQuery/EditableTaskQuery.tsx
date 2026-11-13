@@ -10,7 +10,8 @@ import { SwitchableSelectorInput } from 'src/components/MergeProfilesForm/Tokens
 import { uiFactory } from 'src/factory';
 import type { TaskResult } from 'src/models/Task';
 import { boolToString } from 'src/utils/bool';
-import { redirectToTaskPage } from 'src/utils/profileTask';
+import { redirectToTaskPage, taskFormatToQueryFormat } from 'src/utils/profileTask';
+import { preserveWellKnownQueryParams } from 'src/utils/profileTask/preserveWellKnown';
 import { cutIdFromSelector, cutSpaceFromSelector, cutTimeFromSelector, parseTimestampFromSelector, removeOptionalTailingComma } from 'src/utils/selector';
 
 import { areIntervalsEqual, type TimeInterval } from '../../TimeIntervalInput/TimeInterval';
@@ -38,7 +39,7 @@ export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, addi
     const selector = query?.Selector;
     const maxSamples = query?.MaxSamples || spec?.MaxSamples as number;
     const format = spec?.Format?.JSONFlamegraph;
-    const areLineNumbersEnabled = format?.ShowLineNumbers;
+    const areLineNumbersEnabled = format?.ShowLineNumbers ?? new URLSearchParams(window.location.search).get('lineNumbers') === 'true';
 
     const navigate = useNavigate();
     const isSingleProfile = maxSamples === 1;
@@ -98,15 +99,17 @@ export const EditableTaskQuery: React.FC<EditableTaskQueryProps> = ({ task, addi
                 uiFactory().reachGoal('EDIT_TASK_HEADER');
 
                 redirectToTaskPage(navigate, {
+                    ...Object.fromEntries(preserveWellKnownQueryParams(new URLSearchParams(window.location.search))),
                     selector: newSelector,
                     maxProfiles: maxProfiles,
                     from: timeToSave.start,
                     to: timeToSave.end,
                     lineNumbers: boolToString(areLineNumbersEnabled),
+                    format: taskFormatToQueryFormat(task),
                 });
             }
         }
-    }, [areLineNumbersEnabled, currentSelector, hasSelectionChanged, isSingleProfile, maxSamples, navigate, selector, time, timelineValue]);
+    }, [areLineNumbersEnabled, currentSelector, hasSelectionChanged, isSingleProfile, maxSamples, navigate, selector, task, time, timelineValue]);
 
     const handleCancel = React.useCallback(() => {
         setCurrentSelector(initialSelector);

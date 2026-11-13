@@ -87,6 +87,7 @@ export interface VisualisationProps extends Pick<FlamegraphProps,
  | 'onChangeLeftHeavy'
  | 'showLineNumbers'
  | 'setShowLineNumbers'
+ | 'disableLineNumbers'
  > {
     loading: boolean;
     onFinishRendering?: () => void;

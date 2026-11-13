@@ -1,4 +1,14 @@
 .task-header {
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: var(--g-spacing-2);
+
+        &:not(:empty) {
+            margin-left: var(--g-spacing-2);
+        }
+    }
+
     &__header {
         display: flex;
         justify-content: space-between;

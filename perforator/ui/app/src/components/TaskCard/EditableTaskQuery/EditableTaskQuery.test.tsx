@@ -20,6 +20,7 @@ interface TaskOptions {
     to: string;
     maxProfiles: number;
     lineNumbers: boolean;
+    format?: 'raw' | 'json';
 }
 
 const BUILD_PATH = routes.build;
@@ -145,6 +146,7 @@ describe('EditableTaskQuery', () => {
             to: expectedTo,
             maxProfiles: String(maxProfiles),
             lineNumbers: String(lineNumbers),
+            format: 'json',
         });
     });
 
@@ -175,6 +177,7 @@ describe('EditableTaskQuery', () => {
             to: mockSelectedInterval.end,
             maxProfiles: String(maxProfiles),
             lineNumbers: String(lineNumbers),
+            format: 'json',
         });
     });
 
@@ -212,13 +215,29 @@ describe('EditableTaskQuery', () => {
             to: expectedTo,
             maxProfiles: String(maxProfiles),
             lineNumbers: String(lineNumbers),
+            format: 'json',
         });
+    });
+
+    it('keeps raw format and pprof options while editing', async () => {
+        const user = userEvent.setup();
+        renderEditableTaskQuery(makeTask({ ...DEFAULT_TASK_OPTIONS, format: 'raw' }), '?maxDepth=8&minWeight=0.1&showFileNames=false&lineNumbers=true');
+        await user.click(screen.getByRole('button', { name: 'Use selected interval' }));
+        await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+        const url = currentLocationUrl();
+        expect(url.searchParams.get('format')).toBe('raw');
+        expect(url.searchParams.get('maxDepth')).toBe('8');
+        expect(url.searchParams.get('minWeight')).toBe('0.1');
+        expect(url.searchParams.get('showFileNames')).toBe('false');
+        expect(url.searchParams.get('lineNumbers')).toBe('true');
     });
 });
 
 // Helpers
 
-function renderEditableTaskQuery(task: TaskResult | null) {
+function renderEditableTaskQuery(task: TaskResult | null, search = '') {
+    window.history.replaceState({}, '', `/${search}`);
     return renderWithRouter(
         <Routes>
             <Route
@@ -227,7 +246,7 @@ function renderEditableTaskQuery(task: TaskResult | null) {
             />
             <Route path={BUILD_PATH} element={<LocationOutput />} />
         </Routes>,
-        [generatePath(routes.task, { taskId: 'task-1' })],
+        [`${generatePath(routes.task, { taskId: 'task-1' })}${search}`],
     );
 }
 
@@ -253,6 +272,7 @@ function makeTask({
     to,
     maxProfiles,
     lineNumbers,
+    format = 'json',
 }: TaskOptions): TaskResult {
     return {
         Spec: {
@@ -262,11 +282,9 @@ function makeTask({
                     Selector: `{id="${profileId}", service="${service}", timestamp>="${from}", timestamp<="${to}"}`,
                 },
                 Format: {
-                    JSONFlamegraph: {
-                        ShowLineNumbers: lineNumbers,
-                    },
+                    [format === 'raw' ? 'RawProfile' : 'JSONFlamegraph']: format === 'raw' ? {} : { ShowLineNumbers: lineNumbers },
                 },
             },
         },
-    } as TaskResult;
+    } as unknown as TaskResult;
 }

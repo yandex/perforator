@@ -16,6 +16,7 @@ export interface UserSettings {
     theme: Theme;
     shortenFrameTexts: ShortenMode;
     reverseFlameByDefault: boolean;
+    mergeIntoPprofByDefault: boolean;
     pythonPrettifyLevel: PythonPrettifyLevel;
 }
 
@@ -40,6 +41,7 @@ export const initialUserSettings = (): UserSettings => {
         shortenFrameTexts: 'false',
         monospace: 'default',
         reverseFlameByDefault: true,
+        mergeIntoPprofByDefault: false,
         numTemplating: 'hugenum',
         pythonPrettifyLevel: 'off',
         ...userSettings,

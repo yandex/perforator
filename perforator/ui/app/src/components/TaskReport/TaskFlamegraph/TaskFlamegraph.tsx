@@ -69,7 +69,8 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = ({ url, isDiff, for
 
     const onStartRequest = useCallback(() => {
         renderingPage.current = undefined;
-        uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, false, { flamegraphFormat: format });
+        uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, false,
+            { additional: encodeURIComponent(JSON.stringify({ flamegraphFormat: format, renderEngine: 'backend' })) });
     }, [pageName, format]);
 
     const { data: profileData, error } = useFetchResult<ProfileData>({ url: url, extractData: extractData,

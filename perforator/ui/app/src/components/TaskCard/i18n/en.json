@@ -21,5 +21,6 @@
     "trace": "Trace",
     "flamegraphFormat": "Flamegraph format",
     "executor": "Executor",
-    "metadataTitle": "Task Metadata"
+    "metadataTitle": "Task Metadata",
+    "renderLocally": "Render locally (preview)"
 }

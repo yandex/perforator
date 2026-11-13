@@ -1,0 +1,16 @@
+{
+    "processing": "Processing pprof…",
+    "loading": "Loading pprof…",
+    "processingPrevious": "Processing pprof… Showing the previous render.",
+    "loadingPrevious": "Loading pprof… Showing the previous render.",
+    "cancelledPrevious": "Local rendering cancelled. Showing the previous render.",
+    "cancelled": "Local rendering cancelled.",
+    "previousRender": "Showing the previous render.",
+    "downloadPprof": "Download pprof",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "renderError": "Could not render locally",
+    "resetOptions": "Reset render options",
+    "retryLegacy": "Retry with legacy backend rendering",
+    "contactSupport": "Contact support"
+}

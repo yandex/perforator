@@ -17,6 +17,10 @@ module.exports = {
             },
         }],
     },
+    // The shared flamegraph package ships ESM; transform it for Jest's CJS runner.
+    transformIgnorePatterns: [
+        'node_modules/(?!.*[/+](?:perforator-)?flamegraph(?:[/@]))',
+    ],
     moduleNameMapper: {
         '^src/(.*)$': '<rootDir>/$1',
         '\\.(css|scss)$': '<rootDir>/test/styleMock.js',

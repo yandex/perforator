@@ -1,4 +1,5 @@
 import type { QueryKeys } from '@perforator/flamegraph';
+import { pprofQueryKeys } from '@perforator/flamegraph/dist/pprof/options';
 
 
 const WELL_KNOWN_QUERY_PARAMS: string[] = [
@@ -12,7 +13,8 @@ const WELL_KNOWN_QUERY_PARAMS: string[] = [
     'keepOnlyFound',
     'topQuery',
     'flameBase',
-] satisfies QueryKeys[];
+    ...pprofQueryKeys,
+] satisfies (QueryKeys | typeof pprofQueryKeys[number])[];
 
 export function preserveWellKnownQueryParams(searchParams: URLSearchParams): URLSearchParams {
     const preserved = new URLSearchParams();

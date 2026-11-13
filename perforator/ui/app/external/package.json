@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsc && vite build",
     "nots:build": "vite build --config vite.config.ts",
+    "build:ci": "test -s src/generated/wasm/profile.wasm && vite build --config vite.config.ts && COPYFILE_DISABLE=1 tar -cf ui-build.tar dist",
     "build:dev": "tsc && vite build --mode development",
     "dev": "tsc --watch & vite build --watch & vite",
     "lint": "eslint \"**/*.{js,ts,tsx}\" --quiet",

@@ -20,6 +20,8 @@ export class UIFactory {
 
     gravityStyles = () => true;
 
+    wasmEnabled = () => false;
+
     docsLink = (): Optional<string> => 'https://perforator.tech/docs/';
     supportChatLink = (): Optional<string> => undefined;
     bugReportLink = (): Optional<string> => undefined;

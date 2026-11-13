@@ -7,7 +7,9 @@ import type { DropdownMenuItem } from '@gravity-ui/uikit';
 import { Button, DropdownMenu, Icon } from '@gravity-ui/uikit';
 
 import { routes } from 'src/const/routes';
+import { uiFactory } from 'src/factory';
 import type { ProfileTaskQuery, TaskResult } from 'src/models/Task';
+import { useUserSettings } from 'src/providers/UserSettingsProvider';
 import { cn } from 'src/utils/cn';
 import { redirectToTaskPage } from 'src/utils/profileTask';
 import { getFormat, isDiffTaskResult } from 'src/utils/renderingFormat';
@@ -28,9 +30,10 @@ export interface TaskHeaderProps {
         task: TaskResult | null;
         header: React.ReactElement;
         embed?: boolean;
+        actionsRef?: React.Ref<HTMLDivElement>;
 }
 
-export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, embed, header }) => {
+export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, embed, header, actionsRef }) => {
     const isDiff = isDiffTaskResult(task);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const handleInfoDialog = React.useCallback(() => setIsDialogOpen(true), [setIsDialogOpen]);
@@ -40,9 +43,10 @@ export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, embed, header }) =
                 <AdditionalHeaderItems
                     task={task}
                     onOpenInfoDialog={handleInfoDialog}
+                    actionsRef={actionsRef}
                 />
             ),
-        [handleInfoDialog, task, embed],
+        [handleInfoDialog, task, embed, actionsRef],
     );
     if (isDiff) {
         return <>
@@ -75,14 +79,17 @@ type AdditionalHeaderItemsProps = {
     task: TaskResult | null;
     onOpenInfoDialog: () => void;
     compact?: boolean;
+    actionsRef?: React.Ref<HTMLDivElement>;
 }
 
 const isRawProfile = (task: TaskResult) => getFormat(task.Spec?.MergeProfiles?.Format) === 'RawProfile';
 
-const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onOpenInfoDialog, compact }) => {
+const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onOpenInfoDialog, compact, actionsRef }) => {
+    const { userSettings: { mergeIntoPprofByDefault } } = useUserSettings();
     const isMergeTask = 'MergeProfiles' in (task?.Spec ?? {});
     const spec = task?.Spec?.MergeProfiles;
     const query = spec?.Query;
+    const flamegraphOptions = spec?.Format?.JSONFlamegraph ?? spec?.Format?.Flamegraph ?? spec?.Format?.HTMLVisualisation;
     const navigate = useNavigate();
     const items: DropdownMenuItem[] = [];
 
@@ -98,6 +105,20 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
                     } as ProfileTaskQuery),
                 },
             );
+        }
+        if (uiFactory().wasmEnabled() && mergeIntoPprofByDefault && isMergeTask && query?.Selector && !isRawProfile(task)
+            && !flamegraphOptions?.Inverse) {
+            items.push({
+                text: i18n('renderLocally'),
+                action: () => {
+                    redirectToTaskPage(navigate, {
+                        selector: query.Selector,
+                        maxProfiles: query.MaxSamples || spec?.MaxSamples,
+                        rawProfile: 'true',
+                        lineNumbers: flamegraphOptions?.ShowLineNumbers ? 'true' : 'false',
+                    } as ProfileTaskQuery);
+                },
+            });
         }
         if (isMergeTask) {
             items.push({
@@ -129,6 +150,7 @@ const AdditionalHeaderItems: React.FC<AdditionalHeaderItemsProps> = ({ task, onO
             <Icon data={CircleInfo}/>
             {i18n('info')}
         </Button>
+        <div className={b('actions')} ref={actionsRef} />
         {items.length > 0 ? <DropdownMenu items={items} defaultSwitcherProps={{ 'aria-label': i18n('taskActions') }}/> : null}
     </>;
 };

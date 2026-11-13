@@ -21,10 +21,13 @@ export interface ProfileTaskQuery {
     profileId?: string;
     /** @deprecated use format */
     rawProfile?: 'true' | 'false';
-    format?: 'text' | 'raw';
+    format?: 'text' | 'raw' | 'json';
     cluster?: string;
     lineNumbers?: 'true' | 'false';
     prevTask?: string;
+    maxDepth?: number;
+    minWeight?: number;
+    showFileNames?: 'true' | 'false';
 }
 
 

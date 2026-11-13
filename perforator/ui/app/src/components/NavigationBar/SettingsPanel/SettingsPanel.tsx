@@ -4,6 +4,7 @@ import { Palette } from '@gravity-ui/icons';
 import { Settings } from '@gravity-ui/navigation';
 import { Switch, type Theme } from '@gravity-ui/uikit';
 
+import { uiFactory } from 'src/factory';
 import { useUserSettings } from 'src/providers/UserSettingsProvider';
 import type { NumTemplatingFormat, PythonPrettifyLevel, ShortenMode } from 'src/providers/UserSettingsProvider/UserSettings';
 
@@ -65,6 +66,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = () => {
                     </Settings.Item>
                 </Settings.Section>
                 <Settings.Section title={i18n('experimental')}>
+                    {uiFactory().wasmEnabled() && <Settings.Item title={i18n('localRendering')}>
+                        <Switch
+                            controlProps={{ 'aria-label': i18n('localRendering') }}
+                            checked={userSettings.mergeIntoPprofByDefault}
+                            onUpdate={checked => setUserSettings({ ...userSettings, mergeIntoPprofByDefault: checked })}
+                        />
+                    </Settings.Item>}
                     <Settings.Item
                         description={i18n('pythonPrettificationDescription')}
                         title={i18n('pythonPrettification')}

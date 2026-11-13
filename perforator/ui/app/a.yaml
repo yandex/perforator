@@ -23,6 +23,9 @@ ci:
       filters:
         - discovery: dir
           abs-paths:
+            - perforator/lib/profile/**
+            - perforator/proto/profile/**
+            - perforator/proto/pprofprofile/**
             - perforator/ui/packages/**
             - perforator/ui/app/**
       auto: false
@@ -53,19 +56,119 @@ ci:
           into: trunk
           on-demand: true
           filters:
-            - abs-paths: perforator/ui/**
+            - abs-paths:
+                - perforator/ui/**
+                - perforator/lib/profile/**
+                - perforator/proto/profile/**
+                - perforator/proto/pprofprofile/**
 
   flows:
     release-ui:
       jobs:
-        build:
+        start-build: &start-build
+          title: Start UI build
+          task: dummy
+        build-wasm: &build-wasm
+          needs: start-build
+          title: Build profile WASM
+          task: common/misc/run_command/v2
+          runtime:
+            tasklet:
+              account_name: /root/sandbox/generic/linux
+              requirements:
+                container:
+                  cpu_limit: 8000
+                  ram_limit: 16GB
+                  workdir:
+                    space: 30GB
+                sidecars:
+                  arc: true
+          input:
+            config:
+              prepare:
+                arc:
+                  enabled: true
+                  revision_hash: ${context.target_revision.hash}
+              run:
+                cwd:
+                  arcadia: {}
+                cmd_line: |
+                  set -eu
+                  ./ya make perforator/lib/profile/wasm \
+                    --target-platform default-emscripten-wasm32 \
+                    '-DUSER_CFLAGS=-fwasm-exceptions -Wno-c23-extensions' \
+                    -r --no-src-links --output "$TASKLET_RESULT_PATH/wasm-build"
+                  stage="$TASKLET_RESULT_PATH/profile-wasm"
+                  mkdir -p "$stage/src/generated/wasm"
+                  cp "$TASKLET_RESULT_PATH/wasm-build/perforator/lib/profile/wasm/profile.wasm" \
+                    "$stage/src/generated/wasm/profile.wasm"
+                  test -s "$stage/src/generated/wasm/profile.wasm"
+                  tar -C "$stage" -cf "$TASKLET_RESULT_PATH/profile-wasm.tar" .
+              result:
+                files:
+                  profile-wasm:
+                    path: profile-wasm.tar
+                sandbox:
+                  resources:
+                    profile-wasm:
+                      spec:
+                        type: CI_NODE_NPM_PACKAGE_BUILD_TARBALL
+                        description: Perforator profile WASM build input
+                        attributes:
+                          artifact_type: NpmPackageBuild
+                          archive-type: tar
+                          project_path: perforator/ui/app
+                          purpose: perforator-profile-wasm
+                          revision: ${context.target_revision.hash}
+                          ttl: "14"
+                      file:
+                        label: profile-wasm
+                output:
+                  ci:
+                    sandbox:
+                      resources:
+                        profile-wasm:
+                          label: profile-wasm
+        prepare-ui: &prepare-ui
+          needs: start-build
+          title: Prepare UI dependencies
           task: projects/frontend_build_platform/nots_build
           input:
             config:
+              project_path: perforator/ui/app
+              ref_id: ${context.target_revision.hash}
+              only_install_node_modules: true
+              production_mode: false
               cache_ca_store: true
+        build:
+          title: Build UI with profile WASM
+          needs: [build-wasm, prepare-ui]
+          task: common/nodejs/pnpm/run
+          input:
+            node_modules:
+              - ${tasks.prepare-ui.node_modules}
+            build:
+              - sandbox_resource: ${tasks.build-wasm.resources[0]}
+            config:
+              script: build:ci
+              execution_directory: perforator/ui/app
+              build_filter:
+                match_attributes:
+                  purpose: perforator-profile-wasm
               environment_variables:
                 VITE_RELEASE_VERSION: ${context.version_info.major}
                 VITE_REVISION: ${context.target_revision.commit_id}
+              artifacts:
+                dist:
+                  path: ui-build.tar
+                  type: CI_NODE_NPM_PACKAGE_BUILD_TARBALL
+                  attributes:
+                    artifact_type: NpmPackageBuild
+                    archive-type: tar
+                    project_path: perforator/ui/app
+                    purpose: perforator-ui-dist
+                    revision: ${context.target_revision.hash}
+                    ttl: "14"
         release_testing:
           title: Build and Release UI to testing
           needs: build
@@ -76,6 +179,7 @@ ci:
                 S3_ACCESS_KEY_ID: S3_ACCESS_KEY
                 S3_SECRET_ACCESS_KEY: S3_SECRET_KEY
               s3_configuration:
+                resource: ${tasks.build.artifacts.dist}
                 region: ru-central1
                 bucket: testing-perforator-ui
                 use_compression: false
@@ -87,7 +191,14 @@ ci:
           task: common/nodejs/pnpm/run
           needs: release_testing
           input:
+            node_modules:
+              - ${tasks.prepare-ui.node_modules}
+            build:
+              - sandbox_resource: ${tasks.build.artifacts.dist}
             config:
+              build_filter:
+                match_attributes:
+                  purpose: perforator-ui-dist
               script: test:e2e
               environment_variables:
                 BASE_URL: "https://prestable.perforator.yandex-team.ru"
@@ -135,6 +246,7 @@ ci:
                 S3_ACCESS_KEY_ID: S3_ACCESS_KEY
                 S3_SECRET_ACCESS_KEY: S3_SECRET_KEY
               s3_configuration:
+                resource: ${tasks.build.artifacts.dist}
                 region: ru-central1
                 bucket: perforator-ui
                 use_compression: false
@@ -154,7 +266,14 @@ ci:
           needs: build
           task: common/nodejs/pnpm/run
           input:
+            node_modules:
+              - ${tasks.prepare-ui.node_modules}
+            build:
+              - sandbox_resource: ${tasks.build.artifacts.dist}
             config:
+              build_filter:
+                match_attributes:
+                  purpose: perforator-ui-dist
               script: upload:sourcemaps
               environment_variables:
                 VITE_RELEASE_VERSION: ${context.version_info.major}
@@ -166,16 +285,39 @@ ci:
                 YA_TOKEN: ci.token
     preview-flow:
       jobs:
+        start-build: *start-build
+        build-wasm: *build-wasm
+        prepare-ui: *prepare-ui
         build:
-          task: projects/frontend_build_platform/nots_build
+          title: Build UI with profile WASM
+          needs: [build-wasm, prepare-ui]
+          task: common/nodejs/pnpm/run
           input:
+            node_modules:
+              - ${tasks.prepare-ui.node_modules}
+            build:
+              - sandbox_resource: ${tasks.build-wasm.resources[0]}
             config:
-              cache_ca_store: true
-              production_mode: false
+              script: build:ci
+              execution_directory: perforator/ui/app
+              build_filter:
+                match_attributes:
+                  purpose: perforator-profile-wasm
               environment_variables:
                 RUM_DEBUG: true
                 VITE_RELEASE_VERSION: ${context.version_info.major}
                 VITE_REVISION: ${context.target_revision.commit_id}
+              artifacts:
+                dist:
+                  path: ui-build.tar
+                  type: CI_NODE_NPM_PACKAGE_BUILD_TARBALL
+                  attributes:
+                    artifact_type: NpmPackageBuild
+                    archive-type: tar
+                    project_path: perforator/ui/app
+                    purpose: perforator-ui-dist
+                    revision: ${context.target_revision.hash}
+                    ttl: "14"
         upload:
           task: common/nodejs/static_uploader
           needs: build
@@ -185,6 +327,7 @@ ci:
                 S3_ACCESS_KEY_ID: S3_ACCESS_KEY
                 S3_SECRET_ACCESS_KEY: S3_SECRET_KEY
               s3_configuration:
+                resource: ${tasks.build.artifacts.dist}
                 region: ru-central1
                 bucket: preview-perforator-ui
                 use_compression: false
@@ -196,7 +339,14 @@ ci:
           task: common/nodejs/pnpm/run
           needs: upload
           input:
+            node_modules:
+              - ${tasks.prepare-ui.node_modules}
+            build:
+              - sandbox_resource: ${tasks.build.artifacts.dist}
             config:
+              build_filter:
+                match_attributes:
+                  purpose: perforator-ui-dist
               script: test:e2e
               environment_variables:
                 BASE_URL: "https://${context.launch_pull_request_info.pull_request.id}.preview.perforator.yandex-team.ru"
