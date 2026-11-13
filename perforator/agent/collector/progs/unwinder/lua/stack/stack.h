@@ -113,6 +113,11 @@ enum lua_stack_step_result {
         return LUA_STACK_STEP_RESULT_FAILED | LUA_STACK_STEP_RESULT_HAS_FRAME;
     }
 
+    // `next_frame` now holds correct callee's link, after skipping varg frame.
+    const luajit_tvalue* effective_frame = (const luajit_tvalue*)stack_context->next_frame;
+    stack_context->lua_frame.vm_entry_before = effective_frame > bottom && effective_frame < max_stack &&
+        luajit_frame_typep(effective_frame) == LUAJIT_FRAME_CP;
+
     metric_increment(METRIC_LUA_PROCESSED_FRAMES_COUNT);
     return LUA_STACK_STEP_RESULT_CONTINUE | LUA_STACK_STEP_RESULT_HAS_FRAME;
 }

@@ -83,6 +83,13 @@ func (p *StackProcessor) Process(
 	p.collectedFrameCount.Add(int64(stack.Len))
 }
 
+func vmEntryColumn(frame *unwinder.LuaFrame) int64 {
+	if frame.VmEntryBefore != 0 {
+		return profilelua.VMEntryColumn
+	}
+	return 0
+}
+
 func (p *StackProcessor) processFrame(
 	builder *profile.SampleBuilder,
 	frame *unwinder.LuaFrame,
@@ -95,7 +102,7 @@ func (p *StackProcessor) processFrame(
 	currentLine := int64(0)
 	clearAddress := false
 	systemName := ""
-	var loc *profile.LocationBuilder
+	var key profile.InterpreterLocationKey
 
 	switch frame.Type {
 	case unwinder.LuaFrameTypeLua:
@@ -129,13 +136,13 @@ func (p *StackProcessor) processFrame(
 		currentLine = int64(luaFrame.CurrentLine)
 		clearAddress = exists && (foundName || (filename != "" && firstLine > 0))
 
-		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
+		key = profile.InterpreterLocationKey{
 			ObjectAddress: luaFrame.ProtoAddress,
 			Linestart:     luaFrame.FirstLine,
 			Line:          luaFrame.CurrentLine,
 			Language:      models.Language(unwinder.LanguageLua),
 			Name:          name,
-		})
+		}
 	case unwinder.LuaFrameTypeC:
 		cFrame := frame.Value.GetCFrame()
 
@@ -155,12 +162,12 @@ func (p *StackProcessor) processFrame(
 			clearAddress = true
 		}
 
-		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
+		key = profile.InterpreterLocationKey{
 			ObjectAddress: cFrame.FunctionAddress,
 			Linestart:     int32(cFrame.Ffid),
 			Language:      models.Language(unwinder.LanguageLua),
 			Name:          systemName,
-		})
+		}
 	case unwinder.LuaFrameTypeInvalid:
 		invalidFrame := frame.Value.GetInvalidFrame()
 		name += "<invalid lua frame>"
@@ -169,15 +176,21 @@ func (p *StackProcessor) processFrame(
 			name += ": " + luaStackWalkErrorDescriptions[invalidFrame.Error]
 		}
 
-		loc = builder.AddInterpreterLocation(&profile.InterpreterLocationKey{
+		key = profile.InterpreterLocationKey{
 			ObjectAddress: uint64(invalidFrame.Error),
 			Linestart:     0,
 			Language:      models.Language(unwinder.LanguageLua),
-		})
+		}
 	default:
 		return
 	}
 
+	column := vmEntryColumn(frame)
+	if column != 0 {
+		// Keep protected-entry and ordinary uses of the same function distinct.
+		key.Name = "\x00" + key.Name
+	}
+	loc := builder.AddInterpreterLocation(&key)
 	if clearAddress {
 		loc.ClearAddress()
 	}
@@ -188,6 +201,7 @@ func (p *StackProcessor) processFrame(
 		SetMangledName(systemName).
 		SetFilename(filename).
 		SetLine(currentLine).
+		SetColumn(column).
 		SetStartLine(firstLine).
 		Finish()
 	loc.Finish()
@@ -282,7 +296,7 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 	}
 
 	output.SetAddress(address)
-	return output.AddInlineFunction(name, filename, int32(firstLine), int32(currentLine), systemName, 0)
+	return output.AddInlineFunction(name, filename, int32(firstLine), int32(currentLine), systemName, vmEntryColumn(frame))
 }
 
 // Agent read/cache budgets, not LuaJIT's maximum allocation sizes.

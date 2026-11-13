@@ -69,6 +69,7 @@ func TestLuaVMInfoAndCFrameKinds(t *testing.T) {
 	for i, kind := range kinds {
 		frame := data[(i+1)*luaFrameSize:]
 		frame[0] = byte(LuaFrameTypeC)
+		frame[1] = byte(i % 2)
 		binary.LittleEndian.PutUint64(frame[8:], 0x3000)
 		frame[16] = 42
 		frame[17] = byte(kind)
@@ -81,7 +82,7 @@ func TestLuaVMInfoAndCFrameKinds(t *testing.T) {
 	}
 	for i, kind := range kinds {
 		frame := stack.Frames[i+1].Value.GetCFrame()
-		if frame.FunctionAddress != 0x3000 || frame.Ffid != 42 || frame.Kind != kind {
+		if frame.FunctionAddress != 0x3000 || frame.Ffid != 42 || frame.Kind != kind || stack.Frames[i+1].VmEntryBefore != uint8(i%2) {
 			t.Fatalf("kind %d decoded as %+v", kind, frame)
 		}
 	}
