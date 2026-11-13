@@ -35,6 +35,40 @@ static ALWAYS_INLINE void dwarf_unwind_setup_userspace_registers(
 
 ////////////////////////////////////////////////////////////////////////////////
 
+enum {
+    // Registers a callee may change without describing it in its CFI. DWARF treats registers without a rule
+    // as having the same value in the caller, and hand-written assembly relies on it: aesni_gcm_encrypt keeps
+    // its CFA in rax and aesni_cbc_encrypt in r11 while calling helpers that preserve them.
+    DWARF_GPRS_CALLER_SAVED =
+        (1 << DWARF_RAX) | (1 << DWARF_RDX) | (1 << DWARF_RCX) | (1 << DWARF_RSI) | (1 << DWARF_RDI) |
+        (1 << DWARF_R8) | (1 << DWARF_R9) | (1 << DWARF_R10) | (1 << DWARF_R11),
+};
+
+static ALWAYS_INLINE void dwarf_unwind_setup_userspace_gprs(struct unwind_gprs* gprs, struct user_regs* regs) {
+    *gprs = regs->gprs;
+}
+
+// Callee-saved registers are restored from the stack by DW_CFA_offset rules, which the unwind table does not
+// carry, so only caller-saved registers survive a DWARF step.
+static ALWAYS_INLINE void dwarf_unwind_gprs_after_dwarf_step(struct unwind_gprs* gprs) {
+    gprs->known &= DWARF_GPRS_CALLER_SAVED;
+}
+
+// Nothing is known about the registers of a frame unwound without CFI.
+static ALWAYS_INLINE void dwarf_unwind_gprs_forget(struct unwind_gprs* gprs) {
+    gprs->known = 0;
+}
+
+static ALWAYS_INLINE bool dwarf_unwind_gprs_get(struct unwind_gprs* gprs, u8 regno, u64* value) {
+    if (regno >= DWARF_GPR_COUNT || !(gprs->known & (1 << regno))) {
+        return false;
+    }
+    *value = gprs->regs[regno];
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 ALWAYS_INLINE bool dwarf_cfi_eval_ra(
     struct unwind_context* prev,
     struct unwind_context* next,
