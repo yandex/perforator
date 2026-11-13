@@ -42,8 +42,16 @@ func (c JobLeaseConfig) Validate() error {
 }
 
 type WorkerConfig struct {
-	Lease           JobLeaseConfig `yaml:"lease"`
-	SkippedServices []string       `yaml:"skipped_services"`
+	Lease                  JobLeaseConfig `yaml:"lease"`
+	SkippedServices        []string       `yaml:"skipped_services"`
+	BuildInfoLookupTimeout time.Duration  `yaml:"build_info_lookup_timeout"`
+}
+
+func (c WorkerConfig) Validate() error {
+	if c.BuildInfoLookupTimeout <= 0 {
+		return fmt.Errorf("build info lookup timeout must be positive")
+	}
+	return c.Lease.Validate()
 }
 
 type Config struct {
@@ -63,13 +71,16 @@ func ParseConfig(path string) (*Config, error) {
 
 	defer file.Close()
 
-	conf := &Config{Worker: WorkerConfig{Lease: defaultJobLeaseConfig()}}
+	conf := &Config{Worker: WorkerConfig{
+		Lease:                  defaultJobLeaseConfig(),
+		BuildInfoLookupTimeout: 10 * time.Second,
+	}}
 	err = yaml.NewDecoder(file).Decode(conf)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := conf.Worker.Lease.Validate(); err != nil {
+	if err := conf.Worker.Validate(); err != nil {
 		return nil, err
 	}
 	return conf, nil

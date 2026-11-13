@@ -79,6 +79,8 @@ type AggregationStorage interface {
 type Function struct {
 	Name             string
 	BuildID          string
+	CommitID         string
+	BinaryPath       string
 	SourceFile       string
 	SourceLine       uint32
 	SourceColumn     uint32

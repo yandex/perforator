@@ -27,13 +27,15 @@ type ClusterTop struct {
 	l xlog.Logger
 
 	profileStorage profile.Storage
+	binaryStorage  binaryMetadataReader
 
 	symbolizer *ClusterTopSymbolizer
 
 	skiplist *ServiceSkipList
 
-	metrics   *workerMetrics
-	leaseConf JobLeaseConfig
+	metrics                *workerMetrics
+	leaseConf              JobLeaseConfig
+	buildInfoLookupTimeout time.Duration
 }
 
 func NewClusterTop(
@@ -42,8 +44,11 @@ func NewClusterTop(
 	reg xmetrics.Registry,
 	storageBundle *bundle.StorageBundle,
 ) (*ClusterTop, error) {
-	if err := conf.Worker.Lease.Validate(); err != nil {
+	if err := conf.Worker.Validate(); err != nil {
 		return nil, err
+	}
+	if storageBundle.BinaryStorage == nil {
+		return nil, errors.New("cluster top requires binary metadata storage")
 	}
 	fileCache, err := filecache.NewFileCache(conf.BinaryProvider.FileCache, reg)
 	if err != nil {
@@ -67,12 +72,14 @@ func NewClusterTop(
 	}
 
 	return &ClusterTop{
-		l:              l,
-		profileStorage: storageBundle.ProfileStorage,
-		symbolizer:     symbolizer,
-		skiplist:       NewServiceSkipList(conf.Worker.SkippedServices),
-		metrics:        newWorkerMetrics(reg),
-		leaseConf:      conf.Worker.Lease,
+		l:                      l,
+		profileStorage:         storageBundle.ProfileStorage,
+		binaryStorage:          storageBundle.BinaryStorage,
+		symbolizer:             symbolizer,
+		skiplist:               NewServiceSkipList(conf.Worker.SkippedServices),
+		metrics:                newWorkerMetrics(reg),
+		leaseConf:              conf.Worker.Lease,
+		buildInfoLookupTimeout: conf.Worker.BuildInfoLookupTimeout,
 	}, nil
 }
 
@@ -206,8 +213,8 @@ func (t *ClusterTop) selectAndProcessJob(
 		})
 	} else {
 		err = t.processSelectedJob(ctx, selected, func(jobCtx context.Context) (oneShotJobResult, error) {
-			processor := newOneShotJobProcessor(t.l, t.profileStorage, t.symbolizer, selected.Job,
-				degreeOfParallelism, kDefaultProfilesBatchSize)
+			processor := newOneShotJobProcessor(t.l, t.profileStorage, t.binaryStorage, t.symbolizer, selected.Job,
+				degreeOfParallelism, kDefaultProfilesBatchSize, t.buildInfoLookupTimeout)
 			return processor.run(jobCtx)
 		}, clusterPerfTopAggregator)
 	}

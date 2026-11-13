@@ -273,10 +273,10 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 		return nil
 	}
 
-	const valuesPlaceholder = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	const valuesPlaceholder = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	var query strings.Builder
 	query.Grow(len(result.Functions) * (len(valuesPlaceholder) + 2))
-	args := make([]any, 0, len(result.Functions)*11)
+	args := make([]any, 0, len(result.Functions)*13)
 	for i := range result.Functions {
 		function := &result.Functions[i]
 		functionName := function.Name
@@ -294,6 +294,8 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 			result.ServiceName,
 			functionName,
 			function.BuildID,
+			function.CommitID,
+			function.BinaryPath,
 			function.SourceFile,
 			function.SourceLine,
 			function.SourceColumn,
@@ -322,13 +324,13 @@ func (s *ClickhouseAggregationStorage) SaveClusterTopEntry(ctx context.Context, 
 		clickhousego.WithSettings(settings),
 	)
 
-	// Language, binary_path and commit_id still use the table's defaults.
+	// Language still uses the table default.
 	if err := clickhouse.ExecWithRetries(
 		s.l,
 		ctx,
 		s.conn,
 		"cluster_top_v3_insert",
-		fmt.Sprintf("INSERT INTO %s(generation, partition_bucket, event_type, service, function, build_id, source_file, source_line, source_column, self_cycles, cumulative_cycles) VALUES %s", clusterTopTable, query.String()),
+		fmt.Sprintf("INSERT INTO %s(generation, partition_bucket, event_type, service, function, build_id, commit_id, binary_path, source_file, source_line, source_column, self_cycles, cumulative_cycles) VALUES %s", clusterTopTable, query.String()),
 		args...,
 	); err != nil {
 		return fmt.Errorf("failed to execute async cluster top insert: %w", err)

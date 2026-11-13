@@ -4,27 +4,36 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
 )
+
+type binaryMetadataReader interface {
+	GetBinaries(context.Context, []string) ([]*binarymeta.BinaryMeta, error)
+}
 
 type oneShotJobProcessor struct {
 	l              xlog.Logger
 	profileStorage profile.Storage
+	binaryStorage  binaryMetadataReader
 	symbolizer     *ClusterTopSymbolizer
 
-	job                 Job
-	stats               *JobExecutionStats
-	degreeOfParallelism int
-	profilesBatchSize   int
+	job                    Job
+	stats                  *JobExecutionStats
+	degreeOfParallelism    int
+	profilesBatchSize      int
+	buildInfoLookupTimeout time.Duration
 
 	startedAt time.Time
 }
@@ -32,10 +41,12 @@ type oneShotJobProcessor struct {
 func newOneShotJobProcessor(
 	l xlog.Logger,
 	profileStorage profile.Storage,
+	binaryStorage binaryMetadataReader,
 	symbolizer *ClusterTopSymbolizer,
 	job Job,
 	degreeOfParallelism int,
 	profilesBatchSize int,
+	buildInfoLookupTimeout time.Duration,
 ) *oneShotJobProcessor {
 	stats := newJobExecutionStats()
 	if !job.CreatedAt.IsZero() && !job.StartedAt.IsZero() {
@@ -43,14 +54,16 @@ func newOneShotJobProcessor(
 	}
 
 	return &oneShotJobProcessor{
-		l:                   l,
-		profileStorage:      profileStorage,
-		symbolizer:          symbolizer,
-		job:                 job,
-		stats:               stats,
-		degreeOfParallelism: degreeOfParallelism,
-		profilesBatchSize:   profilesBatchSize,
-		startedAt:           time.Now(),
+		l:                      l,
+		profileStorage:         profileStorage,
+		binaryStorage:          binaryStorage,
+		symbolizer:             symbolizer,
+		job:                    job,
+		stats:                  stats,
+		degreeOfParallelism:    degreeOfParallelism,
+		profilesBatchSize:      profilesBatchSize,
+		buildInfoLookupTimeout: buildInfoLookupTimeout,
+		startedAt:              time.Now(),
 	}
 }
 
@@ -105,13 +118,31 @@ func (p *oneShotJobProcessor) run(ctx context.Context) (result oneShotJobResult,
 	p.stats.Metrics.BuildIDs = len(buildIDs)
 	p.stats.Metrics.Batches = (len(profileMetas) + p.profilesBatchSize - 1) / p.profilesBatchSize
 
-	processed, err := p.processProfiles(ctx, profileMetas, buildIDs)
+	var processed processedProfilesResult
+	var buildInfo map[string]*perforatorstorage.BinaryBuildInfo
+	g, processingCtx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		var err error
+		buildInfo, err = p.readBuildInfo(processingCtx, buildIDs)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		processed, err = p.processProfiles(processingCtx, profileMetas, buildIDs)
+		return err
+	})
+	err = g.Wait()
+	if err == nil {
+		err = ctx.Err()
+	}
 	processed.stages.applyTo(&p.stats.Stages)
 	p.stats.ProcessingWall = processed.processingWall
 	if err != nil {
 		p.stats.Metrics.ProfilesProcessed = len(profileMetas)
 		return oneShotJobResult{profilesProcessed: len(profileMetas)}, err
 	}
+
+	enrichWithBuildInfo(processed.functions, buildInfo)
 
 	p.stats.Metrics.Functions = len(processed.functions)
 	p.stats.Metrics.ProfilesProcessed = len(profileMetas)
@@ -124,6 +155,52 @@ func (p *oneShotJobProcessor) run(ctx context.Context) (result oneShotJobResult,
 			Functions: processed.functions,
 		},
 	}, nil
+}
+
+func enrichWithBuildInfo(functions []Function, buildInfo map[string]*perforatorstorage.BinaryBuildInfo) {
+	for i := range functions {
+		function := &functions[i]
+		info := buildInfo[function.BuildID]
+		function.CommitID = info.GetCommitID()
+		function.BinaryPath = info.GetBuildTargetPath()
+	}
+}
+
+func (p *oneShotJobProcessor) readBuildInfo(ctx context.Context, buildIDs []string) (map[string]*perforatorstorage.BinaryBuildInfo, error) {
+	started := time.Now()
+	defer func() { p.stats.Stages.ReadBuildInfo = time.Since(started) }()
+
+	infoByBuildID := make(map[string]*perforatorstorage.BinaryBuildInfo, len(buildIDs))
+
+	lookupCtx, cancel := context.WithTimeout(ctx, p.buildInfoLookupTimeout)
+	defer cancel()
+	const batchSize = 1000
+	for offset := 0; offset < len(buildIDs); offset += batchSize {
+		metas, err := p.binaryStorage.GetBinaries(lookupCtx, buildIDs[offset:min(offset+batchSize, len(buildIDs))])
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			p.stats.Metrics.BuildInfoLookupErrors++
+			p.l.Warn(ctx, "Failed to read binary build info; keeping available metadata",
+				log.Int64("job_id", p.job.ID), log.Error(err))
+			break
+		}
+		for _, meta := range metas {
+			if meta.Status == binarymeta.Uploaded {
+				infoByBuildID[meta.BuildID] = meta.Attributes.GetBuildInfo()
+			}
+		}
+	}
+	for _, id := range buildIDs {
+		info := infoByBuildID[id]
+		if info.GetCommitID() != "" || info.GetBuildTargetPath() != "" {
+			p.stats.Metrics.BinariesWithBuildInfo++
+		} else {
+			p.stats.Metrics.BinariesWithoutBuildInfo++
+		}
+	}
+	return infoByBuildID, ctx.Err()
 }
 
 type parallelProcessingStages struct {
@@ -303,7 +380,9 @@ func getBuildIDsFromProfiles(profileMetas []*meta.ProfileMetadata) []string {
 
 	for _, profileMeta := range profileMetas {
 		for _, buildID := range profileMeta.BuildIDs {
-			uniqueBuildIDs[buildID] = struct{}{}
+			if buildID != "" {
+				uniqueBuildIDs[buildID] = struct{}{}
+			}
 		}
 	}
 
@@ -312,5 +391,6 @@ func getBuildIDsFromProfiles(profileMetas []*meta.ProfileMetadata) []string {
 		uniqueBuildIDsList = append(uniqueBuildIDsList, buildID)
 	}
 
+	slices.Sort(uniqueBuildIDsList)
 	return uniqueBuildIDsList
 }
