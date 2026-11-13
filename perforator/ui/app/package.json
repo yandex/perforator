@@ -3,10 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "pnpm": {
-    "forceLegacyDeploy": true,
-    "overrides": {
-      "perforator>@perforator/flamegraph": "file:../packages/flamegraph"
-    }
+    "forceLegacyDeploy": true
   },
   "scripts": {
     "build": "tsc && vite build",
@@ -41,7 +38,7 @@
     "@gravity-ui/onboarding": "1.11.4",
     "@gravity-ui/table": "1.13.0",
     "@gravity-ui/uikit": "7.36.1",
-    "@perforator/flamegraph": "workspace:../packages/flamegraph",
+    "@perforator/flamegraph": "file:../packages/flamegraph",
     "@tanstack/react-query": "5.100.1",
     "axios": "1.8.3",
     "culori": "4.0.1",

@@ -1,8 +1,9 @@
 packages:
   - ../packages/*
   - ../viewer
+# External builds install before building the sibling package.
 overrides:
-  'perforator>@perforator/flamegraph': file:../packages/flamegraph
+  'perforator>@perforator/flamegraph': link:../packages/flamegraph
 
 allowBuilds:
   "@swc/core": false
