@@ -144,7 +144,7 @@ func (s *BinaryStorage) loadBinaryMeta(
 	ctx context.Context,
 	buildID string,
 ) (*binarymeta.BinaryMeta, error) {
-	metas, err := s.metaStorage.GetBinaries(ctx, []string{buildID})
+	metas, err := s.metaStorage.GetBinariesMeta(ctx, []string{buildID})
 	if err != nil {
 		return nil, err
 	}
@@ -241,49 +241,11 @@ func (s *BinaryStorage) LoadBinary(
 	return meta, nil
 }
 
-func (s *BinaryStorage) fillBlobSize(ctx context.Context, meta *binarymeta.BinaryMeta) error {
-	var err error
-	meta.BlobInfo.Size, err = s.blobStorage.Size(ctx, meta.BlobInfo.ID)
-	if err != nil {
-		noExistErr := &blob.ErrNotExist{}
-		if !errors.As(err, &noExistErr) {
-			return err
-		}
-
-		// set blob info to nil if no exist error for blob
-		meta.BlobInfo = nil
-	}
-
-	return nil
-}
-
-func (s *BinaryStorage) GetBinaries(
+func (s *BinaryStorage) GetBinariesMeta(
 	ctx context.Context,
 	buildIDs []string,
 ) ([]*binarymeta.BinaryMeta, error) {
-	metas, err := s.metaStorage.GetBinaries(ctx, buildIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	res := make([]*binarymeta.BinaryMeta, 0, len(metas))
-	for _, meta := range metas {
-		meta := meta
-
-		if meta.BlobInfo == nil || meta.BlobInfo.ID == "" || meta.Status == binarymeta.InProgress {
-			res = append(res, meta)
-			continue
-		}
-
-		err = s.fillBlobSize(ctx, meta)
-		if err != nil {
-			return nil, err
-		}
-
-		res = append(res, meta)
-	}
-
-	return res, nil
+	return s.metaStorage.GetBinariesMeta(ctx, buildIDs)
 }
 
 func (s *BinaryStorage) CollectExpired(
@@ -311,7 +273,7 @@ func (s *BinaryStorage) Delete(
 	ctx context.Context,
 	IDs []string,
 ) error {
-	metas, err := s.metaStorage.GetBinaries(ctx, IDs)
+	metas, err := s.metaStorage.GetBinariesMeta(ctx, IDs)
 	if err != nil {
 		return err
 	}

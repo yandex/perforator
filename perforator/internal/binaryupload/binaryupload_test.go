@@ -68,7 +68,7 @@ func (f *fakeMetaStorage) BeginUpload(_ context.Context, buildID string, _ time.
 	return c, nil
 }
 
-func (f *fakeMetaStorage) GetBinaries(context.Context, []string) ([]*binarymeta.BinaryMeta, error) {
+func (f *fakeMetaStorage) GetBinariesMeta(context.Context, []string) ([]*binarymeta.BinaryMeta, error) {
 	f.getCalls++
 	return f.metas, f.getErr
 }

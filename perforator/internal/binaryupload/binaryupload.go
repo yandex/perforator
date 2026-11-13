@@ -129,7 +129,7 @@ func (s *Service) isKnown(buildID string) bool {
 }
 
 func (s *Service) unknownBinaries(ctx context.Context, buildIDs []string) ([]string, error) {
-	binaries, err := s.storage.GetBinaries(ctx, buildIDs)
+	binaries, err := s.storage.GetBinariesMeta(ctx, buildIDs)
 	if err != nil {
 		return nil, err
 	}

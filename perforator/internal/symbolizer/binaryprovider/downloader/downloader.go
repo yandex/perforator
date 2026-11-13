@@ -159,7 +159,7 @@ type binaryDownloadAdapter struct {
 }
 
 func (a *binaryDownloadAdapter) size(ctx context.Context, buildID string) (uint64, error) {
-	binaries, err := a.storage.GetBinaries(ctx, []string{buildID})
+	binaries, err := a.storage.GetBinariesMeta(ctx, []string{buildID})
 	if err != nil {
 		return 0, err
 	}

@@ -115,7 +115,7 @@ type Storage interface {
 		opts ...Option,
 	) (UploadClaim, error)
 
-	GetBinaries(
+	GetBinariesMeta(
 		ctx context.Context,
 		buildIDs []string,
 	) ([]*BinaryMeta, error)

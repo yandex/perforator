@@ -278,7 +278,7 @@ func (s *Storage) updateLastUsedTimestampsIfNeeded(ctx context.Context, rows []B
 	}
 }
 
-func (s *Storage) GetBinaries(
+func (s *Storage) GetBinariesMeta(
 	ctx context.Context,
 	buildIDs []string,
 ) ([]*binarymeta.BinaryMeta, error) {

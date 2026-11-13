@@ -54,17 +54,17 @@ func removeDuplicates(metas []*binarymeta.BinaryMeta) []*binarymeta.BinaryMeta {
 	return result
 }
 
-func (s *CombinedStorage) GetBinaries(
+func (s *CombinedStorage) GetBinariesMeta(
 	ctx context.Context,
 	buildIDs []string,
 ) (res []*binarymeta.BinaryMeta, err error) {
-	metas, err := s.readStorage.GetBinaries(ctx, buildIDs)
+	metas, err := s.readStorage.GetBinariesMeta(ctx, buildIDs)
 	if err != nil {
 		return nil, err
 	}
 	res = append(res, metas...)
 
-	metas, err = s.writeStorage.GetBinaries(ctx, buildIDs)
+	metas, err = s.writeStorage.GetBinariesMeta(ctx, buildIDs)
 	if err != nil {
 		return nil, err
 	}

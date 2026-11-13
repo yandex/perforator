@@ -35,7 +35,7 @@ func (f *fakeMetaStorage) BeginUpload(ctx context.Context, buildID string, times
 	return f.begin(ctx, buildID, timestamp, opts...)
 }
 
-func (f *fakeMetaStorage) GetBinaries(_ context.Context, buildIDs []string) ([]*binarymeta.BinaryMeta, error) {
+func (f *fakeMetaStorage) GetBinariesMeta(_ context.Context, buildIDs []string) ([]*binarymeta.BinaryMeta, error) {
 	res := make([]*binarymeta.BinaryMeta, 0, len(buildIDs))
 	for _, id := range buildIDs {
 		if meta, ok := f.metas[id]; ok {
@@ -180,6 +180,29 @@ func TestStoreBinary_CancelledCommitCleanupOrder(t *testing.T) {
 	_, err := newStoreTestStorage(t, claim, blobStorage).StoreBinary(ctx, "a", time.Now(), bytes.NewReader(payload))
 	require.ErrorIs(t, err, context.Canceled)
 	require.Equal(t, []string{"put", "commit", "delete", "abort"}, events)
+}
+
+func TestGetBinariesMeta_MissingBlob(t *testing.T) {
+	meta := testMeta("a", "blob-a", compressionpb.CompressionMethod_None, 42)
+	meta.Status = binarymeta.Uploaded
+	meta.BlobInfo.Size = 42
+	missing := &blob.ErrNotExist{Key: "blob-a", Err: errors.New("not found")}
+	s := NewStorage(
+		&fakeMetaStorage{metas: map[string]*binarymeta.BinaryMeta{"a": meta}},
+		&fakeBlobStorage{},
+		xlog.ForTest(t),
+		metricsmock.NewRegistry(nil),
+	)
+
+	metas, err := s.GetBinariesMeta(bg(), []string{"a"})
+	require.NoError(t, err)
+	require.Equal(t, []*binarymeta.BinaryMeta{meta}, metas)
+
+	s.blobStorage = &fakeBlobStorage{get: func(context.Context, string) (io.ReadCloser, error) {
+		return nil, missing
+	}}
+	_, err = s.LoadBinary(bg(), "a", &memWriterAt{})
+	require.ErrorIs(t, err, missing)
 }
 
 func TestLoadBinary_Uncompressed(t *testing.T) {

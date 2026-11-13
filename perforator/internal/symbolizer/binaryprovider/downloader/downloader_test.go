@@ -267,7 +267,7 @@ type fakeBinaryMeta struct {
 	metas map[string]*binarymeta.BinaryMeta
 }
 
-func (f *fakeBinaryMeta) GetBinaries(_ context.Context, buildIDs []string) ([]*binarymeta.BinaryMeta, error) {
+func (f *fakeBinaryMeta) GetBinariesMeta(_ context.Context, buildIDs []string) ([]*binarymeta.BinaryMeta, error) {
 	res := make([]*binarymeta.BinaryMeta, 0, len(buildIDs))
 	for _, id := range buildIDs {
 		if meta, ok := f.metas[id]; ok {

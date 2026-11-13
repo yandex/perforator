@@ -20,7 +20,7 @@ import (
 )
 
 type binaryMetadataReader interface {
-	GetBinaries(context.Context, []string) ([]*binarymeta.BinaryMeta, error)
+	GetBinariesMeta(context.Context, []string) ([]*binarymeta.BinaryMeta, error)
 }
 
 type oneShotJobProcessor struct {
@@ -176,7 +176,7 @@ func (p *oneShotJobProcessor) readBuildInfo(ctx context.Context, buildIDs []stri
 	defer cancel()
 	const batchSize = 1000
 	for offset := 0; offset < len(buildIDs); offset += batchSize {
-		metas, err := p.binaryStorage.GetBinaries(lookupCtx, buildIDs[offset:min(offset+batchSize, len(buildIDs))])
+		metas, err := p.binaryStorage.GetBinariesMeta(lookupCtx, buildIDs[offset:min(offset+batchSize, len(buildIDs))])
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
