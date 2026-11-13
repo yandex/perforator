@@ -6,6 +6,7 @@ PEERDIR(
 
 SRCS(
     dwarf_matcher_ut.cpp
+    ehframe_ut.cpp
 )
 
 END()
