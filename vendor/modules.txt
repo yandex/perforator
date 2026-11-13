@@ -8823,6 +8823,11 @@ github.com/fergusstrange/embedded-postgres/cmd
 github.com/fernet/fernet-go
 github.com/fernet/fernet-go/cmd/fernet-keygen
 github.com/fernet/fernet-go/cmd/fernet-sign
+# github.com/floatdrop/vanitypages v0.3.2
+## explicit; go 1.26.0
+github.com/floatdrop/vanitypages
+github.com/floatdrop/vanitypages/cmd/vanitypages
+github.com/floatdrop/vanitypages/internal/assets
 # github.com/flopp/go-findfont v0.1.0
 ## explicit; go 1.13
 github.com/flopp/go-findfont

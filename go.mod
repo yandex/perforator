@@ -424,6 +424,7 @@ require (
 	github.com/felixge/fgprof v0.9.4
 	github.com/fergusstrange/embedded-postgres v1.23.0
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611
+	github.com/floatdrop/vanitypages v0.3.2
 	github.com/florianl/go-nfqueue v1.3.1
 	github.com/florianl/go-tc v0.4.2
 	github.com/flosch/pongo2/v4 v4.0.2
