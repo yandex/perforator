@@ -33,6 +33,10 @@ public:
             rule.mutable_register_deref_offset()->clear_offset();
             break;
 
+        case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kRegisterIndexedDerefOffset:
+            rule.mutable_register_indexed_deref_offset()->clear_offset();
+            break;
+
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kCfaPlusOffset:
             // rule.mutable_cfa_plus_offset()->clear_offset();
             break;
@@ -155,6 +159,10 @@ void CountCFAStats(const NPerforator::NBinaryProcessing::NUnwind::UnwindTable& t
 
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kRegisterDerefOffset:
             rule.mutable_register_deref_offset()->clear_offset();
+            break;
+
+        case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kRegisterIndexedDerefOffset:
+            rule.mutable_register_indexed_deref_offset()->clear_offset();
             break;
 
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kCfaPlusOffset:

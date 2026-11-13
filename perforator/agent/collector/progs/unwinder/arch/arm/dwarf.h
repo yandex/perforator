@@ -36,6 +36,20 @@ static ALWAYS_INLINE void dwarf_unwind_setup_userspace_registers(
     cfi->lr = regs->lr;
 }
 
+static ALWAYS_INLINE void dwarf_unwind_setup_userspace_gprs(struct unwind_gprs* gprs, struct user_regs* regs) {
+    gprs->known = 0;
+}
+
+static ALWAYS_INLINE void dwarf_unwind_gprs_after_dwarf_step(struct unwind_gprs* gprs) {
+}
+
+static ALWAYS_INLINE void dwarf_unwind_gprs_forget(struct unwind_gprs* gprs) {
+}
+
+static ALWAYS_INLINE bool dwarf_unwind_gprs_get(struct unwind_gprs* gprs, u8 regno, u64* value) {
+    return false;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // FIXME: we are fully dependendent on Link register here, but it might be invalidated
