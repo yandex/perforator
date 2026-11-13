@@ -86,3 +86,26 @@ TEST(EhFrameRegisterExpression, RbpSavedAtRbp) {
     EXPECT_EQ(rule.register_offset().offset(), 0);
     EXPECT_TRUE(rule.dereference());
 }
+
+TEST(EhFrameCfaExpression, IndexedDerefPlus8OpenSSL) {
+    // openssl bn_mul_mont: DW_OP_breg7 (rsp): 8; DW_OP_breg9 (r9): 0; DW_OP_lit8; DW_OP_mul; DW_OP_plus;
+    // DW_OP_deref; DW_OP_plus_uconst: 8
+    constexpr ui8 OP_breg9 = llvm::dwarf::DW_OP_breg9;
+    constexpr ui8 OP_lit8 = llvm::dwarf::DW_OP_lit8;
+    constexpr ui8 OP_mul = llvm::dwarf::DW_OP_mul;
+    constexpr ui8 OP_plus = llvm::dwarf::DW_OP_plus;
+
+    auto rule = ConvertCfaExpression({OP_breg7, 0x08, OP_breg9, 0x00, OP_lit8, OP_mul, OP_plus, OP_deref, OP_plus_uconst, 0x08});
+    ASSERT_TRUE(rule.has_register_indexed_deref_offset()) << rule.DebugString();
+    const auto& deref = rule.register_indexed_deref_offset();
+    EXPECT_EQ(deref.register_(), 7u);
+    EXPECT_EQ(deref.offset(), 8);
+    EXPECT_EQ(deref.index_register(), 9u);
+    EXPECT_EQ(deref.scale(), 8u);
+    EXPECT_EQ(deref.bias(), 8);
+
+    // A different scale is not this rule.
+    constexpr ui8 OP_lit4 = llvm::dwarf::DW_OP_lit4;
+    EXPECT_FALSE(ConvertCfaExpression({OP_breg7, 0x08, OP_breg9, 0x00, OP_lit4, OP_mul, OP_plus, OP_deref, OP_plus_uconst, 0x08})
+        .has_register_indexed_deref_offset());
+}

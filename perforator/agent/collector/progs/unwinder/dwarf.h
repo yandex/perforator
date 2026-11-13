@@ -347,6 +347,35 @@ static ALWAYS_INLINE bool dwarf_cfi_eval_cfa(
         DWARF_TRACE("Set cfa to %llx=*(reg%d+%d)\n", next->cfa, (int)rule->regno, (int)rule->offset);
         return true;
     }
+    case UNWIND_RULE_RSP_INDEXED_DEREF_OFFSET_PLUS_8: {
+        u64 index = 0;
+        if (prev->cfa == DWARF_CFI_UNKNOWN_REGISTER || !dwarf_unwind_gprs_get(gprs, rule->regno, &index)) {
+            DWARF_TRACE("Failed to eval indexed deref CFA: SP or register %d is unknown\n", (int)rule->regno);
+            return false;
+        }
+        // The index is a number of stack words; anything larger than the stack is not one.
+        if (index > (1ull << 32) / 8) {
+            DWARF_TRACE("Indexed deref CFA: register %d=%llx is not a stack word count\n", (int)rule->regno, index);
+            return false;
+        }
+
+        u64 cfa = 0;
+        int err = bpf_probe_read_user(&cfa, sizeof(cfa), (void*)(prev->cfa + rule->offset + index * 8));
+        if (err != 0) {
+            DWARF_TRACE("Failed to read indexed deref CFA: %d\n", err);
+            return false;
+        }
+        cfa += 8;
+
+        if (cfa <= prev->cfa) {
+            DWARF_TRACE("Indexed deref CFA %llx is not above SP %llx\n", cfa, prev->cfa);
+            return false;
+        }
+
+        next->cfa = cfa;
+        DWARF_TRACE("Set cfa to %llx=*(sp+%d+reg%d*8)+8\n", next->cfa, (int)rule->offset, (int)rule->regno);
+        return true;
+    }
     default:
         DWARF_TRACE("Unsupported cfa rule kind %d\n", (int)rule->kind);
         return false;

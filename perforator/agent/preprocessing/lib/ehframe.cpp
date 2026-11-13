@@ -99,6 +99,36 @@ static bool MatchRegisterOffset(const llvm::DWARFExpression& expr, UnwindRule* r
     return false;
 }
 
+// Matches CFA = *(rsp + offset + index * 8) + bias for any index register.
+static bool MatchRegisterIndexedDerefOffset(const llvm::DWARFExpression& expr, UnwindRule* rule) {
+    for (int index = 0; index < 16; ++index) {
+        auto indexAtom = static_cast<llvm::dwarf::LocationAtom>(llvm::dwarf::DW_OP_breg0 + index);
+
+        ui64 offset = 0;
+        ui64 bias = 0;
+        bool matches = TDwarfExpressionPattern{}
+            .Push(llvm::dwarf::DW_OP_breg7, Wildcard(&offset))
+            .Push(indexAtom, 0)
+            .Push(llvm::dwarf::DW_OP_lit8)
+            .Push(llvm::dwarf::DW_OP_mul)
+            .Push(llvm::dwarf::DW_OP_plus)
+            .Push(llvm::dwarf::DW_OP_deref)
+            .Push(llvm::dwarf::DW_OP_plus_uconst, Wildcard(&bias))
+            .Matches(expr);
+
+        if (matches) {
+            auto* deref = rule->mutable_register_indexed_deref_offset();
+            deref->set_register_(7);
+            deref->set_offset(static_cast<i64>(offset));
+            deref->set_index_register(index);
+            deref->set_scale(8);
+            deref->set_bias(bias);
+            return true;
+        }
+    }
+    return false;
+}
+
 void FillRegisterLocation(UnwindRule* rule, const llvm::dwarf::UnwindLocation& loc) {
     rule->set_dereference(IsDerefLocation(loc));
 
@@ -159,26 +189,9 @@ void FillRegisterLocation(UnwindRule* rule, const llvm::dwarf::UnwindLocation& l
             break;
         }
 
-        {
-            // 4. Static hand-written CFA rule from openssl:
-            // DW_OP_breg7 RSP+8, DW_OP_breg9 R9+0, DW_OP_lit8, DW_OP_mul, DW_OP_plus, DW_OP_deref, DW_OP_plus_uconst 0x8
-
-            bool matches = NPerforator::NBinaryProcessing::NUnwind::TDwarfExpressionPattern{}
-                .Push(llvm::dwarf::DW_OP_breg7, 8)
-                .Push(llvm::dwarf::DW_OP_breg9, 0)
-                .Push(llvm::dwarf::DW_OP_lit8)
-                .Push(llvm::dwarf::DW_OP_mul)
-                .Push(llvm::dwarf::DW_OP_plus)
-                .Push(llvm::dwarf::DW_OP_deref)
-                .Push(llvm::dwarf::DW_OP_plus_uconst, 8)
-                .Matches(*expr);
-
-            if (matches) {
-                // TODO
-                rule->mutable_unsupported();
-                break;
-            }
-        }
+        // 4. CFA saved above a variable-size stack area (hand-written, openssl bn_mul_mont and friends):
+        // DW_OP_breg7 RSP+8, DW_OP_breg9 R9+0, DW_OP_lit8, DW_OP_mul, DW_OP_plus, DW_OP_deref, DW_OP_plus_uconst 0x8
+        MatchRegisterIndexedDerefOffset(*expr, rule);
         break;
     }
     case llvm::dwarf::UnwindLocation::Constant:

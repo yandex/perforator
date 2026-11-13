@@ -22,6 +22,9 @@ enum unwind_rule_kind : u8 {
     // CFA = *(reg + offset) + 8: hand-written openssl perlasm.
     // The bias is a part of the kind: there is no room for it in struct cfa_unwind_rule.
     UNWIND_RULE_REGISTER_DEREF_OFFSET_PLUS_8 = 8,
+    // CFA = *(rsp + offset + regno * 8) + 8: hand-written openssl perlasm keeps the caller's stack pointer
+    // above a variable-size stack area (bn_mul_mont: num words, num in r9).
+    UNWIND_RULE_RSP_INDEXED_DEREF_OFFSET_PLUS_8 = 9,
 };
 
 struct  __attribute__((packed)) cfa_unwind_rule {

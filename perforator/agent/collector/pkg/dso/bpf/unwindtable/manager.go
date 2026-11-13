@@ -630,6 +630,20 @@ func derefCfaRule(deref *unwind.UnwindRule_RegisterDerefOffset) unwinder.CfaUnwi
 	return rule
 }
 
+// indexedDerefCfaRule converts CFA = *(reg + offset + index * scale) + bias. The eBPF unwinder supports the
+// form used by openssl perlasm: rsp as the base, a scale of 8 and a bias of 8.
+func indexedDerefCfaRule(deref *unwind.UnwindRule_RegisterIndexedDerefOffset) unwinder.CfaUnwindRule {
+	rule := unwinder.CfaUnwindRule{
+		Kind:   unwinder.UnwindRuleUnsupported,
+		Regno:  uint8(deref.GetIndexRegister()),
+		Offset: deref.GetOffset(),
+	}
+	if deref.GetRegister() == uint32(unwinder.DwarfCfiStackRegisterNumber) && deref.GetScale() == 8 && deref.GetBias() == 8 {
+		rule.Kind = unwinder.UnwindRuleRspIndexedDerefOffsetPlus8
+	}
+	return rule
+}
+
 func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int, pageStartPC uint64) {
 	rule := unwinder.UnwindRule{}
 
@@ -656,6 +670,8 @@ func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int, pageStartPC 
 		rule.Cfa.Offset = cfa.GetCfaPlusOffset().GetOffset()
 	} else if cfa != nil && cfa.GetRegisterDerefOffset() != nil {
 		rule.Cfa = derefCfaRule(cfa.GetRegisterDerefOffset())
+	} else if cfa != nil && cfa.GetRegisterIndexedDerefOffset() != nil {
+		rule.Cfa = indexedDerefCfaRule(cfa.GetRegisterIndexedDerefOffset())
 	} else {
 		rule.Cfa.Kind = unwinder.UnwindRuleUnsupported
 	}

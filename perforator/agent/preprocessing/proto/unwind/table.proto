@@ -50,6 +50,15 @@ message UnwindRule {
         sint32 bias = 3;
     }
 
+    // *(register + offset + index_register * scale) + bias
+    message RegisterIndexedDerefOffset {
+        uint32 register = 1;
+        sint32 offset = 2;
+        uint32 index_register = 3;
+        uint32 scale = 4;
+        sint32 bias = 5;
+    }
+
     message PLTSection {
     }
 
@@ -62,6 +71,7 @@ message UnwindRule {
         PLTSection plt_section = 6;
         Constant constant = 7;
         Undefined undefined = 8;
+        RegisterIndexedDerefOffset register_indexed_deref_offset = 9;
     }
 
     bool dereference = 100;

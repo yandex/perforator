@@ -133,3 +133,34 @@ func TestFillRuleRegisterCfa(t *testing.T) {
 	fillRule(testRow(cfa, unsupportedRule()), page, 0, 0x1000)
 	require.Equal(t, unwinder.CfaUnwindRule{Kind: unwinder.UnwindRuleRegisterOffset, Regno: 11, Offset: 8}, page.Rules[0].Cfa)
 }
+
+func TestFillRuleIndexedDerefCfa(t *testing.T) {
+	indexed := func(register uint32, scale uint32, bias int32) *unwind.UnwindRule {
+		return &unwind.UnwindRule{Kind: &unwind.UnwindRule_RegisterIndexedDerefOffset_{
+			RegisterIndexedDerefOffset: &unwind.UnwindRule_RegisterIndexedDerefOffset{
+				Register:      register,
+				Offset:        8,
+				IndexRegister: 9,
+				Scale:         scale,
+				Bias:          bias,
+			},
+		}}
+	}
+
+	for _, tc := range []struct {
+		name string
+		rule *unwind.UnwindRule
+		kind unwinder.UnwindRuleKind
+	}{
+		{name: "openssl", rule: indexed(uint32(unwinder.DwarfCfiStackRegisterNumber), 8, 8), kind: unwinder.UnwindRuleRspIndexedDerefOffsetPlus8},
+		{name: "rbp-base", rule: indexed(6, 8, 8), kind: unwinder.UnwindRuleUnsupported},
+		{name: "scale-4", rule: indexed(uint32(unwinder.DwarfCfiStackRegisterNumber), 4, 8), kind: unwinder.UnwindRuleUnsupported},
+		{name: "bias-0", rule: indexed(uint32(unwinder.DwarfCfiStackRegisterNumber), 8, 0), kind: unwinder.UnwindRuleUnsupported},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			page := &unwinder.UnwindTablePageLeaf{}
+			fillRule(testRow(tc.rule, unsupportedRule()), page, 0, 0x1000)
+			require.Equal(t, unwinder.CfaUnwindRule{Kind: tc.kind, Regno: 9, Offset: 8}, page.Rules[0].Cfa)
+		})
+	}
+}
