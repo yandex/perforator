@@ -147,13 +147,10 @@ func (u *uprobeWrapper) Detach() error {
 
 	info := u.uprobe.Info()
 	err := u.uprobe.Close()
-	if err != nil {
-		return err
-	}
-
+	// Close clears the underlying link and metadata even when it returns an error.
 	u.attached = false
 	u.registry.Resolver.Remove(info)
-	return nil
+	return err
 }
 
 func (u *uprobeWrapper) Close() error {
