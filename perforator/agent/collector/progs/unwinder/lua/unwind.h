@@ -49,6 +49,7 @@ static ALWAYS_INLINE void lua_collect_stack(const struct process_info* process_i
         .value.vm_info = {
             .vm_start = state->binary_start_address + state->config.vm_start_pc,
             .vm_end = state->binary_start_address + state->config.vm_end_pc,
+            .ffi_call_size = state->config.ffi_call_size,
             .flags = state->stack_flags,
         },
     };

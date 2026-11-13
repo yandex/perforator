@@ -2,6 +2,7 @@ package lua
 
 import (
 	"bytes"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -45,8 +46,12 @@ func mergeFixture(lua, native []string, kernel bool, base uint64) *pprof.Profile
 	}
 	for i := len(native) - 1; i >= 0; i-- {
 		address := base + 0x3000 + uint64(i)*16
-		if strings.HasPrefix(native[i], "vm") {
+		switch {
+		case strings.HasPrefix(native[i], "vm"):
 			address = base + 0x1000 + uint64(i)*16
+		case native[i] == "ffi trampoline":
+			header.Line[0].Function.StartLine = 0x100
+			address = base + 0x1f00 // First byte of the FFI tail.
 		}
 		locations = append(locations, add(native[i], "", nativeMapping, address))
 	}
@@ -143,6 +148,9 @@ func TestHeaderGuardsAndDisabledMerging(t *testing.T) {
 		{"Lua failure", func(p *pprof.Profile) { p.Sample[0].Location[0].Line[0].Line = 1 }},
 		{"unknown flags", func(p *pprof.Profile) { p.Sample[0].Location[0].Line[0].Line = 4 }},
 		{"Lua failure and truncation", func(p *pprof.Profile) { p.Sample[0].Location[0].Line[0].Line = 3 }},
+		{"invalid FFI tail size", func(p *pprof.Profile) {
+			p.Sample[0].Location[0].Line[0].Function.StartLine = 0x1000
+		}},
 		{"invalid span", func(p *pprof.Profile) { p.Sample[0].Location[0].Line[0].Column = -1 }},
 		{"range outside mapping", func(p *pprof.Profile) {
 			p.Sample[0].Location[0].Mapping = p.Mapping[0]
@@ -180,8 +188,8 @@ func TestHeaderSurvivesProfileConversions(t *testing.T) {
 	for _, format := range []string{"pprof merge", "yaprof"} {
 		t.Run(format, func(t *testing.T) {
 			p, err := pprof.Merge([]*pprof.Profile{
-				mergeFixture([]string{"A", "C", "B"}, []string{"main", "vm0", "C", "vm1"}, true, 0x100000),
-				mergeFixture([]string{"A", "C", "B"}, []string{"main", "vm0", "C", "vm1"}, true, 0x800000),
+				mergeFixture([]string{"A", "C", "B", "FF"}, []string{"main", "vm0", "lj_ccall_func", "ffi trampoline", "qsort", "vm1", "lj_strfmt_num"}, true, 0x100000),
+				mergeFixture([]string{"A", "C", "B", "FF"}, []string{"main", "vm0", "lj_ccall_func", "ffi trampoline", "qsort", "vm1", "lj_strfmt_num"}, true, 0x800000),
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -204,13 +212,28 @@ func TestHeaderSurvivesProfileConversions(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
+			for _, loc := range p.Location {
+				if loc.Mapping != nil && loc.Mapping.File == "luajit" && !hasSystemName(loc, VMInfoSystemName) {
+					loc.Line = nil
+				}
+			}
 			res := Postprocess(p, true)
 			if res.MergedStacksCount == 0 || res.UnmergedStacksCount != 0 {
 				t.Fatalf("%+v", res)
 			}
 			for _, s := range p.Sample {
-				if !slices.Equal(rootNames(s), []string{"main", "A", "C", "B", "kernel"}) {
-					t.Fatal(rootNames(s))
+				// Native addresses relative to the mapping identify the unsymbolized frames.
+				var got []string
+				for _, loc := range slices.Backward(s.Location) {
+					if len(loc.Line) == 0 {
+						got = append(got, fmt.Sprintf("%#x", loc.Address-loc.Mapping.Start))
+					} else {
+						got = append(got, loc.Line[0].Function.Name)
+					}
+				}
+				want := []string{"0x3000", "A", "0x3020", "0x1f00", "0x3040", "B", "0x1050", "0x3060", "kernel"}
+				if !slices.Equal(got, want) {
+					t.Fatalf("got %v, want %v", got, want)
 				}
 			}
 			assertNoHeader(t, p)

@@ -18,4 +18,5 @@ message LuaConfig {
   uint64 BinarySize = 5;
   uint64 VmStartPc = 6;
   uint64 VmEndPc = 7;
+  uint32 FfiCallSize = 8;
 }

@@ -27,14 +27,16 @@ func VMInfoColumn(start, end uint64) int64 {
 	return int64(end - start)
 }
 
-// AddVMInfo adds the metadata frame. The caller attaches the native mapping
+// AddVMInfo stores the FFI tail size in the metadata function's StartLine.
+// The caller attaches the native mapping
 // and finishes the location so the header rebases with the native stack.
-func AddVMInfo(builder *profile.SampleBuilder, start, end uint64, flags uint32) *profile.LocationBuilder {
+func AddVMInfo(builder *profile.SampleBuilder, start, end uint64, flags, ffiCallSize uint32) *profile.LocationBuilder {
 	loc := builder.AddNativeLocationUncached(start)
 	loc.AddFrame().
 		SetName(VMInfoDisplayName).
 		SetMangledName(VMInfoSystemName).
 		SetLine(int64(flags)).
+		SetStartLine(int64(ffiCallSize)).
 		SetColumn(VMInfoColumn(start, end)).
 		Finish()
 	return loc
@@ -156,8 +158,14 @@ func mergeSample(sample *pprof.Sample, header *pprof.Location, luaEnd, kernelEnd
 		// A native stack at capacity may be missing its oldest frames.
 		return false
 	}
-	isVM := func(loc *pprof.Location) bool {
-		return loc != nil && header.Address <= loc.Address && loc.Address < vmEnd
+	// The FFI tail is VM code, but its outbound trampoline does not anchor Lua frames.
+	ffiCallSize := meta.Function.StartLine
+	if ffiCallSize < 0 || ffiCallSize >= meta.Column {
+		return false
+	}
+	luaVMEnd := vmEnd - uint64(ffiCallSize)
+	isLuaVMFrame := func(loc *pprof.Location) bool {
+		return loc != nil && header.Address <= loc.Address && loc.Address < luaVMEnd
 	}
 
 	// Each native C placeholder closes one Lua segment, including an empty one.
@@ -186,7 +194,7 @@ func mergeSample(sample *pprof.Sample, header *pprof.Location, luaEnd, kernelEnd
 	previousVM := false
 	nativeCallerFound := false
 	for i := len(locs) - 1; i >= kernelEnd; i-- {
-		vm := isVM(locs[i])
+		vm := isLuaVMFrame(locs[i])
 		if vm && previousVM {
 			// Adjacent VM entries have no intervening native caller to establish a boundary.
 			return false
@@ -208,7 +216,7 @@ func mergeSample(sample *pprof.Sample, header *pprof.Location, luaEnd, kernelEnd
 		return false
 	}
 	// A Lua leaf entered from C can be appended after the youngest native caller.
-	appendLeafLuaSegment := len(segments) == vmCount+1 && !endsAtNativeCall && kernelEnd < len(locs) && !isVM(locs[kernelEnd])
+	appendLeafLuaSegment := len(segments) == vmCount+1 && !endsAtNativeCall && kernelEnd < len(locs) && !isLuaVMFrame(locs[kernelEnd])
 	// A native leaf has entered the VM before its Lua frame was initialized.
 	keepLeafVMFrame := vmCount == len(segments)+1 && endsAtNativeCall
 	if vmCount != len(segments) && !appendLeafLuaSegment && !keepLeafVMFrame {
@@ -221,7 +229,7 @@ func mergeSample(sample *pprof.Sample, header *pprof.Location, luaEnd, kernelEnd
 	segmentIndex := 0
 	for i := len(locs) - 1; i >= kernelEnd; i-- {
 		loc := locs[i]
-		if isVM(loc) {
+		if isLuaVMFrame(loc) {
 			if segmentIndex < len(segments) {
 				segment := segments[segmentIndex]
 				if last := len(segment) - 1; last >= 0 && hasSystemName(segment[last], ASMFFSystemName) {

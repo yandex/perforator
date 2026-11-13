@@ -449,7 +449,8 @@ func TestLuaVMInfoProcessing(t *testing.T) {
 			header.Type = unwinder.LuaFrameTypeVmInfo
 			binary.LittleEndian.PutUint64(header.Value.UnionBuf[:], bounds[0])
 			binary.LittleEndian.PutUint64(header.Value.UnionBuf[8:], bounds[1])
-			binary.LittleEndian.PutUint32(header.Value.UnionBuf[16:], 2)
+			binary.LittleEndian.PutUint32(header.Value.UnionBuf[16:], 0xa0)
+			binary.LittleEndian.PutUint32(header.Value.UnionBuf[20:], 2)
 			stack.Frames[1].Type = unwinder.LuaFrameTypeInvalid
 			b := profile.NewBuilder().AddSampleType("cpu", "cycles")
 			sample := b.Add(linux.ProcessKey{Pid: 1}).AddValue(1)
@@ -473,7 +474,7 @@ func TestLuaVMInfoProcessing(t *testing.T) {
 			if bounds[1] == 0x101000 {
 				wantSpan = 0x1000
 			}
-			if line.Function.SystemName != profilelua.VMInfoSystemName || line.Line != 2 || line.Column != wantSpan {
+			if line.Function.SystemName != profilelua.VMInfoSystemName || line.Line != 2 || line.Column != wantSpan || line.Function.StartLine != 0xa0 {
 				t.Fatalf("metadata lost: %+v", line)
 			}
 			profilelua.Postprocess(result.Profile, false)

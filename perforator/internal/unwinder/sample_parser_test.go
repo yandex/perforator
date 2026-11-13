@@ -63,7 +63,8 @@ func TestLuaVMInfoAndCFrameKinds(t *testing.T) {
 	data[0] = byte(LuaFrameTypeVmInfo)
 	binary.LittleEndian.PutUint64(data[8:], 0x1000)
 	binary.LittleEndian.PutUint64(data[16:], 0x2000)
-	binary.LittleEndian.PutUint32(data[24:], 2)
+	binary.LittleEndian.PutUint32(data[24:], 0xa0)
+	binary.LittleEndian.PutUint32(data[28:], 2)
 	kinds := []LuaCFrameKind{LuaCFrameKindNative, LuaCFrameKindAsmFf, LuaCFrameKindProtectedFf}
 	for i, kind := range kinds {
 		frame := data[(i+1)*luaFrameSize:]
@@ -75,7 +76,7 @@ func TestLuaVMInfoAndCFrameKinds(t *testing.T) {
 	var stack LuaStack
 	decodeLuaFrames(data, &stack)
 	info := stack.Frames[0].Value.GetVmInfo()
-	if stack.Len != 3 || info.VmStart != 0x1000 || info.VmEnd != 0x2000 || info.Flags != 2 {
+	if stack.Len != 3 || info.VmStart != 0x1000 || info.VmEnd != 0x2000 || info.Flags != 2 || info.FfiCallSize != 0xa0 {
 		t.Fatalf("bad VM header: %+v", info)
 	}
 	for i, kind := range kinds {

@@ -64,7 +64,7 @@ func (p *StackProcessor) Process(
 		if i == 0 && frame.Type == unwinder.LuaFrameTypeVmInfo {
 			info := frame.Value.GetVmInfo()
 
-			loc := profilelua.AddVMInfo(builder, info.VmStart, info.VmEnd, info.Flags)
+			loc := profilelua.AddVMInfo(builder, info.VmStart, info.VmEnd, info.Flags, info.FfiCallSize)
 			processNativeLocation(loc, info.VmStart)
 
 			continue
@@ -206,7 +206,7 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 	case unwinder.LuaFrameTypeVmInfo:
 		info := frame.Value.GetVmInfo()
 		output.SetAddress(info.VmStart)
-		return output.AddInlineFunction(profilelua.VMInfoDisplayName, "", 0, int32(info.Flags), profilelua.VMInfoSystemName, profilelua.VMInfoColumn(info.VmStart, info.VmEnd))
+		return output.AddInlineFunction(profilelua.VMInfoDisplayName, "", int32(info.FfiCallSize), int32(info.Flags), profilelua.VMInfoSystemName, profilelua.VMInfoColumn(info.VmStart, info.VmEnd))
 	case unwinder.LuaFrameTypeLua:
 		luaFrame := frame.Value.GetLuaFrame()
 		foundName := false

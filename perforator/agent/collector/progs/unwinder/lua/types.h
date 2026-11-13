@@ -19,8 +19,9 @@ struct lua_config {
     u64 offset_g_to_dispatch; // `GG_G2DISP`
     u64 offset_g_to_vm_state; // `offsetof(global_State, vmstate)`
     u64 binary_size;          // Size of LuaJIT binary. Used to determine if current `rip` is from this binary.
-    u64 vm_start_pc;          // First PC of VM. Relative to the binary!
-    u64 vm_end_pc;            // Last PC of VM. Relative to the binary!
+    u64 vm_start_pc;          // First PC of VM. Binary-relative.
+    u64 vm_end_pc;            // Exclusive end of VM, including the FFI tail. Binary-relative.
+    u32 ffi_call_size;        // Size of the verified FFI tail, or zero when absent.
 };
 
 BPF_MAP(lua_storage, BPF_MAP_TYPE_HASH, binary_id, struct lua_config, MAX_BINARIES);
@@ -78,6 +79,7 @@ struct lua_frame {
         struct {
             u64 vm_start;
             u64 vm_end;
+            u32 ffi_call_size;
             u32 flags;
         } vm_info;
         struct {
@@ -88,7 +90,8 @@ struct lua_frame {
 
 _Static_assert(sizeof(struct lua_frame) == 32, "Lua wire frame size changed");
 _Static_assert(__builtin_offsetof(struct lua_frame, value.c_frame.kind) == 17, "Lua C kind wire offset changed");
-_Static_assert(__builtin_offsetof(struct lua_frame, value.vm_info.flags) == 24, "Lua header flags wire offset changed");
+_Static_assert(__builtin_offsetof(struct lua_frame, value.vm_info.ffi_call_size) == 24, "Lua FFI tail size wire offset changed");
+_Static_assert(__builtin_offsetof(struct lua_frame, value.vm_info.flags) == 28, "Lua header flags wire offset changed");
 
 BTF_EXPORT(struct lua_frame);
 
