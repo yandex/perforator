@@ -121,3 +121,15 @@ func TestFillRuleRbpSavedAtRbp(t *testing.T) {
 		})
 	}
 }
+
+func TestFillRuleRegisterCfa(t *testing.T) {
+	// openssl aesni_cbc_encrypt: CFA = r11 + 8. The eBPF unwinder resolves registers other than rsp and rbp.
+	cfa := &unwind.UnwindRule{Kind: &unwind.UnwindRule_RegisterOffset{RegisterOffset: &unwind.UnwindRule_RegisterPlusOffset{
+		Register: 11,
+		Offset:   8,
+	}}}
+
+	page := &unwinder.UnwindTablePageLeaf{}
+	fillRule(testRow(cfa, unsupportedRule()), page, 0, 0x1000)
+	require.Equal(t, unwinder.CfaUnwindRule{Kind: unwinder.UnwindRuleRegisterOffset, Regno: 11, Offset: 8}, page.Rules[0].Cfa)
+}
