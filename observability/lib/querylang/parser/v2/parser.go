@@ -16,6 +16,15 @@ func NewParser() querylang.Parser {
 }
 
 func (p *parserImpl) ParseSelector(query string) (*querylang.Selector, error) {
+	return parseSelector(query, false)
+}
+
+// ParseSelectorStrict requires the input to contain only one selector.
+func ParseSelectorStrict(query string) (*querylang.Selector, error) {
+	return parseSelector(query, true)
+}
+
+func parseSelector(query string, requireEOF bool) (*querylang.Selector, error) {
 	l := newSelectorListener()
 
 	is := antlr.NewInputStream(query)
@@ -29,6 +38,15 @@ func (p *parserImpl) ParseSelector(query string) (*querylang.Selector, error) {
 	ssp.AddErrorListener(l)
 
 	antlr.ParseTreeWalkerDefault.Walk(l, ssp.Selectors())
+
+	if requireEOF && !l.hasErrors() {
+		if tok := stream.LT(1); tok != nil && tok.GetTokenType() != antlr.TokenEOF {
+			l.onSyntaxError(fmt.Errorf(
+				"unexpected token '%s' (at line %d, column %d)",
+				tok.GetText(), tok.GetLine(), tok.GetColumn(),
+			))
+		}
+	}
 
 	return l.root, l.getError()
 }
