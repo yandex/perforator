@@ -30,10 +30,6 @@ from build.plugins.lib.nots.package_manager.timeit import timeit
 LOCAL_PNPM_INSTALL_MUTEX_FILENAME = ".__install_mutex__"
 
 
-def _same_filesystem(source: str, destination: str) -> bool:
-    return os.stat(source).st_dev == os.stat(os.path.dirname(destination)).st_dev
-
-
 class PackageManagerCommandError(PackageManagerError):
     def __init__(self, cmd, code, stdout, stderr):
         self.cmd = cmd
@@ -408,13 +404,11 @@ class PackageManager(BasePackageManager):
 
         def execute_install_cmd():
             # Install through the existing node_modules symlink into RAM so package links stay relocatable.
-            package_import_method = "hardlink" if _same_filesystem(store_dir, node_modules_path) else "copy"
             ws = PnpmWorkspace.load(build_ws_config_path(cwd))
             defaults = pnpm_defaults()
             ws.runtime_settings = {
                 **defaults,
                 **{key: value for key, value in ws.settings.items() if key in defaults},
-                "packageImportMethod": package_import_method,
             }
             if "virtualStoreType" not in ws.settings and "enableGlobalVirtualStore" in ws.settings:
                 ws.runtime_settings["virtualStoreType"] = (

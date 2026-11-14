@@ -173,13 +173,12 @@ def _package_manager(monkeypatch):
     return package_manager, commands
 
 
-def test_pnpm_install_copies_external_node_modules_across_filesystems(monkeypatch, tmp_path):
+def test_pnpm_install_uses_auto_import_for_external_node_modules(monkeypatch, tmp_path):
     package_manager, commands = _package_manager(monkeypatch)
     cwd = str(tmp_path / "build" / "project" / "module")
     node_modules_path = str(tmp_path / "ram" / "project" / "module" / "node_modules")
     os.makedirs(tmp_path / "build" / "store")
     os.makedirs(os.path.dirname(node_modules_path))
-    monkeypatch.setattr(package_manager_module, "_same_filesystem", lambda source, destination: False)
 
     os.makedirs(cwd, exist_ok=True)
     package_manager_module.PnpmWorkspace(os.path.join(cwd, "pnpm-workspace.yaml")).write()
@@ -195,14 +194,14 @@ def test_pnpm_install_copies_external_node_modules_across_filesystems(monkeypatc
     settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
     assert settings["modulesDir"] == "node_modules"
     assert "virtualStoreDir" not in settings
-    assert settings["packageImportMethod"] == "copy"
+    assert settings["packageImportMethod"] == "auto"
     assert settings["registry"] == "https://npm.yandex-team.ru"
     assert settings["dedupePeerDependents"] is True
     assert settings["allowUnusedPatches"] is True
     assert "dedupePeers" not in settings
 
 
-def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeypatch, tmp_path):
+def test_pnpm_install_uses_auto_import_with_store_alongside_node_modules(monkeypatch, tmp_path):
     package_manager, commands = _package_manager(monkeypatch)
     cwd = str(tmp_path / "build" / "project" / "module")
     store_dir = str(tmp_path / "ram" / "pnpm-ca-store")
@@ -223,7 +222,7 @@ def test_pnpm_install_hardlinks_external_node_modules_on_same_filesystem(monkeyp
     assert actual_cwd == cwd
     settings = yaml.safe_load(Path(cwd, "pnpm-workspace.yaml").read_text())
     assert settings["modulesDir"] == "node_modules"
-    assert settings["packageImportMethod"] == "hardlink"
+    assert settings["packageImportMethod"] == "auto"
 
 
 @pytest.mark.parametrize("virtual_store_type", [None, "global", "project"])
@@ -266,7 +265,7 @@ def test_pnpm_install_uses_local_virtual_store_for_portable_modules(
     expected_type = virtual_store_type or ("global" if global_virtual_store is True else "project")
     assert settings["virtualStoreType"] == ("project" if portable else expected_type)
     assert "enableGlobalVirtualStore" not in settings
-    assert settings["packageImportMethod"] == "hardlink"
+    assert settings["packageImportMethod"] == "auto"
 
 
 def test_prepare_deps_publishes_package_json(tmp_path):

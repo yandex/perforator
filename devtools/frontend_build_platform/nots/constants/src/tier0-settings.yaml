@@ -230,7 +230,7 @@ pnpm:
 
             packageImportMethod: |-
                 Способ переноса файлов пакетов из store в node_modules.
-                Builder переключается на copy, если store и node_modules на разных файловых системах.
+                Значение auto позволяет pnpm автоматически выбрать подходящий способ импорта.
                 https://pnpm.io/11.x/settings/node-modules#packageimportmethod
 
             preferSymlinkedExecutables: |-
