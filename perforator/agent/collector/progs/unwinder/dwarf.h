@@ -295,6 +295,42 @@ static ALWAYS_INLINE bool dwarf_cfi_eval_cfa(
             return false;
         }
     }
+    case UNWIND_RULE_REGISTER_DEREF_OFFSET:
+    case UNWIND_RULE_REGISTER_DEREF_OFFSET_PLUS_8: {
+        u64 base = DWARF_CFI_UNKNOWN_REGISTER;
+        if (rule->regno == DWARF_CFI_STACK_REGISTER_NUMBER) {
+            base = prev->cfa;
+        } else if (rule->regno == DWARF_CFI_FRAME_REGISTER_NUMBER) {
+            base = prev->fp;
+        } else {
+            DWARF_TRACE("Unsupported deref cfa rule register %d\n", (int)rule->regno);
+            return false;
+        }
+        if (base == DWARF_CFI_UNKNOWN_REGISTER) {
+            DWARF_TRACE("Failed to eval deref CFA: register %d is unknown\n", (int)rule->regno);
+            return false;
+        }
+
+        u64 cfa = 0;
+        int err = bpf_probe_read_user(&cfa, sizeof(cfa), (void*)(base + rule->offset));
+        if (err != 0) {
+            DWARF_TRACE("Failed to read deref CFA: %d\n", err);
+            return false;
+        }
+        if (rule->kind == UNWIND_RULE_REGISTER_DEREF_OFFSET_PLUS_8) {
+            cfa += 8;
+        }
+
+        // The value comes from memory, not from a register: the caller's CFA must be above the current SP.
+        if (prev->cfa != DWARF_CFI_UNKNOWN_REGISTER && cfa <= prev->cfa) {
+            DWARF_TRACE("Deref CFA %llx is not above SP %llx\n", cfa, prev->cfa);
+            return false;
+        }
+
+        next->cfa = cfa;
+        DWARF_TRACE("Set cfa to %llx=*(reg%d+%d)\n", next->cfa, (int)rule->regno, (int)rule->offset);
+        return true;
+    }
     default:
         DWARF_TRACE("Unsupported cfa rule kind %d\n", (int)rule->kind);
         return false;
@@ -313,6 +349,13 @@ ALWAYS_INLINE bool dwarf_cfi_eval_fp(
     }
 
     u64 address = next->cfa + rule->offset;
+    if (rule->offset == DWARF_UNWIND_RBP_RULE_AT_RBP) {
+        if (prev->fp == DWARF_CFI_UNKNOWN_REGISTER) {
+            DWARF_TRACE("Failed to eval FP: FP is unknown\n");
+            return false;
+        }
+        address = prev->fp;
+    }
     DWARF_TRACE("Found fp offset %d, location %llx\n", rule->offset, address);
 
     int err = bpf_probe_read_user(&next->fp, sizeof(next->fp), (void*)address);

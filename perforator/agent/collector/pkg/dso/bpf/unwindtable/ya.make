@@ -7,4 +7,8 @@ SRCS(
     row.go
 )
 
+GO_TEST_SRCS(manager_test.go)
+
 END()
+
+RECURSE_FOR_TESTS(gotest)

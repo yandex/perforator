@@ -8,10 +8,14 @@ option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing
 // RA: [CFA-8]
 // RA: [CFA+offset]
 
+// RBP: [CFA+offset]
+// RBP: [RBP] (gcc stack realignment through DRAP)
+
 // CFA: RSP+s32
 // CFA: RBP+s32
 // CFA: <reg>+s32
 // CFA: *(rsp + s16) + s8 (hand-written in openssl/asm/linux/crypto)
+// CFA: *(rbp + s16) (gcc stack realignment through DRAP)
 // CFA: *(rsp + 8 + r9 << 3) + 8 (hand-written in openssl/asm/linux/crypto)
 // CFA: reg7 + 8 + (((reg16 & 0xf) >= 0xb) << 3) (hand-written in .plt section)
 
