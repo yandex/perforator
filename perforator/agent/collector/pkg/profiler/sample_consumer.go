@@ -436,9 +436,18 @@ func (c *oneShotSampleConsumer) collectEnvironmentInto(builder *profile.SampleBu
 	}
 }
 
+// perfContextMax is PERF_CONTEXT_MAX from include/uapi/linux/perf_event.h. Callchain entries at or above it
+// are context markers (PERF_CONTEXT_KERNEL, PERF_CONTEXT_USER, ...), not addresses: kallsyms would resolve
+// them to the last symbol of the last module. The eBPF program strips them; this is a second line of defense.
+const perfContextMax = ^uint64(4095) + 1
+
+func isPerfContextMarker(ip uint64) bool {
+	return ip >= perfContextMax
+}
+
 func (c *oneShotSampleConsumer) collectKernelStackInto(builder *profile.SampleBuilder) {
 	for _, ip := range c.sample.KernStack {
-		if ip == 0 {
+		if ip == 0 || isPerfContextMarker(ip) {
 			continue
 		}
 
@@ -577,7 +586,7 @@ func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builde
 	jvmStackIdx := 0
 	isLeaf := true
 	for locIdx, ip := range c.sample.UserStack {
-		if ip == 0 {
+		if ip == 0 || isPerfContextMarker(ip) {
 			continue
 		}
 		var matchingJVMFrame *unwinder.JvmFrame

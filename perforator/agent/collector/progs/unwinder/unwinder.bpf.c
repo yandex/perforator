@@ -179,10 +179,19 @@ static ALWAYS_INLINE void try_get_stack(void* ctx, struct stack* stack, u64 flag
     }
     // bpf_get_stack returns bytes; normalize to frame count.
     stack->len = res / sizeof(u64);
-    for (u32 i = 1; i < sizeof(stack->ips) / sizeof(u64) && i < stack->len; i++) {
-        // maintain same convention as in read_return_address
-        stack->ips[i] -= 1;
+
+    // On a perf event with PERF_SAMPLE_CALLCHAIN, bpf_get_stack copies the precomputed callchain,
+    // which starts with a context marker (PERF_CONTEXT_KERNEL or PERF_CONTEXT_USER) rather than the leaf.
+    u32 skip = stack->len > 0 && stack->ips[0] >= PERF_CONTEXT_MAX;
+    for (u32 i = 0; i < sizeof(stack->ips) / sizeof(u64); i++) {
+        u32 src = i + skip;
+        if (src >= stack->len || src >= sizeof(stack->ips) / sizeof(u64)) {
+            break;
+        }
+        // maintain same convention as in read_return_address: every frame but the leaf is a return address
+        stack->ips[i] = i == 0 ? stack->ips[src] : stack->ips[src] - 1;
     }
+    stack->len -= skip;
 }
 
 // Copy `bytes` from src into packed->data at offset.

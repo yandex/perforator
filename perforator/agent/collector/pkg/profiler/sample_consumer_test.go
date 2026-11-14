@@ -1,6 +1,7 @@
 package profiler
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,6 +10,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux/clock"
+	"github.com/yandex/perforator/perforator/pkg/linux/kallsyms"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -83,4 +85,53 @@ func TestNoEmptySamples(t *testing.T) {
 	firstProfile, err := profile.Profiles[0].ParsePprof()
 	require.NoError(t, err)
 	require.Equal(t, 0, len(firstProfile.Sample))
+}
+
+func TestKernelStackSkipsPerfContextMarkers(t *testing.T) {
+	const (
+		perfContextKernel = ^uint64(128) + 1 // PERF_CONTEXT_KERNEL, (u64)-128
+		perfContextUser   = ^uint64(512) + 1 // PERF_CONTEXT_USER, (u64)-512
+	)
+
+	// The last module symbol covers everything above it, so a marker would resolve to cleanup_module@[tun].
+	ksyms, err := kallsyms.NewKallsymsResolver(strings.NewReader(`ffffffff81000000 T do_syscall_64
+ffffffff81001000 T get_random_bytes_user
+ffffffffc0000000 t cleanup_module [tun]
+`))
+	require.NoError(t, err)
+
+	parsed := unwinder.NewRecordSampleParsed()
+	parsed.KernStack = append(parsed.KernStack, perfContextKernel, 0xffffffff81001010, 0xffffffff81000010, perfContextUser)
+
+	l := xlog.ForTest(t)
+	clockConverter, _ := clock.NewMonotonicClockConverter(l.Logger(), nop.Registry{})
+	sampleConsumer := newOneShotSampleConsumer(
+		&Profiler{
+			kallsyms:       ksyms,
+			clockConverter: clockConverter,
+		},
+		DefaultSampleConsumerFeatures(),
+		nil,
+		&guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(nil, "")},
+		parsed,
+	)
+
+	builder := sampleConsumer.initBuilderMinimal("cpu", []profile.SampleType{{Kind: "cpu", Unit: "cycles"}})
+	sampleConsumer.collectKernelStackInto(builder)
+	builder.AddValue(1)
+	builder.Finish()
+
+	profile := sampleConsumer.profileBuilder.RestartProfiles()
+	require.Equal(t, 1, len(profile.Profiles))
+	firstProfile, err := profile.Profiles[0].ParsePprof()
+	require.NoError(t, err)
+	require.Equal(t, 1, len(firstProfile.Sample))
+
+	var frames []string
+	for _, loc := range firstProfile.Sample[0].Location {
+		for _, line := range loc.Line {
+			frames = append(frames, line.Function.Name)
+		}
+	}
+	require.Equal(t, []string{"get_random_bytes_user", "do_syscall_64"}, frames)
 }
