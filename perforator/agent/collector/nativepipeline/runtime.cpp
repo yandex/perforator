@@ -104,6 +104,7 @@ TRuntimeFrameBatch TGoRuntimeResolver::ResolveRuntimeFrames(
         const auto* symbols = reinterpret_cast<const TPerforatorResolvedSymbol*>(data.Arena + frame.SymbolsOffset);
         for (size_t j = 0; j < frame.SymbolCount; ++j) {
             ValidateArenaString(data, symbols[j].Name);
+            ValidateArenaString(data, symbols[j].SystemName);
             ValidateArenaString(data, symbols[j].File);
         }
     }

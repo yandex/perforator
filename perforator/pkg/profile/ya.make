@@ -3,6 +3,7 @@ RECURSE(
     flamegraph
     interpreterstack
     labels
+    lua
     merge
     parse
     php

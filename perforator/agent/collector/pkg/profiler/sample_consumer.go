@@ -616,7 +616,9 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 	}
 
 	if c.p.conf.FeatureFlagsConfig.LuaEnabled() {
-		c.p.luaProcessor.Process(builder, &c.sample.LuaStack, process)
+		c.p.luaProcessor.Process(builder, &c.sample.LuaStack, process, func(loc *profile.LocationBuilder, ip uint64) {
+			c.processUserSpaceLocationNative(ctx, loc, ip)
+		})
 	}
 
 	c.collectKernelStackInto(builder)

@@ -73,7 +73,7 @@ func NewPhpSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metric
 	return newSymbolizer(c, state, reg, "php")
 }
 
-func NewLuaSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metrics.Registry) (*Symbolizer, error) {
+func NewLuaSymbolizer(c *SymbolizerConfig, state symbolSource, reg metrics.Registry) (*Symbolizer, error) {
 	return newSymbolizer(c, state, reg, "lua")
 }
 
@@ -237,7 +237,11 @@ func (s *Symbolizer) symbolize(language models.Language, process linux.ProcessKe
 
 	switch symbol.CodepointSize {
 	case 1:
-		name = copy.ZeroTerminatedString(nameBytes)
+		if language == models.Language(unwinder.LanguageLua) {
+			name = string(nameBytes)
+		} else {
+			name = copy.ZeroTerminatedString(nameBytes)
+		}
 		fileName = copy.ZeroTerminatedString(filenameBytes)
 	case 2:
 		name = s.decodeUTF16(nameBytes)
