@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-11-14T14:45:23Z",
-    "commit": "77fcf6321740b65565343b6524a4ada53e9ccaa2",
-    "branch": "FBP-3715-builder-package-import-auto",
+    "created": "2026-11-14T15:52:34Z",
+    "commit": "ba124fad36a5d24e8f89f58afe3709244022a9f5",
+    "branch": "FBP-3712-auto-proto-only",
     "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14269367565"
+      "uri": "sbr:14269537712"
     },
     "darwin-arm64": {
-      "uri": "sbr:14269368005"
+      "uri": "sbr:14269537923"
     },
     "linux": {
-      "uri": "sbr:14269366266"
+      "uri": "sbr:14269537077"
     },
     "linux-aarch64": {
-      "uri": "sbr:14269366710"
+      "uri": "sbr:14269537553"
     }
   }
 }

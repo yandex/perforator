@@ -303,7 +303,9 @@ class TsProtoGenerator:
             peer_dir = os.path.normpath(peer_dir)
             marker = os.path.join(peer_dir, pm_constants.OUTPUT_TAR_UUID_FILENAME)
             if os.path.isfile(marker):
-                peer_dirs.append(peer_dir)
+                package = PackageJson.load(pm_utils.build_pj_path(peer_dir))
+                if package.data.get("nots", {}).get("tsProtoAuto") is True:
+                    peer_dirs.append(peer_dir)
         return sorted(set(peer_dirs))
 
     def _get_peer_package_dependencies(self, peer_dirs: list[str]) -> dict[str, str]:

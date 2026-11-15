@@ -105,7 +105,13 @@ def test_import_mappings_include_only_built_ts_proto_peers(tmp_path, namespace):
     raw_dir.mkdir(parents=True)
     (peer_dir / pm_constants.OUTPUT_TAR_UUID_FILENAME).write_text("output.tar:uuid")
     (peer_dir / "package.json").write_text(
-        json.dumps({"name": "@test/peer", "exports": {"./generated/*": "./build/esm/generated/*.js"}})
+        json.dumps(
+            {
+                "name": "@test/peer",
+                "nots": {"tsProtoAuto": True},
+                "exports": {"./generated/*": "./build/esm/generated/*.js"},
+            }
+        )
     )
     (build_root / "package.json").write_text(json.dumps({"dependencies": {"@test/peer": "workspace:proto/peer"}}))
 
@@ -161,7 +167,7 @@ def test_prepare_peer_libraries_generates_complete_metadata(tmp_path, monkeypatc
         "  '@foreign/peer@file:../../foreign': {}\n"
         "  runtime@1.0.0: {}\n"
     )
-    (peer_dir / "package.json").write_text(json.dumps({"name": "@test/peer"}))
+    (peer_dir / "package.json").write_text(json.dumps({"name": "@test/peer", "nots": {"tsProtoAuto": True}}))
     (peer_dir / "pnpm-workspace.yaml").write_text("packages:\n  - .\n")
     (peer_dir / "pnpm-lock.yaml").write_text(
         "lockfileVersion: '9.0'\nimporters:\n  .: {}\npackages: {}\nsnapshots: {}\n"
@@ -278,7 +284,7 @@ def test_peer_snapshot_uses_own_runtime_and_transitive_workspace_dependencies(tm
     }
 
 
-def test_import_mappings_follow_custom_package_exports(tmp_path):
+def test_import_mappings_skip_custom_package_peers(tmp_path):
     peer = tmp_path / "proto" / "peer"
     generated = peer / "build/generated/proto/peer/nested/model.js"
     generated.parent.mkdir(parents=True)
@@ -305,7 +311,7 @@ def test_import_mappings_follow_custom_package_exports(tmp_path):
             proto_peers=["proto/peer"],
         )
     )
-    assert generator._get_import_mappings() == {"proto/peer/nested/model.proto": "@test/custom/models/nested/model"}
+    assert generator._get_import_mappings() == {}
 
 
 def test_proto_adaptation_copies_only_runtime_closure_and_preserves_inputs(tmp_path):
