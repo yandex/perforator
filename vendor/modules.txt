@@ -3951,8 +3951,10 @@ github.com/DataDog/datadog-go/statsd
 ## explicit; go 1.23.0
 # github.com/DataDog/go-runtime-metrics-internal v0.0.4-0.20250721125240-fdf1ef85b633
 ## explicit; go 1.23
-# github.com/DataDog/go-sqllexer v0.1.6
-## explicit; go 1.21
+# github.com/DataDog/go-sqllexer v0.2.6
+## explicit; go 1.25
+github.com/DataDog/go-sqllexer
+github.com/DataDog/go-sqllexer/cmd/sqllexer
 # github.com/DataDog/go-tuf v1.1.0-0.5.2
 ## explicit; go 1.18
 # github.com/DataDog/opentelemetry-mapping-go/pkg/otlp/attributes v0.27.0

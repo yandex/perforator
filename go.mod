@@ -198,6 +198,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/DATA-DOG/godog v0.7.13
 	github.com/DataDog/datadog-api-client-go/v2 v2.17.0
+	github.com/DataDog/go-sqllexer v0.2.6
 	github.com/DataDog/zstd v1.5.6
 	github.com/Eyevinn/mp4ff v0.53.0
 	github.com/GehirnInc/crypt v0.0.0-20230320061759-8cc1b52080c5
@@ -1332,7 +1333,6 @@ require (
 	github.com/DataDog/go-libddwaf/v2 v2.4.2 // indirect
 	github.com/DataDog/go-libddwaf/v4 v4.3.2 // indirect
 	github.com/DataDog/go-runtime-metrics-internal v0.0.4-0.20250721125240-fdf1ef85b633 // indirect
-	github.com/DataDog/go-sqllexer v0.1.6 // indirect
 	github.com/DataDog/go-tuf v1.1.0-0.5.2 // indirect
 	github.com/DataDog/opentelemetry-mapping-go/pkg/otlp/attributes v0.27.0 // indirect
 	github.com/DataDog/sketches-go v1.4.7 // indirect
