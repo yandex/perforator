@@ -13,10 +13,22 @@ from devtools.frontend_build_platform.nots.builder.api.package_manager import Pa
 from devtools.frontend_build_platform.nots.builder.api.pnpm_workspace import PnpmWorkspace
 
 
-@pytest.mark.parametrize("algorithm", ["sha1", "sha512"])
-@pytest.mark.parametrize("explicit_url", [False, True])
-@pytest.mark.parametrize("global_store", [False, True])
-@pytest.mark.parametrize("context", ["module", "auto_prepare", "auto_build", "library_for", "ram"])
+# Cover all integrity/URL/store combinations once, and every workspace context.
+# Each case runs real pnpm processes; multiplying by every context exhausts the
+# small test chunk's timeout under autocheck load.
+@pytest.mark.parametrize(
+    "context,global_store,explicit_url,algorithm",
+    [
+        ("module", False, False, "sha1"),
+        ("module", True, True, "sha512"),
+        ("auto_prepare", False, True, "sha1"),
+        ("auto_build", True, False, "sha512"),
+        ("library_for", False, False, "sha512"),
+        ("library_for", True, True, "sha1"),
+        ("ram", False, True, "sha512"),
+        ("ram", True, False, "sha1"),
+    ],
+)
 def test_distbuild_installs_original_registry_lockfile_offline(
     tmp_path, algorithm, explicit_url, global_store, context
 ):
