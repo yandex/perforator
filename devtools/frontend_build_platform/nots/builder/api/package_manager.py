@@ -434,6 +434,8 @@ class PackageManager(BasePackageManager):
             if prod:
                 install_cmd.append("--prod")
 
+            if not local_cli:
+                self._populate_pnpm_store(store_dir, cwd)
             self._exec_command(install_cmd, cwd=cwd)
 
         mutex_file = os.path.join(store_dir, LOCAL_PNPM_INSTALL_MUTEX_FILENAME)
@@ -441,29 +443,18 @@ class PackageManager(BasePackageManager):
         execute_hashed_cmd_exclusively = sync_mutex_file(mutex_file)(execute_install_cmd)
         execute_hashed_cmd_exclusively()
 
-    """
-    Calculate inputs, outputs and resources for dependency preparation phase.
-
-    Args:
-        store_path: Path to the store where tarballs will be stored.
-        has_deps: Boolean flag indicating whether the module has dependencies.
-
-    Returns:
-        tuple[list[str], list[str], list[str]]: A tuple containing three lists:
-            - ins: List of input file paths
-            - outs: List of output file paths
-            - resources: List of package URIs (when has_deps is True)
-
-    Note:
-        Uses @timeit decorator to measure execution time of this method.
-    """
+    @timeit
+    def _populate_pnpm_store(self, store_dir, cwd):
+        tarballs_dir = os.path.join(cwd, "__tarballs__")
+        if os.path.isdir(tarballs_dir):
+            self._exec_command(["store", "add", "--store-dir", store_dir, tarballs_dir], cwd=cwd)
 
     @timeit
     def _prepare_workspace(self):
         return PnpmWorkspace.load(build_ws_config_path(self.build_path))
 
     @timeit
-    def build_workspace(self, tarballs_store: str, local_cli: bool):
+    def build_workspace(self):
         """
         :rtype: PnpmWorkspace
         """
@@ -501,7 +492,7 @@ class PackageManager(BasePackageManager):
             else:
                 pj.data.pop("pnpm", None)
             pj.write()
-        self._build_lockfile(tarballs_store, local_cli, pj.has_dependencies())
+        self._build_lockfile(pj.has_dependencies())
 
         return ws
 
@@ -523,7 +514,7 @@ class PackageManager(BasePackageManager):
         return ws
 
     @timeit
-    def _build_lockfile(self, tarballs_store, local_cli: bool, has_deps: bool):
+    def _build_lockfile(self, has_deps: bool):
         """
         :rtype: PnpmLockfile
         """
@@ -533,17 +524,8 @@ class PackageManager(BasePackageManager):
         else:
             lf = Lockfile(lockfile_path)
             lf.data = {"lockfileVersion": "9.0"}
-        # Only the build copy receives local distbuild tarball paths.
+        # Registry resolutions stay intact; install warms its store from __tarballs__.
         lf.path = build_lockfile_path(self.build_path)
-        if not local_cli:
-            lf.update_tarball_resolutions(
-                lambda p: "file:"
-                + os.path.relpath(
-                    os.path.join(self.build_root, self._tarballs_store_path(p, tarballs_store)),
-                    self.build_path,
-                )
-            )
-
         lf.write()
 
     @timeit

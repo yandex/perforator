@@ -61,7 +61,7 @@ def prepare_deps(args: PrepareDepsOptions):
         if not has_dependencies and os.path.exists(lockfile_path):
             _validate_dependency_free_lockfile(pm.load_lockfile(lockfile_path))
 
-        workspace = pm.build_workspace(args.tarballs_store, args.local_cli)
+        workspace = pm.build_workspace()
         if has_dependencies and not args.local_cli and os.path.exists(lockfile_path):
             lockfile = pm.load_lockfile(lockfile_path)
             packages = pm.extract_packages_meta_from_lockfiles(

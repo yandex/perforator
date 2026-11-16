@@ -4,7 +4,12 @@
 
 ## Собирает папку `node_modules`
 
-Запускает `pnpm install`, используя скаченные заранее архивы пакетов.
+В distbuild наполняет store командой `pnpm store add` из заранее скачанных tgz,
+затем запускает `pnpm install --offline --frozen-lockfile` с тем же store.
+Registry resolutions в build-копии локфайла сохраняются. Билдер передаёт
+`<bindir>/__tarballs__` одним вызовом `pnpm store add`, который рекурсивно
+находит архивы. Для auto-proto и TS_LIBRARY_FOR этот каталог — симлинк на tgz
+модуля зависимостей или исходного модуля. Требуется pnpm 12.21.0 или новее.
 
 В результате ожидается архив `node_modules.tar`.
 

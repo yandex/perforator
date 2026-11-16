@@ -102,9 +102,7 @@ def test_sync_mutex_file_reads_default_slots_from_tier0_settings(monkeypatch, tm
     result = package_manager_module.sync_mutex_file(mutex_path)(lambda: "installed")()
 
     assert result == "installed"
-    assert opened_paths == [
-        "{}.{}".format(mutex_path, slot) for slot in range(concurrency)
-    ]
+    assert opened_paths == ["{}.{}".format(mutex_path, slot) for slot in range(concurrency)]
     assert locked_slots == opened_paths
 
 
@@ -167,6 +165,7 @@ def test_pnpm_lock_wait_trace_excludes_install_and_release(monkeypatch, tmp_path
 
 def _package_manager(monkeypatch):
     package_manager = object.__new__(package_manager_module.PackageManager)
+    package_manager._populate_pnpm_store = lambda store_dir, cwd: None
     commands = []
     package_manager._exec_command = lambda args, cwd: commands.append((args, cwd))
     monkeypatch.setattr(package_manager_module, "sync_mutex_file", lambda path: lambda function: function)
@@ -405,7 +404,7 @@ def test_build_workspace_without_lockfile(tmp_path):
     with open(os.path.join(package_manager.sources_path, "package.json"), "w") as f:
         f.write("{}")
 
-    package_manager.build_workspace(tarballs_store="__tarballs__", local_cli=True)
+    package_manager.build_workspace()
 
     lockfile = package_manager.load_lockfile(os.path.join(package_manager.build_path, "pnpm-lock.yaml"))
     assert lockfile.data["lockfileVersion"] == "9.0"
@@ -432,7 +431,7 @@ def test_build_workspace_writes_pnpm_settings_to_workspace_config(tmp_path):
     package_manager.module_path = "project/module"
     package_manager.load_package_json = lambda path: _load_package_json(path)
 
-    package_manager.build_workspace(tarballs_store="__tarballs__", local_cli=True)
+    package_manager.build_workspace()
 
     workspace = package_manager_module.PnpmWorkspace.load(str(build_path / "pnpm-workspace.yaml"))
     assert workspace.packages == set()
@@ -491,7 +490,7 @@ def test_build_workspace_does_not_merge_peer_lockfiles(tmp_path):
     package_manager.module_path = "consumer"
     package_manager.sources_root = str(tmp_path / "source")
 
-    package_manager.build_workspace(tarballs_store="__tarballs__", local_cli=True)
+    package_manager.build_workspace()
 
     lockfile = package_manager.load_lockfile(str(build_path / "pnpm-lock.yaml"))
     assert set(lockfile.get_importers()) == {"."}
@@ -604,7 +603,7 @@ def test_build_workspace_preserves_manifest_format_without_pnpm_changes(tmp_path
         module_path="module",
         sources_root=str(tmp_path),
     )
-    pm.build_workspace("__tarballs__", True)
+    pm.build_workspace()
     assert Path(pm.build_path, "package.json").read_text() == manifest
 
 
@@ -625,7 +624,7 @@ def test_build_workspace_rebases_common_file_override(tmp_path):
     peer_path = build_path.parent / "toolkit"
     peer_path.mkdir(parents=True)
     (peer_path / "pnpm-workspace.yaml").write_text("packages: []\ncatalogs: {peer/common: {foo: '1.0.0'}}")
-    pm.build_workspace("__tarballs__", True)
+    pm.build_workspace()
     workspace = yaml.safe_load((build_path / "pnpm-workspace.yaml").read_text())
     assert workspace["overrides"] == {"toolkit": "file:../toolkit"}
     assert workspace["catalogs"] == {"peer/common": {"foo": "1.0.0"}}
@@ -663,16 +662,13 @@ def test_distbuild_without_tarball_uses_same_resource_and_local_path(tmp_path, n
     )
 
     _, outputs, resources = pm.calc_prepare_deps_inouts_and_resources("__tarballs__", True, False)
-    pm.build_workspace("__tarballs__", False)
+    pm.build_workspace()
 
     tarball_path = "__tarballs__/" + package_path.replace("%2f", "/")
     assert resources == ["https://npm.yandex-team.ru/" + package_path + "#integrity=sha512-aGFzaA=="]
     assert "$B/module/" + tarball_path in outputs
     generated = yaml.safe_load((build / "pnpm-lock.yaml").read_text())
-    assert generated["packages"][name + "@" + version]["resolution"] == {
-        "tarball": "file:" + tarball_path,
-        "integrity": "sha512-aGFzaA==",
-    }
+    assert generated == data
     assert (source / "pnpm-lock.yaml").read_text() == source_lockfile
 
 
@@ -710,9 +706,6 @@ def test_distbuild_rejects_invalid_keys_before_declaring_or_rewriting_tarballs(t
 
     with pytest.raises(package_manager_module.PackageManagerError, match="cannot infer tarball URL"):
         pm.calc_prepare_deps_inouts_and_resources("__tarballs__", True, False)
-    with pytest.raises(TypeError, match="cannot infer tarball URL"):
-        pm._build_lockfile("__tarballs__", False, True)
-    assert not (tmp_path / "build" / "module" / "pnpm-lock.yaml").exists()
 
 
 @pytest.mark.parametrize("layout", ["launcher", "native"])
@@ -782,8 +775,7 @@ def test_pnpm_discovery_skips_directory_and_reports_missing_executable(tmp_path)
     assert paths.package_json == str(tmp_path / "node_modules/pnpm/package.json")
 
 
-@pytest.mark.parametrize("local_cli", [False, True])
-def test_source_lockfile_preserves_graph_and_only_distbuild_rewrites_tarballs(tmp_path, local_cli):
+def test_source_lockfile_preserves_graph_and_registry_resolutions(tmp_path):
     import copy
 
     source = tmp_path / "source"
@@ -806,9 +798,7 @@ def test_source_lockfile_preserves_graph_and_only_distbuild_rewrites_tarballs(tm
     pm.build_path = str(target)
     pm.build_root = str(target)
     pm.module_path = ""
-    pm._build_lockfile("__tarballs__", local_cli, True)
-    if not local_cli:
-        expected["packages"]["runtime@1.0.0"]["resolution"]["tarball"] = "file:__tarballs__/runtime/-/runtime-1.0.0.tgz"
+    pm._build_lockfile(True)
     assert package_manager_module.Lockfile.load(str(target / "pnpm-lock.yaml")).data == expected
     assert (source / "pnpm-lock.yaml").read_bytes() == original_bytes
 

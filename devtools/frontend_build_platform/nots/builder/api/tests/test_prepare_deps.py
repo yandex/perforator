@@ -182,7 +182,13 @@ def test_offline_install_skips_foreign_optional_tarball_without_resource(tmp_pat
     prepare_deps_module.prepare_deps(args)
     assert lock_path.read_text() == original
     assert not (Path(args.bindir) / "__tarballs__/foreign/-/foreign-1.0.0.tgz").exists()
-    pm = PackageManager(args.arcadia_build_root, args.bindir, args.curdir, args.nodejs_bin, args.pm_root)
+    pm = PackageManager(
+        args.arcadia_build_root,
+        args.bindir,
+        args.curdir,
+        args.nodejs_bin,
+        args.pm_root,
+    )
     pm.create_node_modules(local_cli=False)
     assert (Path(args.bindir) / "node_modules/portable/package.json").is_file()
     assert not (Path(args.bindir) / "node_modules/foreign").exists()

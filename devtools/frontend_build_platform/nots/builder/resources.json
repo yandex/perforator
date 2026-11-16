@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-11-14T15:52:34Z",
-    "commit": "ba124fad36a5d24e8f89f58afe3709244022a9f5",
-    "branch": "FBP-3712-auto-proto-only",
+    "created": "2026-11-16T13:41:08Z",
+    "commit": "3e2cf4dd04ae5f62e00c313748ff1dc9703315aa",
+    "branch": "FBP-3692-store-add-tarballs",
     "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14269537712"
+      "uri": "sbr:14279015131"
     },
     "darwin-arm64": {
-      "uri": "sbr:14269537923"
+      "uri": "sbr:14279016193"
     },
     "linux": {
-      "uri": "sbr:14269537077"
+      "uri": "sbr:14279009943"
     },
     "linux-aarch64": {
-      "uri": "sbr:14269537553"
+      "uri": "sbr:14279011217"
     }
   }
 }

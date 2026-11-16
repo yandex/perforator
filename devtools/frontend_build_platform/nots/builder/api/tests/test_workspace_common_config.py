@@ -90,7 +90,7 @@ def test_build_workspace_uses_only_target_config(tmp_path):
         sources_root=str(root),
     )
     pm._build_lockfile = lambda *args: None
-    pm.build_workspace("__tarballs__", True)
+    pm.build_workspace()
     workspace_text = (build / "pnpm-workspace.yaml").read_text()
     assert "# НЕ РЕДАКТИРУЙТЕ ЕГО ВРУЧНУЮ" in workspace_text
     assert "https://pnpm.io/11.x/settings/dependency-resolution#overrides" in workspace_text
@@ -148,6 +148,6 @@ def test_build_workspace_imports_prepared_override_peer_catalogs_without_peer_so
         sources_root=str(root),
     )
     pm._build_lockfile = lambda *args: None
-    result = pm.build_workspace("__tarballs__", True)
+    result = pm.build_workspace()
     assert result.catalogs == peer.catalogs
     assert result.settings == {"overrides": {"peer": "file:../peer"}}

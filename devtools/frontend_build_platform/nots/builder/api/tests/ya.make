@@ -12,6 +12,7 @@ TEST_SRCS(
     test_output_prefix.py
     test_package_manager.py
     test_prepare_deps.py
+    test_tarballs.py
     test_ts_proto_generator.py
     test_utils_copy_files_with_exclusions.py
     test_workspace.py
