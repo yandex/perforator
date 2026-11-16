@@ -1,5 +1,6 @@
 import json
 
+import pytest
 import yaml
 
 from build.plugins.lib.nots.package_manager import PackageJson
@@ -40,7 +41,8 @@ def test_peer_workspace_merge_does_not_import_peer_local_settings(tmp_path):
     assert parent.packages == set()
 
 
-def test_build_workspace_uses_only_target_config(tmp_path):
+@pytest.mark.parametrize("use_nots_yaml", [False, True])
+def test_build_workspace_uses_only_target_config(tmp_path, use_nots_yaml):
     from devtools.frontend_build_platform.nots.builder.api.package_manager import PackageManager
 
     root = tmp_path / "sources"
@@ -61,6 +63,12 @@ def test_build_workspace_uses_only_target_config(tmp_path):
             },
         },
     )
+    if use_nots_yaml:
+        filename = source / "package.json"
+        data = json.loads(filename.read_text())
+        local = {"nots": data.pop("nots"), **data.pop("pnpm")}
+        (source / "nots.yaml").write_text(yaml.safe_dump(local))
+        filename.write_text(json.dumps(data))
     (root / "project/common.yaml").write_text(
         "catalogs: {project/common: {foo: '1.0.0'}}\n"
         "overrides: {duplicate: '1', shared: '1'}\n"
@@ -104,7 +112,15 @@ def test_build_workspace_uses_only_target_config(tmp_path):
         "overrides": {"duplicate": "2", "local": "3", "shared": "1"},
         "patchedDependencies": {"foo": "../patches/foo.patch"},
     }
-    assert PackageJson.load(str(source / "package.json")).data["pnpm"] == {
+    assert "nots" not in result
+    source_manifest = PackageJson.load(str(source / "package.json"))
+    local_settings = (
+        yaml.safe_load((source / "nots.yaml").read_text()) if use_nots_yaml else source_manifest.data["pnpm"]
+    )
+    if use_nots_yaml:
+        assert "pnpm" not in source_manifest.data and "nots" not in source_manifest.data
+        local_settings.pop("nots")
+    assert local_settings == {
         "overrides": {"duplicate": "2", "local": "3"},
         "ignoredOptionalDependencies": ["local-optional"],
         "supportedArchitectures": {"os": ["darwin"], "cpu": ["arm64"]},

@@ -2,7 +2,11 @@ import copy
 import os
 import re
 
-from build.plugins.lib.nots.package_manager.common_config import load_tier0_settings, select_pnpm_settings
+from build.plugins.lib.nots.package_manager.common_config import (
+    load_local_config,
+    load_tier0_settings,
+    select_pnpm_settings,
+)
 
 try:
     import ymakeyaml as yaml
@@ -124,7 +128,7 @@ class PnpmWorkspace(object):
             )
 
         self.packages = set()
-        self.settings = select_pnpm_settings(package_json.data.get("pnpm"))
+        self.settings = select_pnpm_settings(load_local_config(package_json))
 
     def merge(self, ws):
         """Import peer catalogs without inheriting peer settings or workspace entries."""

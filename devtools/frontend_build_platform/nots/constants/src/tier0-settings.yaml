@@ -29,6 +29,7 @@ pnpm:
 
     # Разрешённые пользовательские настройки. Типы используются builder и CLI при чтении YAML.
     supportedCustomSettings:
+        # Каталоги разрешены только в общем конфиге, не в локальном nots.yaml.
         catalogs: catalogs
         overrides: dependency-map
         packageExtensions: package-extensions
@@ -92,18 +93,20 @@ pnpm:
             ВНИМАНИЕ: ЭТОТ ФАЙЛ АВТОМАТИЧЕСКИ ГЕНЕРИРУЕТСЯ nots.
             НЕ РЕДАКТИРУЙТЕ ЕГО ВРУЧНУЮ: изменения будут перезаписаны.
 
-            Пользовательские настройки задаются в package.json#pnpm или общем конфиге,
-            подключённом через package.json#nots.commonConfigPath.
+            Пользовательские настройки задаются в nots.yaml или общем конфиге,
+            подключённом через nots.yaml#nots.commonConfigPath.
+            Без nots.yaml поддерживаются package.json#pnpm и package.json#nots.
             Параметры платформы задаются в
             devtools/frontend_build_platform/nots/constants/src/tier0-settings.yaml;
             переопределять можно только настройки из supportedCustomSettings.
-            Каталоги задаются в общем конфиге, а вычисляемые параметры — самим nots.
+            Каталоги разрешены только в общем конфиге, а вычисляемые параметры задаёт nots.
             ========================================================================
         configurable: |-
-            Можно настроить в package.json#pnpm или общем конфиге через nots.commonConfigPath.
+            Можно настроить в nots.yaml или общем конфиге через nots.commonConfigPath.
             Здесь записано итоговое значение после применения настроек nots.
         catalogs: |-
-            Настраивается в общем конфиге через nots.commonConfigPath.
+            Настраивается только в общем конфиге через nots.commonConfigPath.
+            В локальном nots.yaml объявлять catalogs запрещено.
             Здесь записан итоговый набор каталогов, собранный nots.
         managed: |-
             Задаётся платформой Tier 0; пользовательское переопределение не поддерживается.

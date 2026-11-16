@@ -21,6 +21,8 @@ from .utils import copy_writable_file, resolve_pnpm_paths
 from build.plugins.lib.nots.package_manager.common_config import (
     load_common_config,
     load_tier0_settings,
+    load_local_config,
+    select_pnpm_settings,
     rebase_pnpm_settings,
     join_pnpm_settings,
     pnpm_settings,
@@ -461,8 +463,8 @@ class PackageManager(BasePackageManager):
         pj = self._build_package_json()
 
         ws = PnpmWorkspace(build_ws_config_path(self.build_path))
-        ws.set_from_package_json(pj)
         source_pj = self.load_package_json_from_dir(self.sources_path)
+        ws.settings = select_pnpm_settings(load_local_config(source_pj))
         config_path, ws.catalogs, settings = load_common_config(source_pj, self.sources_root, include_settings=True)
         if config_path:
             common_settings = rebase_pnpm_settings(
