@@ -26,6 +26,11 @@ func WithFields(ctx context.Context, fields ...log.Field) context.Context {
 	return context.WithValue(ctx, ctxKey{}, mergeFields(ContextFields(ctx), fields))
 }
 
+// ReplaceFields replaces the log fields in a child context with a copy of fields.
+func ReplaceFields(ctx context.Context, fields ...log.Field) context.Context {
+	return context.WithValue(ctx, ctxKey{}, append([]log.Field(nil), fields...))
+}
+
 // Trace logs at Trace log level using fields both from arguments and ones that
 // are bound to ctx.
 func Trace(ctx context.Context, l log.Logger, msg string, fields ...log.Field) {

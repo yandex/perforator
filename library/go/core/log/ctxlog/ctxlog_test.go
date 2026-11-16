@@ -64,3 +64,29 @@ func TestWithFields(t *testing.T) {
 func contextWithFields(fs ...log.Field) context.Context {
 	return context.WithValue(context.Background(), ctxKey{}, fs)
 }
+
+func TestReplaceFields(t *testing.T) {
+	type requestKey struct{}
+	base, cancel := context.WithCancel(context.WithValue(context.Background(), requestKey{}, "keep"))
+	defer cancel()
+	parent := WithFields(base, log.String("old", "parent"))
+	fields := []log.Field{log.String("new", "child")}
+	child := ReplaceFields(parent, fields...)
+	fields[0] = log.String("changed", "must not affect child")
+	if got := ContextFields(child); !reflect.DeepEqual(got, []log.Field{log.String("new", "child")}) {
+		t.Fatalf("replacement fields = %v", got)
+	}
+	if got := ContextFields(parent); !reflect.DeepEqual(got, []log.Field{log.String("old", "parent")}) {
+		t.Fatalf("parent fields changed: %v", got)
+	}
+	if got := ContextFields(ReplaceFields(parent)); len(got) != 0 {
+		t.Fatalf("empty replacement retained parent fields: %v", got)
+	}
+	if got := child.Value(requestKey{}); got != "keep" {
+		t.Fatalf("context value = %v", got)
+	}
+	cancel()
+	if child.Err() != context.Canceled || child.Done() != base.Done() {
+		t.Fatal("replacement did not preserve cancellation")
+	}
+}
