@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=./tier0-settings.schema.json
 # Дефолты nots; соответствующие NOTS_CONCURRENCY_* сохраняют приоритет.
 concurrency:
     installGroups: 8
