@@ -1,0 +1,5 @@
+GO_LIBRARY()
+
+ALL_GO_SRCS()
+
+END()

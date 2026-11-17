@@ -16,5 +16,6 @@ RECURSE(
     profileresult
     profilerext
     storage
+    tma
     uprobe
 )
