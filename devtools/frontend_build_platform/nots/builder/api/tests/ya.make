@@ -28,7 +28,7 @@ PEERDIR(
 )
 
 DATA(
-    arcadia/devtools/frontend_build_platform/nots/constants/src/tier0-settings.yaml
+    arcadia/devtools/frontend_build_platform/nots/tier0-settings/src/settings.yaml
 )
 
 ENV(NOTS_TEST_PNPM_ROOT=$PNPM_RESOURCE_GLOBAL)

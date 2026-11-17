@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=./tier0-settings.schema.json
+# yaml-language-server: $schema=./settings.schema.json
 # Дефолты nots; соответствующие NOTS_CONCURRENCY_* сохраняют приоритет.
 concurrency:
     installGroups: 8
@@ -97,7 +97,7 @@ pnpm:
             подключённом через nots.yaml#nots.commonConfigPath.
             Без nots.yaml поддерживаются package.json#pnpm и package.json#nots.
             Параметры платформы задаются в
-            devtools/frontend_build_platform/nots/constants/src/tier0-settings.yaml;
+            devtools/frontend_build_platform/nots/tier0-settings/src/settings.yaml;
             переопределять можно только настройки из supportedCustomSettings.
             Каталоги разрешены только в общем конфиге, а вычисляемые параметры задаёт nots.
             ========================================================================

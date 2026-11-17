@@ -1,24 +1,22 @@
 {
   "info": {
-    "created": "2026-11-16T22:57:23Z",
-    "pr": {
-      "id": 17158112,
-      "author": "baymer",
-      "summary": "FBP-3691: [1/4] Читать настройки pnpm и nots из nots.yaml"
-    }
+    "created": "2026-11-17T14:11:00Z",
+    "commit": "85329d6ba2a9eda0fc1d47b0fb781bd387fbeea9",
+    "branch": "FBP-3733-constants-config",
+    "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14283654001"
+      "uri": "sbr:14289590025"
     },
     "darwin-arm64": {
-      "uri": "sbr:14283653183"
+      "uri": "sbr:14289591149"
     },
     "linux": {
-      "uri": "sbr:14283655794"
+      "uri": "sbr:14289587824"
     },
     "linux-aarch64": {
-      "uri": "sbr:14283654717"
+      "uri": "sbr:14289588904"
     }
   }
 }
