@@ -2,6 +2,7 @@ import base64
 import hashlib
 import io
 import json
+import multiprocessing
 import os
 import tarfile
 from types import SimpleNamespace
@@ -117,5 +118,46 @@ def test_store_add_passes_one_directory(tmp_path):
     pm = PackageManager(str(tmp_path), str(project), str(project), "/unused", "/unused")
     commands = []
     pm._exec_command = lambda args, cwd: commands.append((args, cwd))
-    pm._populate_pnpm_store(str(tmp_path / "store"), str(project))
-    assert commands == [(["store", "add", "--store-dir", str(tmp_path / "store"), str(directory)], str(project))]
+    store = tmp_path / "store"
+    store.mkdir()
+    pm._populate_pnpm_store(str(store), str(project))
+    assert commands == [(["store", "add", "--store-dir", str(store), str(directory)], str(project))]
+
+
+def test_store_add_serializes_shared_store_until_install(tmp_path):
+    project = tmp_path / "app"
+    (project / "__tarballs__").mkdir(parents=True)
+    PnpmWorkspace(str(project / "pnpm-workspace.yaml")).write()
+    store = tmp_path / "store"
+    store.mkdir()
+    alias = tmp_path / "shared-store"
+    alias.symlink_to(store, target_is_directory=True)
+    pm = PackageManager(str(tmp_path), str(project), str(project), "/unused", "/unused")
+    ctx = multiprocessing.get_context("fork")
+    ready, entered = ctx.Event(), ctx.Event()
+
+    def add_through_alias():
+        pm._exec_command = lambda args, cwd: entered.set()
+        ready.set()
+        pm._populate_pnpm_store(str(alias), str(project))
+
+    peer = ctx.Process(target=add_through_alias)
+
+    def run_command(args, cwd):
+        if args[:2] == ["store", "add"]:
+            peer.start()
+            assert ready.wait(10)
+            assert not entered.wait(0.25)
+        else:
+            assert args[0] == "install"
+            assert entered.wait(10)
+
+    pm._exec_command = run_command
+    try:
+        pm._run_pnpm_install(str(store), str(project), False, str(project / "node_modules"))
+        peer.join(10)
+        assert peer.exitcode == 0
+    finally:
+        if peer.is_alive():
+            peer.terminate()
+            peer.join()

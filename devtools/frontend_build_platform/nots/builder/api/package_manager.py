@@ -30,6 +30,7 @@ from build.plugins.lib.nots.package_manager.common_config import (
 from build.plugins.lib.nots.package_manager.timeit import timeit
 
 LOCAL_PNPM_INSTALL_MUTEX_FILENAME = ".__install_mutex__"
+LOCAL_PNPM_STORE_ADD_MUTEX_FILENAME = ".__store_add_mutex__"
 
 
 class PackageManagerCommandError(PackageManagerError):
@@ -449,7 +450,9 @@ class PackageManager(BasePackageManager):
     def _populate_pnpm_store(self, store_dir, cwd):
         tarballs_dir = os.path.join(cwd, "__tarballs__")
         if os.path.isdir(tarballs_dir):
-            self._exec_command(["store", "add", "--store-dir", store_dir, tarballs_dir], cwd=cwd)
+            mutex_file = os.path.join(store_dir, LOCAL_PNPM_STORE_ADD_MUTEX_FILENAME)
+            run_store_add = sync_mutex_file(mutex_file, concurrency=1)(self._exec_command)
+            run_store_add(["store", "add", "--store-dir", store_dir, tarballs_dir], cwd=cwd)
 
     @timeit
     def _prepare_workspace(self):
