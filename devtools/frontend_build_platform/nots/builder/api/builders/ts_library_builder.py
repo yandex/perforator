@@ -21,7 +21,7 @@ from .base_builder import BaseBuilder
 from ..models import BaseBuildersOptions, BuildError
 from ..ram_disk import RamDisk, RamDiskUsage
 from ..pnpm_workspace import PnpmWorkspace
-from ..utils import copy_files_with_exclusions, popen
+from ..utils import copy_files_with_exclusions, get_built_workspace_dep_paths, popen
 
 from ..create_node_modules import (
     bundle_workspace_node_modules,
@@ -104,13 +104,19 @@ class TsLibraryBuilder(BaseBuilder):
                 package_json.data[section] = {
                     name: specifier(value) for name, value in package_json.data[section].items()
                 }
-        if "pnpm" in package_json.data:
-            package_json.data["pnpm"] = rebase_pnpm_settings(package_json.data["pnpm"], prepared_dir, target_dir)
-        package_json.write(pm_utils.build_pj_path(target_dir))
-
         workspace_path = pm_utils.build_ws_config_path(prepared_dir)
+        workspace = None
         if os.path.isfile(workspace_path):
             workspace = PnpmWorkspace.load(workspace_path)
+        elif "pnpm" in package_json.data:
+            # Older prepared dependencies may carry settings only in the manifest.
+            workspace = PnpmWorkspace(workspace_path)
+            workspace.set_from_package_json(package_json)
+
+        package_json.data.pop("pnpm", None)
+        package_json.write(pm_utils.build_pj_path(target_dir))
+
+        if workspace is not None:
             workspace.packages = {"." if value == "." else relative(value) for value in workspace.packages}
             workspace.settings = rebase_pnpm_settings(workspace.settings, prepared_dir, target_dir)
             workspace.catalogs = {
@@ -258,15 +264,16 @@ class TsLibraryBuilder(BaseBuilder):
 
         # pnpm validates the full local dependency graph even for production installs.
         # Follow paths without validating names: build manifests may use generated names.
-        pending = [package_json]
+        pending = [(bindir, package_json)]
         visited = {os.path.normpath(bindir)}
         while pending:
-            for peer_build_path in pending.pop().get_workspace_dep_paths():
+            module_dir, manifest = pending.pop()
+            for peer_build_path in sorted(get_built_workspace_dep_paths(manifest, module_dir)):
                 if peer_build_path in visited:
                     continue
                 visited.add(peer_build_path)
                 source_package_json = pm_utils.build_pj_path(peer_build_path)
-                pending.append(PackageJson.load(source_package_json))
+                pending.append((peer_build_path, PackageJson.load(source_package_json)))
                 assert self._ram_disk is not None
                 ram_package_json = self._ram_disk.path(self.options.arcadia_build_root, source_package_json)
                 os.makedirs(os.path.dirname(ram_package_json), exist_ok=True)

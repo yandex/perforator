@@ -25,7 +25,6 @@ from build.plugins.lib.nots.package_manager.common_config import (
     select_pnpm_settings,
     rebase_pnpm_settings,
     join_pnpm_settings,
-    pnpm_settings,
 )
 from build.plugins.lib.nots.package_manager.timeit import timeit
 
@@ -208,7 +207,8 @@ class PackageManager(BasePackageManager):
         os.makedirs(self.build_path, exist_ok=True)
 
         package_json = self.load_package_json(source_path)
-        should_write = False
+        should_write = "pnpm" in package_json.data
+        package_json.data.pop("pnpm", None)
 
         engines = package_json.data.get("engines", {})
         if "packageManager" in package_json.data or "pnpm" in engines:
@@ -488,16 +488,7 @@ class PackageManager(BasePackageManager):
                     raise ValueError("Conflicting catalog group {}".format(group))
                 ws.catalogs[group] = copy.deepcopy(entries)
         ws.write()
-        # pnpm 10 prefers package.json#pnpm over workspace YAML for these fields.
-        # Only the generated manifest receives shared settings.
-        shared_fields = {key: ws.settings[key] for key in pnpm_settings() if key in ws.settings}
-        if shared_fields != pj.data.get("pnpm", {}):
-            if shared_fields:
-                pj.data["pnpm"] = shared_fields
-            else:
-                pj.data.pop("pnpm", None)
-            pj.write()
-        self._build_lockfile(pj.has_dependencies())
+        self._build_lockfile(pj.has_dependencies() or bool(ws.settings.get("overrides")))
 
         return ws
 
@@ -541,7 +532,7 @@ class PackageManager(BasePackageManager):
         self._exec_command(
             [
                 "apply-addons",
-                "--overrides-source=package-json",
+                "--overrides-source=workspace",
             ],
             cwd=self.build_path,
             include_defaults=False,

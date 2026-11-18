@@ -76,7 +76,8 @@ def test_extract_peer_tars_includes_common_file_overrides(tmp_path, monkeypatch)
     peer = tmp_path / "peer"
     root.mkdir()
     peer.mkdir()
-    (root / "package.json").write_text('{"pnpm":{"overrides":{"foo":"file:../peer","archive":"file:../archive.tgz"}}}')
+    (root / "package.json").write_text('{"name":"root"}')
+    (root / "pnpm-workspace.yaml").write_text("overrides: {foo: 'file:../peer', archive: 'file:../archive.tgz'}\n")
     (peer / "package.json").write_text('{"name":"foo"}')
     extracted = []
     monkeypatch.setattr(

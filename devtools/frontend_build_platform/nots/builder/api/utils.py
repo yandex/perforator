@@ -17,9 +17,11 @@ from build.plugins.lib.nots.package_manager import (
     PackageJson,
     utils as pm_utils,
 )
+from build.plugins.lib.nots.package_manager.common_config import workspace_settings_paths
 from devtools.frontend_build_platform.libraries.logging import timeit
 from . import tar_tool
 from .globs import GlobMatcher
+from .pnpm_workspace import PnpmWorkspace
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,20 @@ def _resolve_build_root(path: str, build_root: str | None) -> str:
     return path
 
 
+def get_built_workspace_dep_paths(pj: PackageJson, module_dir: str) -> set[str]:
+    dep_paths = set(pj.get_workspace_dep_paths())
+    workspace_path = pm_utils.build_ws_config_path(module_dir)
+    if os.path.isfile(workspace_path):
+        workspace = PnpmWorkspace.load(workspace_path)
+        # An override can reference a built peer absent from the manifest.
+        for relative in workspace_settings_paths(workspace.settings):
+            if not os.path.isabs(relative):
+                peer_dir = os.path.normpath(os.path.join(module_dir, relative))
+                if os.path.isfile(pm_utils.build_pj_path(peer_dir)):
+                    dep_paths.add(peer_dir)
+    return dep_paths
+
+
 def extract_peer_tars(moddir_abs: str, visited: set[str] | None = None, build_root: str | None = None):
     """Extracts all the output tars for the dependency tree, excluding root
 
@@ -62,14 +78,7 @@ def extract_peer_tars(moddir_abs: str, visited: set[str] | None = None, build_ro
         visited = set()
     moddir_abs = _resolve_build_root(moddir_abs, build_root)
     pj = PackageJson.load(pm_utils.build_pj_path(moddir_abs))
-    dep_paths = set(pj.get_workspace_dep_paths())
-    # File overrides can introduce built peers without direct dependency entries.
-    # Extract those artifacts before pnpm reads the peer package.
-    for spec in pj.data.get("pnpm", {}).get("overrides", {}).values():
-        if spec.startswith("file:") and not os.path.isabs(spec[len("file:") :]):
-            peer_dir = os.path.normpath(os.path.join(moddir_abs, spec[len("file:") :]))
-            if os.path.isfile(pm_utils.build_pj_path(peer_dir)):
-                dep_paths.add(peer_dir)
+    dep_paths = get_built_workspace_dep_paths(pj, moddir_abs)
     for dep_path in sorted(dep_paths):
         extract_all_output_tars(dep_path, visited, build_root)
 

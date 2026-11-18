@@ -8,6 +8,7 @@ from build.plugins.lib.nots.package_manager import (
     PackageManagerError,
     utils as pm_utils,
 )
+from build.plugins.lib.nots.package_manager.common_config import load_effective_pnpm_config
 from yalibrary.fetcher.uri_parser import parse_resource_uri
 
 from .models import BaseOptions
@@ -56,7 +57,11 @@ def prepare_deps(args: PrepareDepsOptions):
         pm.build_ts_proto_auto_workspace(args.ts_proto_auto_deps_path)
         TsProtoGenerator(args).prepare_peer_libraries()
     else:
-        has_dependencies = pm.load_package_json_from_dir(args.curdir).has_dependencies()
+        pj = pm.load_package_json_from_dir(args.curdir)
+        has_dependencies = pj.has_dependencies()
+        if not has_dependencies:
+            _, _, settings = load_effective_pnpm_config(pj, pm.sources_root)
+            has_dependencies = bool(settings.get("overrides"))
         lockfile_path = pm_utils.build_lockfile_path(args.curdir)
         if not has_dependencies and os.path.exists(lockfile_path):
             _validate_dependency_free_lockfile(pm.load_lockfile(lockfile_path))

@@ -23,7 +23,7 @@ def _prepare_deps_args(tmp_path):
     )
 
 
-def test_prepare_deps_rejects_lockfile_dependencies_missing_from_manifest(monkeypatch, tmp_path):
+def test_prepare_deps_rejects_lockfile_dependencies_missing_from_manifest(tmp_path):
     args = _prepare_deps_args(tmp_path)
     lockfile_path = tmp_path / "project" / "pnpm-lock.yaml"
     lockfile_path.write_text("""
@@ -36,22 +36,7 @@ importers:
         version: 1.0.0
 """)
 
-    class PackageManager:
-        def __init__(self, **kwargs):
-            pass
-
-        def load_package_json_from_dir(self, path):
-            return SimpleNamespace(has_dependencies=lambda: False)
-
-        def load_lockfile(self, path):
-            return prepare_deps_module.Lockfile.load(path)
-
-    monkeypatch.setattr(
-        prepare_deps_module,
-        "TsProtoGenerator",
-        lambda args: pytest.fail("ordinary consumers must use their source lockfile"),
-    )
-    monkeypatch.setattr(prepare_deps_module, "PackageManager", PackageManager)
+    (tmp_path / "project" / "package.json").write_text('{"name":"project"}\n')
 
     with pytest.raises(
         prepare_deps_module.PackageManagerError,

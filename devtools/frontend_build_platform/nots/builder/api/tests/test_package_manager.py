@@ -439,10 +439,7 @@ def test_build_workspace_writes_pnpm_settings_to_workspace_config(tmp_path):
         "overrides": {"foo": "1.0.0"},
         "packageExtensions": {"bar": {"peerDependencies": {"baz": "2.0.0"}}},
     }
-    assert _load_package_json(str(build_path / "package.json")).data["pnpm"] == {
-        "overrides": {"foo": "1.0.0"},
-        "packageExtensions": {"bar": {"peerDependencies": {"baz": "2.0.0"}}},
-    }
+    assert "pnpm" not in _load_package_json(str(build_path / "package.json")).data
     assert _load_package_json(str(source_path / "package.json")).data["pnpm"]["neverBuiltDependencies"] == ["esbuild"]
 
 
@@ -629,7 +626,7 @@ def test_build_workspace_rebases_common_file_override(tmp_path):
     assert workspace["overrides"] == {"toolkit": "file:../toolkit"}
     assert workspace["catalogs"] == {"peer/common": {"foo": "1.0.0"}}
     assert workspace["packages"] == []
-    assert _load_package_json(str(build_path / "package.json")).data["pnpm"]["overrides"] == workspace["overrides"]
+    assert "pnpm" not in _load_package_json(str(build_path / "package.json")).data
 
 
 @pytest.mark.parametrize(
