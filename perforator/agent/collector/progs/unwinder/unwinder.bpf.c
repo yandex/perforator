@@ -688,6 +688,7 @@ static ALWAYS_INLINE int mixed_collect_stack(struct user_regs* regs, struct stac
             int jvm_res = jvm_collect_stack_v2(
                 &ctx->cfi, jvm_bin_config, stack, &staging
             );
+            dwarf_unwind_gprs_forget(&ctx->gprs);
             if (jvm_res < 0) {
                 BPF_TRACE("[jvm] failed to collect stack, error=%d\n", -jvm_res);
                 res = -1;

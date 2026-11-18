@@ -17,6 +17,11 @@ struct user_regs {
     u64 lr;
 };
 
+// CFA based on registers other than sp and fp is not supported on arm64.
+struct unwind_gprs {
+    u16 known;
+};
+
 static ALWAYS_INLINE u64 regs_get_current_instruction(struct user_regs* regs) {
     return regs->pc;
 }
