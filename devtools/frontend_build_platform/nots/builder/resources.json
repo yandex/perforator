@@ -1,22 +1,24 @@
 {
   "info": {
-    "created": "2026-11-18T17:18:42Z",
-    "commit": "d92c1bd1f4bd4b399d354638cc9fd66bd1c62c17",
-    "branch": "FBP-3692-store-add-lock",
-    "dirty": false
+    "created": "2026-11-18T21:08:35Z",
+    "pr": {
+      "id": 17257192,
+      "author": "baymer",
+      "summary": "FBP-3691: stop generating package.json#pnpm in nots"
+    }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14301892100"
+      "uri": "sbr:14303697082"
     },
     "darwin-arm64": {
-      "uri": "sbr:14301892795"
+      "uri": "sbr:14303695922"
     },
     "linux": {
-      "uri": "sbr:14301890682"
+      "uri": "sbr:14303699700"
     },
     "linux-aarch64": {
-      "uri": "sbr:14301891441"
+      "uri": "sbr:14303698415"
     }
   }
 }
