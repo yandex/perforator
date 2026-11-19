@@ -10582,8 +10582,8 @@ github.com/google/martian/v3/parse
 github.com/google/martian/v3/proxyutil
 github.com/google/martian/v3/trafficshape
 github.com/google/martian/v3/verify
-# github.com/google/nftables v0.3.0
-## explicit; go 1.21
+# github.com/google/nftables v0.3.1-0.20261118114458-97a5c85e1ae2
+## explicit; go 1.26.0
 github.com/google/nftables
 github.com/google/nftables/alignedbuff
 github.com/google/nftables/binaryutil

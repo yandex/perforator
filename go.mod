@@ -545,7 +545,7 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/google/jsonschema-go v0.4.3
 	github.com/google/licensecheck v0.3.1
-	github.com/google/nftables v0.3.0
+	github.com/google/nftables v0.3.1-0.20261118114458-97a5c85e1ae2
 	github.com/google/osv-scalibr v0.2.0
 	github.com/google/osv-scanner v1.8.1
 	github.com/google/pprof v0.0.0-20260111202518-71be6bfdd440
