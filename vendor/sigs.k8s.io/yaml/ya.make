@@ -13,16 +13,9 @@ SRCS(
     yaml.go
 )
 
-GO_TEST_SRCS(
-    bench_test.go
-    err_test.go
-    yaml_test.go
-)
-
 END()
 
 RECURSE(
-    gotest
     goyaml.v2
     goyaml.v3
     kyaml

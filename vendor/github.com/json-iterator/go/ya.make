@@ -49,22 +49,9 @@ SRCS(
     stream_str.go
 )
 
-GO_TEST_SRCS(
-    example_test.go
-    stream_test.go
-)
-
 END()
 
 RECURSE(
-    any_tests
-    api_tests
-    benchmarks
-    extension_tests
     extra
-    gotest
-    misc_tests
-    skip_tests
     #type_tests
-    value_tests
 )

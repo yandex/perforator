@@ -10,16 +10,4 @@ SRCS(
     meta.go
 )
 
-GO_TEST_SRCS(
-    collections_test.go
-    json_limit_test.go
-    meta_test.go
-)
-
-GO_XTEST_SRCS(json_test.go)
-
 END()
-
-RECURSE(
-    gotest
-)

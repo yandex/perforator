@@ -9,19 +9,8 @@ SRCS(
     slogsink.go
 )
 
-GO_TEST_SRCS(
-    funcr_test.go
-    slogsink_test.go
-)
-
-GO_XTEST_SRCS(
-    example_formatter_test.go
-    example_test.go
-)
-
 END()
 
 RECURSE(
     example
-    gotest
 )

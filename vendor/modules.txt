@@ -8907,8 +8907,6 @@ github.com/fsouza/go-dockerclient/testing
 ## explicit; go 1.21
 github.com/fullstorydev/grpcurl
 github.com/fullstorydev/grpcurl/cmd/grpcurl
-github.com/fullstorydev/grpcurl/internal/testing
-github.com/fullstorydev/grpcurl/internal/testing/jsonpb_test_proto
 # github.com/fvbommel/sortorder v1.1.0
 ## explicit; go 1.13
 # github.com/fxamacker/cbor/v2 v2.9.0

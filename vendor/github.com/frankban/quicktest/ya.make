@@ -19,24 +19,4 @@ SRCS(
     report.go
 )
 
-GO_TEST_SRCS(export_test.go)
-
-GO_XTEST_SRCS(
-    checker_err_test.go
-    checker_test.go
-    cleanup_test.go
-    comment_test.go
-    error_test.go
-    format_test.go
-    patch_go1.14_test.go
-    patch_test.go
-    quicktest_test.go
-    race_test.go
-    report_test.go
-)
-
 END()
-
-RECURSE(
-    gotest
-)
