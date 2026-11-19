@@ -32,6 +32,36 @@ LOCAL_PNPM_INSTALL_MUTEX_FILENAME = ".__install_mutex__"
 LOCAL_PNPM_STORE_ADD_MUTEX_FILENAME = ".__store_add_mutex__"
 
 
+MANIFEST_DOCS = "https://docs.yandex-team.ru/frontend-in-arcadia/references/package-json#manifest-requirements"
+PACKAGE_MANAGER_REASON = (
+    "Tier 0 supplies its own pnpm. A project-level package manager version can conflict with the Tier 0 version."
+)
+
+
+def validate_package_json(package_json, *, warn=False):
+    manifest = package_json.data
+    for field in ("name", "version"):
+        value = manifest.get(field) if isinstance(manifest, dict) else None
+        if not isinstance(value, str) or not value.strip():
+            raise PackageManagerError(
+                f"{package_json.path}: {field} must be a non-empty string. "
+                f"pnpm pack requires name and version to prepare the build artifact. See {MANIFEST_DOCS}"
+            )
+
+    if warn and "packageManager" in manifest:
+        print(
+            f"Warning: {package_json.path}: packageManager is set. {PACKAGE_MANAGER_REASON} See {MANIFEST_DOCS}",
+            file=sys.stderr,
+        )
+
+    if warn and "files" not in manifest:
+        print(
+            f'Warning: {package_json.path}: Specify "files" to declare which build outputs to package. '
+            f"See {MANIFEST_DOCS}",
+            file=sys.stderr,
+        )
+
+
 class PackageManagerCommandError(PackageManagerError):
     def __init__(self, cmd, code, stdout, stderr):
         self.cmd = cmd
@@ -204,29 +234,12 @@ class PackageManager(BasePackageManager):
         """
         source_path = build_pj_path(self.sources_path)
         build_path = build_pj_path(self.build_path)
-        os.makedirs(self.build_path, exist_ok=True)
-
         package_json = self.load_package_json(source_path)
+        validate_package_json(package_json)
+
+        os.makedirs(self.build_path, exist_ok=True)
         should_write = "pnpm" in package_json.data
         package_json.data.pop("pnpm", None)
-
-        engines = package_json.data.get("engines", {})
-        if "packageManager" in package_json.data or "pnpm" in engines:
-            pnpm_paths = resolve_pnpm_paths(self.pnpm_root)
-            pnpm_version = self.load_package_json(pnpm_paths.package_json).data["version"]
-            if "packageManager" in package_json.data:
-                package_json.data["packageManager"] = "pnpm@" + pnpm_version
-            if "pnpm" in engines:
-                engines["pnpm"] = pnpm_version
-            should_write = True
-
-        if "name" not in package_json.data:
-            parts = self.module_path.split("/")
-            package_json.data["name"] = "@{}/{}".format(parts[0], parts[-1])
-            should_write = True
-        if "version" not in package_json.data:
-            package_json.data["version"] = "0.0.0"
-            should_write = True
 
         if should_write:
             package_json.path = build_path

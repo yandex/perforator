@@ -18,6 +18,7 @@ from devtools.frontend_build_platform.libraries.logging import get_logger, timei
 from build.plugins.lib.nots.package_manager.common_config import rebase_pnpm_settings
 
 from .base_builder import BaseBuilder
+from ..package_manager import validate_package_json
 from ..models import BaseBuildersOptions, BuildError
 from ..ram_disk import RamDisk, RamDiskUsage
 from ..pnpm_workspace import PnpmWorkspace
@@ -99,6 +100,7 @@ class TsLibraryBuilder(BaseBuilder):
             return match[1] + (rebased if rebased.startswith(".") else "./" + rebased)
 
         package_json = PackageJson.load(pm_utils.build_pj_path(prepared_dir))
+        validate_package_json(package_json)
         for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
             if section in package_json.data:
                 package_json.data[section] = {
@@ -173,6 +175,7 @@ class TsLibraryBuilder(BaseBuilder):
             return False
 
         self._ram_disk_usage = RamDiskUsage.NODE_MODULES
+        validate_package_json(PackageJson.load(pm_utils.build_pj_path(self.options.bindir)))
         free_before_restore = shutil.disk_usage(self._ram_disk.root).free
         options = copy.copy(self.options)
         options.use_ram_disk = True

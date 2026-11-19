@@ -23,6 +23,42 @@ def _prepare_deps_args(tmp_path):
     )
 
 
+def test_prepare_deps_rejects_invalid_manifest_before_reading_lockfile(tmp_path):
+    args = _prepare_deps_args(tmp_path)
+    source = tmp_path / "project"
+    manifest = source / "package.json"
+    original = '{"name":"project"}\n'
+    manifest.write_text(original)
+    (source / "pnpm-lock.yaml").write_text("not a valid lockfile")
+
+    with pytest.raises(
+        prepare_deps_module.PackageManagerError,
+        match=(
+            r"package\.json: version must be a non-empty string.*pnpm pack"
+            r".*references/package-json#manifest-requirements"
+        ),
+    ):
+        prepare_deps_module.prepare_deps(args)
+
+    assert manifest.read_text() == original
+    assert not (tmp_path / "build").exists()
+
+
+def test_prepare_deps_warns_about_package_manager_and_preserves_source(tmp_path, capsys):
+    args = _prepare_deps_args(tmp_path)
+    original = '{"name":"project","version":"1.0.0","files":["dist"],"packageManager":"pnpm@11.0.0"}\n'
+    source = tmp_path / "project" / "package.json"
+    source.write_text(original)
+
+    prepare_deps_module.prepare_deps(args)
+
+    warning = capsys.readouterr().err
+    assert "packageManager is set" in warning
+    assert "references/package-json#manifest-requirements" in warning
+    assert source.read_text() == original
+    assert (tmp_path / "build" / "project" / "package.json").read_text() == original
+
+
 def test_prepare_deps_rejects_lockfile_dependencies_missing_from_manifest(tmp_path):
     args = _prepare_deps_args(tmp_path)
     lockfile_path = tmp_path / "project" / "pnpm-lock.yaml"
@@ -36,7 +72,7 @@ importers:
         version: 1.0.0
 """)
 
-    (tmp_path / "project" / "package.json").write_text('{"name":"project"}\n')
+    (tmp_path / "project" / "package.json").write_text('{"name":"project","version":"1.0.0"}\n')
 
     with pytest.raises(
         prepare_deps_module.PackageManagerError,
@@ -49,15 +85,19 @@ importers:
     "content",
     [None, "", " \n\t\n", "# no dependencies\n", "{}\n", "lockfileVersion: '9.0'\nimporters:\n  .: {}\n"],
 )
-def test_prepare_deps_accepts_dependency_free_lockfile(tmp_path, content):
+def test_prepare_deps_accepts_dependency_free_lockfile(tmp_path, content, capsys):
     args = _prepare_deps_args(tmp_path)
     project = tmp_path / "project"
-    (project / "package.json").write_text('{"name": "project"}\n')
+    (project / "package.json").write_text('{"name": "project", "version":"1.0.0"}\n')
     source_lockfile = project / "pnpm-lock.yaml"
     if content is not None:
         source_lockfile.write_text(content)
 
     prepare_deps_module.prepare_deps(args)
+
+    warning = capsys.readouterr().err
+    assert 'Specify "files" to declare which build outputs to package' in warning
+    assert "https://docs.yandex-team.ru/frontend-in-arcadia/references/package-json#manifest-requirements" in warning
 
     built_lockfile = prepare_deps_module.Lockfile.load(str(tmp_path / "build" / "project" / "pnpm-lock.yaml"))
     assert built_lockfile.data["lockfileVersion"] == "9.0"

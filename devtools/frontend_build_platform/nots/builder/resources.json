@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-11-18T21:08:35Z",
+    "created": "2026-11-19T16:15:34Z",
     "pr": {
-      "id": 17257192,
+      "id": 17279218,
       "author": "baymer",
-      "summary": "FBP-3691: stop generating package.json#pnpm in nots"
+      "summary": "FBP-3678 Отклонять невалидные package.json в nots CLI и builder"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14303697082"
+      "uri": "sbr:14312172565"
     },
     "darwin-arm64": {
-      "uri": "sbr:14303695922"
+      "uri": "sbr:14312170496"
     },
     "linux": {
-      "uri": "sbr:14303699700"
+      "uri": "sbr:14312176917"
     },
     "linux-aarch64": {
-      "uri": "sbr:14303698415"
+      "uri": "sbr:14312174709"
     }
   }
 }

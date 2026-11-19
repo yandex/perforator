@@ -302,94 +302,33 @@ def test_build_package_json_preserves_source_bytes(tmp_path):
     assert package_json.data["name"] == "keep-original-formatting"
 
 
-def test_build_package_json_adds_missing_pack_metadata(tmp_path):
+@pytest.mark.parametrize(
+    "manifest, invalid_field",
+    [
+        ({"version": "1.0.0"}, "name"),
+        ({"name": "  ", "version": "1.0.0"}, "name"),
+        ({"name": "pkg"}, "version"),
+        ({"name": "pkg", "version": 1}, "version"),
+        ({"name": "pkg", "version": "\t "}, "version"),
+    ],
+)
+def test_build_package_json_rejects_invalid_metadata(tmp_path, manifest, invalid_field):
     source_path = tmp_path / "source"
     build_path = tmp_path / "build"
     source_path.mkdir()
-    (source_path / "package.json").write_text('{"private": true, "files": ["build/"]}\n')
-
-    package_manager = object.__new__(package_manager_module.PackageManager)
-    package_manager.sources_path = str(source_path)
-    package_manager.build_path = str(build_path)
-    package_manager.module_path = "project/module"
-    package_manager.load_package_json = lambda path: _load_package_json(path)
-
-    package_json = package_manager._build_package_json()
-
-    assert package_json.path == str(build_path / "package.json")
-    assert package_json.data == {
-        "private": True,
-        "files": ["build/"],
-        "name": "@project/module",
-        "version": "0.0.0",
-    }
-
-
-@pytest.mark.parametrize("indent", ["  ", "    ", "\t"])
-@pytest.mark.parametrize(
-    "pnpm_version, entrypoint",
-    [
-        ("10.33.4", "shim"),
-        ("11.27.0", "shim"),
-        ("11.28.0", "shim"),
-        ("11.28.0", "launcher"),
-        ("12.16.0", "pnpm"),
-    ],
-)
-@pytest.mark.parametrize(
-    "fields, expected_fields",
-    [
-        ({}, {}),
-        ({"engines": {"node": ">=22.13"}}, {"engines": {"node": ">=22.13"}}),
-        ({"packageManager": "pnpm@10.33.4"}, {"packageManager": "pnpm@{version}"}),
-        ({"engines": {"pnpm": "10"}}, {"engines": {"pnpm": "{version}"}}),
-        (
-            {"packageManager": "pnpm@10.33.4+sha512.old", "engines": {"pnpm": "<11", "node": ">=22.13"}},
-            {"packageManager": "pnpm@{version}", "engines": {"pnpm": "{version}", "node": ">=22.13"}},
-        ),
-    ],
-)
-def test_build_package_json_uses_resource_pnpm_version(
-    tmp_path, pnpm_version, entrypoint, fields, expected_fields, indent
-):
-    source_path = tmp_path / "source"
-    build_path = tmp_path / "build"
-    resource_root = tmp_path / "resource"
-    pnpm_path = resource_root / "node_modules" / "pnpm" if entrypoint != "pnpm" else resource_root
-    source_path.mkdir()
-    pnpm_path.mkdir(parents=True)
-    (pnpm_path / "package.json").write_text(json.dumps({"version": pnpm_version}))
-    if entrypoint != "pnpm":
-        executable = resource_root / "node_modules" / ".bin" / "pnpm"
-        executable.parent.mkdir()
-        target = pnpm_path / "bin" / "pnpm.mjs"
-        target.parent.mkdir()
-        target.write_text("#!/usr/bin/env node\n")
-        if entrypoint == "shim":
-            executable.symlink_to(target)
-        else:
-            executable.write_text('#!/bin/sh\nexec node "$(dirname "$0")/../pnpm/bin/pnpm.mjs" "$@"\n')
-    else:
-        (resource_root / "pnpm").write_text("")
-    source_data = {"name": "example", "version": "1.0.0", **fields}
-    source_content = json.dumps(source_data, indent=indent) + "\n"
-    (source_path / "package.json").write_text(source_content)
-
-    package_manager = package_manager_module.PackageManager(
-        build_root=str(tmp_path),
-        build_path=str(build_path),
-        sources_path=str(source_path),
-        module_path="project/module",
-        nodejs_bin_path="/node",
-        pnpm_root=str(resource_root),
+    source_manifest = source_path / "package.json"
+    original = json.dumps(manifest) + "\n"
+    source_manifest.write_text(original)
+    manager = package_manager_module.PackageManager(
+        str(tmp_path), str(build_path), str(source_path), None, None, module_path="project/module"
     )
-    package_manager._build_package_json()
 
-    expected = json.loads(json.dumps(expected_fields).replace("{version}", pnpm_version))
-    assert (build_path / "package.json").read_text() == json.dumps(
-        {"name": "example", "version": "1.0.0", **expected}, indent=indent
-    ) + "\n"
-    assert (source_path / "package.json").read_text() == source_content
+    with pytest.raises(package_manager_module.PackageManagerError) as exc:
+        manager._build_package_json()
+
+    assert str(exc.value).startswith(f"{source_manifest}: {invalid_field} must ")
+    assert source_manifest.read_text() == original
+    assert not build_path.exists()
 
 
 def test_build_workspace_without_lockfile(tmp_path):
@@ -402,7 +341,7 @@ def test_build_workspace_without_lockfile(tmp_path):
     os.makedirs(package_manager.sources_path)
     os.makedirs(package_manager.build_path)
     with open(os.path.join(package_manager.sources_path, "package.json"), "w") as f:
-        f.write("{}")
+        f.write('{"name":"pkg","version":"1.0.0"}')
 
     package_manager.build_workspace()
 
@@ -415,7 +354,7 @@ def test_build_workspace_writes_pnpm_settings_to_workspace_config(tmp_path):
     build_path = tmp_path / "build"
     source_path.mkdir()
     (source_path / "package.json").write_text(
-        '{"pnpm":{'
+        '{"name":"pkg","version":"1.0.0","pnpm":{'
         '"overrides":{"foo":"1.0.0"},'
         '"packageExtensions":{"bar":{"peerDependencies":{"baz":"2.0.0"}}},'
         '"neverBuiltDependencies":["esbuild"],'
@@ -452,7 +391,7 @@ def test_build_workspace_does_not_merge_peer_lockfiles(tmp_path):
     reporter_path.mkdir(parents=True)
     ci_reporter_path.mkdir(parents=True)
 
-    (source_path / "package.json").write_text('{"dependencies":{"reporter":"workspace:../reporter"}}\n')
+    (source_path / "package.json").write_text('{"name":"consumer","version":"1.0.0","dependencies":{"reporter":"workspace:../reporter"}}\n')
     source_lockfile = package_manager_module.Lockfile(str(source_path / "pnpm-lock.yaml"))
     source_lockfile.data = {
         "lockfileVersion": "9.0",
@@ -610,7 +549,7 @@ def test_build_workspace_rebases_common_file_override(tmp_path):
     build_path = tmp_path / "build/project/pkg"
     source_path.mkdir(parents=True)
     (source_path.parent / "common.yaml").write_text("overrides: {toolkit: 'file:./toolkit'}\n")
-    (source_path / "package.json").write_text('{"nots":{"commonConfigPath":"../common.yaml"}}')
+    (source_path / "package.json").write_text('{"name":"pkg","version":"1.0.0","nots":{"commonConfigPath":"../common.yaml"}}')
     (source_path / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n")
     pm = object.__new__(package_manager_module.PackageManager)
     pm.sources_path = str(source_path)
@@ -640,7 +579,7 @@ def test_distbuild_without_tarball_uses_same_resource_and_local_path(tmp_path, n
     source = tmp_path / "source" / "module"
     build = tmp_path / "build" / "module"
     source.mkdir(parents=True)
-    (source / "package.json").write_text('{"dependencies": {"' + name + '": "' + version + '"}}')
+    (source / "package.json").write_text('{"name":"pkg","version":"1.0.0","dependencies": {"' + name + '": "' + version + '"}}')
     key = name + "@" + version
     data = {
         "lockfileVersion": "9.0",

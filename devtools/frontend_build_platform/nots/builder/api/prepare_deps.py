@@ -12,7 +12,7 @@ from build.plugins.lib.nots.package_manager.common_config import load_effective_
 from yalibrary.fetcher.uri_parser import parse_resource_uri
 
 from .models import BaseOptions
-from .package_manager import PackageManager
+from .package_manager import PackageManager, validate_package_json
 from .generators.ts_proto_generator import TsProtoGenerator, generate_ts_proto_auto_package
 
 
@@ -58,6 +58,7 @@ def prepare_deps(args: PrepareDepsOptions):
         TsProtoGenerator(args).prepare_peer_libraries()
     else:
         pj = pm.load_package_json_from_dir(args.curdir)
+        validate_package_json(pj, warn=True)
         has_dependencies = pj.has_dependencies()
         if not has_dependencies:
             _, _, settings = load_effective_pnpm_config(pj, pm.sources_root)

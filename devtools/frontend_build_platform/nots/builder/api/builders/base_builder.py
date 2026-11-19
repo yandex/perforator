@@ -13,6 +13,7 @@ from build.plugins.lib.nots.package_manager import (
 )
 from devtools.frontend_build_platform.libraries.logging import timeit
 from ..models import BuildError, BaseBuildersOptions
+from ..package_manager import validate_package_json
 from ..pnpm_workspace import pnpm_runtime_env
 from ..utils import (
     copy_writable_file,
@@ -48,6 +49,9 @@ class BaseBuilder(object):
     @timeit
     def _get_pack_files(self) -> list[str]:
         """Run pnpm pack --json and return list of files to include in archive"""
+        pj = PackageJson.load(pm_utils.build_pj_path(self.options.bindir))
+        validate_package_json(pj)
+
         # Create or update .npmignore file
         npmignore_path = os.path.join(self.options.bindir, '.npmignore')
 
@@ -62,26 +66,12 @@ class BaseBuilder(object):
             '--config.ignoreScripts=true',
         ]
 
-        pj = PackageJson.load(pm_utils.build_pj_path(self.options.bindir))
-
-        # todo: FBP-2979
-        is_pj_need_update = False
-        if 'name' not in pj.data:
-            parts = self.options.moddir.split('/')
-            pj.data['name'] = f'@{parts[0]}/{parts[-1]}'
-            is_pj_need_update = True
-        if 'version' not in pj.data:
-            pj.data['version'] = '0.0.0'
-            is_pj_need_update = True
         if 'files' not in pj.data:
             files = []
             if hasattr(self.options, 'outputs') and self.options.outputs is not None:
                 files.extend(self.options.outputs)
 
             pj.data['files'] = files
-            is_pj_need_update = True
-
-        if is_pj_need_update:
             pj.write()
 
         return_code, stdout, stderr = popen(args, env=self._get_envs(), cwd=self.options.bindir)
@@ -135,6 +125,7 @@ class BaseBuilder(object):
                     ", ".join(os.path.basename(path) for path in missing_paths)
                 ),
             )
+        validate_package_json(PackageJson.load(package_json_path))
         copy_writable_file(package_json_path, package_json_path)
         self.__extract_peer_tars(self.options.bindir, build_root=self.options.arcadia_build_root)
 

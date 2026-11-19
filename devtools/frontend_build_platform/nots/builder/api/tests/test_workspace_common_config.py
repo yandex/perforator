@@ -53,6 +53,7 @@ def test_build_workspace_uses_only_target_config(tmp_path, use_nots_yaml):
         "project/target",
         {
             "name": "target",
+            "version": "1.0.0",
             "dependencies": {"peer": "workspace:../peer"},
             "nots": {"commonConfigPath": "../common.yaml"},
             "pnpm": {
@@ -140,6 +141,7 @@ def test_build_workspace_imports_prepared_override_peer_catalogs_without_peer_so
         "project/target",
         {
             "name": "target",
+            "version": "1.0.0",
             "dependencies": {"peer": "1.0.0"},
             "nots": {"commonConfigPath": "../common.yaml"},
         },
