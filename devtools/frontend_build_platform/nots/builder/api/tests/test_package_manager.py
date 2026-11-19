@@ -261,7 +261,7 @@ def test_pnpm_install_uses_local_virtual_store_for_portable_modules(
         assert settings["virtualStoreDir"] == os.path.join(os.path.realpath(node_modules_path), ".pnpm")
     else:
         assert "virtualStoreDir" not in settings
-    expected_type = virtual_store_type or ("global" if global_virtual_store is True else "project")
+    expected_type = virtual_store_type or ("project" if global_virtual_store is False else "global")
     assert settings["virtualStoreType"] == ("project" if portable else expected_type)
     assert "enableGlobalVirtualStore" not in settings
     assert settings["packageImportMethod"] == "auto"

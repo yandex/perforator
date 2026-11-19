@@ -60,7 +60,7 @@ pnpm:
         injectWorkspacePackages: true
         sharedWorkspaceLockfile: false
         modulesDir: node_modules
-        virtualStoreType: project
+        virtualStoreType: global
         pmOnFail: ignore
         packageImportMethod: auto
         preferSymlinkedExecutables: true
@@ -159,7 +159,7 @@ pnpm:
                 https://pnpm.io/11.x/settings/node-modules#enableglobalvirtualstore
 
             virtualStoreType: |-
-                Проектный virtual store по умолчанию; global включает общий store.
+                Общий virtual store по умолчанию; project отключает его для проекта.
                 https://pnpm.io/settings/node-modules#virtualstoretype
 
             forceLegacyDeploy: |-
