@@ -44,7 +44,7 @@ def test_generate_ts_proto_auto_package(tmp_path):
         "default": "./build/cjs/generated/project/proto/*.js",
     }
     assert "scripts" not in package_json
-    assert package_json["files"] == ["build", "pnpm-lock.yaml", "ya.make"]
+    assert package_json["files"] == ["build", "!build/**/*.tsbuildinfo", "pnpm-lock.yaml", "ya.make"]
     assert package_json["typesVersions"] == {
         "*": {
             "*": ["build/types/generated/project/proto/*"],
@@ -77,8 +77,9 @@ def test_make_ts_proto_build_command_for_auto_package(tmp_path):
     assert "Mproto/peer/model.proto=@test/peer/model" in command
     assert '"$ARCADIA_ROOT/project/proto/input.proto"' in command
     assert '"$ARCADIA_BUILD_ROOT/library/typescript/ts-proto-deps/tsconfig.cjs.json"' in command
-    assert "--project tsconfig.cjs.json --incremental false --composite false --pretty --declaration" in command
-    assert "--project tsconfig.esm.json" in command
+    assert [part for part in command.split(" && ") if part.startswith("node_modules/.bin/tsc ")] == [
+        "node_modules/.bin/tsc --build tsconfig.cjs.json tsconfig.esm.json --force --pretty"
+    ]
     assert "ignored.json" not in command
 
 

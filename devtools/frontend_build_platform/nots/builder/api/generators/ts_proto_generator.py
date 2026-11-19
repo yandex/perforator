@@ -39,7 +39,7 @@ def generate_ts_proto_auto_package(
         "name": auto_package_name.replace("*", gen_name),
         "version": "0.0.0",
         "type": "module",
-        "files": ["build", "pnpm-lock.yaml", "ya.make"],
+        "files": ["build", "!build/**/*.tsbuildinfo", "pnpm-lock.yaml", "ya.make"],
         "repository": {"type": "arc", "directory": moddir},
         "nots": {"tsProtoAuto": True},
         "dependencies": {
@@ -152,7 +152,6 @@ def make_ts_proto_build_command(
                     _shell_arg(source), shlex.quote(tsconfig)
                 )
             )
-        tsconfigs = ["tsconfig.cjs.json", "tsconfig.esm.json"]
     commands.extend(['node -e "require(\'fs\').mkdirSync(\'src/generated\', {recursive:true})"', protoc_command])
     if peer_reexports_file:
         commands.append(
@@ -167,13 +166,13 @@ def make_ts_proto_build_command(
             + " "
             + shlex.quote(peer_reexports_file)
         )
-    commands.extend(
-        "node_modules/.bin/tsc --project {} --incremental false --composite false --pretty{}".format(
-            shlex.quote(tsconfig),
-            " --declaration" if is_auto_package and tsconfig == "tsconfig.cjs.json" else "",
+    if is_auto_package:
+        # Compile both targets on every invocation, as with the separate --project commands.
+        commands.append("node_modules/.bin/tsc --build tsconfig.cjs.json tsconfig.esm.json --force --pretty")
+    else:
+        commands.extend(
+            "node_modules/.bin/tsc --project {} --pretty".format(shlex.quote(tsconfig)) for tsconfig in tsconfigs
         )
-        for tsconfig in tsconfigs
-    )
     # Explicit package scopes keep generated JS independent of the root manifest.
     # Custom packages may generate only one of these directories.
     commands.append(
