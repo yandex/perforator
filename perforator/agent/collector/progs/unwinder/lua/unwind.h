@@ -33,7 +33,9 @@ static ALWAYS_INLINE void lua_collect_stack(const struct process_info* process_i
         return;
     }
 
+    LUA_LOG_DEBUG(">>> Stack processing start");
     lua_stack_walk(state);
+    LUA_LOG_DEBUG("<<< Stack processing end");
 }
 
 #endif

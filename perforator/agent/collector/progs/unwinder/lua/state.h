@@ -53,6 +53,7 @@ static ALWAYS_INLINE void lua_state_init_registers(struct lua_state* state, cons
     state->dispatch_register = user_registers->r14;
     state->lua_state_register = user_registers->rdi;
     state->base_register = user_registers->rdx;
+    state->bytecode_pc_register = user_registers->rbx;
 }
 
 /**
@@ -160,14 +161,14 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
 [[nodiscard]] static ALWAYS_INLINE bool lua_state_test_and_set(struct lua_state* state, luajit_global_state* global_state) {
     luajit_state* L = luajit_global_state_get_current_lua_state(global_state, &state->config);
     if (!L) {
-        LUA_TRACE("[error] lua_state_test_and_set: failed to read global_state->cur_L from global_state=%px", global_state);
+        LUA_LOG_ERROR("Failed to read global_state->cur_L from global_state=%px", global_state);
         return false;
     }
 
     // Cross check that `global_state` points to `cur_L`, `cur_L` points to `global_state`
     luajit_global_state* global_state_from_l = luajit_state_get_glref(L);
     if (global_state != global_state_from_l) {
-        LUA_TRACE("[error] lua_state_test_and_set: G(global_state->cur_L)=%px doesn't match global_state=%px", global_state_from_l, global_state);
+        LUA_LOG_ERROR("G(global_state->cur_L)=%px doesn't match global_state=%px", global_state_from_l, global_state);
         return false;
     }
 
@@ -192,14 +193,14 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
         // Cache exists
         if (lua_state_test_and_set(state, cached_global_state)) {
             // L and G are set in `lua_state_test_and_set`
-            LUA_TRACE("[debug] lua_state_find_g_and_l: using cached G=%px and L=%px", lua_state_get_global_state(state), lua_state_get_lua_state(state));
+            LUA_LOG_DEBUG("Using cached G=%px and L=%px", lua_state_get_global_state(state), lua_state_get_lua_state(state));
             return true;
         }
 
         // The state is no longer valid, probably called lua_close
         // Erase cached pointer
         metric_increment(METRIC_LUA_INVALIDATED_CACHE_COUNT);
-        LUA_TRACE("[info] lua_state_find_g_and_l: cached G=%px is no longer valid", cached_global_state);
+        LUA_LOG_INFO("Cached G=%px is no longer valid", cached_global_state);
         (void)lua_state_cache_set(state, NULL);
     }
 
@@ -211,7 +212,7 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
         state->binary_start_address <= state->instruction_pointer &&
         state->instruction_pointer < state->binary_end_address;
     if (!is_in_luajit_binary) {
-        LUA_TRACE("[debug] lua_state_find_g_and_l: not in luajit binary %px <= %px < %px", state->binary_start_address, state->instruction_pointer, state->binary_end_address);
+        LUA_LOG_DEBUG("Not in luajit binary %px <= %px < %px", state->binary_start_address, state->instruction_pointer, state->binary_end_address);
         return false;
     }
 
@@ -219,7 +220,7 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
     // It's always present when we are executing inside LuaJIT VM.
     luajit_global_state* global_state = luajit_get_global_state_from_dispatch(state->dispatch_register, &state->config);
     if (lua_state_test_and_set(state, global_state)) {
-        LUA_TRACE("[info] lua_state_find_g_and_l: found new global_State=%px from dispatch register", global_state);
+        LUA_LOG_INFO("Found new global_State=%px from dispatch register", global_state);
         (void)lua_state_cache_set(state, global_state);
         return true;
     }
@@ -227,12 +228,12 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
     // Alternatively try to find from register for C ABI first function argument.
     global_state = luajit_state_get_glref((luajit_state*)state->lua_state_register);
     if (lua_state_test_and_set(state, global_state)) {
-        LUA_TRACE("[info] lua_state_find_g_and_l: found new global_State=%px from first argument register", global_state);
+        LUA_LOG_INFO("Found new global_State=%px from first argument register", global_state);
         (void)lua_state_cache_set(state, global_state);
         return true;
     }
 
-    LUA_TRACE("[info] lua_state_find_g_and_l: no valid global_State were found");
+    LUA_LOG_INFO("No valid global_State were found");
     return false;
 }
 
@@ -254,17 +255,17 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
     u64 binary_relative_address = state->instruction_pointer - state->binary_start_address;
     bool is_in_luajit_vm = state->config.vm_start_pc <= binary_relative_address && binary_relative_address < state->config.vm_end_pc;
     if (!is_in_luajit_vm) {
-        LUA_TRACE("[info] lua_state_resolve_base: not in VM, using L->base");
+        LUA_LOG_DEBUG("Not in VM, using L->base");
         return base;
     }
 
     const luajit_tvalue* base_from_register = (const luajit_tvalue*)state->base_register;
     if (base_from_register < bottom || base_from_register >= max_stack) {
-        LUA_TRACE("[info] lua_state_resolve_base: register holding base is below stack, using L->base");
+        LUA_LOG_DEBUG("Register holding base is below stack, using L->base");
         return base;
     }
 
-    LUA_TRACE("[info] lua_state_resolve_base: using base from the register");
+    LUA_LOG_DEBUG("Using base from the register");
     return base_from_register;
 }
 
@@ -279,7 +280,7 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
     const luajit_tvalue* jit_base = luajit_global_state_get_jit_base(g, &state->config);
 
     if (!jit_base) {
-        LUA_TRACE("[error] lua_state_get_jit_base: failed to read jit_base or it was NULL");
+        LUA_LOG_ERROR("Failed to read G->jit_base or it was NULL");
         return base;
     }
 
