@@ -128,6 +128,8 @@ struct dwarf_unwind_context {
     enum dwarf_unwind_error error;
     struct unwind_context cfi;
     u32 framepointers;
+    // Registers other than sp, fp and ip, for CFA rules based on them.
+    struct unwind_gprs gprs;
 };
 
 BPF_MAP(heap, BPF_MAP_TYPE_PERCPU_ARRAY, u32, struct dwarf_unwind_context, 1);
@@ -262,9 +264,10 @@ BTF_EXPORT(enum unwind_page_table_params);
 static ALWAYS_INLINE bool dwarf_cfi_eval_cfa(
     struct unwind_context* prev,
     struct unwind_context* next,
-    struct cfa_unwind_rule* rule
+    struct cfa_unwind_rule* rule,
+    struct unwind_gprs* gprs
 ) {
-    if (rule == NULL || prev == NULL || next == NULL) {
+    if (rule == NULL || prev == NULL || next == NULL || gprs == NULL) {
         return false;
     }
 
@@ -290,10 +293,88 @@ static ALWAYS_INLINE bool dwarf_cfi_eval_cfa(
             DWARF_TRACE("Set cf to %llx=%llx+%llx\n", next->cfa, prev->fp, rule->offset);
             return true;
 
-        default:
-            DWARF_TRACE("Unsupported cfa rule register %d\n", (int)rule->regno);
+        default: {
+            u64 base = 0;
+            if (!dwarf_unwind_gprs_get(gprs, rule->regno, &base)) {
+                DWARF_TRACE("Failed to eval CFA: register %d is unknown\n", (int)rule->regno);
+                return false;
+            }
+            u64 cfa = base + rule->offset;
+            // The caller's CFA is above the current SP, otherwise the register no longer holds the CFA base.
+            if (prev->cfa != DWARF_CFI_UNKNOWN_REGISTER && cfa <= prev->cfa) {
+                DWARF_TRACE("CFA %llx from register %d is not above SP %llx\n", cfa, (int)rule->regno, prev->cfa);
+                return false;
+            }
+            next->cfa = cfa;
+            DWARF_TRACE("Set cfa to %llx=reg%d+%d\n", next->cfa, (int)rule->regno, (int)rule->offset);
+            return true;
+        }
+        }
+    }
+    case UNWIND_RULE_REGISTER_DEREF_OFFSET:
+    case UNWIND_RULE_REGISTER_DEREF_OFFSET_PLUS_8: {
+        u64 base = DWARF_CFI_UNKNOWN_REGISTER;
+        if (rule->regno == DWARF_CFI_STACK_REGISTER_NUMBER) {
+            base = prev->cfa;
+        } else if (rule->regno == DWARF_CFI_FRAME_REGISTER_NUMBER) {
+            base = prev->fp;
+        } else {
+            DWARF_TRACE("Unsupported deref cfa rule register %d\n", (int)rule->regno);
             return false;
         }
+        if (base == DWARF_CFI_UNKNOWN_REGISTER) {
+            DWARF_TRACE("Failed to eval deref CFA: register %d is unknown\n", (int)rule->regno);
+            return false;
+        }
+
+        u64 cfa = 0;
+        int err = bpf_probe_read_user(&cfa, sizeof(cfa), (void*)(base + rule->offset));
+        if (err != 0) {
+            DWARF_TRACE("Failed to read deref CFA: %d\n", err);
+            return false;
+        }
+        if (rule->kind == UNWIND_RULE_REGISTER_DEREF_OFFSET_PLUS_8) {
+            cfa += 8;
+        }
+
+        // The value comes from memory, not from a register: the caller's CFA must be above the current SP.
+        if (prev->cfa != DWARF_CFI_UNKNOWN_REGISTER && cfa <= prev->cfa) {
+            DWARF_TRACE("Deref CFA %llx is not above SP %llx\n", cfa, prev->cfa);
+            return false;
+        }
+
+        next->cfa = cfa;
+        DWARF_TRACE("Set cfa to %llx=*(reg%d+%d)\n", next->cfa, (int)rule->regno, (int)rule->offset);
+        return true;
+    }
+    case UNWIND_RULE_RSP_INDEXED_DEREF_OFFSET_PLUS_8: {
+        u64 index = 0;
+        if (prev->cfa == DWARF_CFI_UNKNOWN_REGISTER || !dwarf_unwind_gprs_get(gprs, rule->regno, &index)) {
+            DWARF_TRACE("Failed to eval indexed deref CFA: SP or register %d is unknown\n", (int)rule->regno);
+            return false;
+        }
+        // The index is a number of stack words; anything larger than the stack is not one.
+        if (index > (1ull << 32) / 8) {
+            DWARF_TRACE("Indexed deref CFA: register %d=%llx is not a stack word count\n", (int)rule->regno, index);
+            return false;
+        }
+
+        u64 cfa = 0;
+        int err = bpf_probe_read_user(&cfa, sizeof(cfa), (void*)(prev->cfa + rule->offset + index * 8));
+        if (err != 0) {
+            DWARF_TRACE("Failed to read indexed deref CFA: %d\n", err);
+            return false;
+        }
+        cfa += 8;
+
+        if (cfa <= prev->cfa) {
+            DWARF_TRACE("Indexed deref CFA %llx is not above SP %llx\n", cfa, prev->cfa);
+            return false;
+        }
+
+        next->cfa = cfa;
+        DWARF_TRACE("Set cfa to %llx=*(sp+%d+reg%d*8)+8\n", next->cfa, (int)rule->offset, (int)rule->regno);
+        return true;
     }
     default:
         DWARF_TRACE("Unsupported cfa rule kind %d\n", (int)rule->kind);
@@ -313,6 +394,13 @@ ALWAYS_INLINE bool dwarf_cfi_eval_fp(
     }
 
     u64 address = next->cfa + rule->offset;
+    if (rule->offset == DWARF_UNWIND_RBP_RULE_AT_RBP) {
+        if (prev->fp == DWARF_CFI_UNKNOWN_REGISTER) {
+            DWARF_TRACE("Failed to eval FP: FP is unknown\n");
+            return false;
+        }
+        address = prev->fp;
+    }
     DWARF_TRACE("Found fp offset %d, location %llx\n", rule->offset, address);
 
     int err = bpf_probe_read_user(&next->fp, sizeof(next->fp), (void*)address);
@@ -327,9 +415,10 @@ ALWAYS_INLINE bool dwarf_cfi_eval_fp(
 static NOINLINE bool dwarf_cfi_eval(
     struct unwind_context* prev,
     struct unwind_context* next,
-    struct unwind_rule* rule
+    struct unwind_rule* rule,
+    struct unwind_gprs* gprs
 ) {
-    if (!dwarf_cfi_eval_cfa(prev, next, &rule->cfa)) {
+    if (!dwarf_cfi_eval_cfa(prev, next, &rule->cfa, gprs)) {
         DWARF_TRACE("failed to eval cfa\n");
         return false;
     }
@@ -355,6 +444,7 @@ static NOINLINE bool dwarf_unwind_init(
     ctx->framepointers = 0;
 
     dwarf_unwind_setup_userspace_registers(&ctx->cfi, regs);
+    dwarf_unwind_setup_userspace_gprs(&ctx->gprs, regs);
     BPF_TRACE("Initialize dwarf ip to %llx\n", ctx->cfi.ip);
     return true;
 }
@@ -551,6 +641,7 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
         // Try to unwind one frame using frame pointers.
         metric_increment(METRIC_DWARF_ERROR_NORULEFORINSTRUCTION_COUNT);
         DWARF_TRACE("failed to locate rule, try fp\n");
+        dwarf_unwind_gprs_forget(&ctx->gprs);
         return dwarf_unwind_step_fp(&ctx->cfi, &ctx->framepointers);
     }
 
@@ -568,7 +659,7 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
     struct unwind_context next;
     dwarf_cfi_context_init_next(&next);
 
-    if (!dwarf_cfi_eval(&ctx->cfi, &next, &rule)) {
+    if (!dwarf_cfi_eval(&ctx->cfi, &next, &rule, &ctx->gprs)) {
         DWARF_TRACE("failed to evaluate CFI rule\n");
         metric_increment(METRIC_DWARF_ERROR_RULEEVALUATIONFAILED_COUNT);
         ctx->error = DWARF_UNWIND_ERROR_RULE_EVALUATION_FAILED;
@@ -579,6 +670,7 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
     DWARF_TRACE("next regs state: ip=%lx\n", next.ip);
 
     ctx->cfi = next;
+    dwarf_unwind_gprs_after_dwarf_step(&ctx->gprs);
 
     // Done!
     if (ctx->cfi.ip == 0) {
