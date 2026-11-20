@@ -73,6 +73,11 @@ type Config struct {
 
 type Options struct {
 	EnableJVM bool
+
+	// perf_events which will be read by BPF program.
+	// Key is cpu id, value is list of event fds.
+	// All lists must have the same length.
+	AdditionalPerfEventFDs map[uint32][]uint32
 }
 
 type BPF struct {
@@ -89,8 +94,9 @@ type BPF struct {
 	mapreplacements map[string]*ebpf.Map
 	state           programstate.State
 	// some maps that we need in runtime
-	samplesMap   *ebpf.Map
-	processesMap *ebpf.Map
+	samplesMap          *ebpf.Map
+	processesMap        *ebpf.Map
+	additionalEventMaps []*ebpf.Map
 
 	mapsToUnpin []*ebpf.Map
 
@@ -372,6 +378,41 @@ func (b *BPF) configureAndSetupMaps() (err error) {
 	if b.processesMap == nil {
 		return fmt.Errorf("missing processes map")
 	}
+	if len(b.opts.AdditionalPerfEventFDs) > 0 {
+		eventCount := len(b.opts.AdditionalPerfEventFDs[0])
+		if eventCount == 0 {
+			return fmt.Errorf("no additional events specified")
+		}
+
+		for i, ev := range b.opts.AdditionalPerfEventFDs {
+			if len(ev) != eventCount {
+				return fmt.Errorf("additional events list for CPU %d has %d items, expected %d", i, len(ev), eventCount)
+			}
+		}
+		evmaps := make([]*ebpf.Map, eventCount)
+		b.additionalEventMaps = evmaps
+		mapSpec := b.collspec.Maps["additional_events"].InnerMap
+		for i := range eventCount {
+			var mp *ebpf.Map
+			mp, err := ebpf.NewMap(mapSpec)
+			if err != nil {
+				return fmt.Errorf("failed to create additional event %d map: %w", i, err)
+			}
+			evmaps[i] = mp
+			err = maps.AdditionalEvents.Put(uint32(i), mp)
+			if err != nil {
+				return fmt.Errorf("failed to put additional event map %d: %w", i, err)
+			}
+		}
+		for cpuIdx, ev := range b.opts.AdditionalPerfEventFDs {
+			for eventIdx, fd := range ev {
+				err := evmaps[eventIdx].Put(uint32(cpuIdx), fd)
+				if err != nil {
+					return fmt.Errorf("failed to put tma event fd for event %d and cpu %d: %w", eventIdx, cpuIdx, err)
+				}
+			}
+		}
+	}
 
 	return nil
 }
@@ -436,6 +477,9 @@ func (b *BPF) Close() error {
 			// the underlying FS error anyway.
 			errs = append(errs, fmt.Errorf("failed to unpin map: %w", e))
 		}
+	}
+	for _, m := range b.additionalEventMaps {
+		errs = append(errs, m.Close())
 	}
 	errs = append(errs, b.state.Close())
 	return errors.Join(errs...)

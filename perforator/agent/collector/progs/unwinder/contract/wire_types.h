@@ -35,6 +35,7 @@ enum tls_variable_type: u8 {
 enum {
     PACKED_SAMPLE_MAX_DATA = 8192,
     MAX_THREAD_LOCAL_STRING_LENGTH = 128,
+    MAX_ADDITIONAL_PERF_EVENTS = 5,
 };
 
 enum cgroup_limits {
@@ -128,6 +129,7 @@ struct record_sample_header {
     u64 parent_cgroup;
     u64 starttime;
     struct perf_event_value value;
+    struct perf_event_value additional_events[MAX_ADDITIONAL_PERF_EVENTS];
     u64 timedelta;
     struct section_desc kern_stack;
     struct section_desc user_stack;

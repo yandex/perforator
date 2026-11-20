@@ -58,29 +58,37 @@ TString MakeRecord() {
 Y_UNIT_TEST_SUITE(RawSample) {
     Y_UNIT_TEST(WireFormat) {
         // Same bytes and mutations as TestWireFormat in wire_fixtures_test.go.
-        // Header, kernel/user stacks, LBR, TLS, cgroups, then Python/PHP/JVM/Lua.
+        // Canonical record for the wire contract in
+        // agent/collector/progs/unwinder/contract/wire_types.h: header (288
+        // bytes: perf value triple, 5 additional_event_delta triples, timedelta
+        // and 6 section descriptors), kernel/user stacks, LBR, TLS, cgroups,
+        // then Python/PHP/JVM/Lua.
         const TStringBuf hex =
             "0000000001000000000000000000000000000000000000000000000000000000"
-            "01000300e8030000393000000000000000000000000000000000000000000000"
+            "01000300e80300002b0200000000000000000000000000000000000000000000"
             "000000000000000000000000000000002a0000002b0000000000000000000000"
-            "00000000000000002b0200000000000064000000000000000100000000000000"
-            "0100000000000000c80000000000000000001000100008001800300048003001"
-            "7801080080017800100000000000000020000000000000003000000000000000"
-            "4000000000000000500000000000000007000000000000006000000000000000"
-            "7000000000000000090000000000000040000000000000000100000000000000"
-            "6300000000000000000000000000000000000000000000000000000000000000"
+            "2b020000000000002b0200000000000064000000000000000100000000000000"
+            "c800000000000000aa000000000000000100000000000000c800000000000000"
+            "bb000000000000000200000000000000c800000000000000cc00000000000000"
+            "0300000000000000c800000000000000dd000000000000000400000000000000"
+            "c800000000000000ee000000000000000500000000000000c800000000000000"
+            "c800000000000000000010001000080018003000480030017801080080017800"
+            "1000000000000000200000000000000030000000000000004000000000000000"
+            "5000000000000000070000000000000060000000000000007000000000000000"
+            "0900000000000000400000000000000001000000000000006300000000000000"
             "0000000000000000000000000000000000000000000000000000000000000000"
             "0000000000000000000000000000000000000000000000000000000000000000"
             "0000000000000000000000000000000000000000000000000000000000000000"
-            "0000000000000000800000000000000002000000000000000500000000000000"
-            "68656c6c6f000000000000000000000000000000000000000000000000000000"
+            "0000000000000000000000000000000000000000000000000000000000000000"
+            "80000000000000000200000000000000050000000000000068656c6c6f000000"
             "0000000000000000000000000000000000000000000000000000000000000000"
             "0000000000000000000000000000000000000000000000000000000000000000"
             "0000000000000000000000000000000000000000000000000000000000000000"
-            "2a00000000000000200000012000000034120000000000000b00000000000000"
-            "3812000000000000785600000000000010000101100000004523000000000000"
-            "0c00000000000000100002021000000000000000000000005634000000000000"
-            "1800030118000000000000000000000067450000000000000d00000000000000";
+            "0000000000000000000000000000000000000000000000002a00000000000000"
+            "200000012000000034120000000000000b000000000000003812000000000000"
+            "7856000000000000100001011000000045230000000000000c00000000000000"
+            "1000020210000000000000000000000056340000000000001800030118000000"
+            "000000000000000067450000000000000d00000000000000";
         const TString base = HexDecode(hex.data(), hex.size());
         const struct {
             const char* Name;
@@ -90,31 +98,31 @@ Y_UNIT_TEST_SUITE(RawSample) {
             size_t Width;
             bool Accept;
         } cases[] = {
-            {"all_sections", 672, 0, 0, 0, true},
-            {"perf_padding", 676, 0, 0, 0, true},
+            {"all_sections", 792, 0, 0, 0, true},
+            {"perf_padding", 796, 0, 0, 0, true},
             {"short_header", 167, 0, 0, 0, false},
-            {"truncated_payload", 671, 0, 0, 0, false},
-            {"wrong_tag", 672, 0, 1, 1, false},
-            {"undefined_sample_type", 672, 4, 0, 1, false},
-            {"unknown_sample_type", 672, 4, 6, 1, false},
-            {"overlapping_sections", 672, 148, 8, 1, false},
-            {"gap_between_sections", 672, 148, 24, 1, false},
-            {"partial_stack", 672, 146, 15, 1, false},
-            {"misaligned_section", 672, 144, 1, 1, false},
-            {"section_out_of_bounds", 672, 166, 65535, 2, false},
-            {"unknown_language", 672, 554, 4, 1, false},
-            {"reserved_language_byte_zero", 672, 555, 0, 1, true},
-            {"zero_element_size", 672, 556, 0, 1, false},
-            {"misaligned_element_size", 672, 556, 7, 1, false},
-            {"zero_payload_size", 672, 552, 0, 1, false},
-            {"partial_language_element", 672, 552, 31, 1, false},
-            {"truncated_language_header", 672, 166, 1, 1, false},
-            {"language_out_of_bounds", 672, 552, 4096, 2, false},
-            {"duplicate_language", 672, 594, 0, 1, false},
-            {"reserved_language_byte_nonzero", 672, 555, 2, 1, true},
+            {"truncated_payload", 791, 0, 0, 0, false},
+            {"wrong_tag", 792, 0, 1, 1, false},
+            {"undefined_sample_type", 792, 4, 0, 1, false},
+            {"unknown_sample_type", 792, 4, 6, 1, false},
+            {"overlapping_sections", 792, 268, 8, 1, false},
+            {"gap_between_sections", 792, 268, 24, 1, false},
+            {"partial_stack", 792, 266, 15, 1, false},
+            {"misaligned_section", 792, 264, 1, 1, false},
+            {"section_out_of_bounds", 792, 286, 65535, 2, false},
+            {"unknown_language", 792, 674, 4, 1, false},
+            {"reserved_language_byte_zero", 792, 675, 0, 1, true},
+            {"zero_element_size", 792, 676, 0, 1, false},
+            {"misaligned_element_size", 792, 676, 7, 1, false},
+            {"zero_payload_size", 792, 672, 0, 1, false},
+            {"partial_language_element", 792, 672, 31, 1, false},
+            {"truncated_language_header", 792, 286, 1, 1, false},
+            {"language_out_of_bounds", 792, 672, 4096, 2, false},
+            {"duplicate_language", 792, 714, 0, 1, false},
+            {"reserved_language_byte_nonzero", 792, 675, 2, 1, true},
             // Opaque interpreter payloads are accepted here but rejected by Go.
-            {"opaque_interpreter_size", 672, 556, 16, 1, true},
-            {"reserved_jvm_byte_nonzero", 672, 619, 1, 1, true},
+            {"opaque_interpreter_size", 792, 676, 16, 1, true},
+            {"reserved_jvm_byte_nonzero", 792, 739, 1, 1, true},
         };
         for (const auto& test : cases) {
             TString record = base;
@@ -140,6 +148,13 @@ Y_UNIT_TEST_SUITE(RawSample) {
             UNIT_ASSERT_VALUES_EQUAL(sample.KernelStack().Read(1), 0x20);
             UNIT_ASSERT_VALUES_EQUAL(sample.UserStack().Read(0), 0x30);
             UNIT_ASSERT_VALUES_EQUAL(sample.Cgroups().Read(0), 42);
+            for (std::size_t i = 0; i < 5; ++i) {
+                const auto& delta = sample.Header().additional_events[i];
+                static const std::uint64_t counters[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
+                UNIT_ASSERT_VALUES_EQUAL(delta.counter, counters[i]);
+                UNIT_ASSERT_VALUES_EQUAL(delta.enabled, 0xc8);
+                UNIT_ASSERT_VALUES_EQUAL(delta.running, i + 1);
+            }
             UNIT_ASSERT_VALUES_EQUAL(sample.Lbr().Count(), 2);
             const auto firstBranch = sample.Lbr().Read(0);
             UNIT_ASSERT_VALUES_EQUAL(firstBranch.from, 0x40);
