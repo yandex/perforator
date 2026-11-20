@@ -28,9 +28,10 @@ func newLifecycleTestRegistry(t *testing.T) *ProcessRegistry {
 	require.NoError(t, err)
 	r := &ProcessRegistry{
 		log: l, dsoStorage: storage,
-		procs:    make(map[linux.CurrentNamespacePID]*processInfo),
-		procchan: make(chan *processRegistration, 32),
-		state:    &publicationBPFState{enable: func(linux.CurrentNamespacePID, *unwinder.ProcessInfo) error { return nil }},
+		procs:         make(map[linux.CurrentNamespacePID]*processInfo),
+		procchan:      make(chan *processRegistration, 32),
+		state:         &publicationBPFState{enable: func(linux.CurrentNamespacePID, *unwinder.ProcessInfo) error { return nil }},
+		isLiveProcess: func(linux.ProcessKey) bool { return true },
 	}
 	r.procsGeneration.Store(1)
 	return r

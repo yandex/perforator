@@ -6,8 +6,10 @@
 
 #include <library/cpp/containers/absl/flat_hash_map.h>
 
-#include <optional>
+#include <util/generic/array_ref.h>
+#include <util/generic/string.h>
 
+#include <optional>
 
 namespace NPerforator::NProfile {
 

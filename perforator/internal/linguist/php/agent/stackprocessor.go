@@ -74,17 +74,26 @@ func (p *StackProcessor) processFrame(
 		Finish()
 }
 
-func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.PhpFrame, output runtimewriter.Frame) error {
+func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.PhpFrame, output runtimewriter.Frame, counts *models.RuntimeFrameCounts) error {
+	counts.Frames++
 	if err := output.SetMappingName(profile.PHPSpecialMapping); err != nil {
 		return err
 	}
 	output.SetAddress(frame.SymbolKey.ObjectAddr)
 	symbol, exists := p.symbolizer.Symbolize(models.Language(unwinder.LanguagePhp), process, &frame.SymbolKey)
 	if !exists {
+		counts.Unsymbolized++
 		return output.AddInlineFunction(models.UnsymbolizedInterpreterLocation, "", frame.SymbolKey.Linestart, 0)
 	}
 	if symbol.Name != "" {
 		output.SetAddress(0)
 	}
 	return output.AddInlineFunction(symbol.Name, symbol.FileName, frame.SymbolKey.Linestart, 0)
+}
+
+func (p *StackProcessor) RecordRuntimeFrameCounts(counts *models.RuntimeFrameCounts) {
+	p.collectedFrameCount.Add(counts.Frames)
+	if counts.Unsymbolized != 0 {
+		p.unsymbolizedFrameCount.Add(counts.Unsymbolized)
+	}
 }

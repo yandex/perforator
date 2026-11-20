@@ -38,4 +38,8 @@ enum WellKnownLabel {
     ProcessCommand = 3  [(label_key) = "process_comm"];
     Workload = 4        [(label_key) = "workload"];
     SignalName = 5      [(label_key) = "signal:name"];
+    Cgroup = 6          [(label_key) = "cgroup"];
+    InnermostPidnsThreadId = 7 [(label_key) = "innermost_pidns_tid"];
+    InnermostPidnsProcessId = 8 [(label_key) = "innermost_pidns_pid"];
+    AbsoluteTimestamp = 9 [(label_key) = "absolute_timestamp"];
 }

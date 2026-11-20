@@ -42,18 +42,21 @@ typedef struct {
     uint32_t Line;
 } TPerforatorResolvedSymbol;
 
+// Native addresses require DSO lookup. Runtime locations are used as returned,
+// including results with an empty inline chain.
+enum EPerforatorFrameRepresentation {
+    PerforatorFrameNativeAddress = 0,
+    PerforatorFrameRuntimeLocation = 1,
+};
+
 typedef struct {
     TPerforatorRuntimeString Mapping;
     uint64_t Address;
     size_t SymbolsOffset;
     uint32_t SymbolCount;
+    uint8_t Representation; // EPerforatorFrameRepresentation.
+    uint8_t Language;       // EPerforatorLanguage, or PERFORATOR_LANGUAGE_COUNT for native/JIT.
 } TPerforatorResolvedFrame;
-
-typedef struct {
-    EPerforatorLanguage Language;
-    size_t FrameBegin;
-    size_t FrameCount;
-} TPerforatorResolvedLanguageSection;
 
 enum EPerforatorResolveStatus {
     PerforatorResolveOk = 0,
@@ -65,21 +68,20 @@ typedef struct {
     size_t ArenaBytes;
     size_t FramesOffset;
     size_t FrameCount;
-    size_t NativePrefixSize; // Frames [0, NativePrefixSize) are native.
-    size_t LanguagesOffset;
-    size_t LanguageCount;
+    size_t UserFrameCount; // One native/JIT/JVM location per input native slot, including empty slots.
 } TPerforatorRuntimeResult;
 
 // Inputs are read-only and borrowed for the call. Calls sharing a resolver must be
 // serialized; its cgo handle stays live. Initialize result to zero before calling.
-// On Ok, the caller owns Arena and frees it with free; all offsets are from Arena.
-// Records are aligned for their C types. Native frames follow NativeStack, then
-// interpreter frames follow section/frame order. Languages indexes each input
-// section; native annotations have an empty interpreter range. No Go pointers are stored.
+// On Ok, the caller owns Arena and frees it with free; offsets are from Arena.
+// Records are aligned for their C types. User frames precede unbound language
+// frames in input section order; both ranges are leaf-first. Each frame carries
+// its source language for validation. NativeAddress requires C++ DSO lookup;
+// RuntimeLocation is already resolved. No Go pointers are stored.
 // On Failed, result is zero. Optional errorMessage receives a malloc-allocated
 // error or null; the caller frees it before reuse.
 int PerforatorGoResolveRuntimeFrames(
-    uint64_t resolver,
+    uint64_t handle,
     TPerforatorRuntimeRequestPtr request,
     TPerforatorRuntimeResult* result,
     char** errorMessage

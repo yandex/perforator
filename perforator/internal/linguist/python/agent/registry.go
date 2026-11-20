@@ -9,6 +9,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
+	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -139,6 +140,20 @@ func (r *Registry) invalidateProcessImage(pid linux.CurrentNamespacePID) {
 	r.symbolizer.InvalidatePid(uint32(pid))
 }
 
-func (r *Registry) ResolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame, output runtimewriter.Frame) error {
-	return r.processor.ResolveFrame(process, frame, output)
+type RuntimeFrameCounts struct {
+	models.RuntimeFrameCounts
+	lineInfo [lineInfoOutcomeCount]int64
+}
+
+func (r *Registry) ResolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame, output runtimewriter.Frame, counts *RuntimeFrameCounts) error {
+	counts.Frames++
+	return r.symbolizer.resolveFrame(process, frame, output, counts)
+}
+
+func (r *Registry) RecordRuntimeFrameCounts(counts *RuntimeFrameCounts) {
+	r.processor.collectedFrameCount.Add(counts.Frames)
+	if counts.Unsymbolized != 0 {
+		r.processor.unsymbolizedFrameCount.Add(counts.Unsymbolized)
+	}
+	r.processor.lineInfo.record(&counts.lineInfo)
 }

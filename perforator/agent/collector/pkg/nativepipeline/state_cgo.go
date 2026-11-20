@@ -250,12 +250,9 @@ type stringArena struct {
 	offset int
 }
 
-func newStringArena(a *cArena, size int) *stringArena {
-	return newStringArenaAt(a.bytes(size), size)
-}
-
 // The arena borrows C-allocated memory, which must remain valid while in use.
-func newStringArenaAt(p unsafe.Pointer, size int) *stringArena {
+func newStringArena(a *cArena, size int) *stringArena {
+	p := a.bytes(size)
 	var bytes []byte
 	if size != 0 {
 		if p == nil {
@@ -302,9 +299,9 @@ func processStringBytes(snapshot *ProcessSnapshot) int {
 	return size
 }
 
-// ReplaceProcess replaces one process snapshot. Older lifetimes, stale versions
-// and lifetimes with retained tombstones are ignored with a nil error.
-// An unknown-identity tombstone requires a known start time and a newer version.
+// ReplaceProcess replaces one process snapshot. Updates older than the stored
+// lifetime or version are ignored with a nil error. The caller must serialize
+// publication and removal per PID and stop publishing a lifetime after removal.
 func (s *State) ReplaceProcess(snapshot *ProcessSnapshot) error {
 	if snapshot == nil {
 		return errors.New("process snapshot is nil")
@@ -363,8 +360,7 @@ func (s *State) ReplaceProcess(snapshot *ProcessSnapshot) error {
 
 // RemoveProcess retires this lifetime or an older one using the same version
 // sequence as ReplaceProcess. Stale removals are ignored with a nil error.
-// An unknown start time preserves the last known identity. Tombstones reject
-// late publications while retained (the latest 65536 accepted removals).
+// Removing an absent process has no effect; no removal history is retained.
 func (s *State) RemoveProcess(key linux.ProcessKey, version uint64) error {
 	return s.withHandle(func(handle C.TPerforatorNativeState) C.TPerforatorError {
 		return C.PerforatorNativeStateRemoveProcess(

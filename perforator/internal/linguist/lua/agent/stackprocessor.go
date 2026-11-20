@@ -139,7 +139,8 @@ func (p *StackProcessor) processFrame(
 	loc.Finish()
 }
 
-func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.LuaFrame, output runtimewriter.Frame) error {
+func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.LuaFrame, output runtimewriter.Frame, counts *models.RuntimeFrameCounts) error {
+	counts.Frames++
 	name := "[lua] "
 	filename := ""
 	line := int64(0)
@@ -152,6 +153,7 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 		symbol, exists := p.symbolizer.Symbolize(models.Language(unwinder.LanguageLua), process, &luaFrame)
 
 		if !exists {
+			counts.Unsymbolized++
 			name += fmt.Sprintf("unsymbolized lua function: 0x%x", luaFrame.ObjectAddr)
 		} else {
 			if len(symbol.Name) == 0 {
@@ -204,4 +206,11 @@ func (p *StackProcessor) ResolveFrame(process linux.ProcessKey, frame *unwinder.
 	}
 	output.SetAddress(address)
 	return output.AddInlineFunction(name, filename, int32(line), int32(line))
+}
+
+func (p *StackProcessor) RecordRuntimeFrameCounts(counts *models.RuntimeFrameCounts) {
+	p.collectedFrameCount.Add(counts.Frames)
+	if counts.Unsymbolized != 0 {
+		p.unsymbolizedFrameCount.Add(counts.Unsymbolized)
+	}
 }

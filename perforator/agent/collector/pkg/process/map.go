@@ -31,6 +31,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/mountinfo"
+	"github.com/yandex/perforator/perforator/pkg/linux/pidfd"
 	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
 	"github.com/yandex/perforator/perforator/pkg/linux/vdso"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
@@ -74,6 +75,7 @@ type ProcessRegistry struct {
 	metrics        processRegistryMetrics
 	processScanner ProcessScanner
 	processFilter  ProcessFilter
+	isLiveProcess  func(linux.ProcessKey) bool
 }
 
 type processRegistryMetrics struct {
@@ -261,6 +263,7 @@ func NewProcessRegistry(
 		},
 		processScanner:    processScanner,
 		processFilter:     processFilter,
+		isLiveProcess:     isLiveProcess,
 		listeners:         listeners,
 		metadataPublisher: metadataPublisher,
 	}
@@ -454,9 +457,20 @@ func (r *ProcessRegistry) RunProcessScanner(ctx context.Context) error {
 	}
 }
 
-// DiscoverProcess refreshes liveness and records the kernel identity when known.
-// A zero start time does not replace a known identity. Samples use ObserveProcessSample.
+func isLiveProcess(key linux.ProcessKey) bool {
+	processFD, err := pidfd.OpenForProcess(key)
+	if err != nil {
+		return false
+	}
+	_ = processFD.Close()
+	return true
+}
+
+// DiscoverProcess refreshes liveness. Nonzero start times are checked against the live process.
 func (r *ProcessRegistry) DiscoverProcess(ctx context.Context, key linux.ProcessKey) bool {
+	if key.ProcessStartTime != 0 && !r.isLiveProcess(key) {
+		return false
+	}
 	return r.discoverProcess(ctx, key, nil)
 }
 
@@ -466,8 +480,14 @@ func (r *ProcessRegistry) ObserveProcessSample(ctx context.Context, key linux.Pr
 	r.procsmu.RLock()
 	info := r.procs[key.Pid]
 	r.procsmu.RUnlock()
-	if info == nil || (key.ProcessStartTime != 0 && key.ProcessStartTime < max(info.startTime.Load(), info.observedStartTime.Load())) {
+	if info == nil {
 		return
+	}
+	if key.ProcessStartTime != 0 {
+		known := max(info.startTime.Load(), info.observedStartTime.Load())
+		if key.ProcessStartTime < known || (key.ProcessStartTime > known && !r.isLiveProcess(key)) {
+			return
+		}
 	}
 	updates := info.processRegistration
 	updates.observeStartTime(key.ProcessStartTime)
@@ -697,6 +717,7 @@ type processAnalyzer struct {
 	log              xlog.Logger
 	exemappings      []*dso.Mapping
 	startTime        uint64
+	processFD        *pidfd.FD
 	preparedMappings []*dso.Mapping
 	envs             map[string]string
 }
@@ -722,6 +743,16 @@ func (a *processAnalyzer) run(ctx context.Context) error {
 	if a.proc.retired.Load() {
 		return fmt.Errorf("process %d has already been deleted", a.proc.currentNamespaceID)
 	}
+
+	processFD, err := pidfd.OpenForProcess(linux.ProcessKey{
+		Pid:              a.proc.currentNamespaceID,
+		ProcessStartTime: a.startTime,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to verify process identity before analysis: %w", err)
+	}
+	defer processFD.Close()
+	a.processFD = processFD
 
 	if err := a.loadEnvs(ctx); err != nil {
 		// Processes may overwrite environ; environment errors are non-fatal.
@@ -935,6 +966,11 @@ func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
 
 	if err := a.ensureCurrentIdentity(); err != nil {
 		return err
+	}
+	if a.processFD != nil {
+		if err := a.processFD.CheckAlive(); err != nil {
+			return fmt.Errorf("process exited before metadata publication: %w", err)
+		}
 	}
 	if a.reg.metadataPublisher != nil {
 		// Failed publication or activation must leave the updated mappings

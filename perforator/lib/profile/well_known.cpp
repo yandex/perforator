@@ -1,10 +1,13 @@
 #include "well_known.h"
+
 #include "profile.h"
 
 #include <util/generic/array_ref.h>
 #include <util/generic/hash.h>
 #include <util/generic/string.h>
 #include <util/generic/vector.h>
+
+#include <array>
 
 namespace NPerforator::NProfile {
 
@@ -82,7 +85,8 @@ TConstArrayRef<NProto::NProfile::WellKnownLabel> GetWellKnownLabels() {
             int index = descriptor->value(i)->number();
             Y_ENSURE(
                 index >= 0 && static_cast<size_t>(index) < map.size() && !map[index].empty(),
-                "WellKnownLabel " << descriptor->value(i)->name() << " has no label_key defined");
+                "WellKnownLabel " << descriptor->value(i)->name() << " has no label_key defined"
+            );
             result.push_back(static_cast<NProto::NProfile::WellKnownLabel>(index));
         }
         return result;

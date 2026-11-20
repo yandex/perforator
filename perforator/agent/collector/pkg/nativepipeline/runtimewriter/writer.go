@@ -28,10 +28,10 @@ type Writer struct {
 	inlineIndex int
 }
 
-// New allocates a C arena for the complete frame sequence and language ranges.
-func New(totalFrameCount, nativePrefixSize, languageCount int) (*Writer, error) {
-	if nativePrefixSize < 0 || nativePrefixSize > totalFrameCount {
-		return nil, fmt.Errorf("invalid native frame count")
+// New reserves capacity for one user location per native slot and unbound languages.
+func New(totalFrameCount, userFrameCount int) (*Writer, error) {
+	if userFrameCount < 0 || userFrameCount > totalFrameCount {
+		return nil, fmt.Errorf("invalid user frame count")
 	}
 	writer := &Writer{}
 	frames, err := writer.reserveRecords(totalFrameCount, C.sizeof_TPerforatorResolvedFrame, int(unsafe.Alignof(C.TPerforatorResolvedFrame{})))
@@ -39,30 +39,10 @@ func New(totalFrameCount, nativePrefixSize, languageCount int) (*Writer, error) 
 		writer.Close()
 		return nil, err
 	}
-	languages, err := writer.reserveRecords(languageCount, C.sizeof_TPerforatorResolvedLanguageSection, int(unsafe.Alignof(C.TPerforatorResolvedLanguageSection{})))
-	if err != nil {
-		writer.Close()
-		return nil, err
-	}
 	writer.result.FramesOffset = C.size_t(frames)
 	writer.result.FrameCount = C.size_t(totalFrameCount)
-	writer.result.NativePrefixSize = C.size_t(nativePrefixSize)
-	writer.result.LanguagesOffset = C.size_t(languages)
-	writer.result.LanguageCount = C.size_t(languageCount)
+	writer.result.UserFrameCount = C.size_t(userFrameCount)
 	return writer, nil
-}
-
-// firstFrameIndex is absolute in the output frame array, including the native
-// prefix. Native annotations have empty ranges.
-func (a *Writer) SetLanguageRange(sectionIndex int, language uint8, firstFrameIndex, frameCount int) error {
-	if sectionIndex < 0 || sectionIndex >= int(a.result.LanguageCount) || language >= C.PERFORATOR_LANGUAGE_COUNT ||
-		firstFrameIndex < 0 || firstFrameIndex > int(a.result.FrameCount) || frameCount < 0 || frameCount > int(a.result.FrameCount)-firstFrameIndex {
-		return fmt.Errorf("invalid runtime language range")
-	}
-	*a.language(sectionIndex) = C.TPerforatorResolvedLanguageSection{
-		Language: C.EPerforatorLanguage(language), FrameBegin: C.size_t(firstFrameIndex), FrameCount: C.size_t(frameCount),
-	}
-	return nil
 }
 
 func (a *Writer) Close() {
@@ -128,14 +108,24 @@ func (a *Writer) frame(index int) *C.TPerforatorResolvedFrame {
 	return (*C.TPerforatorResolvedFrame)(unsafe.Add(unsafe.Pointer(a.result.Arena), int(a.result.FramesOffset)+index*C.sizeof_TPerforatorResolvedFrame))
 }
 
-func (a *Writer) language(index int) *C.TPerforatorResolvedLanguageSection {
-	return (*C.TPerforatorResolvedLanguageSection)(unsafe.Add(unsafe.Pointer(a.result.Arena), int(a.result.LanguagesOffset)+index*C.sizeof_TPerforatorResolvedLanguageSection))
-}
-
-// AddFrame appends frames in native-stack order, then in section/frame order.
+// AddFrame appends a runtime location (JIT or language), including empty chains.
+// User frames follow native-stack order, then unbound languages follow section order.
 // inlineDepth reserves the contiguous inline chain without a temporary slice.
 // Complete its functions before adding another frame; empty chains are allowed.
 func (a *Writer) AddFrame(address uint64, inlineDepth int) (Frame, error) {
+	return a.addFrame(address, inlineDepth, C.PerforatorFrameRuntimeLocation)
+}
+
+// AddNativeAddress appends an original native IP requiring DSO lookup in C++.
+func (a *Writer) AddNativeAddress(address uint64) error {
+	if a.nextFrame >= int(a.result.UserFrameCount) {
+		return fmt.Errorf("native address outside the native stack")
+	}
+	_, err := a.addFrame(address, 0, C.PerforatorFrameNativeAddress)
+	return err
+}
+
+func (a *Writer) addFrame(address uint64, inlineDepth int, representation C.uint8_t) (Frame, error) {
 	if a.nextFrame >= int(a.result.FrameCount) || inlineDepth < 0 || uint64(inlineDepth) > uint64(^uint32(0)) {
 		return Frame{}, fmt.Errorf("invalid runtime frame count or inline depth")
 	}
@@ -149,10 +139,21 @@ func (a *Writer) AddFrame(address uint64, inlineDepth int) (Frame, error) {
 	frameIndex := a.nextFrame
 	*a.frame(frameIndex) = C.TPerforatorResolvedFrame{
 		Address: C.uint64_t(address), SymbolsOffset: C.size_t(symbols), SymbolCount: C.uint32_t(inlineDepth),
+		Representation: representation, Language: C.PERFORATOR_LANGUAGE_COUNT,
 	}
 	a.nextFrame++
 	a.inlineIndex = 0
 	return Frame{arena: a, frameIndex: frameIndex}, nil
+}
+
+// IsRuntimeLocation reports whether a completed user slot was resolved by a runtime.
+func (a *Writer) IsRuntimeLocation(index int) bool {
+	return index >= 0 && index < a.nextFrame && index < int(a.result.UserFrameCount) &&
+		a.frame(index).Representation == C.PerforatorFrameRuntimeLocation
+}
+
+func (w Frame) SetLanguage(language uint8) {
+	w.arena.frame(w.frameIndex).Language = C.uint8_t(language)
 }
 
 func (w Frame) SetMappingName(name string) error {
@@ -207,12 +208,19 @@ func (a *Writer) finishFrame() error {
 // Finish validates the result and transfers arena ownership on success. The
 // caller frees it with free. On error, the Writer retains ownership for Close.
 func (a *Writer) Finish() (C.TPerforatorRuntimeResult, error) {
-	if a.nextFrame != int(a.result.FrameCount) {
-		return C.TPerforatorRuntimeResult{}, fmt.Errorf("runtime returned an invalid frame count")
+	if a.nextFrame < int(a.result.UserFrameCount) {
+		return C.TPerforatorRuntimeResult{}, fmt.Errorf("runtime returned an incomplete user stack")
+	}
+	for i := 0; i < a.nextFrame; i++ {
+		frame := a.frame(i)
+		if frame.Language > C.PERFORATOR_LANGUAGE_COUNT || (i >= int(a.result.UserFrameCount) && frame.Language == C.PERFORATOR_LANGUAGE_COUNT) {
+			return C.TPerforatorRuntimeResult{}, fmt.Errorf("invalid runtime frame language")
+		}
 	}
 	if err := a.finishFrame(); err != nil {
 		return C.TPerforatorRuntimeResult{}, err
 	}
+	a.result.FrameCount = C.size_t(a.nextFrame)
 	result := a.result
 	a.result = C.TPerforatorRuntimeResult{}
 	return result, nil

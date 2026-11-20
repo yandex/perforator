@@ -8,7 +8,10 @@ import (
 	"context"
 	"fmt"
 	"runtime/cgo"
+	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/nativepipeline/runtimewriter"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -21,23 +24,25 @@ const (
 	LanguagePHP    Language = C.PERFORATOR_LANGUAGE_PHP
 	LanguageJVM    Language = C.PERFORATOR_LANGUAGE_JVM
 	LanguageLua    Language = C.PERFORATOR_LANGUAGE_LUA
+	LanguageNone   Language = C.PERFORATOR_LANGUAGE_COUNT
 	LanguageCount           = int(C.PERFORATOR_LANGUAGE_COUNT)
 )
 
 // runtimeCallbacks belongs to one serialized native consumer. Its owner keeps
-// the cgo handle live until all callbacks finish. The context applies to the batch.
+// the cgo handle live until all callbacks finish. The context belongs to the worker.
 type runtimeCallbacks struct {
 	ctx      context.Context
 	resolver RuntimeResolver
 }
 
-func processKeyFromC(pid C.uint32_t, startTime C.uint64_t) linux.ProcessKey {
-	return linux.ProcessKey{Pid: linux.CurrentNamespacePID(pid), ProcessStartTime: uint64(startTime)}
+//export PerforatorGoSignalName
+func PerforatorGoSignalName(signal C.int32_t) *C.char {
+	return C.CString(unix.SignalName(syscall.Signal(signal)))
 }
 
 //export PerforatorGoResolveRuntimeFrames
 func PerforatorGoResolveRuntimeFrames(
-	resolverID C.uint64_t,
+	handle C.uint64_t,
 	request C.TPerforatorRuntimeRequestPtr,
 	output *C.TPerforatorRuntimeResult,
 	errorMessage **C.char,
@@ -66,7 +71,10 @@ func PerforatorGoResolveRuntimeFrames(
 		return fail(fmt.Errorf("missing language sections"))
 	}
 	input := RuntimeRequest{
-		Key:         processKeyFromC(request.Key.Pid, request.Key.StartTime),
+		Key: linux.ProcessKey{
+			Pid:              linux.CurrentNamespacePID(request.Key.Pid),
+			ProcessStartTime: uint64(request.Key.StartTime),
+		},
 		NativeStack: unsafe.Slice((*uint64)(unsafe.Pointer(request.NativeStack)), int(request.NativeStackSize)),
 		Languages:   make([]LanguageSection, int(request.LanguagesSize)),
 	}
@@ -84,7 +92,7 @@ func PerforatorGoResolveRuntimeFrames(
 		return fail(err)
 	}
 	defer writer.Close()
-	callbacks := cgo.Handle(resolverID).Value().(*runtimeCallbacks)
+	callbacks := cgo.Handle(handle).Value().(*runtimeCallbacks)
 	if err := callbacks.resolver.ResolveRuntimeFrames(callbacks.ctx, input, writer); err != nil {
 		return fail(err)
 	}
@@ -104,29 +112,11 @@ func newRuntimeWriter(request RuntimeRequest) (*runtimewriter.Writer, error) {
 			return nil, fmt.Errorf("unknown or duplicate language %d", section.Language)
 		}
 		seen[section.Language] = true
-		if section.Language != LanguageJVM {
-			count := len(section.Data) / int(section.FrameSize)
-			if count > int(^uint(0)>>1)-totalFrameCount {
-				return nil, fmt.Errorf("runtime frame count overflow")
-			}
-			totalFrameCount += count
+		count := len(section.Data) / int(section.FrameSize)
+		if count > int(^uint(0)>>1)-totalFrameCount {
+			return nil, fmt.Errorf("runtime frame count overflow")
 		}
+		totalFrameCount += count
 	}
-	writer, err := runtimewriter.New(totalFrameCount, len(request.NativeStack), len(request.Languages))
-	if err != nil {
-		return nil, err
-	}
-	firstFrameIndex := len(request.NativeStack)
-	for i, section := range request.Languages {
-		count := 0
-		if section.Language != LanguageJVM {
-			count = len(section.Data) / int(section.FrameSize)
-		}
-		if err := writer.SetLanguageRange(i, uint8(section.Language), firstFrameIndex, count); err != nil {
-			writer.Close()
-			return nil, err
-		}
-		firstFrameIndex += count
-	}
-	return writer, nil
+	return runtimewriter.New(totalFrameCount, len(request.NativeStack))
 }

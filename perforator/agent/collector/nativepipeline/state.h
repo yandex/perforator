@@ -45,8 +45,9 @@ typedef struct {
 } TPerforatorProcessKey;
 
 // Process state is replaced as one immutable unit. Version must grow for every
-// discovery/rescan of the same process identity. Stale updates are ignored;
-// replacing an unknown-identity tombstone requires a known StartTime and a newer Version.
+// discovery/rescan of the same process identity. Updates older than the stored
+// state are ignored. The caller must serialize publication and removal per PID
+// and stop publishing a process lifetime after removing it.
 typedef struct {
     TPerforatorProcessKey Key;
     uint64_t Version;
@@ -159,11 +160,8 @@ typedef struct {
 // Inputs are needed only until the call returns. Invalid or stale updates leave
 // published data unchanged.
 //
-// TSampleStateSnapshot holds shared references to immutable C++ snapshots.
+// TStateSnapshot retains immutable C++ state components.
 // Readers keep old snapshots alive across updates, even after store disposal.
-//
-// ProcessTombstones_ records removed processes to reject late snapshots.
-// The store owns these records; ProcessTombstoneOrder_ limits their retention.
 TPerforatorError PerforatorNativeStateCreate(TPerforatorNativeState* result);
 
 void PerforatorNativeStateDispose(TPerforatorNativeState state);
@@ -174,10 +172,8 @@ TPerforatorError PerforatorNativeStateReplaceProcess(
 );
 
 // Removes this lifetime or an older one. For the same or unknown identity,
-// Version must exceed the current publication or removal version. Older deaths
-// are ignored. An unknown start time preserves the last known process identity.
-// Tombstones reject late publications of retired lifetimes while retained;
-// retention is bounded to the latest 65536 accepted removal records.
+// Version must exceed the current publication version. Older deaths are ignored.
+// Removing an absent process has no effect; no removal history is retained.
 TPerforatorError PerforatorNativeStateRemoveProcess(
     TPerforatorNativeState state,
     TPerforatorProcessKey key,

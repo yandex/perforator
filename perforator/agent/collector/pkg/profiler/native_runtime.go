@@ -33,6 +33,12 @@ type nativeRuntimeResolver struct {
 	disableJVMMethods bool
 }
 
+type interpreterFrameCounts struct {
+	python python.RuntimeFrameCounts
+	php    models.RuntimeFrameCounts
+	lua    models.RuntimeFrameCounts
+}
+
 var _ nativepipeline.RuntimeResolver = (*nativeRuntimeResolver)(nil)
 
 func (r *nativeRuntimeResolver) ResolveRuntimeFrames(
@@ -40,44 +46,99 @@ func (r *nativeRuntimeResolver) ResolveRuntimeFrames(
 	request nativepipeline.RuntimeRequest,
 	writer *runtimewriter.Writer,
 ) error {
-	var annotations *nativepipeline.LanguageSection
-	for i := range request.Languages {
-		if request.Languages[i].Language == nativepipeline.LanguageJVM {
-			annotations = &request.Languages[i]
-			break
+	var jvmFrames []unwinder.JvmFrame
+	for _, section := range request.Languages {
+		if section.Language == nativepipeline.LanguageJVM {
+			var err error
+			jvmFrames, err = viewRuntimeFrames[unwinder.JvmFrame](section)
+			if err != nil {
+				return fmt.Errorf("decode JVM annotations: %w", err)
+			}
 		}
 	}
-	if err := r.resolveNativeFrames(ctx, request, annotations, writer); err != nil {
+	mergeJVM := validJVMIndices(jvmFrames, len(request.NativeStack))
+	userJVMFrames := jvmFrames
+	if !mergeJVM {
+		userJVMFrames = nil
+	}
+	if err := r.resolveUserFrames(ctx, request, writer, userJVMFrames); err != nil {
 		return err
 	}
+	var counts interpreterFrameCounts
 	for _, section := range request.Languages {
-		if section.Language != nativepipeline.LanguageJVM {
-			if err := r.resolveInterpreterSection(request.Key, section, writer); err != nil {
-				return err
+		if section.Language == nativepipeline.LanguageJVM {
+			if !mergeJVM {
+				if err := r.resolveUnboundJVMFrames(ctx, request, writer, jvmFrames); err != nil {
+					return err
+				}
 			}
+		} else if err := r.resolveInterpreterSection(request.Key, section, writer, &counts); err != nil {
+			return err
+		}
+	}
+	if counts.python.Frames != 0 {
+		r.python.RecordRuntimeFrameCounts(&counts.python)
+	}
+	if counts.php.Frames != 0 {
+		r.php.RecordRuntimeFrameCounts(&counts.php)
+	}
+	if counts.lua.Frames != 0 {
+		r.lua.RecordRuntimeFrameCounts(&counts.lua)
+	}
+	return nil
+}
+
+func validJVMIndices(frames []unwinder.JvmFrame, nativeCount int) bool {
+	for i, frame := range frames {
+		if uint64(frame.Index) >= uint64(nativeCount) || (i != 0 && frame.Index <= frames[i-1].Index) {
+			return false
+		}
+	}
+	return true
+}
+
+// Invalid annotations keep both stacks. Runtime-resolved native slots still win.
+func (r *nativeRuntimeResolver) resolveUnboundJVMFrames(ctx context.Context, request nativepipeline.RuntimeRequest, writer *runtimewriter.Writer, frames []unwinder.JvmFrame) error {
+	for _, frame := range frames {
+		address := uint64(0)
+		if uint64(frame.Index) < uint64(len(request.NativeStack)) {
+			index := int(frame.Index)
+			address = request.NativeStack[index]
+			if address == 0 || writer.IsRuntimeLocation(index) {
+				continue
+			}
+		}
+		if err := r.resolveJVMFrame(ctx, request.Key, address, frame.MethodAddr, writer); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (r *nativeRuntimeResolver) resolveInterpreterSection(key linux.ProcessKey, section nativepipeline.LanguageSection, writer *runtimewriter.Writer) error {
+func (r *nativeRuntimeResolver) resolveInterpreterSection(key linux.ProcessKey, section nativepipeline.LanguageSection, writer *runtimewriter.Writer, counts *interpreterFrameCounts) error {
 	var err error
 	switch section.Language {
 	case nativepipeline.LanguagePython:
 		if r.python == nil {
 			return fmt.Errorf("interpreter resolver is unavailable")
 		}
-		err = resolveInterpreterSection(r.python.ResolveFrame, key, section, writer)
+		err = resolveInterpreterSection(section, writer, func(frame *unwinder.PythonFrame, output runtimewriter.Frame) error {
+			return r.python.ResolveFrame(key, frame, output, &counts.python)
+		})
 	case nativepipeline.LanguagePHP:
 		if r.php == nil {
 			return fmt.Errorf("interpreter resolver is unavailable")
 		}
-		err = resolveInterpreterSection(r.php.ResolveFrame, key, section, writer)
+		err = resolveInterpreterSection(section, writer, func(frame *unwinder.PhpFrame, output runtimewriter.Frame) error {
+			return r.php.ResolveFrame(key, frame, output, &counts.php)
+		})
 	case nativepipeline.LanguageLua:
 		if r.lua == nil {
 			return fmt.Errorf("interpreter resolver is unavailable")
 		}
-		err = resolveInterpreterSection(r.lua.ResolveFrame, key, section, writer)
+		err = resolveInterpreterSection(section, writer, func(frame *unwinder.LuaFrame, output runtimewriter.Frame) error {
+			return r.lua.ResolveFrame(key, frame, output, &counts.lua)
+		})
 	default:
 		return fmt.Errorf("unsupported interpreter language %d", section.Language)
 	}
@@ -87,49 +148,31 @@ func (r *nativeRuntimeResolver) resolveInterpreterSection(key linux.ProcessKey, 
 	return nil
 }
 
-func (r *nativeRuntimeResolver) resolveNativeFrames(ctx context.Context, request nativepipeline.RuntimeRequest, annotations *nativepipeline.LanguageSection, writer *runtimewriter.Writer) error {
-	var frames []unwinder.JvmFrame
-	if annotations != nil {
-		var err error
-		frames, err = viewRuntimeFrames[unwinder.JvmFrame](*annotations)
-		if err != nil {
-			return fmt.Errorf("decode JVM annotations: %w", err)
-		}
-		previous := -1
-		for _, frame := range frames {
-			index := int(frame.Index)
-			if index <= previous || index >= len(request.NativeStack) {
-				return fmt.Errorf("invalid JVM native stack index %d", index)
-			}
-			previous = index
-		}
-	}
-	next := 0
+func (r *nativeRuntimeResolver) resolveUserFrames(ctx context.Context, request nativepipeline.RuntimeRequest, writer *runtimewriter.Writer, jvmFrames []unwinder.JvmFrame) error {
+	nextJVM := 0
 	for index, address := range request.NativeStack {
-		var frame *unwinder.JvmFrame
-		if next < len(frames) && int(frames[next].Index) == index {
-			frame = &frames[next]
-			next++
+		var jvmFrame *unwinder.JvmFrame
+		if nextJVM < len(jvmFrames) && uint64(jvmFrames[nextJVM].Index) == uint64(index) {
+			jvmFrame = &jvmFrames[nextJVM]
+			nextJVM++
 		}
-		matched := false
 		if address != 0 {
-			var err error
-			isLeaf := index == 0
-			matched, err = r.tryAppendJITFrame(request.Key, address, isLeaf, writer)
+			matched, err := r.tryAppendJITFrame(request.Key, address, index == 0, writer)
 			if err != nil {
 				return err
 			}
-			if !matched && frame != nil {
-				if err := r.resolveJVMFrame(ctx, request.Key, address, frame.MethodAddr, writer); err != nil {
+			if matched {
+				continue
+			}
+			if jvmFrame != nil {
+				if err := r.resolveJVMFrame(ctx, request.Key, address, jvmFrame.MethodAddr, writer); err != nil {
 					return err
 				}
-				matched = true
+				continue
 			}
 		}
-		if !matched {
-			if _, err := writer.AddFrame(address, 0); err != nil {
-				return err
-			}
+		if err := writer.AddNativeAddress(address); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -154,10 +197,15 @@ func (r *nativeRuntimeResolver) tryAppendJITFrame(key linux.ProcessKey, address 
 		if err := frame.SetMappingName(resolved.MappingName); err != nil {
 			return true, err
 		}
+		fullySymbolized := len(resolved.Symbols) != 0
 		for _, symbol := range resolved.Symbols {
+			fullySymbolized = fullySymbolized && symbol.Name != "" && symbol.Name != models.UnsymbolizedInterpreterLocation
 			if err := frame.AddInlineFunction(symbol.Name, "", 0, 0); err != nil {
 				return true, err
 			}
+		}
+		if fullySymbolized {
+			frame.SetAddress(0)
 		}
 		return true, nil
 	}
@@ -180,13 +228,21 @@ func (r *nativeRuntimeResolver) resolveJVMFrame(ctx context.Context, key linux.P
 	if err != nil {
 		return err
 	}
+	frame.SetLanguage(uint8(nativepipeline.LanguageJVM))
 	if err := frame.SetMappingName("[jvm]"); err != nil {
 		return err
+	}
+	if name != models.UnsymbolizedInterpreterLocation {
+		frame.SetAddress(0)
 	}
 	return frame.AddInlineFunction(name, "", 0, 0)
 }
 
-func resolveInterpreterSection[T runtimeFrame](resolve func(linux.ProcessKey, *T, runtimewriter.Frame) error, key linux.ProcessKey, section nativepipeline.LanguageSection, writer *runtimewriter.Writer) error {
+func resolveInterpreterSection[T runtimeFrame](
+	section nativepipeline.LanguageSection,
+	writer *runtimewriter.Writer,
+	resolve func(*T, runtimewriter.Frame) error,
+) error {
 	frames, err := viewRuntimeFrames[T](section)
 	if err != nil {
 		return err
@@ -196,7 +252,8 @@ func resolveInterpreterSection[T runtimeFrame](resolve func(linux.ProcessKey, *T
 		if err != nil {
 			return err
 		}
-		if err := resolve(key, &frames[i], output); err != nil {
+		output.SetLanguage(uint8(section.Language))
+		if err := resolve(&frames[i], output); err != nil {
 			return err
 		}
 	}

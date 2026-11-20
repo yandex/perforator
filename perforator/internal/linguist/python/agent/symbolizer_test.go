@@ -107,7 +107,7 @@ func newTestSymbolizer(
 	cache, err := linetable.NewCache(linetable.Config{})
 	require.NoError(t, err)
 	t.Cleanup(cache.Stop)
-	return newSymbolizer(symbols, offsets, reader, cache)
+	return &Symbolizer{symbols: symbols, offsets: offsets, reader: reader, cache: cache}
 }
 
 func TestResolveLine_OK(t *testing.T) {
@@ -278,7 +278,7 @@ func TestSymbolizeFrame_SymbolAndLine(t *testing.T) {
 	sym := newTestSymbolizer(t, source, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
 	instrPtr := uint64(0x1000) + 0x80 + 2
-	got, line, ok := sym.SymbolizeFrame(linux.ProcessKey{Pid: 42}, testFrame(0x1000, 10, instrPtr, 0x2000))
+	got, line, ok, _ := sym.symbolizeFrame(linux.ProcessKey{Pid: 42}, testFrame(0x1000, 10, instrPtr, 0x2000))
 	require.True(t, ok)
 	require.Equal(t, "foo", got.Name)
 	require.Equal(t, "busyloop.py", got.FileName)
@@ -290,7 +290,7 @@ func TestSymbolizeFrame_Unsymbolized(t *testing.T) {
 	reader := &stubLinetableReader{table: testLocationTable()}
 	sym := newTestSymbolizer(t, &stubSymbolSource{symbols: map[unwinder.SymbolKey]*symbolizer.Symbol{}}, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
-	got, line, ok := sym.SymbolizeFrame(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1082, 0x2000))
+	got, line, ok, _ := sym.symbolizeFrame(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1082, 0x2000))
 	require.False(t, ok)
 	require.Nil(t, got)
 	require.Equal(t, int32(0), line)
@@ -305,9 +305,9 @@ func TestSymbolizeFrame_LineResolutionDisabled(t *testing.T) {
 		},
 	}
 	// offsets == nil disables line resolution (feature flag off).
-	sym := newSymbolizer(source, nil, nil, nil)
+	sym := &Symbolizer{symbols: source}
 
-	got, line, ok := sym.SymbolizeFrame(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1082, 0x2000))
+	got, line, ok, _ := sym.symbolizeFrame(linux.ProcessKey{Pid: 1}, testFrame(0x1000, 10, 0x1082, 0x2000))
 	require.True(t, ok)
 	require.Equal(t, "foo", got.Name)
 	require.Equal(t, int32(0), line)
@@ -323,7 +323,7 @@ func TestSymbolizeFrame_TrampolineSkipsLine(t *testing.T) {
 	reader := &stubLinetableReader{table: testLocationTable()}
 	sym := newTestSymbolizer(t, source, &stubOffsetsLookup{offsets: testOffsets(), ok: true}, reader)
 
-	got, line, ok := sym.SymbolizeFrame(linux.ProcessKey{Pid: 1}, testFrame(0x1000, -1, 0x1082, 0x2000))
+	got, line, ok, _ := sym.symbolizeFrame(linux.ProcessKey{Pid: 1}, testFrame(0x1000, -1, 0x1082, 0x2000))
 	require.True(t, ok)
 	require.Equal(t, "trampoline", got.Name)
 	require.Equal(t, int32(0), line)

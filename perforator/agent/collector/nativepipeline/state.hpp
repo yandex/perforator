@@ -8,10 +8,8 @@
 #include <util/generic/vector.h>
 #include <util/system/types.h>
 
-#include <deque>
 #include <memory>
 #include <shared_mutex>
-#include <utility>
 
 namespace NPerforator::NAgent::NNativePipeline {
 
@@ -31,20 +29,11 @@ struct TStringLabel {
     TString Value;
 };
 
-struct TEnvironmentLabel {
-    TString Key;
-    TString Value;
-    TString MetaValue;
-};
-
 struct TProcessState {
     ui64 StartTime = 0;
     ui64 Version = 0;
-    // Stable across equivalent rescans; changes when executable mappings
-    // change, so runtime symbol caches do not retain a previous image.
-    ui64 ImageId = 0;
     TVector<TMapping> Mappings;
-    TVector<TEnvironmentLabel> Environment;
+    TVector<TStringLabel> Environment;
     THashMap<ui64, TString> TLSLabelKeys;
 
     const TMapping* ResolveMapping(ui64 address) const noexcept;
@@ -96,12 +85,15 @@ const TVector<TUprobeOutput>* FindUprobes(
     ui64 offset
 );
 
-struct TTarget {
-    ui64 Id = 0;
-    ui64 Key = 0;
-    bool EnableSampleTime = false;
+struct TProfileOptions {
+    bool EnableAbsoluteTimestampLabel = false;
     bool EnableInnermostPidns = false;
     TVector<TStringLabel> Labels;
+};
+
+struct TProfilingTarget {
+    ui64 Id = 0;
+    TProfileOptions ProfileOptions;
     i64 CreatedTimestampNanos = 0;
     i64 StartTimestampNanos = 0;
     i64 EndTimestampNanos = 0;
@@ -111,18 +103,21 @@ struct TTarget {
     bool Pending = false;
 };
 
-struct TTargetState {
+struct TProfilingTargetState {
     ui64 Version = 0;
-    std::shared_ptr<const TTarget> WholeSystem;
-    THashMap<ui32, std::shared_ptr<const TTarget>> Processes;
-    THashMap<ui64, std::shared_ptr<const TTarget>> Cgroups;
-    TVector<std::shared_ptr<const TTarget>> GlobalCustom;
-    THashMap<ui32, TVector<std::shared_ptr<const TTarget>>> CustomByProcess;
+    // Secondary indexes borrow targets owned by ById.
+    const TProfilingTarget* WholeSystem = nullptr;
+    THashMap<ui32, const TProfilingTarget*> Processes;
+    THashMap<ui64, const TProfilingTarget*> Cgroups;
+    TVector<const TProfilingTarget*> GlobalCustom;
+    THashMap<ui32, TVector<const TProfilingTarget*>> CustomByProcess;
     THashMap<ui64, TPerfEventInfo> CustomPerfEvents;
     TUprobeBuildIdIndex BaseUprobes;
-    THashMap<ui64, std::shared_ptr<const TTarget>> ById;
+    THashMap<ui64, std::shared_ptr<const TProfilingTarget>> ById;
 
-    std::shared_ptr<const TTarget> Find(ui32 pid, ui32 tid, ui64 parentCgroup) const noexcept;
+    // Find borrows for this snapshot's lifetime; Get retains a selected target.
+    const TProfilingTarget* Find(ui32 pid, ui32 tid, ui64 parentCgroup) const noexcept;
+    std::shared_ptr<const TProfilingTarget> Get(ui64 targetId) const noexcept;
     bool Contains(ui64 targetId) const noexcept;
     bool IsPending(ui64 targetId) const noexcept;
 };
@@ -132,12 +127,21 @@ struct TPerfEventState {
     THashMap<ui64, TPerfEventInfo> Events;
 };
 
-struct TSampleStateSnapshot {
-    std::shared_ptr<const TProcessState> Process;
+using TProcessStates = THashMap<ui32, std::shared_ptr<const TProcessState>>;
+
+struct TGlobalProfilingState {
     std::shared_ptr<const TCgroupState> Cgroups;
-    std::shared_ptr<const TTargetState> Targets;
+    std::shared_ptr<const TProfilingTargetState> Targets;
     std::shared_ptr<const TPerfEventState> PerfEvents;
     std::shared_ptr<const TKernelSymbolState> KernelSymbols;
+};
+
+struct TStateSnapshot {
+    std::shared_ptr<const TProcessStates> Processes;
+    TGlobalProfilingState Global;
+
+    // Unknown identities match provisionally; a known mismatch has no process.
+    std::shared_ptr<const TProcessState> FindProcess(TPerforatorProcessKey key) const;
 };
 
 class TStateStore {
@@ -150,25 +154,18 @@ public:
     void ReplacePerfEvents(const TPerforatorPerfEventSnapshot& snapshot);
 
     // Captured immutable objects may outlive subsequent publications and the store.
-    // Unknown process identities match provisionally; a known mismatch has no Process.
-    TSampleStateSnapshot CaptureSampleState(TPerforatorProcessKey key) const;
-    std::shared_ptr<const TTargetState> GetTargets() const;
-
-private:
-    struct TProcessTombstone {
-        ui64 StartTime = 0;
-        ui64 Version = 0;
-    };
+    TStateSnapshot Snapshot() const;
+    std::shared_ptr<const TProfilingTargetState> GetTargets() const;
 
 private:
     mutable std::shared_mutex Mutex_;
-    THashMap<ui32, std::shared_ptr<const TProcessState>> Processes_;
-    THashMap<ui32, TProcessTombstone> ProcessTombstones_;
-    std::deque<std::pair<ui32, TProcessTombstone>> ProcessTombstoneOrder_;
-    std::shared_ptr<const TCgroupState> Cgroups_ = std::make_shared<TCgroupState>();
-    std::shared_ptr<const TTargetState> Targets_ = std::make_shared<TTargetState>();
-    std::shared_ptr<const TPerfEventState> PerfEvents_ = std::make_shared<TPerfEventState>();
-    std::shared_ptr<const TKernelSymbolState> KernelSymbols_ = std::make_shared<TKernelSymbolState>();
+    std::shared_ptr<TProcessStates> Processes_ = std::make_shared<TProcessStates>();
+    TGlobalProfilingState Global_{
+        .Cgroups = std::make_shared<TCgroupState>(),
+        .Targets = std::make_shared<TProfilingTargetState>(),
+        .PerfEvents = std::make_shared<TPerfEventState>(),
+        .KernelSymbols = std::make_shared<TKernelSymbolState>(),
+    };
 };
 
 TStateStore* UnwrapState(TPerforatorNativeState state);

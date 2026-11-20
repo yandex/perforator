@@ -3,6 +3,7 @@
 #include <util/generic/scope.h>
 #include <util/generic/yexception.h>
 
+#include <array>
 #include <cstdlib>
 #include <utility>
 
@@ -62,8 +63,8 @@ TRuntimeFrameBatch& TRuntimeFrameBatch::operator=(TRuntimeFrameBatch&& other) no
     return *this;
 }
 
-TGoRuntimeResolver::TGoRuntimeResolver(ui64 resolverId)
-    : ResolverId_{resolverId}
+TGoRuntimeResolver::TGoRuntimeResolver(ui64 handle)
+    : Handle_{handle}
 {
 }
 
@@ -81,24 +82,36 @@ TRuntimeFrameBatch TGoRuntimeResolver::ResolveRuntimeFrames(
     Y_DEFER {
         std::free(errorMessage);
     };
-    const int status = PerforatorGoResolveRuntimeFrames(ResolverId_, &request, &batch.Data, &errorMessage);
+    const int status = PerforatorGoResolveRuntimeFrames(Handle_, &request, &batch.Data, &errorMessage);
     Y_ENSURE(status == PerforatorResolveOk,
              "Go runtime resolver failed: " << (errorMessage ? errorMessage : "unspecified failure"));
     const auto& data = batch.Data;
-    Y_ENSURE(data.Arena && data.NativePrefixSize == request.NativeStackSize &&
-                 data.FrameCount >= data.NativePrefixSize && data.LanguageCount == request.LanguagesSize,
+    Y_ENSURE(data.Arena && data.UserFrameCount == request.NativeStackSize && data.FrameCount >= data.UserFrameCount,
              "runtime resolver returned invalid result sizes");
     ValidateArenaRange(data, data.FramesOffset, data.FrameCount, sizeof(TPerforatorResolvedFrame), alignof(TPerforatorResolvedFrame));
-    ValidateArenaRange(data, data.LanguagesOffset, data.LanguageCount, sizeof(TPerforatorResolvedLanguageSection), alignof(TPerforatorResolvedLanguageSection));
-    for (size_t i = 0; i < data.LanguageCount; ++i) {
-        const auto& section = batch.Language(i);
-        Y_ENSURE(section.Language == request.Languages[i].Language && section.FrameBegin <= data.FrameCount &&
-                     section.FrameCount <= data.FrameCount - section.FrameBegin,
-                 "runtime resolver returned an invalid language range");
+    std::array<size_t, PERFORATOR_LANGUAGE_COUNT> remainingLanguageFrames{};
+    for (size_t i = 0; i < request.LanguagesSize; ++i) {
+        const auto& section = request.Languages[i];
+        Y_ENSURE(static_cast<size_t>(section.Language) < PERFORATOR_LANGUAGE_COUNT && section.FrameSize && section.Size % section.FrameSize == 0,
+                 "invalid input language section");
+        remainingLanguageFrames[section.Language] = section.Size / section.FrameSize;
     }
     const auto* frames = reinterpret_cast<const TPerforatorResolvedFrame*>(data.Arena + data.FramesOffset);
     for (size_t i = 0; i < data.FrameCount; ++i) {
         const auto& frame = frames[i];
+        Y_ENSURE(frame.Representation <= PerforatorFrameRuntimeLocation, "invalid runtime frame representation");
+        Y_ENSURE(frame.Language <= PERFORATOR_LANGUAGE_COUNT, "invalid runtime frame language");
+        if (frame.Language != PERFORATOR_LANGUAGE_COUNT) {
+            Y_ENSURE(remainingLanguageFrames[frame.Language] != 0, "runtime frame exceeds its input language section");
+            --remainingLanguageFrames[frame.Language];
+        } else {
+            Y_ENSURE(i < data.UserFrameCount, "unbound runtime frame has no source language");
+        }
+        if (frame.Representation == PerforatorFrameNativeAddress) {
+            Y_ENSURE(i < data.UserFrameCount && frame.Language == PERFORATOR_LANGUAGE_COUNT &&
+                         frame.Address == request.NativeStack[i] && frame.Mapping.Size == 0 && frame.SymbolCount == 0,
+                     "invalid native address frame");
+        }
         ValidateArenaString(data, frame.Mapping);
         ValidateArenaRange(data, frame.SymbolsOffset, frame.SymbolCount, sizeof(TPerforatorResolvedSymbol), alignof(TPerforatorResolvedSymbol));
         const auto* symbols = reinterpret_cast<const TPerforatorResolvedSymbol*>(data.Arena + frame.SymbolsOffset);

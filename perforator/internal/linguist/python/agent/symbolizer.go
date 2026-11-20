@@ -68,30 +68,12 @@ func NewSymbolizer(symbols SymbolSource, offsets OffsetsLookup, cfg SymbolizerCo
 		}
 		reader = remotemem.New()
 	}
-	return newSymbolizer(symbols, offsets, reader, cache), nil
-}
-
-func newSymbolizer(
-	symbols SymbolSource,
-	offsets OffsetsLookup,
-	reader codeLinetableReader,
-	cache *linetable.Cache,
-) *Symbolizer {
 	return &Symbolizer{
 		symbols: symbols,
 		offsets: offsets,
 		reader:  reader,
 		cache:   cache,
-	}
-}
-
-// SymbolizeFrame symbolizes frame and best-effort resolves its source line.
-func (s *Symbolizer) SymbolizeFrame(
-	process linux.ProcessKey,
-	frame *unwinder.PythonFrame,
-) (*symbolizer.Symbol, int32, bool) {
-	sym, line, ok, _ := s.symbolizeFrame(process, frame)
-	return sym, line, ok
+	}, nil
 }
 
 func (s *Symbolizer) symbolizeFrame(
@@ -213,7 +195,7 @@ func validLine(line int32, ok bool) (int32, lineInfoOutcome) {
 	return line, lineResolved
 }
 
-func (s *Symbolizer) resolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame, output runtimewriter.Frame) error {
+func (s *Symbolizer) resolveFrame(process linux.ProcessKey, frame *unwinder.PythonFrame, output runtimewriter.Frame, counts *RuntimeFrameCounts) error {
 	if err := output.SetMappingName(profile.PythonSpecialMapping); err != nil {
 		return err
 	}
@@ -221,8 +203,10 @@ func (s *Symbolizer) resolveFrame(process linux.ProcessKey, frame *unwinder.Pyth
 	if frame.SymbolKey.Linestart == trampolineLinestart {
 		return output.AddInlineFunction(python_models.PythonTrampolineFrame, "", 0, 0)
 	}
-	symbol, line, ok := s.SymbolizeFrame(process, frame)
+	symbol, line, ok, outcome := s.symbolizeFrame(process, frame)
+	counts.lineInfo[outcome]++
 	if !ok {
+		counts.Unsymbolized++
 		return output.AddInlineFunction(models.UnsymbolizedInterpreterLocation, "", frame.SymbolKey.Linestart, 0)
 	}
 	if symbol.Name != "" {

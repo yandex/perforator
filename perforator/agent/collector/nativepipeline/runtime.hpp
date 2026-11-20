@@ -2,6 +2,7 @@
 
 #include "runtime.h"
 
+#include <util/generic/array_ref.h>
 #include <util/generic/strbuf.h>
 #include <util/system/types.h>
 
@@ -48,6 +49,14 @@ private:
 // Views borrow the immutable batch arena and require retaining its owner.
 class TResolvedFrameView {
 public:
+    bool IsNativeAddress() const noexcept {
+        return Frame_->Representation == PerforatorFrameNativeAddress;
+    }
+
+    EPerforatorLanguage Language() const noexcept {
+        return static_cast<EPerforatorLanguage>(Frame_->Language);
+    }
+
     ui64 Address() const noexcept {
         return Frame_->Address;
     }
@@ -60,11 +69,16 @@ public:
         return Frame_->SymbolCount;
     }
 
+    bool HasData() const noexcept {
+        return Address() != 0 || SymbolCount() != 0 || !MappingName().empty();
+    }
+
     TResolvedSymbolView Symbol(size_t index) const noexcept {
         return TResolvedSymbolView{Arena_, reinterpret_cast<const TPerforatorResolvedSymbol*>(Arena_ + Frame_->SymbolsOffset) + index};
     }
 
 private:
+    friend class TResolvedFramesView;
     friend struct TRuntimeFrameBatch;
 
     TResolvedFrameView(
@@ -78,6 +92,32 @@ private:
 
     const char* Arena_;
     const TPerforatorResolvedFrame* Frame_;
+};
+
+class TResolvedFramesView {
+public:
+    size_t size() const noexcept {
+        return Frames_.size();
+    }
+
+    TResolvedFrameView operator[](size_t index) const noexcept {
+        return TResolvedFrameView{Arena_, &Frames_[index]};
+    }
+
+private:
+    friend struct TRuntimeFrameBatch;
+
+    TResolvedFramesView(
+        const char* arena,
+        TConstArrayRef<TPerforatorResolvedFrame> frames
+    ) noexcept
+        : Arena_{arena}
+        , Frames_{frames}
+    {
+    }
+
+    const char* Arena_;
+    TConstArrayRef<TPerforatorResolvedFrame> Frames_;
 };
 
 // Owns the malloc-allocated arena returned by Go. Moving transfers ownership
@@ -95,20 +135,22 @@ struct TRuntimeFrameBatch {
         return Data.FrameCount;
     }
 
-    size_t NativePrefixSize() const noexcept {
-        return Data.NativePrefixSize;
+    TResolvedFramesView GetUserFrames() const noexcept {
+        return GetFrames(0, Data.UserFrameCount);
     }
 
-    size_t LanguageCount() const noexcept {
-        return Data.LanguageCount;
-    }
-
-    const TPerforatorResolvedLanguageSection& Language(size_t index) const noexcept {
-        return reinterpret_cast<const TPerforatorResolvedLanguageSection*>(Data.Arena + Data.LanguagesOffset)[index];
+    TResolvedFramesView GetUnboundLanguageFrames() const noexcept {
+        return GetFrames(Data.UserFrameCount, Data.FrameCount - Data.UserFrameCount);
     }
 
     TResolvedFrameView Frame(size_t index) const noexcept {
         return TResolvedFrameView{Data.Arena, reinterpret_cast<const TPerforatorResolvedFrame*>(Data.Arena + Data.FramesOffset) + index};
+    }
+
+private:
+    TResolvedFramesView GetFrames(size_t begin, size_t count) const noexcept {
+        const auto* frames = count ? reinterpret_cast<const TPerforatorResolvedFrame*>(Data.Arena + Data.FramesOffset) + begin : nullptr;
+        return TResolvedFramesView{Data.Arena, {frames, count}};
     }
 };
 
@@ -127,14 +169,14 @@ public:
 // for every resolution call.
 class TGoRuntimeResolver final: public IRuntimeResolver {
 public:
-    explicit TGoRuntimeResolver(ui64 resolverId);
+    explicit TGoRuntimeResolver(ui64 handle);
 
     TRuntimeFrameBatch ResolveRuntimeFrames(
         const TPerforatorRuntimeRequest& request
     ) override;
 
 private:
-    ui64 ResolverId_;
+    ui64 Handle_;
 };
 
 } // namespace NPerforator::NAgent::NNativePipeline

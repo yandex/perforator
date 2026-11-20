@@ -27,6 +27,8 @@ type RuntimeRequest struct {
 
 // RuntimeResolver must not modify or retain the borrowed input or writer.
 // The caller validates section buffers and known, unique language IDs.
+// Write one native/JIT/JVM user location per native input slot, then unbound
+// language locations in input section order. Tag language frames with SetLanguage.
 // An error discards all output written during the call.
 type RuntimeResolver interface {
 	ResolveRuntimeFrames(ctx context.Context, request RuntimeRequest, writer *runtimewriter.Writer) error

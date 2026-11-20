@@ -2,18 +2,16 @@
 
 #include <perforator/lib/profile/c/error.hpp>
 
-#include <util/digest/multi.h>
 #include <util/generic/hash_set.h>
 #include <util/generic/yexception.h>
 
 #include <algorithm>
 #include <limits>
 #include <mutex>
+#include <utility>
 
 namespace NPerforator::NAgent::NNativePipeline {
 namespace {
-
-constexpr size_t MaxProcessTombstones = 64 * 1024;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -61,30 +59,11 @@ std::shared_ptr<const TProcessState> BuildProcessState(const TPerforatorProcessS
         Y_ENSURE(result->Mappings[i - 1].End <= result->Mappings[i].Begin,
                  "process snapshot contains overlapping mappings");
     }
-    size_t imageId = 0;
-    for (const auto& mapping : result->Mappings) {
-        imageId = MultiHash(
-            imageId,
-            mapping.Begin,
-            mapping.End,
-            mapping.Offset,
-            mapping.FileOffset,
-            mapping.Path,
-            mapping.BuildId);
-    }
-    result->ImageId = imageId;
-
     for (size_t i = 0; i < snapshot.EnvironmentCount; ++i) {
         const auto& label = snapshot.Environment[i];
-        TString key = CopyString(label.Key, "environment label key");
-        TString value = CopyString(label.Value, "environment label value");
-        TString metaValue = key.StartsWith("env:") ? key.substr(4) : key;
-        metaValue += "=";
-        metaValue += value;
-        result->Environment.push_back(TEnvironmentLabel{
-            .Key = std::move(key),
-            .Value = std::move(value),
-            .MetaValue = std::move(metaValue),
+        result->Environment.push_back(TStringLabel{
+            .Key = CopyString(label.Key, "environment label key"),
+            .Value = CopyString(label.Value, "environment label value"),
         });
     }
 
@@ -134,12 +113,12 @@ std::shared_ptr<const TCgroupState> BuildCgroupState(const TPerforatorCgroupSnap
     return result;
 }
 
-std::shared_ptr<const TTargetState> BuildTargetState(const TPerforatorTargetSnapshot& snapshot) {
+std::shared_ptr<const TProfilingTargetState> BuildProfilingTargetState(const TPerforatorTargetSnapshot& snapshot) {
     ValidateArray(snapshot.BaseUprobes, snapshot.BaseUprobeCount, "base target uprobes");
     ValidateArray(snapshot.Targets, snapshot.TargetCount, "profiling targets");
     Y_ENSURE(snapshot.Version != 0, "target snapshot version must be non-zero");
 
-    auto result = std::make_shared<TTargetState>();
+    auto result = std::make_shared<TProfilingTargetState>();
     result->Version = snapshot.Version;
     result->ById.reserve(snapshot.TargetCount);
 
@@ -158,23 +137,23 @@ std::shared_ptr<const TTargetState> BuildTargetState(const TPerforatorTargetSnap
         ValidateArray(source.Uprobes, source.UprobeCount, "target uprobes");
         Y_ENSURE(source.Id != 0, "target id must be non-zero");
 
-        auto target = std::make_shared<TTarget>();
+        auto target = std::make_shared<TProfilingTarget>();
         Y_ENSURE(result->ById.emplace(source.Id, target).second, "target snapshot contains duplicate id " << source.Id);
         target->Id = source.Id;
         target->Pending = source.Pending != 0;
-        target->Key = source.Key;
-        target->EnableSampleTime = source.EnableSampleTime != 0;
-        target->EnableInnermostPidns = source.EnableInnermostPidns != 0;
         target->CreatedTimestampNanos = source.CreatedTimestampNanos;
         target->StartTimestampNanos = source.StartTimestampNanos;
         target->EndTimestampNanos = source.EndTimestampNanos;
         target->CollectAllPerfEvents = source.CollectAllPerfEvents != 0;
-        target->Labels.reserve(source.LabelCount);
+        auto& options = target->ProfileOptions;
+        options.EnableAbsoluteTimestampLabel = source.EnableSampleTime != 0;
+        options.EnableInnermostPidns = source.EnableInnermostPidns != 0;
+        options.Labels.reserve(source.LabelCount);
         THashSet<TString> labelKeys;
         for (size_t j = 0; j < source.LabelCount; ++j) {
             TString key = CopyString(source.Labels[j].Key, "target label key");
             Y_ENSURE(labelKeys.insert(key).second, "target contains duplicate label " << key);
-            target->Labels.push_back({
+            options.Labels.push_back({
                 .Key = std::move(key),
                 .Value = CopyString(source.Labels[j].Value, "target label value"),
             });
@@ -199,23 +178,23 @@ std::shared_ptr<const TTargetState> BuildTargetState(const TPerforatorTargetSnap
 
         switch (source.Kind) {
             case PERFORATOR_TARGET_WHOLE_SYSTEM:
-                Y_ENSURE(target->Key == 0, "whole-system target key must be zero");
+                Y_ENSURE(source.Key == 0, "whole-system target key must be zero");
                 Y_ENSURE(!result->WholeSystem, "target snapshot contains multiple whole-system targets");
-                result->WholeSystem = std::move(target);
+                result->WholeSystem = target.get();
                 break;
             case PERFORATOR_TARGET_PROCESS: {
-                Y_ENSURE(target->Key <= std::numeric_limits<ui32>::max(), "process target PID does not fit uint32");
-                auto [_, inserted] = result->Processes.emplace(static_cast<ui32>(target->Key), std::move(target));
+                Y_ENSURE(source.Key <= std::numeric_limits<ui32>::max(), "process target PID does not fit uint32");
+                auto [_, inserted] = result->Processes.emplace(static_cast<ui32>(source.Key), target.get());
                 Y_ENSURE(inserted, "target snapshot contains duplicate process target");
                 break;
             }
             case PERFORATOR_TARGET_CGROUP: {
-                auto [_, inserted] = result->Cgroups.emplace(target->Key, std::move(target));
+                auto [_, inserted] = result->Cgroups.emplace(source.Key, target.get());
                 Y_ENSURE(inserted, "target snapshot contains duplicate cgroup target");
                 break;
             }
             case PERFORATOR_TARGET_CUSTOM:
-                Y_ENSURE(target->Key <= std::numeric_limits<ui32>::max(),
+                Y_ENSURE(source.Key <= std::numeric_limits<ui32>::max(),
                          "custom target PID does not fit uint32");
                 Y_ENSURE(target->StartTimestampNanos == 0 || target->EndTimestampNanos == 0 ||
                              target->StartTimestampNanos <= target->EndTimestampNanos,
@@ -226,10 +205,10 @@ std::shared_ptr<const TTargetState> BuildTargetState(const TPerforatorTargetSnap
                                  (existing->second.Kind == event.Kind && existing->second.Unit == event.Unit),
                              "custom targets disagree on perf event " << id);
                 }
-                if (target->Key == 0) {
-                    result->GlobalCustom.push_back(std::move(target));
+                if (source.Key == 0) {
+                    result->GlobalCustom.push_back(target.get());
                 } else {
-                    result->CustomByProcess[static_cast<ui32>(target->Key)].push_back(std::move(target));
+                    result->CustomByProcess[static_cast<ui32>(source.Key)].push_back(target.get());
                 }
                 break;
             default:
@@ -303,7 +282,7 @@ const TVector<TUprobeOutput>* FindUprobes(
     return outputs == binary->second.end() ? nullptr : &outputs->second;
 }
 
-std::shared_ptr<const TTarget> TTargetState::Find(ui32 pid, ui32 tid, ui64 parentCgroup) const noexcept {
+const TProfilingTarget* TProfilingTargetState::Find(ui32 pid, ui32 tid, ui64 parentCgroup) const noexcept {
     if (WholeSystem) {
         return WholeSystem;
     }
@@ -319,11 +298,16 @@ std::shared_ptr<const TTarget> TTargetState::Find(ui32 pid, ui32 tid, ui64 paren
     return nullptr;
 }
 
-bool TTargetState::Contains(ui64 targetId) const noexcept {
+std::shared_ptr<const TProfilingTarget> TProfilingTargetState::Get(ui64 targetId) const noexcept {
+    auto it = ById.find(targetId);
+    return it == ById.end() ? nullptr : it->second;
+}
+
+bool TProfilingTargetState::Contains(ui64 targetId) const noexcept {
     return ById.contains(targetId);
 }
 
-bool TTargetState::IsPending(ui64 targetId) const noexcept {
+bool TProfilingTargetState::IsPending(ui64 targetId) const noexcept {
     auto it = ById.find(targetId);
     return it != ById.end() && it->second->Pending;
 }
@@ -332,20 +316,8 @@ void TStateStore::ReplaceProcess(const TPerforatorProcessSnapshot& snapshot) {
     auto process = BuildProcessState(snapshot);
 
     std::unique_lock guard{Mutex_};
-    if (auto tombstone = ProcessTombstones_.find(snapshot.Key.Pid); tombstone != ProcessTombstones_.end()) {
-        if (tombstone->second.StartTime != 0 && snapshot.Key.StartTime != 0) {
-            // Only a newer process lifetime can replace a tombstone.
-            if (snapshot.Key.StartTime <= tombstone->second.StartTime) {
-                return;
-            }
-        } else if (snapshot.Key.StartTime == 0 || tombstone->second.Version >= snapshot.Version) {
-            // An unknown identity requires a known start time and a newer version.
-            return;
-        }
-        ProcessTombstones_.erase(tombstone);
-    }
-    auto it = Processes_.find(snapshot.Key.Pid);
-    if (it != Processes_.end()) {
+    auto it = Processes_->find(snapshot.Key.Pid);
+    if (it != Processes_->end()) {
         const auto& current = *it->second;
         if (current.StartTime > snapshot.Key.StartTime ||
             (current.StartTime == snapshot.Key.StartTime && current.Version >= snapshot.Version))
@@ -353,47 +325,28 @@ void TStateStore::ReplaceProcess(const TPerforatorProcessSnapshot& snapshot) {
             return;
         }
     }
-    Processes_[snapshot.Key.Pid] = std::move(process);
+    if (!Processes_.unique()) {
+        Processes_ = std::make_shared<TProcessStates>(*Processes_);
+    }
+    (*Processes_)[snapshot.Key.Pid] = std::move(process);
 }
 
 void TStateStore::RemoveProcess(TPerforatorProcessKey key, ui64 version) {
     auto [pid, startTime] = key;
     Y_ENSURE(version != 0, "process removal version must be non-zero");
     std::unique_lock guard{Mutex_};
-    auto it = Processes_.find(pid);
-    if (it != Processes_.end()) {
+    auto it = Processes_->find(pid);
+    if (it != Processes_->end()) {
         const auto& current = *it->second;
         if ((startTime != 0 && current.StartTime != 0 && current.StartTime > startTime) ||
             ((startTime == 0 || current.StartTime == 0 || current.StartTime == startTime) && current.Version >= version))
         {
             return;
         }
-        if (startTime == 0) {
-            startTime = current.StartTime;
+        if (!Processes_.unique()) {
+            Processes_ = std::make_shared<TProcessStates>(*Processes_);
         }
-        Processes_.erase(it);
-    }
-
-    auto& tombstone = ProcessTombstones_[pid];
-    if ((startTime != 0 && tombstone.StartTime != 0 && tombstone.StartTime > startTime) ||
-        ((startTime == 0 || tombstone.StartTime == 0 || tombstone.StartTime == startTime) && tombstone.Version >= version))
-    {
-        return;
-    }
-    if (startTime == 0) {
-        startTime = tombstone.StartTime;
-    }
-    tombstone = {.StartTime = startTime, .Version = version};
-    ProcessTombstoneOrder_.emplace_back(pid, tombstone);
-    while (ProcessTombstoneOrder_.size() > MaxProcessTombstones) {
-        const auto [expiredPid, expiredTombstone] = ProcessTombstoneOrder_.front();
-        ProcessTombstoneOrder_.pop_front();
-        if (auto expired = ProcessTombstones_.find(expiredPid);
-            expired != ProcessTombstones_.end() &&
-            expired->second.StartTime == expiredTombstone.StartTime && expired->second.Version == expiredTombstone.Version)
-        {
-            ProcessTombstones_.erase(expired);
-        }
+        Processes_->erase(pid);
     }
 }
 
@@ -410,60 +363,62 @@ void TStateStore::ReplaceKernelSymbols(const TPerforatorKernelSymbolSnapshot& sn
         });
     }
     std::unique_lock guard{Mutex_};
-    KernelSymbols_ = std::move(result);
+    Global_.KernelSymbols = std::move(result);
 }
 
 void TStateStore::ReplaceCgroups(const TPerforatorCgroupSnapshot& snapshot) {
     auto cgroups = BuildCgroupState(snapshot);
 
     std::unique_lock guard{Mutex_};
-    if (Cgroups_->Version >= snapshot.Version) {
+    if (Global_.Cgroups->Version >= snapshot.Version) {
         return;
     }
-    Cgroups_ = std::move(cgroups);
+    Global_.Cgroups = std::move(cgroups);
 }
 
 void TStateStore::ReplaceTargets(const TPerforatorTargetSnapshot& snapshot) {
-    auto targets = BuildTargetState(snapshot);
+    auto targets = BuildProfilingTargetState(snapshot);
 
     std::unique_lock guard{Mutex_};
-    if (Targets_->Version >= snapshot.Version) {
+    if (Global_.Targets->Version >= snapshot.Version) {
         return;
     }
-    Targets_ = std::move(targets);
+    Global_.Targets = std::move(targets);
 }
 
 void TStateStore::ReplacePerfEvents(const TPerforatorPerfEventSnapshot& snapshot) {
     auto events = BuildPerfEventState(snapshot);
     std::unique_lock guard{Mutex_};
-    if (PerfEvents_->Version >= snapshot.Version) {
+    if (Global_.PerfEvents->Version >= snapshot.Version) {
         return;
     }
-    PerfEvents_ = std::move(events);
+    Global_.PerfEvents = std::move(events);
 }
 
-TSampleStateSnapshot TStateStore::CaptureSampleState(TPerforatorProcessKey key) const {
+std::shared_ptr<const TProcessState> TStateSnapshot::FindProcess(TPerforatorProcessKey key) const {
     const auto [pid, startTime] = key;
-    std::shared_lock guard{Mutex_};
-    std::shared_ptr<const TProcessState> process;
-    if (auto it = Processes_.find(pid);
-        it != Processes_.end() &&
-        (it->second->StartTime == 0 || startTime == 0 || it->second->StartTime == startTime))
-    {
-        process = it->second;
+    if (Processes) {
+        if (auto it = Processes->find(pid);
+            it != Processes->end() &&
+            (it->second->StartTime == 0 || startTime == 0 || it->second->StartTime == startTime))
+        {
+            return it->second;
+        }
     }
+    return {};
+}
+
+TStateSnapshot TStateStore::Snapshot() const {
+    std::shared_lock guard{Mutex_};
     return {
-        .Process = std::move(process),
-        .Cgroups = Cgroups_,
-        .Targets = Targets_,
-        .PerfEvents = PerfEvents_,
-        .KernelSymbols = KernelSymbols_,
+        .Processes = Processes_,
+        .Global = Global_,
     };
 }
 
-std::shared_ptr<const TTargetState> TStateStore::GetTargets() const {
+std::shared_ptr<const TProfilingTargetState> TStateStore::GetTargets() const {
     std::shared_lock guard{Mutex_};
-    return Targets_;
+    return Global_.Targets;
 }
 
 TStateStore* UnwrapState(TPerforatorNativeState state) {
