@@ -16,7 +16,7 @@ func NewDefaultConfig() *Config {
 	return &Config{
 		Exporters: []ExporterConfig{{
 			OTLP: &OTLPExporterConfig{
-				EndointEnv: defaultOTLPEndpointEnv,
+				EndpointEnv: defaultOTLPEndpointEnv,
 			},
 		}},
 	}

@@ -11,15 +11,15 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 
 type OTLPExporterConfig struct {
-	EndointEnv string `yaml:"endpoint_env"`
-	Endoint    string `yaml:"endpoint"`
-	Secure     bool   `yaml:"secure"`
+	EndpointEnv string `yaml:"endpoint_env"`
+	Endpoint    string `yaml:"endpoint"`
+	Secure      bool   `yaml:"secure"`
 }
 
 func NewOTLPExporter(ctx context.Context, conf OTLPExporterConfig) (trace.SpanExporter, error) {
-	endpoint := conf.Endoint
-	if endpoint == "" && conf.EndointEnv != "" {
-		endpoint = os.Getenv(conf.EndointEnv)
+	endpoint := conf.Endpoint
+	if endpoint == "" && conf.EndpointEnv != "" {
+		endpoint = os.Getenv(conf.EndpointEnv)
 	}
 
 	if endpoint == "" {
