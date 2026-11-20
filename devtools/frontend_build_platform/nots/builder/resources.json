@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-11-19T16:15:34Z",
+    "created": "2026-11-19T23:48:39Z",
     "pr": {
-      "id": 17279218,
+      "id": 17279591,
       "author": "baymer",
-      "summary": "FBP-3678 Отклонять невалидные package.json в nots CLI и builder"
+      "summary": "FBP-3748: Собрать CJS и ESM автопроток одним запуском tsc"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14312172565"
+      "uri": "sbr:14317923575"
     },
     "darwin-arm64": {
-      "uri": "sbr:14312170496"
+      "uri": "sbr:14317921361"
     },
     "linux": {
-      "uri": "sbr:14312176917"
+      "uri": "sbr:14317928378"
     },
     "linux-aarch64": {
-      "uri": "sbr:14312174709"
+      "uri": "sbr:14317926033"
     }
   }
 }
