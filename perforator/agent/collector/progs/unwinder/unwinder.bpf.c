@@ -177,21 +177,19 @@ static ALWAYS_INLINE void try_get_stack(void* ctx, struct stack* stack, u64 flag
         stack->len = 0;
         return;
     }
-    // On a perf event with PERF_SAMPLE_CALLCHAIN, bpf_get_stack copies the precomputed callchain, which starts
-    // with a context marker (PERF_CONTEXT_KERNEL or PERF_CONTEXT_USER) rather than the leaf. Fetch it again
-    // skipping the marker: the copy is cheap, and the frame loop below stays simple for the verifier.
-    if (res >= (long)sizeof(u64) && stack->ips[0] >= PERF_CONTEXT_MAX) {
-        res = bpf_get_stack(ctx, stack->ips, sizeof(stack->ips), flags | 1);
-        if (res < 0) {
-            BPF_TRACE("bpf_get_stack(%llu) failed: %d\n", flags | 1, res);
-            stack->len = 0;
-            return;
-        }
-    }
     // bpf_get_stack returns bytes; normalize to frame count.
     stack->len = res / sizeof(u64);
-    for (u32 i = 1; i < sizeof(stack->ips) / sizeof(u64) && i < stack->len; i++) {
+
+    // On a perf event with PERF_SAMPLE_CALLCHAIN, bpf_get_stack copies the precomputed callchain, which starts
+    // with a context marker (PERF_CONTEXT_KERNEL or PERF_CONTEXT_USER) rather than the leaf. Zero it, consumers
+    // skip zero entries, and keep the leaf after it as is.
+    if (stack->len > 0 && stack->ips[0] >= PERF_CONTEXT_MAX) {
+        stack->ips[0] = 0;
+    } else if (stack->len > 1) {
         // maintain same convention as in read_return_address
+        stack->ips[1] -= 1;
+    }
+    for (u32 i = 2; i < sizeof(stack->ips) / sizeof(u64) && i < stack->len; i++) {
         stack->ips[i] -= 1;
     }
 }
