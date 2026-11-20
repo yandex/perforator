@@ -62,7 +62,8 @@ def _postprocess_output(args: AllOptions, outputs: list[str]) -> None:
     outputs.extend(getattr(args, 'outputs', []))
 
     if output_file and output_file != args.node_modules_bundle and os.path.isfile(output_file):
-        __write_output_meta(args.bindir, output_file, outputs, getattr(args, "output_prefix", ""))
+        output_dir = os.path.dirname(output_file) if getattr(args, "prepared_deps_moddir", None) else args.bindir
+        __write_output_meta(output_dir, output_file, outputs, getattr(args, "output_prefix", ""))
 
 
 def _get_ouput_large_dirs(args: AllOptions) -> list[str]:
@@ -110,7 +111,8 @@ def main():
     _postprocess_output(args, output_dirs)
 
     if args.local_cli:
-        dir_name = _build_traces_store_path(args.arcadia_build_root, args.moddir, args.arcadia_root)
+        trace_moddir = args.moddir + getattr(args, "build_suffix", "")
+        dir_name = _build_traces_store_path(args.arcadia_build_root, trace_moddir, args.arcadia_root)
         trace_file = os.path.join(dir_name, f'{args.command}.builder.trace.json')
         timeit_options.dump_trace(trace_file, otherData=dict(moddir=args.moddir))
         if args.verbose:

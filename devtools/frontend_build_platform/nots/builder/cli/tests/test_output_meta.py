@@ -1,7 +1,8 @@
 import hashlib
 import json
+from types import SimpleNamespace
 
-from devtools.frontend_build_platform.nots.builder.cli.main import __write_output_meta
+from devtools.frontend_build_platform.nots.builder.cli.main import __write_output_meta, _postprocess_output
 
 
 def test_write_output_meta(tmp_path):
@@ -28,3 +29,20 @@ def test_write_prefixed_output_meta(tmp_path):
     meta = json.loads((tmp_path / "output.tar.uuid").read_text())
     assert meta["outputTar"]["prefix"] == "app/service"
     assert meta["buildOutputs"] == ["dist", "types"]
+
+
+def test_library_for_writes_metadata_beside_its_archive(tmp_path):
+    bindir = tmp_path / "project"
+    bindir.mkdir()
+    output_dir = tmp_path / "project__aux"
+    output_dir.mkdir()
+    output = output_dir / "output.tar"
+    output.write_bytes(b"archive")
+    _postprocess_output(
+        SimpleNamespace(
+            bindir=str(bindir), prepared_deps_moddir="project", output_file=str(output), node_modules_bundle=False
+        ),
+        ["dist"],
+    )
+    assert (output_dir / "output.tar.uuid").is_file()
+    assert not (bindir / "output.tar.uuid").exists()

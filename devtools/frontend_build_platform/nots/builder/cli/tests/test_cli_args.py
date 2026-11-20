@@ -380,7 +380,7 @@ def test_nm_bundle_prod_arg(value, expected):
     assert args["nm_bundle_prod"] is expected
 
 
-def test_library_for_separates_source_and_build_paths():
+def test_library_for_builds_in_parent_bindir_with_separate_output():
     args = parse_args(
         get_args_parser(),
         BASE_ARGS
@@ -397,7 +397,8 @@ def test_library_for_separates_source_and_build_paths():
         ],
     )
     assert args.curdir == "/source/project"
-    assert args.moddir == "project__storybook"
+    assert args.moddir == "project"
     assert args.prepared_deps_moddir == "project"
-    assert args.bindir == "/build/project__storybook"
-    assert args.node_modules_layer == "/build/project__storybook/node_modules.layer"
+    assert args.bindir == "/build/project"
+    assert args.node_modules_layer == "/build/project/node_modules.layer"
+    assert args.output_file == "/build/project__storybook/output.tar"

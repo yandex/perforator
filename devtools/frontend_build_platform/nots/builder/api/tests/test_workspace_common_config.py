@@ -114,7 +114,7 @@ def test_build_workspace_uses_only_target_config(tmp_path, use_nots_yaml):
         "patchedDependencies": {"foo": "../patches/foo.patch"},
     }
     assert "nots" not in result
-    assert "pnpm" not in PackageJson.load(str(build / "package.json")).data
+    assert (build / "package.json").read_bytes() == (source / "package.json").read_bytes()
     source_manifest = PackageJson.load(str(source / "package.json"))
     local_settings = (
         yaml.safe_load((source / "nots.yaml").read_text()) if use_nots_yaml else source_manifest.data["pnpm"]

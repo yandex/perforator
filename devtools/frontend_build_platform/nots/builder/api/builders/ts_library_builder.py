@@ -1,7 +1,6 @@
 import copy
 import json
 import os
-import re
 import shutil
 import tempfile
 import textwrap
@@ -15,13 +14,11 @@ from build.plugins.lib.nots.package_manager import (
     utils as pm_utils,
 )
 from devtools.frontend_build_platform.libraries.logging import get_logger, timeit
-from build.plugins.lib.nots.package_manager.common_config import rebase_pnpm_settings
 
 from .base_builder import BaseBuilder
 from ..package_manager import validate_package_json
 from ..models import BaseBuildersOptions, BuildError
 from ..ram_disk import RamDisk, RamDiskUsage
-from ..pnpm_workspace import PnpmWorkspace
 from ..utils import copy_files_with_exclusions, get_built_workspace_dep_paths, popen
 
 from ..create_node_modules import (
@@ -54,7 +51,14 @@ class TsLibraryBuilderOptions(BaseTsLibraryBuilderOptions):
 
 class TsLibraryBuilder(BaseBuilder):
     def build(self):
-        self._prepare_library_for_dependencies()
+        if (
+            getattr(self.options, "prepared_deps_moddir", None)
+            and self.options.hermetic_node_modules
+            and not os.path.isfile(self.options.node_modules_layer)
+        ):
+            # A TS_LIBRARY_FOR target can inherit dependencies from a parent
+            # that opts out of hermetic node_modules.
+            self.options.hermetic_node_modules = False
         node_modules_restored = self._restore_node_modules_to_ram_disk()
         self._prepare_bindir()
 
@@ -68,96 +72,6 @@ class TsLibraryBuilder(BaseBuilder):
         self._build()
 
         bundle_workspace_node_modules(self.options, node_modules_context)
-
-    @timeit
-    def _prepare_library_for_dependencies(self):
-        prepared_deps_moddir = getattr(self.options, "prepared_deps_moddir", None)
-        if prepared_deps_moddir:
-            prepared_dir = os.path.join(self.options.arcadia_build_root, prepared_deps_moddir)
-            os.makedirs(self.options.bindir, exist_ok=True)
-            self._relocate_library_for_manifests(prepared_dir)
-            source = os.path.join(prepared_dir, "node_modules.layer")
-            if os.path.isfile(source):
-                shutil.copyfile(source, os.path.join(self.options.bindir, "node_modules.layer"))
-            elif getattr(self.options, "hermetic_node_modules", False):
-                # The parent may opt out with DISABLE_HERMETIC_NODE_MODULES().
-                # Its prepared dependencies then need installation in this workspace.
-                self.options.hermetic_node_modules = False
-
-    def _relocate_library_for_manifests(self, prepared_dir):
-        from ..package_manager import PackageManager
-
-        target_dir = self.options.bindir
-
-        def relative(value):
-            return os.path.relpath(os.path.normpath(os.path.join(prepared_dir, value)), target_dir)
-
-        def specifier(value):
-            match = re.match(r"^(workspace:|file:|link:)(.+)$", value)
-            if not match or os.path.isabs(match[2]) or (match[1] == "workspace:" and not match[2].startswith(".")):
-                return value
-            rebased = relative(match[2])
-            return match[1] + (rebased if rebased.startswith(".") else "./" + rebased)
-
-        package_json = PackageJson.load(pm_utils.build_pj_path(prepared_dir))
-        validate_package_json(package_json)
-        for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
-            if section in package_json.data:
-                package_json.data[section] = {
-                    name: specifier(value) for name, value in package_json.data[section].items()
-                }
-        workspace_path = pm_utils.build_ws_config_path(prepared_dir)
-        workspace = None
-        if os.path.isfile(workspace_path):
-            workspace = PnpmWorkspace.load(workspace_path)
-        elif "pnpm" in package_json.data:
-            # Older prepared dependencies may carry settings only in the manifest.
-            workspace = PnpmWorkspace(workspace_path)
-            workspace.set_from_package_json(package_json)
-
-        package_json.data.pop("pnpm", None)
-        package_json.write(pm_utils.build_pj_path(target_dir))
-
-        if workspace is not None:
-            workspace.packages = {"." if value == "." else relative(value) for value in workspace.packages}
-            workspace.settings = rebase_pnpm_settings(workspace.settings, prepared_dir, target_dir)
-            workspace.catalogs = {
-                group: {name: specifier(value) for name, value in entries.items()}
-                for group, entries in workspace.catalogs.items()
-            }
-            workspace.write(pm_utils.build_ws_config_path(target_dir))
-
-        lockfile = PackageManager.load_lockfile(pm_utils.build_lockfile_path(prepared_dir))
-
-        def file_reference(match):
-            value = match[1]
-            return "file:" + (value if os.path.isabs(value) else relative(value))
-
-        def rebase_lock(value, key=None):
-            if isinstance(value, dict):
-                return {rebase_lock(k): rebase_lock(v, k) for k, v in value.items()}
-            if isinstance(value, list):
-                return [rebase_lock(item) for item in value]
-            if isinstance(value, str) and key != "specifier":
-                if key in ("directory", "path"):
-                    return relative(value)
-                # Injected package IDs also occur in snapshot keys, dependency
-                # versions and peer contexts. Keep every reference consistent.
-                return re.sub(r"file:([^()]+)", file_reference, value)
-            return value
-
-        lockfile.data = rebase_lock(lockfile.data)
-        importers = lockfile.data.get("importers", {})
-        lockfile.data["importers"] = {"." if key == "." else relative(key): value for key, value in importers.items()}
-        for dependencies in importers.get(".", {}).values():
-            if isinstance(dependencies, dict):
-                for dependency in dependencies.values():
-                    if isinstance(dependency, dict):
-                        if "specifier" in dependency:
-                            dependency["specifier"] = specifier(dependency["specifier"])
-                        if str(dependency.get("version", "")).startswith("link:"):
-                            dependency["version"] = specifier(dependency["version"])
-        lockfile.write(pm_utils.build_lockfile_path(target_dir))
 
     def __init__(self, options: TsLibraryBuilderOptions):
         self._ram_disk_usage = RamDiskUsage.NONE
@@ -215,6 +129,7 @@ class TsLibraryBuilder(BaseBuilder):
 
     @timeit
     def bundle(self):
+        os.makedirs(os.path.dirname(os.path.abspath(self.options.output_file)), exist_ok=True)
         result = super().bundle()
 
         if self._ram_disk_usage == RamDiskUsage.FULL_BUILD:
@@ -289,19 +204,37 @@ class TsLibraryBuilder(BaseBuilder):
         package_json_backup_path = None
         inline_package_json = None
         build_command = self.options.build_command
-        if self.options.build_command:
+        auxiliary_inline = bool(build_command and getattr(self.options, "prepared_deps_moddir", None))
+        if self.options.build_command and not auxiliary_inline:
             package_json_path = pm_utils.build_pj_path(self.options.bindir)
             with open(package_json_path, "rb") as package_json_file:
                 package_json = json.load(package_json_file)
             package_json.setdefault("scripts", {})[self.options.build_script] = self.options.build_command
             inline_package_json = json.dumps(package_json).encode("utf-8")
-        else:
+        elif not auxiliary_inline:
             with open(pm_utils.build_pj_path(self.options.bindir), "rb") as package_json_file:
                 package_json = json.load(package_json_file)
             build_command = package_json.get("scripts", {}).get(self.options.build_script)
 
         args = ['node', '--run', self.options.build_script]
         env = self._get_envs()
+        if auxiliary_inline:
+            # Keep the prepared manifest untouched while providing the same
+            # script environment as node --run for the inline command.
+            args = ["/bin/sh", "-c", build_command]
+            env["NODE_RUN_SCRIPT_NAME"] = self.options.build_script
+            env["NODE_RUN_PACKAGE_JSON_PATH"] = pm_utils.build_pj_path(self.options.bindir)
+            ancestor = os.path.abspath(self.options.bindir)
+            bin_paths = []
+            while True:
+                bin_dir = os.path.join(pm_utils.build_nm_path(ancestor), ".bin")
+                if os.path.isdir(bin_dir):
+                    bin_paths.append(bin_dir)
+                parent = os.path.dirname(ancestor)
+                if parent == ancestor:
+                    break
+                ancestor = parent
+            env["PATH"] = os.pathsep.join([*bin_paths, env["PATH"]])
 
         try:
             if package_json_path is not None and inline_package_json is not None:

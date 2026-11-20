@@ -1,24 +1,22 @@
 {
   "info": {
-    "created": "2026-11-19T23:48:39Z",
-    "pr": {
-      "id": 17279591,
-      "author": "baymer",
-      "summary": "FBP-3748: Собрать CJS и ESM автопроток одним запуском tsc"
-    }
+    "created": "2026-11-20T11:28:09Z",
+    "commit": "412995483924b2b4683c1a0e67dcbb84bd4ca735",
+    "branch": "fbp3691-preserve-manifest",
+    "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14317923575"
+      "uri": "sbr:14319782289"
     },
     "darwin-arm64": {
-      "uri": "sbr:14317921361"
+      "uri": "sbr:14319784450"
     },
     "linux": {
-      "uri": "sbr:14317928378"
+      "uri": "sbr:14319771647"
     },
     "linux-aarch64": {
-      "uri": "sbr:14317926033"
+      "uri": "sbr:14319779581"
     }
   }
 }

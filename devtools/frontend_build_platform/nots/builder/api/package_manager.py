@@ -238,15 +238,8 @@ class PackageManager(BasePackageManager):
         validate_package_json(package_json)
 
         os.makedirs(self.build_path, exist_ok=True)
-        should_write = "pnpm" in package_json.data
-        package_json.data.pop("pnpm", None)
-
-        if should_write:
-            package_json.path = build_path
-            package_json.write()
-        else:
-            shutil.copyfile(source_path, build_path)
-            package_json.path = build_path
+        shutil.copyfile(source_path, build_path)
+        package_json.path = build_path
 
         return package_json
 
