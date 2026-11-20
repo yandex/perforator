@@ -95,7 +95,9 @@ pnpm:
 
             Пользовательские настройки задаются в nots.yaml или общем конфиге,
             подключённом через nots.yaml#nots.commonConfigPath.
-            Без nots.yaml поддерживаются package.json#pnpm и package.json#nots.
+            Новые версии pnpm больше не читают package.json#pnpm.
+            Перенесите настройки из package.json#pnpm и package.json#nots в nots.yaml.
+            https://docs.yandex-team.ru/frontend-in-arcadia/references/package-json#config-migration
             Параметры платформы задаются в
             devtools/frontend_build_platform/nots/tier0-settings/src/settings.yaml;
             переопределять можно только настройки из supportedCustomSettings.

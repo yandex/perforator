@@ -1,22 +1,22 @@
 {
   "info": {
-    "created": "2026-11-20T11:28:09Z",
-    "commit": "412995483924b2b4683c1a0e67dcbb84bd4ca735",
-    "branch": "fbp3691-preserve-manifest",
+    "created": "2026-11-20T14:42:25Z",
+    "commit": "a3c1b446de0fc36d6b2cd9cb2829938429f12279",
+    "branch": "fbp3691-migrator-nov20",
     "dirty": false
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14319782289"
+      "uri": "sbr:14322050136"
     },
     "darwin-arm64": {
-      "uri": "sbr:14319784450"
+      "uri": "sbr:14322051557"
     },
     "linux": {
-      "uri": "sbr:14319771647"
+      "uri": "sbr:14322046523"
     },
     "linux-aarch64": {
-      "uri": "sbr:14319779581"
+      "uri": "sbr:14322048551"
     }
   }
 }

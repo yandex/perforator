@@ -73,6 +73,10 @@ class PnpmWorkspace(object):
             if self.catalogs:
                 data["catalogs"] = self.catalogs
             policy = load_tier0_settings()["pnpm"]
+            keys = dict.fromkeys(
+                list(policy["supportedCustomSettings"]) + list(policy["defaults"]) + ["packages"] + list(data)
+            )
+            data = {key: data[key] for key in keys if key in data}
             comments = policy["workspaceComments"]
             serialized = yaml.dump(data, Dumper=yaml.CSafeDumper, sort_keys=False)
             f.write(self._comment(comments["header"]))
