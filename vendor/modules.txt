@@ -8747,8 +8747,8 @@ github.com/fasthttp/websocket
 # github.com/fatih/camelcase v1.0.0
 ## explicit
 github.com/fatih/camelcase
-# github.com/fatih/color v1.18.0
-## explicit; go 1.17
+# github.com/fatih/color v1.19.0
+## explicit; go 1.25.0
 github.com/fatih/color
 # github.com/fatih/gomodifytags v1.17.1-0.20250423142747-f3939df9aa3c
 ## explicit; go 1.13
@@ -9219,8 +9219,8 @@ github.com/go-faster/errors/cmd/gowrapper
 github.com/go-faster/jx
 github.com/go-faster/jx/internal/byteseq
 github.com/go-faster/jx/tools/mkint
-# github.com/go-faster/sdk v0.27.0
-## explicit; go 1.22.7
+# github.com/go-faster/sdk v0.34.0
+## explicit; go 1.25.0
 github.com/go-faster/sdk/zctx
 # github.com/go-faster/xor v1.0.0
 ## explicit; go 1.15
@@ -9438,8 +9438,8 @@ github.com/go-openapi/analysis/internal/flatten/sortref
 # github.com/go-openapi/errors v0.22.4
 ## explicit; go 1.24.0
 github.com/go-openapi/errors
-# github.com/go-openapi/inflect v0.21.2
-## explicit; go 1.20
+# github.com/go-openapi/inflect v0.21.6
+## explicit; go 1.25.0
 github.com/go-openapi/inflect
 # github.com/go-openapi/jsonpointer v0.22.1
 ## explicit; go 1.24.0
@@ -11148,8 +11148,8 @@ github.com/gostaticanalysis/forcetypeassert/cmd/forcetypeassert
 github.com/gosuri/uitable
 github.com/gosuri/uitable/util/strutil
 github.com/gosuri/uitable/util/wordwrap
-# github.com/gotd/getdoc v0.49.0
-## explicit; go 1.23.0
+# github.com/gotd/getdoc v0.53.0
+## explicit; go 1.25.0
 github.com/gotd/getdoc
 github.com/gotd/getdoc/dl
 github.com/gotd/getdoc/dl/internal/cache
@@ -11160,8 +11160,8 @@ github.com/gotd/ige
 # github.com/gotd/neo v0.1.5
 ## explicit; go 1.12
 github.com/gotd/neo
-# github.com/gotd/td v0.127.0
-## explicit; go 1.23.3
+# github.com/gotd/td v0.150.0
+## explicit; go 1.25.0
 github.com/gotd/td
 github.com/gotd/td/ascii
 github.com/gotd/td/bin
@@ -11219,6 +11219,7 @@ github.com/gotd/td/telegram/message/inline
 github.com/gotd/td/telegram/message/internal/mkentity
 github.com/gotd/td/telegram/message/internal/mkrun
 github.com/gotd/td/telegram/message/internal/mktyping
+github.com/gotd/td/telegram/message/markdown
 github.com/gotd/td/telegram/message/markup
 github.com/gotd/td/telegram/message/peer
 github.com/gotd/td/telegram/message/styling
@@ -11237,6 +11238,7 @@ github.com/gotd/td/telegram/query/internal/itergen
 github.com/gotd/td/telegram/query/messages
 github.com/gotd/td/telegram/query/messages/stickers/featured
 github.com/gotd/td/telegram/query/photos
+github.com/gotd/td/telegram/takeout
 github.com/gotd/td/telegram/thumbnail
 github.com/gotd/td/telegram/tljson
 github.com/gotd/td/telegram/updates
@@ -12682,8 +12684,8 @@ github.com/k-sone/critbitgo
 # github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88
 ## explicit
 github.com/k0kubun/colorstring
-# github.com/k0kubun/pp/v3 v3.5.0
-## explicit; go 1.23.0
+# github.com/k0kubun/pp/v3 v3.5.1
+## explicit; go 1.24.0
 github.com/k0kubun/pp/v3
 # github.com/k14s/difflib v0.0.0-20201117154628-0c031775bf57
 ## explicit
@@ -14165,7 +14167,7 @@ github.com/oasdiff/yaml
 # github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90
 ## explicit; go 1.22.5
 github.com/oasdiff/yaml3
-# github.com/ogen-go/ogen v1.20.1
+# github.com/ogen-go/ogen v1.20.3
 ## explicit; go 1.25.0
 github.com/ogen-go/ogen
 github.com/ogen-go/ogen/_testdata/testtypes
@@ -16317,8 +16319,9 @@ github.com/robfig/cron/v3
 github.com/rogpeppe/fastuuid
 # github.com/rogpeppe/go-charset v0.0.0-20190617161244-0dc95cdf6f31
 ## explicit
-# github.com/rogpeppe/go-internal v1.14.1
-## explicit; go 1.23
+# github.com/rogpeppe/go-internal v1.15.0
+## explicit; go 1.25
+github.com/rogpeppe/go-internal
 github.com/rogpeppe/go-internal/cache
 github.com/rogpeppe/go-internal/cmd/testscript
 github.com/rogpeppe/go-internal/cmd/txtar-addmod
@@ -16331,6 +16334,7 @@ github.com/rogpeppe/go-internal/fmtsort
 github.com/rogpeppe/go-internal/goproxytest
 github.com/rogpeppe/go-internal/gotooltest
 github.com/rogpeppe/go-internal/imports
+github.com/rogpeppe/go-internal/internal/goenv
 github.com/rogpeppe/go-internal/internal/misspell
 github.com/rogpeppe/go-internal/internal/os/execpath
 github.com/rogpeppe/go-internal/internal/syscall/windows
@@ -19378,7 +19382,7 @@ github.com/yudai/golcs
 # github.com/yudai/pp v2.0.1+incompatible
 ## explicit
 github.com/yudai/pp
-# github.com/yuin/goldmark v1.7.13
+# github.com/yuin/goldmark v1.8.2
 ## explicit; go 1.22
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast
@@ -20097,8 +20101,8 @@ go.opentelemetry.io/collector/extension/xextension/storage
 ## explicit; go 1.24.0
 go.opentelemetry.io/collector/extension/zpagesextension
 go.opentelemetry.io/collector/extension/zpagesextension/internal/metadata
-# go.opentelemetry.io/collector/featuregate v1.50.0
-## explicit; go 1.24.0
+# go.opentelemetry.io/collector/featuregate v1.52.0
+## explicit; go 1.25.0
 go.opentelemetry.io/collector/featuregate
 # go.opentelemetry.io/collector/internal/componentalias v0.144.0
 ## explicit; go 1.24.0
@@ -20118,8 +20122,8 @@ go.opentelemetry.io/collector/internal/sharedcomponent
 ## explicit; go 1.24.0
 go.opentelemetry.io/collector/internal/telemetry
 go.opentelemetry.io/collector/internal/telemetry/telemetrytest
-# go.opentelemetry.io/collector/internal/testutil v0.144.0
-## explicit; go 1.24.0
+# go.opentelemetry.io/collector/internal/testutil v0.146.1
+## explicit; go 1.25.0
 go.opentelemetry.io/collector/internal/testutil
 # go.opentelemetry.io/collector/model v0.50.0
 ## explicit; go 1.17
@@ -20131,8 +20135,8 @@ go.opentelemetry.io/collector/otelcol/internal/grpclog
 # go.opentelemetry.io/collector/otelcol/otelcoltest v0.144.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/collector/otelcol/otelcoltest
-# go.opentelemetry.io/collector/pdata v1.50.0
-## explicit; go 1.24.0
+# go.opentelemetry.io/collector/pdata v1.52.0
+## explicit; go 1.25.0
 go.opentelemetry.io/collector/pdata
 go.opentelemetry.io/collector/pdata/internal
 go.opentelemetry.io/collector/pdata/internal/json
@@ -20283,8 +20287,8 @@ go.opentelemetry.io/collector/service/hostcapabilities
 # go.opentelemetry.io/collector/service/telemetry/telemetrytest v0.144.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/collector/service/telemetry/telemetrytest
-# go.opentelemetry.io/contrib/bridges/otelzap v0.13.0
-## explicit; go 1.23.0
+# go.opentelemetry.io/contrib/bridges/otelzap v0.15.0
+## explicit; go 1.24.0
 go.opentelemetry.io/contrib/bridges/otelzap
 # go.opentelemetry.io/contrib/config v0.14.0
 ## explicit; go 1.22.0
@@ -20749,7 +20753,7 @@ go.opentelemetry.io/otel/log/embedded
 go.opentelemetry.io/otel/log/global
 go.opentelemetry.io/otel/log/internal/global
 go.opentelemetry.io/otel/log/noop
-# go.opentelemetry.io/otel/log/logtest v0.15.0
+# go.opentelemetry.io/otel/log/logtest v0.16.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/otel/log/logtest
 # go.opentelemetry.io/otel/metric v1.46.0

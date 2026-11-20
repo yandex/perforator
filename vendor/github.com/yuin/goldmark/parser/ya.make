@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v1.7.13)
+VERSION(v1.8.2)
 
 SRCS(
     attribute.go

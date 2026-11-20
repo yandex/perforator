@@ -418,7 +418,7 @@ require (
 	github.com/expr-lang/expr v1.17.7
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052
 	github.com/failsafe-go/failsafe-go v0.6.9
-	github.com/fatih/color v1.18.0
+	github.com/fatih/color v1.19.0
 	github.com/fatih/gomodifytags v1.17.1-0.20250423142747-f3939df9aa3c
 	github.com/fclairamb/ftpserver v0.14.0
 	github.com/fclairamb/go-log v0.5.0
@@ -472,7 +472,7 @@ require (
 	github.com/go-ole/go-ole v1.3.0
 	github.com/go-openapi/analysis v0.24.1
 	github.com/go-openapi/errors v0.22.4
-	github.com/go-openapi/inflect v0.21.2
+	github.com/go-openapi/inflect v0.21.6
 	github.com/go-openapi/jsonpointer v0.22.1
 	github.com/go-openapi/jsonreference v0.21.3
 	github.com/go-openapi/loads v0.23.2
@@ -567,7 +567,7 @@ require (
 	github.com/gosimple/unidecode v1.0.1
 	github.com/gosnmp/gosnmp v1.38.0
 	github.com/gostaticanalysis/forcetypeassert v0.1.0
-	github.com/gotd/td v0.127.0
+	github.com/gotd/td v0.150.0
 	github.com/graphql-go/graphql v0.8.1
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -735,7 +735,7 @@ require (
 	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oapi-codegen/oapi-codegen/v2 v2.5.0
 	github.com/oapi-codegen/runtime v1.1.1
-	github.com/ogen-go/ogen v1.20.1
+	github.com/ogen-go/ogen v1.20.3
 	github.com/ohler55/ojg v1.26.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/olivere/elastic/v7 v7.0.32
@@ -857,7 +857,7 @@ require (
 	github.com/rivo/tview v0.42.0
 	github.com/rivo/uniseg v0.4.7
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/rogpeppe/go-internal v1.14.1
+	github.com/rogpeppe/go-internal v1.15.0
 	github.com/rqlite/gorqlite v0.0.0-20240122221808-a8a425b1a6aa
 	github.com/rs/cors v1.11.1
 	github.com/ryanrolds/sqlclosecheck v0.3.0
@@ -1006,7 +1006,7 @@ require (
 	github.com/ydb-platform/ydbops v0.0.28
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	github.com/ysmood/gson v0.7.3
-	github.com/yuin/goldmark v1.7.13
+	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/gopher-lua v1.1.1
 	github.com/zaf/g711 v0.0.0-20220109202201-cf0017bf0359
 	github.com/zclconf/go-cty v1.17.0
@@ -1078,16 +1078,16 @@ require (
 	go.opentelemetry.io/collector/extension/extensiontest v0.144.0
 	go.opentelemetry.io/collector/extension/xextension v0.144.0
 	go.opentelemetry.io/collector/extension/zpagesextension v0.144.0
-	go.opentelemetry.io/collector/featuregate v1.50.0
+	go.opentelemetry.io/collector/featuregate v1.52.0
 	go.opentelemetry.io/collector/internal/componentalias v0.144.0
 	go.opentelemetry.io/collector/internal/fanoutconsumer v0.144.0
 	go.opentelemetry.io/collector/internal/memorylimiter v0.144.0
 	go.opentelemetry.io/collector/internal/sharedcomponent v0.144.0
 	go.opentelemetry.io/collector/internal/telemetry v0.144.0
-	go.opentelemetry.io/collector/internal/testutil v0.144.0
+	go.opentelemetry.io/collector/internal/testutil v0.146.1
 	go.opentelemetry.io/collector/otelcol v0.144.0
 	go.opentelemetry.io/collector/otelcol/otelcoltest v0.144.0
-	go.opentelemetry.io/collector/pdata v1.50.0
+	go.opentelemetry.io/collector/pdata v1.52.0
 	go.opentelemetry.io/collector/pdata/pprofile v0.144.0
 	go.opentelemetry.io/collector/pdata/testdata v0.144.0
 	go.opentelemetry.io/collector/pdata/xpdata v0.144.0
@@ -1111,7 +1111,7 @@ require (
 	go.opentelemetry.io/collector/service v0.144.0
 	go.opentelemetry.io/collector/service/hostcapabilities v0.144.0
 	go.opentelemetry.io/collector/service/telemetry/telemetrytest v0.144.0
-	go.opentelemetry.io/contrib/bridges/otelzap v0.13.0
+	go.opentelemetry.io/contrib/bridges/otelzap v0.15.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws v0.68.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.67.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.64.0
@@ -1136,7 +1136,7 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.44.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.41.0
 	go.opentelemetry.io/otel/log v0.19.0
-	go.opentelemetry.io/otel/log/logtest v0.15.0
+	go.opentelemetry.io/otel/log/logtest v0.16.0
 	go.opentelemetry.io/otel/metric v1.46.0
 	go.opentelemetry.io/otel/metric/x v0.66.0
 	go.opentelemetry.io/otel/sdk v1.44.0
@@ -1819,7 +1819,7 @@ require (
 	github.com/go-delve/liner v1.2.3-0.20231231155935-4726ab1d7f62 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-faker/faker/v4 v4.6.0 // indirect
-	github.com/go-faster/sdk v0.27.0 // indirect
+	github.com/go-faster/sdk v0.34.0 // indirect
 	github.com/go-faster/xor v1.0.0 // indirect
 	github.com/go-faster/yaml v0.4.6 // indirect
 	github.com/go-fed/httpsig v1.1.0 // indirect
@@ -1951,7 +1951,7 @@ require (
 	github.com/gostaticanalysis/comment v1.4.2 // indirect
 	github.com/gostaticanalysis/testutil v0.4.0 // indirect
 	github.com/gosuri/uitable v0.0.4 // indirect
-	github.com/gotd/getdoc v0.49.0 // indirect
+	github.com/gotd/getdoc v0.53.0 // indirect
 	github.com/gotd/ige v0.2.2 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
 	github.com/gotd/tl v0.4.0 // indirect
@@ -2080,7 +2080,7 @@ require (
 	github.com/jwilder/encoding v0.0.0-20170811194829-b4e1701a28ef // indirect
 	github.com/k-sone/critbitgo v1.4.0 // indirect
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
-	github.com/k0kubun/pp/v3 v3.5.0 // indirect
+	github.com/k0kubun/pp/v3 v3.5.1 // indirect
 	github.com/k14s/difflib v0.0.0-20201117154628-0c031775bf57 // indirect
 	github.com/k14s/starlark-go v0.0.0-20200720175618-3a5c849cc368 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
