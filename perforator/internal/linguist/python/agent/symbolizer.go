@@ -219,14 +219,14 @@ func (s *Symbolizer) resolveFrame(process linux.ProcessKey, frame *unwinder.Pyth
 	}
 	output.SetAddress(frame.SymbolKey.ObjectAddr)
 	if frame.SymbolKey.Linestart == trampolineLinestart {
-		return output.AddInlineFunction(python_models.PythonTrampolineFrame, "", 0, 0)
+		return output.AddInlineFunction(python_models.PythonTrampolineFrame, "", 0, 0, "", 0)
 	}
 	symbol, line, ok := s.SymbolizeFrame(process, frame)
 	if !ok {
-		return output.AddInlineFunction(models.UnsymbolizedInterpreterLocation, "", frame.SymbolKey.Linestart, 0)
+		return output.AddInlineFunction(models.UnsymbolizedInterpreterLocation, "", frame.SymbolKey.Linestart, 0, "", 0)
 	}
 	if symbol.Name != "" {
 		output.SetAddress(0)
 	}
-	return output.AddInlineFunction(symbol.Name, symbol.FileName, frame.SymbolKey.Linestart, line)
+	return output.AddInlineFunction(symbol.Name, symbol.FileName, frame.SymbolKey.Linestart, line, "", 0)
 }

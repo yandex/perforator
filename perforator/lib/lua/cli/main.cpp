@@ -51,8 +51,8 @@ int main(int argc, const char* argv[]) {
     if (!vmLocation) {
         Cout << "Failed to find VM location" << Endl;
     } else {
-        auto [start, end] = *vmLocation;
+        auto [start, end, ffiCallSize] = *vmLocation;
 
-        Cout << "Found VM location at: " << start << " - " << end << " (" << end - start << ")" << Endl;
+        Cout << "Found VM location at: " << start << " - " << end << " (" << end - start << "), FFI tail: " << ffiCallSize << " bytes" << Endl;
     }
 }

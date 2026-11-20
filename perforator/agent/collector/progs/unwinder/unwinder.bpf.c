@@ -372,7 +372,7 @@ static NOINLINE u32 pack_sample_lang(struct packed_sample* packed, struct profil
 
     pack_lang_section(packed, &offset, &(struct lang_section_desc){
         .lang_id   = LANGUAGE_LUA,
-        .count     = state->lua_state.stack.len,
+        .count     = state->lua_state.stack.len ? state->lua_state.stack.len + 1 : 0,
         .max       = LUA_MAX_STACK_DEPTH,
         .src       = state->lua_state.stack.frames,
         .src_size  = sizeof(state->lua_state.stack.frames),
@@ -820,6 +820,7 @@ static NOINLINE int profiler_stage_collect_php_stack(void* ctx, struct profiler_
  */
 static NOINLINE int profiler_stage_collect_lua_stack(void* context, struct user_regs* user_registers, struct profiler_state* profiler_state, struct profiler_config* config) {
 #ifdef __x86_64__
+    lua_stack_reset(&profiler_state->lua_state);
     if (!config->enable_lua) {
         return 0;
     }

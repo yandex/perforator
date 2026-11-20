@@ -11,7 +11,7 @@
 #define LICENSE(NAME) char __license[] SEC(BPF_SEC_LICENSE) = NAME;
 
 #define BTF_EXPORT(typ) \
-    struct CAT(btf_export_, __LINE__) { \
+    struct CAT(btf_export_, __COUNTER__) { \
         typ field; \
-    } CAT(unused_to_trigger_btf_generation, __LINE__) SEC("unused")
+    } CAT(unused_to_trigger_btf_generation, __COUNTER__) SEC("unused")
 

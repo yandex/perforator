@@ -1,6 +1,8 @@
 #include "lua.h"
 
 #include <charconv>
+#include <initializer_list>
+#include <limits>
 
 #include <llvm/DebugInfo/DWARF/DWARFContext.h>
 #include <llvm/DebugInfo/DWARF/DWARFDebugFrame.h>
@@ -156,7 +158,7 @@ ui64 TLuaAnalyzer::GetBinarySize() {
 }
 
 // To properly merge stacks and find if eBPF stopped inside LuaJIT VM (helps to get more relevant info), we need to find VM location.
-// LuaJIT VM is a huge ASM blob. Function `emit_asm_debug` in `vm_x64.dasc` emits single `.debug_frame` and `.eh_frame` for the whole blob.
+// LuaJIT VM is a huge ASM blob. Function `emit_asm_debug` in `vm_x64.dasc` emits separate unwind records for the main VM and its optional FFI tail.
 // This makes it easier to find VM location from the binary.
 //
 // First FDE is very big and has simple rule for CFA offset equal to `CFRAME_SIZE`.
@@ -169,7 +171,7 @@ ui64 TLuaAnalyzer::GetBinarySize() {
 // Then it searches for the `lj_vm_ffi_call` to find the actual end of VM.
 // `lj_vm_ffi_call` might not be available if LuaJIT was built with `LUAJIT_DISABLE_FFI` option.
 // This requires LuaJIT to be built without `LJ_NO_UNWIND` option.
-TMaybe<std::pair<ui64, ui64>> TLuaAnalyzer::GetVMLocation() {
+TMaybe<TLuaVMLocation> TLuaAnalyzer::GetVMLocation() {
     // Analysis of builds from 2.1.0-beta3 to 7ff85518540617c0f97c4720558bb21c245994a8 (+ backported bitwise operators)
     // showed that VM size varies from 14'322 to 17'447.
     // We will expand and round bounds to be future-proof.
@@ -242,22 +244,40 @@ TMaybe<std::pair<ui64, ui64>> TLuaAnalyzer::GetVMLocation() {
     auto vmFde = vmFdeCandidates.front();
 
     uint64_t vmFdeStart = vmFde->getInitialLocation();
-    uint64_t vmFdeEnd = vmFde->getInitialLocation() + vmFde->getAddressRange();
+    uint64_t vmFdeSize = vmFde->getAddressRange();
+    uint64_t vmFdeEnd = vmFde->getInitialLocation() + vmFdeSize;
 
-    // Search for "tail", aka `lj_vm_ffi_call`.
-    TVector<FDE*> vmFfiCallFdeVector = getFdes(
-        ehFrame,
-        [&](FDE* fde) { return fde->getInitialLocation() == vmFdeEnd; }
-    );
-    if (!vmFfiCallFdeVector.empty()) {
-        FDE* vmFfiCallFde = vmFfiCallFdeVector.front();
-        vmFdeEnd = vmFfiCallFde->getInitialLocation() + vmFfiCallFde->getAddressRange();
-    }
+    // vm_x64.dasc emits this prologue for the adjacent outbound FFI trampoline.
+    // An unrelated FDE can also start here, e.g. when LuaJIT is built without FFI.
+    auto ffiTail = [&](FDE* fde) {
+        const ui64 size = fde->getAddressRange();
 
-    // Final range:
-    // If tail is found:     start of big FDE, end of `lj_vm_ffi_call`.
-    // If tail is not found: start of big FDE, end of big FDE.
-    return MakeMaybe(std::pair(vmFdeStart, vmFdeEnd));
+        if (fde->getInitialLocation() != vmFdeEnd || size == 0 || size >= vmFdeSize ||
+            size > std::numeric_limits<ui64>::max() - vmFdeEnd) {
+            return false;
+        }
+
+        const auto& cfis = fde->cfis();
+        if (cfis.dataAlign() != -8) {
+            return false;
+        }
+        auto cfi = cfis.begin();
+
+        auto matches = [&](ui8 opcode, std::initializer_list<ui64> operands) {
+            return cfi != cfis.end() && cfi->Opcode == opcode &&
+                std::ranges::equal(cfi++->Ops, operands);
+        };
+
+        return matches(llvm::dwarf::DW_CFA_def_cfa_offset, {16}) &&
+            matches(llvm::dwarf::DW_CFA_offset, {6, 2}) && // saved rbp at CFA - 16
+            matches(llvm::dwarf::DW_CFA_def_cfa_register, {6}) &&
+            matches(llvm::dwarf::DW_CFA_offset, {3, 3}); // saved rbx at CFA - 24
+    };
+
+    auto ffiCandidates = getFdes(ehFrame, ffiTail);
+    const ui32 ffiCallSize = ffiCandidates.size() == 1 ? ffiCandidates.front()->getAddressRange() : 0;
+
+    return MakeMaybe(TLuaVMLocation{vmFdeStart, vmFdeEnd + ffiCallSize, ffiCallSize});
 }
 
 void TLuaAnalyzer::FindSymbolLocations() {

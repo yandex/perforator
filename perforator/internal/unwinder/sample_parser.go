@@ -223,6 +223,9 @@ func parseLangSections(data []byte, base int, off, size uint16, out *RecordSampl
 		case LanguageJvm:
 			decodeJvmEntries(frames, &out.JvmStack)
 		case LanguageLua:
+			if len(frames) < 2*luaFrameSize || LuaFrameType(frames[0]) != LuaFrameTypeVmInfo {
+				return fmt.Errorf("Lua stack is missing metadata or interpreter frames")
+			}
 			decodeLuaFrames(frames, &out.LuaStack)
 		}
 		pos += byteSize
@@ -263,7 +266,8 @@ func decodeLuaFrames(data []byte, stack *LuaStack) {
 	if n > len(stack.Frames) {
 		n = len(stack.Frames)
 	}
-	stack.Len = uint8(n)
+	// Wire payload includes the VM_INFO header; LuaStack.Len counts only frames.
+	stack.Len = uint8(max(0, n-1))
 	for i := 0; i < n; i++ {
 		off := i * luaFrameSize
 		_ = stack.Frames[i].UnmarshalBinary(data[off : off+luaFrameSize])

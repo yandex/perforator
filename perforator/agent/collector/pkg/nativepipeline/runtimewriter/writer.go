@@ -175,7 +175,7 @@ func normalizedLine(line int32) C.uint32_t {
 	return 0
 }
 
-func (w Frame) AddInlineFunction(name, filename string, startLine, line int32) error {
+func (w Frame) AddInlineFunction(name, filename string, startLine, line int32, systemName string, column int64) error {
 	a := w.arena
 	frame := a.frame(w.frameIndex)
 	if w.frameIndex != a.nextFrame-1 || a.inlineIndex >= int(frame.SymbolCount) {
@@ -186,12 +186,17 @@ func (w Frame) AddInlineFunction(name, filename string, startLine, line int32) e
 	if err != nil {
 		return err
 	}
+	system, err := a.putString(systemName)
+	if err != nil {
+		return err
+	}
 	file, err := a.putString(filename)
 	if err != nil {
 		return err
 	}
 	*(*C.TPerforatorResolvedSymbol)(unsafe.Add(unsafe.Pointer(a.result.Arena), symbolOffset)) = C.TPerforatorResolvedSymbol{
-		Name: function, File: file, StartLine: normalizedLine(startLine), Line: normalizedLine(line),
+		Name: function, SystemName: system, File: file,
+		StartLine: normalizedLine(startLine), Line: normalizedLine(line), Column: C.int64_t(column),
 	}
 	a.inlineIndex++
 	return nil

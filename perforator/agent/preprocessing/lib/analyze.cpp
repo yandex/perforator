@@ -176,9 +176,10 @@ TMaybe<LuaConfig> BuildLuaConfig(llvm::object::ObjectFile* objectFile) {
     if (!vmLocation) {
         return Nothing();
     }
-    auto [start, end] = *vmLocation;
+    auto [start, end, ffiCallSize] = *vmLocation;
     conf.SetVmStartPc(start);
     conf.SetVmEndPc(end);
+    conf.SetFfiCallSize(ffiCallSize);
 
     conf.SetBinarySize(analyzer.GetBinarySize());
 

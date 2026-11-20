@@ -43,6 +43,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
 	"github.com/yandex/perforator/perforator/pkg/profile/interpreterstack"
+	profilelua "github.com/yandex/perforator/perforator/pkg/profile/lua"
 	"github.com/yandex/perforator/perforator/pkg/profile/merge"
 	"github.com/yandex/perforator/perforator/pkg/profile/quality"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
@@ -200,6 +201,9 @@ func record(opts *recordOptions, args []string) error {
 
 		mergedStacksPercentage := 100 * float64(postProcessResults.Python.MergedStacksCount) / float64(postProcessResults.Python.MergedStacksCount+postProcessResults.Python.UnmergedStacksCount)
 		logger.Fmt().Debugf("Merged stacks percentage %.2f%%", mergedStacksPercentage)
+		logger.Fmt().Debugf("Lua stacks: merged %d, fallback %d", postProcessResults.Lua.MergedStacksCount, postProcessResults.Lua.UnmergedStacksCount)
+	} else {
+		profilelua.StripVMInfo(profile)
 	}
 
 	if opts.upload {

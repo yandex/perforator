@@ -757,6 +757,7 @@ message PostprocessOptions {
     // Default: remove CPython interpreter frames, importlib, trampoline
     // Strict: Leave only .py frames
     optional PythonStackPrettifyLevel PrettifyPythonStacksLevel = 4;
+    optional bool MergeLuaAndNativeStacks = 5;
 }
 
 message RenderFormat {

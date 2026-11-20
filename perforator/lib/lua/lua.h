@@ -24,6 +24,12 @@ struct TParsedLuaVersion {
     }
 };
 
+struct TLuaVMLocation {
+    ui64 Start;
+    ui64 End;
+    ui32 FfiCallSize;
+};
+
 class TLuaAnalyzer {
 public:
     struct TLuaSymbols {
@@ -75,7 +81,7 @@ public:
     ui64 GetBinarySize();
 
     // Bounds of LuaJIT ASM VM. See algorithm description in `lua.cpp`.
-    TMaybe<std::pair<ui64, ui64>> GetVMLocation();
+    TMaybe<TLuaVMLocation> GetVMLocation();
 
 private:
     void FindSymbolLocations();

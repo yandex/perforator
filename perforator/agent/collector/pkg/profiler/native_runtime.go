@@ -77,7 +77,7 @@ func (r *nativeRuntimeResolver) resolveInterpreterSection(key linux.ProcessKey, 
 		if r.lua == nil {
 			return fmt.Errorf("interpreter resolver is unavailable")
 		}
-		err = resolveInterpreterSection(r.lua.ResolveFrame, key, section, writer)
+		err = resolveLuaSection(r.lua.ResolveFrame, key, section, writer)
 	default:
 		return fmt.Errorf("unsupported interpreter language %d", section.Language)
 	}
@@ -155,7 +155,7 @@ func (r *nativeRuntimeResolver) tryAppendJITFrame(key linux.ProcessKey, address 
 			return true, err
 		}
 		for _, symbol := range resolved.Symbols {
-			if err := frame.AddInlineFunction(symbol.Name, "", 0, 0); err != nil {
+			if err := frame.AddInlineFunction(symbol.Name, "", 0, 0, "", 0); err != nil {
 				return true, err
 			}
 		}
@@ -183,7 +183,7 @@ func (r *nativeRuntimeResolver) resolveJVMFrame(ctx context.Context, key linux.P
 	if err := frame.SetMappingName("[jvm]"); err != nil {
 		return err
 	}
-	return frame.AddInlineFunction(name, "", 0, 0)
+	return frame.AddInlineFunction(name, "", 0, 0, "", 0)
 }
 
 func resolveInterpreterSection[T runtimeFrame](resolve func(linux.ProcessKey, *T, runtimewriter.Frame) error, key linux.ProcessKey, section nativepipeline.LanguageSection, writer *runtimewriter.Writer) error {
@@ -197,6 +197,31 @@ func resolveInterpreterSection[T runtimeFrame](resolve func(linux.ProcessKey, *T
 			return err
 		}
 		if err := resolve(key, &frames[i], output); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func resolveLuaSection(resolve func(linux.ProcessKey, *unwinder.LuaFrame, *unwinder.LuaFrame, runtimewriter.Frame) error, key linux.ProcessKey, section nativepipeline.LanguageSection, writer *runtimewriter.Writer) error {
+	frames, err := viewRuntimeFrames[unwinder.LuaFrame](section)
+	if err != nil {
+		return err
+	}
+	for i := range frames {
+		output, err := writer.AddFrame(0, 1)
+		if err != nil {
+			return err
+		}
+
+		var callerFrame *unwinder.LuaFrame
+
+		// Frames run from callee to caller. The caller's PC names callee's frame.
+		if i+1 < len(frames) {
+			callerFrame = &frames[i+1]
+		}
+
+		if err := resolve(key, &frames[i], callerFrame, output); err != nil {
 			return err
 		}
 	}

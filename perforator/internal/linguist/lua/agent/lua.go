@@ -32,5 +32,6 @@ func ParseLuaUnwinderConfig(conf *lua.LuaConfig) *unwinder.LuaConfig {
 		BinarySize:        conf.BinarySize,
 		VmStartPc:         conf.VmStartPc,
 		VmEndPc:           conf.VmEndPc,
+		FfiCallSize:       conf.FfiCallSize,
 	}
 }

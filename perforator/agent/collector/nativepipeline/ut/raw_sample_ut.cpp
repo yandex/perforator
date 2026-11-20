@@ -65,7 +65,7 @@ Y_UNIT_TEST_SUITE(RawSample) {
             "000000000000000000000000000000002a0000002b0000000000000000000000"
             "00000000000000002b0200000000000064000000000000000100000000000000"
             "0100000000000000c80000000000000000001000100008001800300048003001"
-            "7801080080017800100000000000000020000000000000003000000000000000"
+            "780108008001a000100000000000000020000000000000003000000000000000"
             "4000000000000000500000000000000007000000000000006000000000000000"
             "7000000000000000090000000000000040000000000000000100000000000000"
             "6300000000000000000000000000000000000000000000000000000000000000"
@@ -80,7 +80,9 @@ Y_UNIT_TEST_SUITE(RawSample) {
             "2a00000000000000200000012000000034120000000000000b00000000000000"
             "3812000000000000785600000000000010000101100000004523000000000000"
             "0c00000000000000100002021000000000000000000000005634000000000000"
-            "1800030118000000000000000000000067450000000000000d00000000000000";
+            "4000030120000000030000000000000000100000000000000020000000000000"
+            "0000000000000000000000000000000067450000000000000d00000011000000"
+            "0500000000000000";
         const TString base = HexDecode(hex.data(), hex.size());
         const struct {
             const char* Name;
@@ -90,31 +92,31 @@ Y_UNIT_TEST_SUITE(RawSample) {
             size_t Width;
             bool Accept;
         } cases[] = {
-            {"all_sections", 672, 0, 0, 0, true},
-            {"perf_padding", 676, 0, 0, 0, true},
+            {"all_sections", 712, 0, 0, 0, true},
+            {"perf_padding", 716, 0, 0, 0, true},
             {"short_header", 167, 0, 0, 0, false},
-            {"truncated_payload", 671, 0, 0, 0, false},
-            {"wrong_tag", 672, 0, 1, 1, false},
-            {"undefined_sample_type", 672, 4, 0, 1, false},
-            {"unknown_sample_type", 672, 4, 6, 1, false},
-            {"overlapping_sections", 672, 148, 8, 1, false},
-            {"gap_between_sections", 672, 148, 24, 1, false},
-            {"partial_stack", 672, 146, 15, 1, false},
-            {"misaligned_section", 672, 144, 1, 1, false},
-            {"section_out_of_bounds", 672, 166, 65535, 2, false},
-            {"unknown_language", 672, 554, 4, 1, false},
-            {"reserved_language_byte_zero", 672, 555, 0, 1, true},
-            {"zero_element_size", 672, 556, 0, 1, false},
-            {"misaligned_element_size", 672, 556, 7, 1, false},
-            {"zero_payload_size", 672, 552, 0, 1, false},
-            {"partial_language_element", 672, 552, 31, 1, false},
-            {"truncated_language_header", 672, 166, 1, 1, false},
-            {"language_out_of_bounds", 672, 552, 4096, 2, false},
-            {"duplicate_language", 672, 594, 0, 1, false},
-            {"reserved_language_byte_nonzero", 672, 555, 2, 1, true},
+            {"truncated_payload", 711, 0, 0, 0, false},
+            {"wrong_tag", 712, 0, 1, 1, false},
+            {"undefined_sample_type", 712, 4, 0, 1, false},
+            {"unknown_sample_type", 712, 4, 6, 1, false},
+            {"overlapping_sections", 712, 148, 8, 1, false},
+            {"gap_between_sections", 712, 148, 24, 1, false},
+            {"partial_stack", 712, 146, 15, 1, false},
+            {"misaligned_section", 712, 144, 1, 1, false},
+            {"section_out_of_bounds", 712, 166, 65535, 2, false},
+            {"unknown_language", 712, 554, 4, 1, false},
+            {"reserved_language_byte_zero", 712, 555, 0, 1, true},
+            {"zero_element_size", 712, 556, 0, 1, false},
+            {"misaligned_element_size", 712, 556, 7, 1, false},
+            {"zero_payload_size", 712, 552, 0, 1, false},
+            {"partial_language_element", 712, 552, 31, 1, false},
+            {"truncated_language_header", 712, 166, 1, 1, false},
+            {"language_out_of_bounds", 712, 552, 4096, 2, false},
+            {"duplicate_language", 712, 594, 0, 1, false},
+            {"reserved_language_byte_nonzero", 712, 555, 2, 1, true},
             // Opaque interpreter payloads are accepted here but rejected by Go.
-            {"opaque_interpreter_size", 672, 556, 16, 1, true},
-            {"reserved_jvm_byte_nonzero", 672, 619, 1, 1, true},
+            {"opaque_interpreter_size", 712, 556, 16, 1, true},
+            {"reserved_jvm_byte_nonzero", 712, 619, 1, 1, true},
         };
         for (const auto& test : cases) {
             TString record = base;
@@ -164,7 +166,8 @@ Y_UNIT_TEST_SUITE(RawSample) {
                                      TStringBuf(test.Name) == "opaque_interpreter_size" ? 16 : 32);
             UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_PHP)->Count(), 1);
             UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_JVM)->Count(), 1);
-            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_LUA)->Count(), 1);
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_LUA)->Count(), 2);
+            UNIT_ASSERT_VALUES_EQUAL(sample.LanguageSection(LANGUAGE_LUA)->Element(0).size(), 32);
         }
     }
 
