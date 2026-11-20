@@ -117,7 +117,7 @@ type Config struct {
 	BinaryProcessorClientConfig *bpclient.Config      `yaml:"binary_processor_client"`
 }
 
-func ParseConfig(path string) (conf *Config, err error) {
+func ParseConfig(path string, strict bool) (conf *Config, err error) {
 	var file *os.File
 	file, err = os.Open(path)
 	if err != nil {
@@ -125,7 +125,11 @@ func ParseConfig(path string) (conf *Config, err error) {
 	}
 
 	conf = &Config{}
-	err = yaml.NewDecoder(file).Decode(conf)
+	dec := yaml.NewDecoder(file)
+	if strict {
+		dec.KnownFields(true)
+	}
+	err = dec.Decode(conf)
 	return
 }
 

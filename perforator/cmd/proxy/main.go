@@ -65,7 +65,7 @@ var (
 				logger.Error(ctx, "Failed to lock self executable", log.Error(err))
 			}
 
-			conf, err := server.ParseConfig(configPath)
+			conf, err := server.ParseConfig(configPath, false)
 			if err != nil {
 				return err
 			}
@@ -152,7 +152,7 @@ func init() {
 		"proxy",
 		validateconfig.ValidateConfigFunc(
 			func(configPath string) error {
-				config, err := server.ParseConfig(configPath)
+				config, err := server.ParseConfig(configPath, true)
 				if err != nil {
 					return err
 				}
