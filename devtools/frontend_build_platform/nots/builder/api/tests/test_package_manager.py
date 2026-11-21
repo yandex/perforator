@@ -27,7 +27,7 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
             return_value={
                 "pnpm": {
                     "defaults": defaults,
-                    "runtimeEnvSettings": list(defaults),
+                    "runtimeEnvSettings": ["registry"],
                     "environment": {"PNPM_MAX_WORKERS": "6"},
                 }
             }
@@ -55,11 +55,11 @@ def test_exec_command_passes_platform_defaults_to_pnpm(monkeypatch, tmp_path, ov
     package_manager._exec_command(["install"], cwd=str(tmp_path), env=env)
 
     command_env = popen.call_args.kwargs["env"]
-    for prefix in ("npm_config_", "pnpm_config_"):
-        assert command_env[prefix + "pm_on_fail"] == "warn"
-        assert command_env[prefix + "registry"] == "https://npm.example.test/CaseSensitive"
-        assert command_env[prefix + "trust_lockfile"] == "true"
-        assert command_env[prefix + "verify_deps_before_run"] == "false"
+    assert command_env["pnpm_config_registry"] == "https://npm.example.test/CaseSensitive"
+    assert command_env.get("npm_config_registry") == original_env.get("npm_config_registry")
+    for key in ("pm_on_fail", "trust_lockfile", "verify_deps_before_run"):
+        assert "npm_config_" + key not in command_env
+        assert "pnpm_config_" + key not in command_env
     assert command_env["CUSTOM_SETTING"] == "preserved"
     assert command_env["PNPM_MAX_WORKERS"] == "6"
     assert os.environ["PNPM_MAX_WORKERS"] == "191"

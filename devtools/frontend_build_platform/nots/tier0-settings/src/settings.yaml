@@ -15,17 +15,10 @@ pnpm:
         PNPM_MAX_WORKERS: '4'
         RAYON_NUM_THREADS: '4'
 
-    # Передаются также дочерним pnpm через npm_config_* и pnpm_config_*.
-    # Значения берутся из defaults; список общий для CLI и builder.
+    # Registry передаётся дочерним pnpm через pnpm_config_registry.
+    # Остальные настройки берутся из сгенерированного pnpm-workspace.yaml.
     runtimeEnvSettings:
-        - gitChecks
-        - lockfileIncludeTarballUrl
-        - pmOnFail
         - registry
-        - trustLockfile
-        - updateNotifier
-        - verifyDepsBeforeRun
-        - verifyStoreIntegrity
 
     # Разрешённые пользовательские настройки. Типы используются builder и CLI при чтении YAML.
     supportedCustomSettings:

@@ -22,12 +22,11 @@ def pnpm_runtime_env():
     policy = load_tier0_settings()["pnpm"]
     defaults = policy["defaults"]
     env = {
-        prefix
+        "pnpm_config_"
         + re.sub(r"[A-Z]", lambda match: "_" + match.group().lower(), key): (
             str(defaults[key]).lower() if isinstance(defaults[key], bool) else str(defaults[key])
         )
         for key in policy["runtimeEnvSettings"]
-        for prefix in ("npm_config_", "pnpm_config_")
     }
     env.update(policy.get("environment", {}))
     return env
