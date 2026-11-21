@@ -1,22 +1,24 @@
 {
   "info": {
-    "created": "2026-11-20T14:42:25Z",
-    "commit": "a3c1b446de0fc36d6b2cd9cb2829938429f12279",
-    "branch": "fbp3691-migrator-nov20",
-    "dirty": false
+    "created": "2026-11-21T00:43:35Z",
+    "pr": {
+      "id": 16956314,
+      "author": "baymer",
+      "summary": "FBP-3690: убрать дубли настроек pnpm из окружения билдера и CLI"
+    }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:14322050136"
+      "uri": "sbr:14325857106"
     },
     "darwin-arm64": {
-      "uri": "sbr:14322051557"
+      "uri": "sbr:14325856684"
     },
     "linux": {
-      "uri": "sbr:14322046523"
+      "uri": "sbr:14325858110"
     },
     "linux-aarch64": {
-      "uri": "sbr:14322048551"
+      "uri": "sbr:14325857506"
     }
   }
 }
