@@ -1,0 +1,351 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "nots Tier-0 settings",
+  "type": "object",
+  "properties": {
+    "concurrency": {
+      "type": "object",
+      "properties": {
+        "installGroups": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "link": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "prebuilder": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "preinstall": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["installGroups", "link", "prebuilder", "preinstall"],
+      "additionalProperties": false
+    },
+    "pnpm": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "runtimeEnvSettings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "defaults": {
+          "type": "object",
+          "properties": {
+            "allowUnusedPatches": {
+              "type": "boolean"
+            },
+            "autoInstallPeers": {
+              "type": "boolean"
+            },
+            "dedupePeerDependents": {
+              "type": "boolean"
+            },
+            "fetchRetries": {
+              "$ref": "#/$defs/non-negative-integer"
+            },
+            "fetchRetryFactor": {
+              "$ref": "#/$defs/non-negative-integer"
+            },
+            "fetchRetryMintimeout": {
+              "$ref": "#/$defs/non-negative-integer"
+            },
+            "fetchRetryMaxtimeout": {
+              "$ref": "#/$defs/non-negative-integer"
+            },
+            "ignorePnpmfile": {
+              "type": "boolean"
+            },
+            "ignoreScripts": {
+              "type": "boolean"
+            },
+            "injectWorkspacePackages": {
+              "type": "boolean"
+            },
+            "sharedWorkspaceLockfile": {
+              "type": "boolean"
+            },
+            "modulesDir": {
+              "type": "string",
+              "minLength": 1
+            },
+            "virtualStoreType": {
+              "$ref": "#/$defs/virtual-store-type"
+            },
+            "pmOnFail": {
+              "type": "string",
+              "minLength": 1
+            },
+            "packageImportMethod": {
+              "type": "string",
+              "minLength": 1
+            },
+            "preferSymlinkedExecutables": {
+              "type": "boolean"
+            },
+            "preferWorkspacePackages": {
+              "type": "boolean"
+            },
+            "registry": {
+              "type": "string",
+              "minLength": 1
+            },
+            "registries": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "serverType": {
+                    "type": "string"
+                  }
+                },
+                "required": ["serverType"],
+                "additionalProperties": false
+              }
+            },
+            "shellEmulator": {
+              "type": "boolean"
+            },
+            "strictPeerDependencies": {
+              "type": "boolean"
+            },
+            "updateNotifier": {
+              "type": "boolean"
+            },
+            "verifyStoreIntegrity": {
+              "type": "boolean"
+            },
+            "gitChecks": {
+              "type": "boolean"
+            },
+            "lockfileIncludeTarballUrl": {
+              "type": "boolean"
+            },
+            "trustLockfile": {
+              "type": "boolean"
+            },
+            "verifyDepsBeforeRun": {
+              "type": "boolean"
+            }
+          },
+          "required": ["registry"],
+          "additionalProperties": false
+        },
+        "supportedCustomSettings": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "enum": [
+              "boolean",
+              "non-negative-integer",
+              "string-list",
+              "dependency-map",
+              "patch-map",
+              "virtual-store-type",
+              "supported-architectures",
+              "peer-rules",
+              "package-extensions",
+              "catalogs"
+            ]
+          }
+        },
+        "workspaceComments": {
+          "type": "object",
+          "properties": {
+            "header": {
+              "type": "string",
+              "minLength": 1
+            },
+            "configurable": {
+              "type": "string",
+              "minLength": 1
+            },
+            "catalogs": {
+              "type": "string",
+              "minLength": 1
+            },
+            "managed": {
+              "type": "string",
+              "minLength": 1
+            },
+            "generated": {
+              "type": "string",
+              "minLength": 1
+            },
+            "descriptions": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            }
+          },
+          "required": ["header", "configurable", "catalogs", "managed", "generated", "descriptions"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["defaults", "runtimeEnvSettings", "supportedCustomSettings", "workspaceComments"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["concurrency", "pnpm"],
+  "additionalProperties": false,
+  "$defs": {
+    "boolean": {
+      "type": "boolean"
+    },
+    "non-negative-integer": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "string-list": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependency-map": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "patch-map": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "virtual-store-type": {
+      "enum": ["project", "global"]
+    },
+    "supported-architectures": {
+      "type": "object",
+      "properties": {
+        "os": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cpu": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "libc": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "peer-rules": {
+      "type": "object",
+      "properties": {
+        "ignoreMissing": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowAny": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowedVersions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "package-extensions": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "dependencies": {
+            "$ref": "#/$defs/dependency-map"
+          },
+          "optionalDependencies": {
+            "$ref": "#/$defs/dependency-map"
+          },
+          "peerDependencies": {
+            "$ref": "#/$defs/dependency-map"
+          },
+          "peerDependenciesMeta": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "optional": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "catalogs": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/dependency-map"
+      }
+    }
+  }
+}

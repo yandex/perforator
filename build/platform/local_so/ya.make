@@ -1,7 +1,0 @@
-RESOURCES_LIBRARY()
-
-IF (OS_LINUX)
-    SET_APPEND(RPATH_GLOBAL '-Wl,-rpath,${"$"}ORIGIN')
-ENDIF()
-
-END()
