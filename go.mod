@@ -1153,6 +1153,7 @@ require (
 	go.temporal.io/sdk v1.36.0
 	go.temporal.io/sdk/contrib/envconfig v0.1.0
 	go.temporal.io/sdk/contrib/opentelemetry v0.3.1-0.20231014000700-06c90fb36987
+	go.temporal.io/sdk/contrib/resourcetuner v0.0.0-20250827165853-0353a6d6a68d
 	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129171107-288a04f72145
 	go.temporal.io/sdk/contrib/tools/workflowcheck v0.4.0
 	go.temporal.io/server v1.29.6
@@ -2658,6 +2659,7 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20230310154051-c8b263fd8300 // indirect
 	github.com/zmap/zlint/v3 v3.6.0-rc1 // indirect
 	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20230209143738-95328d8c4438 // indirect
+	go.einride.tech/pid v0.1.3 // indirect
 	go.etcd.io/etcd/client/v2 v2.305.21 // indirect
 	go.etcd.io/etcd/client/v3 v3.7.0 // indirect
 	go.etcd.io/etcd/etcdctl/v3 v3.5.8 // indirect

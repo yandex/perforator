@@ -19502,6 +19502,9 @@ go.einride.tech/aip/filtering
 go.einride.tech/aip/filtering/exprs
 go.einride.tech/aip/proto/gen/einride/example/syntax/v1
 go.einride.tech/aip/resourcename
+# go.einride.tech/pid v0.1.3
+## explicit; go 1.17
+go.einride.tech/pid
 # go.etcd.io/bbolt v1.5.0
 ## explicit; go 1.25.0
 go.etcd.io/bbolt
@@ -20992,6 +20995,9 @@ go.temporal.io/sdk/contrib/envconfig
 # go.temporal.io/sdk/contrib/opentelemetry v0.3.1-0.20231014000700-06c90fb36987
 ## explicit; go 1.16
 go.temporal.io/sdk/contrib/opentelemetry
+# go.temporal.io/sdk/contrib/resourcetuner v0.0.0-20250827165853-0353a6d6a68d
+## explicit; go 1.23.0
+go.temporal.io/sdk/contrib/resourcetuner
 # go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129171107-288a04f72145
 ## explicit; go 1.20
 go.temporal.io/sdk/contrib/tally
