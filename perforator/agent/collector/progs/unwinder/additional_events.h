@@ -54,7 +54,7 @@ static NOINLINE void profiler_stage_collect_additional_events(struct record_samp
             long err = bpf_perf_event_read_value(map, BPF_F_CURRENT_CPU, &value, sizeof(value));
             if (err == 0 && value.running > 0) {
                 if (prev->running == 0) {
-                   BPF_TRACE("additional_events[%d]: first read, baseline set\n", i);
+                    BPF_TRACE("additional_events[%d]: first read, baseline set\n", i);
                     *prev = value;
                 } else if (value.counter < prev->counter || value.enabled < prev->enabled || value.running < prev->running) {
                     BPF_TRACE("additional_events[%d]: counters went backwards, re-baselining\n", i);
