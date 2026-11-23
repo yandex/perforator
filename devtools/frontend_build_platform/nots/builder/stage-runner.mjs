@@ -9,16 +9,13 @@ function parseOptions(args) {
     }
 
     const required = [
-        "--node", "--bsdtar", "--archiver", "--rsync", "--synchronizer",
+        "--bun", "--bsdtar", "--archiver", "--rsync", "--synchronizer",
         "--builder", "--recipe", "--runtime", "--module",
     ];
     for (const name of required) {
         if (!options.get(name)) {
             throw new Error(`Missing ${name}`);
         }
-    }
-    if (Boolean(options.get("--libatomic")) !== Boolean(options.get("--runtime-libatomic"))) {
-        throw new Error("Expected --libatomic and --runtime-libatomic together");
     }
     return options;
 }
@@ -54,14 +51,13 @@ function stageExecutable(source, destination) {
 }
 
 function writeLauncher(filename, staged, mode) {
-    const libraryPath = staged.libatomic ? 'export LD_LIBRARY_PATH="$dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\n' : "";
-    // Keep yatest's --env-file argument out of Node's early option parser.
+    // Keep yatest's --env-file argument out of Bun's early option parser.
     const contents = `#!/bin/sh
 set -eu
 dir=$(CDPATH= cd -- "\${0%/*}" && pwd)
 export NOTS_BSDTAR_PATH="\${NOTS_BSDTAR_PATH:-$dir/${path.basename(staged.archiver)}}"
 export NOTS_RSYNC_PATH="$dir/${path.basename(staged.synchronizer)}"
-${libraryPath}exec "$dir/${path.basename(staged.runtime)}" -- "$dir/${path.basename(staged.module)}" ${mode} "$@"
+exec "$dir/${path.basename(staged.runtime)}" --no-env-file --config=/dev/null --no-install -- "$dir/${path.basename(staged.module)}" ${mode} "$@"
 `;
     fs.writeFileSync(filename, contents);
     fs.chmodSync(filename, 0o755);
@@ -74,16 +70,12 @@ function main(args) {
         module: options.get("--module"),
         archiver: options.get("--archiver"),
         synchronizer: options.get("--synchronizer"),
-        libatomic: options.get("--libatomic"),
     };
 
     stageBundle(options, staged.module);
-    stageExecutable(options.get("--node"), staged.runtime);
+    stageExecutable(options.get("--bun"), staged.runtime);
     stageExecutable(options.get("--bsdtar"), staged.archiver);
     stageExecutable(options.get("--rsync"), staged.synchronizer);
-    if (staged.libatomic) {
-        fs.copyFileSync(staged.libatomic, options.get("--runtime-libatomic"));
-    }
 
     writeLauncher(options.get("--builder"), staged, "--internal-builder");
     writeLauncher(options.get("--recipe"), staged, "--internal-recipe");
