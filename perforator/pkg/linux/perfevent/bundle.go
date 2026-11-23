@@ -77,7 +77,7 @@ func (b *Bundle) cpus() []int {
 }
 
 // rebuildFDs updates fds field.
-// It expectes that b.mu is read-locked.
+// It expects that b.mu is write-locked.
 func (b *Bundle) rebuildFDs() {
 	res := make(map[int]int)
 	for _, event := range b.events {
@@ -89,10 +89,9 @@ func (b *Bundle) rebuildFDs() {
 // FDs returns current file descriptors of all underlying events.
 // Returned map may not be modified.
 func (b *Bundle) FDs() map[int]int {
-	res := make(map[int]int)
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-	return res
+	return b.fds
 }
 
 func foreach[E any](items []E, cb func(E) error) error {

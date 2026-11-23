@@ -45,10 +45,10 @@ func (m *Manager) OpenGroup(
 	}
 	bundles = append(bundles, leader)
 	childOpts := openImplConfig{
-		bestEffort: cfg.BestEffort,
-		leader:     leader,
+		// note that bestEffort is not passed
+		// as we want to have siblings on the exact same CPUs as leader
+		leader: leader,
 	}
-	childOpts.leader = leader
 	for _, opt := range options[1:] {
 		var bundle *Bundle
 		bundle, err = m.openImpl(target, opt, childOpts)
