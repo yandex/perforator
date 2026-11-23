@@ -47,13 +47,19 @@ func ParseStats(r io.Reader) (*Stats, error) {
 		fieldAbtc2       = "abtc2"
 		fieldBmbt2       = "bmbt2"
 		fieldIbt2        = "ibt2"
-		//fieldFibt2 = "fibt2"
-		fieldQm    = "qm"
-		fieldDebug = "debug"
-		// Unimplemented at this time due to lack of documentation.
-		//fieldRmapbt = "rmapbt"
-		//fieldRefcntbt = "refcntbt"
-
+		fieldFibt2       = "fibt2"
+		fieldRmapbt      = "rmapbt"
+		fieldRefcntbt    = "refcntbt"
+		fieldRmapbtMem   = "rmapbt_mem"
+		fieldRcbagbt     = "rcbagbt"
+		fieldRtrmapbt    = "rtrmapbt"
+		fieldRtrmapbtMem = "rtrmapbt_mem"
+		fieldRtrefcntbt  = "rtrefcntbt"
+		fieldQm          = "qm"
+		fieldDebug       = "debug"
+		fieldZoned       = "zoned"
+		fieldMetaFile    = "metafile"
+		fieldDeferRelog  = "defer_relog"
 	)
 
 	var xfss Stats
@@ -63,11 +69,25 @@ func ParseStats(r io.Reader) (*Stats, error) {
 		// Expect at least a string label and a single integer value, ex:
 		//   - abt 0
 		//   - rw 1 2
+		//   - gc xpc 123  (two-word label)
 		ss := strings.Fields(string(s.Bytes()))
 		if len(ss) < 2 {
 			continue
 		}
 		label := ss[0]
+
+		// Special case: "gc xpc" is a two-word label in the kernel output.
+		if label == "gc" && len(ss) >= 3 && ss[1] == "xpc" {
+			us, err := util.ParseUint64s(ss[2:])
+			if err != nil {
+				return nil, err
+			}
+			xfss.GcXpc, err = gcXpcStats(us)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
 
 		// Extended precision counters are uint64 values.
 		if label == fieldXpc {
@@ -81,6 +101,19 @@ func ParseStats(r io.Reader) (*Stats, error) {
 				return nil, err
 			}
 
+			continue
+		}
+
+		// Defer relog counter is a single uint64 value.
+		if label == fieldDeferRelog {
+			us, err := util.ParseUint64s(ss[1:])
+			if err != nil {
+				return nil, err
+			}
+			xfss.DeferRelog, err = deferRelogStats(us)
+			if err != nil {
+				return nil, err
+			}
 			continue
 		}
 
@@ -129,11 +162,30 @@ func ParseStats(r io.Reader) (*Stats, error) {
 			xfss.BtreeBlockMap2, err = btreeBlockMap2Stats(us)
 		case fieldIbt2:
 			xfss.BtreeInode2, err = btreeInode2Stats(us)
-		//case fieldFibt2:
+		case fieldFibt2:
+			xfss.BtreeFreeInode2, err = btreeFreeInode2Stats(us)
+		case fieldRmapbt:
+			xfss.BtreeReverseMap, err = btreeReverseMapStats(us)
+		case fieldRefcntbt:
+			xfss.BtreeRefCount, err = btreeRefCountStats(us)
+		case fieldRmapbtMem:
+			xfss.BtreeReverseMapMem, err = btreeReverseMapMemStats(us)
+		case fieldRcbagbt:
+			xfss.BtreeRcbag, err = btreeRcbagStats(us)
+		case fieldRtrmapbt:
+			xfss.BtreeRtReverseMap, err = btreeRtReverseMapStats(us)
+		case fieldRtrmapbtMem:
+			xfss.BtreeRtReverseMapMem, err = btreeRtReverseMapMemStats(us)
+		case fieldRtrefcntbt:
+			xfss.BtreeRtRefCount, err = btreeRtRefCountStats(us)
 		case fieldQm:
 			xfss.QuotaManager, err = quotaManagerStats(us)
 		case fieldDebug:
 			xfss.Debug, err = debugStats(us)
+		case fieldZoned:
+			xfss.Zoned, err = zonedStats(us)
+		case fieldMetaFile:
+			xfss.MetaFile, err = metaFileStats(us)
 		}
 		if err != nil {
 			return nil, err
@@ -514,5 +566,251 @@ func btreeInode2Stats(us []uint32) (BtreeInode2Stats, error) {
 		Alloc:     us[12],
 		Free:      us[13],
 		Moves:     us[14],
+	}, nil
+}
+
+// btreeFreeInode2Stats handles fibt2 stats.
+func btreeFreeInode2Stats(us []uint32) (BtreeFreeInode2Stats, error) {
+	if l := len(us); l != 15 {
+		return BtreeFreeInode2Stats{}, fmt.Errorf("incorrect number of values for fibt2 stats: %d", l)
+	}
+
+	return BtreeFreeInode2Stats{
+		Lookup:    us[0],
+		Compare:   us[1],
+		Insrec:    us[2],
+		Delrec:    us[3],
+		NewRoot:   us[4],
+		KillRoot:  us[5],
+		Increment: us[6],
+		Decrement: us[7],
+		Lshift:    us[8],
+		Rshift:    us[9],
+		Split:     us[10],
+		Join:      us[11],
+		Alloc:     us[12],
+		Free:      us[13],
+		Moves:     us[14],
+	}, nil
+}
+
+// btreeReverseMapStats handles rmapbt stats.
+func btreeReverseMapStats(us []uint32) (BtreeReverseMapStats, error) {
+	if l := len(us); l != 15 {
+		return BtreeReverseMapStats{}, fmt.Errorf("incorrect number of values for rmapbt stats: %d", l)
+	}
+
+	return BtreeReverseMapStats{
+		Lookup:    us[0],
+		Compare:   us[1],
+		Insrec:    us[2],
+		Delrec:    us[3],
+		NewRoot:   us[4],
+		KillRoot:  us[5],
+		Increment: us[6],
+		Decrement: us[7],
+		Lshift:    us[8],
+		Rshift:    us[9],
+		Split:     us[10],
+		Join:      us[11],
+		Alloc:     us[12],
+		Free:      us[13],
+		Moves:     us[14],
+	}, nil
+}
+
+// btreeRefCountStats handles refcntbt stats.
+func btreeRefCountStats(us []uint32) (BtreeRefCountStats, error) {
+	if l := len(us); l != 15 {
+		return BtreeRefCountStats{}, fmt.Errorf("incorrect number of values for refcntbt stats: %d", l)
+	}
+
+	return BtreeRefCountStats{
+		Lookup:    us[0],
+		Compare:   us[1],
+		Insrec:    us[2],
+		Delrec:    us[3],
+		NewRoot:   us[4],
+		KillRoot:  us[5],
+		Increment: us[6],
+		Decrement: us[7],
+		Lshift:    us[8],
+		Rshift:    us[9],
+		Split:     us[10],
+		Join:      us[11],
+		Alloc:     us[12],
+		Free:      us[13],
+		Moves:     us[14],
+	}, nil
+}
+
+// btreeReverseMapMemStats handles rmapbt_mem stats.
+func btreeReverseMapMemStats(us []uint32) (BtreeReverseMapMemStats, error) {
+	if l := len(us); l != 15 {
+		return BtreeReverseMapMemStats{}, fmt.Errorf("incorrect number of values for rmapbt_mem stats: %d", l)
+	}
+
+	return BtreeReverseMapMemStats{
+		Lookup:    us[0],
+		Compare:   us[1],
+		Insrec:    us[2],
+		Delrec:    us[3],
+		NewRoot:   us[4],
+		KillRoot:  us[5],
+		Increment: us[6],
+		Decrement: us[7],
+		Lshift:    us[8],
+		Rshift:    us[9],
+		Split:     us[10],
+		Join:      us[11],
+		Alloc:     us[12],
+		Free:      us[13],
+		Moves:     us[14],
+	}, nil
+}
+
+// btreeRcbagStats handles rcbagbt stats.
+func btreeRcbagStats(us []uint32) (BtreeRcbagStats, error) {
+	if l := len(us); l != 15 {
+		return BtreeRcbagStats{}, fmt.Errorf("incorrect number of values for rcbagbt stats: %d", l)
+	}
+
+	return BtreeRcbagStats{
+		Lookup:    us[0],
+		Compare:   us[1],
+		Insrec:    us[2],
+		Delrec:    us[3],
+		NewRoot:   us[4],
+		KillRoot:  us[5],
+		Increment: us[6],
+		Decrement: us[7],
+		Lshift:    us[8],
+		Rshift:    us[9],
+		Split:     us[10],
+		Join:      us[11],
+		Alloc:     us[12],
+		Free:      us[13],
+		Moves:     us[14],
+	}, nil
+}
+
+// btreeRtReverseMapStats handles rtrmapbt stats.
+func btreeRtReverseMapStats(us []uint32) (BtreeRtReverseMapStats, error) {
+	if l := len(us); l != 15 {
+		return BtreeRtReverseMapStats{}, fmt.Errorf("incorrect number of values for rtrmapbt stats: %d", l)
+	}
+
+	return BtreeRtReverseMapStats{
+		Lookup:    us[0],
+		Compare:   us[1],
+		Insrec:    us[2],
+		Delrec:    us[3],
+		NewRoot:   us[4],
+		KillRoot:  us[5],
+		Increment: us[6],
+		Decrement: us[7],
+		Lshift:    us[8],
+		Rshift:    us[9],
+		Split:     us[10],
+		Join:      us[11],
+		Alloc:     us[12],
+		Free:      us[13],
+		Moves:     us[14],
+	}, nil
+}
+
+// btreeRtReverseMapMemStats handles rtrmapbt_mem stats.
+func btreeRtReverseMapMemStats(us []uint32) (BtreeRtReverseMapMemStats, error) {
+	if l := len(us); l != 15 {
+		return BtreeRtReverseMapMemStats{}, fmt.Errorf("incorrect number of values for rtrmapbt_mem stats: %d", l)
+	}
+
+	return BtreeRtReverseMapMemStats{
+		Lookup:    us[0],
+		Compare:   us[1],
+		Insrec:    us[2],
+		Delrec:    us[3],
+		NewRoot:   us[4],
+		KillRoot:  us[5],
+		Increment: us[6],
+		Decrement: us[7],
+		Lshift:    us[8],
+		Rshift:    us[9],
+		Split:     us[10],
+		Join:      us[11],
+		Alloc:     us[12],
+		Free:      us[13],
+		Moves:     us[14],
+	}, nil
+}
+
+// btreeRtRefCountStats handles rtrefcntbt stats.
+func btreeRtRefCountStats(us []uint32) (BtreeRtRefCountStats, error) {
+	if l := len(us); l != 15 {
+		return BtreeRtRefCountStats{}, fmt.Errorf("incorrect number of values for rtrefcntbt stats: %d", l)
+	}
+
+	return BtreeRtRefCountStats{
+		Lookup:    us[0],
+		Compare:   us[1],
+		Insrec:    us[2],
+		Delrec:    us[3],
+		NewRoot:   us[4],
+		KillRoot:  us[5],
+		Increment: us[6],
+		Decrement: us[7],
+		Lshift:    us[8],
+		Rshift:    us[9],
+		Split:     us[10],
+		Join:      us[11],
+		Alloc:     us[12],
+		Free:      us[13],
+		Moves:     us[14],
+	}, nil
+}
+
+// zonedStats handles zoned stats.
+func zonedStats(us []uint32) (ZonedStats, error) {
+	if l := len(us); l < 3 {
+		return ZonedStats{}, fmt.Errorf("incorrect number of values for zoned stats: %d", l)
+	}
+
+	return ZonedStats{
+		GcReadCalls:      us[0],
+		GcWriteCalls:     us[1],
+		GcZoneResetCalls: us[2],
+	}, nil
+}
+
+// metaFileStats handles metafile stats.
+func metaFileStats(us []uint32) (MetaFileStats, error) {
+	if l := len(us); l < 1 {
+		return MetaFileStats{}, fmt.Errorf("incorrect number of values for metafile stats: %d", l)
+	}
+
+	return MetaFileStats{
+		Inodes: us[0],
+	}, nil
+}
+
+// deferRelogStats handles defer_relog stats.
+func deferRelogStats(us []uint64) (DeferRelogStats, error) {
+	if l := len(us); l != 1 {
+		return DeferRelogStats{}, fmt.Errorf("incorrect number of values for XFS defer_relog stats: %d", l)
+	}
+
+	return DeferRelogStats{
+		Count: us[0],
+	}, nil
+}
+
+// gcXpcStats handles gc xpc stats.
+func gcXpcStats(us []uint64) (GcXpcStats, error) {
+	if l := len(us); l != 1 {
+		return GcXpcStats{}, fmt.Errorf("incorrect number of values for XFS gc xpc stats: %d", l)
+	}
+
+	return GcXpcStats{
+		Bytes: us[0],
 	}, nil
 }

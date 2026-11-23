@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v6.3.2)
+VERSION(v6.4.2)
 
 ALL_GO_SRCS()
 

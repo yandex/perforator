@@ -405,7 +405,7 @@ var filter_{{ .Method.Service.GetName }}_{{ .Method.GetName }}_{{ .Index }} = {{
 	if err := marshaler.NewDecoder(req.Body).Decode(&bodyData); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-	protoReq = bodyData
+	proto.Merge(&protoReq, &bodyData)
 	{{- else }}
 	bodyData := &{{ .GetBodyFieldType }}{}
 	if err := marshaler.NewDecoder(req.Body).Decode(bodyData); err != nil && !errors.Is(err, io.EOF) {
@@ -429,7 +429,7 @@ var filter_{{ .Method.Service.GetName }}_{{ .Method.GetName }}_{{ .Index }} = {{
 	if err := marshaler.NewDecoder(newReader()).Decode(&bodyData); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-	protoReq = bodyData
+	proto.Merge(&protoReq, &bodyData)
 	{{- else }}
 	bodyData := &{{ .GetBodyFieldType }}{}
 	if err := marshaler.NewDecoder(newReader()).Decode(bodyData); err != nil && !errors.Is(err, io.EOF) {
@@ -650,7 +650,7 @@ func local_request_{{ .Method.Service.GetName }}_{{ .Method.GetName }}_{{ .Index
 	if err := marshaler.NewDecoder(req.Body).Decode(&bodyData); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-	protoReq = bodyData
+	proto.Merge(&protoReq, &bodyData)
 	{{- else }}
 	bodyData := &{{ .GetBodyFieldType }}{}
 	if err := marshaler.NewDecoder(req.Body).Decode(bodyData); err != nil && !errors.Is(err, io.EOF) {
@@ -671,7 +671,7 @@ func local_request_{{ .Method.Service.GetName }}_{{ .Method.GetName }}_{{ .Index
 	if err := marshaler.NewDecoder(newReader()).Decode(&bodyData); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-	protoReq = bodyData
+	proto.Merge(&protoReq, &bodyData)
 	{{- else }}
 	bodyData := &{{ .GetBodyFieldType }}{}
 	if err := marshaler.NewDecoder(newReader()).Decode(bodyData); err != nil && !errors.Is(err, io.EOF) {
@@ -933,7 +933,7 @@ type response_{{ $svc.GetName }}_{{ $m.GetName }}_{{ $b.Index }} struct {
 }
 
 func (m response_{{ $svc.GetName }}_{{ $m.GetName }}_{{ $b.Index }}) XXX_ResponseBody() interface{} {
-	response := m.{{ $m.ResponseType.GetName }}
+	response := m.{{ $m.ResponseType.GoType $m.Service.File.GoPkg.Path }}
 	{{- if $UseOpaqueAPI }}
 	{{- if eq "*" $b.ResponseBody.FieldPath.String }}
 	return response

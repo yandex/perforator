@@ -4,6 +4,7 @@
 package cbor
 
 import (
+	"bytes"
 	"io"
 	"strings"
 	"testing"
@@ -26,7 +27,7 @@ func TestByteString(t *testing.T) {
 	emptybs := ByteString("")
 	bs := ByteString("\x01\x02\x03\x04")
 
-	testCases := []roundTripTest{
+	testCases := []roundTripTestCase{
 		{
 			name:         "empty",
 			obj:          emptybs,
@@ -106,78 +107,78 @@ func TestByteString(t *testing.T) {
 
 func TestUnmarshalByteStringOnBadData(t *testing.T) {
 	testCases := []struct {
-		name   string
-		data   []byte
-		errMsg string
+		name         string
+		data         []byte
+		wantErrorMsg string
 	}{
 		// Empty data
 		{
-			name:   "nil data",
-			data:   nil,
-			errMsg: io.EOF.Error(),
+			name:         "nil data",
+			data:         nil,
+			wantErrorMsg: io.EOF.Error(),
 		},
 		{
-			name:   "empty data",
-			data:   []byte{},
-			errMsg: io.EOF.Error(),
+			name:         "empty data",
+			data:         []byte{},
+			wantErrorMsg: io.EOF.Error(),
 		},
 
 		// Wrong CBOR types
 		{
-			name:   "uint type",
-			data:   mustHexDecode("01"),
-			errMsg: "cbor: cannot unmarshal positive integer into Go value of type cbor.ByteString",
+			name:         "uint type",
+			data:         mustHexDecode("01"),
+			wantErrorMsg: "cbor: cannot unmarshal positive integer into Go value of type cbor.ByteString",
 		},
 		{
-			name:   "int type",
-			data:   mustHexDecode("20"),
-			errMsg: "cbor: cannot unmarshal negative integer into Go value of type cbor.ByteString",
+			name:         "int type",
+			data:         mustHexDecode("20"),
+			wantErrorMsg: "cbor: cannot unmarshal negative integer into Go value of type cbor.ByteString",
 		},
 		{
-			name:   "string type",
-			data:   mustHexDecode("60"),
-			errMsg: "cbor: cannot unmarshal UTF-8 text string into Go value of type cbor.ByteString",
+			name:         "string type",
+			data:         mustHexDecode("60"),
+			wantErrorMsg: "cbor: cannot unmarshal UTF-8 text string into Go value of type cbor.ByteString",
 		},
 		{
-			name:   "array type",
-			data:   mustHexDecode("80"),
-			errMsg: "cbor: cannot unmarshal array into Go value of type cbor.ByteString",
+			name:         "array type",
+			data:         mustHexDecode("80"),
+			wantErrorMsg: "cbor: cannot unmarshal array into Go value of type cbor.ByteString",
 		},
 		{
-			name:   "map type",
-			data:   mustHexDecode("a0"),
-			errMsg: "cbor: cannot unmarshal map into Go value of type cbor.ByteString",
+			name:         "map type",
+			data:         mustHexDecode("a0"),
+			wantErrorMsg: "cbor: cannot unmarshal map into Go value of type cbor.ByteString",
 		},
 		{
-			name:   "tag type",
-			data:   mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
-			errMsg: "cbor: cannot unmarshal tag into Go value of type cbor.ByteString",
+			name:         "tag type",
+			data:         mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
+			wantErrorMsg: "cbor: cannot unmarshal tag into Go value of type cbor.ByteString",
 		},
 		{
-			name:   "float type",
-			data:   mustHexDecode("f90000"),
-			errMsg: "cbor: cannot unmarshal primitives into Go value of type cbor.ByteString",
+			name:         "float type",
+			data:         mustHexDecode("f90000"),
+			wantErrorMsg: "cbor: cannot unmarshal primitives into Go value of type cbor.ByteString",
 		},
 
 		// Truncated CBOR data
 		{
-			name:   "truncated head",
-			data:   mustHexDecode("18"),
-			errMsg: io.ErrUnexpectedEOF.Error(),
+			name:         "truncated head",
+			data:         mustHexDecode("18"),
+			wantErrorMsg: io.ErrUnexpectedEOF.Error(),
 		},
 
 		// Truncated CBOR byte string
 		{
-			name:   "truncated byte string",
-			data:   mustHexDecode("44010203"),
-			errMsg: io.ErrUnexpectedEOF.Error(),
+			name:         "truncated byte string",
+			data:         mustHexDecode("44010203"),
+			wantErrorMsg: io.ErrUnexpectedEOF.Error(),
 		},
 
 		// Extraneous CBOR data
 		{
-			name:   "extraneous data",
-			data:   mustHexDecode("c074323031332d30332d32315432303a30343a30305a00"),
-			errMsg: "cbor: 1 bytes of extraneous data starting at index 22",
+			name:         "extraneous data",
+			data:         mustHexDecode("c074323031332d30332d32315432303a30343a30305a00"),
+			wantErrorMsg: "cbor: 1 bytes of extraneous data starting at index 22",
 		},
 	}
 
@@ -191,8 +192,8 @@ func TestUnmarshalByteStringOnBadData(t *testing.T) {
 				if err == nil {
 					t.Errorf("UnmarshalCBOR(%x) didn't return error", tc.data)
 				}
-				if !strings.HasPrefix(err.Error(), tc.errMsg) {
-					t.Errorf("UnmarshalCBOR(%x) returned error %q, want %q", tc.data, err.Error(), tc.errMsg)
+				if !strings.HasPrefix(err.Error(), tc.wantErrorMsg) {
+					t.Errorf("UnmarshalCBOR(%x) returned error %q, want %q", tc.data, err.Error(), tc.wantErrorMsg)
 				}
 			}
 			// Test Unmarshal(data, *ByteString), which calls ByteString.unmarshalCBOR() under the hood
@@ -203,9 +204,41 @@ func TestUnmarshalByteStringOnBadData(t *testing.T) {
 				if err == nil {
 					t.Errorf("Unmarshal(%x) didn't return error", tc.data)
 				}
-				if !strings.HasPrefix(err.Error(), tc.errMsg) {
-					t.Errorf("Unmarshal(%x) returned error %q, want %q", tc.data, err.Error(), tc.errMsg)
+				if !strings.HasPrefix(err.Error(), tc.wantErrorMsg) {
+					t.Errorf("Unmarshal(%x) returned error %q, want %q", tc.data, err.Error(), tc.wantErrorMsg)
 				}
+			}
+		})
+	}
+}
+
+func TestByteStringBytes(t *testing.T) {
+	testCases := []struct {
+		name string
+		bs   ByteString
+		want []byte
+	}{
+		{
+			name: "empty",
+			bs:   ByteString(""),
+			want: []byte{},
+		},
+		{
+			name: "non-empty",
+			bs:   ByteString("\x01\x02\x03\x04"),
+			want: []byte{0x01, 0x02, 0x03, 0x04},
+		},
+		{
+			name: "text content",
+			bs:   ByteString("hello"),
+			want: []byte("hello"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.bs.Bytes()
+			if !bytes.Equal(got, tc.want) {
+				t.Errorf("ByteString(%x).Bytes() = %x, want %x", string(tc.bs), got, tc.want)
 			}
 		})
 	}

@@ -2,7 +2,7 @@ GO_TEST_FOR(vendor/k8s.io/apimachinery/pkg/apis/meta/v1/validation)
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.34.3)
+VERSION(v0.37.2)
 
 TAG(ya:go_no_subtest_report)
 

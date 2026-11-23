@@ -40,14 +40,14 @@ var (
 	typeMapStringIntf   = reflect.TypeOf(map[string]any{})
 )
 
-type unmarshalTest struct {
+type unmarshalTestCase struct {
 	data               []byte
 	wantInterfaceValue any
 	wantValues         []any
 	wrongTypes         []reflect.Type
 }
 
-var unmarshalTests = []unmarshalTest{
+var unmarshalTestCases = []unmarshalTestCase{
 	// CBOR test data are from https://tools.ietf.org/html/rfc7049#appendix-A.
 
 	// unsigned integer
@@ -1885,7 +1885,7 @@ var unmarshalTests = []unmarshalTest{
 
 	// More testcases not covered by https://tools.ietf.org/html/rfc7049#appendix-A.
 	{
-		data:               mustHexDecode("5fff"), // empty indefinite length byte string
+		data:               mustHexDecode("5fff"), // empty indefinite-length byte string
 		wantInterfaceValue: []byte{},
 		wantValues: []any{
 			[]byte{},
@@ -1914,7 +1914,7 @@ var unmarshalTests = []unmarshalTest{
 		},
 	},
 	{
-		data:               mustHexDecode("7fff"), // empty indefinite length text string
+		data:               mustHexDecode("7fff"), // empty indefinite-length text string
 		wantInterfaceValue: "",
 		wantValues:         []any{""},
 		wrongTypes: []reflect.Type{
@@ -1940,7 +1940,7 @@ var unmarshalTests = []unmarshalTest{
 		},
 	},
 	{
-		data:               mustHexDecode("bfff"), // empty indefinite length map
+		data:               mustHexDecode("bfff"), // empty indefinite-length map
 		wantInterfaceValue: map[any]any{},
 		wantValues: []any{
 			map[any]any{},
@@ -2042,7 +2042,7 @@ var unmarshalTests = []unmarshalTest{
 	},
 }
 
-type unmarshalFloatTest struct {
+type unmarshalFloatTestCase struct {
 	data               []byte
 	wantInterfaceValue any
 	wantValues         []any
@@ -2071,10 +2071,10 @@ var unmarshalFloatWrongTypes = []reflect.Type{
 	typeSimpleValue,
 }
 
-// unmarshalFloatTests includes test values for float16, float32, and float64.
+// unmarshalFloatTestCases includes test values for float16, float32, and float64.
 // Note: the function for float16 to float32 conversion was tested with all
 // 65536 values, which is too many to include here.
-var unmarshalFloatTests = []unmarshalFloatTest{
+var unmarshalFloatTestCases = []unmarshalFloatTestCase{
 	// CBOR test data are from https://tools.ietf.org/html/rfc7049#appendix-A.
 
 	// float16
@@ -2085,8 +2085,8 @@ var unmarshalFloatTests = []unmarshalFloatTest{
 	},
 	{
 		data:               mustHexDecode("f98000"),
-		wantInterfaceValue: float64(-0.0),                       //nolint:staticcheck // we know -0.0 is 0.0 in Go
-		wantValues:         []any{float32(-0.0), float64(-0.0)}, //nolint:staticcheck // we know -0.0 is 0.0 in Go
+		wantInterfaceValue: math.Copysign(0, -1),
+		wantValues:         []any{float32(math.Copysign(0, -1)), math.Copysign(0, -1)},
 	},
 	{
 		data:               mustHexDecode("f93c00"),
@@ -2295,7 +2295,7 @@ func mustBigInt(s string) big.Int {
 }
 
 func TestUnmarshalToEmptyInterface(t *testing.T) {
-	for _, tc := range unmarshalTests {
+	for _, tc := range unmarshalTestCases {
 		var v any
 		if err := Unmarshal(tc.data, &v); err != nil {
 			t.Errorf("Unmarshal(0x%x) returned error %v", tc.data, err)
@@ -2306,7 +2306,7 @@ func TestUnmarshalToEmptyInterface(t *testing.T) {
 }
 
 func TestUnmarshalToRawMessage(t *testing.T) {
-	for _, tc := range unmarshalTests {
+	for _, tc := range unmarshalTestCases {
 		testUnmarshalToRawMessage(t, tc.data)
 	}
 }
@@ -2357,7 +2357,7 @@ func testUnmarshalToRawMessage(t *testing.T, data []byte) {
 }
 
 func TestUnmarshalToCompatibleTypes(t *testing.T) {
-	for _, tc := range unmarshalTests {
+	for _, tc := range unmarshalTestCases {
 		for _, wantValue := range tc.wantValues {
 			testUnmarshalToCompatibleType(t, tc.data, wantValue, func(gotValue any) {
 				compareNonFloats(t, tc.data, gotValue, wantValue)
@@ -2422,7 +2422,7 @@ func testUnmarshalToCompatibleType(t *testing.T, data []byte, wantValue any, com
 }
 
 func TestUnmarshalToIncompatibleTypes(t *testing.T) {
-	for _, tc := range unmarshalTests {
+	for _, tc := range unmarshalTestCases {
 		for _, wrongType := range tc.wrongTypes {
 			testUnmarshalToIncompatibleType(t, tc.data, wrongType)
 		}
@@ -2485,7 +2485,7 @@ func compareNonFloats(t *testing.T, data []byte, got any, want any) {
 }
 
 func TestUnmarshalFloatToEmptyInterface(t *testing.T) {
-	for _, tc := range unmarshalFloatTests {
+	for _, tc := range unmarshalFloatTestCases {
 		var v any
 		if err := Unmarshal(tc.data, &v); err != nil {
 			t.Errorf("Unmarshal(0x%x) returned error %v", tc.data, err)
@@ -2496,13 +2496,13 @@ func TestUnmarshalFloatToEmptyInterface(t *testing.T) {
 }
 
 func TestUnmarshalFloatToRawMessage(t *testing.T) {
-	for _, tc := range unmarshalFloatTests {
+	for _, tc := range unmarshalFloatTestCases {
 		testUnmarshalToRawMessage(t, tc.data)
 	}
 }
 
 func TestUnmarshalFloatToCompatibleTypes(t *testing.T) {
-	for _, tc := range unmarshalFloatTests {
+	for _, tc := range unmarshalFloatTestCases {
 		for _, wantValue := range tc.wantValues {
 			testUnmarshalToCompatibleType(t, tc.data, wantValue, func(gotValue any) {
 				compareFloats(t, tc.data, gotValue, wantValue, tc.equalityThreshold)
@@ -2512,7 +2512,7 @@ func TestUnmarshalFloatToCompatibleTypes(t *testing.T) {
 }
 
 func TestUnmarshalFloatToIncompatibleTypes(t *testing.T) {
-	for _, tc := range unmarshalFloatTests {
+	for _, tc := range unmarshalFloatTestCases {
 		for _, wrongType := range unmarshalFloatWrongTypes {
 			testUnmarshalToIncompatibleType(t, tc.data, wrongType)
 		}
@@ -2960,7 +2960,7 @@ func TestUnmarshalNil(t *testing.T) {
 	}
 }
 
-var invalidUnmarshalTests = []struct {
+var invalidUnmarshalTestCases = []struct {
 	name         string
 	v            any
 	wantErrorMsg string
@@ -2985,7 +2985,7 @@ var invalidUnmarshalTests = []struct {
 func TestInvalidUnmarshal(t *testing.T) {
 	data := []byte{0x00}
 
-	for _, tc := range invalidUnmarshalTests {
+	for _, tc := range invalidUnmarshalTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := Unmarshal(data, tc.v)
 			if err == nil {
@@ -2999,510 +2999,521 @@ func TestInvalidUnmarshal(t *testing.T) {
 	}
 }
 
-var invalidCBORUnmarshalTests = []struct {
+var invalidCBORUnmarshalTestCases = []struct {
 	name         string
 	data         []byte
 	wantErrorMsg string
 }{
 	{
-		name:         "Nil data",
+		name:         "nil data",
 		data:         []byte(nil),
 		wantErrorMsg: "EOF",
 	},
 	{
-		name:         "Empty data",
+		name:         "empty data",
 		data:         []byte{},
 		wantErrorMsg: "EOF",
 	},
 	{
-		name:         "Tag number not followed by tag content",
+		name:         "tag number not followed by tag content",
 		data:         []byte{0xc0},
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length byte string with tagged chunk",
+		name:         "indefinite-length byte string with tagged chunk",
 		data:         mustHexDecode("5fc64401020304ff"),
 		wantErrorMsg: "cbor: wrong element type tag for indefinite-length byte string",
 	},
 	{
-		name:         "Indefinite length text string with tagged chunk",
+		name:         "indefinite-length text string with tagged chunk",
 		data:         mustHexDecode("7fc06161ff"),
 		wantErrorMsg: "cbor: wrong element type tag for indefinite-length UTF-8 text string",
 	},
 	{
-		name:         "Indefinite length strings with truncated text string",
+		name:         "indefinite-length strings with truncated text string",
 		data:         mustHexDecode("7f61"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Invalid nested tag number",
+		name:         "invalid nested tag number",
 		data:         mustHexDecode("d864dc1a514b67b0"),
 		wantErrorMsg: "cbor: invalid additional information 28 for type tag",
 	},
 	// Data from 7049bis G.1
 	// Premature end of the input
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("18"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("19"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("1a"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("1b"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("1901"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("1a0102"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("1b01020304050607"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("38"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("58"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("78"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("98"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("9a01ff00"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("b8"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("d8"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("f8"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("f900"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("fa0000"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "End of input in a head",
+		name:         "end of input in a head",
 		data:         mustHexDecode("fb000000"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length strings with short data",
+		name:         "definite-length strings with short data",
 		data:         mustHexDecode("41"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length strings with short data",
+		name:         "definite-length strings with short data",
 		data:         mustHexDecode("61"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length strings with short data",
+		name:         "definite-length strings with short data",
 		data:         mustHexDecode("5affffffff00"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length strings with short data",
+		name:         "definite-length strings with short data",
 		data:         mustHexDecode("5bffffffffffffffff010203"),
 		wantErrorMsg: "cbor: byte string length 18446744073709551615 is too large, causing integer overflow",
 	},
 	{
-		name:         "Definite length strings with short data",
+		name:         "definite-length strings with short data",
 		data:         mustHexDecode("7affffffff00"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length strings with short data",
+		name:         "definite-length strings with short data",
 		data:         mustHexDecode("7b7fffffffffffffff010203"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length maps and arrays not closed with enough items",
+		name:         "definite-length maps and arrays not closed with enough items",
 		data:         mustHexDecode("81"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length maps and arrays not closed with enough items",
+		name:         "definite-length maps and arrays not closed with enough items",
 		data:         mustHexDecode("818181818181818181"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length maps and arrays not closed with enough items",
+		name:         "definite-length maps and arrays not closed with enough items",
 		data:         mustHexDecode("8200"),
 		wantErrorMsg: "unexpected EOF",
 	},
 
 	{
-		name:         "Definite length maps and arrays not closed with enough items",
+		name:         "definite-length maps and arrays not closed with enough items",
 		data:         mustHexDecode("a1"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length maps and arrays not closed with enough items",
+		name:         "definite-length maps and arrays not closed with enough items",
 		data:         mustHexDecode("a20102"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length maps and arrays not closed with enough items",
+		name:         "definite-length maps and arrays not closed with enough items",
 		data:         mustHexDecode("a100"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Definite length maps and arrays not closed with enough items",
+		name:         "definite-length maps and arrays not closed with enough items",
 		data:         mustHexDecode("a2000000"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length strings not closed by a break stop code",
+		name:         "indefinite-length strings not closed by a break stop code",
 		data:         mustHexDecode("5f4100"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length strings not closed by a break stop code",
+		name:         "indefinite-length strings not closed by a break stop code",
 		data:         mustHexDecode("7f6100"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length maps and arrays not closed by a break stop code",
+		name:         "indefinite-length maps and arrays not closed by a break stop code",
 		data:         mustHexDecode("9f"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length maps and arrays not closed by a break stop code",
+		name:         "indefinite-length maps and arrays not closed by a break stop code",
 		data:         mustHexDecode("9f0102"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length maps and arrays not closed by a break stop code",
+		name:         "indefinite-length maps and arrays not closed by a break stop code",
 		data:         mustHexDecode("bf"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length maps and arrays not closed by a break stop code",
+		name:         "indefinite-length maps and arrays not closed by a break stop code",
 		data:         mustHexDecode("bf01020102"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length maps and arrays not closed by a break stop code",
+		name:         "indefinite-length maps and arrays not closed by a break stop code",
 		data:         mustHexDecode("819f"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length maps and arrays not closed by a break stop code",
+		name:         "indefinite-length maps and arrays not closed by a break stop code",
 		data:         mustHexDecode("9f8000"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length maps and arrays not closed by a break stop code",
+		name:         "indefinite-length maps and arrays not closed by a break stop code",
 		data:         mustHexDecode("9f9f9f9f9fffffffff"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	{
-		name:         "Indefinite length maps and arrays not closed by a break stop code",
+		name:         "indefinite-length maps and arrays not closed by a break stop code",
 		data:         mustHexDecode("9f819f819f9fffffff"),
 		wantErrorMsg: "unexpected EOF",
 	},
 	// Five subkinds of well-formedness error kind 3 (syntax error)
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("3e"),
 		wantErrorMsg: "cbor: invalid additional information 30 for type negative integer",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("5c"),
 		wantErrorMsg: "cbor: invalid additional information 28 for type byte string",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("5d"),
 		wantErrorMsg: "cbor: invalid additional information 29 for type byte string",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("5e"),
 		wantErrorMsg: "cbor: invalid additional information 30 for type byte string",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("7c"),
 		wantErrorMsg: "cbor: invalid additional information 28 for type UTF-8 text string",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("7d"),
 		wantErrorMsg: "cbor: invalid additional information 29 for type UTF-8 text string",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("7e"),
 		wantErrorMsg: "cbor: invalid additional information 30 for type UTF-8 text string",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("9c"),
 		wantErrorMsg: "cbor: invalid additional information 28 for type array",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("9d"),
 		wantErrorMsg: "cbor: invalid additional information 29 for type array",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("9e"),
 		wantErrorMsg: "cbor: invalid additional information 30 for type array",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("bc"),
 		wantErrorMsg: "cbor: invalid additional information 28 for type map",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("bd"),
 		wantErrorMsg: "cbor: invalid additional information 29 for type map",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("be"),
 		wantErrorMsg: "cbor: invalid additional information 30 for type map",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("dc"),
 		wantErrorMsg: "cbor: invalid additional information 28 for type tag",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("dd"),
 		wantErrorMsg: "cbor: invalid additional information 29 for type tag",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("de"),
 		wantErrorMsg: "cbor: invalid additional information 30 for type tag",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("fc"),
 		wantErrorMsg: "cbor: invalid additional information 28 for type primitives",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("fd"),
 		wantErrorMsg: "cbor: invalid additional information 29 for type primitives",
 	},
 	{
-		name:         "Reserved additional information values",
+		name:         "reserved additional information values",
 		data:         mustHexDecode("fe"),
 		wantErrorMsg: "cbor: invalid additional information 30 for type primitives",
 	},
 	{
-		name:         "Reserved two-byte encodings of simple types",
+		name:         "reserved two-byte encodings of simple types",
 		data:         mustHexDecode("f800"),
 		wantErrorMsg: "cbor: invalid simple value 0 for type primitives",
 	},
 	{
-		name:         "Reserved two-byte encodings of simple types",
+		name:         "reserved two-byte encodings of simple types",
 		data:         mustHexDecode("f801"),
 		wantErrorMsg: "cbor: invalid simple value 1 for type primitives",
 	},
 	{
-		name:         "Reserved two-byte encodings of simple types",
+		name:         "reserved two-byte encodings of simple types",
 		data:         mustHexDecode("f818"),
 		wantErrorMsg: "cbor: invalid simple value 24 for type primitives",
 	},
 	{
-		name:         "Reserved two-byte encodings of simple types",
+		name:         "reserved two-byte encodings of simple types",
 		data:         mustHexDecode("f81f"),
 		wantErrorMsg: "cbor: invalid simple value 31 for type primitives",
 	},
 	{
-		name:         "Indefinite length string chunks not of the correct type",
+		name:         "indefinite-length string chunks not of the correct type",
 		data:         mustHexDecode("5f00ff"),
 		wantErrorMsg: "cbor: wrong element type positive integer for indefinite-length byte string",
 	},
 	{
-		name:         "Indefinite length string chunks not of the correct type",
+		name:         "indefinite-length string chunks not of the correct type",
 		data:         mustHexDecode("5f21ff"),
 		wantErrorMsg: "cbor: wrong element type negative integer for indefinite-length byte string",
 	},
 	{
-		name:         "Indefinite length string chunks not of the correct type",
+		name:         "indefinite-length string chunks not of the correct type",
 		data:         mustHexDecode("5f6100ff"),
 		wantErrorMsg: "cbor: wrong element type UTF-8 text string for indefinite-length byte string",
 	},
 	{
-		name:         "Indefinite length string chunks not of the correct type",
+		name:         "indefinite-length string chunks not of the correct type",
 		data:         mustHexDecode("5f80ff"),
 		wantErrorMsg: "cbor: wrong element type array for indefinite-length byte string",
 	},
 	{
-		name:         "Indefinite length string chunks not of the correct type",
+		name:         "indefinite-length string chunks not of the correct type",
 		data:         mustHexDecode("5fa0ff"),
 		wantErrorMsg: "cbor: wrong element type map for indefinite-length byte string",
 	},
 	{
-		name:         "Indefinite length string chunks not of the correct type",
+		name:         "indefinite-length string chunks not of the correct type",
 		data:         mustHexDecode("5fc000ff"),
 		wantErrorMsg: "cbor: wrong element type tag for indefinite-length byte string",
 	},
 	{
-		name:         "Indefinite length string chunks not of the correct type",
+		name:         "indefinite-length string chunks not of the correct type",
 		data:         mustHexDecode("5fe0ff"),
 		wantErrorMsg: "cbor: wrong element type primitives for indefinite-length byte string",
 	},
 	{
-		name:         "Indefinite length string chunks not of the correct type",
+		name:         "indefinite-length string chunks not of the correct type",
 		data:         mustHexDecode("7f4100ff"),
 		wantErrorMsg: "cbor: wrong element type byte string for indefinite-length UTF-8 text string",
 	},
 	{
-		name:         "Indefinite length string chunks not definite length",
+		name:         "indefinite-length string chunks not definite length",
 		data:         mustHexDecode("5f5f4100ffff"),
 		wantErrorMsg: "cbor: indefinite-length byte string chunk is not definite-length",
 	},
 	{
-		name:         "Indefinite length string chunks not definite length",
+		name:         "indefinite-length string chunks not definite length",
 		data:         mustHexDecode("7f7f6100ffff"),
 		wantErrorMsg: "cbor: indefinite-length UTF-8 text string chunk is not definite-length",
 	},
 	{
-		name:         "Break occurring on its own outside of an indefinite length item",
+		name:         "break occurring on its own outside of an indefinite-length item",
 		data:         mustHexDecode("ff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break occurring in a definite length array or map or a tag",
+		name:         "break occurring in a definite-length array or map or a tag",
 		data:         mustHexDecode("81ff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break occurring in a definite length array or map or a tag",
+		name:         "break occurring in a definite-length array or map or a tag",
 		data:         mustHexDecode("8200ff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break occurring in a definite length array or map or a tag",
+		name:         "break occurring in a definite-length array or map or a tag",
 		data:         mustHexDecode("a1ff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break occurring in a definite length array or map or a tag",
+		name:         "break occurring in a definite-length array or map or a tag",
 		data:         mustHexDecode("a1ff00"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break occurring in a definite length array or map or a tag",
+		name:         "break occurring in a definite-length array or map or a tag",
 		data:         mustHexDecode("a100ff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break occurring in a definite length array or map or a tag",
+		name:         "break occurring in a definite-length array or map or a tag",
 		data:         mustHexDecode("a20000ff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break occurring in a definite length array or map or a tag",
+		name:         "break occurring in a definite-length array or map or a tag",
 		data:         mustHexDecode("9f81ff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break occurring in a definite length array or map or a tag",
+		name:         "break occurring in a definite-length array or map or a tag",
 		data:         mustHexDecode("9f829f819f9fffffffff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break in indefinite length map would lead to odd number of items (break in a value position)",
+		name:         "break in indefinite-length map would lead to odd number of items (break in a value position)",
 		data:         mustHexDecode("bf00ff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Break in indefinite length map would lead to odd number of items (break in a value position)",
+		name:         "break in indefinite-length map would lead to odd number of items (break in a value position)",
 		data:         mustHexDecode("bf000000ff"),
 		wantErrorMsg: "cbor: unexpected \"break\" code",
 	},
 	{
-		name:         "Major type 0 with additional information 31",
+		name:         "major type 0 with additional information 31",
 		data:         mustHexDecode("1f"),
 		wantErrorMsg: "cbor: invalid additional information 31 for type positive integer",
 	},
 	{
-		name:         "Major type 1 with additional information 31",
+		name:         "major type 1 with additional information 31",
 		data:         mustHexDecode("3f"),
 		wantErrorMsg: "cbor: invalid additional information 31 for type negative integer",
 	},
 	{
-		name:         "Major type 6 with additional information 31",
+		name:         "major type 6 with additional information 31",
 		data:         mustHexDecode("df"),
 		wantErrorMsg: "cbor: invalid additional information 31 for type tag",
 	},
 	// Extraneous data
 	{
-		name:         "Two ints",
+		name:         "two ints",
 		data:         mustHexDecode("0001"),
 		wantErrorMsg: "cbor: 1 bytes of extraneous data starting at index 1",
 	},
 	{
-		name:         "Two arrays",
+		name:         "two arrays",
 		data:         mustHexDecode("830102038104"),
 		wantErrorMsg: "cbor: 2 bytes of extraneous data starting at index 4",
 	},
 	{
-		name:         "Int and partial array",
+		name:         "int and partial array",
 		data:         mustHexDecode("00830102"),
 		wantErrorMsg: "cbor: 3 bytes of extraneous data starting at index 1",
+	},
+	// Indefinite-length map
+	{
+		name:         "indefinite-length map with one key and no value",
+		data:         []byte{0xbf, 0x61, 'a', 0xff},
+		wantErrorMsg: `cbor: unexpected "break" code`,
+	},
+	{
+		name:         "indefinite-length map with two keys and one value",
+		data:         []byte{0xbf, 0x61, 'a', 0x01, 0x61, 'b', 0xff},
+		wantErrorMsg: `cbor: unexpected "break" code`,
 	},
 }
 
 func TestInvalidCBORUnmarshal(t *testing.T) {
-	for _, tc := range invalidCBORUnmarshalTests {
+	for _, tc := range invalidCBORUnmarshalTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var i any
 			err := Unmarshal(tc.data, &i)
@@ -3544,13 +3555,13 @@ func TestValidUTF8String(t *testing.T) {
 			wantObj: "streaming",
 		},
 		{
-			name:    "indef length with UTF8RejectInvalid",
+			name:    "indefinite-length with UTF8RejectInvalid",
 			data:    mustHexDecode("7f657374726561646d696e67ff"),
 			dm:      dmRejectInvalidUTF8,
 			wantObj: "streaming",
 		},
 		{
-			name:    "indef length with UTF8DecodeInvalid",
+			name:    "indefinite-length with UTF8DecodeInvalid",
 			data:    mustHexDecode("7f657374726561646d696e67ff"),
 			dm:      dmDecodeInvalidUTF8,
 			wantObj: "streaming",
@@ -3611,16 +3622,40 @@ func TestInvalidUTF8String(t *testing.T) {
 			wantObj: string([]byte{0xfe}),
 		},
 		{
-			name:         "indef length with UTF8RejectInvalid",
+			name:         "indefinite-length with UTF8RejectInvalid",
 			data:         mustHexDecode("7f62e6b061b4ff"),
 			dm:           dmRejectInvalidUTF8,
 			wantErrorMsg: invalidUTF8ErrorMsg,
 		},
 		{
-			name:    "indef length with UTF8DecodeInvalid",
+			name:    "indefinite-length with UTF8DecodeInvalid",
 			data:    mustHexDecode("7f62e6b061b4ff"),
 			dm:      dmDecodeInvalidUTF8,
 			wantObj: string([]byte{0xe6, 0xb0, 0xb4}),
+		},
+		{
+			name: "indefinite-length invalid UTF-8 in the second chunk with UTF8RejectInvalid",
+			data: []byte{
+				0x7f,
+				0x62, 'a', 'b', // valid UTF-8
+				0x62, 0x80, 0x81, // invalid UTF-8
+				0x62, 'c', 'd', // valid UTF-8
+				0xff,
+			},
+			dm:           dmRejectInvalidUTF8,
+			wantErrorMsg: invalidUTF8ErrorMsg,
+		},
+		{
+			name: "indefinite-length invalid UTF-8 in the second chunk with dmDecodeInvalidUTF8",
+			data: []byte{
+				0x7f,
+				0x62, 'a', 'b', // valid UTF-8
+				0x62, 0x80, 0x81, // invalid UTF-8
+				0x62, 'c', 'd', // valid UTF-8
+				0xff,
+			},
+			dm:      dmDecodeInvalidUTF8,
+			wantObj: string([]byte{'a', 'b', 0x80, 0x81, 'c', 'd'}),
 		},
 	}
 
@@ -3631,7 +3666,7 @@ func TestInvalidUTF8String(t *testing.T) {
 			err = tc.dm.Unmarshal(tc.data, &v)
 			if tc.wantErrorMsg != "" {
 				if err == nil {
-					t.Errorf("Unmarshal(0x%x) didn't return error", tc.data)
+					t.Errorf("Unmarshal(0x%x) didn't return an error", tc.data)
 				} else if !strings.Contains(err.Error(), tc.wantErrorMsg) {
 					t.Errorf("Unmarshal(0x%x) error %q, want %q", tc.data, err.Error(), tc.wantErrorMsg)
 				}
@@ -3649,7 +3684,7 @@ func TestInvalidUTF8String(t *testing.T) {
 			err = tc.dm.Unmarshal(tc.data, &s)
 			if tc.wantErrorMsg != "" {
 				if err == nil {
-					t.Errorf("Unmarshal(0x%x) didn't return error", tc.data)
+					t.Errorf("Unmarshal(0x%x) didn't return an error", tc.data)
 				} else if !strings.Contains(err.Error(), tc.wantErrorMsg) {
 					t.Errorf("Unmarshal(0x%x) error %q, want %q", tc.data, err.Error(), tc.wantErrorMsg)
 				}
@@ -3708,7 +3743,7 @@ func TestUnmarshalStruct(t *testing.T) {
 		unexportedField:   0,
 	}
 
-	tests := []struct {
+	testCases := []struct {
 		name string
 		data []byte
 		want any
@@ -3724,7 +3759,7 @@ func TestUnmarshalStruct(t *testing.T) {
 			want: want,
 		},
 	}
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var v outer
 			if err := Unmarshal(tc.data, &v); err != nil {
@@ -4137,25 +4172,25 @@ func TestDecodeTime(t *testing.T) {
 			name:            "time without fractional seconds", // positive integer
 			cborRFC3339Time: mustHexDecode("74323031332d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("1a514b67b0"),
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
 		},
 		{
 			name:            "time with fractional seconds", // float
 			cborRFC3339Time: mustHexDecode("7819313937302d30312d30315432313a34363a34302d30363a3030"),
 			cborUnixTime:    mustHexDecode("fa47c35000"),
-			wantTime:        parseTime(time.RFC3339Nano, "1970-01-01T21:46:40-06:00"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "1970-01-01T21:46:40-06:00"),
 		},
 		{
 			name:            "time with fractional seconds", // float
 			cborRFC3339Time: mustHexDecode("76323031332d30332d32315432303a30343a30302e355a"),
 			cborUnixTime:    mustHexDecode("fb41d452d9ec200000"),
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00.5Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00.5Z"),
 		},
 		{
 			name:            "time before January 1, 1970 UTC without fractional seconds", // negative integer
 			cborRFC3339Time: mustHexDecode("74313936392d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("3a0177f2cf"),
-			wantTime:        parseTime(time.RFC3339Nano, "1969-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "1969-03-21T20:04:00Z"),
 		},
 	}
 	for _, tc := range testCases {
@@ -4187,19 +4222,19 @@ func TestDecodeTimeWithTag(t *testing.T) {
 			name:            "time without fractional seconds", // positive integer
 			cborRFC3339Time: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("c11a514b67b0"),
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
 		},
 		{
 			name:            "time with fractional seconds", // float
 			cborRFC3339Time: mustHexDecode("c076323031332d30332d32315432303a30343a30302e355a"),
 			cborUnixTime:    mustHexDecode("c1fb41d452d9ec200000"),
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00.5Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00.5Z"),
 		},
 		{
 			name:            "time before January 1, 1970 UTC without fractional seconds", // negative integer
 			cborRFC3339Time: mustHexDecode("c074313936392d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("c13a0177f2cf"),
-			wantTime:        parseTime(time.RFC3339Nano, "1969-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "1969-03-21T20:04:00Z"),
 		},
 	}
 	for _, tc := range testCases {
@@ -4306,55 +4341,67 @@ func TestDecodeInvalidTagTime(t *testing.T) {
 		wantErrorMsg  string
 	}{
 		{
-			name:          "Tag 0 with invalid RFC3339 time string",
+			name:          "tag 0 with invalid RFC3339 time string",
 			data:          mustHexDecode("c07f657374726561646d696e67ff"),
 			decodeToTypes: []reflect.Type{typeIntf, typeTime},
 			wantErrorMsg:  "cbor: cannot set streaming for time.Time",
 		},
 		{
-			name:          "Tag 0 with invalid UTF-8 string",
+			name:          "tag 0 with invalid UTF-8 string",
 			data:          mustHexDecode("c07f62e6b061b4ff"),
 			decodeToTypes: []reflect.Type{typeIntf, typeTime},
 			wantErrorMsg:  "cbor: invalid UTF-8 string",
 		},
 		{
-			name:          "Tag 0 with integer content",
+			name:          "tag 0 with integer content",
 			data:          mustHexDecode("c01a514b67b0"),
 			decodeToTypes: []reflect.Type{typeIntf, typeTime},
 			wantErrorMsg:  "cbor: tag number 0 must be followed by text string, got positive integer",
 		},
 		{
-			name:          "Tag 0 with byte string content",
+			name:          "tag 0 with byte string content",
 			data:          mustHexDecode("c04f013030303030303030e03031ed3030"),
 			decodeToTypes: []reflect.Type{typeIntf, typeTime},
 			wantErrorMsg:  "cbor: tag number 0 must be followed by text string, got byte string",
 		},
 		{
-			name:          "Tag 0 with integer content as array element",
+			name:          "tag 0 with integer content as array element",
 			data:          mustHexDecode("81c01a514b67b0"),
 			decodeToTypes: []reflect.Type{typeIntf, typeTimeSlice},
 			wantErrorMsg:  "cbor: tag number 0 must be followed by text string, got positive integer",
 		},
 		{
-			name:          "Tag 1 with negative integer overflow",
+			name:          "tag 1 with negative integer overflow",
 			data:          mustHexDecode("c13bffffffffffffffff"),
 			decodeToTypes: []reflect.Type{typeIntf, typeTime},
 			wantErrorMsg:  "cbor: cannot unmarshal negative integer into Go value of type time.Time (-18446744073709551616 overflows Go's int64)",
 		},
 		{
-			name:          "Tag 1 with string content",
+			name:          "tag 1 with positive float64 overflow",
+			data:          mustHexDecode("c1fb4415af1d78b58c40"), // 1(1e+20)
+			decodeToTypes: []reflect.Type{typeIntf, typeTime},
+			wantErrorMsg:  "overflows Go's int64",
+		},
+		{
+			name:          "tag 1 with negative float64 overflow",
+			data:          mustHexDecode("c1fbc415af1d78b58c40"), // 1(-1e+20)
+			decodeToTypes: []reflect.Type{typeIntf, typeTime},
+			wantErrorMsg:  "overflows Go's int64",
+		},
+		{
+			name:          "tag 1 with string content",
 			data:          mustHexDecode("c174323031332d30332d32315432303a30343a30305a"),
 			decodeToTypes: []reflect.Type{typeIntf, typeTime},
 			wantErrorMsg:  "cbor: tag number 1 must be followed by integer or floating-point number, got UTF-8 text string",
 		},
 		{
-			name:          "Tag 1 with simple value",
+			name:          "tag 1 with simple value",
 			data:          mustHexDecode("d801f6"), // 1(null)
 			decodeToTypes: []reflect.Type{typeIntf, typeTime},
 			wantErrorMsg:  "cbor: tag number 1 must be followed by integer or floating-point number, got primitive",
 		},
 		{
-			name:          "Tag 1 with string content as array element",
+			name:          "tag 1 with string content as array element",
 			data:          mustHexDecode("81c174323031332d30332d32315432303a30343a30305a"),
 			decodeToTypes: []reflect.Type{typeIntf, typeTimeSlice},
 			wantErrorMsg:  "cbor: tag number 1 must be followed by integer or floating-point number, got UTF-8 text string",
@@ -4366,7 +4413,7 @@ func TestDecodeInvalidTagTime(t *testing.T) {
 			t.Run(tc.name+" decode to "+decodeToType.String(), func(t *testing.T) {
 				v := reflect.New(decodeToType)
 				if err := dm.Unmarshal(tc.data, v.Interface()); err == nil {
-					t.Errorf("Unmarshal(0x%x) didn't return error, want error msg %q", tc.data, tc.wantErrorMsg)
+					t.Errorf("Unmarshal(0x%x) didn't return an error, want error msg %q", tc.data, tc.wantErrorMsg)
 				} else if !strings.Contains(err.Error(), tc.wantErrorMsg) {
 					t.Errorf("Unmarshal(0x%x) returned error %q, want %q", tc.data, err, tc.wantErrorMsg)
 				}
@@ -4397,7 +4444,7 @@ func TestDecodeTag0Error(t *testing.T) {
 			// Decode to interface{}
 			var v any
 			if err := tc.dm.Unmarshal(data, &v); err == nil {
-				t.Errorf("Unmarshal(0x%x) didn't return error, want error msg %q", data, wantErrorMsg)
+				t.Errorf("Unmarshal(0x%x) didn't return an error, want error msg %q", data, wantErrorMsg)
 			} else if !strings.Contains(err.Error(), wantErrorMsg) {
 				t.Errorf("Unmarshal(0x%x) returned error %q, want %q", data, err, wantErrorMsg)
 			}
@@ -4405,7 +4452,7 @@ func TestDecodeTag0Error(t *testing.T) {
 			// Decode to time.Time
 			var tm time.Time
 			if err := tc.dm.Unmarshal(data, &tm); err == nil {
-				t.Errorf("Unmarshal(0x%x) didn't return error, want error msg %q", data, wantErrorMsg)
+				t.Errorf("Unmarshal(0x%x) didn't return an error, want error msg %q", data, wantErrorMsg)
 			} else if !strings.Contains(err.Error(), wantErrorMsg) {
 				t.Errorf("Unmarshal(0x%x) returned error %q, want %q", data, err, wantErrorMsg)
 			}
@@ -4413,7 +4460,7 @@ func TestDecodeTag0Error(t *testing.T) {
 			// Decode to uint64
 			var ui uint64
 			if err := tc.dm.Unmarshal(data, &ui); err == nil {
-				t.Errorf("Unmarshal(0x%x) didn't return error, want error msg %q", data, wantErrorMsg)
+				t.Errorf("Unmarshal(0x%x) didn't return an error, want error msg %q", data, wantErrorMsg)
 			} else if !strings.Contains(err.Error(), wantErrorMsg) {
 				t.Errorf("Unmarshal(0x%x) returned error %q, want %q", data, err, wantErrorMsg)
 			}
@@ -4443,7 +4490,7 @@ func TestDecodeTag1Error(t *testing.T) {
 			// Decode to interface{}
 			var v any
 			if err := tc.dm.Unmarshal(data, &v); err == nil {
-				t.Errorf("Unmarshal(0x%x) didn't return error, want error msg %q", data, wantErrorMsg)
+				t.Errorf("Unmarshal(0x%x) didn't return an error, want error msg %q", data, wantErrorMsg)
 			} else if !strings.Contains(err.Error(), wantErrorMsg) {
 				t.Errorf("Unmarshal(0x%x) returned error %q, want %q", data, err, wantErrorMsg)
 			}
@@ -4451,7 +4498,7 @@ func TestDecodeTag1Error(t *testing.T) {
 			// Decode to time.Time
 			var tm time.Time
 			if err := tc.dm.Unmarshal(data, &tm); err == nil {
-				t.Errorf("Unmarshal(0x%x) didn't return error, want error msg %q", data, wantErrorMsg)
+				t.Errorf("Unmarshal(0x%x) didn't return an error, want error msg %q", data, wantErrorMsg)
 			} else if !strings.Contains(err.Error(), wantErrorMsg) {
 				t.Errorf("Unmarshal(0x%x) returned error %q, want %q", data, err, wantErrorMsg)
 			}
@@ -4459,7 +4506,7 @@ func TestDecodeTag1Error(t *testing.T) {
 			// Decode to string
 			var s string
 			if err := tc.dm.Unmarshal(data, &s); err == nil {
-				t.Errorf("Unmarshal(0x%x) didn't return error, want error msg %q", data, wantErrorMsg)
+				t.Errorf("Unmarshal(0x%x) didn't return an error, want error msg %q", data, wantErrorMsg)
 			} else if !strings.Contains(err.Error(), wantErrorMsg) {
 				t.Errorf("Unmarshal(0x%x) returned error %q, want %q", data, err, wantErrorMsg)
 			}
@@ -4519,7 +4566,7 @@ func TestDecodeTimeStreaming(t *testing.T) {
 		err := dec.Decode(&v)
 		if tc.wantErrorMsg != "" {
 			if err == nil {
-				t.Errorf("Unmarshal(0x%x) didn't return error, want error msg %q", tc.data, tc.wantErrorMsg)
+				t.Errorf("Unmarshal(0x%x) didn't return an error, want error msg %q", tc.data, tc.wantErrorMsg)
 			} else if !strings.Contains(err.Error(), tc.wantErrorMsg) {
 				t.Errorf("Unmarshal(0x%x) returned error msg %q, want %q", tc.data, err, tc.wantErrorMsg)
 			}
@@ -4570,14 +4617,14 @@ func TestDecTimeTagOption(t *testing.T) {
 			cborRFC3339Time: mustHexDecode("74323031332d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("1a514b67b0"),
 			decMode:         timeTagIgnoredDecMode,
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
 		},
 		{
 			name:            "not-tagged data with timeTagOptionalDecMode option",
 			cborRFC3339Time: mustHexDecode("74323031332d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("1a514b67b0"),
 			decMode:         timeTagOptionalDecMode,
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
 		},
 		{
 			name:            "not-tagged data with timeTagRequiredDecMode option",
@@ -4592,21 +4639,21 @@ func TestDecTimeTagOption(t *testing.T) {
 			cborRFC3339Time: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("c11a514b67b0"),
 			decMode:         timeTagIgnoredDecMode,
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
 		},
 		{
 			name:            "tagged data with timeTagOptionalDecMode option",
 			cborRFC3339Time: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("c11a514b67b0"),
 			decMode:         timeTagOptionalDecMode,
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
 		},
 		{
 			name:            "tagged data with timeTagRequiredDecMode option",
 			cborRFC3339Time: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("c11a514b67b0"),
 			decMode:         timeTagRequiredDecMode,
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
 		},
 		// mis-tagged time CBOR data
 		{
@@ -4614,7 +4661,7 @@ func TestDecTimeTagOption(t *testing.T) {
 			cborRFC3339Time: mustHexDecode("c8c974323031332d30332d32315432303a30343a30305a"),
 			cborUnixTime:    mustHexDecode("c8c91a514b67b0"),
 			decMode:         timeTagIgnoredDecMode,
-			wantTime:        parseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
+			wantTime:        mustParseTime(time.RFC3339Nano, "2013-03-21T20:04:00Z"),
 		},
 		{
 			name:            "mis-tagged data with timeTagOptionalDecMode option",
@@ -4637,7 +4684,7 @@ func TestDecTimeTagOption(t *testing.T) {
 			err := tc.decMode.Unmarshal(tc.cborRFC3339Time, &tm)
 			if tc.wantErrorMsg != "" {
 				if err == nil {
-					t.Errorf("Unmarshal(0x%x) didn't return error", tc.cborRFC3339Time)
+					t.Errorf("Unmarshal(0x%x) didn't return an error", tc.cborRFC3339Time)
 				} else if !strings.Contains(err.Error(), tc.wantErrorMsg) {
 					t.Errorf("Unmarshal(0x%x) returned error %q, want error containing %q", tc.cborRFC3339Time, err.Error(), tc.wantErrorMsg)
 				}
@@ -4651,7 +4698,7 @@ func TestDecTimeTagOption(t *testing.T) {
 			err = tc.decMode.Unmarshal(tc.cborUnixTime, &tm)
 			if tc.wantErrorMsg != "" {
 				if err == nil {
-					t.Errorf("Unmarshal(0x%x) didn't return error", tc.cborRFC3339Time)
+					t.Errorf("Unmarshal(0x%x) didn't return an error", tc.cborRFC3339Time)
 				} else if !strings.Contains(err.Error(), tc.wantErrorMsg) {
 					t.Errorf("Unmarshal(0x%x) returned error %q, want error containing %q", tc.cborRFC3339Time, err.Error(), tc.wantErrorMsg)
 				}
@@ -4805,7 +4852,7 @@ func (n marshalBinaryError) MarshalBinary() (data []byte, err error) {
 }
 
 func TestBinaryMarshalerUnmarshaler(t *testing.T) {
-	testCases := []roundTripTest{
+	testCases := []roundTripTestCase{
 		{
 			name:         "primitive obj",
 			obj:          number(1234567890),
@@ -4913,7 +4960,7 @@ func (n marshalCBORError) MarshalCBOR() (data []byte, err error) {
 }
 
 func TestMarshalerUnmarshaler(t *testing.T) {
-	testCases := []roundTripTest{
+	testCases := []roundTripTestCase{
 		{
 			name:         "primitive obj",
 			obj:          number2(1),
@@ -5046,11 +5093,11 @@ func TestUnmarshalArrayToStruct(t *testing.T) {
 		data []byte
 	}{
 		{
-			name: "definite length array",
+			name: "definite-length array",
 			data: mustHexDecode("83010203"),
 		},
 		{
-			name: "indefinite length array",
+			name: "indefinite-length array",
 			data: mustHexDecode("9f010203ff"),
 		},
 	}
@@ -5229,11 +5276,11 @@ func TestUnmarshalArrayToStructWrongFieldTypeError(t *testing.T) {
 func TestUnmarshalArrayToStructCannotSetEmbeddedPointerError(t *testing.T) {
 	type (
 		s1 struct {
-			x int //nolint:unused,structcheck
+			x int //nolint:unused
 			X int
 		}
 		S2 struct {
-			y int //nolint:unused,structcheck
+			y int //nolint:unused
 			Y int
 		}
 		S struct {
@@ -5530,13 +5577,13 @@ func TestDecOptions(t *testing.T) {
 	}
 }
 
-type roundTripTest struct {
+type roundTripTestCase struct {
 	name         string
 	obj          any
 	wantCborData []byte
 }
 
-func testRoundTrip(t *testing.T, testCases []roundTripTest, em EncMode, dm DecMode) {
+func testRoundTrip(t *testing.T, testCases []roundTripTestCase, em EncMode, dm DecMode) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			b, err := em.Marshal(tc.obj)
@@ -5799,6 +5846,9 @@ func TestUnmarshalStructKeyAsIntNumError(t *testing.T) {
 	type T2 struct {
 		F1 int `cbor:"-18446744073709551616,keyasint"`
 	}
+	type T3 struct {
+		F1 int `cbor:"99999999999999999999,keyasint"`
+	}
 	testCases := []struct {
 		name         string
 		data         []byte
@@ -5812,10 +5862,16 @@ func TestUnmarshalStructKeyAsIntNumError(t *testing.T) {
 			wantErrorMsg: "cbor: failed to parse field name \"a\" to int",
 		},
 		{
-			name:         "out of range int as key",
+			name:         "int key < math.MinInt",
 			data:         mustHexDecode("a13bffffffffffffffff01"),
 			obj:          T2{},
 			wantErrorMsg: "cbor: failed to parse field name \"-18446744073709551616\" to int",
+		},
+		{
+			name:         "int key > math.MaxInt",
+			data:         mustHexDecode("a10001"),
+			obj:          T3{},
+			wantErrorMsg: "cbor: failed to parse field name \"99999999999999999999\" to int",
 		},
 	}
 	for _, tc := range testCases {
@@ -6152,13 +6208,13 @@ func TestUnmarshalDupMapKeyToStruct(t *testing.T) {
 		},
 		{
 			name: "keyasint duplicate key does not overwrite previous value",
-			data: mustHexDecode("a36131616901614961616141"), // {"1": "i", 1: "I", "a": "A"}
+			data: mustHexDecode("a301616901614961616141"), // {1: "i", 1: "I", "a": "A"}
 			want: s{I: "i", A: "A"},
 		},
 		{
 			name:    "keyasint duplicate key triggers error",
 			opts:    DecOptions{DupMapKey: DupMapKeyEnforcedAPF},
-			data:    mustHexDecode("a36131616901614961616141"), // {"1": "i", 1: "I", "a": "A"}
+			data:    mustHexDecode("a301616901614961616141"), // {1: "i", 1: "I", "a": "A"}
 			want:    s{I: "i"},
 			wantErr: &DupMapKeyError{Key: int64(1), Index: 1},
 		},
@@ -6852,7 +6908,7 @@ func TestExceedMaxArrayElements(t *testing.T) {
 			wantErrorMsg: "cbor: exceeded max number of elements 16 for CBOR array",
 		},
 		{
-			name:         "indefinite length array",
+			name:         "indefinite-length array",
 			opts:         DecOptions{MaxArrayElements: 16},
 			data:         mustHexDecode("9f0101010101010101010101010101010101ff"),
 			wantErrorMsg: "cbor: exceeded max number of elements 16 for CBOR array",
@@ -6879,13 +6935,13 @@ func TestExceedMaxMapPairs(t *testing.T) {
 		wantErrorMsg string
 	}{
 		{
-			name:         "array",
+			name:         "map",
 			opts:         DecOptions{MaxMapPairs: 16},
 			data:         mustHexDecode("b101010101010101010101010101010101010101010101010101010101010101010101"),
 			wantErrorMsg: "cbor: exceeded max number of key-value pairs 16 for CBOR map",
 		},
 		{
-			name:         "indefinite length array",
+			name:         "indefinite-length map",
 			opts:         DecOptions{MaxMapPairs: 16},
 			data:         mustHexDecode("bf01010101010101010101010101010101010101010101010101010101010101010101ff"),
 			wantErrorMsg: "cbor: exceeded max number of key-value pairs 16 for CBOR map",
@@ -6930,7 +6986,7 @@ func TestDecIndefiniteLengthOption(t *testing.T) {
 			wantErrorMsg: "cbor: indefinite-length array isn't allowed",
 		},
 		{
-			name:         "indefinite length array",
+			name:         "indefinite-length array",
 			opts:         DecOptions{IndefLength: IndefLengthForbidden},
 			data:         mustHexDecode("bfff"),
 			wantErrorMsg: "cbor: indefinite-length map isn't allowed",
@@ -6938,7 +6994,7 @@ func TestDecIndefiniteLengthOption(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Default option allows indefinite length items
+			// Default option allows indefinite-length items
 			var v any
 			if err := Unmarshal(tc.data, &v); err != nil {
 				t.Errorf("Unmarshal(0x%x) returned an error %v", tc.data, err)
@@ -7499,7 +7555,7 @@ func TestStreamExtraErrorCondUnknownField(t *testing.T) {
 func TestUnmarshalTagNum55799(t *testing.T) {
 	tagNum55799 := mustHexDecode("d9d9f7")
 
-	for _, tc := range unmarshalTests {
+	for _, tc := range unmarshalTestCases {
 		// Prefix tag number 55799 to CBOR test data
 		data := make([]byte, len(tc.data)+6)
 		copy(data, tagNum55799)
@@ -7565,7 +7621,7 @@ func TestUnmarshalTagNum55799(t *testing.T) {
 func TestUnmarshalFloatWithTagNum55799(t *testing.T) {
 	tagNum55799 := mustHexDecode("d9d9f7")
 
-	for _, tc := range unmarshalFloatTests {
+	for _, tc := range unmarshalFloatTestCases {
 		// Prefix tag number 55799 to CBOR test data
 		data := make([]byte, len(tc.data)+3)
 		copy(data, tagNum55799)
@@ -7775,7 +7831,7 @@ func TestUnmarshalNestedTagNum55799ToTime(t *testing.T) {
 
 	var v time.Time
 	if err := Unmarshal(data, &v); err == nil {
-		t.Errorf("Unmarshal(0x%x) didn't return error", data)
+		t.Errorf("Unmarshal(0x%x) didn't return an error", data)
 	} else if !strings.Contains(err.Error(), wantErrorMsg) {
 		t.Errorf("Unmarshal(0x%x) returned error %s, want %s", data, err.Error(), wantErrorMsg)
 	}
@@ -7799,7 +7855,7 @@ func TestUnmarshalNestedTagNum55799ToUnmarshaler(t *testing.T) {
 
 	var v number3
 	if err := Unmarshal(data, &v); err == nil {
-		t.Errorf("Unmarshal(0x%x) didn't return error", data)
+		t.Errorf("Unmarshal(0x%x) didn't return an error", data)
 	} else if !strings.Contains(err.Error(), wantErrorMsg) {
 		t.Errorf("Unmarshal(0x%x) returned error %s, want %s", data, err.Error(), wantErrorMsg)
 	}
@@ -7821,7 +7877,7 @@ func TestUnmarshalNestedTagNum55799ToRegisteredGoType(t *testing.T) {
 
 	var v myInt
 	if err := dm.Unmarshal(data, &v); err == nil {
-		t.Errorf("Unmarshal() didn't return error")
+		t.Errorf("Unmarshal() didn't return an error")
 	} else if !strings.Contains(err.Error(), wantErrorMsg) {
 		t.Errorf("Unmarshal(0x%x) returned error %s, want %s", data, err.Error(), wantErrorMsg)
 	}
@@ -8042,19 +8098,19 @@ func TestUnmarshalInvalidTagBignum(t *testing.T) {
 		wantErrorMsg  string
 	}{
 		{
-			name:          "Tag 2 with string",
+			name:          "tag 2 with string",
 			data:          mustHexDecode("c27f657374726561646d696e67ff"),
 			decodeToTypes: []reflect.Type{typeIntf, typeBigInt},
 			wantErrorMsg:  "cbor: tag number 2 or 3 must be followed by byte string, got UTF-8 text string",
 		},
 		{
-			name:          "Tag 3 with string",
+			name:          "tag 3 with string",
 			data:          mustHexDecode("c37f657374726561646d696e67ff"),
 			decodeToTypes: []reflect.Type{typeIntf, typeBigInt},
 			wantErrorMsg:  "cbor: tag number 2 or 3 must be followed by byte string, got UTF-8 text string",
 		},
 		{
-			name:          "Tag 3 with negavtive int",
+			name:          "tag 3 with negative integer",
 			data:          mustHexDecode("81C330"), // [3(-17)]
 			decodeToTypes: []reflect.Type{typeIntf, typeBigIntSlice},
 			wantErrorMsg:  "cbor: tag number 2 or 3 must be followed by byte string, got negative integer",
@@ -8065,7 +8121,7 @@ func TestUnmarshalInvalidTagBignum(t *testing.T) {
 			t.Run(tc.name+" decode to "+decodeToType.String(), func(t *testing.T) {
 				v := reflect.New(decodeToType)
 				if err := Unmarshal(tc.data, v.Interface()); err == nil {
-					t.Errorf("Unmarshal(0x%x) didn't return error, want error msg %q", tc.data, tc.wantErrorMsg)
+					t.Errorf("Unmarshal(0x%x) didn't return an error, want error msg %q", tc.data, tc.wantErrorMsg)
 				} else if !strings.Contains(err.Error(), tc.wantErrorMsg) {
 					t.Errorf("Unmarshal(0x%x) returned error %q, want %q", tc.data, err, tc.wantErrorMsg)
 				}
@@ -8093,7 +8149,7 @@ func (f *IntFoo) Foo() string {
 type ByteFoo []byte
 
 func (f *ByteFoo) Foo() string {
-	return fmt.Sprint(*f)
+	return string(*f)
 }
 
 type StringFoo string
@@ -8593,7 +8649,7 @@ func TestUnmarshalToDefaultMapType(t *testing.T) {
 }
 
 func TestUnmarshalFirstNoTrailing(t *testing.T) {
-	for _, tc := range unmarshalTests {
+	for _, tc := range unmarshalTestCases {
 		var v any
 		if rest, err := UnmarshalFirst(tc.data, &v); err != nil {
 			t.Errorf("UnmarshalFirst(0x%x) returned error %v", tc.data, err)
@@ -8616,7 +8672,7 @@ func TestUnmarshalFirstNoTrailing(t *testing.T) {
 func TestUnmarshalfirstTrailing(t *testing.T) {
 	// Random trailing data
 	trailingData := mustHexDecode("4a6b0f4718c73f391091ea1c")
-	for _, tc := range unmarshalTests {
+	for _, tc := range unmarshalTestCases {
 		data := make([]byte, 0, len(tc.data)+len(trailingData))
 		data = append(data, tc.data...)
 		data = append(data, trailingData...)
@@ -8894,37 +8950,37 @@ func TestUnmarshalDefaultByteStringType(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		opts DecOptions
-		in   []byte
+		data []byte
 		want any
 	}{
 		{
 			name: "default to []byte",
 			opts: DecOptions{},
-			in:   mustHexDecode("43414243"),
+			data: mustHexDecode("43414243"),
 			want: []byte("ABC"),
 		},
 		{
 			name: "explicitly []byte",
 			opts: DecOptions{DefaultByteStringType: reflect.TypeOf([]byte(nil))},
-			in:   mustHexDecode("43414243"),
+			data: mustHexDecode("43414243"),
 			want: []byte("ABC"),
 		},
 		{
 			name: "string",
 			opts: DecOptions{DefaultByteStringType: reflect.TypeOf("")},
-			in:   mustHexDecode("43414243"),
+			data: mustHexDecode("43414243"),
 			want: "ABC",
 		},
 		{
 			name: "ByteString",
 			opts: DecOptions{DefaultByteStringType: reflect.TypeOf(ByteString(""))},
-			in:   mustHexDecode("43414243"),
+			data: mustHexDecode("43414243"),
 			want: ByteString("ABC"),
 		},
 		{
 			name: "named []byte type",
 			opts: DecOptions{DefaultByteStringType: reflect.TypeOf(namedByteSliceType(nil))},
-			in:   mustHexDecode("43414243"),
+			data: mustHexDecode("43414243"),
 			want: namedByteSliceType("ABC"),
 		},
 	} {
@@ -8935,7 +8991,7 @@ func TestUnmarshalDefaultByteStringType(t *testing.T) {
 			}
 
 			var got any
-			if err := dm.Unmarshal(tc.in, &got); err != nil {
+			if err := dm.Unmarshal(tc.data, &got); err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
 
@@ -9100,19 +9156,19 @@ func TestUnmarshalWithUnrecognizedTagToAnyMode(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		opts DecOptions
-		in   []byte
+		data []byte
 		want any
 	}{
 		{
 			name: "default to value of type Tag",
 			opts: DecOptions{},
-			in:   mustHexDecode("d8ff00"),
+			data: mustHexDecode("d8ff00"),
 			want: Tag{Number: uint64(255), Content: uint64(0)},
 		},
 		{
 			name: "Tag's content",
 			opts: DecOptions{UnrecognizedTagToAny: UnrecognizedTagContentToAny},
-			in:   mustHexDecode("d8ff00"),
+			data: mustHexDecode("d8ff00"),
 			want: uint64(0),
 		},
 	} {
@@ -9123,7 +9179,7 @@ func TestUnmarshalWithUnrecognizedTagToAnyMode(t *testing.T) {
 			}
 
 			var got any
-			if err := dm.Unmarshal(tc.in, &got); err != nil {
+			if err := dm.Unmarshal(tc.data, &got); err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
 
@@ -9138,55 +9194,55 @@ func TestUnmarshalWithUnrecognizedTagToAnyModeForSupportedTags(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		opts DecOptions
-		in   []byte
+		data []byte
 		want any
 	}{
 		{
 			name: "Unmarshal with tag number 0 when UnrecognizedTagContentToAny option is not set",
 			opts: DecOptions{},
-			in:   mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
+			data: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
 			want: time.Date(2013, 3, 21, 20, 4, 0, 0, time.UTC),
 		},
 		{
 			name: "Unmarshal with tag number 0 when UnrecognizedTagContentToAny option is set",
 			opts: DecOptions{UnrecognizedTagToAny: UnrecognizedTagContentToAny},
-			in:   mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
+			data: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
 			want: time.Date(2013, 3, 21, 20, 4, 0, 0, time.UTC),
 		},
 		{
 			name: "Unmarshal with tag number 1 when UnrecognizedTagContentToAny option is not set",
 			opts: DecOptions{},
-			in:   mustHexDecode("c11a514b67b0"),
+			data: mustHexDecode("c11a514b67b0"),
 			want: time.Date(2013, 3, 21, 20, 4, 0, 0, time.UTC),
 		},
 		{
 			name: "Unmarshal with tag number 1 when UnrecognizedTagContentToAny option is set",
 			opts: DecOptions{UnrecognizedTagToAny: UnrecognizedTagContentToAny},
-			in:   mustHexDecode("c11a514b67b0"),
+			data: mustHexDecode("c11a514b67b0"),
 			want: time.Date(2013, 3, 21, 20, 4, 0, 0, time.UTC),
 		},
 		{
 			name: "Unmarshal with tag number 2 when UnrecognizedTagContentToAny option is not set",
 			opts: DecOptions{},
-			in:   mustHexDecode("c249010000000000000000"),
+			data: mustHexDecode("c249010000000000000000"),
 			want: mustBigInt("18446744073709551616"),
 		},
 		{
 			name: "Unmarshal with tag number 2 when UnrecognizedTagContentToAny option is set",
 			opts: DecOptions{UnrecognizedTagToAny: UnrecognizedTagContentToAny},
-			in:   mustHexDecode("c249010000000000000000"),
+			data: mustHexDecode("c249010000000000000000"),
 			want: mustBigInt("18446744073709551616"),
 		},
 		{
 			name: "Unmarshal with tag number 3 when UnrecognizedTagContentToAny option is not set",
 			opts: DecOptions{},
-			in:   mustHexDecode("c349010000000000000000"),
+			data: mustHexDecode("c349010000000000000000"),
 			want: mustBigInt("-18446744073709551617"),
 		},
 		{
 			name: "Unmarshal with tag number 3 when UnrecognizedTagContentToAny option is set",
 			opts: DecOptions{UnrecognizedTagToAny: UnrecognizedTagContentToAny},
-			in:   mustHexDecode("c349010000000000000000"),
+			data: mustHexDecode("c349010000000000000000"),
 			want: mustBigInt("-18446744073709551617"),
 		},
 	} {
@@ -9197,11 +9253,11 @@ func TestUnmarshalWithUnrecognizedTagToAnyModeForSupportedTags(t *testing.T) {
 			}
 
 			var got any
-			if err := dm.Unmarshal(tc.in, &got); err != nil {
+			if err := dm.Unmarshal(tc.data, &got); err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
 
-			compareNonFloats(t, tc.in, got, tc.want)
+			compareNonFloats(t, tc.data, got, tc.want)
 
 		})
 	}
@@ -9220,19 +9276,19 @@ func TestUnmarshalWithUnrecognizedTagToAnyModeForSharedTag(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		opts DecOptions
-		in   []byte
+		data []byte
 		want any
 	}{
 		{
 			name: "Unmarshal with a shared tag when UnrecognizedTagContentToAny option is not set",
 			opts: DecOptions{},
-			in:   mustHexDecode("d9d9f7d87d01"), // 55799(125(1))
+			data: mustHexDecode("d9d9f7d87d01"), // 55799(125(1))
 			want: myInt(1),
 		},
 		{
 			name: "Unmarshal with a shared tag when UnrecognizedTagContentToAny option is set",
 			opts: DecOptions{UnrecognizedTagToAny: UnrecognizedTagContentToAny},
-			in:   mustHexDecode("d9d9f7d87d01"), // 55799(125(1))
+			data: mustHexDecode("d9d9f7d87d01"), // 55799(125(1))
 			want: myInt(1),
 		},
 	} {
@@ -9244,11 +9300,11 @@ func TestUnmarshalWithUnrecognizedTagToAnyModeForSharedTag(t *testing.T) {
 
 			var got any
 
-			if err := dm.Unmarshal(tc.in, &got); err != nil {
+			if err := dm.Unmarshal(tc.data, &got); err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
 
-			compareNonFloats(t, tc.in, got, tc.want)
+			compareNonFloats(t, tc.data, got, tc.want)
 
 		})
 	}
@@ -9303,7 +9359,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		fns           []func(*SimpleValueRegistry) error
-		in            []byte
+		data          []byte
 		into          reflect.Type
 		want          any
 		assertOnError func(t *testing.T, e error)
@@ -9311,7 +9367,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 		{
 			name:          "default false into interface{}",
 			fns:           nil,
-			in:            []byte{0xf4},
+			data:          []byte{0xf4},
 			into:          typeIntf,
 			want:          false,
 			assertOnError: assertNilError,
@@ -9319,7 +9375,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 		{
 			name:          "default false into bool",
 			fns:           nil,
-			in:            []byte{0xf4},
+			data:          []byte{0xf4},
 			into:          typeBool,
 			want:          false,
 			assertOnError: assertNilError,
@@ -9327,7 +9383,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 		{
 			name:          "default true into interface{}",
 			fns:           nil,
-			in:            []byte{0xf5},
+			data:          []byte{0xf5},
 			into:          typeIntf,
 			want:          true,
 			assertOnError: assertNilError,
@@ -9335,7 +9391,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 		{
 			name:          "default true into bool",
 			fns:           nil,
-			in:            []byte{0xf5},
+			data:          []byte{0xf5},
 			into:          typeBool,
 			want:          true,
 			assertOnError: assertNilError,
@@ -9343,7 +9399,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 		{
 			name:          "default null into interface{}",
 			fns:           nil,
-			in:            []byte{0xf6},
+			data:          []byte{0xf6},
 			into:          typeIntf,
 			want:          nil,
 			assertOnError: assertNilError,
@@ -9351,7 +9407,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 		{
 			name:          "default undefined into interface{}",
 			fns:           nil,
-			in:            []byte{0xf7},
+			data:          []byte{0xf7},
 			into:          typeIntf,
 			want:          nil,
 			assertOnError: assertNilError,
@@ -9359,7 +9415,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 		{
 			name: "reject undefined into interface{}",
 			fns:  []func(*SimpleValueRegistry) error{WithRejectedSimpleValue(23)},
-			in:   []byte{0xf7},
+			data: []byte{0xf7},
 			into: typeIntf,
 			want: nil,
 			assertOnError: assertExactError(&UnacceptableDataItemError{
@@ -9370,7 +9426,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 		{
 			name: "reject true into bool",
 			fns:  []func(*SimpleValueRegistry) error{WithRejectedSimpleValue(21)},
-			in:   []byte{0xf5},
+			data: []byte{0xf5},
 			into: typeBool,
 			want: false,
 			assertOnError: assertExactError(&UnacceptableDataItemError{
@@ -9381,7 +9437,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 		{
 			name:          "default unrecognized into uint64",
 			fns:           nil,
-			in:            []byte{0xf8, 0xc8},
+			data:          []byte{0xf8, 0xc8},
 			into:          typeUint64,
 			want:          uint64(200),
 			assertOnError: assertNilError,
@@ -9399,7 +9455,7 @@ func TestUnmarshalSimpleValues(t *testing.T) {
 			}
 
 			dst := reflect.New(tc.into)
-			err = decMode.Unmarshal(tc.in, dst.Interface())
+			err = decMode.Unmarshal(tc.data, dst.Interface())
 			tc.assertOnError(t, err)
 
 			if got := dst.Elem().Interface(); !reflect.DeepEqual(tc.want, got) {
@@ -9443,71 +9499,71 @@ func TestDecModeInvalidTimeTagToAnyMode(t *testing.T) {
 
 func TestDecModeTimeTagToAny(t *testing.T) {
 	for _, tc := range []struct {
-		name           string
-		opts           DecOptions
-		in             []byte
-		want           any
-		wantErrMessage string
+		name         string
+		opts         DecOptions
+		data         []byte
+		want         any
+		wantErrorMsg string
 	}{
 		{
 			name: "Unmarshal tag 0 data to time.Time when TimeTagToAny is not set",
 			opts: DecOptions{},
-			in:   mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
+			data: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
 			want: time.Date(2013, 3, 21, 20, 4, 0, 0, time.UTC),
 		},
 		{
 			name: "Unmarshal tag 1 data to time.Time when TimeTagToAny is not set",
 			opts: DecOptions{},
-			in:   mustHexDecode("c11a514b67b0"),
+			data: mustHexDecode("c11a514b67b0"),
 			want: time.Date(2013, 3, 21, 20, 4, 0, 0, time.UTC),
 		},
 		{
 			name: "Unmarshal tag 0 data to RFC3339 string when TimeTagToAny is set",
 			opts: DecOptions{TimeTagToAny: TimeTagToRFC3339},
-			in:   mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
+			data: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
 			want: "2013-03-21T20:04:00Z",
 		},
 		{
 			name: "Unmarshal tag 1 data to RFC3339 string when TimeTagToAny is set",
 			opts: DecOptions{TimeTagToAny: TimeTagToRFC3339},
-			in:   mustHexDecode("c11a514b67b0"),
+			data: mustHexDecode("c11a514b67b0"),
 			want: "2013-03-21T20:04:00Z",
 		},
 		{
 			name: "Unmarshal tag 0 data to RFC3339Nano string when TimeTagToAny is set",
 			opts: DecOptions{TimeTagToAny: TimeTagToRFC3339Nano},
-			in:   mustHexDecode("c076323031332d30332d32315432303a30343a30302e355a"),
+			data: mustHexDecode("c076323031332d30332d32315432303a30343a30302e355a"),
 			want: "2013-03-21T20:04:00.5Z",
 		},
 		{
 			name: "Unmarshal tag 1 data to RFC3339Nano string when TimeTagToAny is set",
 			opts: DecOptions{TimeTagToAny: TimeTagToRFC3339Nano},
-			in:   mustHexDecode("c1fb41d452d9ec200000"),
+			data: mustHexDecode("c1fb41d452d9ec200000"),
 			want: "2013-03-21T20:04:00.5Z",
 		},
 		{
-			name:           "error under TimeTagToRFC3339 when tag 0 contains an invalid RFC3339 timestamp",
-			opts:           DecOptions{TimeTagToAny: TimeTagToRFC3339},
-			in:             mustHexDecode("c07731303030302D30332D32315432303A30343A30302E355A"), // 0("10000-03-21T20:04:00.5Z")
-			wantErrMessage: `cbor: cannot set 10000-03-21T20:04:00.5Z for time.Time: parsing time "10000-03-21T20:04:00.5Z" as "2006-01-02T15:04:05Z07:00": cannot parse "0-03-21T20:04:00.5Z" as "-"`,
+			name:         "error under TimeTagToRFC3339 when tag 0 contains an invalid RFC3339 timestamp",
+			opts:         DecOptions{TimeTagToAny: TimeTagToRFC3339},
+			data:         mustHexDecode("c07731303030302D30332D32315432303A30343A30302E355A"), // 0("10000-03-21T20:04:00.5Z")
+			wantErrorMsg: `cbor: cannot set 10000-03-21T20:04:00.5Z for time.Time: parsing time "10000-03-21T20:04:00.5Z" as "2006-01-02T15:04:05Z07:00": cannot parse "0-03-21T20:04:00.5Z" as "-"`,
 		},
 		{
-			name:           "error under TimeTagToRFC3339Nano when tag 0 contains an invalid RFC3339 timestamp",
-			opts:           DecOptions{TimeTagToAny: TimeTagToRFC3339Nano},
-			in:             mustHexDecode("c07731303030302D30332D32315432303A30343A30302E355A"), // 0("10000-03-21T20:04:00.5Z")
-			wantErrMessage: `cbor: cannot set 10000-03-21T20:04:00.5Z for time.Time: parsing time "10000-03-21T20:04:00.5Z" as "2006-01-02T15:04:05Z07:00": cannot parse "0-03-21T20:04:00.5Z" as "-"`,
+			name:         "error under TimeTagToRFC3339Nano when tag 0 contains an invalid RFC3339 timestamp",
+			opts:         DecOptions{TimeTagToAny: TimeTagToRFC3339Nano},
+			data:         mustHexDecode("c07731303030302D30332D32315432303A30343A30302E355A"), // 0("10000-03-21T20:04:00.5Z")
+			wantErrorMsg: `cbor: cannot set 10000-03-21T20:04:00.5Z for time.Time: parsing time "10000-03-21T20:04:00.5Z" as "2006-01-02T15:04:05Z07:00": cannot parse "0-03-21T20:04:00.5Z" as "-"`,
 		},
 		{
-			name:           "error under TimeTagToRFC3339 when tag 1 represents a time that can't be represented by valid RFC3339",
-			opts:           DecOptions{TimeTagToAny: TimeTagToRFC3339},
-			in:             mustHexDecode("c11b0000003afff44181"), // 1(253402300801)
-			wantErrMessage: "cbor: decoded time cannot be represented in RFC3339 format: Time.MarshalText: year outside of range [0,9999]",
+			name:         "error under TimeTagToRFC3339 when tag 1 represents a time that can't be represented by valid RFC3339",
+			opts:         DecOptions{TimeTagToAny: TimeTagToRFC3339},
+			data:         mustHexDecode("c11b0000003afff44181"), // 1(253402300801)
+			wantErrorMsg: "cbor: decoded time cannot be represented in RFC3339 format: Time.MarshalText: year outside of range [0,9999]",
 		},
 		{
-			name:           "error under TimeTagToRFC3339Nano when tag 1 represents a time that can't be represented by valid RFC3339",
-			opts:           DecOptions{TimeTagToAny: TimeTagToRFC3339Nano},
-			in:             mustHexDecode("c11b0000003afff44181"), // 1(253402300801)
-			wantErrMessage: "cbor: decoded time cannot be represented in RFC3339 format with sub-second precision: Time.MarshalText: year outside of range [0,9999]",
+			name:         "error under TimeTagToRFC3339Nano when tag 1 represents a time that can't be represented by valid RFC3339",
+			opts:         DecOptions{TimeTagToAny: TimeTagToRFC3339Nano},
+			data:         mustHexDecode("c11b0000003afff44181"), // 1(253402300801)
+			wantErrorMsg: "cbor: decoded time cannot be represented in RFC3339 format with sub-second precision: Time.MarshalText: year outside of range [0,9999]",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -9517,17 +9573,17 @@ func TestDecModeTimeTagToAny(t *testing.T) {
 			}
 
 			var got any
-			if err := dm.Unmarshal(tc.in, &got); err != nil {
-				if tc.wantErrMessage == "" {
+			if err := dm.Unmarshal(tc.data, &got); err != nil {
+				if tc.wantErrorMsg == "" {
 					t.Fatalf("unexpected error: %v", err)
-				} else if gotErrMessage := err.Error(); tc.wantErrMessage != gotErrMessage {
-					t.Fatalf("want error %q, got %q", tc.wantErrMessage, gotErrMessage)
+				} else if gotErrMessage := err.Error(); tc.wantErrorMsg != gotErrMessage {
+					t.Fatalf("want error %q, got %q", tc.wantErrorMsg, gotErrMessage)
 				}
-			} else if tc.wantErrMessage != "" {
-				t.Fatalf("got nil error, want %q", tc.wantErrMessage)
+			} else if tc.wantErrorMsg != "" {
+				t.Fatalf("got nil error, want %q", tc.wantErrorMsg)
 			}
 
-			compareNonFloats(t, tc.in, got, tc.want)
+			compareNonFloats(t, tc.data, got, tc.want)
 
 		})
 	}
@@ -9743,7 +9799,7 @@ func TestNaNDecMode(t *testing.T) {
 			if got := dm.Unmarshal(tc.src, tc.dst); got != nil {
 				if tc.reject {
 					if !reflect.DeepEqual(want, got) {
-						t.Errorf("want error: %v, got error: %v", want, got)
+						t.Errorf("Unmarshal() returned error %v, want %v", got, want)
 					}
 				} else {
 					t.Errorf("unexpected error: %v", got)
@@ -10037,7 +10093,7 @@ func TestInfDecMode(t *testing.T) {
 			if got := dm.Unmarshal(tc.src, tc.dst); got != nil {
 				if tc.reject {
 					if !reflect.DeepEqual(want, got) {
-						t.Errorf("want error: %v, got error: %v", want, got)
+						t.Errorf("Unmarshal() returned error %v, want %v", got, want)
 					}
 				} else {
 					t.Errorf("unexpected error: %v", got)
@@ -10081,38 +10137,38 @@ func TestDecModeByteStringToTime(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		opts         DecOptions
-		in           []byte
+		data         []byte
 		want         time.Time
 		wantErrorMsg string
 	}{
 		{
 			name:         "Unmarshal byte string to time.Time when ByteStringToTime is not set",
 			opts:         DecOptions{},
-			in:           mustHexDecode("54323031332D30332D32315432303A30343A30305A"), // '2013-03-21T20:04:00Z'
+			data:         mustHexDecode("54323031332D30332D32315432303A30343A30305A"), // '2013-03-21T20:04:00Z'
 			wantErrorMsg: "cbor: cannot unmarshal byte string into Go value of type time.Time",
 		},
 		{
 			name: "Unmarshal byte string to time.Time when ByteStringToTime is set to ByteStringToTimeAllowed",
 			opts: DecOptions{ByteStringToTime: ByteStringToTimeAllowed},
-			in:   mustHexDecode("54323031332D30332D32315432303A30343A30305A"), // '2013-03-21T20:04:00Z'
+			data: mustHexDecode("54323031332D30332D32315432303A30343A30305A"), // '2013-03-21T20:04:00Z'
 			want: time.Date(2013, 3, 21, 20, 4, 0, 0, time.UTC),
 		},
 		{
 			name: "Unmarshal byte string to time.Time with nano when ByteStringToTime is set to ByteStringToTimeAllowed",
 			opts: DecOptions{ByteStringToTime: ByteStringToTimeAllowed},
-			in:   mustHexDecode("56323031332D30332D32315432303A30343A30302E355A"), // '2013-03-21T20:04:00.5Z'
+			data: mustHexDecode("56323031332D30332D32315432303A30343A30302E355A"), // '2013-03-21T20:04:00.5Z'
 			want: time.Date(2013, 3, 21, 20, 4, 0, 500000000, time.UTC),
 		},
 		{
 			name:         "Unmarshal a byte string that is not a valid RFC3339 timestamp to time.Time when ByteStringToTime is set to ByteStringToTimeAllowed",
 			opts:         DecOptions{ByteStringToTime: ByteStringToTimeAllowed},
-			in:           mustHexDecode("4B696E76616C696454657874"), // 'invalidText'
+			data:         mustHexDecode("4B696E76616C696454657874"), // 'invalidText'
 			wantErrorMsg: `cbor: cannot set "invalidText" for time.Time: parsing time "invalidText" as "2006-01-02T15:04:05Z07:00": cannot parse "invalidText" as "2006"`,
 		},
 		{
 			name:         "Unmarshal a byte string that is not a valid utf8 sequence to time.Time when ByteStringToTime is set to ByteStringToTimeAllowed",
 			opts:         DecOptions{ByteStringToTime: ByteStringToTimeAllowed},
-			in:           mustHexDecode("54323031338030332D32315432303A30343A30305A"), // "2013\x8003-21T20:04:00Z" -- the first hyphen of a valid RFC3339 string is replaced by a continuation byte
+			data:         mustHexDecode("54323031338030332D32315432303A30343A30305A"), // "2013\x8003-21T20:04:00Z" -- the first hyphen of a valid RFC3339 string is replaced by a continuation byte
 			wantErrorMsg: `cbor: cannot set "2013\x8003-21T20:04:00Z" for time.Time: parsing time "2013\x8003-21T20:04:00Z" as "2006-01-02T15:04:05Z07:00": cannot parse "\x8003-21T20:04:00Z" as "-"`,
 		},
 	} {
@@ -10123,12 +10179,12 @@ func TestDecModeByteStringToTime(t *testing.T) {
 			}
 
 			var got time.Time
-			if err := dm.Unmarshal(tc.in, &got); err != nil {
+			if err := dm.Unmarshal(tc.data, &got); err != nil {
 				if tc.wantErrorMsg != err.Error() {
 					t.Errorf("unexpected error: got %v want %v", err, tc.wantErrorMsg)
 				}
 			} else {
-				compareNonFloats(t, tc.in, got, tc.want)
+				compareNonFloats(t, tc.data, got, tc.want)
 			}
 		})
 	}
@@ -10166,10 +10222,10 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 	type empty struct{}
 
 	for _, tc := range []struct {
-		name    string
-		opts    DecOptions
-		tags    func(TagSet) error
-		wantErr string
+		name         string
+		opts         DecOptions
+		tags         func(TagSet) error
+		wantErrorMsg string
 	}{
 		{
 			name: "base64url encoding tag ignored by default",
@@ -10177,7 +10233,7 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			tags: func(tags TagSet) error {
 				return tags.Add(TagOptions{DecTag: DecTagOptional}, reflect.TypeOf(empty{}), 21)
 			},
-			wantErr: "",
+			wantErrorMsg: "",
 		},
 		{
 			name: "base64url encoding tag conflicts in ByteStringToStringAllowedWithExpectedLaterEncoding mode",
@@ -10185,7 +10241,7 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			tags: func(tags TagSet) error {
 				return tags.Add(TagOptions{DecTag: DecTagOptional}, reflect.TypeOf(empty{}), 21)
 			},
-			wantErr: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 21 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
+			wantErrorMsg: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 21 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
 		},
 		{
 			name: "base64url encoding tag conflicts with non-default ByteSliceExpectedEncoding option",
@@ -10193,7 +10249,7 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			tags: func(tags TagSet) error {
 				return tags.Add(TagOptions{DecTag: DecTagOptional}, reflect.TypeOf(empty{}), 21)
 			},
-			wantErr: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 21 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
+			wantErrorMsg: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 21 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
 		},
 		{
 			name: "base64 encoding tag ignored by default",
@@ -10201,7 +10257,7 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			tags: func(tags TagSet) error {
 				return tags.Add(TagOptions{DecTag: DecTagOptional}, reflect.TypeOf(empty{}), 22)
 			},
-			wantErr: "",
+			wantErrorMsg: "",
 		},
 		{
 			name: "base64 encoding tag conflicts in ByteStringToStringAllowedWithExpectedLaterEncoding mode",
@@ -10209,7 +10265,7 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			tags: func(tags TagSet) error {
 				return tags.Add(TagOptions{DecTag: DecTagOptional}, reflect.TypeOf(empty{}), 22)
 			},
-			wantErr: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 22 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
+			wantErrorMsg: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 22 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
 		},
 		{
 			name: "base64 encoding tag conflicts with non-default ByteSliceExpectedEncoding option",
@@ -10217,7 +10273,7 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			tags: func(tags TagSet) error {
 				return tags.Add(TagOptions{DecTag: DecTagOptional}, reflect.TypeOf(empty{}), 22)
 			},
-			wantErr: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 22 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
+			wantErrorMsg: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 22 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
 		},
 		{
 			name: "base16 encoding tag ignored by default",
@@ -10225,7 +10281,7 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			tags: func(tags TagSet) error {
 				return tags.Add(TagOptions{DecTag: DecTagOptional}, reflect.TypeOf(empty{}), 23)
 			},
-			wantErr: "",
+			wantErrorMsg: "",
 		},
 		{
 			name: "base16 encoding tag conflicts in ByteStringToStringAllowedWithExpectedLaterEncoding mode",
@@ -10233,7 +10289,7 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			tags: func(tags TagSet) error {
 				return tags.Add(TagOptions{DecTag: DecTagOptional}, reflect.TypeOf(empty{}), 23)
 			},
-			wantErr: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 23 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
+			wantErrorMsg: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 23 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
 		},
 		{
 			name: "base16 encoding tag conflicts with non-default ByteSliceExpectedEncoding option",
@@ -10241,7 +10297,7 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			tags: func(tags TagSet) error {
 				return tags.Add(TagOptions{DecTag: DecTagOptional}, reflect.TypeOf(empty{}), 23)
 			},
-			wantErr: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 23 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
+			wantErrorMsg: "cbor: DecMode with non-default StringExpectedEncoding or ByteSliceExpectedEncoding treats tag 23 as built-in and conflicts with the provided TagSet's registration of cbor.empty",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -10251,24 +10307,24 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 			}
 
 			if _, err := tc.opts.DecModeWithTags(tags); err == nil {
-				if tc.wantErr != "" {
-					t.Errorf("got nil error from DecModeWithTags, want %q", tc.wantErr)
+				if tc.wantErrorMsg != "" {
+					t.Errorf("got nil error from DecModeWithTags, want %q", tc.wantErrorMsg)
 				}
-			} else if got := err.Error(); got != tc.wantErr {
-				if tc.wantErr != "" {
-					t.Errorf("unexpected error from DecModeWithTags, got %q want %q", got, tc.wantErr)
+			} else if got := err.Error(); got != tc.wantErrorMsg {
+				if tc.wantErrorMsg != "" {
+					t.Errorf("unexpected error from DecModeWithTags, got %q want %q", got, tc.wantErrorMsg)
 				} else {
 					t.Errorf("want nil error from DecModeWithTags, got %q", got)
 				}
 			}
 
 			if _, err := tc.opts.DecModeWithSharedTags(tags); err == nil {
-				if tc.wantErr != "" {
-					t.Errorf("got nil error from DecModeWithSharedTags, want %q", tc.wantErr)
+				if tc.wantErrorMsg != "" {
+					t.Errorf("got nil error from DecModeWithSharedTags, want %q", tc.wantErrorMsg)
 				}
-			} else if got := err.Error(); got != tc.wantErr {
-				if tc.wantErr != "" {
-					t.Errorf("unexpected error from DecModeWithSharedTags, got %q want %q", got, tc.wantErr)
+			} else if got := err.Error(); got != tc.wantErrorMsg {
+				if tc.wantErrorMsg != "" {
+					t.Errorf("unexpected error from DecModeWithSharedTags, got %q want %q", got, tc.wantErrorMsg)
 				} else {
 					t.Errorf("want nil error from DecModeWithSharedTags, got %q", got)
 				}
@@ -10279,53 +10335,53 @@ func TestDecOptionsConflictWithRegisteredTags(t *testing.T) {
 
 func TestUnmarshalByteStringTextConversionError(t *testing.T) {
 	for _, tc := range []struct {
-		name    string
-		opts    DecOptions
-		dstType reflect.Type
-		in      []byte
-		wantErr string
+		name         string
+		opts         DecOptions
+		dstType      reflect.Type
+		data         []byte
+		wantErrorMsg string
 	}{
 		{
-			name:    "reject untagged byte string containing invalid base64url",
-			opts:    DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase64URL},
-			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0x41, 0x00},
-			wantErr: "cbor: failed to decode base64url from byte string: illegal base64 data at input byte 0",
+			name:         "reject untagged byte string containing invalid base64url",
+			opts:         DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase64URL},
+			dstType:      reflect.TypeOf([]byte{}),
+			data:         []byte{0x41, 0x00},
+			wantErrorMsg: "cbor: failed to decode base64url from byte string: illegal base64 data at input byte 0",
 		},
 		{
-			name:    "reject untagged byte string containing invalid base64url",
-			opts:    DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase64},
-			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0x41, 0x00},
-			wantErr: "cbor: failed to decode base64 from byte string: illegal base64 data at input byte 0",
+			name:         "reject untagged byte string containing invalid base64url",
+			opts:         DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase64},
+			dstType:      reflect.TypeOf([]byte{}),
+			data:         []byte{0x41, 0x00},
+			wantErrorMsg: "cbor: failed to decode base64 from byte string: illegal base64 data at input byte 0",
 		},
 		{
-			name:    "reject untagged byte string containing invalid base16",
-			opts:    DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase16},
-			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0x41, 0x00},
-			wantErr: "cbor: failed to decode hex from byte string: encoding/hex: invalid byte: U+0000",
+			name:         "reject untagged byte string containing invalid base16",
+			opts:         DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase16},
+			dstType:      reflect.TypeOf([]byte{}),
+			data:         []byte{0x41, 0x00},
+			wantErrorMsg: "cbor: failed to decode hex from byte string: encoding/hex: invalid byte: U+0000",
 		},
 		{
-			name:    "accept tagged byte string containing invalid base64url",
-			opts:    DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase64URL},
-			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0xd5, 0x41, 0x00},
-			wantErr: "",
+			name:         "accept tagged byte string containing invalid base64url",
+			opts:         DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase64URL},
+			dstType:      reflect.TypeOf([]byte{}),
+			data:         []byte{0xd5, 0x41, 0x00},
+			wantErrorMsg: "",
 		},
 		{
-			name:    "accept tagged byte string containing invalid base64url",
-			opts:    DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase64},
-			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0xd5, 0x41, 0x00},
-			wantErr: "",
+			name:         "accept tagged byte string containing invalid base64url",
+			opts:         DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase64},
+			dstType:      reflect.TypeOf([]byte{}),
+			data:         []byte{0xd5, 0x41, 0x00},
+			wantErrorMsg: "",
 		},
 		{
-			name:    "accept tagged byte string containing invalid base16",
-			opts:    DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase16},
-			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0xd5, 0x41, 0x00},
-			wantErr: "",
+			name:         "accept tagged byte string containing invalid base16",
+			opts:         DecOptions{ByteStringExpectedFormat: ByteStringExpectedBase16},
+			dstType:      reflect.TypeOf([]byte{}),
+			data:         []byte{0xd5, 0x41, 0x00},
+			wantErrorMsg: "",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -10334,15 +10390,15 @@ func TestUnmarshalByteStringTextConversionError(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if err := dm.Unmarshal(tc.in, reflect.New(tc.dstType).Interface()); err == nil {
-				if tc.wantErr != "" {
-					t.Errorf("got nil error, want %q", tc.wantErr)
+			if err := dm.Unmarshal(tc.data, reflect.New(tc.dstType).Interface()); err == nil {
+				if tc.wantErrorMsg != "" {
+					t.Errorf("got nil error, want %q", tc.wantErrorMsg)
 				}
-			} else if got := err.Error(); got != tc.wantErr {
-				if tc.wantErr == "" {
+			} else if got := err.Error(); got != tc.wantErrorMsg {
+				if tc.wantErrorMsg == "" {
 					t.Errorf("expected nil error, got %q", got)
 				} else {
-					t.Errorf("unexpected error, got %q want %q", got, tc.wantErr)
+					t.Errorf("unexpected error, got %q want %q", got, tc.wantErrorMsg)
 				}
 			}
 		})
@@ -10354,7 +10410,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 		name    string
 		opts    DecOptions
 		dstType reflect.Type
-		in      []byte
+		data    []byte
 		want    any
 	}{
 		{
@@ -10363,7 +10419,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowedWithExpectedLaterEncoding,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0x41, 0xff}, // h'ff'
+			data:    []byte{0x41, 0xff}, // h'ff'
 			want:    "\xff",
 		},
 		{
@@ -10372,7 +10428,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowedWithExpectedLaterEncoding,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0xd5, 0x41, 0xff}, // 21(h'ff')
+			data:    []byte{0xd5, 0x41, 0xff}, // 21(h'ff')
 			want:    "_w",
 		},
 		{
@@ -10381,7 +10437,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowedWithExpectedLaterEncoding,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0xd5, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 21(55799(h'ff'))
+			data:    []byte{0xd5, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 21(55799(h'ff'))
 			want:    "_w",
 		},
 		{
@@ -10390,7 +10446,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowed,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0xd5, 0x41, 0xff}, // 21(h'ff')
+			data:    []byte{0xd5, 0x41, 0xff}, // 21(h'ff')
 			want:    "\xff",
 		},
 		{
@@ -10399,7 +10455,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringExpectedFormat: ByteStringExpectedBase64URL,
 			},
 			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0xd5, 0x41, 0xff}, // 21(h'ff')
+			data:    []byte{0xd5, 0x41, 0xff}, // 21(h'ff')
 			want:    []byte{0xff},
 		},
 		{
@@ -10408,7 +10464,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringExpectedFormat: ByteStringExpectedBase64URL,
 			},
 			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0xd5, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 21(55799(h'ff'))
+			data:    []byte{0xd5, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 21(55799(h'ff'))
 			want:    []byte{0xff},
 		},
 		{
@@ -10417,7 +10473,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringExpectedFormat: ByteStringExpectedBase64URL,
 			},
 			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0x42, '_', 'w'}, // '_w'
+			data:    []byte{0x42, '_', 'w'}, // '_w'
 			want:    []byte{0xff},
 		},
 		{
@@ -10426,7 +10482,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowedWithExpectedLaterEncoding,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0xd6, 0x41, 0xff}, // 22(h'ff')
+			data:    []byte{0xd6, 0x41, 0xff}, // 22(h'ff')
 			want:    "/w==",
 		},
 		{
@@ -10435,7 +10491,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowedWithExpectedLaterEncoding,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0xd6, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 22(55799(h'ff'))
+			data:    []byte{0xd6, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 22(55799(h'ff'))
 			want:    "/w==",
 		},
 		{
@@ -10444,7 +10500,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowed,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0xd6, 0x41, 0xff}, // 22(h'ff')
+			data:    []byte{0xd6, 0x41, 0xff}, // 22(h'ff')
 			want:    "\xff",
 		},
 		{
@@ -10453,7 +10509,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringExpectedFormat: ByteStringExpectedBase64,
 			},
 			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0xd6, 0x41, 0xff}, // 22(h'ff')
+			data:    []byte{0xd6, 0x41, 0xff}, // 22(h'ff')
 			want:    []byte{0xff},
 		},
 		{
@@ -10462,7 +10518,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringExpectedFormat: ByteStringExpectedBase64,
 			},
 			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0xd6, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 22(55799(h'ff'))
+			data:    []byte{0xd6, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 22(55799(h'ff'))
 			want:    []byte{0xff},
 		},
 		{
@@ -10471,7 +10527,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringExpectedFormat: ByteStringExpectedBase64,
 			},
 			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0x44, '/', 'w', '=', '='}, // '/w=='
+			data:    []byte{0x44, '/', 'w', '=', '='}, // '/w=='
 			want:    []byte{0xff},
 		},
 		{
@@ -10480,7 +10536,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowedWithExpectedLaterEncoding,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0xd7, 0x41, 0xff}, // 23(h'ff')
+			data:    []byte{0xd7, 0x41, 0xff}, // 23(h'ff')
 			want:    "ff",
 		},
 		{
@@ -10489,7 +10545,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowedWithExpectedLaterEncoding,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0xd7, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 23(55799(h'ff'))
+			data:    []byte{0xd7, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 23(55799(h'ff'))
 			want:    "ff",
 		},
 		{
@@ -10498,7 +10554,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringToString: ByteStringToStringAllowed,
 			},
 			dstType: reflect.TypeOf(""),
-			in:      []byte{0xd7, 0x41, 0xff}, // 23(h'ff')
+			data:    []byte{0xd7, 0x41, 0xff}, // 23(h'ff')
 			want:    "\xff",
 		},
 		{
@@ -10507,7 +10563,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringExpectedFormat: ByteStringExpectedBase16,
 			},
 			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0xd7, 0x41, 0xff}, // 23(h'ff')
+			data:    []byte{0xd7, 0x41, 0xff}, // 23(h'ff')
 			want:    []byte{0xff},
 		},
 		{
@@ -10516,7 +10572,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringExpectedFormat: ByteStringExpectedBase16,
 			},
 			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0xd7, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 23(55799(h'ff'))
+			data:    []byte{0xd7, 0xd9, 0xd9, 0xf7, 0x41, 0xff}, // 23(55799(h'ff'))
 			want:    []byte{0xff},
 		},
 		{
@@ -10525,8 +10581,26 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 				ByteStringExpectedFormat: ByteStringExpectedBase16,
 			},
 			dstType: reflect.TypeOf([]byte{}),
-			in:      []byte{0x42, 'f', 'f'},
+			data:    []byte{0x42, 'f', 'f'},
 			want:    []byte{0xff},
+		},
+		{
+			name: "tag 21 wrapping tag 22",
+			opts: DecOptions{
+				ByteStringToString: ByteStringToStringAllowedWithExpectedLaterEncoding,
+			},
+			dstType: reflect.TypeOf(""),
+			data:    []byte{0xd5, 0xd6, 0x42, 0x01, 0x02}, // 21(22(h'0102'))
+			want:    "AQI=",                               // base64 of [0x01, 0x02] with padding
+		},
+		{
+			name: "tag 22 wrapping tag 21",
+			opts: DecOptions{
+				ByteStringToString: ByteStringToStringAllowedWithExpectedLaterEncoding,
+			},
+			dstType: reflect.TypeOf(""),
+			data:    []byte{0xd6, 0xd5, 0x42, 0x01, 0x02}, // 22(21(h'0102'))
+			want:    "AQI",                                // base64 of [0x01, 0x02] without padding
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -10536,7 +10610,7 @@ func TestUnmarshalByteStringTextConversion(t *testing.T) {
 			}
 
 			dstVal := reflect.New(tc.dstType)
-			if err := dm.Unmarshal(tc.in, dstVal.Interface()); err != nil {
+			if err := dm.Unmarshal(tc.data, dstVal.Interface()); err != nil {
 				t.Fatal(err)
 			}
 
@@ -10586,25 +10660,25 @@ func TestBinaryUnmarshalerMode(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		opts DecOptions
-		in   []byte
+		data []byte
 		want any
 	}{
 		{
 			name: "UnmarshalBinary is called by default",
 			opts: DecOptions{},
-			in:   []byte("\x45hello"), // 'hello'
+			data: []byte("\x45hello"), // 'hello'
 			want: testBinaryUnmarshaler("UnmarshalBinary"),
 		},
 		{
 			name: "UnmarshalBinary is called with BinaryUnmarshalerByteString",
 			opts: DecOptions{BinaryUnmarshaler: BinaryUnmarshalerByteString},
-			in:   []byte("\x45hello"), // 'hello'
+			data: []byte("\x45hello"), // 'hello'
 			want: testBinaryUnmarshaler("UnmarshalBinary"),
 		},
 		{
 			name: "default byte slice unmarshaling behavior is used with BinaryUnmarshalerNone",
 			opts: DecOptions{BinaryUnmarshaler: BinaryUnmarshalerNone},
-			in:   []byte("\x45hello"), // 'hello'
+			data: []byte("\x45hello"), // 'hello'
 			want: testBinaryUnmarshaler("hello"),
 		},
 	} {
@@ -10615,7 +10689,7 @@ func TestBinaryUnmarshalerMode(t *testing.T) {
 			}
 
 			gotrv := reflect.New(reflect.TypeOf(tc.want))
-			if err := dm.Unmarshal(tc.in, gotrv.Interface()); err != nil {
+			if err := dm.Unmarshal(tc.data, gotrv.Interface()); err != nil {
 				t.Fatal(err)
 			}
 
@@ -10657,10 +10731,10 @@ func TestDecModeInvalidBignumTag(t *testing.T) {
 
 func TestBignumTagMode(t *testing.T) {
 	for _, tc := range []struct {
-		name           string
-		opt            DecOptions
-		input          []byte
-		wantErrMessage string // if "" then expect nil error
+		name         string
+		opt          DecOptions
+		input        []byte
+		wantErrorMsg string // if "" then expect nil error
 	}{
 		{
 			name:  "default options decode unsigned bignum without error",
@@ -10673,16 +10747,16 @@ func TestBignumTagMode(t *testing.T) {
 			input: mustHexDecode("c340"), // 3(0) i.e. negative bignum -1
 		},
 		{
-			name:           "BignumTagForbidden returns UnacceptableDataItemError on unsigned bignum",
-			opt:            DecOptions{BignumTag: BignumTagForbidden},
-			input:          mustHexDecode("c240"), // 2(0) i.e. unsigned bignum 0
-			wantErrMessage: "cbor: data item of cbor type tag is not accepted by protocol: bignum",
+			name:         "BignumTagForbidden returns UnacceptableDataItemError on unsigned bignum",
+			opt:          DecOptions{BignumTag: BignumTagForbidden},
+			input:        mustHexDecode("c240"), // 2(0) i.e. unsigned bignum 0
+			wantErrorMsg: "cbor: data item of cbor type tag is not accepted by protocol: bignum",
 		},
 		{
-			name:           "BignumTagForbidden returns UnacceptableDataItemError on negative bignum",
-			opt:            DecOptions{BignumTag: BignumTagForbidden},
-			input:          mustHexDecode("c340"), // 3(0) i.e. negative bignum -1
-			wantErrMessage: "cbor: data item of cbor type tag is not accepted by protocol: bignum",
+			name:         "BignumTagForbidden returns UnacceptableDataItemError on negative bignum",
+			opt:          DecOptions{BignumTag: BignumTagForbidden},
+			input:        mustHexDecode("c340"), // 3(0) i.e. negative bignum -1
+			wantErrorMsg: "cbor: data item of cbor type tag is not accepted by protocol: bignum",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -10703,14 +10777,14 @@ func TestBignumTagMode(t *testing.T) {
 					dstv := reflect.New(dstType)
 					err = dm.Unmarshal(tc.input, dstv.Interface())
 					if err != nil {
-						if tc.wantErrMessage == "" {
+						if tc.wantErrorMsg == "" {
 							t.Errorf("want nil error, got: %v", err)
-						} else if gotErrMessage := err.Error(); gotErrMessage != tc.wantErrMessage {
-							t.Errorf("want error: %q, got error: %q", tc.wantErrMessage, gotErrMessage)
+						} else if gotErrMessage := err.Error(); gotErrMessage != tc.wantErrorMsg {
+							t.Errorf("Unmarshal() returned error %q, want %q", gotErrMessage, tc.wantErrorMsg)
 						}
 					} else {
-						if tc.wantErrMessage != "" {
-							t.Errorf("got nil error, want: %s", tc.wantErrMessage)
+						if tc.wantErrorMsg != "" {
+							t.Errorf("got nil error, want: %s", tc.wantErrorMsg)
 						}
 					}
 				})
@@ -10758,25 +10832,25 @@ func TestTextUnmarshalerMode(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		opts DecOptions
-		in   []byte
+		data []byte
 		want any
 	}{
 		{
 			name: "UnmarshalText is not called by default",
 			opts: DecOptions{},
-			in:   []byte("\x65hello"), // "hello"
+			data: []byte("\x65hello"), // "hello"
 			want: testTextUnmarshaler("hello"),
 		},
 		{
 			name: "UnmarshalText is called with TextUnmarshalerTextString",
 			opts: DecOptions{TextUnmarshaler: TextUnmarshalerTextString},
-			in:   []byte("\x65hello"), // "hello"
+			data: []byte("\x65hello"), // "hello"
 			want: testTextUnmarshaler("UnmarshalText"),
 		},
 		{
 			name: "default text string unmarshaling behavior is used with TextUnmarshalerNone",
 			opts: DecOptions{TextUnmarshaler: TextUnmarshalerNone},
-			in:   []byte("\x65hello"), // "hello"
+			data: []byte("\x65hello"), // "hello"
 			want: testTextUnmarshaler("hello"),
 		},
 		{
@@ -10785,7 +10859,7 @@ func TestTextUnmarshalerMode(t *testing.T) {
 				TextUnmarshaler:    TextUnmarshalerTextString,
 				ByteStringToString: ByteStringToStringAllowed,
 			},
-			in:   []byte("\x45hello"), // 'hello'
+			data: []byte("\x45hello"), // 'hello'
 			want: testTextUnmarshaler("UnmarshalText"),
 		},
 	} {
@@ -10796,7 +10870,7 @@ func TestTextUnmarshalerMode(t *testing.T) {
 			}
 
 			gotrv := reflect.New(reflect.TypeOf(tc.want))
-			if err := dm.Unmarshal(tc.in, gotrv.Interface()); err != nil {
+			if err := dm.Unmarshal(tc.data, gotrv.Interface()); err != nil {
 				t.Fatal(err)
 			}
 
@@ -10833,7 +10907,7 @@ func TestTextUnmarshalerModeError(t *testing.T) {
 func TestJSONUnmarshalerTranscoder(t *testing.T) {
 	for _, tc := range []struct {
 		name string
-		in   []byte
+		data []byte
 
 		transcodeInput  []byte
 		transcodeOutput []byte
@@ -10844,7 +10918,7 @@ func TestJSONUnmarshalerTranscoder(t *testing.T) {
 	}{
 		{
 			name: "successful transcode",
-			in:   []byte{0xf5},
+			data: []byte{0xf5},
 
 			transcodeInput:  []byte{0xf5},
 			transcodeOutput: []byte("true"),
@@ -10853,7 +10927,7 @@ func TestJSONUnmarshalerTranscoder(t *testing.T) {
 		},
 		{
 			name: "transcode returns non-nil error",
-			in:   []byte{0xf5},
+			data: []byte{0xf5},
 
 			transcodeInput: []byte{0xf5},
 			transcodeError: errors.New("test"),
@@ -10892,21 +10966,250 @@ func TestJSONUnmarshalerTranscoder(t *testing.T) {
 			}
 
 			gotrv := reflect.New(reflect.TypeOf(tc.want))
-			err = dec.Unmarshal(tc.in, gotrv.Interface())
+			err = dec.Unmarshal(tc.data, gotrv.Interface())
 			if tc.wantErrorMsg != "" {
 				if err == nil {
-					t.Errorf("Unmarshal(0x%x) didn't return an error, want error %q", tc.in, tc.wantErrorMsg)
+					t.Errorf("Unmarshal(0x%x) didn't return an error, want error %q", tc.data, tc.wantErrorMsg)
 				} else if gotErrorMsg := err.Error(); gotErrorMsg != tc.wantErrorMsg {
-					t.Errorf("Unmarshal(0x%x) returned error %q, want %q", tc.in, gotErrorMsg, tc.wantErrorMsg)
+					t.Errorf("Unmarshal(0x%x) returned error %q, want %q", tc.data, gotErrorMsg, tc.wantErrorMsg)
 				}
 			} else {
 				if err != nil {
-					t.Errorf("Unmarshal(0x%x) returned non-nil error %v", tc.in, err)
+					t.Errorf("Unmarshal(0x%x) returned non-nil error %v", tc.data, err)
 				} else if got := gotrv.Elem().Interface(); !reflect.DeepEqual(tc.want, got) {
-					t.Errorf("Unmarshal(0x%x): %v, want %v", tc.in, got, tc.want)
+					t.Errorf("Unmarshal(0x%x): %v, want %v", tc.data, got, tc.want)
 				}
 			}
 
 		})
+	}
+}
+
+// TestKeyAsIntTextKeyDoesNotMatchKeyAsIntField verifies that a CBOR text string
+// key does not match a struct field with the keyasint tag option, even if the
+// text content is the string representation of the integer key.
+func TestKeyAsIntTextKeyDoesNotMatchKeyAsIntField(t *testing.T) {
+	type s struct {
+		ID int `cbor:"1,keyasint"`
+	}
+
+	testCases := []struct {
+		name    string
+		opts    DecOptions
+		data    []byte
+		want    any
+		wantErr *UnknownFieldError
+	}{
+		{
+			name: "default options",
+			opts: defaultDecMode.DecOptions(),
+			data: mustHexDecode("a1613101"), // {"1": 1}
+			want: s{},
+		},
+		{
+			name:    "unknown field error options",
+			opts:    DecOptions{ExtraReturnErrors: ExtraDecErrorUnknownField},
+			data:    mustHexDecode("a1613101"), // {"1": 1}
+			want:    s{},
+			wantErr: &UnknownFieldError{Index: 0},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			dm, err := tc.opts.DecMode()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var v s
+			err = dm.Unmarshal(tc.data, &v)
+			if err != nil {
+				if !reflect.DeepEqual(err, tc.wantErr) {
+					t.Errorf("got error: %v, wanted: %v", err, tc.wantErr)
+				}
+			} else {
+				if tc.wantErr != nil {
+					t.Errorf("got nil error, wanted: %v", tc.wantErr)
+				}
+			}
+
+			if !reflect.DeepEqual(v, tc.want) {
+				t.Errorf("Unmarshal(0x%x) = %+v (%T), want %+v (%T)", tc.data, v, v, tc.want, tc.want)
+			}
+		})
+	}
+}
+
+// TestKeyAsIntNormalizedDuplicateFields verifies that struct fields with
+// keyasint tag values that are identical after integer normalization (e.g., "01"
+// and "1") are eliminated during field deduplication, matching the behavior of
+// two string-keyed fields with the same name.
+func TestKeyAsIntNormalizedDuplicateFields(t *testing.T) {
+	type s struct {
+		ID  int `cbor:"01,keyasint"`
+		ID2 int `cbor:"1,keyasint"`
+		ID3 int `cbor:"+1,keyasint"`
+	}
+
+	testCases := []struct {
+		name    string
+		opts    DecOptions
+		data    []byte
+		want    any
+		wantErr *UnknownFieldError
+	}{
+		{
+			name: "default options",
+			opts: defaultDecMode.DecOptions(),
+			data: mustHexDecode("a10101"), // {1: 1}
+			want: s{},
+		},
+		{
+			name:    "unknown field error options",
+			opts:    DecOptions{ExtraReturnErrors: ExtraDecErrorUnknownField},
+			data:    mustHexDecode("a10101"), // {1: 1}
+			want:    s{},
+			wantErr: &UnknownFieldError{Index: 0},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			dm, err := tc.opts.DecMode()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var v s
+			err = dm.Unmarshal(tc.data, &v)
+			if err != nil {
+				if !reflect.DeepEqual(err, tc.wantErr) {
+					t.Errorf("got error: %v, wanted: %v", err, tc.wantErr)
+				}
+			} else {
+				if tc.wantErr != nil {
+					t.Errorf("got nil error, wanted: %v", tc.wantErr)
+				}
+			}
+
+			if !reflect.DeepEqual(v, tc.want) {
+				t.Errorf("Unmarshal(0x%x) = %+v (%T), want %+v (%T)", tc.data, v, v, tc.want, tc.want)
+			}
+		})
+	}
+
+	v := s{ID: 1, ID2: 2, ID3: 3}
+	want := mustHexDecode("a0")
+
+	b, err := Marshal(v)
+	if err != nil {
+		t.Errorf("Marshal() returned an error %v", err)
+	}
+	if !bytes.Equal(b, want) {
+		t.Errorf("Marshal() returned 0x%x, want 0x%x", b, want)
+	}
+}
+
+// TestKeyAsIntAndStringFieldsWithSameName verifies that a struct with both a
+// keyasint field and a string-keyed field with the same tag name (e.g.
+// cbor:"1,keyasint" and cbor:"1") can decode CBOR maps with integer and text
+// keys independently.
+func TestKeyAsIntAndStringFieldsWithSameName(t *testing.T) {
+	type s struct {
+		ID        int `cbor:"1,keyasint"`
+		AnotherID int `cbor:"1"`
+	}
+
+	data := mustHexDecode("a20101613102") // {1: 1, "1": 2}
+	want := s{
+		ID:        1,
+		AnotherID: 2,
+	}
+
+	var v s
+	err := Unmarshal(data, &v)
+	if err != nil {
+		t.Errorf("Unmarshal returned unexpected error: %v", err)
+	}
+	if !reflect.DeepEqual(v, want) {
+		t.Errorf("Unmarshal(0x%x) returned %+v, want %+v", data, v, want)
+	}
+
+	// Roundtrip
+	b, err := Marshal(want)
+	if err != nil {
+		t.Errorf("Marshal returned unexpected error: %v", err)
+	}
+	if !bytes.Equal(b, data) {
+		t.Errorf("Marshal(%+v) returned 0x%x, want 0x%x", want, b, data)
+	}
+}
+
+// TestMapKeyOverflowStructKeyAsInt verifies that a CBOR integer map
+// key that is outside the range of math.MinInt64 and math.MaxInt64
+// is rejected with an UnmarshalTypeError.
+func TestMapKeyOverflowStructKeyAsInt(t *testing.T) {
+	type s struct {
+		ID int `cbor:"-1,keyasint"`
+	}
+
+	testCases := []struct {
+		name    string
+		data    []byte
+		wantErr *UnmarshalTypeError
+	}{
+		{
+			name: "map key < math.MinInt64",
+			data: mustHexDecode("a13bffffffffffffffff01"), // {-18446744073709551616: 1}
+			wantErr: &UnmarshalTypeError{
+				CBORType: cborTypeNegativeInt.String(),
+				GoType:   "int64",
+				errorMsg: "-1-18446744073709551615 overflows Go's int64",
+			},
+		},
+		{
+			name: "map key > math.MaxInt64",
+			data: mustHexDecode("a11bffffffffffffffff01"), // {18446744073709551615: 1}
+			wantErr: &UnmarshalTypeError{
+				CBORType: cborTypePositiveInt.String(),
+				GoType:   "int64",
+				errorMsg: "18446744073709551615 overflows Go's int64",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var v s
+			err := Unmarshal(tc.data, &v)
+			if err != nil {
+				if !reflect.DeepEqual(err, tc.wantErr) {
+					t.Errorf("got error: %v, wanted: %v", err, tc.wantErr)
+				}
+			} else {
+				if tc.wantErr != nil {
+					t.Errorf("got nil error, wanted: %v", tc.wantErr)
+				}
+			}
+		})
+	}
+}
+
+func TestByteStringExpectedFormatErrorUnwrap(t *testing.T) {
+	innerErr := errors.New("test error")
+	err := newByteStringExpectedFormatError(ByteStringExpectedBase64URL, innerErr)
+	if unwrapped := err.Unwrap(); unwrapped != innerErr {
+		t.Errorf("Unwrap() = %v, want %v", unwrapped, innerErr)
+	}
+}
+
+func TestByteStringExpectedFormatErrorDefaultCase(t *testing.T) {
+	innerErr := errors.New("test error")
+	err := &ByteStringExpectedFormatError{expectedFormatOption: 99, err: innerErr}
+	got := err.Error()
+	want := "cbor: failed to decode byte string in expected format 99: test error"
+	if got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
 	}
 }

@@ -66,7 +66,7 @@ func TestTagNewTypeWithBuiltinUnderlyingType(t *testing.T) {
 	em, _ := EncOptions{Sort: SortCanonical}.EncModeWithTags(tags)
 	dm, _ := DecOptions{}.DecModeWithTags(tags)
 
-	testCases := []roundTripTest{
+	testCases := []roundTripTestCase{
 		{
 			name:         "bool",
 			obj:          myBool(true),
@@ -177,7 +177,7 @@ func TestTagBinaryMarshalerUnmarshaler(t *testing.T) {
 	em, _ := EncOptions{}.EncModeWithTags(tags)
 	dm, _ := DecOptions{}.DecModeWithTags(tags)
 
-	testCases := []roundTripTest{
+	testCases := []roundTripTestCase{
 		{
 			name:         "primitive obj",
 			obj:          number(1234567890),
@@ -689,7 +689,7 @@ func TestAddTagTypeAliasError(t *testing.T) {
 	tags := NewTagSet()
 	for i, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if err := tags.Add(TagOptions{EncTag: EncTagRequired, DecTag: DecTagRequired}, tc.typ, uint64(100+i)); err == nil {
+			if err := tags.Add(TagOptions{EncTag: EncTagRequired, DecTag: DecTagRequired}, tc.typ, uint64(100+i)); err == nil { //nolint:gosec
 				t.Errorf("TagSet.Add(%s, %d) didn't return an error", tc.typ.String(), 0)
 			} else if err.Error() != tc.wantErrorMsg {
 				t.Errorf("TagSet.Add(%s, %d) returned error msg %q, want %q", tc.typ.String(), 0, err, tc.wantErrorMsg)
@@ -743,7 +743,7 @@ func TestDecodeTagData(t *testing.T) {
 		{"EncTagRequired_DecTagIgnored", tagsDecIgnored},
 	}
 
-	testCases := []roundTripTest{
+	testCases := []roundTripTestCase{
 		{
 			name:         "BinaryMarshaler non-struct",
 			obj:          number(1234567890),
@@ -813,7 +813,7 @@ func TestDecodeNoTagData(t *testing.T) {
 		{"EncTagIgnored_DecTagOptional", tagsDecOptional},
 	}
 
-	testCases := []roundTripTest{
+	testCases := []roundTripTestCase{
 		{
 			name:         "BinaryMarshaler non-struct",
 			obj:          number(1234567890),
@@ -1497,7 +1497,7 @@ func TestMarshalRawTagContainingMalformedCBORData(t *testing.T) {
 // TestEncodeBuiltinTag tests that marshaling a value of type Tag "does the right thing" when
 // marshaling the enclosed data item of a built-in tag number.
 func TestEncodeBuiltinTag(t *testing.T) {
-	for _, tc := range []struct {
+	testCases := []struct {
 		name string
 		tag  Tag
 		opts EncOptions
@@ -1521,7 +1521,8 @@ func TestEncodeBuiltinTag(t *testing.T) {
 			opts: EncOptions{String: StringToByteString},
 			want: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
 		},
-	} {
+	}
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			em, err := tc.opts.EncMode()
 			if err != nil {
@@ -1542,93 +1543,93 @@ func TestEncodeBuiltinTag(t *testing.T) {
 
 func TestUnmarshalRawTagOnBadData(t *testing.T) {
 	testCases := []struct {
-		name   string
-		data   []byte
-		errMsg string
+		name         string
+		data         []byte
+		wantErrorMsg string
 	}{
 		// Empty data
 		{
-			name:   "nil data",
-			data:   nil,
-			errMsg: io.EOF.Error(),
+			name:         "nil data",
+			data:         nil,
+			wantErrorMsg: io.EOF.Error(),
 		},
 		{
-			name:   "empty data",
-			data:   []byte{},
-			errMsg: io.EOF.Error(),
+			name:         "empty data",
+			data:         []byte{},
+			wantErrorMsg: io.EOF.Error(),
 		},
 
 		// Wrong CBOR types
 		{
-			name:   "uint type",
-			data:   mustHexDecode("01"),
-			errMsg: "cbor: cannot unmarshal positive integer into Go value of type cbor.RawTag",
+			name:         "uint type",
+			data:         mustHexDecode("01"),
+			wantErrorMsg: "cbor: cannot unmarshal positive integer into Go value of type cbor.RawTag",
 		},
 		{
-			name:   "int type",
-			data:   mustHexDecode("20"),
-			errMsg: "cbor: cannot unmarshal negative integer into Go value of type cbor.RawTag",
+			name:         "int type",
+			data:         mustHexDecode("20"),
+			wantErrorMsg: "cbor: cannot unmarshal negative integer into Go value of type cbor.RawTag",
 		},
 		{
-			name:   "byte string type",
-			data:   mustHexDecode("40"),
-			errMsg: "cbor: cannot unmarshal byte string into Go value of type cbor.RawTag",
+			name:         "byte string type",
+			data:         mustHexDecode("40"),
+			wantErrorMsg: "cbor: cannot unmarshal byte string into Go value of type cbor.RawTag",
 		},
 		{
-			name:   "string type",
-			data:   mustHexDecode("60"),
-			errMsg: "cbor: cannot unmarshal UTF-8 text string into Go value of type cbor.RawTag",
+			name:         "string type",
+			data:         mustHexDecode("60"),
+			wantErrorMsg: "cbor: cannot unmarshal UTF-8 text string into Go value of type cbor.RawTag",
 		},
 		{
-			name:   "array type",
-			data:   mustHexDecode("80"),
-			errMsg: "cbor: cannot unmarshal array into Go value of type cbor.RawTag",
+			name:         "array type",
+			data:         mustHexDecode("80"),
+			wantErrorMsg: "cbor: cannot unmarshal array into Go value of type cbor.RawTag",
 		},
 		{
-			name:   "map type",
-			data:   mustHexDecode("a0"),
-			errMsg: "cbor: cannot unmarshal map into Go value of type cbor.RawTag",
+			name:         "map type",
+			data:         mustHexDecode("a0"),
+			wantErrorMsg: "cbor: cannot unmarshal map into Go value of type cbor.RawTag",
 		},
 		{
-			name:   "primitive type",
-			data:   mustHexDecode("f4"),
-			errMsg: "cbor: cannot unmarshal primitives into Go value of type cbor.RawTag",
+			name:         "primitive type",
+			data:         mustHexDecode("f4"),
+			wantErrorMsg: "cbor: cannot unmarshal primitives into Go value of type cbor.RawTag",
 		},
 		{
-			name:   "float type",
-			data:   mustHexDecode("f90000"),
-			errMsg: "cbor: cannot unmarshal primitives into Go value of type cbor.RawTag",
+			name:         "float type",
+			data:         mustHexDecode("f90000"),
+			wantErrorMsg: "cbor: cannot unmarshal primitives into Go value of type cbor.RawTag",
 		},
 
 		// Truncated CBOR data
 		{
-			name:   "truncated head",
-			data:   mustHexDecode("18"),
-			errMsg: io.ErrUnexpectedEOF.Error(),
+			name:         "truncated head",
+			data:         mustHexDecode("18"),
+			wantErrorMsg: io.ErrUnexpectedEOF.Error(),
 		},
 
 		// Truncated CBOR tag data
 		{
-			name:   "truncated tag number",
-			data:   mustHexDecode("d8"),
-			errMsg: io.ErrUnexpectedEOF.Error(),
+			name:         "truncated tag number",
+			data:         mustHexDecode("d8"),
+			wantErrorMsg: io.ErrUnexpectedEOF.Error(),
 		},
 		{
-			name:   "tag number not followed by tag content",
-			data:   mustHexDecode("da"),
-			errMsg: io.ErrUnexpectedEOF.Error(),
+			name:         "tag number not followed by tag content",
+			data:         mustHexDecode("da"),
+			wantErrorMsg: io.ErrUnexpectedEOF.Error(),
 		},
 		{
-			name:   "truncated tag content",
-			data:   mustHexDecode("c074323031332d30332d32315432303a30343a3030"),
-			errMsg: io.ErrUnexpectedEOF.Error(),
+			name:         "truncated tag content",
+			data:         mustHexDecode("c074323031332d30332d32315432303a30343a3030"),
+			wantErrorMsg: io.ErrUnexpectedEOF.Error(),
 		},
 
 		// Extraneous CBOR data
 		{
-			name:   "extraneous data",
-			data:   mustHexDecode("c074323031332d30332d32315432303a30343a30305a00"),
-			errMsg: "cbor: 1 bytes of extraneous data starting at index 22",
+			name:         "extraneous data",
+			data:         mustHexDecode("c074323031332d30332d32315432303a30343a30305a00"),
+			wantErrorMsg: "cbor: 1 bytes of extraneous data starting at index 22",
 		},
 	}
 
@@ -1642,8 +1643,8 @@ func TestUnmarshalRawTagOnBadData(t *testing.T) {
 				if err == nil {
 					t.Errorf("UnmarshalCBOR(%x) didn't return error", tc.data)
 				}
-				if !strings.HasPrefix(err.Error(), tc.errMsg) {
-					t.Errorf("UnmarshalCBOR(%x) returned error %q, want %q", tc.data, err.Error(), tc.errMsg)
+				if !strings.HasPrefix(err.Error(), tc.wantErrorMsg) {
+					t.Errorf("UnmarshalCBOR(%x) returned error %q, want %q", tc.data, err.Error(), tc.wantErrorMsg)
 				}
 			}
 			// Test Unmarshal(data, *RawTag), which calls RawTag.unmarshalCBOR() under the hood
@@ -1654,8 +1655,8 @@ func TestUnmarshalRawTagOnBadData(t *testing.T) {
 				if err == nil {
 					t.Errorf("Unmarshal(%x) didn't return error", tc.data)
 				}
-				if !strings.HasPrefix(err.Error(), tc.errMsg) {
-					t.Errorf("Unmarshal(%x) returned error %q, want %q", tc.data, err.Error(), tc.errMsg)
+				if !strings.HasPrefix(err.Error(), tc.wantErrorMsg) {
+					t.Errorf("Unmarshal(%x) returned error %q, want %q", tc.data, err.Error(), tc.wantErrorMsg)
 				}
 			}
 		})

@@ -35,28 +35,40 @@ type Stats struct {
 	// filesystems on the host.
 	Name string
 
-	ExtentAllocation   ExtentAllocationStats
-	AllocationBTree    BTreeStats
-	BlockMapping       BlockMappingStats
-	BlockMapBTree      BTreeStats
-	DirectoryOperation DirectoryOperationStats
-	Transaction        TransactionStats
-	InodeOperation     InodeOperationStats
-	LogOperation       LogOperationStats
-	ReadWrite          ReadWriteStats
-	AttributeOperation AttributeOperationStats
-	InodeClustering    InodeClusteringStats
-	Vnode              VnodeStats
-	Buffer             BufferStats
-	ExtendedPrecision  ExtendedPrecisionStats
-	Xstrat             XstratStats            // xstrat
-	PushAil            PushAilStats           // push_ail
-	Debug              DebugStats             // debug
-	QuotaManager       QuotaManagerStats      // qm
-	BtreeAllocBlocks2  BtreeAllocBlocks2Stats // abtb2
-	BtreeAllocContig2  BtreeAllocContig2Stats // abtc2
-	BtreeBlockMap2     BtreeBlockMap2Stats    // bmbt2
-	BtreeInode2        BtreeInode2Stats       // ibt2
+	ExtentAllocation     ExtentAllocationStats     // extent_alloc
+	AllocationBTree      BTreeStats                // abt
+	BlockMapping         BlockMappingStats         // blk_map
+	BlockMapBTree        BTreeStats                // bmbt
+	DirectoryOperation   DirectoryOperationStats   // dir
+	Transaction          TransactionStats          // trans
+	InodeOperation       InodeOperationStats       // ig
+	LogOperation         LogOperationStats         // log
+	ReadWrite            ReadWriteStats            // rw
+	AttributeOperation   AttributeOperationStats   // attr
+	InodeClustering      InodeClusteringStats      // icluster
+	Vnode                VnodeStats                // vnodes
+	Buffer               BufferStats               // buf
+	ExtendedPrecision    ExtendedPrecisionStats    // xpc
+	Xstrat               XstratStats               // xstrat
+	PushAil              PushAilStats              // push_ail
+	Debug                DebugStats                // debug
+	QuotaManager         QuotaManagerStats         // qm
+	BtreeAllocBlocks2    BtreeAllocBlocks2Stats    // abtb2
+	BtreeAllocContig2    BtreeAllocContig2Stats    // abtc2
+	BtreeBlockMap2       BtreeBlockMap2Stats       // bmbt2
+	BtreeInode2          BtreeInode2Stats          // ibt2
+	BtreeFreeInode2      BtreeFreeInode2Stats      // fibt2
+	BtreeReverseMap      BtreeReverseMapStats      // rmapbt
+	BtreeRefCount        BtreeRefCountStats        // refcntbt
+	BtreeReverseMapMem   BtreeReverseMapMemStats   // rmapbt_mem
+	BtreeRcbag           BtreeRcbagStats           // rcbagbt
+	BtreeRtReverseMap    BtreeRtReverseMapStats    // rtrmapbt
+	BtreeRtReverseMapMem BtreeRtReverseMapMemStats // rtrmapbt_mem
+	BtreeRtRefCount      BtreeRtRefCountStats      // rtrefcntbt
+	Zoned                ZonedStats                // zoned
+	MetaFile             MetaFileStats             // metafile
+	DeferRelog           DeferRelogStats           // defer_relog
+	GcXpc                GcXpcStats                // gc xpc
 }
 
 // ExtentAllocationStats contains statistics regarding XFS extent allocations.
@@ -290,6 +302,180 @@ type BtreeInode2Stats struct {
 	Alloc     uint32
 	Free      uint32
 	Moves     uint32
+}
+
+// BtreeFreeInode2Stats contain statistics on B-tree v2 free inode allocations.
+type BtreeFreeInode2Stats struct {
+	Lookup    uint32
+	Compare   uint32
+	Insrec    uint32
+	Delrec    uint32
+	NewRoot   uint32
+	KillRoot  uint32
+	Increment uint32
+	Decrement uint32
+	Lshift    uint32
+	Rshift    uint32
+	Split     uint32
+	Join      uint32
+	Alloc     uint32
+	Free      uint32
+	Moves     uint32
+}
+
+// BtreeReverseMapStats contain statistics on B-tree reverse mapping record operations.
+type BtreeReverseMapStats struct {
+	Lookup    uint32
+	Compare   uint32
+	Insrec    uint32
+	Delrec    uint32
+	NewRoot   uint32
+	KillRoot  uint32
+	Increment uint32
+	Decrement uint32
+	Lshift    uint32
+	Rshift    uint32
+	Split     uint32
+	Join      uint32
+	Alloc     uint32
+	Free      uint32
+	Moves     uint32
+}
+
+// BtreeRefCountStats contain statistics on B-tree reference count record operations.
+type BtreeRefCountStats struct {
+	Lookup    uint32
+	Compare   uint32
+	Insrec    uint32
+	Delrec    uint32
+	NewRoot   uint32
+	KillRoot  uint32
+	Increment uint32
+	Decrement uint32
+	Lshift    uint32
+	Rshift    uint32
+	Split     uint32
+	Join      uint32
+	Alloc     uint32
+	Free      uint32
+	Moves     uint32
+}
+
+// BtreeReverseMapMemStats contain statistics on B-tree reverse mapping in-memory record operations.
+type BtreeReverseMapMemStats struct {
+	Lookup    uint32
+	Compare   uint32
+	Insrec    uint32
+	Delrec    uint32
+	NewRoot   uint32
+	KillRoot  uint32
+	Increment uint32
+	Decrement uint32
+	Lshift    uint32
+	Rshift    uint32
+	Split     uint32
+	Join      uint32
+	Alloc     uint32
+	Free      uint32
+	Moves     uint32
+}
+
+// BtreeRcbagStats contain statistics on B-tree rcbag record operations.
+type BtreeRcbagStats struct {
+	Lookup    uint32
+	Compare   uint32
+	Insrec    uint32
+	Delrec    uint32
+	NewRoot   uint32
+	KillRoot  uint32
+	Increment uint32
+	Decrement uint32
+	Lshift    uint32
+	Rshift    uint32
+	Split     uint32
+	Join      uint32
+	Alloc     uint32
+	Free      uint32
+	Moves     uint32
+}
+
+// BtreeRtReverseMapStats contain statistics on B-tree realtime reverse mapping record operations.
+type BtreeRtReverseMapStats struct {
+	Lookup    uint32
+	Compare   uint32
+	Insrec    uint32
+	Delrec    uint32
+	NewRoot   uint32
+	KillRoot  uint32
+	Increment uint32
+	Decrement uint32
+	Lshift    uint32
+	Rshift    uint32
+	Split     uint32
+	Join      uint32
+	Alloc     uint32
+	Free      uint32
+	Moves     uint32
+}
+
+// BtreeRtReverseMapMemStats contain statistics on B-tree realtime reverse mapping in-memory record operations.
+type BtreeRtReverseMapMemStats struct {
+	Lookup    uint32
+	Compare   uint32
+	Insrec    uint32
+	Delrec    uint32
+	NewRoot   uint32
+	KillRoot  uint32
+	Increment uint32
+	Decrement uint32
+	Lshift    uint32
+	Rshift    uint32
+	Split     uint32
+	Join      uint32
+	Alloc     uint32
+	Free      uint32
+	Moves     uint32
+}
+
+// BtreeRtRefCountStats contain statistics on B-tree realtime reference count record operations.
+type BtreeRtRefCountStats struct {
+	Lookup    uint32
+	Compare   uint32
+	Insrec    uint32
+	Delrec    uint32
+	NewRoot   uint32
+	KillRoot  uint32
+	Increment uint32
+	Decrement uint32
+	Lshift    uint32
+	Rshift    uint32
+	Split     uint32
+	Join      uint32
+	Alloc     uint32
+	Free      uint32
+	Moves     uint32
+}
+
+// ZonedStats contain statistics on zoned garbage collection operations.
+type ZonedStats struct {
+	GcReadCalls      uint32
+	GcWriteCalls     uint32
+	GcZoneResetCalls uint32
+}
+
+// MetaFileStats contain statistics on metafile inode operations.
+type MetaFileStats struct {
+	Inodes uint32
+}
+
+// DeferRelogStats contains the deferred buffer relog count.
+type DeferRelogStats struct {
+	Count uint64
+}
+
+// GcXpcStats contains extended precision bytes for garbage collection.
+type GcXpcStats struct {
+	Bytes uint64
 }
 
 // FS represents the pseudo-filesystems proc and sys, which provides an interface to

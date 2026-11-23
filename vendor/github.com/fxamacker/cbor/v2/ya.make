@@ -2,13 +2,14 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v2.9.0)
+VERSION(v2.9.1)
 
 SRCS(
     bytestring.go
     cache.go
     common.go
     decode.go
+    decode_map_utils.go
     diagnose.go
     doc.go
     encode.go

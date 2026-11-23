@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.34.3)
+VERSION(v0.37.2)
 
 SRCS(
     allocator.go
@@ -14,6 +14,7 @@ SRCS(
     embedded.go
     error.go
     extension.go
+    fieldinfo_127.go
     generated.pb.go
     helper.go
     interfaces.go
@@ -27,6 +28,7 @@ SRCS(
     types.go
     types_proto.go
     zz_generated.deepcopy.go
+    zz_generated.model_name.go
 )
 
 GO_TEST_SRCS(
@@ -43,6 +45,7 @@ GO_XTEST_SRCS(
     converter_test.go
     embedded_test.go
     extension_test.go
+    fieldinfo_127_test.go
     scheme_test.go
     splice_test.go
 )

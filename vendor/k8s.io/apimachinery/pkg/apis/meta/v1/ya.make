@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.34.3)
+VERSION(v0.37.2)
 
 SRCS(
     controller_ref.go
@@ -10,6 +10,8 @@ SRCS(
     deepcopy.go
     doc.go
     duration.go
+    fieldsv1.go
+    fieldsv1_byte.go
     generated.pb.go
     group_version.go
     helpers.go
@@ -28,6 +30,7 @@ SRCS(
     zz_generated.conversion.go
     zz_generated.deepcopy.go
     zz_generated.defaults.go
+    zz_generated.model_name.go
 )
 
 GO_TEST_SRCS(
@@ -42,7 +45,10 @@ GO_TEST_SRCS(
     types_test.go
 )
 
-GO_XTEST_SRCS(conversion_test.go)
+GO_XTEST_SRCS(
+    conversion_test.go
+    fieldsv1_benchmark_test.go
+)
 
 END()
 

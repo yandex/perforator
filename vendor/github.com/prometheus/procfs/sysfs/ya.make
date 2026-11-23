@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.19.2)
+VERSION(v0.21.1)
 
 IF (OS_LINUX)
     SRCS(
@@ -13,7 +13,9 @@ IF (OS_LINUX)
         class_drm_card.go
         class_fibrechannel.go
         class_infiniband.go
+        class_mei.go
         class_nvme.go
+        class_nvme_subsystem.go
         class_power_supply.go
         class_powercap.go
         class_sas_device.go
@@ -43,6 +45,8 @@ IF (OS_LINUX)
         class_drm_card_test.go
         class_fibrechannel_test.go
         class_infiniband_test.go
+        class_mei_test.go
+        class_nvme_subsystem_test.go
         class_nvme_test.go
         class_power_supply_test.go
         class_powercap_test.go
@@ -75,7 +79,9 @@ IF (OS_ANDROID)
         class_drm_card.go
         class_fibrechannel.go
         class_infiniband.go
+        class_mei.go
         class_nvme.go
+        class_nvme_subsystem.go
         class_power_supply.go
         class_powercap.go
         class_sas_device.go
@@ -105,6 +111,8 @@ IF (OS_ANDROID)
         class_drm_card_test.go
         class_fibrechannel_test.go
         class_infiniband_test.go
+        class_mei_test.go
+        class_nvme_subsystem_test.go
         class_nvme_test.go
         class_power_supply_test.go
         class_powercap_test.go

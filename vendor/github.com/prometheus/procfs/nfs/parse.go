@@ -19,7 +19,7 @@ import (
 
 func parseReplyCache(v []uint64) (ReplyCache, error) {
 	if len(v) != 3 {
-		return ReplyCache{}, fmt.Errorf("invalid ReplyCache line %q", v)
+		return ReplyCache{}, fmt.Errorf("invalid ReplyCache line %v", v)
 	}
 
 	return ReplyCache{
@@ -31,7 +31,7 @@ func parseReplyCache(v []uint64) (ReplyCache, error) {
 
 func parseFileHandles(v []uint64) (FileHandles, error) {
 	if len(v) != 5 {
-		return FileHandles{}, fmt.Errorf("invalid FileHandles, line %q", v)
+		return FileHandles{}, fmt.Errorf("invalid FileHandles, line %v", v)
 	}
 
 	return FileHandles{
@@ -45,7 +45,7 @@ func parseFileHandles(v []uint64) (FileHandles, error) {
 
 func parseInputOutput(v []uint64) (InputOutput, error) {
 	if len(v) != 2 {
-		return InputOutput{}, fmt.Errorf("invalid InputOutput line %q", v)
+		return InputOutput{}, fmt.Errorf("invalid InputOutput line %v", v)
 	}
 
 	return InputOutput{
@@ -56,7 +56,7 @@ func parseInputOutput(v []uint64) (InputOutput, error) {
 
 func parseThreads(v []uint64) (Threads, error) {
 	if len(v) != 2 {
-		return Threads{}, fmt.Errorf("invalid Threads line %q", v)
+		return Threads{}, fmt.Errorf("invalid Threads line %v", v)
 	}
 
 	return Threads{
@@ -67,7 +67,7 @@ func parseThreads(v []uint64) (Threads, error) {
 
 func parseReadAheadCache(v []uint64) (ReadAheadCache, error) {
 	if len(v) != 12 {
-		return ReadAheadCache{}, fmt.Errorf("invalid ReadAheadCache line %q", v)
+		return ReadAheadCache{}, fmt.Errorf("invalid ReadAheadCache line %v", v)
 	}
 
 	return ReadAheadCache{
@@ -79,7 +79,7 @@ func parseReadAheadCache(v []uint64) (ReadAheadCache, error) {
 
 func parseNetwork(v []uint64) (Network, error) {
 	if len(v) != 4 {
-		return Network{}, fmt.Errorf("invalid Network line %q", v)
+		return Network{}, fmt.Errorf("invalid Network line %v", v)
 	}
 
 	return Network{
@@ -92,7 +92,7 @@ func parseNetwork(v []uint64) (Network, error) {
 
 func parseServerRPC(v []uint64) (ServerRPC, error) {
 	if len(v) != 5 {
-		return ServerRPC{}, fmt.Errorf("invalid RPC line %q", v)
+		return ServerRPC{}, fmt.Errorf("invalid RPC line %v", v)
 	}
 
 	return ServerRPC{
@@ -106,7 +106,7 @@ func parseServerRPC(v []uint64) (ServerRPC, error) {
 
 func parseClientRPC(v []uint64) (ClientRPC, error) {
 	if len(v) != 3 {
-		return ClientRPC{}, fmt.Errorf("invalid RPC line %q", v)
+		return ClientRPC{}, fmt.Errorf("invalid RPC line %v", v)
 	}
 
 	return ClientRPC{
@@ -119,7 +119,7 @@ func parseClientRPC(v []uint64) (ClientRPC, error) {
 func parseV2Stats(v []uint64) (V2Stats, error) {
 	values := int(v[0])
 	if len(v[1:]) != values || values < 18 {
-		return V2Stats{}, fmt.Errorf("invalid V2Stats line %q", v)
+		return V2Stats{}, fmt.Errorf("invalid V2Stats line %v", v)
 	}
 
 	return V2Stats{
@@ -147,7 +147,7 @@ func parseV2Stats(v []uint64) (V2Stats, error) {
 func parseV3Stats(v []uint64) (V3Stats, error) {
 	values := int(v[0])
 	if len(v[1:]) != values || values < 22 {
-		return V3Stats{}, fmt.Errorf("invalid V3Stats line %q", v)
+		return V3Stats{}, fmt.Errorf("invalid V3Stats line %v", v)
 	}
 
 	return V3Stats{
@@ -179,7 +179,7 @@ func parseV3Stats(v []uint64) (V3Stats, error) {
 func parseClientV4Stats(v []uint64) (ClientV4Stats, error) {
 	values := int(v[0])
 	if len(v[1:]) != values {
-		return ClientV4Stats{}, fmt.Errorf("invalid ClientV4Stats line %q", v)
+		return ClientV4Stats{}, fmt.Errorf("invalid ClientV4Stats line %v", v)
 	}
 
 	// This function currently supports mapping 59 NFS v4 client stats.  Older
@@ -257,7 +257,7 @@ func parseClientV4Stats(v []uint64) (ClientV4Stats, error) {
 func parseServerV4Stats(v []uint64) (ServerV4Stats, error) {
 	values := int(v[0])
 	if len(v[1:]) != values || values != 2 {
-		return ServerV4Stats{}, fmt.Errorf("invalid V4Stats line %q", v)
+		return ServerV4Stats{}, fmt.Errorf("invalid V4Stats line %v", v)
 	}
 
 	return ServerV4Stats{
@@ -269,7 +269,7 @@ func parseServerV4Stats(v []uint64) (ServerV4Stats, error) {
 func parseV4Ops(v []uint64) (V4Ops, error) {
 	values := int(v[0])
 	if len(v[1:]) != values || values < 39 {
-		return V4Ops{}, fmt.Errorf("invalid V4Ops line %q", v)
+		return V4Ops{}, fmt.Errorf("invalid V4Ops line %v", v)
 	}
 
 	// nfs v2.5.x 39field and >=v2.6.x 40 field;

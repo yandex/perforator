@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.34.3)
+VERSION(v0.37.2)
 
 SRCS(
     amount.go
@@ -13,6 +13,7 @@ SRCS(
     scale_int.go
     suffix.go
     zz_generated.deepcopy.go
+    zz_generated.model_name.go
 )
 
 GO_TEST_SRCS(

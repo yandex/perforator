@@ -2,6 +2,6 @@ GO_TEST_FOR(vendor/github.com/grpc-ecosystem/grpc-gateway/v2/internal/codegenera
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v2.28.0)
+VERSION(v2.29.0)
 
 END()

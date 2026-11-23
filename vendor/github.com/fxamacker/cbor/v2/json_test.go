@@ -35,7 +35,7 @@ func TestStdlibJSONCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, tc := range []struct {
+	testCases := []struct {
 		name       string
 		original   any
 		ifaceEqual bool // require equal intermediate interface{} values from both protocols
@@ -50,7 +50,8 @@ func TestStdlibJSONCompatibility(t *testing.T) {
 			original:   [11]byte{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'},
 			ifaceEqual: false, // encoding/json decodes the array elements to float64
 		},
-	} {
+	}
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Logf("original: %#v", tc.original)
 

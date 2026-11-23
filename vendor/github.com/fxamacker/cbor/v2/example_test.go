@@ -184,11 +184,11 @@ func ExampleEncoder() {
 }
 
 // ExampleEncoder_indefiniteLengthByteString encodes a stream of definite
-// length byte string ("chunks") as an indefinite length byte string.
+// length byte string ("chunks") as an indefinite-length byte string.
 func ExampleEncoder_indefiniteLengthByteString() {
 	var buf bytes.Buffer
 	encoder := cbor.NewEncoder(&buf)
-	// Start indefinite length byte string encoding.
+	// Start indefinite-length byte string encoding.
 	if err := encoder.StartIndefiniteByteString(); err != nil {
 		fmt.Println("error:", err)
 	}
@@ -200,7 +200,7 @@ func ExampleEncoder_indefiniteLengthByteString() {
 	if err := encoder.Encode([3]byte{3, 4, 5}); err != nil {
 		fmt.Println("error:", err)
 	}
-	// Close indefinite length byte string.
+	// Close indefinite-length byte string.
 	if err := encoder.EndIndefinite(); err != nil {
 		fmt.Println("error:", err)
 	}
@@ -210,11 +210,11 @@ func ExampleEncoder_indefiniteLengthByteString() {
 }
 
 // ExampleEncoder_indefiniteLengthTextString encodes a stream of definite
-// length text string ("chunks") as an indefinite length text string.
+// length text string ("chunks") as an indefinite-length text string.
 func ExampleEncoder_indefiniteLengthTextString() {
 	var buf bytes.Buffer
 	encoder := cbor.NewEncoder(&buf)
-	// Start indefinite length text string encoding.
+	// Start indefinite-length text string encoding.
 	if err := encoder.StartIndefiniteTextString(); err != nil {
 		fmt.Println("error:", err)
 	}
@@ -226,7 +226,7 @@ func ExampleEncoder_indefiniteLengthTextString() {
 	if err := encoder.Encode("ming"); err != nil {
 		fmt.Println("error:", err)
 	}
-	// Close indefinite length text string.
+	// Close indefinite-length text string.
 	if err := encoder.EndIndefinite(); err != nil {
 		fmt.Println("error:", err)
 	}
@@ -236,11 +236,11 @@ func ExampleEncoder_indefiniteLengthTextString() {
 }
 
 // ExampleEncoder_indefiniteLengthArray encodes a stream of elements as an
-// indefinite length array.  Encoder supports nested indefinite length values.
+// indefinite-length array.  Encoder supports nested indefinite-length values.
 func ExampleEncoder_indefiniteLengthArray() {
 	var buf bytes.Buffer
 	enc := cbor.NewEncoder(&buf)
-	// Start indefinite length array encoding.
+	// Start indefinite-length array encoding.
 	if err := enc.StartIndefiniteArray(); err != nil {
 		fmt.Println("error:", err)
 	}
@@ -252,7 +252,7 @@ func ExampleEncoder_indefiniteLengthArray() {
 	if err := enc.Encode([]int{2, 3}); err != nil {
 		fmt.Println("error:", err)
 	}
-	// Start a nested indefinite length array as array element.
+	// Start a nested indefinite-length array as array element.
 	if err := enc.StartIndefiniteArray(); err != nil {
 		fmt.Println("error:", err)
 	}
@@ -264,11 +264,11 @@ func ExampleEncoder_indefiniteLengthArray() {
 	if err := enc.Encode(5); err != nil {
 		fmt.Println("error:", err)
 	}
-	// Close nested indefinite length array.
+	// Close nested indefinite-length array.
 	if err := enc.EndIndefinite(); err != nil {
 		fmt.Println("error:", err)
 	}
-	// Close outer indefinite length array.
+	// Close outer indefinite-length array.
 	if err := enc.EndIndefinite(); err != nil {
 		fmt.Println("error:", err)
 	}
@@ -278,7 +278,7 @@ func ExampleEncoder_indefiniteLengthArray() {
 }
 
 // ExampleEncoder_indefiniteLengthMap encodes a stream of elements as an
-// indefinite length map.  Encoder supports nested indefinite length values.
+// indefinite-length map.  Encoder supports nested indefinite-length values.
 func ExampleEncoder_indefiniteLengthMap() {
 	var buf bytes.Buffer
 	em, err := cbor.EncOptions{Sort: cbor.SortCanonical}.EncMode()
@@ -286,7 +286,7 @@ func ExampleEncoder_indefiniteLengthMap() {
 		fmt.Println("error:", err)
 	}
 	enc := em.NewEncoder(&buf)
-	// Start indefinite length map encoding.
+	// Start indefinite-length map encoding.
 	if err := enc.StartIndefiniteMap(); err != nil {
 		fmt.Println("error:", err)
 	}
@@ -302,7 +302,7 @@ func ExampleEncoder_indefiniteLengthMap() {
 	if err := enc.Encode("b"); err != nil {
 		fmt.Println("error:", err)
 	}
-	// Start an indefinite length array as map value.
+	// Start an indefinite-length array as map value.
 	if err := enc.StartIndefiniteArray(); err != nil {
 		fmt.Println("error:", err)
 	}
@@ -314,11 +314,11 @@ func ExampleEncoder_indefiniteLengthMap() {
 	if err := enc.Encode(3); err != nil {
 		fmt.Println("error:", err)
 	}
-	// Close indefinite length array.
+	// Close indefinite-length array.
 	if err := enc.EndIndefinite(); err != nil {
 		fmt.Println("error:", err)
 	}
-	// Close indefinite length map.
+	// Close indefinite-length map.
 	if err := enc.EndIndefinite(); err != nil {
 		fmt.Println("error:", err)
 	}

@@ -15,355 +15,355 @@ import (
 func TestDiagnosticNotationExamples(t *testing.T) {
 	// https://www.rfc-editor.org/rfc/rfc8949.html#name-examples-of-encoded-cbor-da
 	testCases := []struct {
-		cbor []byte
-		diag string
+		data     []byte
+		wantDiag string
 	}{
 		{
-			cbor: mustHexDecode("00"),
-			diag: `0`,
+			data:     mustHexDecode("00"),
+			wantDiag: `0`,
 		},
 		{
-			cbor: mustHexDecode("01"),
-			diag: `1`,
+			data:     mustHexDecode("01"),
+			wantDiag: `1`,
 		},
 		{
-			cbor: mustHexDecode("0a"),
-			diag: `10`,
+			data:     mustHexDecode("0a"),
+			wantDiag: `10`,
 		},
 		{
-			cbor: mustHexDecode("17"),
-			diag: `23`,
+			data:     mustHexDecode("17"),
+			wantDiag: `23`,
 		},
 		{
-			cbor: mustHexDecode("1818"),
-			diag: `24`,
+			data:     mustHexDecode("1818"),
+			wantDiag: `24`,
 		},
 		{
-			cbor: mustHexDecode("1819"),
-			diag: `25`,
+			data:     mustHexDecode("1819"),
+			wantDiag: `25`,
 		},
 		{
-			cbor: mustHexDecode("1864"),
-			diag: `100`,
+			data:     mustHexDecode("1864"),
+			wantDiag: `100`,
 		},
 		{
-			cbor: mustHexDecode("1903e8"),
-			diag: `1000`,
+			data:     mustHexDecode("1903e8"),
+			wantDiag: `1000`,
 		},
 		{
-			cbor: mustHexDecode("1a000f4240"),
-			diag: `1000000`,
+			data:     mustHexDecode("1a000f4240"),
+			wantDiag: `1000000`,
 		},
 		{
-			cbor: mustHexDecode("1b000000e8d4a51000"),
-			diag: `1000000000000`,
+			data:     mustHexDecode("1b000000e8d4a51000"),
+			wantDiag: `1000000000000`,
 		},
 		{
-			cbor: mustHexDecode("1bffffffffffffffff"),
-			diag: `18446744073709551615`,
+			data:     mustHexDecode("1bffffffffffffffff"),
+			wantDiag: `18446744073709551615`,
 		},
 		{
-			cbor: mustHexDecode("c249010000000000000000"),
-			diag: `18446744073709551616`,
+			data:     mustHexDecode("c249010000000000000000"),
+			wantDiag: `18446744073709551616`,
 		},
 		{
-			cbor: mustHexDecode("3bffffffffffffffff"),
-			diag: `-18446744073709551616`,
+			data:     mustHexDecode("3bffffffffffffffff"),
+			wantDiag: `-18446744073709551616`,
 		},
 		{
-			cbor: mustHexDecode("c349010000000000000000"),
-			diag: `-18446744073709551617`,
+			data:     mustHexDecode("c349010000000000000000"),
+			wantDiag: `-18446744073709551617`,
 		},
 		{
-			cbor: mustHexDecode("20"),
-			diag: `-1`,
+			data:     mustHexDecode("20"),
+			wantDiag: `-1`,
 		},
 		{
-			cbor: mustHexDecode("29"),
-			diag: `-10`,
+			data:     mustHexDecode("29"),
+			wantDiag: `-10`,
 		},
 		{
-			cbor: mustHexDecode("3863"),
-			diag: `-100`,
+			data:     mustHexDecode("3863"),
+			wantDiag: `-100`,
 		},
 		{
-			cbor: mustHexDecode("3903e7"),
-			diag: `-1000`,
+			data:     mustHexDecode("3903e7"),
+			wantDiag: `-1000`,
 		},
 		{
-			cbor: mustHexDecode("f90000"),
-			diag: `0.0`,
+			data:     mustHexDecode("f90000"),
+			wantDiag: `0.0`,
 		},
 		{
-			cbor: mustHexDecode("f98000"),
-			diag: `-0.0`,
+			data:     mustHexDecode("f98000"),
+			wantDiag: `-0.0`,
 		},
 		{
-			cbor: mustHexDecode("f93c00"),
-			diag: `1.0`,
+			data:     mustHexDecode("f93c00"),
+			wantDiag: `1.0`,
 		},
 		{
-			cbor: mustHexDecode("fb3ff199999999999a"),
-			diag: `1.1`,
+			data:     mustHexDecode("fb3ff199999999999a"),
+			wantDiag: `1.1`,
 		},
 		{
-			cbor: mustHexDecode("f93e00"),
-			diag: `1.5`,
+			data:     mustHexDecode("f93e00"),
+			wantDiag: `1.5`,
 		},
 		{
-			cbor: mustHexDecode("f97bff"),
-			diag: `65504.0`,
+			data:     mustHexDecode("f97bff"),
+			wantDiag: `65504.0`,
 		},
 		{
-			cbor: mustHexDecode("fa47c35000"),
-			diag: `100000.0`,
+			data:     mustHexDecode("fa47c35000"),
+			wantDiag: `100000.0`,
 		},
 		{
-			cbor: mustHexDecode("fa7f7fffff"),
-			diag: `3.4028234663852886e+38`,
+			data:     mustHexDecode("fa7f7fffff"),
+			wantDiag: `3.4028234663852886e+38`,
 		},
 		{
-			cbor: mustHexDecode("fb7e37e43c8800759c"),
-			diag: `1.0e+300`,
+			data:     mustHexDecode("fb7e37e43c8800759c"),
+			wantDiag: `1.0e+300`,
 		},
 		{
-			cbor: mustHexDecode("f90001"),
-			diag: `5.960464477539063e-8`,
+			data:     mustHexDecode("f90001"),
+			wantDiag: `5.960464477539063e-8`,
 		},
 		{
-			cbor: mustHexDecode("f90400"),
-			diag: `0.00006103515625`,
+			data:     mustHexDecode("f90400"),
+			wantDiag: `0.00006103515625`,
 		},
 		{
-			cbor: mustHexDecode("f9c400"),
-			diag: `-4.0`,
+			data:     mustHexDecode("f9c400"),
+			wantDiag: `-4.0`,
 		},
 		{
-			cbor: mustHexDecode("fbc010666666666666"),
-			diag: `-4.1`,
+			data:     mustHexDecode("fbc010666666666666"),
+			wantDiag: `-4.1`,
 		},
 		{
-			cbor: mustHexDecode("f97c00"),
-			diag: `Infinity`,
+			data:     mustHexDecode("f97c00"),
+			wantDiag: `Infinity`,
 		},
 		{
-			cbor: mustHexDecode("f97e00"),
-			diag: `NaN`,
+			data:     mustHexDecode("f97e00"),
+			wantDiag: `NaN`,
 		},
 		{
-			cbor: mustHexDecode("f9fc00"),
-			diag: `-Infinity`,
+			data:     mustHexDecode("f9fc00"),
+			wantDiag: `-Infinity`,
 		},
 		{
-			cbor: mustHexDecode("fa7f800000"),
-			diag: `Infinity`,
+			data:     mustHexDecode("fa7f800000"),
+			wantDiag: `Infinity`,
 		},
 		{
-			cbor: mustHexDecode("fa7fc00000"),
-			diag: `NaN`,
+			data:     mustHexDecode("fa7fc00000"),
+			wantDiag: `NaN`,
 		},
 		{
-			cbor: mustHexDecode("faff800000"),
-			diag: `-Infinity`,
+			data:     mustHexDecode("faff800000"),
+			wantDiag: `-Infinity`,
 		},
 		{
-			cbor: mustHexDecode("fb7ff0000000000000"),
-			diag: `Infinity`,
+			data:     mustHexDecode("fb7ff0000000000000"),
+			wantDiag: `Infinity`,
 		},
 		{
-			cbor: mustHexDecode("fb7ff8000000000000"),
-			diag: `NaN`,
+			data:     mustHexDecode("fb7ff8000000000000"),
+			wantDiag: `NaN`,
 		},
 		{
-			cbor: mustHexDecode("fbfff0000000000000"),
-			diag: `-Infinity`,
+			data:     mustHexDecode("fbfff0000000000000"),
+			wantDiag: `-Infinity`,
 		},
 		{
-			cbor: mustHexDecode("f4"),
-			diag: `false`,
+			data:     mustHexDecode("f4"),
+			wantDiag: `false`,
 		},
 		{
-			cbor: mustHexDecode("f5"),
-			diag: `true`,
+			data:     mustHexDecode("f5"),
+			wantDiag: `true`,
 		},
 		{
-			cbor: mustHexDecode("f6"),
-			diag: `null`,
+			data:     mustHexDecode("f6"),
+			wantDiag: `null`,
 		},
 		{
-			cbor: mustHexDecode("f7"),
-			diag: `undefined`,
+			data:     mustHexDecode("f7"),
+			wantDiag: `undefined`,
 		},
 		{
-			cbor: mustHexDecode("f0"),
-			diag: `simple(16)`,
+			data:     mustHexDecode("f0"),
+			wantDiag: `simple(16)`,
 		},
 		{
-			cbor: mustHexDecode("f8ff"),
-			diag: `simple(255)`,
+			data:     mustHexDecode("f8ff"),
+			wantDiag: `simple(255)`,
 		},
 		{
-			cbor: mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
-			diag: `0("2013-03-21T20:04:00Z")`,
+			data:     mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
+			wantDiag: `0("2013-03-21T20:04:00Z")`,
 		},
 		{
-			cbor: mustHexDecode("c11a514b67b0"),
-			diag: `1(1363896240)`,
+			data:     mustHexDecode("c11a514b67b0"),
+			wantDiag: `1(1363896240)`,
 		},
 		{
-			cbor: mustHexDecode("c1fb41d452d9ec200000"),
-			diag: `1(1363896240.5)`,
+			data:     mustHexDecode("c1fb41d452d9ec200000"),
+			wantDiag: `1(1363896240.5)`,
 		},
 		{
-			cbor: mustHexDecode("d74401020304"),
-			diag: `23(h'01020304')`,
+			data:     mustHexDecode("d74401020304"),
+			wantDiag: `23(h'01020304')`,
 		},
 		{
-			cbor: mustHexDecode("d818456449455446"),
-			diag: `24(h'6449455446')`,
+			data:     mustHexDecode("d818456449455446"),
+			wantDiag: `24(h'6449455446')`,
 		},
 		{
-			cbor: mustHexDecode("d82076687474703a2f2f7777772e6578616d706c652e636f6d"),
-			diag: `32("http://www.example.com")`,
+			data:     mustHexDecode("d82076687474703a2f2f7777772e6578616d706c652e636f6d"),
+			wantDiag: `32("http://www.example.com")`,
 		},
 		{
-			cbor: mustHexDecode("40"),
-			diag: `h''`,
+			data:     mustHexDecode("40"),
+			wantDiag: `h''`,
 		},
 		{
-			cbor: mustHexDecode("4401020304"),
-			diag: `h'01020304'`,
+			data:     mustHexDecode("4401020304"),
+			wantDiag: `h'01020304'`,
 		},
 		{
-			cbor: mustHexDecode("60"),
-			diag: `""`,
+			data:     mustHexDecode("60"),
+			wantDiag: `""`,
 		},
 		{
-			cbor: mustHexDecode("6161"),
-			diag: `"a"`,
+			data:     mustHexDecode("6161"),
+			wantDiag: `"a"`,
 		},
 		{
-			cbor: mustHexDecode("6449455446"),
-			diag: `"IETF"`,
+			data:     mustHexDecode("6449455446"),
+			wantDiag: `"IETF"`,
 		},
 		{
-			cbor: mustHexDecode("62225c"),
-			diag: `"\"\\"`,
+			data:     mustHexDecode("62225c"),
+			wantDiag: `"\"\\"`,
 		},
 		{
-			cbor: mustHexDecode("62c3bc"),
-			diag: `"\u00fc"`,
+			data:     mustHexDecode("62c3bc"),
+			wantDiag: `"\u00fc"`,
 		},
 		{
-			cbor: mustHexDecode("63e6b0b4"),
-			diag: `"\u6c34"`,
+			data:     mustHexDecode("63e6b0b4"),
+			wantDiag: `"\u6c34"`,
 		},
 		{
-			cbor: mustHexDecode("64f0908591"),
-			diag: `"\ud800\udd51"`,
+			data:     mustHexDecode("64f0908591"),
+			wantDiag: `"\ud800\udd51"`,
 		},
 		{
-			cbor: mustHexDecode("80"),
-			diag: `[]`,
+			data:     mustHexDecode("80"),
+			wantDiag: `[]`,
 		},
 		{
-			cbor: mustHexDecode("83010203"),
-			diag: `[1, 2, 3]`,
+			data:     mustHexDecode("83010203"),
+			wantDiag: `[1, 2, 3]`,
 		},
 		{
-			cbor: mustHexDecode("8301820203820405"),
-			diag: `[1, [2, 3], [4, 5]]`,
+			data:     mustHexDecode("8301820203820405"),
+			wantDiag: `[1, [2, 3], [4, 5]]`,
 		},
 		{
-			cbor: mustHexDecode("98190102030405060708090a0b0c0d0e0f101112131415161718181819"),
-			diag: `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]`,
+			data:     mustHexDecode("98190102030405060708090a0b0c0d0e0f101112131415161718181819"),
+			wantDiag: `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]`,
 		},
 		{
-			cbor: mustHexDecode("a0"),
-			diag: `{}`,
+			data:     mustHexDecode("a0"),
+			wantDiag: `{}`,
 		},
 		{
-			cbor: mustHexDecode("a201020304"),
-			diag: `{1: 2, 3: 4}`,
+			data:     mustHexDecode("a201020304"),
+			wantDiag: `{1: 2, 3: 4}`,
 		},
 		{
-			cbor: mustHexDecode("a26161016162820203"),
-			diag: `{"a": 1, "b": [2, 3]}`,
+			data:     mustHexDecode("a26161016162820203"),
+			wantDiag: `{"a": 1, "b": [2, 3]}`,
 		},
 		{
-			cbor: mustHexDecode("826161a161626163"),
-			diag: `["a", {"b": "c"}]`,
+			data:     mustHexDecode("826161a161626163"),
+			wantDiag: `["a", {"b": "c"}]`,
 		},
 		{
-			cbor: mustHexDecode("a56161614161626142616361436164614461656145"),
-			diag: `{"a": "A", "b": "B", "c": "C", "d": "D", "e": "E"}`,
+			data:     mustHexDecode("a56161614161626142616361436164614461656145"),
+			wantDiag: `{"a": "A", "b": "B", "c": "C", "d": "D", "e": "E"}`,
 		},
 		{
-			cbor: mustHexDecode("5f42010243030405ff"),
-			diag: `(_ h'0102', h'030405')`,
+			data:     mustHexDecode("5f42010243030405ff"),
+			wantDiag: `(_ h'0102', h'030405')`,
 		},
 		{
-			cbor: mustHexDecode("7f657374726561646d696e67ff"),
-			diag: `(_ "strea", "ming")`,
+			data:     mustHexDecode("7f657374726561646d696e67ff"),
+			wantDiag: `(_ "strea", "ming")`,
 		},
 		{
-			cbor: mustHexDecode("9fff"),
-			diag: `[_ ]`,
+			data:     mustHexDecode("9fff"),
+			wantDiag: `[_ ]`,
 		},
 		{
-			cbor: mustHexDecode("9f018202039f0405ffff"),
-			diag: `[_ 1, [2, 3], [_ 4, 5]]`,
+			data:     mustHexDecode("9f018202039f0405ffff"),
+			wantDiag: `[_ 1, [2, 3], [_ 4, 5]]`,
 		},
 		{
-			cbor: mustHexDecode("9f01820203820405ff"),
-			diag: `[_ 1, [2, 3], [4, 5]]`,
+			data:     mustHexDecode("9f01820203820405ff"),
+			wantDiag: `[_ 1, [2, 3], [4, 5]]`,
 		},
 		{
-			cbor: mustHexDecode("83018202039f0405ff"),
-			diag: `[1, [2, 3], [_ 4, 5]]`,
+			data:     mustHexDecode("83018202039f0405ff"),
+			wantDiag: `[1, [2, 3], [_ 4, 5]]`,
 		},
 		{
-			cbor: mustHexDecode("83019f0203ff820405"),
-			diag: `[1, [_ 2, 3], [4, 5]]`,
+			data:     mustHexDecode("83019f0203ff820405"),
+			wantDiag: `[1, [_ 2, 3], [4, 5]]`,
 		},
 		{
-			cbor: mustHexDecode("9f0102030405060708090a0b0c0d0e0f101112131415161718181819ff"),
-			diag: `[_ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]`,
+			data:     mustHexDecode("9f0102030405060708090a0b0c0d0e0f101112131415161718181819ff"),
+			wantDiag: `[_ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]`,
 		},
 		{
-			cbor: mustHexDecode("bf61610161629f0203ffff"),
-			diag: `{_ "a": 1, "b": [_ 2, 3]}`,
+			data:     mustHexDecode("bf61610161629f0203ffff"),
+			wantDiag: `{_ "a": 1, "b": [_ 2, 3]}`,
 		},
 		{
-			cbor: mustHexDecode("826161bf61626163ff"),
-			diag: `["a", {_ "b": "c"}]`,
+			data:     mustHexDecode("826161bf61626163ff"),
+			wantDiag: `["a", {_ "b": "c"}]`,
 		},
 		{
-			cbor: mustHexDecode("bf6346756ef563416d7421ff"),
-			diag: `{_ "Fun": true, "Amt": -2}`,
+			data:     mustHexDecode("bf6346756ef563416d7421ff"),
+			wantDiag: `{_ "Fun": true, "Amt": -2}`,
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Diagnostic %d", i), func(t *testing.T) {
-			str, err := Diagnose(tc.cbor)
+			str, err := Diagnose(tc.data)
 			if err != nil {
-				t.Errorf("Diagnostic(0x%x) returned error %q", tc.cbor, err)
-			} else if str != tc.diag {
-				t.Errorf("Diagnostic(0x%x) returned `%s`, want `%s`", tc.cbor, str, tc.diag)
+				t.Errorf("Diagnostic(0x%x) returned error %q", tc.data, err)
+			} else if str != tc.wantDiag {
+				t.Errorf("Diagnostic(0x%x) returned `%s`, want `%s`", tc.data, str, tc.wantDiag)
 			}
 
-			str, rest, err := DiagnoseFirst(tc.cbor)
+			str, rest, err := DiagnoseFirst(tc.data)
 			if err != nil {
-				t.Errorf("Diagnostic(0x%x) returned error %q", tc.cbor, err)
-			} else if str != tc.diag {
-				t.Errorf("Diagnostic(0x%x) returned `%s`, want `%s`", tc.cbor, str, tc.diag)
+				t.Errorf("Diagnostic(0x%x) returned error %q", tc.data, err)
+			} else if str != tc.wantDiag {
+				t.Errorf("Diagnostic(0x%x) returned `%s`, want `%s`", tc.data, str, tc.wantDiag)
 			}
 
 			if rest == nil {
-				t.Errorf("Diagnostic(0x%x) returned nil rest", tc.cbor)
+				t.Errorf("Diagnostic(0x%x) returned nil rest", tc.data)
 			} else if len(rest) != 0 {
-				t.Errorf("Diagnostic(0x%x) returned non-empty rest '%x'", tc.cbor, rest)
+				t.Errorf("Diagnostic(0x%x) returned non-empty rest '%x'", tc.data, rest)
 			}
 		})
 	}
@@ -371,164 +371,164 @@ func TestDiagnosticNotationExamples(t *testing.T) {
 
 func TestDiagnoseByteString(t *testing.T) {
 	testCases := []struct {
-		title string
-		cbor  []byte
-		diag  string
-		opts  *DiagOptions
+		name     string
+		data     []byte
+		wantDiag string
+		opts     *DiagOptions
 	}{
 		{
-			title: "base16",
-			cbor:  mustHexDecode("4412345678"),
-			diag:  `h'12345678'`,
+			name:     "base16",
+			data:     mustHexDecode("4412345678"),
+			wantDiag: `h'12345678'`,
 			opts: &DiagOptions{
 				ByteStringEncoding: ByteStringBase16Encoding,
 			},
 		},
 		{
-			title: "base32",
-			cbor:  mustHexDecode("4412345678"),
-			diag:  `b32'CI2FM6A'`,
+			name:     "base32",
+			data:     mustHexDecode("4412345678"),
+			wantDiag: `b32'CI2FM6A'`,
 			opts: &DiagOptions{
 				ByteStringEncoding: ByteStringBase32Encoding,
 			},
 		},
 		{
-			title: "base32hex",
-			cbor:  mustHexDecode("4412345678"),
-			diag:  `h32'28Q5CU0'`,
+			name:     "base32hex",
+			data:     mustHexDecode("4412345678"),
+			wantDiag: `h32'28Q5CU0'`,
 			opts: &DiagOptions{
 				ByteStringEncoding: ByteStringBase32HexEncoding,
 			},
 		},
 		{
-			title: "base64",
-			cbor:  mustHexDecode("4412345678"),
-			diag:  `b64'EjRWeA'`,
+			name:     "base64",
+			data:     mustHexDecode("4412345678"),
+			wantDiag: `b64'EjRWeA'`,
 			opts: &DiagOptions{
 				ByteStringEncoding: ByteStringBase64Encoding,
 			},
 		},
 		{
-			title: "without ByteStringHexWhitespace option",
-			cbor:  mustHexDecode("4b48656c6c6f20776f726c64"),
-			diag:  `h'48656c6c6f20776f726c64'`,
+			name:     "without ByteStringHexWhitespace option",
+			data:     mustHexDecode("4b48656c6c6f20776f726c64"),
+			wantDiag: `h'48656c6c6f20776f726c64'`,
 			opts: &DiagOptions{
 				ByteStringHexWhitespace: false,
 			},
 		},
 		{
-			title: "with ByteStringHexWhitespace option",
-			cbor:  mustHexDecode("4b48656c6c6f20776f726c64"),
-			diag:  `h'48 65 6c 6c 6f 20 77 6f 72 6c 64'`,
+			name:     "with ByteStringHexWhitespace option",
+			data:     mustHexDecode("4b48656c6c6f20776f726c64"),
+			wantDiag: `h'48 65 6c 6c 6f 20 77 6f 72 6c 64'`,
 			opts: &DiagOptions{
 				ByteStringHexWhitespace: true,
 			},
 		},
 		{
-			title: "without ByteStringText option",
-			cbor:  mustHexDecode("4b68656c6c6f20776f726c64"),
-			diag:  `h'68656c6c6f20776f726c64'`,
+			name:     "without ByteStringText option",
+			data:     mustHexDecode("4b68656c6c6f20776f726c64"),
+			wantDiag: `h'68656c6c6f20776f726c64'`,
 			opts: &DiagOptions{
 				ByteStringText: false,
 			},
 		},
 		{
-			title: "with ByteStringText option",
-			cbor:  mustHexDecode("4b68656c6c6f20776f726c64"),
-			diag:  `'hello world'`,
+			name:     "with ByteStringText option",
+			data:     mustHexDecode("4b68656c6c6f20776f726c64"),
+			wantDiag: `'hello world'`,
 			opts: &DiagOptions{
 				ByteStringText: true,
 			},
 		},
 		{
-			title: "without ByteStringText option and with ByteStringHexWhitespace option",
-			cbor:  mustHexDecode("4b68656c6c6f20776f726c64"),
-			diag:  `h'68 65 6c 6c 6f 20 77 6f 72 6c 64'`,
+			name:     "without ByteStringText option and with ByteStringHexWhitespace option",
+			data:     mustHexDecode("4b68656c6c6f20776f726c64"),
+			wantDiag: `h'68 65 6c 6c 6f 20 77 6f 72 6c 64'`,
 			opts: &DiagOptions{
 				ByteStringText:          false,
 				ByteStringHexWhitespace: true,
 			},
 		},
 		{
-			title: "without ByteStringEmbeddedCBOR",
-			cbor:  mustHexDecode("4101"),
-			diag:  `h'01'`,
+			name:     "without ByteStringEmbeddedCBOR",
+			data:     mustHexDecode("4101"),
+			wantDiag: `h'01'`,
 			opts: &DiagOptions{
 				ByteStringEmbeddedCBOR: false,
 			},
 		},
 		{
-			title: "with ByteStringEmbeddedCBOR",
-			cbor:  mustHexDecode("4101"),
-			diag:  `<<1>>`,
+			name:     "with ByteStringEmbeddedCBOR",
+			data:     mustHexDecode("4101"),
+			wantDiag: `<<1>>`,
 			opts: &DiagOptions{
 				ByteStringEmbeddedCBOR: true,
 			},
 		},
 		{
-			title: "multi CBOR items without ByteStringEmbeddedCBOR",
-			cbor:  mustHexDecode("420102"),
-			diag:  `h'0102'`,
+			name:     "multi CBOR items without ByteStringEmbeddedCBOR",
+			data:     mustHexDecode("420102"),
+			wantDiag: `h'0102'`,
 			opts: &DiagOptions{
 				ByteStringEmbeddedCBOR: false,
 			},
 		},
 		{
-			title: "multi CBOR items with ByteStringEmbeddedCBOR",
-			cbor:  mustHexDecode("420102"),
-			diag:  `<<1, 2>>`,
+			name:     "multi CBOR items with ByteStringEmbeddedCBOR",
+			data:     mustHexDecode("420102"),
+			wantDiag: `<<1, 2>>`,
 			opts: &DiagOptions{
 				ByteStringEmbeddedCBOR: true,
 			},
 		},
 		{
-			title: "multi CBOR items with ByteStringEmbeddedCBOR",
-			cbor:  mustHexDecode("4563666F6FF6"),
-			diag:  `h'63666f6ff6'`,
+			name:     "multi CBOR items with ByteStringEmbeddedCBOR",
+			data:     mustHexDecode("4563666F6FF6"),
+			wantDiag: `h'63666f6ff6'`,
 			opts: &DiagOptions{
 				ByteStringEmbeddedCBOR: false,
 			},
 		},
 		{
-			title: "multi CBOR items with ByteStringEmbeddedCBOR",
-			cbor:  mustHexDecode("4563666F6FF6"),
-			diag:  `<<"foo", null>>`,
+			name:     "multi CBOR items with ByteStringEmbeddedCBOR",
+			data:     mustHexDecode("4563666F6FF6"),
+			wantDiag: `<<"foo", null>>`,
 			opts: &DiagOptions{
 				ByteStringEmbeddedCBOR: true,
 			},
 		},
 		{
-			title: "indefinite length byte string with no chunks",
-			cbor:  mustHexDecode("5fff"),
-			diag:  `''_`,
-			opts:  &DiagOptions{},
+			name:     "indefinite-length byte string with no chunks",
+			data:     mustHexDecode("5fff"),
+			wantDiag: `''_`,
+			opts:     &DiagOptions{},
 		},
 		{
-			title: "indefinite length byte string with a empty byte string",
-			cbor:  mustHexDecode("5f40ff"),
-			diag:  `(_ h'')`, // RFC 8949, Section 8.1 says `(_ '')` but it looks wrong and conflicts with Appendix A.
-			opts:  &DiagOptions{},
+			name:     "indefinite-length byte string with an empty byte string",
+			data:     mustHexDecode("5f40ff"),
+			wantDiag: `(_ h'')`, // RFC 8949, Section 8.1 says `(_ '')` but it looks wrong and conflicts with Appendix A.
+			opts:     &DiagOptions{},
 		},
 		{
-			title: "indefinite length byte string with two empty byte string",
-			cbor:  mustHexDecode("5f4040ff"),
-			diag:  `(_ h'', h'')`,
-			opts:  &DiagOptions{},
+			name:     "indefinite-length byte string with two empty byte strings",
+			data:     mustHexDecode("5f4040ff"),
+			wantDiag: `(_ h'', h'')`,
+			opts:     &DiagOptions{},
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.title, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			dm, err := tc.opts.DiagMode()
 			if err != nil {
-				t.Errorf("DiagMode() for 0x%x returned error %q", tc.cbor, err)
+				t.Errorf("DiagMode() for 0x%x returned error %q", tc.data, err)
 			}
 
-			str, err := dm.Diagnose(tc.cbor)
+			str, err := dm.Diagnose(tc.data)
 			if err != nil {
-				t.Errorf("Diagnose(0x%x) returned error %q", tc.cbor, err)
-			} else if str != tc.diag {
-				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.cbor, str, tc.diag)
+				t.Errorf("Diagnose(0x%x) returned error %q", tc.data, err)
+			} else if str != tc.wantDiag {
+				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.data, str, tc.wantDiag)
 			}
 		})
 	}
@@ -536,109 +536,115 @@ func TestDiagnoseByteString(t *testing.T) {
 
 func TestDiagnoseTextString(t *testing.T) {
 	testCases := []struct {
-		title string
-		cbor  []byte
-		diag  string
-		opts  *DiagOptions
+		name     string
+		data     []byte
+		wantDiag string
+		opts     *DiagOptions
 	}{
 		{
-			title: "\t",
-			cbor:  mustHexDecode("6109"),
-			diag:  `"\t"`,
-			opts:  &DiagOptions{},
+			name:     "\t",
+			data:     mustHexDecode("6109"),
+			wantDiag: `"\t"`,
+			opts:     &DiagOptions{},
 		},
 		{
-			title: "\r",
-			cbor:  mustHexDecode("610d"),
-			diag:  `"\r"`,
-			opts:  &DiagOptions{},
+			name:     "\r",
+			data:     mustHexDecode("610d"),
+			wantDiag: `"\r"`,
+			opts:     &DiagOptions{},
 		},
 		{
-			title: "other ascii",
-			cbor:  mustHexDecode("611b"),
-			diag:  `"\u001b"`,
-			opts:  &DiagOptions{},
+			name:     "other ascii",
+			data:     mustHexDecode("611b"),
+			wantDiag: `"\u001b"`,
+			opts:     &DiagOptions{},
 		},
 		{
-			title: "valid UTF-8 text in byte string",
-			cbor:  mustHexDecode("4d68656c6c6f2c20e4bda0e5a5bd"),
-			diag:  `'hello, \u4f60\u597d'`,
+			name:     "valid UTF-8 text in byte string",
+			data:     mustHexDecode("4d68656c6c6f2c20e4bda0e5a5bd"),
+			wantDiag: `'hello, \u4f60\u597d'`,
 			opts: &DiagOptions{
 				ByteStringText: true,
 			},
 		},
 		{
-			title: "valid UTF-8 text in text string",
-			cbor:  mustHexDecode("6d68656c6c6f2c20e4bda0e5a5bd"),
-			diag:  `"hello, \u4f60\u597d"`, // "hello, 你好"
+			name:     "valid UTF-8 text in text string",
+			data:     mustHexDecode("6d68656c6c6f2c20e4bda0e5a5bd"),
+			wantDiag: `"hello, \u4f60\u597d"`, // "hello, 你好"
 			opts: &DiagOptions{
 				ByteStringText: true,
 			},
 		},
 		{
-			title: "invalid UTF-8 text in byte string",
-			cbor:  mustHexDecode("4d68656c6c6fffeee4bda0e5a5bd"),
-			diag:  `h'68656c6c6fffeee4bda0e5a5bd'`,
+			name:     "invalid UTF-8 text in byte string",
+			data:     mustHexDecode("4d68656c6c6fffeee4bda0e5a5bd"),
+			wantDiag: `h'68656c6c6fffeee4bda0e5a5bd'`,
 			opts: &DiagOptions{
 				ByteStringText: true,
 			},
 		},
 		{
-			title: "valid grapheme cluster text in byte string",
-			cbor:  mustHexDecode("583448656c6c6f2c2027e29da4efb88fe2808df09f94a5270ae4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122"),
-			diag:  `'Hello, \'\u2764\ufe0f\u200d\ud83d\udd25\'\n\u4f60\u597d\uff0c"\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1"'`,
+			name:     "valid grapheme cluster text in byte string",
+			data:     mustHexDecode("583448656c6c6f2c2027e29da4efb88fe2808df09f94a5270ae4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122"),
+			wantDiag: `'Hello, \'\u2764\ufe0f\u200d\ud83d\udd25\'\n\u4f60\u597d\uff0c"\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1"'`,
 			opts: &DiagOptions{
 				ByteStringText: true,
 			},
 		},
 		{
-			title: "valid grapheme cluster text in text string",
-			cbor:  mustHexDecode("783448656c6c6f2c2027e29da4efb88fe2808df09f94a5270ae4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122"),
-			diag:  `"Hello, '\u2764\ufe0f\u200d\ud83d\udd25'\n\u4f60\u597d\uff0c\"\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1\""`, // "Hello, '❤️‍🔥'\n你好，\"🧑‍🤝‍🧑\""
+			name:     "valid grapheme cluster text in text string",
+			data:     mustHexDecode("783448656c6c6f2c2027e29da4efb88fe2808df09f94a5270ae4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122"),
+			wantDiag: `"Hello, '\u2764\ufe0f\u200d\ud83d\udd25'\n\u4f60\u597d\uff0c\"\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1\""`, // "Hello, '❤️‍🔥'\n你好，\"🧑‍🤝‍🧑\""
 			opts: &DiagOptions{
 				ByteStringText: true,
 			},
 		},
 		{
-			title: "invalid grapheme cluster text in byte string",
-			cbor:  mustHexDecode("583448656c6c6feeff27e29da4efb88fe2808df09f94a5270de4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122"),
-			diag:  `h'48656c6c6feeff27e29da4efb88fe2808df09f94a5270de4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122'`,
+			name:     "invalid grapheme cluster text in byte string",
+			data:     mustHexDecode("583448656c6c6feeff27e29da4efb88fe2808df09f94a5270de4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122"),
+			wantDiag: `h'48656c6c6feeff27e29da4efb88fe2808df09f94a5270de4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122'`,
 			opts: &DiagOptions{
 				ByteStringText: true,
 			},
 		},
 		{
-			title: "indefinite length text string with no chunks",
-			cbor:  mustHexDecode("7fff"),
-			diag:  `""_`,
-			opts:  &DiagOptions{},
+			name:     "valid U+FFFD replacement character in text string",
+			data:     mustHexDecode("63efbfbd"),
+			wantDiag: `"\ufffd"`,
+			opts:     &DiagOptions{},
 		},
 		{
-			title: "indefinite length text string with a empty text string",
-			cbor:  mustHexDecode("7f60ff"),
-			diag:  `(_ "")`,
-			opts:  &DiagOptions{},
+			name:     "indefinite-length text string with no chunks",
+			data:     mustHexDecode("7fff"),
+			wantDiag: `""_`,
+			opts:     &DiagOptions{},
 		},
 		{
-			title: "indefinite length text string with two empty text string",
-			cbor:  mustHexDecode("7f6060ff"),
-			diag:  `(_ "", "")`,
-			opts:  &DiagOptions{},
+			name:     "indefinite-length text string with an empty text string",
+			data:     mustHexDecode("7f60ff"),
+			wantDiag: `(_ "")`,
+			opts:     &DiagOptions{},
+		},
+		{
+			name:     "indefinite-length text string with two empty text strings",
+			data:     mustHexDecode("7f6060ff"),
+			wantDiag: `(_ "", "")`,
+			opts:     &DiagOptions{},
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.title, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			dm, err := tc.opts.DiagMode()
 			if err != nil {
-				t.Errorf("DiagMode() for 0x%x returned error %q", tc.cbor, err)
+				t.Errorf("DiagMode() for 0x%x returned error %q", tc.data, err)
 			}
 
-			str, err := dm.Diagnose(tc.cbor)
+			str, err := dm.Diagnose(tc.data)
 			if err != nil {
-				t.Errorf("Diagnose(0x%x) returned error %q", tc.cbor, err)
-			} else if str != tc.diag {
-				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.cbor, str, tc.diag)
+				t.Errorf("Diagnose(0x%x) returned error %q", tc.data, err)
+			} else if str != tc.wantDiag {
+				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.data, str, tc.wantDiag)
 			}
 		})
 	}
@@ -646,30 +652,30 @@ func TestDiagnoseTextString(t *testing.T) {
 
 func TestDiagnoseInvalidTextString(t *testing.T) {
 	testCases := []struct {
-		title        string
-		cbor         []byte
+		name         string
+		data         []byte
 		wantErrorMsg string
 		opts         *DiagOptions
 	}{
 		{
-			title:        "invalid UTF-8 text in text string",
-			cbor:         mustHexDecode("6d68656c6c6fffeee4bda0e5a5bd"),
+			name:         "invalid UTF-8 text in text string",
+			data:         mustHexDecode("6d68656c6c6fffeee4bda0e5a5bd"),
 			wantErrorMsg: "invalid UTF-8 string",
 			opts: &DiagOptions{
 				ByteStringText: true,
 			},
 		},
 		{
-			title:        "invalid grapheme cluster text in text string",
-			cbor:         mustHexDecode("783448656c6c6feeff27e29da4efb88fe2808df09f94a5270de4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122"),
+			name:         "invalid grapheme cluster text in text string",
+			data:         mustHexDecode("783448656c6c6feeff27e29da4efb88fe2808df09f94a5270de4bda0e5a5bdefbc8c22f09fa791e2808df09fa49de2808df09fa79122"),
 			wantErrorMsg: "invalid UTF-8 string",
 			opts: &DiagOptions{
 				ByteStringText: true,
 			},
 		},
 		{
-			title:        "invalid indefinite length text string",
-			cbor:         mustHexDecode("7f6040ff"),
+			name:         "invalid indefinite-length text string",
+			data:         mustHexDecode("7f6040ff"),
 			wantErrorMsg: `wrong element type`,
 			opts: &DiagOptions{
 				ByteStringText: true,
@@ -678,17 +684,17 @@ func TestDiagnoseInvalidTextString(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.title, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			dm, err := tc.opts.DiagMode()
 			if err != nil {
-				t.Errorf("DiagMode() for 0x%x returned error %q", tc.cbor, err)
+				t.Errorf("DiagMode() for 0x%x returned error %q", tc.data, err)
 			}
 
-			_, err = dm.Diagnose(tc.cbor)
+			_, err = dm.Diagnose(tc.data)
 			if err == nil {
-				t.Errorf("Diagnose(0x%x) didn't return error", tc.cbor)
+				t.Errorf("Diagnose(0x%x) didn't return an error", tc.data)
 			} else if !strings.Contains(err.Error(), tc.wantErrorMsg) {
-				t.Errorf("Diagnose(0x%x) returned error %q", tc.cbor, err)
+				t.Errorf("Diagnose(0x%x) returned error %q", tc.data, err)
 			}
 		})
 	}
@@ -696,63 +702,63 @@ func TestDiagnoseInvalidTextString(t *testing.T) {
 
 func TestDiagnoseFloatingPointNumber(t *testing.T) {
 	testCases := []struct {
-		title string
-		cbor  []byte
-		diag  string
-		opts  *DiagOptions
+		name     string
+		data     []byte
+		wantDiag string
+		opts     *DiagOptions
 	}{
 		{
-			title: "float16 without FloatPrecisionIndicator option",
-			cbor:  mustHexDecode("f93e00"),
-			diag:  `1.5`,
+			name:     "float16 without FloatPrecisionIndicator option",
+			data:     mustHexDecode("f93e00"),
+			wantDiag: `1.5`,
 			opts: &DiagOptions{
 				FloatPrecisionIndicator: false,
 			},
 		},
 		{
-			title: "float16 with FloatPrecisionIndicator option",
-			cbor:  mustHexDecode("f93e00"),
-			diag:  `1.5_1`,
+			name:     "float16 with FloatPrecisionIndicator option",
+			data:     mustHexDecode("f93e00"),
+			wantDiag: `1.5_1`,
 			opts: &DiagOptions{
 				FloatPrecisionIndicator: true,
 			},
 		},
 		{
-			title: "float32 without FloatPrecisionIndicator option",
-			cbor:  mustHexDecode("fa47c35000"),
-			diag:  `100000.0`,
+			name:     "float32 without FloatPrecisionIndicator option",
+			data:     mustHexDecode("fa47c35000"),
+			wantDiag: `100000.0`,
 			opts: &DiagOptions{
 				FloatPrecisionIndicator: false,
 			},
 		},
 		{
-			title: "float32 with FloatPrecisionIndicator option",
-			cbor:  mustHexDecode("fa47c35000"),
-			diag:  `100000.0_2`,
+			name:     "float32 with FloatPrecisionIndicator option",
+			data:     mustHexDecode("fa47c35000"),
+			wantDiag: `100000.0_2`,
 			opts: &DiagOptions{
 				FloatPrecisionIndicator: true,
 			},
 		},
 		{
-			title: "float64 without FloatPrecisionIndicator option",
-			cbor:  mustHexDecode("fbc010666666666666"),
-			diag:  `-4.1`,
+			name:     "float64 without FloatPrecisionIndicator option",
+			data:     mustHexDecode("fbc010666666666666"),
+			wantDiag: `-4.1`,
 			opts: &DiagOptions{
 				FloatPrecisionIndicator: false,
 			},
 		},
 		{
-			title: "float64 with FloatPrecisionIndicator option",
-			cbor:  mustHexDecode("fbc010666666666666"),
-			diag:  `-4.1_3`,
+			name:     "float64 with FloatPrecisionIndicator option",
+			data:     mustHexDecode("fbc010666666666666"),
+			wantDiag: `-4.1_3`,
 			opts: &DiagOptions{
 				FloatPrecisionIndicator: true,
 			},
 		},
 		{
-			title: "with FloatPrecisionIndicator option",
-			cbor:  mustHexDecode("c1fb41d452d9ec200000"),
-			diag:  `1(1363896240.5_3)`,
+			name:     "with FloatPrecisionIndicator option",
+			data:     mustHexDecode("c1fb41d452d9ec200000"),
+			wantDiag: `1(1363896240.5_3)`,
 			opts: &DiagOptions{
 				FloatPrecisionIndicator: true,
 			},
@@ -760,17 +766,17 @@ func TestDiagnoseFloatingPointNumber(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.title, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			dm, err := tc.opts.DiagMode()
 			if err != nil {
-				t.Errorf("DiagMode() for 0x%x returned error %q", tc.cbor, err)
+				t.Errorf("DiagMode() for 0x%x returned error %q", tc.data, err)
 			}
 
-			str, err := dm.Diagnose(tc.cbor)
+			str, err := dm.Diagnose(tc.data)
 			if err != nil {
-				t.Errorf("Diagnose(0x%x) returned error %q", tc.cbor, err)
-			} else if str != tc.diag {
-				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.cbor, str, tc.diag)
+				t.Errorf("Diagnose(0x%x) returned error %q", tc.data, err)
+			} else if str != tc.wantDiag {
+				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.data, str, tc.wantDiag)
 			}
 		})
 	}
@@ -778,62 +784,62 @@ func TestDiagnoseFloatingPointNumber(t *testing.T) {
 
 func TestDiagnoseFirst(t *testing.T) {
 	testCases := []struct {
-		title        string
-		cbor         []byte
-		diag         string
+		name         string
+		data         []byte
+		wantDiag     string
 		wantRest     []byte
 		wantErrorMsg string
 	}{
 		{
-			title:        "with no trailing data",
-			cbor:         mustHexDecode("f93e00"),
-			diag:         `1.5`,
+			name:         "with no trailing data",
+			data:         mustHexDecode("f93e00"),
+			wantDiag:     `1.5`,
 			wantRest:     []byte{},
 			wantErrorMsg: "",
 		},
 		{
-			title:        "with CBOR Sequences",
-			cbor:         mustHexDecode("f93e0064494554464401020304"),
-			diag:         `1.5`,
+			name:         "with CBOR Sequences",
+			data:         mustHexDecode("f93e0064494554464401020304"),
+			wantDiag:     `1.5`,
 			wantRest:     mustHexDecode("64494554464401020304"),
 			wantErrorMsg: "",
 		},
 		{
-			title:        "with invalid CBOR trailing data",
-			cbor:         mustHexDecode("f93e00ff494554464401020304"),
-			diag:         `1.5`,
+			name:         "with invalid CBOR trailing data",
+			data:         mustHexDecode("f93e00ff494554464401020304"),
+			wantDiag:     `1.5`,
 			wantRest:     mustHexDecode("ff494554464401020304"),
 			wantErrorMsg: "",
 		},
 		{
-			title:        "with invalid CBOR data",
-			cbor:         mustHexDecode("f93e"),
-			diag:         ``,
+			name:         "with invalid CBOR data",
+			data:         mustHexDecode("f93e"),
+			wantDiag:     ``,
 			wantRest:     nil,
 			wantErrorMsg: "unexpected EOF",
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.title, func(t *testing.T) {
-			str, rest, err := DiagnoseFirst(tc.cbor)
-			if str != tc.diag {
-				t.Errorf("DiagnoseFirst(0x%x) returned `%s`, want %s", tc.cbor, str, tc.diag)
+		t.Run(tc.name, func(t *testing.T) {
+			str, rest, err := DiagnoseFirst(tc.data)
+			if str != tc.wantDiag {
+				t.Errorf("DiagnoseFirst(0x%x) returned `%s`, want %s", tc.data, str, tc.wantDiag)
 			}
 
 			if bytes.Equal(rest, tc.wantRest) == false {
-				if str != tc.diag {
-					t.Errorf("DiagnoseFirst(0x%x) returned rest `%x`, want rest %x", tc.cbor, rest, tc.wantRest)
+				if str != tc.wantDiag {
+					t.Errorf("DiagnoseFirst(0x%x) returned rest `%x`, want rest %x", tc.data, rest, tc.wantRest)
 				}
 			}
 
 			switch {
 			case tc.wantErrorMsg == "" && err != nil:
-				t.Errorf("DiagnoseFirst(0x%x) returned error %q", tc.cbor, err)
+				t.Errorf("DiagnoseFirst(0x%x) returned error %q", tc.data, err)
 			case tc.wantErrorMsg != "" && err == nil:
-				t.Errorf("DiagnoseFirst(0x%x) returned nil error, want error %q", tc.cbor, err)
+				t.Errorf("DiagnoseFirst(0x%x) returned nil error, want error %q", tc.data, err)
 			case tc.wantErrorMsg != "" && !strings.Contains(err.Error(), tc.wantErrorMsg):
-				t.Errorf("DiagnoseFirst(0x%x) returned error %q, want error %q", tc.cbor, err, tc.wantErrorMsg)
+				t.Errorf("DiagnoseFirst(0x%x) returned error %q, want error %q", tc.data, err, tc.wantErrorMsg)
 			}
 		})
 	}
@@ -841,52 +847,52 @@ func TestDiagnoseFirst(t *testing.T) {
 
 func TestDiagnoseCBORSequences(t *testing.T) {
 	testCases := []struct {
-		title       string
-		cbor        []byte
-		diag        string
+		name        string
+		data        []byte
+		wantDiag    string
 		opts        *DiagOptions
 		returnError bool
 	}{
 		{
-			title: "CBOR Sequences without CBORSequence option",
-			cbor:  mustHexDecode("f93e0064494554464401020304"),
-			diag:  ``,
+			name:     "CBOR Sequences without CBORSequence option",
+			data:     mustHexDecode("f93e0064494554464401020304"),
+			wantDiag: ``,
 			opts: &DiagOptions{
 				CBORSequence: false,
 			},
 			returnError: true,
 		},
 		{
-			title: "CBOR Sequences with CBORSequence option",
-			cbor:  mustHexDecode("f93e0064494554464401020304"),
-			diag:  `1.5, "IETF", h'01020304'`,
+			name:     "CBOR Sequences with CBORSequence option",
+			data:     mustHexDecode("f93e0064494554464401020304"),
+			wantDiag: `1.5, "IETF", h'01020304'`,
 			opts: &DiagOptions{
 				CBORSequence: true,
 			},
 			returnError: false,
 		},
 		{
-			title: "CBOR Sequences with CBORSequence option",
-			cbor:  mustHexDecode("0102"),
-			diag:  `1, 2`,
+			name:     "CBOR Sequences with CBORSequence option",
+			data:     mustHexDecode("0102"),
+			wantDiag: `1, 2`,
 			opts: &DiagOptions{
 				CBORSequence: true,
 			},
 			returnError: false,
 		},
 		{
-			title: "CBOR Sequences with CBORSequence option",
-			cbor:  mustHexDecode("63666F6FF6"),
-			diag:  `"foo", null`,
+			name:     "CBOR Sequences with CBORSequence option",
+			data:     mustHexDecode("63666F6FF6"),
+			wantDiag: `"foo", null`,
 			opts: &DiagOptions{
 				CBORSequence: true,
 			},
 			returnError: false,
 		},
 		{
-			title: "partial/incomplete CBOR Sequences",
-			cbor:  mustHexDecode("f93e00644945544644010203"),
-			diag:  `1.5, "IETF"`,
+			name:     "partial/incomplete CBOR Sequences",
+			data:     mustHexDecode("f93e00644945544644010203"),
+			wantDiag: `1.5, "IETF"`,
 			opts: &DiagOptions{
 				CBORSequence: true,
 			},
@@ -895,21 +901,21 @@ func TestDiagnoseCBORSequences(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.title, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			dm, err := tc.opts.DiagMode()
 			if err != nil {
-				t.Errorf("DiagMode() for 0x%x returned error %q", tc.cbor, err)
+				t.Errorf("DiagMode() for 0x%x returned error %q", tc.data, err)
 			}
 
-			str, err := dm.Diagnose(tc.cbor)
+			str, err := dm.Diagnose(tc.data)
 			if tc.returnError && err == nil {
-				t.Errorf("Diagnose(0x%x) returned error %q", tc.cbor, err)
+				t.Errorf("Diagnose(0x%x) returned error %q", tc.data, err)
 			} else if !tc.returnError && err != nil {
-				t.Errorf("Diagnose(0x%x) returned error %q", tc.cbor, err)
+				t.Errorf("Diagnose(0x%x) returned error %q", tc.data, err)
 			}
 
-			if str != tc.diag {
-				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.cbor, str, tc.diag)
+			if str != tc.wantDiag {
+				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.data, str, tc.wantDiag)
 			}
 		})
 	}
@@ -917,72 +923,72 @@ func TestDiagnoseCBORSequences(t *testing.T) {
 
 func TestDiagnoseTag(t *testing.T) {
 	testCases := []struct {
-		title       string
-		cbor        []byte
-		diag        string
+		name        string
+		data        []byte
+		wantDiag    string
 		opts        *DiagOptions
 		returnError bool
 	}{
 		{
-			title:       "CBOR tag number 2 with not well-formed encoded CBOR data item",
-			cbor:        mustHexDecode("c201"),
-			diag:        ``,
+			name:        "CBOR tag number 2 with not well-formed encoded CBOR data item",
+			data:        mustHexDecode("c201"),
+			wantDiag:    ``,
 			opts:        &DiagOptions{},
 			returnError: true,
 		},
 		{
-			title:       "CBOR tag number 3 with not well-formed encoded CBOR data item",
-			cbor:        mustHexDecode("c301"),
-			diag:        ``,
+			name:        "CBOR tag number 3 with not well-formed encoded CBOR data item",
+			data:        mustHexDecode("c301"),
+			wantDiag:    ``,
 			opts:        &DiagOptions{},
 			returnError: true,
 		},
 		{
-			title:       "CBOR tag number 2 with well-formed encoded CBOR data item",
-			cbor:        mustHexDecode("c240"),
-			diag:        `0`,
+			name:        "CBOR tag number 2 with well-formed encoded CBOR data item",
+			data:        mustHexDecode("c240"),
+			wantDiag:    `0`,
 			opts:        &DiagOptions{},
 			returnError: false,
 		},
 		{
-			title:       "CBOR tag number 3 with well-formed encoded CBOR data item",
-			cbor:        mustHexDecode("c340"),
-			diag:        `-1`, // -1 - n
+			name:        "CBOR tag number 3 with well-formed encoded CBOR data item",
+			data:        mustHexDecode("c340"),
+			wantDiag:    `-1`, // -1 - n
 			opts:        &DiagOptions{},
 			returnError: false,
 		},
 		{
-			title:       "CBOR tag number 2 with well-formed encoded CBOR data item",
-			cbor:        mustHexDecode("c249010000000000000000"),
-			diag:        `18446744073709551616`,
+			name:        "CBOR tag number 2 with well-formed encoded CBOR data item",
+			data:        mustHexDecode("c249010000000000000000"),
+			wantDiag:    `18446744073709551616`,
 			opts:        &DiagOptions{},
 			returnError: false,
 		},
 		{
-			title:       "CBOR tag number 3 with well-formed encoded CBOR data item",
-			cbor:        mustHexDecode("c349010000000000000000"),
-			diag:        `-18446744073709551617`, // -1 - n
+			name:        "CBOR tag number 3 with well-formed encoded CBOR data item",
+			data:        mustHexDecode("c349010000000000000000"),
+			wantDiag:    `-18446744073709551617`, // -1 - n
 			opts:        &DiagOptions{},
 			returnError: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.title, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			dm, err := tc.opts.DiagMode()
 			if err != nil {
-				t.Errorf("DiagMode() for 0x%x returned error %q", tc.cbor, err)
+				t.Errorf("DiagMode() for 0x%x returned error %q", tc.data, err)
 			}
 
-			str, err := dm.Diagnose(tc.cbor)
+			str, err := dm.Diagnose(tc.data)
 			if tc.returnError && err == nil {
-				t.Errorf("Diagnose(0x%x) returned error %q", tc.cbor, err)
+				t.Errorf("Diagnose(0x%x) returned error %q", tc.data, err)
 			} else if !tc.returnError && err != nil {
-				t.Errorf("Diagnose(0x%x) returned error %q", tc.cbor, err)
+				t.Errorf("Diagnose(0x%x) returned error %q", tc.data, err)
 			}
 
-			if str != tc.diag {
-				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.cbor, str, tc.diag)
+			if str != tc.wantDiag {
+				t.Errorf("Diagnose(0x%x) returned `%s`, want %s", tc.data, str, tc.wantDiag)
 			}
 		})
 	}
@@ -1036,7 +1042,7 @@ func TestInvalidDiagnoseOptions(t *testing.T) {
 	}
 	_, err := opts.DiagMode()
 	if err == nil {
-		t.Errorf("DiagMode() with invalid ByteStringEncoding option didn't return error")
+		t.Errorf("DiagMode() with invalid ByteStringEncoding option didn't return an error")
 	}
 }
 
@@ -1044,7 +1050,7 @@ func TestDiagnoseExtraneousData(t *testing.T) {
 	data := mustHexDecode("63666F6FF6")
 	_, err := Diagnose(data)
 	if err == nil {
-		t.Errorf("Diagnose(0x%x) didn't return error", data)
+		t.Errorf("Diagnose(0x%x) didn't return an error", data)
 	} else if !strings.Contains(err.Error(), `extraneous data`) {
 		t.Errorf("Diagnose(0x%x) returned error %q", data, err)
 	}
@@ -1059,7 +1065,7 @@ func TestDiagnoseNotwellformedData(t *testing.T) {
 	data := mustHexDecode("5f4060ff")
 	_, err := Diagnose(data)
 	if err == nil {
-		t.Errorf("Diagnose(0x%x) didn't return error", data)
+		t.Errorf("Diagnose(0x%x) didn't return an error", data)
 	} else if !strings.Contains(err.Error(), `wrong element type`) {
 		t.Errorf("Diagnose(0x%x) returned error %q", data, err)
 	}
@@ -1103,8 +1109,20 @@ func TestDiagnoseEmptyData(t *testing.T) {
 	}
 }
 
+func TestDiagnoseInvalidByteStringEncoding(t *testing.T) {
+	_, err := DiagOptions{
+		ByteStringEncoding: maxByteStringEncoding,
+	}.DiagMode()
+	if err == nil {
+		t.Fatal("DiagMode() expected error for invalid ByteStringEncoding, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid ByteStringEncoding") {
+		t.Errorf("DiagMode() error = %q, want error containing \"invalid ByteStringEncoding\"", err.Error())
+	}
+}
+
 func BenchmarkDiagnose(b *testing.B) {
-	for _, tc := range []struct {
+	testCases := []struct {
 		name  string
 		opts  DiagOptions
 		input []byte
@@ -1134,7 +1152,8 @@ func BenchmarkDiagnose(b *testing.B) {
 			opts:  DiagOptions{ByteStringEncoding: ByteStringBase64Encoding},
 			input: []byte("\x45hello"),
 		},
-	} {
+	}
+	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
 			dm, err := tc.opts.DiagMode()
 			if err != nil {

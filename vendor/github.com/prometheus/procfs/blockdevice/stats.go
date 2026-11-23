@@ -492,6 +492,15 @@ func (fs FS) SysBlockDeviceSize(device string) (uint64, error) {
 	return procfs.SectorSize * size, nil
 }
 
+// SysBlockDeviceRotational returns the rotational value for the block device
+// from /sys/block/<device>/queue/rotational.
+// A value of 1 indicates a rotational device (HDD), 0 indicates a
+// non-rotational device (SSD, NVMe). An error is returned if the file
+// cannot be read or does not contain a valid integer.
+func (fs FS) SysBlockDeviceRotational(device string) (uint64, error) {
+	return util.ReadUintFromFile(fs.sys.Path(sysBlockPath, device, sysBlockQueue, "rotational"))
+}
+
 // SysBlockDeviceIO returns stats for the block device io counters
 // IO done count: /sys/block/<disk>/device/iodone_cnt
 // IO error count: /sys/block/<disk>/device/ioerr_cnt.

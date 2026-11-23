@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.19.2)
+VERSION(v0.21.1)
 
 SRCS(
     arp.go
@@ -69,6 +69,7 @@ GO_TEST_SRCS(
     loadavg_test.go
     mdstat_test.go
     meminfo_test.go
+    mountinfo_readfull_test.go
     mountinfo_test.go
     mountstats_test.go
     net_conntrackstat_test.go
@@ -234,6 +235,7 @@ END()
 
 RECURSE(
     bcache
+    bcachefs
     blockdevice
     btrfs
     ext4

@@ -6,9 +6,9 @@ import (
 	"math"
 	"reflect"
 	"strings"
+	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
 	"go.yaml.in/yaml/v2"
 )
 
@@ -747,47 +747,63 @@ type inlineC struct {
 	C int
 }
 
-func (s *S) TestUnmarshal(c *C) {
+func TestUnmarshal(t *testing.T) {
 	for i, item := range unmarshalTests {
-		c.Logf("test %d: %q", i, item.data)
-		t := reflect.ValueOf(item.value).Type()
-		value := reflect.New(t)
+		t.Logf("test %d: %q", i, item.data)
+		typ := reflect.ValueOf(item.value).Type()
+		value := reflect.New(typ)
 		err := yaml.Unmarshal([]byte(item.data), value.Interface())
 		if _, ok := err.(*yaml.TypeError); !ok {
-			c.Assert(err, IsNil)
+			if err != nil {
+				t.Fatalf("Unmarshal() returned error: %v", err)
+			}
 		}
-		c.Assert(value.Elem().Interface(), DeepEquals, item.value, Commentf("error: %v", err))
+		if !reflect.DeepEqual(value.Elem().Interface(), item.value) {
+			t.Fatalf("Unmarshal() returned %#v, want %#v (error: %v)", value.Elem().Interface(), item.value, err)
+		}
 	}
 }
 
 // TODO(v3): This test should also work when unmarshaling onto an interface{}.
-func (s *S) TestUnmarshalFullTimestamp(c *C) {
+func TestUnmarshalFullTimestamp(t *testing.T) {
 	// Full timestamp in same format as encoded. This is confirmed to be
 	// properly decoded by Python as a timestamp as well.
 	var str = "2015-02-24T18:19:39.123456789-03:00"
-	var t time.Time
-	err := yaml.Unmarshal([]byte(str), &t)
-	c.Assert(err, IsNil)
-	c.Assert(t, Equals, time.Date(2015, 2, 24, 18, 19, 39, 123456789, t.Location()))
-	c.Assert(t.In(time.UTC), Equals, time.Date(2015, 2, 24, 21, 19, 39, 123456789, time.UTC))
+	var tm time.Time
+	err := yaml.Unmarshal([]byte(str), &tm)
+	if err != nil {
+		t.Fatalf("Unmarshal() returned error: %v", err)
+	}
+	expected := time.Date(2015, 2, 24, 18, 19, 39, 123456789, tm.Location())
+	if !tm.Equal(expected) || tm.Location().String() != expected.Location().String() {
+		t.Fatalf("Unmarshal() returned %v, want %v", tm, expected)
+	}
+	expectedUTC := time.Date(2015, 2, 24, 21, 19, 39, 123456789, time.UTC)
+	if !tm.In(time.UTC).Equal(expectedUTC) {
+		t.Fatalf("Unmarshal() in UTC returned %v, want %v", tm.In(time.UTC), expectedUTC)
+	}
 }
 
-func (s *S) TestDecoderSingleDocument(c *C) {
+func TestDecoderSingleDocument(t *testing.T) {
 	// Test that Decoder.Decode works as expected on
 	// all the unmarshal tests.
 	for i, item := range unmarshalTests {
-		c.Logf("test %d: %q", i, item.data)
+		t.Logf("test %d: %q", i, item.data)
 		if item.data == "" {
 			// Behaviour differs when there's no YAML.
 			continue
 		}
-		t := reflect.ValueOf(item.value).Type()
-		value := reflect.New(t)
+		typ := reflect.ValueOf(item.value).Type()
+		value := reflect.New(typ)
 		err := yaml.NewDecoder(strings.NewReader(item.data)).Decode(value.Interface())
 		if _, ok := err.(*yaml.TypeError); !ok {
-			c.Assert(err, IsNil)
+			if err != nil {
+				t.Fatalf("Decode() returned error: %v", err)
+			}
 		}
-		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		if !reflect.DeepEqual(value.Elem().Interface(), item.value) {
+			t.Fatalf("Decode() returned %#v, want %#v", value.Elem().Interface(), item.value)
+		}
 	}
 }
 
@@ -815,9 +831,9 @@ var decoderTests = []struct {
 	},
 }}
 
-func (s *S) TestDecoder(c *C) {
+func TestDecoder(t *testing.T) {
 	for i, item := range decoderTests {
-		c.Logf("test %d: %q", i, item.data)
+		t.Logf("test %d: %q", i, item.data)
 		var values []interface{}
 		dec := yaml.NewDecoder(strings.NewReader(item.data))
 		for {
@@ -826,10 +842,14 @@ func (s *S) TestDecoder(c *C) {
 			if err == io.EOF {
 				break
 			}
-			c.Assert(err, IsNil)
+			if err != nil {
+				t.Fatalf("Decode() returned error: %v", err)
+			}
 			values = append(values, value)
 		}
-		c.Assert(values, DeepEquals, item.values)
+		if !reflect.DeepEqual(values, item.values) {
+			t.Fatalf("Decode() returned %#v, want %#v", values, item.values)
+		}
 	}
 }
 
@@ -839,16 +859,22 @@ func (errReader) Read([]byte) (int, error) {
 	return 0, errors.New("some read error")
 }
 
-func (s *S) TestDecoderReadError(c *C) {
+func TestDecoderReadError(t *testing.T) {
 	err := yaml.NewDecoder(errReader{}).Decode(&struct{}{})
-	c.Assert(err, ErrorMatches, `yaml: input error: some read error`)
+	if err == nil || !strings.Contains(err.Error(), `yaml: input error: some read error`) {
+		t.Fatalf("Decode() returned %v, want error containing %q", err, `yaml: input error: some read error`)
+	}
 }
 
-func (s *S) TestUnmarshalNaN(c *C) {
+func TestUnmarshalNaN(t *testing.T) {
 	value := map[string]interface{}{}
 	err := yaml.Unmarshal([]byte("notanum: .NaN"), &value)
-	c.Assert(err, IsNil)
-	c.Assert(math.IsNaN(value["notanum"].(float64)), Equals, true)
+	if err != nil {
+		t.Fatalf("Unmarshal() returned error: %v", err)
+	}
+	if !math.IsNaN(value["notanum"].(float64)) {
+		t.Fatalf("Unmarshal() returned %v, want NaN", value["notanum"])
+	}
 }
 
 var unmarshalErrorTests = []struct {
@@ -863,11 +889,11 @@ var unmarshalErrorTests = []struct {
 	{"a: &x null\n<<:\n- *x\nb: &x {}\n", `yaml: map merge requires map or sequence of maps as the value`}, // Issue #529.
 	{"value: -", "yaml: block sequence entries are not allowed in this context"},
 	{"a: !!binary ==", "yaml: !!binary value contains invalid base64 data"},
-	{"{[.]}", `yaml: invalid map key: \[\]interface \{\}\{"\."\}`},
-	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
+	{"{[.]}", `yaml: invalid map key: []interface {}{"."}`},
+	{"{{.}}", `yaml: invalid map key: map[interface {}]interface {}{".":interface {}(nil)}`},
 	{"b: *a\na: &a {c: 1}", `yaml: unknown anchor 'a' referenced`},
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
-	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
+	{"a:\n  1:\nb\n  2:", "could not find expected ':'"},
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
 		"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
@@ -882,27 +908,42 @@ var unmarshalErrorTests = []struct {
 	},
 }
 
-func (s *S) TestUnmarshalErrors(c *C) {
+func TestUnmarshalErrors(t *testing.T) {
 	for i, item := range unmarshalErrorTests {
-		c.Logf("test %d: %q", i, item.data)
+		t.Logf("test %d: %q", i, item.data)
 		var value interface{}
 		err := yaml.Unmarshal([]byte(item.data), &value)
-		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
+		if err == nil {
+			t.Fatalf("Unmarshal() expected error, got none. Partial unmarshal: %#v", value)
+		}
+		if !strings.Contains(err.Error(), item.error) {
+			t.Fatalf("Unmarshal() returned error %q, want containing %q. Partial unmarshal: %#v", err.Error(), item.error, value)
+		}
 
 		if strings.Contains(item.data, ":") {
 			// Repeat test with typed value.
-			var value map[string]interface{}
-			err := yaml.Unmarshal([]byte(item.data), &value)
-			c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
+			var mapValue map[string]interface{}
+			err := yaml.Unmarshal([]byte(item.data), &mapValue)
+			if err == nil {
+				t.Fatalf("Unmarshal() with map[string]interface{} expected error, got none. Partial unmarshal: %#v", mapValue)
+			}
+			if !strings.Contains(err.Error(), item.error) {
+				t.Fatalf("Unmarshal() with map[string]interface{} returned error %q, want containing %q. Partial unmarshal: %#v", err.Error(), item.error, mapValue)
+			}
 		}
 	}
 }
 
-func (s *S) TestDecoderErrors(c *C) {
+func TestDecoderErrors(t *testing.T) {
 	for _, item := range unmarshalErrorTests {
 		var value interface{}
 		err := yaml.NewDecoder(strings.NewReader(item.data)).Decode(&value)
-		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
+		if err == nil {
+			t.Fatalf("Decode() expected error, got none. Partial unmarshal: %#v", value)
+		}
+		if !strings.Contains(err.Error(), item.error) {
+			t.Fatalf("Decode() returned error %q, want containing %q. Partial unmarshal: %#v", err.Error(), item.error, value)
+		}
 	}
 }
 
@@ -946,40 +987,57 @@ type unmarshalerValue struct {
 	Field unmarshalerType "_"
 }
 
-func (s *S) TestUnmarshalerPointerField(c *C) {
+func TestUnmarshalerPointerField(t *testing.T) {
 	for _, item := range unmarshalerTests {
 		obj := &unmarshalerPointer{}
 		err := yaml.Unmarshal([]byte(item.data), obj)
-		c.Assert(err, IsNil)
+		if err != nil {
+			t.Fatalf("Unmarshal() returned error: %v", err)
+		}
 		if item.value == nil {
-			c.Assert(obj.Field, IsNil)
+			if obj.Field != nil {
+				t.Fatalf("Unmarshal() returned %v, want nil", obj.Field)
+			}
 		} else {
-			c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
-			c.Assert(obj.Field.value, DeepEquals, item.value)
+			if obj.Field == nil {
+				t.Fatalf("Unmarshal() returned nil, want non-nil. Value: %#v", item.value)
+			}
+			if !reflect.DeepEqual(obj.Field.value, item.value) {
+				t.Fatalf("Unmarshal() returned %#v, want %#v", obj.Field.value, item.value)
+			}
 		}
 	}
 }
 
-func (s *S) TestUnmarshalerValueField(c *C) {
+func TestUnmarshalerValueField(t *testing.T) {
 	for _, item := range unmarshalerTests {
 		obj := &unmarshalerValue{}
 		err := yaml.Unmarshal([]byte(item.data), obj)
-		c.Assert(err, IsNil)
-		c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
-		c.Assert(obj.Field.value, DeepEquals, item.value)
+		if err != nil {
+			t.Fatalf("Unmarshal() returned error: %v", err)
+		}
+		if !reflect.DeepEqual(obj.Field.value, item.value) {
+			t.Fatalf("Unmarshal() returned %#v, want %#v", obj.Field.value, item.value)
+		}
 	}
 }
 
-func (s *S) TestUnmarshalerWholeDocument(c *C) {
+func TestUnmarshalerWholeDocument(t *testing.T) {
 	obj := &unmarshalerType{}
 	err := yaml.Unmarshal([]byte(unmarshalerTests[0].data), obj)
-	c.Assert(err, IsNil)
+	if err != nil {
+		t.Fatalf("Unmarshal() returned error: %v", err)
+	}
 	value, ok := obj.value.(map[interface{}]interface{})
-	c.Assert(ok, Equals, true, Commentf("value: %#v", obj.value))
-	c.Assert(value["_"], DeepEquals, unmarshalerTests[0].value)
+	if !ok {
+		t.Fatalf("obj.value is not a map[interface{}]interface{}. Value: %#v", obj.value)
+	}
+	if !reflect.DeepEqual(value["_"], unmarshalerTests[0].value) {
+		t.Fatalf("Unmarshal() returned %#v but expected %#v", value["_"], unmarshalerTests[0].value)
+	}
 }
 
-func (s *S) TestUnmarshalerTypeError(c *C) {
+func TestUnmarshalerTypeError(t *testing.T) {
 	unmarshalerResult[2] = &yaml.TypeError{[]string{"foo"}}
 	unmarshalerResult[4] = &yaml.TypeError{[]string{"bar"}}
 	defer func() {
@@ -995,19 +1053,37 @@ func (s *S) TestUnmarshalerTypeError(c *C) {
 	var v T
 	data := `{before: A, m: {abc: 1, def: 2, ghi: 3, jkl: 4}, after: B}`
 	err := yaml.Unmarshal([]byte(data), &v)
-	c.Assert(err, ErrorMatches, ""+
-		"yaml: unmarshal errors:\n"+
-		"  line 1: cannot unmarshal !!str `A` into int\n"+
-		"  foo\n"+
-		"  bar\n"+
-		"  line 1: cannot unmarshal !!str `B` into int")
-	c.Assert(v.M["abc"], NotNil)
-	c.Assert(v.M["def"], IsNil)
-	c.Assert(v.M["ghi"], NotNil)
-	c.Assert(v.M["jkl"], IsNil)
+	expectedError := "" +
+		"yaml: unmarshal errors:\n" +
+		"  line 1: cannot unmarshal !!str `A` into int\n" +
+		"  foo\n" +
+		"  bar\n" +
+		"  line 1: cannot unmarshal !!str `B` into int"
+	if err == nil {
+		t.Fatalf("Unmarshal() expected error, got none.")
+	}
+	if err.Error() != expectedError {
+		t.Fatalf("Unmarshal() returned error %q, want %q", err, expectedError)
+	}
+	if v.M["abc"] == nil {
+		t.Fatalf("v.M[\"abc\"] is nil, want non-nil")
+	}
+	if v.M["def"] != nil {
+		t.Fatalf("v.M[\"def\"] is not nil, want nil")
+	}
+	if v.M["ghi"] == nil {
+		t.Fatalf("v.M[\"ghi\"] is nil, want non-nil")
+	}
+	if v.M["jkl"] != nil {
+		t.Fatalf("v.M[\"jkl\"] is not nil, want nil")
+	}
 
-	c.Assert(v.M["abc"].value, Equals, 1)
-	c.Assert(v.M["ghi"].value, Equals, 3)
+	if !reflect.DeepEqual(v.M["abc"].value, 1) {
+		t.Fatalf("v.M[\"abc\"].value is %v, want %v", v.M["abc"].value, 1)
+	}
+	if !reflect.DeepEqual(v.M["ghi"].value, 3) {
+		t.Fatalf("v.M[\"ghi\"].value is %v, want %v", v.M["ghi"].value, 3)
+	}
 }
 
 type proxyTypeError struct{}
@@ -1031,7 +1107,7 @@ func (v *proxyTypeError) UnmarshalYAML(unmarshal func(interface{}) error) error 
 	return unmarshal(&b)
 }
 
-func (s *S) TestUnmarshalerTypeErrorProxying(c *C) {
+func TestUnmarshalerTypeErrorProxying(t *testing.T) {
 	type T struct {
 		Before int
 		After  int
@@ -1040,12 +1116,18 @@ func (s *S) TestUnmarshalerTypeErrorProxying(c *C) {
 	var v T
 	data := `{before: A, m: {abc: a, def: b}, after: B}`
 	err := yaml.Unmarshal([]byte(data), &v)
-	c.Assert(err, ErrorMatches, ""+
-		"yaml: unmarshal errors:\n"+
-		"  line 1: cannot unmarshal !!str `A` into int\n"+
-		"  line 1: cannot unmarshal !!str `a` into int32\n"+
-		"  line 1: cannot unmarshal !!str `b` into int64\n"+
-		"  line 1: cannot unmarshal !!str `B` into int")
+	expectedError := "" +
+		"yaml: unmarshal errors:\n" +
+		"  line 1: cannot unmarshal !!str `A` into int\n" +
+		"  line 1: cannot unmarshal !!str `a` into int32\n" +
+		"  line 1: cannot unmarshal !!str `b` into int64\n" +
+		"  line 1: cannot unmarshal !!str `B` into int"
+	if err == nil {
+		t.Fatalf("Unmarshal() expected error, got none.")
+	}
+	if err.Error() != expectedError {
+		t.Fatalf("Unmarshal() returned error %q, want %q", err, expectedError)
+	}
 }
 
 type failingUnmarshaler struct{}
@@ -1056,9 +1138,11 @@ func (ft *failingUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) error) e
 	return failingErr
 }
 
-func (s *S) TestUnmarshalerError(c *C) {
+func TestUnmarshalerError(t *testing.T) {
 	err := yaml.Unmarshal([]byte("a: b"), &failingUnmarshaler{})
-	c.Assert(err, Equals, failingErr)
+	if err != failingErr {
+		t.Fatalf("Unmarshal() returned %v, want %v", err, failingErr)
+	}
 }
 
 type sliceUnmarshaler []int
@@ -1081,15 +1165,23 @@ func (su *sliceUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) error) err
 	return err
 }
 
-func (s *S) TestUnmarshalerRetry(c *C) {
+func TestUnmarshalerRetry(t *testing.T) {
 	var su sliceUnmarshaler
 	err := yaml.Unmarshal([]byte("[1, 2, 3]"), &su)
-	c.Assert(err, IsNil)
-	c.Assert(su, DeepEquals, sliceUnmarshaler([]int{1, 2, 3}))
+	if err != nil {
+		t.Fatalf("Unmarshal() returned error: %v", err)
+	}
+	if !reflect.DeepEqual(su, sliceUnmarshaler([]int{1, 2, 3})) {
+		t.Fatalf("Unmarshal() returned %v, want %v", su, sliceUnmarshaler([]int{1, 2, 3}))
+	}
 
 	err = yaml.Unmarshal([]byte("1"), &su)
-	c.Assert(err, IsNil)
-	c.Assert(su, DeepEquals, sliceUnmarshaler([]int{1}))
+	if err != nil {
+		t.Fatalf("Unmarshal() returned error: %v", err)
+	}
+	if !reflect.DeepEqual(su, sliceUnmarshaler([]int{1})) {
+		t.Fatalf("Unmarshal() returned %v, want %v", su, sliceUnmarshaler([]int{1}))
+	}
 }
 
 // From http://yaml.org/type/merge.html
@@ -1148,7 +1240,7 @@ inlineSequenceMap:
   label: center/big
 `
 
-func (s *S) TestMerge(c *C) {
+func TestMerge(t *testing.T) {
 	var want = map[interface{}]interface{}{
 		"x":     1,
 		"y":     2,
@@ -1158,16 +1250,20 @@ func (s *S) TestMerge(c *C) {
 
 	var m map[interface{}]interface{}
 	err := yaml.Unmarshal([]byte(mergeTests), &m)
-	c.Assert(err, IsNil)
+	if err != nil {
+		t.Fatalf("Unmarshal() returned error: %v", err)
+	}
 	for name, test := range m {
 		if name == "anchors" {
 			continue
 		}
-		c.Assert(test, DeepEquals, want, Commentf("test %q failed", name))
+		if !reflect.DeepEqual(test, want) {
+			t.Errorf("test %q failed: got %#v, want %#v", name, test, want)
+		}
 	}
 }
 
-func (s *S) TestMergeStruct(c *C) {
+func TestMergeStruct(t *testing.T) {
 	type Data struct {
 		X, Y, R int
 		Label   string
@@ -1176,12 +1272,16 @@ func (s *S) TestMergeStruct(c *C) {
 
 	var m map[string]Data
 	err := yaml.Unmarshal([]byte(mergeTests), &m)
-	c.Assert(err, IsNil)
+	if err != nil {
+		t.Fatalf("Unmarshal() returned error: %v", err)
+	}
 	for name, test := range m {
 		if name == "anchors" {
 			continue
 		}
-		c.Assert(test, Equals, want, Commentf("test %q failed", name))
+		if !reflect.DeepEqual(test, want) {
+			t.Errorf("test %q failed: got %#v, want %#v", name, test, want)
+		}
 	}
 }
 
@@ -1195,25 +1295,36 @@ var unmarshalNullTests = []func() interface{}{
 	func() interface{} { m := map[string]int{"s": 1}; return m },
 }
 
-func (s *S) TestUnmarshalNull(c *C) {
+func TestUnmarshalNull(t *testing.T) {
 	for _, test := range unmarshalNullTests {
 		item := test()
 		zero := reflect.Zero(reflect.TypeOf(item).Elem()).Interface()
 		err := yaml.Unmarshal([]byte("null"), item)
-		c.Assert(err, IsNil)
+		if err != nil {
+			t.Fatalf("Unmarshal() returned error: %v", err)
+		}
 		if reflect.TypeOf(item).Kind() == reflect.Map {
-			c.Assert(reflect.ValueOf(item).Interface(), DeepEquals, reflect.MakeMap(reflect.TypeOf(item)).Interface())
+			if !reflect.DeepEqual(reflect.ValueOf(item).Interface(), reflect.MakeMap(reflect.TypeOf(item)).Interface()) {
+				t.Fatalf("Unmarshal() returned %v, want empty map", reflect.ValueOf(item).Interface())
+			}
 		} else {
-			c.Assert(reflect.ValueOf(item).Elem().Interface(), DeepEquals, zero)
+			if !reflect.DeepEqual(reflect.ValueOf(item).Elem().Interface(), zero) {
+				t.Fatalf("Unmarshal() returned %v, want %v", reflect.ValueOf(item).Elem().Interface(), zero)
+			}
 		}
 	}
 }
 
-func (s *S) TestUnmarshalSliceOnPreset(c *C) {
+func TestUnmarshalSliceOnPreset(t *testing.T) {
 	// Issue #48.
 	v := struct{ A []int }{[]int{1}}
-	yaml.Unmarshal([]byte("a: [2]"), &v)
-	c.Assert(v.A, DeepEquals, []int{2})
+	err := yaml.Unmarshal([]byte("a: [2]"), &v)
+	if err != nil {
+		t.Fatalf("Unmarshal() returned error: %v", err)
+	}
+	if !reflect.DeepEqual(v.A, []int{2}) {
+		t.Fatalf("v.A is %v, want %v", v.A, []int{2})
+	}
 }
 
 var unmarshalStrictTests = []struct {
@@ -1223,11 +1334,11 @@ var unmarshalStrictTests = []struct {
 }{{
 	data:  "a: 1\nc: 2\n",
 	value: struct{ A, B int }{A: 1},
-	error: `yaml: unmarshal errors:\n  line 2: field c not found in type struct { A int; B int }`,
+	error: "yaml: unmarshal errors:\n  line 2: field c not found in type struct { A int; B int }",
 }, {
 	data:  "a: 1\nb: 2\na: 3\n",
 	value: struct{ A, B int }{A: 3, B: 2},
-	error: `yaml: unmarshal errors:\n  line 3: field a already set in type struct { A int; B int }`,
+	error: "yaml: unmarshal errors:\n  line 3: field a already set in type struct { A int; B int }",
 }, {
 	data: "c: 3\na: 1\nb: 2\nc: 4\n",
 	value: struct {
@@ -1242,7 +1353,7 @@ var unmarshalStrictTests = []struct {
 			},
 		},
 	},
-	error: `yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB "yaml:\\",inline\\"" }`,
+	error: "yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB \"yaml:\\\",inline\\\"\" }",
 }, {
 	data: "c: 0\na: 1\nb: 2\nc: 1\n",
 	value: struct {
@@ -1257,7 +1368,7 @@ var unmarshalStrictTests = []struct {
 			},
 		},
 	},
-	error: `yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB "yaml:\\",inline\\"" }`,
+	error: "yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB \"yaml:\\\",inline\\\"\" }",
 }, {
 	data: "c: 1\na: 1\nb: 2\nc: 3\n",
 	value: struct {
@@ -1270,7 +1381,7 @@ var unmarshalStrictTests = []struct {
 			"c": 3,
 		},
 	},
-	error: `yaml: unmarshal errors:\n  line 4: key "c" already set in map`,
+	error: "yaml: unmarshal errors:\n  line 4: key \"c\" already set in map",
 }, {
 	data: "a: 1\n9: 2\nnull: 3\n9: 4",
 	value: map[interface{}]interface{}{
@@ -1278,24 +1389,33 @@ var unmarshalStrictTests = []struct {
 		nil: 3,
 		9:   4,
 	},
-	error: `yaml: unmarshal errors:\n  line 4: key 9 already set in map`,
+	error: "yaml: unmarshal errors:\n  line 4: key 9 already set in map",
 }}
 
-func (s *S) TestUnmarshalStrict(c *C) {
+func TestUnmarshalStrict(t *testing.T) {
 	for i, item := range unmarshalStrictTests {
-		c.Logf("test %d: %q", i, item.data)
+		t.Logf("test %d: %q", i, item.data)
 		// First test that normal Unmarshal unmarshals to the expected value.
-		t := reflect.ValueOf(item.value).Type()
-		value := reflect.New(t)
+		typ := reflect.ValueOf(item.value).Type()
+		value := reflect.New(typ)
 		err := yaml.Unmarshal([]byte(item.data), value.Interface())
-		c.Assert(err, Equals, nil)
-		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		if err != nil {
+			t.Fatalf("Unmarshal() returned error: %v", err)
+		}
+		if !reflect.DeepEqual(value.Elem().Interface(), item.value) {
+			t.Fatalf("Unmarshal() returned %v, want %v", value.Elem().Interface(), item.value)
+		}
 
 		// Then test that UnmarshalStrict fails on the same thing.
-		t = reflect.ValueOf(item.value).Type()
-		value = reflect.New(t)
+		typ = reflect.ValueOf(item.value).Type()
+		value = reflect.New(typ)
 		err = yaml.UnmarshalStrict([]byte(item.data), value.Interface())
-		c.Assert(err, ErrorMatches, item.error)
+		if err == nil {
+			t.Fatalf("UnmarshalStrict() returned no error, want %q", item.error)
+		}
+		if err.Error() != item.error {
+			t.Fatalf("UnmarshalStrict() returned error %q, want %q", err, item.error)
+		}
 	}
 }
 
@@ -1308,7 +1428,7 @@ func (t *textUnmarshaler) UnmarshalText(s []byte) error {
 	return nil
 }
 
-func (s *S) TestFuzzCrashers(c *C) {
+func TestFuzzCrashers(t *testing.T) {
 	cases := []string{
 		// runtime error: index out of range
 		"\"\\0\\\r\n",

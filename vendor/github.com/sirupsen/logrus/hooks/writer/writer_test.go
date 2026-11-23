@@ -2,7 +2,7 @@ package writer
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -16,7 +16,7 @@ func TestDifferentLevelsGoToDifferentWriters(t *testing.T) {
 		DisableTimestamp: true,
 		DisableColors:    true,
 	})
-	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
+	log.SetOutput(io.Discard) // Send all logs to nowhere by default
 
 	log.AddHook(&Hook{
 		Writer: &a,
@@ -33,6 +33,6 @@ func TestDifferentLevelsGoToDifferentWriters(t *testing.T) {
 	log.Warn("send to a")
 	log.Info("send to b")
 
-	assert.Equal(t, a.String(), "level=warning msg=\"send to a\"\n")
-	assert.Equal(t, b.String(), "level=info msg=\"send to b\"\n")
+	assert.Equal(t, "level=warning msg=\"send to a\"\n", a.String())
+	assert.Equal(t, "level=info msg=\"send to b\"\n", b.String())
 }

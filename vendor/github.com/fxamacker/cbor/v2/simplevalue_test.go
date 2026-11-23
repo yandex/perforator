@@ -55,90 +55,90 @@ func TestUnmarshalSimpleValue(t *testing.T) {
 
 func TestUnmarshalSimpleValueOnBadData(t *testing.T) {
 	testCases := []struct {
-		name   string
-		data   []byte
-		errMsg string
+		name         string
+		data         []byte
+		wantErrorMsg string
 	}{
 		// Empty data
 		{
-			name:   "nil data",
-			data:   nil,
-			errMsg: io.EOF.Error(),
+			name:         "nil data",
+			data:         nil,
+			wantErrorMsg: io.EOF.Error(),
 		},
 		{
-			name:   "empty data",
-			data:   []byte{},
-			errMsg: io.EOF.Error(),
+			name:         "empty data",
+			data:         []byte{},
+			wantErrorMsg: io.EOF.Error(),
 		},
 
 		// Wrong CBOR types
 		{
-			name:   "uint type",
-			data:   mustHexDecode("01"),
-			errMsg: "cbor: cannot unmarshal positive integer into Go value of type SimpleValue",
+			name:         "uint type",
+			data:         mustHexDecode("01"),
+			wantErrorMsg: "cbor: cannot unmarshal positive integer into Go value of type SimpleValue",
 		},
 		{
-			name:   "int type",
-			data:   mustHexDecode("20"),
-			errMsg: "cbor: cannot unmarshal negative integer into Go value of type SimpleValue",
+			name:         "int type",
+			data:         mustHexDecode("20"),
+			wantErrorMsg: "cbor: cannot unmarshal negative integer into Go value of type SimpleValue",
 		},
 		{
-			name:   "byte string type",
-			data:   mustHexDecode("40"),
-			errMsg: "cbor: cannot unmarshal byte string into Go value of type SimpleValue",
+			name:         "byte string type",
+			data:         mustHexDecode("40"),
+			wantErrorMsg: "cbor: cannot unmarshal byte string into Go value of type SimpleValue",
 		},
 		{
-			name:   "string type",
-			data:   mustHexDecode("60"),
-			errMsg: "cbor: cannot unmarshal UTF-8 text string into Go value of type SimpleValue",
+			name:         "string type",
+			data:         mustHexDecode("60"),
+			wantErrorMsg: "cbor: cannot unmarshal UTF-8 text string into Go value of type SimpleValue",
 		},
 		{
-			name:   "array type",
-			data:   mustHexDecode("80"),
-			errMsg: "cbor: cannot unmarshal array into Go value of type SimpleValue",
+			name:         "array type",
+			data:         mustHexDecode("80"),
+			wantErrorMsg: "cbor: cannot unmarshal array into Go value of type SimpleValue",
 		},
 		{
-			name:   "map type",
-			data:   mustHexDecode("a0"),
-			errMsg: "cbor: cannot unmarshal map into Go value of type SimpleValue",
+			name:         "map type",
+			data:         mustHexDecode("a0"),
+			wantErrorMsg: "cbor: cannot unmarshal map into Go value of type SimpleValue",
 		},
 		{
-			name:   "tag type",
-			data:   mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
-			errMsg: "cbor: cannot unmarshal tag into Go value of type SimpleValue",
+			name:         "tag type",
+			data:         mustHexDecode("c074323031332d30332d32315432303a30343a30305a"),
+			wantErrorMsg: "cbor: cannot unmarshal tag into Go value of type SimpleValue",
 		},
 		{
-			name:   "float type",
-			data:   mustHexDecode("f90000"),
-			errMsg: "cbor: cannot unmarshal primitives into Go value of type SimpleValue",
+			name:         "float type",
+			data:         mustHexDecode("f90000"),
+			wantErrorMsg: "cbor: cannot unmarshal primitives into Go value of type SimpleValue",
 		},
 
 		// Truncated CBOR data
 		{
-			name:   "truncated head",
-			data:   mustHexDecode("18"),
-			errMsg: io.ErrUnexpectedEOF.Error(),
+			name:         "truncated head",
+			data:         mustHexDecode("18"),
+			wantErrorMsg: io.ErrUnexpectedEOF.Error(),
 		},
 
 		// Truncated CBOR simple value
 		{
-			name:   "truncated simple value",
-			data:   mustHexDecode("f8"),
-			errMsg: io.ErrUnexpectedEOF.Error(),
+			name:         "truncated simple value",
+			data:         mustHexDecode("f8"),
+			wantErrorMsg: io.ErrUnexpectedEOF.Error(),
 		},
 
 		// Invalid simple value
 		{
-			name:   "invalid simple value",
-			data:   mustHexDecode("f800"),
-			errMsg: "cbor: invalid simple value 0 for type primitives",
+			name:         "invalid simple value",
+			data:         mustHexDecode("f800"),
+			wantErrorMsg: "cbor: invalid simple value 0 for type primitives",
 		},
 
 		// Extraneous CBOR data
 		{
-			name:   "extraneous data",
-			data:   mustHexDecode("f4f5"),
-			errMsg: "cbor: 1 bytes of extraneous data starting at index 1",
+			name:         "extraneous data",
+			data:         mustHexDecode("f4f5"),
+			wantErrorMsg: "cbor: 1 bytes of extraneous data starting at index 1",
 		},
 	}
 
@@ -152,8 +152,8 @@ func TestUnmarshalSimpleValueOnBadData(t *testing.T) {
 				if err == nil {
 					t.Errorf("UnmarshalCBOR(%x) didn't return error", tc.data)
 				}
-				if !strings.HasPrefix(err.Error(), tc.errMsg) {
-					t.Errorf("UnmarshalCBOR(%x) returned error %q, want %q", tc.data, err.Error(), tc.errMsg)
+				if !strings.HasPrefix(err.Error(), tc.wantErrorMsg) {
+					t.Errorf("UnmarshalCBOR(%x) returned error %q, want %q", tc.data, err.Error(), tc.wantErrorMsg)
 				}
 			}
 			// Test Unmarshal(data, *SimpleValue), which calls SimpleValue.unmarshalCBOR() under the hood
@@ -164,8 +164,8 @@ func TestUnmarshalSimpleValueOnBadData(t *testing.T) {
 				if err == nil {
 					t.Errorf("Unmarshal(%x) didn't return error", tc.data)
 				}
-				if !strings.HasPrefix(err.Error(), tc.errMsg) {
-					t.Errorf("Unmarshal(%x) returned error %q, want %q", tc.data, err.Error(), tc.errMsg)
+				if !strings.HasPrefix(err.Error(), tc.wantErrorMsg) {
+					t.Errorf("Unmarshal(%x) returned error %q, want %q", tc.data, err.Error(), tc.wantErrorMsg)
 				}
 			}
 		})

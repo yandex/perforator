@@ -9,17 +9,17 @@ import (
 )
 
 func TestValid1(t *testing.T) {
-	for _, mt := range marshalTests {
-		if err := Wellformed(mt.wantData); err != nil {
+	for _, tc := range marshalTestCases {
+		if err := Wellformed(tc.wantData); err != nil {
 			t.Errorf("Wellformed() returned error %v", err)
 		}
 	}
 }
 
 func TestValid2(t *testing.T) {
-	for _, mt := range marshalTests {
+	for _, tc := range marshalTestCases {
 		dm, _ := DecOptions{DupMapKey: DupMapKeyEnforcedAPF}.DecMode()
-		if err := dm.Wellformed(mt.wantData); err != nil {
+		if err := dm.Wellformed(tc.wantData); err != nil {
 			t.Errorf("Wellformed() returned error %v", err)
 		}
 	}
@@ -73,11 +73,11 @@ func TestValidExtraneousData(t *testing.T) {
 
 func TestValidOnStreamingData(t *testing.T) {
 	var buf bytes.Buffer
-	for _, t := range marshalTests {
-		buf.Write(t.wantData)
+	for _, tc := range marshalTestCases {
+		buf.Write(tc.wantData)
 	}
 	d := decoder{data: buf.Bytes(), dm: defaultDecMode}
-	for i := 0; i < len(marshalTests); i++ {
+	for i := 0; i < len(marshalTestCases); i++ {
 		if err := d.wellformed(true, false); err != nil {
 			t.Errorf("wellformed() returned error %v", err)
 		}
@@ -121,7 +121,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 0,
 		}, // []byte{}
 		{
-			name:      "indefinite length byte string",
+			name:      "indefinite-length byte string",
 			data:      mustHexDecode("5f42010243030405ff"),
 			wantDepth: 0,
 		}, // []byte{1, 2, 3, 4, 5}
@@ -131,7 +131,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 0,
 		}, // ""
 		{
-			name:      "indefinite length text string",
+			name:      "indefinite-length text string",
 			data:      mustHexDecode("7f657374726561646d696e67ff"),
 			wantDepth: 0,
 		}, // "streaming"
@@ -141,7 +141,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 1,
 		}, // []
 		{
-			name:      "indefinite length empty array",
+			name:      "indefinite-length empty array",
 			data:      mustHexDecode("9fff"),
 			wantDepth: 1,
 		}, // []
@@ -151,7 +151,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 1,
 		}, // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
 		{
-			name:      "indefinite length array",
+			name:      "indefinite-length array",
 			data:      mustHexDecode("9f0102030405060708090a0b0c0d0e0f101112131415161718181819ff"),
 			wantDepth: 1,
 		}, // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
@@ -161,7 +161,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 2,
 		}, // [1,[2,3],[4,5]]
 		{
-			name:      "indefinite length nested array",
+			name:      "indefinite-length nested array",
 			data:      mustHexDecode("83018202039f0405ff"),
 			wantDepth: 2,
 		}, // [1,[2,3],[4,5]]
@@ -171,7 +171,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 2,
 		}, // [a", {"b": "c"}]
 		{
-			name:      "indefinite length array and map",
+			name:      "indefinite-length array and map",
 			data:      mustHexDecode("826161bf61626163ff"),
 			wantDepth: 2,
 		}, // [a", {"b": "c"}]
@@ -181,7 +181,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 1,
 		}, // {}
 		{
-			name:      "indefinite length empty map",
+			name:      "indefinite-length empty map",
 			data:      mustHexDecode("bfff"),
 			wantDepth: 1,
 		}, // {}
@@ -196,7 +196,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 2,
 		}, // {"a": 1, "b": [2, 3]}
 		{
-			name:      "indefinite length nested map",
+			name:      "indefinite-length nested map",
 			data:      mustHexDecode("bf61610161629f0203ffff"),
 			wantDepth: 2,
 		}, // {"a": 1, "b": [2, 3]}
@@ -231,7 +231,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 32,
 		},
 		{
-			name:      "32-level indefinite length array",
+			name:      "32-level indefinite-length array",
 			data:      mustHexDecode("9f018181818181818181818181818181818181818181818181818181818181818101ff"),
 			wantDepth: 32,
 		},
@@ -241,7 +241,7 @@ func TestDepth(t *testing.T) {
 			wantDepth: 32,
 		},
 		{
-			name:      "32-level indefinite length map",
+			name:      "32-level indefinite-length map",
 			data:      mustHexDecode("bf018181818181818181818181818181818181818181818181818181818181818101ff"),
 			wantDepth: 32,
 		},
@@ -291,7 +291,7 @@ func TestDepthError(t *testing.T) {
 			wantErrorMsg: "cbor: exceeded max nested level 32",
 		},
 		{
-			name:         "33-level indefinite length array",
+			name:         "33-level indefinite-length array",
 			data:         mustHexDecode("9f01818181818181818181818181818181818181818181818181818181818181818101ff"),
 			opts:         DecOptions{},
 			wantErrorMsg: "cbor: exceeded max nested level 32",
@@ -303,7 +303,7 @@ func TestDepthError(t *testing.T) {
 			wantErrorMsg: "cbor: exceeded max nested level 32",
 		},
 		{
-			name:         "33-level indefinite length map",
+			name:         "33-level indefinite-length map",
 			data:         mustHexDecode("bf01818181818181818181818181818181818181818181818181818181818181818101ff"),
 			opts:         DecOptions{},
 			wantErrorMsg: "cbor: exceeded max nested level 32",

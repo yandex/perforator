@@ -192,22 +192,22 @@ var decodeBenchmarks = []struct {
 		decodeToTypes: []reflect.Type{typeIntf, typeFloat64},
 	}, // float64(-4.1)
 	{
-		name:          "bytes",
+		name:          "byte string",
 		data:          mustHexDecode("581a0102030405060708090a0b0c0d0e0f101112131415161718191a"),
 		decodeToTypes: []reflect.Type{typeIntf, typeByteSlice},
 	}, // []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26}
 	{
-		name:          "bytes indef len",
+		name:          "indefinite-length byte string",
 		data:          mustHexDecode("5f410141024103410441054106410741084109410a410b410c410d410e410f4110411141124113411441154116411741184119411aff"),
 		decodeToTypes: []reflect.Type{typeIntf, typeByteSlice},
 	}, // []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26}
 	{
-		name:          "text",
+		name:          "text string",
 		data:          mustHexDecode("782b54686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67"),
 		decodeToTypes: []reflect.Type{typeIntf, typeString},
 	}, // "The quick brown fox jumps over the lazy dog"
 	{
-		name:          "text indef len",
+		name:          "indefinite-length text string",
 		data:          mustHexDecode("7f61546168616561206171617561696163616b612061626172616f6177616e61206166616f61786120616a6175616d617061736120616f61766165617261206174616861656120616c6161617a617961206164616f6167ff"),
 		decodeToTypes: []reflect.Type{typeIntf, typeString},
 	}, // "The quick brown fox jumps over the lazy dog"
@@ -217,7 +217,7 @@ var decodeBenchmarks = []struct {
 		decodeToTypes: []reflect.Type{typeIntf, typeIntSlice},
 	}, // []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26}
 	{
-		name:          "array indef len",
+		name:          "indefinite-length array",
 		data:          mustHexDecode("9f0102030405060708090a0b0c0d0e0f101112131415161718181819181aff"),
 		decodeToTypes: []reflect.Type{typeIntf, typeIntSlice},
 	}, // []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26}
@@ -227,7 +227,7 @@ var decodeBenchmarks = []struct {
 		decodeToTypes: []reflect.Type{typeIntf, typeMapStringIntf, typeMapStringString},
 	}, // map[string]string{"a": "A", "b": "B", "c": "C", "d": "D", "e": "E", "f": "F", "g": "G", "h": "H", "i": "I", "j": "J", "l": "L", "m": "M", "n": "N"}}
 	{
-		name:          "map indef len",
+		name:          "indefinite-length map",
 		data:          mustHexDecode("bf616161416162614261636143616461446165614561666146616761476168614861696149616a614a616b614b616c614c616d614d616e614eff"),
 		decodeToTypes: []reflect.Type{typeIntf, typeMapStringIntf, typeMapStringString},
 	}, // map[string]string{"a": "A", "b": "B", "c": "C", "d": "D", "e": "E", "f": "F", "g": "G", "h": "H", "i": "I", "j": "J", "l": "L", "m": "M", "n": "N"}}
@@ -986,13 +986,13 @@ func BenchmarkUnmarshalMapToStruct(b *testing.B) {
 			b.Fatalf("invalid test assumption: ManyFields expected to have no more than 255 fields, has %d", rt.NumField())
 		}
 		buf.WriteByte(0xb8)
-		buf.WriteByte(byte(rt.NumField()))
+		buf.WriteByte(byte(rt.NumField()))        //nolint:gosec
 		for i := rt.NumField() - 1; i >= 0; i-- { // backwards
 			f := rt.Field(i)
 			if len(f.Name) > 23 {
 				b.Fatalf("invalid test assumption: field name %q longer than 23 bytes", f.Name)
 			}
-			buf.WriteByte(byte(0x60 + len(f.Name)))
+			buf.WriteByte(byte(0x60 + len(f.Name))) //nolint:gosec
 			buf.WriteString(f.Name)
 			buf.WriteByte(0xf5) // true
 		}

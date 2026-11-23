@@ -29,6 +29,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/kube-openapi/pkg/util"
 )
 
 // Scheme defines methods for serializing and deserializing API objects, a type
@@ -369,7 +370,7 @@ func (s *Scheme) AddValidationFunc(srcType Object, fn func(ctx context.Context, 
 // Validate validates the provided Object according to the generated declarative validation code.
 // WARNING: This does not validate all objects!  The handwritten validation code in validation.go
 // is not run when this is called.  Only the generated zz_generated.validations.go validation code is run.
-func (s *Scheme) Validate(ctx context.Context, options []string, object Object, subresources ...string) field.ErrorList {
+func (s *Scheme) Validate(ctx context.Context, options map[string]bool, object Object, subresources ...string) field.ErrorList {
 	if fn, ok := s.validationFuncs[reflect.TypeOf(object)]; ok {
 		return fn(ctx, operation.Operation{Type: operation.Create, Request: operation.Request{Subresources: subresources}, Options: options}, object, nil)
 	}
@@ -379,11 +380,19 @@ func (s *Scheme) Validate(ctx context.Context, options []string, object Object, 
 // ValidateUpdate validates the provided object and oldObject according to the generated declarative validation code.
 // WARNING: This does not validate all objects!  The handwritten validation code in validation.go
 // is not run when this is called.  Only the generated zz_generated.validations.go validation code is run.
-func (s *Scheme) ValidateUpdate(ctx context.Context, options []string, object, oldObject Object, subresources ...string) field.ErrorList {
+func (s *Scheme) ValidateUpdate(ctx context.Context, options map[string]bool, object, oldObject Object, subresources ...string) field.ErrorList {
 	if fn, ok := s.validationFuncs[reflect.TypeOf(object)]; ok {
 		return fn(ctx, operation.Operation{Type: operation.Update, Request: operation.Request{Subresources: subresources}, Options: options}, object, oldObject)
 	}
 	return nil
+}
+
+// HasValidationFunc reports whether a validation function is registered for the
+// object's type. Unlike Validate, it distinguishes "no function registered" from
+// "function ran and found no errors", which both yield a nil error list.
+func (s *Scheme) HasValidationFunc(obj Object) bool {
+	_, ok := s.validationFuncs[reflect.TypeOf(obj)]
+	return ok
 }
 
 // Convert will attempt to convert in into out. Both must be pointers. For easy
@@ -752,6 +761,9 @@ var internalPackages = []string{"k8s.io/apimachinery/pkg/runtime/scheme.go"}
 // The OpenAPI definition name is the canonical name of the type, with the group and version removed.
 // For example, the OpenAPI definition name of Pod is `io.k8s.api.core.v1.Pod`.
 //
+// This respects the util.OpenAPIModelNamer interface and will return the name returned by
+// OpenAPIModelName() if it is defined on the type.
+//
 // A known type that is registered as an unstructured.Unstructured type is treated as a custom resource and
 // which has an OpenAPI definition name of the form `<reversed-group>.<version.<kind>`.
 // For example, the OpenAPI definition name of `group: stable.example.com, version: v1, kind: Pod` is
@@ -764,6 +776,12 @@ func (s *Scheme) ToOpenAPIDefinitionName(groupVersionKind schema.GroupVersionKin
 	if err != nil {
 		return "", err
 	}
+
+	// Use a namer if provided
+	if namer, ok := example.(util.OpenAPIModelNamer); ok {
+		return namer.OpenAPIModelName(), nil
+	}
+
 	if _, ok := example.(Unstructured); ok {
 		if groupVersionKind.Group == "" || groupVersionKind.Kind == "" {
 			return "", fmt.Errorf("unable to convert GroupVersionKind with empty fields to unstructured type to an OpenAPI definition name: %v", groupVersionKind)

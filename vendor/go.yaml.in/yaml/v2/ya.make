@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v2.4.3)
+VERSION(v2.4.4)
 
 SRCS(
     apic.go
@@ -25,7 +25,6 @@ GO_XTEST_SRCS(
     encode_test.go
     example_embedded_test.go
     limit_test.go
-    suite_test.go
 )
 
 END()

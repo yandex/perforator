@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v1.9.3)
+VERSION(v1.9.4)
 
 SRCS(
     alt_exit.go
@@ -77,6 +77,7 @@ ENDIF()
 IF (OS_EMSCRIPTEN)
     SRCS(
         terminal_check_notappengine.go
+        terminal_check_wasip1.go
     )
 
     GO_XTEST_SRCS(example_hook_test.go)

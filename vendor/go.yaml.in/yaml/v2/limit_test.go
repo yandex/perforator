@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	. "gopkg.in/check.v1"
 	"go.yaml.in/yaml/v2"
 )
 
@@ -42,7 +41,7 @@ var limitTests = []struct {
 	{name: "1000kb of 10000-nested lines", data: []byte(strings.Repeat(`- `+strings.Repeat(`[`, 10000)+strings.Repeat(`]`, 10000)+"\n", 1000*1024/20000))},
 }
 
-func (s *S) TestLimits(c *C) {
+func TestLimits(t *testing.T) {
 	if testing.Short() {
 		return
 	}
@@ -50,9 +49,13 @@ func (s *S) TestLimits(c *C) {
 		var v interface{}
 		err := yaml.Unmarshal(tc.data, &v)
 		if len(tc.error) > 0 {
-			c.Assert(err, ErrorMatches, tc.error, Commentf("testcase: %s", tc.name))
+			if err == nil || !strings.Contains(err.Error(), tc.error) {
+				t.Fatalf("testcase: %s. Expected error containing %q, got %v", tc.name, tc.error, err)
+			}
 		} else {
-			c.Assert(err, IsNil, Commentf("testcase: %s", tc.name))
+			if err != nil {
+				t.Fatalf("testcase: %s. Unmarshal() got error %v", tc.name, err)
+			}
 		}
 	}
 }
