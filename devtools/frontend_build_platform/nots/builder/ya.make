@@ -1,3 +1,5 @@
+# CKG nodejs-deps starts at this module's builder output (type Bundle).
+# Coordinate path or node type changes with the CKG team.
 NOTS_BUNDLE_RUNNER()
     IF (TS_USE_PREBUILT_NOTS_TOOL)
         DECLARE_EXTERNAL_HOST_RESOURCES_BUNDLE_BY_JSON(NOTS_BUNDLE ${ARCADIA_ROOT}/build/external_resources/nots/nots.sbr.json)
