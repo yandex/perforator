@@ -49,3 +49,5 @@ ENDIF()
 END()
 
 RECURSE(go)
+
+RECURSE_FOR_TESTS(ut)

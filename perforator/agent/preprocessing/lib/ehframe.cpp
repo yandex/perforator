@@ -52,6 +52,53 @@ static constexpr uint32_t kFrameRegister = 29; // frame register
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Matches CFA = *(reg + offset) + bias, where reg is the stack or the frame register.
+static bool MatchRegisterDerefOffset(const llvm::DWARFExpression& expr, UnwindRule* rule) {
+    for (int regno : {6, 7}) {
+        auto atom = static_cast<llvm::dwarf::LocationAtom>(llvm::dwarf::DW_OP_breg0 + regno);
+
+        ui64 offset = 0;
+        ui64 bias = 0;
+        bool matches = TDwarfExpressionPattern{}
+            .Push(atom, Wildcard(&offset))
+            .Push(llvm::dwarf::DW_OP_deref)
+            .Push(llvm::dwarf::DW_OP_plus_uconst, Wildcard(&bias))
+            .Matches(expr);
+
+        if (!matches) {
+            bias = 0;
+            matches = TDwarfExpressionPattern{}
+                .Push(atom, Wildcard(&offset))
+                .Push(llvm::dwarf::DW_OP_deref)
+                .Matches(expr);
+        }
+
+        if (matches) {
+            auto* deref = rule->mutable_register_deref_offset();
+            deref->set_register_(regno);
+            deref->set_offset(static_cast<i64>(offset));
+            deref->set_bias(bias);
+            return true;
+        }
+    }
+    return false;
+}
+
+// Matches reg + offset, where reg is the stack or the frame register.
+static bool MatchRegisterOffset(const llvm::DWARFExpression& expr, UnwindRule* rule) {
+    for (int regno : {6, 7}) {
+        auto atom = static_cast<llvm::dwarf::LocationAtom>(llvm::dwarf::DW_OP_breg0 + regno);
+
+        ui64 offset = 0;
+        if (TDwarfExpressionPattern{}.Push(atom, Wildcard(&offset)).Matches(expr)) {
+            rule->mutable_register_offset()->set_register_(regno);
+            rule->mutable_register_offset()->set_offset(static_cast<i64>(offset));
+            return true;
+        }
+    }
+    return false;
+}
+
 void FillRegisterLocation(UnwindRule* rule, const llvm::dwarf::UnwindLocation& loc) {
     rule->set_dereference(IsDerefLocation(loc));
 
@@ -99,31 +146,21 @@ void FillRegisterLocation(UnwindRule* rule, const llvm::dwarf::UnwindLocation& l
             }
         }
 
-        {
-            // 2. Static hand-written CFA rule from openssl:
-            // DW_OP_breg[67] R[BS]P+544, DW_OP_deref, DW_OP_plus_uconst 0x8
+        // 2. CFA saved on the stack:
+        // DW_OP_breg[67] R[BS]P+544, DW_OP_deref, DW_OP_plus_uconst 0x8 (hand-written, openssl)
+        // DW_OP_breg6 RBP-8, DW_OP_deref (gcc stack realignment through DRAP)
+        if (MatchRegisterDerefOffset(*expr, rule)) {
+            break;
+        }
 
-            for (int regno : {6, 7}) {
-                ui64 offset = 0;
-                ui64 bias = 0;
-                auto atom = static_cast<llvm::dwarf::LocationAtom>(llvm::dwarf::DW_OP_breg0 + regno);
-                bool matches = NPerforator::NBinaryProcessing::NUnwind::TDwarfExpressionPattern{}
-                    .Push(atom, NPerforator::NBinaryProcessing::NUnwind::Wildcard(&offset))
-                    .Push(llvm::dwarf::DW_OP_deref)
-                    .Push(llvm::dwarf::DW_OP_plus_uconst, NPerforator::NBinaryProcessing::NUnwind::Wildcard(&bias))
-                    .Matches(*expr);
-
-                if (matches) {
-                    rule->mutable_register_deref_offset()->set_register_(regno);
-                    rule->mutable_register_deref_offset()->set_offset(static_cast<i64>(offset));
-                    rule->mutable_register_deref_offset()->set_bias(bias);
-                    break;
-                }
-            }
+        // 3. Register saved at an address held in a register (DW_CFA_expression, so dereference is set):
+        // DW_OP_breg6 RBP+0 for rbp (gcc stack realignment through DRAP: push %rbp; mov %rsp, %rbp)
+        if (MatchRegisterOffset(*expr, rule)) {
+            break;
         }
 
         {
-            // 3. Static hand-written CFA rule from openssl:
+            // 4. Static hand-written CFA rule from openssl:
             // DW_OP_breg7 RSP+8, DW_OP_breg9 R9+0, DW_OP_lit8, DW_OP_mul, DW_OP_plus, DW_OP_deref, DW_OP_plus_uconst 0x8
 
             bool matches = NPerforator::NBinaryProcessing::NUnwind::TDwarfExpressionPattern{}
