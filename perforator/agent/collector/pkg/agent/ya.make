@@ -10,5 +10,4 @@ END()
 
 RECURSE(
     custom_profiling_operation
-    deploysystem
 )

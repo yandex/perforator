@@ -9,7 +9,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	deploysystemmodel "github.com/yandex/perforator/perforator/agent/collector/pkg/deploy_system/model"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -32,52 +31,36 @@ func (c *kubeContainer) CgroupBaseName() string {
 }
 
 type Pod struct {
-	name        string                        // kubernetes name of the pod
-	topology    string                        // pod topology
-	containers  []deploysystemmodel.Container // containers that are in this pod
-	cgroupName  string                        // cgroup name like kubepods/burstable/podf8448eeb-fdf5-4fb4-9791-33ed68005ee9
-	labels      map[string]string             // contains namespace label and labels defined in pod's Kubernetes manifests
+	uid         string
+	name        string           // kubernetes name of the pod
+	topology    string           // pod topology
+	containers  []*kubeContainer // containers that are in this pod
+	cgroupName  string           // cgroup name like kubepods/burstable/podf8448eeb-fdf5-4fb4-9791-33ed68005ee9
+	namespace   string
+	labels      map[string]string
 	serviceName string
 }
 
-// Implements deploysystemmodel.Pod
+func (p *Pod) UID() string { return p.uid }
+
 func (p *Pod) ID() string {
 	return p.name
 }
 
-// Implements deploysystemmodel.Pod
 func (p *Pod) Topology() string {
 	return p.topology
 }
 
-// Implements deploysystemmodel.Pod
-func (p *Pod) Labels() map[string]string {
-	if p.labels != nil {
-		return p.labels
-	}
-
-	return map[string]string{}
-}
-
-// Implements deploysystemmodel.Pod
 func (p *Pod) CgroupName() string {
 	return p.cgroupName
 }
 
-// Implements deploysystemmodel.Pod
-func (p *Pod) Containers() []deploysystemmodel.Container {
+func (p *Pod) Containers() []*kubeContainer {
 	return p.containers
 }
 
-// Implements deploysystemmodel.Pod
 func (p *Pod) ServiceName() string {
 	return p.serviceName
-}
-
-// Implements deploysystemmodel.Pod
-func (p *Pod) IsPerforatorEnabled() (*bool, string) {
-	// TODO:
-	return nil, ""
 }
 
 type PodsLister struct {
@@ -89,7 +72,8 @@ type PodsLister struct {
 	kubeletSettings          kubeletCgroupSettings
 
 	// In most cases equals to the value of topology.kubernetes.io/zone lable. See https://kubernetes.io/docs/reference/labels-annotations-taints/#topologykubernetesiozone
-	topology string
+	topology         string
+	topologyLabelKey string
 
 	// Kubernetes api server host. See https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/#directly-accessing-the-rest-api
 	apiServerHost string
@@ -102,21 +86,20 @@ func (p *PodsLister) GetHost() string {
 	return p.nodeName
 }
 
-// Implements deploysystemmodel.PodsLister
-func (p *PodsLister) List(ctx context.Context) ([]deploysystemmodel.Pod, error) {
-	pods, err := p.getPods()
+func (p *PodsLister) List(ctx context.Context) ([]*Pod, error) {
+	pods, err := p.getPods(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	res := make([]deploysystemmodel.Pod, 0, len(pods))
+	res := make([]*Pod, 0, len(pods))
 	for _, pod := range pods {
 		// Only running pods have cgroups.
 		if pod.Status.Phase != v1.PodRunning {
 			continue
 		}
 
-		containers := make([]deploysystemmodel.Container, 0, len(pod.Spec.Containers))
+		containers := make([]*kubeContainer, 0, len(pod.Spec.Containers))
 		for _, container := range pod.Status.ContainerStatuses {
 			// containerd://4b11478133fedf541bc8234b41a03b026161d31415e36c6e8775a90bca10f31d
 			parts := strings.SplitN(container.ContainerID, "//", 2)
@@ -147,18 +130,14 @@ func (p *PodsLister) List(ctx context.Context) ([]deploysystemmodel.Pod, error) 
 			return nil, err
 		}
 
-		labels := make(map[string]string)
-		for k, v := range pod.ObjectMeta.Labels {
-			labels[SanitizeLabelName(k)] = v
-		}
-		labels["namespace"] = pod.ObjectMeta.Namespace
-
 		res = append(res, &Pod{
+			uid:         string(pod.UID),
 			name:        pod.Name,
 			topology:    p.topology,
 			containers:  containers,
 			cgroupName:  cgroup,
-			labels:      labels,
+			namespace:   pod.Namespace,
+			labels:      pod.Labels,
 			serviceName: service,
 		})
 	}
@@ -194,7 +173,7 @@ func NewPodsLister(logger xlog.Logger, topologyLableKey string, kubeletSettingsO
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
-	client := &http.Client{Transport: tr}
+	client := &http.Client{Transport: tr, Timeout: getPodsRequestTimeout}
 
 	podLister := &PodsLister{
 		logger:                   logger,
@@ -206,16 +185,18 @@ func NewPodsLister(logger xlog.Logger, topologyLableKey string, kubeletSettingsO
 		cgroupPrefix:             cgroupPrefix,
 	}
 
-	topology, err := podLister.getTopology(topologyLableKey)
-	if err != nil {
-		return nil, err
-	}
-	podLister.topology = topology
+	podLister.topologyLabelKey = topologyLableKey
 
 	return podLister, nil
 }
 
 func (p *PodsLister) Init(ctx context.Context) error {
+	topology, err := p.getTopology(ctx, p.topologyLabelKey)
+	if err != nil {
+		return err
+	}
+	p.topology = topology
+
 	var resolveNeeded bool
 	if p.kubeletSettingsOverrides.CgroupDriver == "" {
 		resolveNeeded = true
@@ -264,7 +245,7 @@ func (p *PodsLister) Init(ctx context.Context) error {
 
 	p.kubeletSettings = resolved
 	if p.kubeletSettings.containerPrefix == "" && p.kubeletSettings.systemd {
-		err := p.resolveKubeletContainerPrefix()
+		err := p.resolveKubeletContainerPrefix(ctx)
 		if err != nil {
 			return fmt.Errorf("couldn't resolve container prefix %w", err)
 		}

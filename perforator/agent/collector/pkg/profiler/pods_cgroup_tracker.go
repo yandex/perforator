@@ -10,8 +10,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/buildinfo"
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/deploy_system/kubelet"
-	deploysystemmodel "github.com/yandex/perforator/perforator/agent/collector/pkg/deploy_system/model"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/deploysystem/kubelet"
 	"github.com/yandex/perforator/perforator/pkg/linux/cpuinfo"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -40,7 +39,7 @@ type PodsCgroupTracker struct {
 	l    log.Logger
 	conf *config.PodsDeploySystemConfig
 
-	podsLister   deploysystemmodel.PodsLister
+	podsLister   *kubelet.PodsLister
 	cpuModelName string
 	hostname     string
 
@@ -53,18 +52,13 @@ type PodsCgroupTracker struct {
 }
 
 func (t *PodsCgroupTracker) buildCgroupConfig(
-	pod deploysystemmodel.Pod,
+	pod *kubelet.Pod,
 ) *CgroupConfig {
 	labels := t.makeCommonProfileLabels()
 
-	for k, v := range pod.Labels() {
+	for k, v := range pod.ProfileLabels() {
 		labels[k] = v
 	}
-
-	labels["pod"] = pod.ID()
-	labels["cluster"] = pod.Topology()
-	labels["service"] = pod.ServiceName()
-	labels["cgroup"] = pod.CgroupName()
 
 	// User can explicitly override any gathered label
 	for key, val := range t.conf.Labels {
@@ -113,11 +107,7 @@ func (t *PodsCgroupTracker) isPodsetWhiteListed(podName string) bool {
 	return false
 }
 
-func (t *PodsCgroupTracker) isPodFiltered(pod deploysystemmodel.Pod) (bool, string) {
-	if flag, message := pod.IsPerforatorEnabled(); flag != nil {
-		return *flag, message
-	}
-
+func (t *PodsCgroupTracker) isPodFiltered(pod *kubelet.Pod) (bool, string) {
 	if blisted, reason := t.isPodsetBlackListed(pod.ID()); blisted {
 		return true, fmt.Sprintf("podset %s is blacklisted: %s", pod.ID(), reason)
 	}
@@ -133,7 +123,7 @@ func (t *PodsCgroupTracker) isPodFiltered(pod deploysystemmodel.Pod) (bool, stri
 	return false, ""
 }
 
-func (t *PodsCgroupTracker) rebuildWorkloadInfo(pods []deploysystemmodel.Pod) {
+func (t *PodsCgroupTracker) rebuildWorkloadInfo(pods []*kubelet.Pod) {
 	workloads := make(map[string]*containerInfo)
 	t.l.Info("Building workload mapping", log.Int("count", len(pods)))
 	for _, pod := range pods {
@@ -226,7 +216,7 @@ func (t *PodsCgroupTracker) ResolveWorkload(cgroups []string) ([]string, bool) {
 func newPodsCgroupTracker(c *config.PodsDeploySystemConfig, l log.Logger, cgroupPrefix string) (*PodsCgroupTracker, error) {
 	l = l.WithName("pod_tracker")
 
-	var podsLister deploysystemmodel.PodsLister
+	var podsLister *kubelet.PodsLister
 	var err error
 
 	switch c.DeploySystem {

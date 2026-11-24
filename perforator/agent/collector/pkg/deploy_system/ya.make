@@ -1,4 +1,0 @@
-RECURSE(
-    kubelet
-    model
-)

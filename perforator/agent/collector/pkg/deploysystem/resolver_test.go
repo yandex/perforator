@@ -24,11 +24,13 @@ func TestSnapshotIdentityAndOwnership(t *testing.T) {
 	_, err := c.ResolvePod("a")
 	require.ErrorIs(t, err, errNotReady)
 	snapshot := testSnapshot()
+	snapshot.Pods[0].Metadata = map[string]string{"key": "original"}
 	require.NoError(t, c.Publish(snapshot))
 	for _, alias := range []string{"same", "", "unknown"} {
 		_, err = c.ResolvePod(alias)
 		require.ErrorIs(t, err, errNotFound)
 	}
+	snapshot.Pods[0].Metadata["key"] = "mutated"
 	snapshot.Pods[0].ServiceName = "mutated"
 	snapshot.Pods[0].Containers[0].Name = "mutated"
 	snapshot.Pods[0] = Pod{}
@@ -36,11 +38,14 @@ func TestSnapshotIdentityAndOwnership(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, RelativeCgroupPath("pods/a"), a.CgroupPath)
 	require.Equal(t, "same", a.ServiceName)
+	require.Equal(t, "original", a.Metadata["key"])
+	a.Metadata["key"] = "reader-private"
 	a.ServiceName = "reader-private"
 	a.Containers[0].Name = "reader-private"
 	a, err = c.ResolvePod("a")
 	require.NoError(t, err)
 	require.Equal(t, "same", a.ServiceName)
+	require.Equal(t, "original", a.Metadata["key"])
 	require.Equal(t, "app", a.Containers[0].Name)
 	b, err := c.ResolvePod("b")
 	require.NoError(t, err)

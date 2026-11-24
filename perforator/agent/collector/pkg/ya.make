@@ -4,7 +4,7 @@ RECURSE(
     cgroups
     config
     copy
-    deploy_system
+    deploysystem
     dso
     machine
     nativepipeline

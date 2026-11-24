@@ -3,6 +3,7 @@ package deploysystem
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"path"
 	"slices"
 	"strings"
@@ -50,6 +51,7 @@ func NewResolver(m metrics.Registry) *Resolver {
 }
 
 func clonePod(pod Pod) Pod {
+	pod.Metadata = maps.Clone(pod.Metadata)
 	pod.Containers = slices.Clone(pod.Containers)
 	return pod
 }

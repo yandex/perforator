@@ -86,8 +86,24 @@ func getNodeURL() (string, error) {
 	return url, nil
 }
 
-func (p *PodsLister) getPods() ([]kube.Pod, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), getPodsRequestTimeout)
+func checkResponseStatus(path string, resp *http.Response) error {
+	if resp.StatusCode == http.StatusOK {
+		return nil
+	}
+
+	const maxErrorBodyBytes = 4 << 10
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodyBytes))
+	if err != nil {
+		return fmt.Errorf("GET %s: HTTP %d: reading error response: %w", path, resp.StatusCode, err)
+	}
+	if detail := strings.TrimSpace(string(body)); detail != "" {
+		return fmt.Errorf("GET %s: HTTP %d: %s", path, resp.StatusCode, detail)
+	}
+	return fmt.Errorf("GET %s: HTTP %d", path, resp.StatusCode)
+}
+
+func (p *PodsLister) getPods(ctx context.Context) ([]kube.Pod, error) {
+	ctx, cancel := context.WithTimeout(ctx, getPodsRequestTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.nodeURL, nil)
@@ -100,6 +116,9 @@ func (p *PodsLister) getPods() ([]kube.Pod, error) {
 		return nil, fmt.Errorf("couldn't fetch pods on %s, got error: %w", p.nodeURL, err)
 	}
 	defer resp.Body.Close()
+	if err := checkResponseStatus(req.URL.Path, resp); err != nil {
+		return nil, err
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -154,9 +173,9 @@ type kubeletCgroupSettings struct {
 	containerPrefix string
 }
 
-func (p *PodsLister) resolveKubeletContainerPrefix() error {
+func (p *PodsLister) resolveKubeletContainerPrefix(ctx context.Context) error {
 	// Try to derive from the container's cgroup
-	pods, err := p.getPods()
+	pods, err := p.getPods(ctx)
 	if err != nil {
 		return err
 	}
@@ -240,6 +259,9 @@ func resolveKubeletCgroupSettings(ctx context.Context, client *http.Client) (kub
 		return s, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
+	if err := checkResponseStatus(req.URL.Path, resp); err != nil {
+		return s, err
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -271,8 +293,8 @@ func resolveKubeletCgroupSettings(ctx context.Context, client *http.Client) (kub
 	return s, nil
 }
 
-func (p *PodsLister) getTopology(topologyLableKey string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), getPodsRequestTimeout)
+func (p *PodsLister) getTopology(ctx context.Context, topologyLableKey string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, getPodsRequestTimeout)
 	defer cancel()
 
 	url := fmt.Sprintf("https://%s/api/v1/nodes/%s", p.apiServerHost, p.nodeName)
@@ -287,6 +309,9 @@ func (p *PodsLister) getTopology(topologyLableKey string) (string, error) {
 		return "", fmt.Errorf("couldn't fetch node info on %s, got error: %w", url, err)
 	}
 	defer resp.Body.Close()
+	if err := checkResponseStatus(req.URL.Path, resp); err != nil {
+		return "", err
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

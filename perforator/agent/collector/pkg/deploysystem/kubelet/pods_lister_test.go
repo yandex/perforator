@@ -1,6 +1,7 @@
 package kubelet
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -49,7 +50,7 @@ func TestGetPods(t *testing.T) {
 		cgroupPrefix: "/tmp/fake-cgroups",
 	}
 
-	pods, err := podLister.getPods()
+	pods, err := podLister.getPods(context.Background())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -101,7 +102,7 @@ func TestResolveKubeletContainerPrefix(t *testing.T) {
 		cgroupPrefix: filepath.Join(tmpDir, "kubepods"),
 	}
 
-	err = podLister.resolveKubeletContainerPrefix()
+	err = podLister.resolveKubeletContainerPrefix(context.Background())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

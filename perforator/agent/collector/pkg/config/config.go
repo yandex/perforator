@@ -7,6 +7,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/deploysystem/kubelet"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
@@ -92,16 +93,7 @@ type PodProfileOptions struct {
 	Default bool `yaml:"default,omitempty"`
 }
 
-type KubernetesConfig struct {
-	TopologyLableKey             string   `yaml:"topology_lable_key,omitempty"`
-	KubeletCgroupRoot            []string `yaml:"kubelet_cgroup_root,omitempty"`
-	KubeletCgroupDriver          string   `yaml:"kubelet_cgroup_driver,omitempty"`
-	KubeletCgroupQOSMode         string   `yaml:"kubelet_cgroup_qos_mode,omitempty"`
-	KubeletCgroupContainerPrefix string   `yaml:"kubelet_cgroup_container_prefix,omitempty"`
-
-	// See https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/#directly-accessing-the-rest-api
-	KubernetesAPIServerHost string `yaml:"kubernetes_api_server_host,omitempty"`
-}
+type KubernetesConfig = kubelet.Config
 
 type PodsDeploySystemConfig struct {
 	DeploySystem        string            `yaml:"deploy_system,omitempty"`

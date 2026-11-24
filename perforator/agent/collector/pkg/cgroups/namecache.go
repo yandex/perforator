@@ -103,6 +103,15 @@ func findCgroups(hints *CgroupHints) (*cgroupFS, error) {
 	return nil, fmt.Errorf("failed to find cgroups fs: all candidates failed: %w", errors.Join(errs...))
 }
 
+// FindMountPoint resolves the local cgroup hierarchy using the same hints as Tracker.
+func FindMountPoint(hints *CgroupHints) (string, error) {
+	fs, err := findCgroups(hints)
+	if err != nil {
+		return "", err
+	}
+	return fs.prefix, nil
+}
+
 type nameCache interface {
 	addCgroup(name string) (uint64, error)
 	cgroupFullName(id uint64) string
