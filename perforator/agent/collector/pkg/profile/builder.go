@@ -141,7 +141,10 @@ func (b *Builder) finishBase() *Profile {
 			Unit: st.Unit,
 		})
 	}
-	b.profile = &Profile{Profile: &profile.Profile{SampleType: sampleTypeCopy}}
+	b.profile = &Profile{Profile: &profile.Profile{
+		SampleType:        sampleTypeCopy,
+		DefaultSampleType: finishedProfile.DefaultSampleType,
+	}}
 
 	if b.ownsCaches {
 		b.caches.Clear()
