@@ -56,6 +56,9 @@
             "autoInstallPeers": {
               "type": "boolean"
             },
+            "blockExoticSubdeps": {
+              "type": "boolean"
+            },
             "dedupePeerDependents": {
               "type": "boolean"
             },

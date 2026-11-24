@@ -44,6 +44,7 @@ pnpm:
     defaults:
         allowUnusedPatches: true
         autoInstallPeers: true
+        blockExoticSubdeps: true
         dedupePeerDependents: true
         fetchRetries: 2
         fetchRetryFactor: 2
@@ -175,6 +176,10 @@ pnpm:
             autoInstallPeers: |-
                 Автоматически устанавливать недостающие обязательные peer-зависимости.
                 https://pnpm.io/11.x/settings/peer-dependencies#autoinstallpeers
+
+            blockExoticSubdeps: |-
+                Запрещать транзитивные зависимости из Git и других нестандартных источников, включая прямые URL архивов.
+                https://pnpm.io/11.x/settings/dependency-resolution#blockexoticsubdeps
 
             dedupePeerDependents: |-
                 Объединять совместимые экземпляры пакетов после разрешения peer-зависимостей.
