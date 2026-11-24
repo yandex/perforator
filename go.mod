@@ -936,7 +936,7 @@ require (
 	github.com/trim21/go-phpserialize v0.1.4
 	github.com/trinodb/trino-go-client v0.313.0
 	github.com/tus/tusd v1.4.0
-	github.com/twmb/franz-go v1.17.0
+	github.com/twmb/franz-go v1.17.1
 	github.com/twmb/franz-go/pkg/kadm v1.12.0
 	github.com/twmb/franz-go/pkg/kmsg v1.8.0
 	github.com/twmb/murmur3 v1.2.0

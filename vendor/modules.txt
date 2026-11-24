@@ -17985,8 +17985,9 @@ github.com/twitchyliquid64/golang-asm/objabi
 github.com/twitchyliquid64/golang-asm/src
 github.com/twitchyliquid64/golang-asm/sys
 github.com/twitchyliquid64/golang-asm/unsafeheader
-# github.com/twmb/franz-go v1.17.0
+# github.com/twmb/franz-go v1.17.1
 ## explicit; go 1.21
+github.com/twmb/franz-go
 github.com/twmb/franz-go/examples/requesting
 github.com/twmb/franz-go/generate
 github.com/twmb/franz-go/pkg/kbin
