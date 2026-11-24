@@ -27,6 +27,7 @@ pnpm:
         overrides: dependency-map
         packageExtensions: package-extensions
         patchedDependencies: patch-map
+        pnpmfile: string-list
         peerDependencyRules: peer-rules
         peersSuffixMaxLength: non-negative-integer
         supportedArchitectures: supported-architectures
@@ -48,7 +49,8 @@ pnpm:
         fetchRetryFactor: 2
         fetchRetryMintimeout: 30000
         fetchRetryMaxtimeout: 120000
-        ignorePnpmfile: true
+        ignorePnpmfile: false
+        pnpmfile: []
         ignoreScripts: true
         injectWorkspacePackages: true
         sharedWorkspaceLockfile: false
@@ -196,8 +198,16 @@ pnpm:
                 Максимальная пауза перед повторным запросом, в миллисекундах.
                 https://pnpm.io/11.x/settings/network#fetchretrymaxtimeout
 
+            pnpmfile: |-
+                Упорядоченный массив путей к пользовательским CJS/ESM pnpmfile относительно nots.yaml или общего конфига.
+                Выполняются после платформенного globalPnpmfile.
+                https://pnpm.io/pnpmfile#pnpmfile
+            globalPnpmfile: |-
+                Платформенный pnpmfile из tier0-settings, подготовленный в корне nm_store текущего mount.
+                https://pnpm.io/pnpmfile#globalpnpmfile
             ignorePnpmfile: |-
-                Не выполнять пользовательские pnpmfile hooks, меняющие разрешение зависимостей.
+                Платформенный и явно заданные пользовательские hooks включены.
+                Локальные pnpmfile подключаются только через массив pnpmfile.
                 https://pnpm.io/11.x/pnpmfile#ignorepnpmfile
 
             ignoreScripts: |-

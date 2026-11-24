@@ -144,6 +144,9 @@
             },
             "verifyDepsBeforeRun": {
               "type": "boolean"
+            },
+            "pnpmfile": {
+              "$ref": "#/$defs/string-list"
             }
           },
           "required": ["registry"],
