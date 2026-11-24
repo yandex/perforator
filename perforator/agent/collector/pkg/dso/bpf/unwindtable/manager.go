@@ -604,6 +604,46 @@ func (b *pageTableBuilder) flushNodes() error {
 // FIXME(sskvor): Generate this from the BTF
 const dwarfUnwindRuleUndefined = 0x7f
 
+// DWARF number of rbp, see the x86-64 psABI.
+const dwarfRegisterRBP = 6
+
+// isAtFramePointer reports whether the location is the address held in rbp itself.
+func isAtFramePointer(location *unwind.UnwindRule_RegisterPlusOffset) bool {
+	return location != nil && location.GetRegister() == dwarfRegisterRBP && location.GetOffset() == 0
+}
+
+// derefCfaRule converts CFA = *(reg + offset) + bias. The eBPF unwinder encodes the bias in the rule kind
+// and supports the two that occur in practice: 0 (gcc stack realignment) and 8 (openssl perlasm).
+func derefCfaRule(deref *unwind.UnwindRule_RegisterDerefOffset) unwinder.CfaUnwindRule {
+	rule := unwinder.CfaUnwindRule{
+		Regno:  uint8(deref.GetRegister()),
+		Offset: deref.GetOffset(),
+	}
+	switch deref.GetBias() {
+	case 0:
+		rule.Kind = unwinder.UnwindRuleRegisterDerefOffset
+	case 8:
+		rule.Kind = unwinder.UnwindRuleRegisterDerefOffsetPlus8
+	default:
+		rule.Kind = unwinder.UnwindRuleUnsupported
+	}
+	return rule
+}
+
+// indexedDerefCfaRule converts CFA = *(reg + offset + index * scale) + bias. The eBPF unwinder supports the
+// form used by openssl perlasm: rsp as the base, a scale of 8 and a bias of 8.
+func indexedDerefCfaRule(deref *unwind.UnwindRule_RegisterIndexedDerefOffset) unwinder.CfaUnwindRule {
+	rule := unwinder.CfaUnwindRule{
+		Kind:   unwinder.UnwindRuleUnsupported,
+		Regno:  uint8(deref.GetIndexRegister()),
+		Offset: deref.GetOffset(),
+	}
+	if deref.GetRegister() == uint32(unwinder.DwarfCfiStackRegisterNumber) && deref.GetScale() == 8 && deref.GetBias() == 8 {
+		rule.Kind = unwinder.UnwindRuleRspIndexedDerefOffsetPlus8
+	}
+	return rule
+}
+
 func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int, pageStartPC uint64) {
 	rule := unwinder.UnwindRule{}
 
@@ -613,6 +653,8 @@ func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int, pageStartPC 
 		rule.Rbp = unwinder.RbpUnwindRule{Offset: int8(offset)}
 	} else if rbp != nil && rbp.GetCfaMinus8() != nil {
 		rule.Rbp = unwinder.RbpUnwindRule{Offset: int8(-8)}
+	} else if rbp != nil && rbp.GetDereference() && isAtFramePointer(rbp.GetRegisterOffset()) {
+		rule.Rbp = unwinder.RbpUnwindRule{Offset: int8(unwinder.DwarfUnwindRbpRuleAtRbp)}
 	} else {
 		rule.Rbp = unwinder.RbpUnwindRule{Offset: dwarfUnwindRuleUndefined}
 	}
@@ -626,6 +668,10 @@ func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int, pageStartPC 
 		rule.Cfa.Kind = unwinder.UnwindRuleRegisterOffset
 		rule.Cfa.Regno = uint8(unwinder.DwarfCfiStackRegisterNumber)
 		rule.Cfa.Offset = cfa.GetCfaPlusOffset().GetOffset()
+	} else if cfa != nil && cfa.GetRegisterDerefOffset() != nil {
+		rule.Cfa = derefCfaRule(cfa.GetRegisterDerefOffset())
+	} else if cfa != nil && cfa.GetRegisterIndexedDerefOffset() != nil {
+		rule.Cfa = indexedDerefCfaRule(cfa.GetRegisterIndexedDerefOffset())
 	} else {
 		rule.Cfa.Kind = unwinder.UnwindRuleUnsupported
 	}

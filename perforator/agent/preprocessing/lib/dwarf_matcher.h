@@ -46,6 +46,12 @@ public:
     bool Matches(const llvm::DWARFExpression& expr) {
         auto iter = expr.begin();
         for (auto [code, arg] : Pattern_) {
+            // The expression is shorter than the pattern. Do not compare against the end iterator:
+            // it still holds the last operation, so a pattern repeating it would match.
+            if (iter == expr.end()) {
+                return false;
+            }
+
             Y_DEFER {
                 ++iter;
             };
