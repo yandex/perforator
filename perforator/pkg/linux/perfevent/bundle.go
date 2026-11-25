@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -293,7 +294,8 @@ func (m *Manager) openImpl(
 		event, err = factory.open(cpu)
 
 		if err != nil {
-			if cfg.bestEffort {
+			// TODO: perhaps we should allow EINVAL and EOPNOTSUPP too
+			if cfg.bestEffort && errors.Is(err, os.ErrNotExist) {
 				m.logger.Warn("Failed to open perf event, skipping CPU",
 					log.Int("cpu", cpu),
 					log.Any("type", options.Type),
