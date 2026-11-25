@@ -330,6 +330,8 @@ func (o *operationController) setupSampleConsumer(ctx context.Context) (err erro
 			sampleConsumerFeatures.EnableSampleTimeCollection = true
 		case *cpo_proto.Feature_CollectInnermostPidnsFeature:
 			sampleConsumerFeatures.EnableInnermostPidnsCollection = true
+		case *cpo_proto.Feature_CollectTopdownMetricsFeature:
+			sampleConsumerFeatures.EnableTopdownMetricsCollection = true
 		}
 	}
 
@@ -381,11 +383,15 @@ func (o *operationController) setupSampleConsumer(ctx context.Context) (err erro
 	for _, u := range o.uprobes {
 		localResolver.Add(u.Info())
 	}
+	consumer, err := profiler.NewSimpleSampleConsumer(o.profiler, sampleConsumerFeatures, profileLabels, localResolver)
+	if err != nil {
+		return fmt.Errorf("failed to create sample consumer: %w", err)
+	}
 
 	err = o.profiler.SampleConsumerRegistry().Register(
 		sampleConsumerName,
 		profiler.NewFilterSampleConsumerAdapter(
-			profiler.NewSimpleSampleConsumer(o.profiler, sampleConsumerFeatures, profileLabels, localResolver),
+			consumer,
 			profiler.NewANDSampleFilter(filters...),
 		),
 	)

@@ -13,6 +13,7 @@ SRCS(
     sample_consumer_registry.go
     sample_filter.go
     sample_processor.go
+    tma.go
     uprobe_registry.go
 )
 

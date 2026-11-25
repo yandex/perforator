@@ -20,6 +20,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profileformat"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profilerext"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/tma"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/linguist/models"
 	"github.com/yandex/perforator/perforator/internal/logfield"
@@ -42,12 +43,14 @@ const (
 type SampleConsumerFeatures struct {
 	EnableSampleTimeCollection     bool
 	EnableInnermostPidnsCollection bool
+	EnableTopdownMetricsCollection bool
 }
 
 func DefaultSampleConsumerFeatures() SampleConsumerFeatures {
 	return SampleConsumerFeatures{
 		EnableSampleTimeCollection:     false,
 		EnableInnermostPidnsCollection: false,
+		EnableTopdownMetricsCollection: false,
 	}
 }
 
@@ -178,6 +181,8 @@ type simpleSampleConsumer struct {
 	features       SampleConsumerFeatures
 	profileBuilder *guardedProfileBuilder
 	uprobeResolver *uprobe.Resolver
+
+	tma *tma.HierarchyInfo
 }
 
 func NewSimpleSampleConsumer(
@@ -185,7 +190,7 @@ func NewSimpleSampleConsumer(
 	features SampleConsumerFeatures,
 	labels map[string]string,
 	uprobeResolver *uprobe.Resolver,
-) *simpleSampleConsumer {
+) (*simpleSampleConsumer, error) {
 	pf := profileformat.Pprof
 	if p != nil && p.conf != nil {
 		pf = p.conf.FeatureFlagsConfig.GetProfileFormat()
@@ -197,11 +202,22 @@ func NewSimpleSampleConsumer(
 		p:              p,
 		uprobeResolver: uprobeResolver,
 	}
-	return c
+
+	if features.EnableTopdownMetricsCollection {
+		if p == nil {
+			return nil, fmt.Errorf("topdown metrics collection requires profiler instance")
+		}
+		if p.tma == nil {
+			return nil, fmt.Errorf("topdown metrics collection is requested but not enabled")
+		}
+
+		c.tma = p.tma.machineProfile.Hierarchy
+	}
+	return c, nil
 }
 
 func (c *simpleSampleConsumer) Consume(ctx context.Context, sample *unwinder.RecordSampleParsed) {
-	oneShotConsumer := newOneShotSampleConsumer(c.p, c.features, c.uprobeResolver, c.profileBuilder, sample)
+	oneShotConsumer := newOneShotSampleConsumer(c.p, c.features, c.uprobeResolver, c.profileBuilder, c.tma, sample)
 	oneShotConsumer.consume(ctx)
 }
 
@@ -221,6 +237,7 @@ type oneShotSampleConsumer struct {
 	profileBuilder *guardedProfileBuilder
 	features       SampleConsumerFeatures
 	envWhitelist   map[string]struct{}
+	tma            *tma.HierarchyInfo
 
 	// sampleTime is the absolute wall-clock time of the sample, computed once and reused across the consumer.
 	sampleTime time.Time
@@ -237,6 +254,7 @@ func newOneShotSampleConsumer(
 	features SampleConsumerFeatures,
 	uprobeResolver *uprobe.Resolver,
 	profileBuilder *guardedProfileBuilder,
+	tma *tma.HierarchyInfo,
 	sample *unwinder.RecordSampleParsed,
 ) *oneShotSampleConsumer {
 	return &oneShotSampleConsumer{
@@ -244,6 +262,7 @@ func newOneShotSampleConsumer(
 		uprobeResolver: uprobeResolver,
 		profileBuilder: profileBuilder,
 		features:       features,
+		tma:            tma,
 		sample:         sample,
 		sampleTime:     p.clockConverter.MonotonicToTime(sample.CollectionTime),
 		envWhitelist:   p.envWhitelist,
@@ -723,6 +742,7 @@ func (c *oneShotSampleConsumer) logSample() {
 				"sampletype":          c.sample.SampleType.String(),
 				"sampleconfig":        c.sample.SampleConfig.UnionBuf[:],
 				"events":              c.sample.Value,
+				"additional_events":   c.sample.AdditionalEvents,
 				"timedelta":           c.sample.Timedelta,
 				"cpu":                 c.sample.Cpu,
 				"threadcomm":          copy.ZeroTerminatedString(c.sample.ThreadComm[:]),
@@ -777,6 +797,14 @@ func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
 	if hasWallTime {
 		sampleTypes = append(sampleTypes, profile.SampleType{Kind: "wall", Unit: "seconds"})
 	}
+	var tmaMetrics []uint64
+	if c.features.EnableTopdownMetricsCollection {
+		tmaMetrics = processSampleTMAEvents(c.tma, c.sample)
+		if tmaMetrics == nil {
+			tmaMetrics = make([]uint64, len(c.tma.Children))
+		}
+		sampleTypes = append(sampleTypes, tma.SampleTypes(c.tma)...)
+	}
 
 	builder := c.initBuilderCommon(sampleType, sampleTypes)
 
@@ -788,6 +816,11 @@ func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
 
 	if hasWallTime {
 		c.collectWallTime(builder)
+	}
+	if c.features.EnableTopdownMetricsCollection {
+		for _, m := range tmaMetrics {
+			builder.AddValue(int64(m))
+		}
 	}
 
 	c.finishSample(builder)

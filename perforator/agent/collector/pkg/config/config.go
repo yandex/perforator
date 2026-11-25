@@ -222,6 +222,10 @@ func (c *JVM) FillDefault() {
 	}
 }
 
+type Topdown struct {
+	Enabled bool `yaml:"enabled"`
+}
+
 type Config struct {
 	Debug bool           `yaml:"debug"`
 	BPF   machine.Config `yaml:"bpf"`
@@ -243,6 +247,8 @@ type Config struct {
 	Signals    []string          `yaml:"signals"`
 
 	JVM *JVM `yaml:"experimental_jvm,omitempty"`
+
+	Topdown *Topdown `yaml:"topdown,omitempty"`
 
 	EnableLBRDeprecated *bool              `yaml:"enable_lbr"`
 	EnablePerfMaps      *bool              `yaml:"enable_perf_map"`
@@ -344,6 +350,10 @@ func (c *Config) FillDefault() {
 
 	if c.BPF.BPFFSRoot == "" {
 		c.BPF.BPFFSRoot = "/sys/fs/bpf"
+	}
+
+	if c.Topdown == nil {
+		c.Topdown = &Topdown{}
 	}
 
 	if len(c.SampleConsumer.EnvWhitelist) == 0 {

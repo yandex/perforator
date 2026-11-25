@@ -133,6 +133,8 @@ message ExperimentalCollectSystemWidePerfEventSamplesFeature {}
 // Collect innermost pidns tid and pid and add them to profile labels
 message CollectInnermostPidnsFeature {}
 
+message CollectTopdownMetricsFeature {}
+
 message Feature {
     oneof Feature {
         CollectStackAbsoluteTimestampsFeature CollectStackAbsoluteTimestampsFeature = 11;
@@ -140,6 +142,8 @@ message Feature {
         ExperimentalCollectSystemWidePerfEventSamplesFeature ExperimentalCollectSystemWidePerfEventSamplesFeature = 12;
 
         CollectInnermostPidnsFeature CollectInnermostPidnsFeature = 13;
+
+        CollectTopdownMetricsFeature CollectTopdownMetricsFeature = 14;
     }
 }
 

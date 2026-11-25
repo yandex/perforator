@@ -68,6 +68,8 @@ type recordOptions struct {
 	cgroups     []string
 	wholeSystem bool
 
+	topdown bool
+
 	freq     uint64
 	interval uint64
 
@@ -101,6 +103,7 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().IntSliceVarP(&o.tids, "tid", "t", nil, "Thread id(s) to profile")
 	cmd.Flags().StringSliceVarP(&o.cgroups, "cgroup", "G", nil, "Paths of cgroups to profile")
 	cmd.Flags().BoolVarP(&o.wholeSystem, "whole-system", "a", false, "Profile whole system")
+	cmd.Flags().BoolVar(&o.topdown, "topdown", false, "Collect topdown (TMA) metrics")
 	cmd.Flags().Uint64VarP(&o.freq, "freq", "F", 99, "Profiling frequency")
 	cmd.Flags().Uint64VarP(&o.interval, "count", "c", 0, "Profiling interval")
 	cmd.Flags().StringSliceVarP(
@@ -391,6 +394,13 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 			ScannerBinaryPath: opts.jvmHelperBinaryPath,
 		}
 	}
+	var topdownConfig *config.Topdown
+
+	if opts.topdown {
+		topdownConfig = &config.Topdown{
+			Enabled: true,
+		}
+	}
 
 	prof, err := profiler.NewProfiler(&config.Config{
 		Debug: opts.debug,
@@ -419,7 +429,8 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 			EnableLua:    ptr.Bool(opts.enableLua),
 			EnableSframe: ptr.Bool(opts.enableSframe),
 		},
-		JVM: jvmConfig,
+		JVM:     jvmConfig,
+		Topdown: topdownConfig,
 	},
 		logger.WithContext(ctx),
 		registry,
@@ -432,15 +443,21 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 	}
 	defer prof.Close()
 
+	var traceOpts []profiler.TraceOption
+
+	if opts.topdown {
+		traceOpts = append(traceOpts, profiler.WithTopdownMetricsCollection())
+	}
+
 	for _, pid := range opts.pids {
-		_, err = prof.TracePid(linux.CurrentNamespacePID(pid))
+		_, err = prof.TracePid(linux.CurrentNamespacePID(pid), traceOpts...)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to trace pid %d: %w", pid, err)
 		}
 	}
 
 	for _, tid := range opts.tids {
-		_, err = prof.TracePid(linux.CurrentNamespacePID(tid))
+		_, err = prof.TracePid(linux.CurrentNamespacePID(tid), traceOpts...)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to trace tid %d: %w", tid, err)
 		}
@@ -449,13 +466,14 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 	for _, cgroup := range opts.cgroups {
 		err = prof.AddCgroup(&profiler.CgroupConfig{
 			Name: cgroup,
+			Opts: traceOpts,
 		})
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to trace cgroup %s: %w", cgroup, err)
 		}
 	}
 	if opts.wholeSystem {
-		err = prof.TraceWholeSystem()
+		err = prof.TraceWholeSystem(traceOpts...)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to trace whole system: %w", err)
 		}
@@ -471,7 +489,8 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 	if len(args) > 0 {
 		g.Go(func() error {
 			err := runSubProcess(ctx, args, func(pid int) error {
-				_, err := prof.TracePid(linux.CurrentNamespacePID(pid), profiler.WithProfileLabels(map[string]string{"pid": fmt.Sprint(pid)}))
+				traceOpts = append(traceOpts, profiler.WithProfileLabels(map[string]string{"pid": fmt.Sprint(pid)}))
+				_, err := prof.TracePid(linux.CurrentNamespacePID(pid), traceOpts...)
 				return err
 			})
 			if err != nil {

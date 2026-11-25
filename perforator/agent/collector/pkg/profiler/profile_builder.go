@@ -112,6 +112,9 @@ func addProfileComments(profile *profile.Profile, labels map[string]string) {
 	}
 }
 
+// EnsureBuilder returns a (possibly new) profile builder that records provided sampleTypes.
+// It expectes that sampleTypes is not empty.
+// `sampleTypes[0]` is set as the default sample type.
 func (b *multiProfileBuilder) EnsureBuilder(name string, sampleTypes []profile.SampleType) *profile.Builder {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -133,6 +136,7 @@ func (b *multiProfileBuilder) EnsureBuilder(name string, sampleTypes []profile.S
 	for _, sampleType := range sampleTypes {
 		builder.AddSampleType(sampleType.Kind, sampleType.Unit)
 	}
+	builder.SetDefaultSampleType(sampleTypes[0].Kind)
 	b.builders[name] = append(b.builders[name], profileBuilderWithSampleTypes{
 		builder: builder, sampleTypes: slices.Clone(sampleTypes),
 	})

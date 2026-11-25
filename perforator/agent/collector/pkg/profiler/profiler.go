@@ -96,6 +96,8 @@ type Profiler struct {
 	kallsyms         *kallsyms.KallsymsResolver
 	events           map[perfevent.Type]*PerfEvent
 
+	tma *tmaEventManager
+
 	// uprobes which are created on Profiler startup
 	initialUprobes []Uprobe
 	debugmu        sync.Mutex
@@ -409,23 +411,32 @@ func (p *Profiler) initialize(ctx context.Context, r metrics.Registry) (err erro
 	if p.conf.BPF.PinPrefix == "" {
 		p.conf.BPF.PinPrefix = p.identity
 	}
+
+	var additionalEvents map[uint32][]uint32
+
+	perfEventManager, err := perfevent.NewManager(p.log, r)
+	if err != nil {
+		return fmt.Errorf("failed to initialize perf event subsystem: %w", err)
+	}
+
+	if p.conf.Topdown.Enabled {
+		additionalEvents = p.setupTMA(perfEventManager)
+	}
+
 	// Load eBPF programs
 	p.bpf, err = machine.NewBPF(
 		&p.conf.BPF,
 		p.log,
 		r,
 		machine.Options{
-			EnableJVM: p.conf.FeatureFlagsConfig.JVMEnabled(),
+			EnableJVM:              p.conf.FeatureFlagsConfig.JVMEnabled(),
+			AdditionalPerfEventFDs: additionalEvents,
 		},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eBPF subsystem: %w", err)
 	}
 
-	perfEventManager, err := perfevent.NewManager(p.log, r)
-	if err != nil {
-		return fmt.Errorf("failed to initialize perf event subsystem: %w", err)
-	}
 	p.perfEventManager = NewPerfEventManager(p.bpf, perfEventManager)
 
 	// Prepare uprobe registry
@@ -1289,7 +1300,7 @@ func (p *Profiler) runProcessDiscovery(ctx context.Context) error {
 }
 
 // makeSimpleSampleConsumer is responsible for creating all non-CPO sample consumers
-func (p *Profiler) makeSimpleSampleConsumer(opts ...TraceOption) *simpleSampleConsumer {
+func (p *Profiler) makeSimpleSampleConsumer(opts ...TraceOption) (*simpleSampleConsumer, error) {
 	effopts := defaultTraceOptions()
 	for _, opt := range opts {
 		opt(effopts)
@@ -1311,7 +1322,10 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 	p.targetsmu.Lock()
 	defer p.targetsmu.Unlock()
 
-	consumer := p.makeSimpleSampleConsumer(conf.Opts...)
+	consumer, err := p.makeSimpleSampleConsumer(conf.Opts...)
+	if err != nil {
+		return err
+	}
 
 	// TODO: For now we do not provide a way to enable features through AddCgroup
 	cg, err := p.newTrackedCgroup(conf, consumer, p.bpf.State(), p.log)
@@ -1328,7 +1342,10 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 }
 
 func (p *Profiler) TraceWholeSystem(opts ...TraceOption) error {
-	consumer := p.makeSimpleSampleConsumer(opts...)
+	consumer, err := p.makeSimpleSampleConsumer(opts...)
+	if err != nil {
+		return err
+	}
 	p.wholeSystem = consumer
 	return p.bpf.State().PatchConfig(func(conf *unwinder.ProfilerConfig) error {
 		conf.TraceWholeSystem = true
@@ -1378,6 +1395,12 @@ func WithAbsoluteSampleTimeCollection() TraceOption {
 	}
 }
 
+func WithTopdownMetricsCollection() TraceOption {
+	return func(o *traceOptions) {
+		o.features.EnableTopdownMetricsCollection = true
+	}
+}
+
 func WithProfileLabels(labels map[string]string) TraceOption {
 	return func(o *traceOptions) {
 		o.profileLabels = labels
@@ -1385,7 +1408,10 @@ func WithProfileLabels(labels map[string]string) TraceOption {
 }
 
 func (p *Profiler) TracePid(pid linux.CurrentNamespacePID, opts ...TraceOption) (Closer, error) {
-	consumer := p.makeSimpleSampleConsumer(opts...)
+	consumer, err := p.makeSimpleSampleConsumer(opts...)
+	if err != nil {
+		return nil, err
+	}
 	trackedProcess, err := p.newTrackedProcess(pid, consumer, p.bpf.State())
 	if err != nil {
 		return nil, err
@@ -1428,7 +1454,10 @@ func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
 	defer p.targetsmu.Unlock()
 	trackedCgroups := make([]*cgroups.TrackedCgroup, 0, len(configs))
 	for _, conf := range configs {
-		consumer := p.makeSimpleSampleConsumer(conf.Opts...)
+		consumer, err := p.makeSimpleSampleConsumer(conf.Opts...)
+		if err != nil {
+			return err
+		}
 
 		// TODO: For now we do not provide a way to enable features through TraceCgroups
 		profiledCgroup, err := p.newTrackedCgroup(conf, consumer, p.bpf.State(), p.log)
@@ -1522,6 +1551,13 @@ func (p *Profiler) Storage() client.Storage {
 func (p *Profiler) Close() error {
 	if p.pythonRegistry != nil {
 		defer p.pythonRegistry.Stop()
+	}
+
+	if p.tma != nil {
+		err := p.tma.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close TMA perf events: %w", err)
+		}
 	}
 
 	err := p.uprobeRegistry.detachAll()

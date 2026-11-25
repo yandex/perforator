@@ -78,3 +78,13 @@ func (bg *BundleGroup) AttachBPF(ctx context.Context, progfd int) error {
 	}
 	return nil
 }
+
+func (bg *BundleGroup) Members() []*Bundle {
+	return append([]*Bundle{bg.leader}, bg.siblings...)
+}
+
+func (bg *BundleGroup) Close() error {
+	return foreach(bg.Members(), func(b *Bundle) error {
+		return b.Close()
+	})
+}
