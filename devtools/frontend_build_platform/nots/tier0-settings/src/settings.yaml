@@ -15,10 +15,12 @@ pnpm:
         PNPM_MAX_WORKERS: '4'
         RAYON_NUM_THREADS: '4'
 
-    # Registry передаётся дочерним pnpm через pnpm_config_registry.
-    # Остальные настройки берутся из сгенерированного pnpm-workspace.yaml.
+    # Эти настройки действуют и вне проектов со сгенерированным pnpm-workspace.yaml.
+    # NOTS уже выбирает pnpm: запрещаем повторное скачивание менеджера
+    # из-за devEngines.packageManager.onFail, который записывает pnpm init.
     runtimeEnvSettings:
         - registry
+        - pmOnFail
 
     # Разрешённые пользовательские настройки. Типы используются builder и CLI при чтении YAML.
     supportedCustomSettings:
