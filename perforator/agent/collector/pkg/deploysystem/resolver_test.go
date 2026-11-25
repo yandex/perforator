@@ -14,73 +14,84 @@ import (
 
 func testSnapshot() Snapshot {
 	return Snapshot{Host: "node", ObservedAt: time.Now(), Pods: []Pod{
-		{PodID: "a", ServiceName: "same", CgroupPath: "pods/a", Containers: []Container{{CgroupBaseName: "container-a", Name: "app"}}},
-		{PodID: "b", ServiceName: "same", CgroupPath: "pods/b"},
+		{Name: "a", ServiceName: "same", CgroupPath: "pods/a", Containers: []Container{{CgroupBaseName: "container-a", Name: "app"}}},
+		{Name: "b", ServiceName: "same", CgroupPath: "pods/b"},
 	}}
 }
 
 func TestSnapshotIdentityAndOwnership(t *testing.T) {
 	c := NewResolver(nop.Registry{})
-	_, err := c.ResolvePod("a")
+	_, err := c.FindPodsByName("a")
 	require.ErrorIs(t, err, errNotReady)
 	snapshot := testSnapshot()
 	snapshot.Pods[0].Metadata = map[string]string{"key": "original"}
 	require.NoError(t, c.Publish(snapshot))
 	for _, alias := range []string{"same", "", "unknown"} {
-		_, err = c.ResolvePod(alias)
-		require.ErrorIs(t, err, errNotFound)
+		missing, err := c.FindPodsByName(alias)
+		require.NoError(t, err)
+		require.Empty(t, missing)
 	}
 	snapshot.Pods[0].Metadata["key"] = "mutated"
 	snapshot.Pods[0].ServiceName = "mutated"
 	snapshot.Pods[0].Containers[0].Name = "mutated"
 	snapshot.Pods[0] = Pod{}
-	a, err := c.ResolvePod("a")
+	a, err := c.FindPodsByName("a")
 	require.NoError(t, err)
-	require.Equal(t, RelativeCgroupPath("pods/a"), a.CgroupPath)
-	require.Equal(t, "same", a.ServiceName)
-	require.Equal(t, "original", a.Metadata["key"])
-	a.Metadata["key"] = "reader-private"
-	a.ServiceName = "reader-private"
-	a.Containers[0].Name = "reader-private"
-	a, err = c.ResolvePod("a")
+	require.Len(t, a, 1)
+	require.Equal(t, RelativeCgroupPath("pods/a"), a[0].CgroupPath)
+	require.Equal(t, "same", a[0].ServiceName)
+	require.Equal(t, "original", a[0].Metadata["key"])
+	require.Equal(t, "app", a[0].Containers[0].Name)
+	again, err := c.FindPodsByName("a")
 	require.NoError(t, err)
-	require.Equal(t, "same", a.ServiceName)
-	require.Equal(t, "original", a.Metadata["key"])
-	require.Equal(t, "app", a.Containers[0].Name)
-	b, err := c.ResolvePod("b")
+	require.Len(t, again, 1)
+	require.Same(t, a[0], again[0])
+	b, err := c.FindPodsByName("b")
 	require.NoError(t, err)
-	require.Equal(t, RelativeCgroupPath("pods/b"), b.CgroupPath)
+	require.Len(t, b, 1)
+	require.Equal(t, RelativeCgroupPath("pods/b"), b[0].CgroupPath)
 	workloadLabels, ok := c.ResolveWorkload([]string{"container-a", "child"})
 	require.True(t, ok)
 	require.Equal(t, []string{"same", "app", "child"}, workloadLabels)
+	next := testSnapshot()
+	next.Pods[0].Metadata = map[string]string{"key": "next"}
+	next.Pods[0].Containers[0].Name = "next"
+	require.NoError(t, c.Publish(next))
+	current, err := c.FindPodsByName("a")
+	require.NoError(t, err)
+	require.Len(t, current, 1)
+	require.Equal(t, "next", current[0].Metadata["key"])
+	require.Equal(t, "original", a[0].Metadata["key"])
+	require.Equal(t, "app", a[0].Containers[0].Name)
 	require.NoError(t, c.Publish(Snapshot{ObservedAt: time.Now()}))
-	_, err = c.ResolvePod("a")
-	require.ErrorIs(t, err, errNotFound)
+	missing, err := c.FindPodsByName("a")
+	require.NoError(t, err)
+	require.Empty(t, missing)
 	_, ok = c.ResolveWorkload([]string{"container-a"})
 	require.False(t, ok)
 }
 
-func TestPodsWithoutIdentityResolveContainers(t *testing.T) {
+func TestPodsWithoutNamesResolveContainers(t *testing.T) {
 	r := NewResolver(nop.Registry{})
 	snapshot := testSnapshot()
 	for i := range snapshot.Pods {
-		snapshot.Pods[i].PodID = ""
+		snapshot.Pods[i].Name = ""
 	}
 	require.NoError(t, r.Publish(snapshot))
-	_, err := r.ResolvePod("")
-	require.ErrorIs(t, err, errNotFound)
+	missing, err := r.FindPodsByName("")
+	require.NoError(t, err)
+	require.Empty(t, missing)
 	workloadLabels, ok := r.ResolveWorkload([]string{"container-a", "child"})
 	require.True(t, ok)
 	require.Equal(t, []string{"same", "app", "child"}, workloadLabels)
 
-	// Pods without an ID still participate in snapshot validation.
+	// Pods without a name still participate in snapshot validation.
 	snapshot.Pods[1].CgroupPath = snapshot.Pods[0].CgroupPath
 	require.Error(t, r.Publish(snapshot))
 }
 
 func TestInvalidSnapshotDoesNotReplaceResolver(t *testing.T) {
 	cases := map[string]func(*Snapshot){
-		"duplicate ID":        func(s *Snapshot) { s.Pods[1].PodID = "a" },
 		"duplicate cgroup":    func(s *Snapshot) { s.Pods[1].CgroupPath = "pods/a" },
 		"duplicate container": func(s *Snapshot) { s.Pods[1].Containers = s.Pods[0].Containers },
 		"absolute path":       func(s *Snapshot) { s.Pods[0].CgroupPath = "/pods/a" },
@@ -107,16 +118,17 @@ func TestInvalidSnapshotDoesNotReplaceResolver(t *testing.T) {
 			invalid.Pods[0].Containers = append(invalid.Pods[0].Containers, Container{
 				CgroupBaseName: "container-new", Name: "new",
 			})
-			invalid.Pods[1].PodID = "new"
+			invalid.Pods[1].Name = "new"
 			mutate(&invalid)
 			require.Error(t, c.Publish(invalid))
 			for _, expected := range original.Pods {
-				w, err := c.ResolvePod(expected.PodID)
+				w, err := c.FindPodsByName(expected.Name)
 				require.NoError(t, err)
-				require.Equal(t, expected, w)
+				require.Equal(t, []*Pod{&expected}, w)
 			}
-			_, err := c.ResolvePod("new")
-			require.ErrorIs(t, err, errNotFound)
+			missing, err := c.FindPodsByName("new")
+			require.NoError(t, err)
+			require.Empty(t, missing)
 			workloadLabels, ok := c.ResolveWorkload([]string{"container-a", "child"})
 			require.True(t, ok)
 			require.Equal(t, []string{"same", "app", "child"}, workloadLabels)
@@ -139,11 +151,12 @@ func TestSnapshotAgeAndResolution(t *testing.T) {
 	require.GreaterOrEqual(t, age, int64(120))
 	require.Error(t, r.Publish(Snapshot{}))
 	require.GreaterOrEqual(t, snapshotAge.Function()(), age)
-	pod, err := r.ResolvePod("a")
+	pod, err := r.FindPodsByName("a")
 	require.NoError(t, err)
-	require.Equal(t, snapshot.Pods[0], pod)
-	_, err = r.ResolvePod("unknown")
-	require.ErrorIs(t, err, errNotFound)
+	require.Equal(t, []*Pod{&snapshot.Pods[0]}, pod)
+	missing, err := r.FindPodsByName("unknown")
+	require.NoError(t, err)
+	require.Empty(t, missing)
 	workloadLabels, ok := r.ResolveWorkload([]string{"container-a"})
 	require.True(t, ok)
 	require.Equal(t, []string{"same", "app"}, workloadLabels)
@@ -153,8 +166,9 @@ func TestSnapshotAgeAndResolution(t *testing.T) {
 	// An empty successful observation also refreshes age and removes old pods.
 	require.NoError(t, r.Publish(Snapshot{ObservedAt: time.Now()}))
 	require.Less(t, snapshotAge.Function()(), age)
-	_, err = r.ResolvePod("a")
-	require.ErrorIs(t, err, errNotFound)
+	missing, err = r.FindPodsByName("a")
+	require.NoError(t, err)
+	require.Empty(t, missing)
 }
 
 func TestSnapshotAgeGrowsWithoutUpdatesOrLookups(t *testing.T) {
@@ -179,10 +193,11 @@ func TestSnapshotAgeGrowsWithoutUpdatesOrLookups(t *testing.T) {
 			// Failed discovery does not reset the age or make the snapshot newer.
 			require.Error(t, r.Publish(Snapshot{}))
 			require.Greater(t, snapshotAge.Function()(), age)
-			pod, err := r.ResolvePod("a")
+			pod, err := r.FindPodsByName("a")
 			if hasSnapshot {
 				require.NoError(t, err)
-				require.Equal(t, "a", pod.PodID)
+				require.Len(t, pod, 1)
+				require.Equal(t, "a", pod[0].Name)
 			} else {
 				require.ErrorIs(t, err, errNotReady)
 			}
@@ -204,7 +219,7 @@ func TestConcurrentSnapshotReaders(t *testing.T) {
 	}
 	// Pod lookup must not depend on the order in the source snapshot.
 	snapshots[1].Pods[0], snapshots[1].Pods[1] = snapshots[1].Pods[1], snapshots[1].Pods[0]
-	expected := []Pod{snapshots[0].Pods[0], snapshots[1].Pods[1]}
+	expected := []*Pod{&snapshots[0].Pods[0], &snapshots[1].Pods[1]}
 	require.NoError(t, c.Publish(snapshots[0]))
 	start := make(chan struct{})
 	var readers sync.WaitGroup
@@ -218,14 +233,12 @@ func TestConcurrentSnapshotReaders(t *testing.T) {
 					t.Error("negative snapshot age")
 					return
 				}
-				w, err := c.ResolvePod("a")
-				if err != nil || (!reflect.DeepEqual(w, expected[0]) && !reflect.DeepEqual(w, expected[1])) {
+				w, err := c.FindPodsByName("a")
+				if err != nil || len(w) != 1 || (!reflect.DeepEqual(w[0], expected[0]) && !reflect.DeepEqual(w[0], expected[1])) {
 					t.Errorf("inconsistent pod: %+v, error: %v", w, err)
 					return
 				}
-				w.ServiceName = "reader-private"
-				w.Containers[0].Name = "reader-private"
-				// This separate lookup may observe a newer generation than ResolvePod.
+				// This separate lookup may observe a newer generation than FindPodsByName.
 				workloadLabels, ok := c.ResolveWorkload([]string{"container-a", "child"})
 				if !ok || (!reflect.DeepEqual(workloadLabels, []string{"first", "first-app", "child"}) &&
 					!reflect.DeepEqual(workloadLabels, []string{"second", "second-app", "child"})) {
@@ -245,15 +258,15 @@ func TestConcurrentSnapshotReaders(t *testing.T) {
 }
 
 func TestContainersUsePodServiceName(t *testing.T) {
-	for _, podID := range []string{"pod", ""} {
-		name := "with identity"
-		if podID == "" {
-			name = "without identity"
+	for _, podName := range []string{"pod", ""} {
+		name := "with name"
+		if podName == "" {
+			name = "without name"
 		}
 		t.Run(name, func(t *testing.T) {
 			r := NewResolver(nop.Registry{})
 			snapshot := Snapshot{ObservedAt: time.Now(), Pods: []Pod{{
-				PodID: podID, ServiceName: "service", CgroupPath: "pods/a",
+				Name: podName, ServiceName: "service", CgroupPath: "pods/a",
 				Containers: []Container{
 					{CgroupBaseName: "container-app", Name: "app"},
 					{CgroupBaseName: "container-sidecar", Name: "sidecar"},

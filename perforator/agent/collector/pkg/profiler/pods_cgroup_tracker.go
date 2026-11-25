@@ -243,7 +243,7 @@ func newPodsCgroupTracker(c *config.PodsDeploySystemConfig, l log.Logger, cgroup
 	blackListRegexps := []*blackListEntryCompiled{}
 	whiteListRegexps := []*regexp.Regexp{}
 
-	for _, blackListItem := range c.PodOptions.BlackList {
+	for _, blackListItem := range c.PodOptions.DenyList {
 		reg, err := regexp.Compile(blackListItem.Pattern)
 		if err != nil {
 			l.Warn(
@@ -262,7 +262,7 @@ func newPodsCgroupTracker(c *config.PodsDeploySystemConfig, l log.Logger, cgroup
 		)
 	}
 
-	for _, whiteListPattern := range c.PodOptions.WhiteList {
+	for _, whiteListPattern := range c.PodOptions.AllowList {
 		reg, err := regexp.Compile(whiteListPattern.Pattern)
 		if err != nil {
 			l.Warn(

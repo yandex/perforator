@@ -13,10 +13,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 )
 
-var (
-	errNotReady = errors.New("pod discovery is not ready")
-	errNotFound = errors.New("pod target not found")
-)
+var errNotReady = errors.New("pod discovery is not ready")
 
 type containerMetadata struct {
 	serviceName   string
@@ -28,7 +25,7 @@ type containerMetadata struct {
 type Resolver struct {
 	mu          sync.RWMutex
 	observedAt  time.Time
-	pods        map[string]Pod
+	podsByName  map[string][]*Pod
 	containers  map[string]containerMetadata
 	snapshotAge metrics.FuncIntGauge
 }
@@ -50,10 +47,10 @@ func NewResolver(m metrics.Registry) *Resolver {
 	return r
 }
 
-func clonePod(pod Pod) Pod {
+func clonePod(pod Pod) *Pod {
 	pod.Metadata = maps.Clone(pod.Metadata)
 	pod.Containers = slices.Clone(pod.Containers)
-	return pod
+	return &pod
 }
 
 func validateCgroupPath(relativePath RelativeCgroupPath) error {
@@ -73,7 +70,7 @@ func (r *Resolver) Publish(snapshot Snapshot) error {
 	if snapshot.ObservedAt.IsZero() || snapshot.ObservedAt.After(time.Now()) {
 		return errors.New("invalid pod observation timestamp")
 	}
-	pods := make(map[string]Pod)
+	podsByName := make(map[string][]*Pod)
 	containers := make(map[string]containerMetadata)
 	cgroups := make(map[RelativeCgroupPath]struct{})
 	for _, pod := range snapshot.Pods {
@@ -85,11 +82,8 @@ func (r *Resolver) Publish(snapshot Snapshot) error {
 			return fmt.Errorf("duplicate pod cgroup %q", pod.CgroupPath)
 		}
 		cgroups[key] = struct{}{}
-		if pod.PodID != "" {
-			if _, ok := pods[pod.PodID]; ok {
-				return fmt.Errorf("duplicate pod ID %q", pod.PodID)
-			}
-			pods[pod.PodID] = clonePod(pod)
+		if pod.Name != "" {
+			podsByName[pod.Name] = append(podsByName[pod.Name], clonePod(pod))
 		}
 		for _, container := range pod.Containers {
 			if container.CgroupBaseName != "" {
@@ -109,22 +103,22 @@ func (r *Resolver) Publish(snapshot Snapshot) error {
 		return errors.New("pod observation timestamp went backwards")
 	}
 	r.observedAt = snapshot.ObservedAt
-	r.pods = pods
+	r.podsByName = podsByName
 	r.containers = containers
 	return nil
 }
 
-func (r *Resolver) ResolvePod(id string) (Pod, error) {
+// FindPodsByName returns all local pods with the given name in the last snapshot.
+// The returned slice and pods (including Metadata and Containers) are read-only.
+// They remain valid after a new snapshot is published.
+// It returns an error until the first snapshot is published.
+func (r *Resolver) FindPodsByName(name string) ([]*Pod, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if r.observedAt.IsZero() {
-		return Pod{}, errNotReady
+		return nil, errNotReady
 	}
-	pod, ok := r.pods[id]
-	if !ok {
-		return Pod{}, fmt.Errorf("%w: %q", errNotFound, id)
-	}
-	return clonePod(pod), nil
+	return r.podsByName[name], nil
 }
 
 // ResolveWorkload replaces a recognized container cgroup name with service

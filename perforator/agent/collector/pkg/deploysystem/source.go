@@ -27,7 +27,8 @@ type RelativeCgroupPath string
 
 // Pod describes an observed pod, not an opened or pinned kernel target.
 type Pod struct {
-	PodID string
+	// Name can be shared by multiple local pods.
+	Name string
 	// Metadata holds key-value pairs supplied by the deployment source.
 	Metadata    map[string]string
 	ServiceName string

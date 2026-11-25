@@ -50,7 +50,7 @@ func (s *snapshotSource) Snapshot(ctx context.Context) (deploysystem.Snapshot, e
 	snapshot := deploysystem.Snapshot{Host: s.lister.GetHost(), ObservedAt: observedAt}
 	for _, pod := range pods {
 		w := deploysystem.Pod{
-			PodID:       pod.UID(),
+			Name:        pod.name,
 			ServiceName: pod.ServiceName(),
 			CgroupPath:  deploysystem.RelativeCgroupPath(strings.TrimPrefix(pod.CgroupName(), "/")),
 			Metadata:    pod.ProfileLabels(),

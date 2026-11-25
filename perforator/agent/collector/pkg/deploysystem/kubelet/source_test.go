@@ -16,10 +16,10 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func TestSourceUsesUIDAndPreservesMetadata(t *testing.T) {
+func TestSourceFindsSameNameAcrossNamespaces(t *testing.T) {
 	pods := kube.PodList{Items: []kube.Pod{
-		{ObjectMeta: metav1.ObjectMeta{UID: "uid-a", Name: "same", Namespace: "one", Labels: map[string]string{"service": "metadata-service", "app.kubernetes.io/name": "metadata-custom"}}, Status: kube.PodStatus{Phase: kube.PodRunning, QOSClass: kube.PodQOSGuaranteed, ContainerStatuses: []kube.ContainerStatus{{Name: "app", ContainerID: "containerd://container-a"}}}},
-		{ObjectMeta: metav1.ObjectMeta{UID: "uid-b", Name: "same", Namespace: "two"}, Status: kube.PodStatus{Phase: kube.PodRunning, QOSClass: kube.PodQOSGuaranteed}},
+		{ObjectMeta: metav1.ObjectMeta{UID: "uid-a", Name: "redis-0", Namespace: "prod", Labels: map[string]string{"service": "metadata-service", "app.kubernetes.io/name": "metadata-custom"}}, Status: kube.PodStatus{Phase: kube.PodRunning, QOSClass: kube.PodQOSGuaranteed, ContainerStatuses: []kube.ContainerStatus{{Name: "app", ContainerID: "containerd://container-a"}}}},
+		{ObjectMeta: metav1.ObjectMeta{UID: "uid-b", Name: "redis-0", Namespace: "staging"}, Status: kube.PodStatus{Phase: kube.PodRunning, QOSClass: kube.PodQOSGuaranteed}},
 	}}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { assertEncode(t, w, pods) }))
 	defer server.Close()
@@ -30,23 +30,27 @@ func TestSourceUsesUIDAndPreservesMetadata(t *testing.T) {
 	require.Equal(t, "node", snapshot.Host)
 	cache := deploysystem.NewResolver(nop.Registry{})
 	require.NoError(t, cache.Publish(snapshot))
-	for _, id := range []string{"uid-a", "uid-b"} {
-		pod, err := cache.ResolvePod(id)
-		require.NoError(t, err)
+	matches, err := cache.FindPodsByName("redis-0")
+	require.NoError(t, err)
+	require.Len(t, matches, 2)
+	for i, pod := range matches {
+		id := string(pods.Items[i].UID)
+		require.Equal(t, pods.Items[i].Namespace, pod.Metadata["namespace"])
 		require.Equal(t, "zone", pod.Metadata["cluster"])
 		require.Contains(t, string(pod.CgroupPath), id)
 		require.Equal(t, "/"+string(pod.CgroupPath), pod.Metadata["cgroup"])
 		if id == "uid-a" {
-			require.Equal(t, "same", pod.Metadata["pod"])
-			require.Equal(t, "same", pod.Metadata["service"])
-			require.Equal(t, "one", pod.Metadata["namespace"])
+			require.Equal(t, "redis-0", pod.Metadata["pod"])
+			require.Equal(t, "redis-0", pod.Metadata["service"])
+			require.Equal(t, "prod", pod.Metadata["namespace"])
 			require.Equal(t, "metadata-custom", pod.Metadata["pod_app_kubernetes_io_name"])
 			require.Equal(t, "metadata-service", pod.Metadata["pod_service"])
 		}
 	}
 	require.Equal(t, []deploysystem.Container{{Name: "app", CgroupBaseName: "container-a"}}, snapshot.Pods[0].Containers)
-	_, err = cache.ResolvePod("same")
-	require.Error(t, err)
+	matches, err = cache.FindPodsByName("uid-a")
+	require.NoError(t, err)
+	require.Empty(t, matches)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	failed, err := source.Snapshot(ctx)

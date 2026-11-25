@@ -77,20 +77,42 @@ type SampleConsumerConfig struct {
 	EnvWhitelist []string `yaml:"env_whitelist"`
 }
 
-type WhiteListEntry struct {
+type AllowListEntry struct {
 	Pattern string `yaml:"pattern"`
 }
 
-type BlackListEntry struct {
+type DenyListEntry struct {
 	Pattern string `yaml:"pattern"`
 	Reason  string `yaml:"reason"`
 }
 
 type PodProfileOptions struct {
-	WhiteList []WhiteListEntry `yaml:"whitelist,omitempty"`
-	BlackList []BlackListEntry `yaml:"blacklist,omitempty"`
+	AllowList []AllowListEntry `yaml:"allowlist,omitempty"`
+	DenyList  []DenyListEntry  `yaml:"denylist,omitempty"`
 
 	Default bool `yaml:"default,omitempty"`
+}
+
+func (o *PodProfileOptions) UnmarshalYAML(unmarshal func(any) error) error {
+	type options PodProfileOptions
+	raw := struct {
+		options   `yaml:",inline"`
+		Whitelist []AllowListEntry `yaml:"whitelist"`
+		Blacklist []DenyListEntry  `yaml:"blacklist"`
+	}{Whitelist: o.AllowList, Blacklist: o.DenyList}
+	raw.Default = o.Default
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+
+	// Start with the fallback lists, then apply any explicit allowlist or denylist.
+	raw.AllowList = raw.Whitelist
+	raw.DenyList = raw.Blacklist
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+	*o = PodProfileOptions(raw.options)
+	return nil
 }
 
 type KubernetesConfig = kubelet.Config
