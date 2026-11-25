@@ -51,12 +51,7 @@ def main():
     # for `node` executable file
     os.environ['PATH'] = args.node_dir + ':' + os.environ.get('PATH', '')
 
-    node = os.path.join(args.node_dir, 'node')
-    pnpm_bin = os.path.join(args.pnpm_dir, 'pnpm')
-    if os.path.isfile(pnpm_bin):
-        pnpm_cmd = [pnpm_bin]
-    else:
-        pnpm_cmd = [node, os.path.join(args.pnpm_dir, 'node_modules', 'pnpm', 'bin', 'pnpm.cjs')]
+    pnpm_cmd = [os.path.join(args.pnpm_dir, 'pnpm')]
 
     run_command(pnpm_cmd + ['install'])
     run_command(pnpm_cmd + ['--filter', '../packages/**', 'run', 'build'])
