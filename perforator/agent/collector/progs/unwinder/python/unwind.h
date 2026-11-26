@@ -459,6 +459,13 @@ move_to_next_frame:
     BPF_TRACE("python: Collected %d frames", state->frame_count);
 }
 
+static ALWAYS_INLINE void python_reset_config_state(struct python_state* state) {
+    state->py_runtime_address = 0;
+    state->py_interp_head_address = 0;
+    state->auto_tss_key_address = 0;
+    state->found_pthread_config = false;
+}
+
 // Returns true if we should proceed with stack collection
 static ALWAYS_INLINE bool python_retrieve_configs(
     struct process_info* proc_info,
@@ -468,6 +475,7 @@ static ALWAYS_INLINE bool python_retrieve_configs(
         return false;
     }
 
+    python_reset_config_state(state);
     binary_id id = proc_info->python_binary.id;
     struct python_config* config = bpf_map_lookup_elem(&python_storage, &id);
     if (config == NULL) {
