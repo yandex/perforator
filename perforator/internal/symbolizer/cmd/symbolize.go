@@ -28,6 +28,7 @@ type (
 		ProfilePaths     []string
 		OutputDir        string
 		ReportPath       string
+		ReuseProfileWire bool
 	}
 
 	symbolizeStorageArgs struct {
@@ -261,6 +262,7 @@ func init() {
 	symbolizeLocalCmd.Flags().StringArrayVar(&localArgs.ProfilePaths, "profiles", nil, "Profile path to symbolize; repeat for multiple profiles")
 	symbolizeLocalCmd.Flags().StringVar(&localArgs.OutputDir, "output-dir", "", "Directory for separate symbolized profiles, keeping input filenames")
 	symbolizeLocalCmd.Flags().StringVar(&localArgs.ReportPath, "report", "", "Optional per-profile JSONL report for --profiles")
+	symbolizeLocalCmd.Flags().BoolVar(&localArgs.ReuseProfileWire, "reuse-profile-wire", false, "Reuse validated protobuf wire for append-only local symbolization (requires --profiles)")
 	must.Must(symbolizeLocalCmd.MarkFlagFilename("output"))
 
 	symbolizeCmd.AddCommand(symbolizeLocalCmd)

@@ -35,6 +35,12 @@ type localBatchResult struct {
 // Read and release one profile at a time; the caller keeps the symbolizer and
 // its bounded LLVM binary cache alive across all jobs. Never merge profiles.
 func runLocalBatch(ctx context.Context, jobs []localBatchJob, report io.Writer, symbolizeProfile func(*pprof.Profile) error) error {
+	return runLocalBatchWithWire(ctx, jobs, report, false, symbolizeProfile)
+}
+
+// Wire reuse is enabled only by the local native append-only CLI path.
+// Generic callers keep the official writer, including callbacks editing metadata.
+func runLocalBatchWithWire(ctx context.Context, jobs []localBatchJob, report io.Writer, reuseProfileWire bool, symbolizeProfile func(*pprof.Profile) error) error {
 	if err := validateLocalBatch(jobs, ""); err != nil {
 		return err
 	}
@@ -46,7 +52,7 @@ func runLocalBatch(ctx context.Context, jobs []localBatchJob, report io.Writer, 
 			return errors.Join(append(failures, err)...)
 		}
 		started := time.Now()
-		err := symbolizeBatchFile(job, symbolizeProfile)
+		err := symbolizeBatchFileWithWire(job, reuseProfileWire, symbolizeProfile)
 		result := localBatchResult{Input: job.Input, Output: job.Output, DurationSeconds: time.Since(started).Seconds()}
 		if err != nil {
 			result.Error = err.Error()
@@ -65,11 +71,25 @@ func runLocalBatch(ctx context.Context, jobs []localBatchJob, report io.Writer, 
 }
 
 func symbolizeBatchFile(job localBatchJob, symbolizeProfile func(*pprof.Profile) error) error {
+	return symbolizeBatchFileWithWire(job, false, symbolizeProfile)
+}
+
+func symbolizeBatchFileWithWire(job localBatchJob, reuseProfileWire bool, symbolizeProfile func(*pprof.Profile) error) error {
 	input, err := os.Open(job.Input)
 	if err != nil {
 		return err
 	}
-	profile, err := pprof.Parse(input)
+	var profile *pprof.Profile
+	var rawPB []byte
+	if reuseProfileWire {
+		var data []byte
+		data, err = io.ReadAll(input)
+		if err == nil {
+			profile, rawPB, err = parseLocalBatchProfileWire(data)
+		}
+	} else {
+		profile, err = pprof.Parse(input)
+	}
 	closeErr := input.Close()
 	if err != nil {
 		return err
@@ -86,7 +106,11 @@ func symbolizeBatchFile(job localBatchJob, symbolizeProfile func(*pprof.Profile)
 		return err
 	}
 	defer os.Remove(output.Name())
-	err = profile.WriteUncompressed(output)
+	if rawPB != nil {
+		err = writeSymbolizedProfileWire(output, rawPB, profile)
+	} else {
+		err = profile.WriteUncompressed(output)
+	}
 	closeErr = output.Close()
 	if err != nil {
 		return err
@@ -99,6 +123,9 @@ func symbolizeBatchFile(job localBatchJob, symbolizeProfile func(*pprof.Profile)
 
 func validateLocalArgs(cmd *cobra.Command, args []string, options symbolizeLocalArgs) error {
 	if len(options.ProfilePaths) == 0 {
+		if options.ReuseProfileWire || cmd.Flags().Changed("reuse-profile-wire") {
+			return fmt.Errorf("--reuse-profile-wire requires --profiles")
+		}
 		if options.OutputDir != "" || options.ReportPath != "" {
 			return fmt.Errorf("--output-dir and --report require --profiles")
 		}
@@ -151,7 +178,7 @@ func symbolizeLocalBatch(ctx context.Context, options symbolizeLocalArgs) error 
 		report = file
 	}
 	logger.Info(ctx, "Local symbolization started", log.Int("profiles", len(jobs)), log.Int("binaries", len(options.LocalBinaryPaths)))
-	err = runLocalBatch(ctx, jobs, report, func(profile *pprof.Profile) error {
+	err = runLocalBatchWithWire(ctx, jobs, report, options.ReuseProfileWire, func(profile *pprof.Profile) error {
 		return symbolizer.SymbolizeLocalProfile(ctx, profile, provider, symbolize.NewNilPathProvider())
 	})
 	logger.Info(ctx, "Local symbolization finished", log.Duration("elapsed", time.Since(started)), log.Bool("success", err == nil))

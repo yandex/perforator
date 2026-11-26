@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -21,10 +22,13 @@ func TestLocalProfileArguments(t *testing.T) {
 		args       []string
 		options    symbolizeLocalArgs
 		outputFlag bool
+		wireFlag   string
 		valid      bool
 	}{
 		{name: "legacy", args: []string{"one.pprof"}, valid: true},
 		{name: "missing input"},
+		{name: "wire without batch", args: []string{"one.pprof"}, wireFlag: "true"},
+		{name: "explicit wire false without batch", args: []string{"one.pprof"}, wireFlag: "false"},
 		{name: "multiple positional inputs", args: []string{"one", "two"}},
 		{name: "batch", options: symbolizeLocalArgs{ProfilePaths: []string{"one", "two"}, OutputDir: "out"}, valid: true},
 		{name: "mixed inputs", args: []string{"one"}, options: symbolizeLocalArgs{ProfilePaths: []string{"two"}, OutputDir: "out"}},
@@ -35,6 +39,10 @@ func TestLocalProfileArguments(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cmd := &cobra.Command{Use: "local"}
 			cmd.Flags().String("output", "symbolized_profile.pprof", "")
+			cmd.Flags().BoolVar(&tc.options.ReuseProfileWire, "reuse-profile-wire", tc.options.ReuseProfileWire, "")
+			if tc.wireFlag != "" {
+				require.NoError(t, cmd.Flags().Set("reuse-profile-wire", tc.wireFlag))
+			}
 			if tc.outputFlag {
 				require.NoError(t, cmd.Flags().Set("output", "out.pprof"))
 			}
@@ -243,4 +251,73 @@ func TestLocalBatchReportsFailuresWithoutJSONL(t *testing.T) {
 		require.ErrorContains(t, err, job.Input)
 		require.ErrorContains(t, err, job.Output)
 	}
+}
+
+func TestParseLocalBatchProfileWire(t *testing.T) {
+	var data bytes.Buffer
+	p := &pprof.Profile{
+		SampleType: []*pprof.ValueType{{Type: "cpu", Unit: "cycles"}},
+		Sample:     []*pprof.Sample{{Value: []int64{7}}},
+	}
+	require.NoError(t, p.WriteUncompressed(&data))
+	raw := data.Bytes()
+	compress := func(input []byte) []byte {
+		var output bytes.Buffer
+		w := gzip.NewWriter(&output)
+		_, err := w.Write(input)
+		require.NoError(t, err)
+		require.NoError(t, w.Close())
+		return output.Bytes()
+	}
+	gz := compress(raw)
+	badCRC := append([]byte(nil), gz...)
+	badCRC[len(badCRC)-8] ^= 1
+	legacy := []byte("threadcreate profile: total 123\n")
+	for _, tc := range []struct {
+		name string
+		data []byte
+		wire bool
+	}{
+		{name: "protobuf", data: raw, wire: true},
+		{name: "gzip", data: gz, wire: true},
+		{name: "bad CRC", data: badCRC},
+		{name: "truncated gzip", data: gz[:len(gz)-3]},
+		{name: "double gzip", data: compress(gz)},
+		{name: "bad protobuf", data: []byte{0x32, 0xff}},
+		{name: "invalid sample", data: []byte{0x32, 0x00, 0x12, 0x02, 0x10, 0x01}},
+		{name: "legacy", data: legacy},
+		{name: "gzip legacy", data: compress(legacy)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			expected, expectedErr := pprof.ParseData(tc.data)
+			got, wire, err := parseLocalBatchProfileWire(tc.data)
+			if expectedErr != nil {
+				require.EqualError(t, err, expectedErr.Error())
+				require.Nil(t, wire)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, expected, got)
+			if tc.wire {
+				require.Equal(t, raw, wire)
+			} else {
+				require.Nil(t, wire)
+			}
+		})
+	}
+}
+
+func TestLocalBatchReadFailurePreservesOutput(t *testing.T) {
+	dir := t.TempDir()
+	job := localBatchJob{Input: filepath.Join(dir, "input.pprof"), Output: filepath.Join(dir, "output.pprof")}
+	require.NoError(t, os.Mkdir(job.Input, 0700))
+	require.NoError(t, os.WriteFile(job.Output, []byte("untouched"), 0600))
+	err := runLocalBatchWithWire(context.Background(), []localBatchJob{job}, io.Discard, true, func(*pprof.Profile) error {
+		t.Fatal("failed read must not reach symbolizer")
+		return nil
+	})
+	require.ErrorContains(t, err, "is a directory")
+	output, err := os.ReadFile(job.Output)
+	require.NoError(t, err)
+	require.Equal(t, []byte("untouched"), output)
 }

@@ -13,12 +13,19 @@ SRCS(
     sink.go
     symbolize.go
     symbolize_batch.go
+    symbolize_wire.go
 )
 
 GO_TEST_SRCS(
     symbolize_batch_test.go
     profile_merge_test.go
 )
+
+IF (CGO_ENABLED)
+    GO_TEST_SRCS(
+        symbolize_wire_cli_test.go
+    )
+ENDIF()
 
 IF (OS_LINUX)
     SRCS(
