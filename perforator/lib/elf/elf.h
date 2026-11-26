@@ -125,6 +125,17 @@ TMaybe<TConstArrayRef<ui8>> RetrieveContentFromSection(
     TStringBuf sectionName
 );
 
+// Both virtual-address readers borrow from the object file and may return fewer bytes than requested.
+TMaybe<TConstArrayRef<ui8>> ReadBytesAtVirtualAddress(
+    const llvm::object::ObjectFile& file,
+    const TLocation& location
+);
+
+TMaybe<TConstArrayRef<ui8>> ReadCodeAtVirtualAddress(
+    const llvm::object::ObjectFile& file,
+    const TLocation& location
+);
+
 bool IsElfFile(const llvm::object::ObjectFile& file);
 
 } // namespace NPerforator::NELF
