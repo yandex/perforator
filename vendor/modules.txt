@@ -18947,9 +18947,10 @@ github.com/yandex/pandora/lib/zaputil
 ## explicit; go 1.24
 github.com/yanet-platform/ipfw-go
 github.com/yanet-platform/ipfw-go/vm
-# github.com/yanet-platform/xnetip v0.1.1
+# github.com/yanet-platform/xnetip v0.2.0
 ## explicit; go 1.24
 github.com/yanet-platform/xnetip
+github.com/yanet-platform/xnetip/tools/parity/go
 # github.com/yashtewari/glob-intersection v0.2.0
 ## explicit; go 1.17
 github.com/yashtewari/glob-intersection
