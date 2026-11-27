@@ -943,6 +943,7 @@ struct profiler_sample_args {
     PROFILER_DEFINE_STAGE(profiler_stage_locate_traceee(state, config), METRIC_ERROR_STAGE_LOCATETRACEEE_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_stack(ctx, regs, state, config), METRIC_ERROR_STAGE_COLLECTSTACK_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_tls(ctx, state, config), METRIC_ERROR_STAGE_TLS_COUNT); \
+    PROFILER_DEFINE_STAGE(profiler_stage_collect_php_stack(ctx, state, config), METRIC_ERROR_STAGE_COLLECT_PHP_STACK_COUNT) \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_python_stack(ctx, state, config), METRIC_ERROR_STAGE_COLLECT_PYTHON_STACK_COUNT); \
     PROFILER_DEFINE_STAGE(profiler_stage_collect_lua_stack(ctx, regs, state, config), METRIC_ERROR_STAGE_COLLECT_LUA_STACK_COUNT); \
     profiler_stage_collect_additional_events(&state->packed.header);
@@ -951,7 +952,6 @@ static NOINLINE int profiler_do_sample_impl_perfevent(void* ctx, struct user_reg
     PROFILER_DO_SAMPLE_COMMON_PROLOGUE;
 
     PROFILER_DEFINE_COMMON_STAGES;
-    PROFILER_DEFINE_STAGE(profiler_stage_collect_php_stack(ctx, state, config), METRIC_ERROR_STAGE_COLLECT_PHP_STACK_COUNT)
     PROFILER_DEFINE_STAGE(profiler_stage_collect_lbr_stack(ctx, state), METRIC_ERROR_STAGE_LBR_STACK_COUNT);
 
     PROFILER_DO_SAMPLE_COMMON_EPILOGUE;
