@@ -17,7 +17,9 @@ namespace {
 // used during minimal analysis
 constexpr static std::string_view kAbstractInterpreterCodeSym = "_ZN19AbstractInterpreter5_codeE";
 constexpr static std::string_view kCodeCacheHeapsSym = "_ZN9CodeCache6_heapsE";
-constexpr static std::string_view kVersion = "_ZN19Abstract_VM_Version17_vm_major_versionE";
+constexpr static std::string_view kMajorVersion = "_ZN19Abstract_VM_Version17_vm_major_versionE";
+constexpr static std::string_view kMinorVersion = "_ZN19Abstract_VM_Version17_vm_minor_versionE";
+constexpr static std::string_view kSecurityVersion = "_ZN19Abstract_VM_Version20_vm_security_versionE";
 
 }
 
@@ -30,7 +32,9 @@ std::optional<TJvmAnalysis> ProcessJvmBinaryMinimal(const llvm::object::ObjectFi
         elf,
         kCodeCacheHeapsSym,
         kAbstractInterpreterCodeSym,
-        kVersion
+        kMajorVersion,
+        kMinorVersion,
+        kSecurityVersion
     );
     if (symbols.empty()) {
         return std::nullopt;
@@ -38,15 +42,22 @@ std::optional<TJvmAnalysis> ProcessJvmBinaryMinimal(const llvm::object::ObjectFi
     analysis.Cheatsheet.set_code_cache_heaps(symbols.at(kCodeCacheHeapsSym).Address);
     analysis.Cheatsheet.set_abstract_interpreter_code(symbols.at(kAbstractInterpreterCodeSym).Address);
 
-    auto data = NELF::RetrieveContentFromSection(elf, symbols.at(kVersion), NELF::NSections::kData);
-    if (!data) {
-        ythrow yexception() << "failed to get version info";
-    }
-    constexpr int kIntSize = sizeof(ui32);
-    if (data->size() != kIntSize) {
-        ythrow yexception() << "unexpected version size " << data->size();
-    }
-    std::memcpy(&analysis.Version, data->data(), kIntSize);
+    auto parseInt = [&elf, &symbols](std::string_view sym) -> ui32 {
+        auto data = NELF::RetrieveContentFromSection(elf, symbols.at(sym), NELF::NSections::kData);
+        if (!data) {
+            return 0;
+        }
+        constexpr int kIntSize = sizeof(ui32);
+        if (data->size() != kIntSize) {
+            ythrow yexception() << "unexpected version size " << data->size();
+        }
+        ui32 res;
+        std::memcpy(&res, data->data(), kIntSize);
+        return res;
+    };
+    analysis.Version.set_major(parseInt(kMajorVersion));
+    analysis.Version.set_minor(parseInt(kMinorVersion));
+    analysis.Version.set_security(parseInt(kSecurityVersion));
 
     return analysis;
 }

@@ -9,6 +9,7 @@
 #include <contrib/libs/protobuf/src/google/protobuf/util/message_differencer.h>
 
 #include <util/stream/file.h>
+#include <util/system/env.h>
 
 #include <dlfcn.h>
 
@@ -97,28 +98,56 @@ int main(int argc, char** argv) {
     NLastGetopt::TOpts opts;
     opts.AddLongOption("jvm-path").Required().Help("Path to libjvm.so");
     opts.AddLongOption("dbg-path").Required().Help("Path to libjvm debuginfo");
-    opts.AddLongOption("out-dir").DefaultValue("..").Help("output directory");
+    opts.AddLongOption("out-path").Required().Help("output path");
     opts.AddLongOption("validate").SetFlag(&validateOnly).Help("Check that output file is up-to-date instead of updating it");
-
+    opts.AddLongOption("min-version").Help("Minimal version this cheatsheet should be applicable to");
 
     NLastGetopt::TOptsParseResult parsed{&opts, argc, argv};
 
-    TString out = parsed.Get("out-dir");
+    TString out = parsed.Get("out-path");
     TString libjvmPath = parsed.Get("jvm-path");
     TString dbgPath = parsed.Get("dbg-path");
 
-
     TJvmAnalysis dynamic = DumpDynamic(libjvmPath);
 
-    TJvmAnalysis spec = NPerforator::NLinguist::NJvm::ProcessJVMDwarf(dbgPath, dynamic.Version);
+    TJvmAnalysis spec = NPerforator::NLinguist::NJvm::ProcessJVMDwarf(
+        dbgPath,
+        dynamic.Version
+    );
 
     spec.Version = dynamic.Version;
 
-    Cout << "Writing cheatsheets for JDK " << spec.Version << Endl;
+    std::string versionString = std::format("{}.{}.{}", spec.Version.major(), spec.Version.minor(), spec.Version.security());
+
+    Cout << "Writing cheatsheets for JDK " << versionString << Endl;
 
     spec.Cheatsheet.MergeFrom(dynamic.Cheatsheet);
-    std::string path = out + std::format("/jdk{}.txtpb", spec.Version);
-    if (validateOnly) {
+    NPerforator::NBinaryProcessing::NJvm::Version& minVersion = *spec.Cheatsheet.mutable_version_filter()->mutable_min_version();
+
+    if (parsed.Has("min-version")) {
+        std::string_view mv = parsed.Get("min-version");
+        TVector<TStringBuf> comps;
+
+        size_t cnt = Split(mv, ".", comps);
+        if (cnt != 3) {
+            ythrow yexception() << "Invalid min-version: " << mv;
+        }
+
+        ui32 maj = FromString<ui32>(comps[0]);
+        ui32 min = FromString<ui32>(comps[1]);
+        ui32 sec = FromString<ui32>(comps[2]);
+        if (maj != spec.Version.major()) {
+            ythrow yexception() << "Mismatch, expected major version to be" << maj;
+        }
+        minVersion.set_major(maj);
+        minVersion.set_minor(min);
+        minVersion.set_security(sec);
+    } else {
+        minVersion.set_major(spec.Version.major());
+    }
+
+    std::string path = out;
+    if (validateOnly && GetEnv("REGENERATE_CHEATSHEETS") == "") {
         bool ok = Validate(spec.Cheatsheet, path);
         if (!ok) {
             Cout << "Cheatsheet " << path << " is outdated" << Endl;

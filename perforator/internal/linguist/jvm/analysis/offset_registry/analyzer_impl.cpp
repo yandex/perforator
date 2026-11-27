@@ -8,6 +8,14 @@ uint64_t FindMajorVersionAddress(const TJvmMetadata& metadata) {
     return metadata.FindStaticFieldAddress("Abstract_VM_Version", "_vm_major_version");
 }
 
+uint64_t FindMinorVersionAddress(const TJvmMetadata& metadata) {
+    return metadata.FindStaticFieldAddress("Abstract_VM_Version", "_vm_minor_version");
+}
+
+uint64_t FindSecurityVersionAddress(const TJvmMetadata& metadata) {
+    return metadata.FindStaticFieldAddress("Abstract_VM_Version", "_vm_security_version");
+}
+
 TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistryAnalysisOptions options, ui32 version) {
     TJvmAnalysis offsets;
     NPerforator::NBinaryProcessing::NJvm::Cheatsheet& s = offsets.Cheatsheet;

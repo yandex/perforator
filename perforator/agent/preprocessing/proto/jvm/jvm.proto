@@ -6,7 +6,21 @@ import "perforator/agent/preprocessing/proto/jvm/meta.proto";
 
 option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm";
 
+message Version {
+    optional uint32 major = 1;
+    optional uint32 minor = 2;
+    optional uint32 security = 3;
+}
+
+message VersionFilter {
+    optional Version min_version = 1;
+}
+
 message Cheatsheet {
+    optional VersionFilter version_filter = 53;
+
+    // TODO: move other fields into a sub-message
+
     optional int64 code_blob_name = 3;
     optional int64 code_blob_frame_size = 4;
     optional int64 code_blob_kind = 5 [(NPerforator.NBinaryProcessing.NJvm.required_if_java_gte) = 22];
@@ -76,7 +90,7 @@ message Cheatsheet {
 message JvmAnalysis {
     Cheatsheet cheatsheet = 1;
 
-    uint32 version = 4;
+    Version version = 6;
     string version_string = 5;
 
     enum Status {

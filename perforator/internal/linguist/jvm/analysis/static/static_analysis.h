@@ -7,7 +7,6 @@
 
 namespace NPerforator::NLinguist::NJvm {
 
-
 // Information extracted from the VMStructs class.
 // See https://github.com/openjdk/jdk/blob/89f9268ed7c2cb86891f23a10482cd459454bd32/src/hotspot/share/runtime/vmStructs.hpp#L34
 struct TVMStructsAddresses {
@@ -57,7 +56,7 @@ struct TVMStructsAddresses {
 
 TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses);
 
-TJvmAnalysis ProcessJVMDwarf(std::string_view path, ui32 version);
+TJvmAnalysis ProcessJVMDwarf(std::string_view path, NPerforator::NBinaryProcessing::NJvm::Version version);
 
 
 } // namespace NPerforator::NLinguist::NJvm

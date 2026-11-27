@@ -42,10 +42,12 @@ size_t IntsLength(const char* ptr, TIntEntryLayout layout) {
 
 };
 
-TJvmAnalysis ProcessJVMDwarf(std::string_view path, ui32 version) {
+TJvmAnalysis ProcessJVMDwarf(std::string_view path, NPerforator::NBinaryProcessing::NJvm::Version version) {
     TJvmAnalysis analysis;
 
     TOffsets offsets = TOffsets::Get(path, version);
+
+    ui32 major = version.major();
 
     if (offsets.KindInfo) {
         analysis.Cheatsheet.set_code_blob_kind(offsets.KindInfo->CodeBlobKindOffset);
@@ -53,17 +55,17 @@ TJvmAnalysis ProcessJVMDwarf(std::string_view path, ui32 version) {
     }
     analysis.Cheatsheet.set_code_heap_next_segment(offsets.CodeHeapNextSegmentOffset);
     analysis.Cheatsheet.set_nmethod_speculations(offsets.NmethodSpeculationsOffset);
-    if (offsets.Version <= 24) {
+    if (major <= 24) {
         analysis.Cheatsheet.set_nmethod_jvmci_data_offset(offsets.NmethodJvmciDataOffset);
     }
-    if (offsets.Version <= 21) {
+    if (major <= 21) {
         analysis.Cheatsheet.set_nmethod_scopes_data_addr(offsets.NmethodScopesDataBeginOffset);
     }
 
     analysis.Cheatsheet.set_frame_return_addr_offset(offsets.StackFrameReturnAddressOffset);
     analysis.Cheatsheet.set_frame_interpreter_frame_method_offset(offsets.InterpreterStackFrameMethodOffset);
 
-    analysis.Version = static_cast<ui32>(offsets.Version);
+    analysis.Version = offsets.Version;
 
     return analysis;
 }
@@ -103,12 +105,27 @@ TJvmAnalysis ProcessDynamicLinkedJVM(TVMStructsAddresses addresses) {
         {types, typesLength, typeLayout},
         {ints, intsLength, intLayout},
     };
-    int* versionAddr = reinterpret_cast<int*>(FindMajorVersionAddress(metadata));
-    int version = *versionAddr;
-    if (version < 0) {
-        throw yexception() << "negative version";
+    NPerforator::NBinaryProcessing::NJvm::Version version;
+
+    int* majorVersionAddr = reinterpret_cast<int*>(FindMajorVersionAddress(metadata));
+    if (*majorVersionAddr < 0) {
+        throw yexception() << "negative major version";
     }
-    TJvmAnalysis analysis = ProcessOffsetRegistry(metadata, TOffsetRegistryAnalysisOptions{}, version);
+    version.set_major(*majorVersionAddr);
+
+    int* minorVersionAddr = reinterpret_cast<int*>(FindMinorVersionAddress(metadata));
+    if (*minorVersionAddr < 0) {
+        throw yexception() << "negative minor version";
+    }
+    version.set_minor(*minorVersionAddr);
+
+    int* securityVersionAddr = reinterpret_cast<int*>(FindSecurityVersionAddress(metadata));
+    if (*securityVersionAddr < 0) {
+        throw yexception() << "negative security version";
+    }
+    version.set_security(*securityVersionAddr);
+
+    TJvmAnalysis analysis = ProcessOffsetRegistry(metadata, TOffsetRegistryAnalysisOptions{}, version.major());
     analysis.Version = version;
     return analysis;
 }

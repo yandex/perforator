@@ -11,6 +11,8 @@ struct TOffsetRegistryAnalysisOptions {
 };
 
 uint64_t FindMajorVersionAddress(const TJvmMetadata& metadata);
+uint64_t FindMinorVersionAddress(const TJvmMetadata& metadata);
+uint64_t FindSecurityVersionAddress(const TJvmMetadata& metadata);
 
 TJvmAnalysis ProcessOffsetRegistry(const TJvmMetadata& metadata, TOffsetRegistryAnalysisOptions options, ui32 version);
 

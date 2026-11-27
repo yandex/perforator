@@ -38,4 +38,9 @@ nmethod_scopes_data_addr: 120
 code_blob_code_begin: 8
 nmethod_frame_complete_offset: 80
 nmethod_compile_id: 308
+version_filter {
+  min_version {
+    major: 21
+  }
+}
 

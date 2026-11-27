@@ -10,10 +10,12 @@ namespace {
 using enum llvm::dwarf::Attribute;
 
 
-TOffsets Parse(const NDwarfParser::TParser& parser, ui32 version) {
+TOffsets Parse(const NDwarfParser::TParser& parser, NPerforator::NBinaryProcessing::NJvm::Version version) {
     TOffsets off;
 
     off.Version = version;
+
+    ui32 major = version.major();
 
     std::string nmethodUnit = "nmethod.cpp";
     std::string codeHeapUnit = "memory/heap.cpp";
@@ -30,7 +32,7 @@ TOffsets Parse(const NDwarfParser::TParser& parser, ui32 version) {
         DW_AT_const_value
     );
 
-    if (version >= 21 && version <= 24) {
+    if (major >= 21 && major <= 24) {
         off.NmethodJvmciDataOffset = NDwarfParser::ReadSizeTAttr(
             parser.Resolve({.Unit=nmethodUnit, .QName={"nmethod", "_jvmci_data_offset"}}),
             DW_AT_data_member_location
@@ -38,7 +40,7 @@ TOffsets Parse(const NDwarfParser::TParser& parser, ui32 version) {
     } else {
         off.NmethodJvmciDataOffset = SIZE_MAX;
     }
-    if (version <= 21) {
+    if (major <= 21) {
         off.NmethodScopesDataBeginOffset = NDwarfParser::ReadSizeTAttr(
             parser.Resolve({.Unit=compiledMethodUnit, .QName={"CompiledMethod", "_scopes_data_begin"}}),
             DW_AT_data_member_location
@@ -55,7 +57,7 @@ TOffsets Parse(const NDwarfParser::TParser& parser, ui32 version) {
         DW_AT_data_member_location
     );
 
-    if (version > 21 && version <= 24) {
+    if (major > 21 && major <= 24) {
         off.KindInfo.emplace();
         off.KindInfo->CodeBlobKindOffset = NDwarfParser::ReadSizeTAttr(
             parser.Resolve({.Unit=codeBlobUnit, .QName={"CodeBlob", "_kind"}}),
@@ -70,7 +72,7 @@ TOffsets Parse(const NDwarfParser::TParser& parser, ui32 version) {
 }
 }
 
-TOffsets TOffsets::Get(std::string_view path, ui32 version) {
+TOffsets TOffsets::Get(std::string_view path, NPerforator::NBinaryProcessing::NJvm::Version version) {
     NDwarfParser::TParser parser(path);
 
     return Parse(parser, version);

@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 
 	"github.com/yandex/perforator/library/go/ptr"
-	jvmproto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm"
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm"
 )
 
 type fieldReqs struct {
@@ -33,11 +33,11 @@ func makeReqs(f protoreflect.FieldDescriptor) (fieldReqs, error) {
 	if opts == nil {
 		return reqs, nil
 	}
-	gte := proto.GetExtension(opts, jvmproto.E_RequiredIfJavaGte).(uint32)
+	gte := proto.GetExtension(opts, jvm.E_RequiredIfJavaGte).(uint32)
 	if gte != 0 {
 		reqs.javaVersionGTE = ptr.T(gte)
 	}
-	lte := proto.GetExtension(opts, jvmproto.E_RequiredIfJavaLte).(uint32)
+	lte := proto.GetExtension(opts, jvm.E_RequiredIfJavaLte).(uint32)
 	if lte != 0 {
 		reqs.javaVersionLTE = ptr.T(lte)
 	}
@@ -45,7 +45,17 @@ func makeReqs(f protoreflect.FieldDescriptor) (fieldReqs, error) {
 	return reqs, nil
 }
 
-func Validate(cs *jvmproto.Cheatsheet, version uint32) error {
+func Validate(cs *jvm.Cheatsheet) error {
+	if cs.GetVersionFilter() == nil {
+		return fmt.Errorf("version_filter is required")
+	}
+	if cs.GetVersionFilter().GetMinVersion() == nil {
+		return fmt.Errorf("version_filter.min_version is required")
+	}
+	if cs.GetVersionFilter().GetMinVersion().GetMajor() == 0 {
+		return fmt.Errorf("version_filter.min_version is invalid: major version may not be 0")
+	}
+	version := cs.GetVersionFilter().GetMinVersion().GetMajor()
 	// TODO: most of this can be calculated once and reused
 	refl := cs.ProtoReflect()
 	fields := refl.Descriptor().Fields()
@@ -74,4 +84,14 @@ func Validate(cs *jvmproto.Cheatsheet, version uint32) error {
 		}
 	}
 	return nil
+}
+
+// ValidateStatis checks that cs would be valid if dynamic-only information is available
+func ValidateStatic(cs *jvm.Cheatsheet) error {
+	copy := proto.CloneOf(cs)
+
+	copy.AbstractInterpreterCode = new(uint64(42))
+	copy.CodeCacheHeaps = new(uint64(42))
+
+	return Validate(copy)
 }

@@ -40,4 +40,9 @@ nmethod_mutable_data_size: 48
 code_blob_code_offset: 36
 nmethod_frame_complete_offset: 54
 nmethod_compile_id: 212
+version_filter {
+  min_version {
+    major: 25
+  }
+}
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <perforator/internal/linguist/jvm/analysis/api/api.h>
+
 #include <cstddef>
 #include <cstdlib>
 
@@ -15,12 +17,14 @@ struct TKindInfo {
     unsigned char CodeBlobKindNmethod;
 };
 
+
+
 struct TOffsets {
     size_t CodeHeapNextSegmentOffset;
 
     std::optional<TKindInfo> KindInfo;
 
-    int Version;
+    NPerforator::NBinaryProcessing::NJvm::Version Version;
 
     size_t NmethodSpeculationsOffset;
     size_t NmethodJvmciDataOffset;
@@ -31,7 +35,7 @@ struct TOffsets {
     i32 InterpreterStackFrameMethodOffset;
 
     // TODO: ideally we should detect version rather than take it as input.
-    static TOffsets Get(std::string_view path, ui32 version);
+    static TOffsets Get(std::string_view path, NPerforator::NBinaryProcessing::NJvm::Version version);
 };
 
 } // namespace NPerforator::NLinguist::NJvm

@@ -137,7 +137,7 @@ func (s *Scanner) initJIT(j *jvmbindings.JVM, baseAddr uint64, state *ProcessSta
 
 func (s *Scanner) InitProcess(key linux.ProcessKey, cs *jvmproto.Cheatsheet, version uint32, baseAddress uint64) (*ProcessState, ProcessInfoForBPF, error) {
 	pid := key.Pid
-	err := cheatsheets.Validate(cs, version)
+	err := cheatsheets.Validate(cs)
 	if err != nil {
 		return nil, ProcessInfoForBPF{}, fmt.Errorf("invalid config: %w", err)
 	}

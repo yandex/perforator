@@ -1,7 +1,6 @@
 package cheatsheet_test
 
 import (
-	"strconv"
 	"strings"
 	"testing"
 
@@ -20,6 +19,7 @@ var supportedVersions = []string{
 	"21",
 	"23",
 	"24",
+	"25-0-5",
 	"25",
 }
 
@@ -47,17 +47,11 @@ func TestCheatsheetsAreValid(t *testing.T) {
 			err := prototext.Unmarshal(data, cheatsheet)
 			require.NoError(t, err)
 
-			cheatsheet.AbstractInterpreterCode = new(uint64(42))
-			cheatsheet.CodeCacheHeaps = new(uint64(42))
-
 			// checks from jvmregistry.Registry.installBinaryConfig
 			assert.NotNil(t, cheatsheet.FrameInterpreterFrameMethodOffset)
 			assert.NotNil(t, cheatsheet.FrameReturnAddrOffset)
 
-			intVer, err := strconv.Atoi(ver)
-			require.NoError(t, err)
-
-			err = cheatsheets.Validate(cheatsheet, uint32(intVer))
+			err = cheatsheets.ValidateStatic(cheatsheet)
 			assert.NoError(t, err)
 		})
 	}

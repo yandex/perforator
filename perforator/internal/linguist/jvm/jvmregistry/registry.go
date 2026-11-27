@@ -17,14 +17,12 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/log/ctxlog"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/library/go/core/metrics/nop"
-	"github.com/yandex/perforator/library/go/core/resource"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/unwindtable"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
@@ -34,7 +32,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profilerext"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/jvm"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
-	_ "github.com/yandex/perforator/perforator/internal/linguist/jvm/cheatsheets"
+	"github.com/yandex/perforator/perforator/internal/linguist/jvm/cheatsheets"
 	"github.com/yandex/perforator/perforator/internal/logfield"
 	"github.com/yandex/perforator/perforator/internal/symboltable"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
@@ -75,7 +73,7 @@ type interpretedSymbolCacheValue struct {
 
 type binaryData struct {
 	cheatsheet *jvm.Cheatsheet
-	version    uint32
+	version    *jvm.Version
 }
 
 type symFunc = func(addr profilerext.Address) []string
@@ -86,9 +84,10 @@ type compiledSymbol struct {
 }
 
 type Registry struct {
-	l      xlog.Logger
-	bpf    *programstate.State
-	unwind *unwindtable.BPFManager
+	l              xlog.Logger
+	bpf            *programstate.State
+	unwind         *unwindtable.BPFManager
+	cheatsheetsReg *cheatsheets.Registry
 
 	disambiguateFrameSource bool
 
@@ -171,6 +170,7 @@ func New(log xlog.Logger, reg metrics.Registry, bpf *machine.BPF, unwind *unwind
 		l:                       log.WithName("jvmregistry"),
 		tracked:                 make(map[linux.CurrentNamespacePID]*trackedProcess),
 		bpf:                     bpf.State(),
+		cheatsheetsReg:          cheatsheets.NewRegistry(),
 		unwind:                  unwind,
 		compiledSyms:            symboltable.New[linux.CurrentNamespacePID, compiledSymbol](),
 		interpretedSymsCache:    interpretedSymsCache,
@@ -254,32 +254,27 @@ func (r *Registry) OnBinaryDiscovery(ctx context.Context, binaryID uint64, build
 	}
 	switch analysis.Jvm.Status {
 	case jvm.JvmAnalysis_STATUS_OK:
-		jdkVersion := analysis.Jvm.Version
-		var cheatSheetResourceName string
-		cheatSheetResourceName = fmt.Sprintf("jvm-cheatsheets/jdk%d.txtpb", jdkVersion)
-
-		rawStaticData := resource.Get(cheatSheetResourceName)
-		if rawStaticData == nil {
-			r.l.Error(ctx, "Failed to find JVM cheatsheet", log.String("cheatsheet", cheatSheetResourceName))
+		if analysis.Jvm.Version == nil {
+			r.l.Error(ctx, "Internal error: analyzer did not return jvm version")
 			return
 		}
-		cheatSheet := new(jvm.Cheatsheet)
-		err := prototext.Unmarshal(rawStaticData, cheatSheet)
-		if err != nil {
-			r.l.Error(ctx, "Failed to parse builtin JVM cheatsheet", log.Error(err), log.String("cheatsheet", cheatSheetResourceName))
+		cheatSheet := r.cheatsheetsReg.Find(analysis.Jvm.Version)
+		if cheatSheet == nil {
+			r.l.Error(ctx, "No cheatsheet found for jvm version", log.String("binary_id", buildID), log.Any("version", analysis.Jvm.Version))
 			return
 		}
+		cheatSheet = proto.CloneOf(cheatSheet)
 		proto.Merge(cheatSheet, analysis.Jvm.Cheatsheet)
 
 		r.cheatsheetsMu.Lock()
 		r.cheatsheets[binaryID] = &binaryData{
-			version:    jdkVersion,
+			version:    analysis.Jvm.Version,
 			cheatsheet: cheatSheet,
 		}
 		r.cheatsheetsMu.Unlock()
 
-		r.l.Info(ctx, "Assigning jvm config", log.String("binary_id", buildID), log.Any("config", cheatSheet), log.String("cheatsheet", cheatSheetResourceName))
-		err = r.installBinaryConfig(binaryID, cheatSheet)
+		r.l.Info(ctx, "Assigning jvm config", log.String("binary_id", buildID), log.Any("config", cheatSheet), log.Any("version", analysis.Jvm.Version))
+		err := r.installBinaryConfig(binaryID, cheatSheet)
 		if err != nil {
 			// TODO: improve error handling
 			r.l.Error(ctx, "Failed to install jvm config", log.String("binary_id", buildID), log.Any("analysis", analysis.Jvm), log.Error(err))
