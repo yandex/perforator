@@ -4,6 +4,7 @@
 
 #include <util/generic/vector.h>
 
+#include <array>
 #include <concepts>
 
 namespace NPerforator::NProfile {
@@ -29,13 +30,7 @@ private:
     // random probe into the global edge hash entirely; only high-degree nodes spill
     // to EdgeToNode_. Byte-identical to the pure-hash trie (same creation order).
     static constexpr ui32 InlineCap = 4;
-    struct TChildSlots {
-        // Unused slots are zero. A child id of 0 means "empty" — node 0 is the root,
-        // which is never anyone's child — so no separate count field is needed. Slots
-        // are filled in order, so the first zero terminates the occupied prefix.
-        TKey Keys[InlineCap] = {};
-        TIndex Children[InlineCap] = {};
-    };
+    using TChildSlots = std::array<TIndex, InlineCap>;
 
 public:
     friend class TNode;
@@ -80,16 +75,15 @@ public:
             // parent was just touched). Only high-degree nodes spill to the global hash.
             const TChildSlots& slots = Trie_->Inline_[Id_];
             for (ui32 i = 0; i < InlineCap; ++i) {
-                if (slots.Children[i] == 0) {
+                if (slots[i] == 0) {
                     // Empty slot (and everything after): key absent — insert inline here.
                     TIndex newId = Trie_->CreateNode(key, Id_);
                     TChildSlots& s = Trie_->Inline_[Id_];  // re-fetch: CreateNode may realloc
-                    s.Keys[i] = key;
-                    s.Children[i] = newId;
+                    s[i] = newId;
                     return {Trie_, newId};
                 }
-                if (slots.Keys[i] == key) {
-                    return {Trie_, slots.Children[i]};
+                if (Trie_->Keys_[slots[i]] == key) {
+                    return {Trie_, slots[i]};
                 }
             }
 
@@ -107,8 +101,8 @@ public:
         TIndex Id_;
     };
 
-    TTrie()
-        : Keys_{{}}
+    explicit TTrie(const TKey& rootKey = {})
+        : Keys_{rootKey}
         , Values_{{}}
         , FirstChild_{0}
         , NextSibling_{0}
@@ -163,7 +157,7 @@ private:
         NextSibling_.push_back(FirstChild_[parent]);
         Parent_.push_back(parent);
         FirstChild_[parent] = newId;
-        Inline_.push_back(TChildSlots{});
+        Inline_.push_back({});
         return newId;
     }
 

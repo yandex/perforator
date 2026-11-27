@@ -1,105 +1,18 @@
 #include "builder.h"
 #include "profile.h"
+#include "string_table.h"
 
 #include <absl/container/flat_hash_map.h>
 
 #include <library/cpp/int128/int128.h>
 #include <library/cpp/iterator/enumerate.h>
 
-#include <util/memory/pool.h>
 #include <util/generic/maybe.h>
 
 
 namespace NPerforator::NProfile {
 
 ////////////////////////////////////////////////////////////////////////////////
-
-class TStringTableSubview {
-public:
-    explicit TStringTableSubview(
-        NProto::NProfile::StringTable* strtab,
-        TStringId index
-    )
-        : StringTable_{strtab}
-        , Index_{index}
-    {}
-
-    const char* Data() const {
-        return StringTable_->strings().data() + Offset();
-    }
-
-    ui32 Offset() const {
-        return StringTable_->offset(*Index_);
-    }
-
-    ui32 Size() const {
-        return StringTable_->length(*Index_);
-    }
-
-    const char* begin() const {
-        return Data();
-    }
-
-    const char* end() const {
-        return Data() + Size();
-    }
-
-    // The returned TStringBuf can be invalidated on string table modification,
-    // so it should not be stored for a long time.
-    TStringBuf AsStringBuf() const {
-        return {Data(), Size()};
-    }
-
-    std::string_view AsStringView() const {
-        return AsStringBuf();
-    }
-
-    bool operator==(const TStringTableSubview& other) const noexcept {
-        return Index_ == other.Index_;
-    }
-
-    bool operator!=(const TStringTableSubview& other) const noexcept {
-        return !operator==(other);
-    }
-
-    // NOLINTNEXTLINE(readability-identifier-naming)
-    struct absl_container_eq {
-        using is_transparent = void;
-
-        bool operator()(TStringTableSubview lhs, TStringTableSubview rhs) const {
-            return lhs == rhs;
-        }
-
-        bool operator()(std::string_view lhs, TStringTableSubview rhs) const {
-            return operator()(lhs, rhs.AsStringView());
-        }
-
-        bool operator()(TStringTableSubview lhs, std::string_view rhs) const {
-            return operator()(lhs.AsStringView(), rhs);
-        }
-
-        bool operator()(std::string_view lhs, std::string_view rhs) const {
-            return lhs == rhs;
-        }
-    };
-
-    // NOLINTNEXTLINE(readability-identifier-naming)
-    struct absl_container_hash {
-        using is_transparent = void;
-
-        size_t operator()(TStringTableSubview value) const {
-            return operator()(value.AsStringView());
-        }
-
-        size_t operator()(std::string_view value) const {
-            return absl::HashOf(value);
-        }
-    };
-
-private:
-    NProto::NProfile::StringTable* StringTable_;
-    TStringId Index_;
-};
 
 class TProfileBuilder::TImpl {
     friend class TProfileBuilder::TSimpleSampleKeyBuilder;
@@ -108,6 +21,7 @@ public:
     TImpl(TProfileBuilder& owner, NProto::NProfile::Profile& profile)
         : Owner_{owner}
         , Profile_{profile}
+        , Strings_{profile.mutable_strtab()}
     {
         InitializeProfile();
     }
@@ -117,21 +31,7 @@ public:
     }
 
     TStringId AddString(TStringBuf string) {
-        if (auto it = Strings_.find(string); it != Strings_.end()) {
-            return it->second;
-        }
-        TStringId id = TStringId::FromInternalIndex(static_cast<i32>(Strings_.size()));
-
-        auto& strtab = *Profile_.mutable_strtab();
-        Y_ENSURE(*id == strtab.offset_size());
-        strtab.add_offset(strtab.strings().size());
-        strtab.add_length(string.size());
-        strtab.mutable_strings()->append(string);
-
-        TStringTableSubview view{&strtab, id};
-        Strings_.emplace(view, id);
-
-        return id;
+        return Strings_.Intern(string).GetIndex();
     }
 
     TCommentId AddComment(TStringBuf string) {
@@ -386,12 +286,6 @@ private:
     }
 
 private:
-    void FillEntityAt(TStringBuf str, TStringId id) {
-        auto& strtab = *Profile_.mutable_strtab();
-        Y_ENSURE(strtab.length_size() == *id);
-        strtab.mutable_strings()->AppendNoAlias(str);
-    }
-
     void FillEntityAt(const TValueTypeInfo& info, TValueTypeId id) {
         auto& values = *Profile_.mutable_samples()->mutable_values();
         for (auto&& sampleValues : values) {
@@ -503,8 +397,7 @@ private:
     TProfileBuilder& Owner_;
     NProto::NProfile::Profile& Profile_;
 
-    TMemoryPool Pool_{4096};
-    absl::flat_hash_map<TStringTableSubview, TStringId> Strings_;
+    TStringInterner Strings_;
     absl::flat_hash_map<TValueTypeInfo, TValueTypeId> ValueTypes_;
     absl::flat_hash_map<TStringLabelInfo, TLabelId> StringLabels_;
     absl::flat_hash_map<TNumberLabelInfo, TLabelId> NumberLabels_;
@@ -525,6 +418,7 @@ private:
 
 TProfileBuilder::TProfileBuilder(NProto::NProfile::Profile* profile) {
     Y_ENSURE(profile);
+    Y_ENSURE(profile->strtab().offset_size() == 0);
     Impl_ = MakeHolder<TImpl>(*this, *profile);
 }
 
