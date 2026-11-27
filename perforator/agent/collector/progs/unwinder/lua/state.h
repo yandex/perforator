@@ -148,6 +148,29 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
     return bpf_map_update_elem(&lua_state_cache, &state->pid, &g, BPF_ANY);
 }
 
+// Report discovery independently of the Lua walk's single-VM cache.
+static ALWAYS_INLINE void lua_report_jit_vm(struct lua_state* state, luajit_global_state* global_state) {
+    if (!state->config.jit_enabled) {
+        return;
+    }
+    luajit_state* L = luajit_global_state_get_current_lua_state(global_state, &state->config);
+    if (!L || luajit_state_get_glref(L) != global_state) {
+        return;
+    }
+    struct lua_jit_vm_key key = {
+        .pid = state->pid,
+        .process_starttime = state->process_starttime,
+        .global_state = (u64)global_state,
+    };
+    if (bpf_map_lookup_elem(&lua_jit_vms, &key) == NULL) {
+        struct lua_jit_vm hint = {
+            .config = state->config,
+            .binary_base = state->binary_start_address,
+        };
+        (void)bpf_map_update_elem(&lua_jit_vms, &key, &hint, BPF_NOEXIST);
+    }
+}
+
 /**
  * @brief Test global state for validity and save global and current state to the Lua unwind state.
  *
@@ -174,6 +197,7 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
 
     lua_state_set_lua_state(state, L);
     lua_state_set_global_state(state, global_state);
+    lua_report_jit_vm(state, global_state);
 
     return true;
 }
@@ -188,6 +212,7 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
  * @return `true` if G and L were found.
  */
 [[nodiscard]] static ALWAYS_INLINE bool lua_state_find_g_and_l(struct lua_state* state) {
+    lua_report_jit_vm(state, luajit_get_global_state_from_dispatch(state->dispatch_register, &state->config));
     luajit_global_state* cached_global_state = lua_state_cache_get(state);
     if (cached_global_state != NULL) {
         // Cache exists
@@ -206,13 +231,12 @@ static ALWAYS_INLINE void lua_state_set_lua_state(struct lua_state* state, luaji
 
     // Cache doesn't exist or invalidated //
 
-    // Don't try to find the state if we are currently not executing in LuaJIT binary
-    // Caveat (TODO): JIT-code made by LuaJIT not a part of LuaJIT binary address range, though, it would be easy to get global_State from there.
+    // GC64 traces preserve DISPATCH in r14, including outside the VM binary.
+    // Cross-check G and L before reporting a discovery hint.
     bool is_in_luajit_binary =
         state->binary_start_address <= state->instruction_pointer &&
         state->instruction_pointer < state->binary_end_address;
     if (!is_in_luajit_binary) {
-        LUA_LOG_DEBUG("Not in luajit binary %px <= %px < %px", state->binary_start_address, state->instruction_pointer, state->binary_end_address);
         return false;
     }
 

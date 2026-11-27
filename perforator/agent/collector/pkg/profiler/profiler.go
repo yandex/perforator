@@ -32,6 +32,7 @@ import (
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmregistry"
 	lua_agent "github.com/yandex/perforator/perforator/internal/linguist/lua/agent"
+	lua_jit "github.com/yandex/perforator/perforator/internal/linguist/lua/jit"
 	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
 	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
@@ -114,8 +115,9 @@ type Profiler struct {
 
 	pythonRegistry *python_agent.Registry
 
-	phpProcessor *php_agent.StackProcessor
-	luaProcessor *lua_agent.StackProcessor
+	phpProcessor   *php_agent.StackProcessor
+	luaProcessor   *lua_agent.StackProcessor
+	luaJITRegistry *lua_jit.Registry
 
 	jitSymbolizers []profilerext.JITSymbolizer
 
@@ -531,6 +533,13 @@ func (p *Profiler) initialize(ctx context.Context, r metrics.Registry) (err erro
 	unwmanager, err := unwindtable.NewBPFManager(p.log.WithName("ProcessRegistry"), r.WithPrefix("ProcessRegistry"), p.bpf.State())
 	if err != nil {
 		return fmt.Errorf("failed to create unwind table manager: %w", err)
+	}
+
+	if p.conf.FeatureFlagsConfig.LuaEnabled() && p.conf.FeatureFlagsConfig.JVMEnabled() {
+		p.log.Warn("LuaJIT native trace unwinding is disabled when JVM profiling owns the process DWARF roots")
+	} else if p.conf.FeatureFlagsConfig.LuaEnabled() {
+		p.luaJITRegistry = lua_jit.NewRegistry(p.log, p.bpf.State(), unwindtable.NewLuaJITPublisher(unwmanager), nil)
+		p.processListeners = append(p.processListeners, p.luaJITRegistry)
 	}
 
 	if p.conf.FeatureFlagsConfig.JVMEnabled() {
@@ -1106,6 +1115,12 @@ func (p *Profiler) Start(ctx context.Context) error {
 			return p.handleWorkerError(ctx, err, "pods cgroup tracker")
 		})
 	}
+	if p.luaJITRegistry != nil {
+		p.wg.Go(func() error {
+			return p.handleWorkerError(ctx, p.luaJITRegistry.Run(ctx), "LuaJIT registry")
+		})
+	}
+
 	if p.jvmRegistry != nil {
 		p.wg.Go(func() error {
 			err := p.jvmRegistry.Run(ctx)

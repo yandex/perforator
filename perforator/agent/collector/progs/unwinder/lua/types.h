@@ -22,9 +22,25 @@ struct lua_config {
     u64 vm_start_pc;          // First PC of VM. Binary-relative.
     u64 vm_end_pc;            // Exclusive end of VM, including the FFI tail. Binary-relative.
     u32 ffi_call_size;        // Size of the verified FFI tail, or zero when absent.
+    u8 jit_enabled;           // Userspace trace scanning supports LuaJIT 2.1.
 };
 
 BPF_MAP(lua_storage, BPF_MAP_TYPE_HASH, binary_id, struct lua_config, MAX_BINARIES);
+
+struct lua_jit_vm_key {
+    u32 pid;
+    u32 padding;
+    u64 process_starttime;
+    u64 global_state;
+};
+
+struct lua_jit_vm {
+    struct lua_config config;
+    u64 binary_base;
+};
+
+// Discovery hints are consumed by userspace to prepare future DWARF tables.
+BPF_MAP(lua_jit_vms, BPF_MAP_TYPE_LRU_HASH, struct lua_jit_vm_key, struct lua_jit_vm, 1024);
 
 enum lua_frame_type : u8 {
     LUA_FRAME_TYPE_LUA,

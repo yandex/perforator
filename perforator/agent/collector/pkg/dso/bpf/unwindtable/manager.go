@@ -290,7 +290,8 @@ func (m *BPFManager) putRoot(id AllocationID, root PageID) error {
 }
 
 func (m *BPFManager) delRoot(id AllocationID) error {
-	if m.state == nil {
+	// A retired allocation can outlive the root that used to reference it.
+	if m.state == nil || id == (AllocationID{}) {
 		return nil
 	}
 	if id.Binary != nil {

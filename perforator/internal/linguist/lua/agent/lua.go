@@ -25,6 +25,10 @@ func IsVersionSupported(version *lua.LuaVersion) bool {
 }
 
 func ParseLuaUnwinderConfig(conf *lua.LuaConfig) *unwinder.LuaConfig {
+	var jitEnabled uint8
+	if conf.Version != nil && conf.Version.Major == 2 && conf.Version.Minor == 1 {
+		jitEnabled = 1
+	}
 	return &unwinder.LuaConfig{
 		OffsetGToL:        conf.OffsetGToL,
 		OffsetGToDispatch: conf.OffsetGToDispatch,
@@ -33,5 +37,6 @@ func ParseLuaUnwinderConfig(conf *lua.LuaConfig) *unwinder.LuaConfig {
 		VmStartPc:         conf.VmStartPc,
 		VmEndPc:           conf.VmEndPc,
 		FfiCallSize:       conf.FfiCallSize,
+		JitEnabled:        jitEnabled,
 	}
 }

@@ -909,6 +909,9 @@ func (c *oneShotSampleConsumer) consume(ctx context.Context) {
 	defer c.recordSampleConsumeLatency()
 	defer c.p.metrics.sampleProcessingCount.Inc()
 	c.p.procs.ObserveProcessSample(ctx, linux.ProcessKey{Pid: linux.CurrentNamespacePID(c.sample.Pid), ProcessStartTime: c.sample.Starttime})
+	if c.p.luaJITRegistry != nil && c.sample.LuaStack.Len > 0 {
+		c.p.luaJITRegistry.ObserveLuaSample(linux.ProcessKey{Pid: linux.CurrentNamespacePID(c.sample.Pid), ProcessStartTime: c.sample.Starttime})
+	}
 	c.countMetrics(ctx)
 	c.prepareData(ctx)
 	c.recordSample(ctx)
