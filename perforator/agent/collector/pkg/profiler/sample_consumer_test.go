@@ -86,3 +86,20 @@ func TestNoEmptySamples(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, len(firstProfile.Sample))
 }
+
+func TestResolveWorkloadPath(t *testing.T) {
+	resolver := &PodsCgroupTracker{workloads: map[containerCgroup]containerInfo{
+		{"pods/a", "container-id"}: {podServiceName: "api", containerName: "app"},
+		{"pods/b", "container-id"}: {podServiceName: "web", containerName: "sidecar"},
+	}}
+	path := []string{"container-id", "workers"}
+	require.Equal(t, []string{"api", "app", "workers"}, resolveWorkloadPath("/pods/a", path, resolver))
+	require.Equal(t, []string{"web", "sidecar", "workers"}, resolveWorkloadPath("pods/b", path, resolver))
+	require.Equal(t, []string{"container-id", "workers"}, path)
+	require.Equal(t, path, resolveWorkloadPath("pods/a", path, nil))
+	require.Equal(t, path, resolveWorkloadPath("pods/other", path, resolver))
+	require.Equal(t, path, resolveWorkloadPath("", path, resolver))
+	unknown := []string{"unknown", "container-id"}
+	require.Equal(t, unknown, resolveWorkloadPath("pods/a", unknown, resolver))
+	require.Empty(t, resolveWorkloadPath("pods/a", nil, resolver))
+}

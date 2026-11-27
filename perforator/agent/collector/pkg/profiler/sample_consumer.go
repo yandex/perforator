@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/bits"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -242,9 +243,9 @@ type oneShotSampleConsumer struct {
 	// sampleTime is the absolute wall-clock time of the sample, computed once and reused across the consumer.
 	sampleTime time.Time
 
-	env       []formattedEnvVariable
-	tls       []formattedTLSVariable
-	cgroupRel string
+	env              []formattedEnvVariable
+	tls              []formattedTLSVariable
+	parentCgroupPath string
 
 	workloadParts []string
 }
@@ -315,7 +316,7 @@ func (c *oneShotSampleConsumer) resolveWorkloadOnce() {
 		i--
 	}
 
-	parts := make([]string, 0, i+1)
+	cgroupPath := make([]string, 0, i+1)
 
 	var lastCgroupHit bool
 	for ; i >= 0; i-- {
@@ -328,7 +329,7 @@ func (c *oneShotSampleConsumer) resolveWorkloadOnce() {
 		} else {
 			lastCgroupHit = true
 		}
-		parts = append(parts, name)
+		cgroupPath = append(cgroupPath, name)
 	}
 	// TODO: currently this metric only measures accesses to innermost cgroups.
 	// This is based on the assumption that x is only known if parent(x) is also known.
@@ -341,13 +342,21 @@ func (c *oneShotSampleConsumer) resolveWorkloadOnce() {
 		c.p.metrics.cgroupMisses.Inc()
 	}
 
-	if c.p.podsCgroupTracker != nil {
-		newParts, ok := c.p.podsCgroupTracker.ResolveWorkload(parts)
-		if ok {
-			parts = newParts
-		}
+	c.parentCgroupPath = c.p.cgroups.CgroupFullName(c.sample.ParentCgroup)
+	c.workloadParts = resolveWorkloadPath(c.parentCgroupPath, cgroupPath, c.p.containerResolver)
+}
+
+func resolveWorkloadPath(parentCgroupPath string, cgroupPath []string, resolver ContainerResolver) []string {
+	if resolver == nil || len(cgroupPath) == 0 || parentCgroupPath == "" {
+		return cgroupPath
 	}
-	c.workloadParts = parts
+	// Below a traced pod, the first component identifies the container.
+	containerCgroup, nestedCgroups := cgroupPath[0], cgroupPath[1:]
+	serviceName, containerName, found := resolver.ResolveContainer(strings.TrimPrefix(parentCgroupPath, "/"), containerCgroup)
+	if !found {
+		return cgroupPath
+	}
+	return append([]string{serviceName, containerName}, nestedCgroups...)
 }
 
 func (c *oneShotSampleConsumer) collectWorkloadInto(builder *profile.SampleBuilder) {
@@ -698,7 +707,7 @@ func (c *oneShotSampleConsumer) initBuilderCommon(name string, sampleTypes []pro
 		AddStringLabel("comm", copy.ZeroTerminatedString(c.sample.ThreadComm[:])).
 		AddStringLabel("process_comm", copy.ZeroTerminatedString(c.sample.ProcessComm[:])).
 		AddStringLabel("thread_comm", copy.ZeroTerminatedString(c.sample.ThreadComm[:])).
-		AddStringLabel("cgroup", c.p.cgroups.CgroupFullName(c.sample.ParentCgroup))
+		AddStringLabel("cgroup", c.parentCgroupPath)
 
 	if c.features.EnableInnermostPidnsCollection {
 		builder.AddIntLabel(InnermostPidnsTidLabel, int64(c.sample.InnermostPidnsTid), "id")
@@ -751,7 +760,7 @@ func (c *oneShotSampleConsumer) logSample() {
 				"tid":                 c.sample.Tid,
 				"innermost_pidns_tid": c.sample.InnermostPidnsTid,
 				"starttime":           c.sample.Starttime,
-				"cgroup":              c.p.cgroups.CgroupFullName(c.sample.ParentCgroup),
+				"cgroup":              c.parentCgroupPath,
 				"workload":            c.workloadParts,
 				"cgroup_id":           c.sample.ParentCgroup,
 				"stacklen":            sampleStackLen(c.sample),

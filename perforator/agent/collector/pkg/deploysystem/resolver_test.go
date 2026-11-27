@@ -19,6 +19,14 @@ func testSnapshot() Snapshot {
 	}}
 }
 
+func requireContainer(t *testing.T, resolver *Resolver, parent, child, wantService, wantContainer string) {
+	t.Helper()
+	service, container, found := resolver.ResolveContainer(parent, child)
+	require.True(t, found)
+	require.Equal(t, wantService, service)
+	require.Equal(t, wantContainer, container)
+}
+
 func TestSnapshotIdentityAndOwnership(t *testing.T) {
 	c := NewResolver(nop.Registry{})
 	_, err := c.FindPodsByName("a")
@@ -50,9 +58,7 @@ func TestSnapshotIdentityAndOwnership(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, b, 1)
 	require.Equal(t, RelativeCgroupPath("pods/b"), b[0].CgroupPath)
-	workloadLabels, ok := c.ResolveWorkload([]string{"container-a", "child"})
-	require.True(t, ok)
-	require.Equal(t, []string{"same", "app", "child"}, workloadLabels)
+	requireContainer(t, c, "pods/a", "container-a", "same", "app")
 	next := testSnapshot()
 	next.Pods[0].Metadata = map[string]string{"key": "next"}
 	next.Pods[0].Containers[0].Name = "next"
@@ -67,8 +73,8 @@ func TestSnapshotIdentityAndOwnership(t *testing.T) {
 	missing, err := c.FindPodsByName("a")
 	require.NoError(t, err)
 	require.Empty(t, missing)
-	_, ok = c.ResolveWorkload([]string{"container-a"})
-	require.False(t, ok)
+	_, _, found := c.ResolveContainer("pods/a", "container-a")
+	require.False(t, found)
 }
 
 func TestPodsWithoutNamesResolveContainers(t *testing.T) {
@@ -81,9 +87,7 @@ func TestPodsWithoutNamesResolveContainers(t *testing.T) {
 	missing, err := r.FindPodsByName("")
 	require.NoError(t, err)
 	require.Empty(t, missing)
-	workloadLabels, ok := r.ResolveWorkload([]string{"container-a", "child"})
-	require.True(t, ok)
-	require.Equal(t, []string{"same", "app", "child"}, workloadLabels)
+	requireContainer(t, r, "pods/a", "container-a", "same", "app")
 
 	// Pods without a name still participate in snapshot validation.
 	snapshot.Pods[1].CgroupPath = snapshot.Pods[0].CgroupPath
@@ -93,7 +97,7 @@ func TestPodsWithoutNamesResolveContainers(t *testing.T) {
 func TestInvalidSnapshotDoesNotReplaceResolver(t *testing.T) {
 	cases := map[string]func(*Snapshot){
 		"duplicate cgroup":    func(s *Snapshot) { s.Pods[1].CgroupPath = "pods/a" },
-		"duplicate container": func(s *Snapshot) { s.Pods[1].Containers = s.Pods[0].Containers },
+		"duplicate container": func(s *Snapshot) { s.Pods[0].Containers = append(s.Pods[0].Containers, s.Pods[0].Containers[0]) },
 		"absolute path":       func(s *Snapshot) { s.Pods[0].CgroupPath = "/pods/a" },
 		"empty path":          func(s *Snapshot) { s.Pods[0].CgroupPath = "" },
 		"root":                func(s *Snapshot) { s.Pods[0].CgroupPath = "/" },
@@ -129,11 +133,9 @@ func TestInvalidSnapshotDoesNotReplaceResolver(t *testing.T) {
 			missing, err := c.FindPodsByName("new")
 			require.NoError(t, err)
 			require.Empty(t, missing)
-			workloadLabels, ok := c.ResolveWorkload([]string{"container-a", "child"})
-			require.True(t, ok)
-			require.Equal(t, []string{"same", "app", "child"}, workloadLabels)
-			_, ok = c.ResolveWorkload([]string{"container-new"})
-			require.False(t, ok)
+			requireContainer(t, c, "pods/a", "container-a", "same", "app")
+			_, _, found := c.ResolveContainer("pods/a", "container-new")
+			require.False(t, found)
 		})
 	}
 }
@@ -157,9 +159,7 @@ func TestSnapshotAgeAndResolution(t *testing.T) {
 	missing, err := r.FindPodsByName("unknown")
 	require.NoError(t, err)
 	require.Empty(t, missing)
-	workloadLabels, ok := r.ResolveWorkload([]string{"container-a"})
-	require.True(t, ok)
-	require.Equal(t, []string{"same", "app"}, workloadLabels)
+	requireContainer(t, r, "pods/a", "container-a", "same", "app")
 
 	require.NoError(t, r.Publish(testSnapshot()))
 	require.Less(t, snapshotAge.Function()(), age)
@@ -213,7 +213,6 @@ func TestConcurrentSnapshotReaders(t *testing.T) {
 	snapshots := []Snapshot{testSnapshot(), testSnapshot()}
 	for i, generation := range []string{"first", "second"} {
 		w := &snapshots[i].Pods[0]
-		w.CgroupPath = RelativeCgroupPath("pods/" + generation)
 		w.ServiceName = generation
 		w.Containers[0].Name = generation + "-app"
 	}
@@ -239,10 +238,9 @@ func TestConcurrentSnapshotReaders(t *testing.T) {
 					return
 				}
 				// This separate lookup may observe a newer generation than FindPodsByName.
-				workloadLabels, ok := c.ResolveWorkload([]string{"container-a", "child"})
-				if !ok || (!reflect.DeepEqual(workloadLabels, []string{"first", "first-app", "child"}) &&
-					!reflect.DeepEqual(workloadLabels, []string{"second", "second-app", "child"})) {
-					t.Errorf("inconsistent container metadata: %v", workloadLabels)
+				service, container, found := c.ResolveContainer("pods/a", "container-a")
+				if !found || (service != "first" && service != "second") || container != service+"-app" {
+					t.Errorf("inconsistent container metadata: service=%q container=%q found=%t", service, container, found)
 					return
 				}
 			}
@@ -274,18 +272,33 @@ func TestContainersUsePodServiceName(t *testing.T) {
 			}}}
 			require.NoError(t, r.Publish(snapshot))
 			for _, container := range snapshot.Pods[0].Containers {
-				names, ok := r.ResolveWorkload([]string{container.CgroupBaseName, "child"})
-				require.True(t, ok)
-				require.Equal(t, []string{"service", container.Name, "child"}, names)
+				requireContainer(t, r, "pods/a", container.CgroupBaseName, "service", container.Name)
 			}
 			snapshot.Pods[0].ServiceName = "renamed"
 			snapshot.ObservedAt = time.Now()
 			require.NoError(t, r.Publish(snapshot))
 			for _, container := range snapshot.Pods[0].Containers {
-				names, ok := r.ResolveWorkload([]string{container.CgroupBaseName})
-				require.True(t, ok)
-				require.Equal(t, []string{"renamed", container.Name}, names)
+				requireContainer(t, r, "pods/a", container.CgroupBaseName, "renamed", container.Name)
 			}
 		})
 	}
+}
+
+func TestResolveContainerScopesChildToParent(t *testing.T) {
+	r := NewResolver(nop.Registry{})
+	snapshot := testSnapshot()
+	snapshot.Pods[1].ServiceName = "other"
+	snapshot.Pods[1].Containers = []Container{{CgroupBaseName: "container-a", Name: "sidecar"}}
+	require.NoError(t, r.Publish(snapshot))
+	requireContainer(t, r, "pods/a", "container-a", "same", "app")
+	requireContainer(t, r, "pods/b", "container-a", "other", "sidecar")
+	_, _, found := r.ResolveContainer("pods/missing", "container-a")
+	require.False(t, found)
+
+	snapshot.Pods[0].Containers[0].CgroupBaseName = "container-new"
+	require.NoError(t, r.Publish(snapshot))
+	_, _, found = r.ResolveContainer("pods/a", "container-a")
+	require.False(t, found)
+	requireContainer(t, r, "pods/a", "container-new", "same", "app")
+	requireContainer(t, r, "pods/b", "container-a", "other", "sidecar")
 }

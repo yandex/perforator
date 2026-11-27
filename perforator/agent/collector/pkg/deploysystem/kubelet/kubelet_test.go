@@ -40,7 +40,13 @@ func TestBuildCgroup(t *testing.T) {
 			systemDRewrites: false,
 			expected:        "/kubepods/besteffort/podfoo",
 		},
-
+		{
+			name:       "absolute-cgroupfs-root",
+			cgroupRoot: []string{"/kubepods"},
+			uid:        "foo",
+			qosClass:   v1.PodQOSBestEffort,
+			expected:   "/kubepods/besteffort/podfoo",
+		},
 		{
 			name:       "cgroupsPerQOSDisabled",
 			cgroupRoot: []string{"kubepods"},

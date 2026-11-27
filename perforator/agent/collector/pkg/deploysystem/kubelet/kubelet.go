@@ -419,6 +419,6 @@ func buildCgroup(settings *kubeletCgroupSettings, pod podInfo) (string, error) {
 	if settings.systemd {
 		return "/" + makeSystemDPath(nameParts), nil
 	} else {
-		return "/" + path.Join(nameParts...), nil
+		return path.Join("/", path.Join(nameParts...)), nil
 	}
 }

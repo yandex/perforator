@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,10 +25,9 @@ type blackListEntryCompiled struct {
 	Reason string
 }
 
-type workloadSnapshot struct {
-	cgroupBaseName string
-	serviceName    string
-	containerName  string
+type containerCgroup struct {
+	parentPath string
+	baseName   string
 }
 
 type containerInfo struct {
@@ -44,8 +44,7 @@ type PodsCgroupTracker struct {
 	hostname     string
 
 	workloadsmu sync.RWMutex
-	// key is container cgroup name
-	workloads map[string]*containerInfo
+	workloads   map[containerCgroup]containerInfo
 
 	blackListRegexps []*blackListEntryCompiled
 	whiteListRegexps []*regexp.Regexp
@@ -124,7 +123,7 @@ func (t *PodsCgroupTracker) isPodFiltered(pod *kubelet.Pod) (bool, string) {
 }
 
 func (t *PodsCgroupTracker) rebuildWorkloadInfo(pods []*kubelet.Pod) {
-	workloads := make(map[string]*containerInfo)
+	workloads := make(map[containerCgroup]containerInfo)
 	t.l.Info("Building workload mapping", log.Int("count", len(pods)))
 	for _, pod := range pods {
 		for _, cont := range pod.Containers() {
@@ -134,7 +133,8 @@ func (t *PodsCgroupTracker) rebuildWorkloadInfo(pods []*kubelet.Pod) {
 				log.String("pod", pod.ID()),
 				log.String("container", cont.Name()),
 			)
-			workloads[cont.CgroupBaseName()] = &containerInfo{
+			key := containerCgroup{strings.TrimPrefix(pod.CgroupName(), "/"), cont.CgroupBaseName()}
+			workloads[key] = containerInfo{
 				containerName:  cont.Name(),
 				podServiceName: pod.ServiceName(),
 			}
@@ -182,35 +182,11 @@ func (t *PodsCgroupTracker) refreshCgroups(ctx context.Context) ([]*CgroupConfig
 	return cgroups, nil
 }
 
-func (t *PodsCgroupTracker) ResolveWorkload(cgroups []string) ([]string, bool) {
-	t.l.Info("Resolving workload", log.Strings("cgroups", cgroups))
-	if len(cgroups) == 0 {
-		return nil, false
-	}
+func (t *PodsCgroupTracker) ResolveContainer(parentCgroupPath, containerCgroupBaseName string) (podServiceName, containerName string, found bool) {
 	t.workloadsmu.RLock()
 	defer t.workloadsmu.RUnlock()
-	// k8s cgroups look like this:
-	// /kubepods/besteffort/pod47a861d9-65ce-4f59-9aaa-2a2268acd5e0/e6833253323a1be50457462dce9ae1315c3ce263b747fbd5a4fc96d3abfc7337
-	// first part is fixed to "kubepods"
-	// besteffort is scheduling QoS, we are not interested in it.
-	// third part is pod id (i.e. .metadata.uid)
-	// fourth part is container id (i.e. .status.containerStatus[*].containerID)
-	// the first three are skipped as they are parts of the tracked cgroup
-	info, ok := t.workloads[cgroups[0]]
-	if !ok {
-		t.l.Warn("Workload not found", log.String("key", cgroups[0]))
-		return nil, false
-	}
-	t.l.Info("Workload found", log.String("cgroup", cgroups[0]), log.String("resolved", info.containerName))
-	convertedParts := []string{
-		info.podServiceName,
-		info.containerName,
-	}
-	// usually there won't be any nested cgroups, but it is possible in the future
-	// when k8s natively supports cgroup delegation
-	convertedParts = append(convertedParts, cgroups[1:]...)
-
-	return convertedParts, true
+	info, found := t.workloads[containerCgroup{parentCgroupPath, containerCgroupBaseName}]
+	return info.podServiceName, info.containerName, found
 }
 
 func newPodsCgroupTracker(c *config.PodsDeploySystemConfig, l log.Logger, cgroupPrefix string) (*PodsCgroupTracker, error) {
@@ -333,18 +309,4 @@ func (p *Profiler) runPodsCgroupTracker(ctx context.Context) error {
 			}
 		}
 	}
-}
-
-func (t *PodsCgroupTracker) snapshotWorkloads() []workloadSnapshot {
-	t.workloadsmu.RLock()
-	defer t.workloadsmu.RUnlock()
-	result := make([]workloadSnapshot, 0, len(t.workloads))
-	for cgroupBaseName, info := range t.workloads {
-		result = append(result, workloadSnapshot{
-			cgroupBaseName: cgroupBaseName,
-			serviceName:    info.podServiceName,
-			containerName:  info.containerName,
-		})
-	}
-	return result
 }

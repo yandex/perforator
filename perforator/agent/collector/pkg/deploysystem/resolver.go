@@ -15,9 +15,14 @@ import (
 
 var errNotReady = errors.New("pod discovery is not ready")
 
+type containerCgroup struct {
+	parentPath string
+	baseName   string
+}
+
 type containerMetadata struct {
-	serviceName   string
-	containerName string
+	podServiceName string
+	containerName  string
 }
 
 // Resolver indexes immutable, complete snapshots. A failed refresh leaves the
@@ -26,7 +31,7 @@ type Resolver struct {
 	mu          sync.RWMutex
 	observedAt  time.Time
 	podsByName  map[string][]*Pod
-	containers  map[string]containerMetadata
+	containers  map[containerCgroup]containerMetadata
 	snapshotAge metrics.FuncIntGauge
 }
 
@@ -71,7 +76,7 @@ func (r *Resolver) Publish(snapshot Snapshot) error {
 		return errors.New("invalid pod observation timestamp")
 	}
 	podsByName := make(map[string][]*Pod)
-	containers := make(map[string]containerMetadata)
+	containers := make(map[containerCgroup]containerMetadata)
 	cgroups := make(map[RelativeCgroupPath]struct{})
 	for _, pod := range snapshot.Pods {
 		key := pod.CgroupPath
@@ -87,13 +92,11 @@ func (r *Resolver) Publish(snapshot Snapshot) error {
 		}
 		for _, container := range pod.Containers {
 			if container.CgroupBaseName != "" {
-				if _, exists := containers[container.CgroupBaseName]; exists {
-					return fmt.Errorf("duplicate container cgroup %q", container.CgroupBaseName)
+				key := containerCgroup{string(pod.CgroupPath), container.CgroupBaseName}
+				if _, exists := containers[key]; exists {
+					return fmt.Errorf("duplicate container cgroup %q under %q", key.baseName, key.parentPath)
 				}
-				containers[container.CgroupBaseName] = containerMetadata{
-					serviceName:   pod.ServiceName,
-					containerName: container.Name,
-				}
+				containers[key] = containerMetadata{podServiceName: pod.ServiceName, containerName: container.Name}
 			}
 		}
 	}
@@ -121,17 +124,10 @@ func (r *Resolver) FindPodsByName(name string) ([]*Pod, error) {
 	return r.podsByName[name], nil
 }
 
-// ResolveWorkload replaces a recognized container cgroup name with service
-// and container names, preserving the remaining cgroup path components.
-// It returns false when the first component is not a known container.
-func (r *Resolver) ResolveWorkload(cgroupPathComponents []string) ([]string, bool) {
-	if len(cgroupPathComponents) == 0 {
-		return nil, false
-	}
+// ResolveContainer returns the pod service and container names observed for this cgroup.
+func (r *Resolver) ResolveContainer(parentCgroupPath, containerCgroupBaseName string) (podServiceName, containerName string, found bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	if container, ok := r.containers[cgroupPathComponents[0]]; ok {
-		return append([]string{container.serviceName, container.containerName}, cgroupPathComponents[1:]...), true
-	}
-	return nil, false
+	info, found := r.containers[containerCgroup{parentCgroupPath, containerCgroupBaseName}]
+	return info.podServiceName, info.containerName, found
 }

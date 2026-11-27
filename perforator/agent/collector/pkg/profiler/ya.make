@@ -2,6 +2,7 @@ GO_LIBRARY()
 
 SRCS(
     cgroupevent.go
+    container_resolver.go
     event_listener.go
     native_runtime.go
     perf_event_manager.go

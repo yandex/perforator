@@ -142,6 +142,7 @@ type Profiler struct {
 	shutdownCancel          context.CancelCauseFunc
 
 	podsCgroupTracker *PodsCgroupTracker
+	containerResolver ContainerResolver
 
 	enablePerfMaps    bool
 	enablePerfMapsJVM bool
@@ -658,6 +659,9 @@ func (p *Profiler) initialize(ctx context.Context, r metrics.Registry) (err erro
 			return err
 		}
 		p.podsCgroupTracker = podsCgroupTracker
+		if p.containerResolver == nil {
+			p.containerResolver = podsCgroupTracker
+		}
 		p.log.Info("Successfully loaded pods cgroup tracker", log.String("deploy_system", p.conf.PodsDeploySystemConfig.DeploySystem))
 	}
 
