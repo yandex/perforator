@@ -97,10 +97,12 @@ func (s *LocalStorage) StoreProfile(ctx context.Context, profile LabeledProfile)
 	if profile.Profile == nil || profile.Profile.Bundle == nil {
 		return errors.New("profile has no serialized body")
 	}
-	// Local profiles use pprof for compatibility with debugging tools.
-	body, err := profile.Profile.Bundle.GetOrConvertPprof()
-	if err != nil {
-		return err
+	body := profile.Profile.Bundle.GetYaprof()
+	if len(body) == 0 {
+		body = profile.Profile.Bundle.GetPprof()
+	}
+	if len(body) == 0 {
+		return errors.New("profile has no serialized body")
 	}
 	types := eventTypesToString(profile.Profile.Meta.EventTypes)
 	name := fmt.Sprintf("profile.%s.%d.tar.gz", types, s.counter%s.ringBufferSize)

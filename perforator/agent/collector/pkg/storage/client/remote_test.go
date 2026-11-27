@@ -108,9 +108,11 @@ func TestSerializedStorage(t *testing.T) {
 				require.NoError(t, local.StoreProfile(t.Context(), labeled))
 				data, err := os.ReadFile(filepath.Join(dir, "profile.signal.count.0.tar.gz"))
 				require.NoError(t, err)
-				decoded, err = (&profileresult.Result{Bundle: bundle.NewPprofBundle(data)}).ParsePprof()
-				require.NoError(t, err)
-				require.Len(t, decoded.Sample, 1)
+				expected := r.Bundle.GetYaprof()
+				if len(expected) == 0 {
+					expected = r.Bundle.GetPprof()
+				}
+				require.Equal(t, expected, data)
 			})
 		}
 	}
@@ -120,7 +122,7 @@ func TestSerializedStorage(t *testing.T) {
 	<-recorder.requests
 }
 
-func TestStoragePreservesOriginalPprof(t *testing.T) {
+func TestStoragePreservesOriginalProfiles(t *testing.T) {
 	gatewayClient, recorder := newRecordingStorageClient(t)
 	logger := xlog.ForTest(t)
 	b := profile.NewBuilder().AddSampleType("cpu", "cycles")
@@ -152,7 +154,7 @@ func TestStoragePreservesOriginalPprof(t *testing.T) {
 		require.NoError(t, local.StoreProfile(t.Context(), labeled))
 		data, err := os.ReadFile(filepath.Join(dir, "profile.cpu.cycles.0.tar.gz"))
 		require.NoError(t, err)
-		require.Equal(t, original.Bytes(), data)
+		require.Equal(t, r.Bundle.GetYaprof(), data)
 	})
 }
 
