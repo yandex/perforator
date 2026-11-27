@@ -1256,7 +1256,11 @@ func (s *PerforatorServer) renderProfile(
 	trimContextTrampolinePrefix(profile)
 
 	{
-		postprocessResults := interpreterstack.Postprocess(profile, interpreterstack.OptionsFromProto(format.Postprocessing)...)
+		options := interpreterstack.OptionsFromProto(format.Postprocessing)
+		for _, root := range s.c.Postprocessing.Python.CPythonSourceRoots {
+			options = append(options, interpreterstack.WithCPythonSourceRoot(root))
+		}
+		postprocessResults := interpreterstack.Postprocess(profile, options...)
 		if len(postprocessResults.Python.Errors) > 0 {
 			s.l.Warn(ctx, "Found errors on joining python and native stacks", log.Error(errors.Join(postprocessResults.Python.Errors...)))
 		}

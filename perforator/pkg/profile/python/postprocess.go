@@ -510,8 +510,9 @@ func Postprocess(p *pprof.Profile, opts ...Option) (res PostProcessResults) {
 
 // prettifier performs inplace prettification of the Python sample.
 type prettifier struct {
-	sample *pprof.Sample
-	level  PrettifyLevel
+	sample             *pprof.Sample
+	level              PrettifyLevel
+	cpythonSourceRoots []string
 }
 
 func newPrettifier(sample *pprof.Sample, level PrettifyLevel) *prettifier {
@@ -601,7 +602,8 @@ func (p *prettifier) removeCPythonInterpreterLocations() {
 			seenPythonLocation = true
 		}
 
-		if isCPythonLocation(loc) && seenPythonLocation {
+		if seenPythonLocation && isCPythonLocation(loc) &&
+			!(p.level == PrettifyMixed && (loc.IsFolded || containsCPythonOperation(loc))) {
 			continue
 		}
 
@@ -610,6 +612,21 @@ func (p *prettifier) removeCPythonInterpreterLocations() {
 	}
 
 	p.sample.Location = p.sample.Location[:resultIndex]
+}
+
+func containsCPythonOperation(loc *pprof.Location) bool {
+	for _, line := range loc.Line {
+		if line.Function == nil {
+			continue
+		}
+		for _, name := range [...]string{line.Function.SystemName, line.Function.Name} {
+			switch name {
+			case "PyObject_RichCompare", "_PyObject_Malloc":
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func isImportlibLocation(loc *pprof.Location) bool {
@@ -639,6 +656,33 @@ func (p *prettifier) removeAllNonPythonLocations() {
 	})
 }
 
+func isCPythonDispatchLocation(loc *pprof.Location, sourceRoot string) bool {
+	if loc.IsFolded || isPythonLocation(loc) || len(loc.Line) == 0 {
+		return false
+	}
+
+	for i, line := range loc.Line {
+		if line.Function == nil {
+			return false
+		}
+		file := line.Function.Filename
+		switch line.Function.SystemName {
+		case "PyObject_Vectorcall", "_PyObject_MakeTpCall":
+			if file != sourceRoot+"/Objects/call.c" {
+				return false
+			}
+		case "_PyObject_VectorcallTstate":
+			// The last line is the physical function. A header-only wrapper does not identify it.
+			if i == len(loc.Line)-1 || file != sourceRoot+"/Include/internal/pycore_call.h" {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func (p *prettifier) prettify() {
 	if p.level == PrettifyOff {
 		return
@@ -662,16 +706,52 @@ func (p *prettifier) prettify() {
 	if p.level == PrettifyPythonOnly {
 		p.removeAllNonPythonLocations()
 	}
+
+	if p.level == PrettifyMixed && len(p.cpythonSourceRoots) != 0 && len(p.sample.Location) > 1 && containsInterpretedPythonStack(p.sample) {
+		locations := p.sample.Location
+		callers := slices.DeleteFunc(locations[1:], func(loc *pprof.Location) bool {
+			for _, root := range p.cpythonSourceRoots {
+				if isCPythonDispatchLocation(loc, root) {
+					return true
+				}
+			}
+			return false
+		})
+		p.sample.Location = locations[:1+len(callers)]
+	}
+}
+
+type prettifyOptions struct {
+	cpythonSourceRoots []string
+}
+
+// PrettifyOption configures PrettifyProfile.
+type PrettifyOption func(*prettifyOptions)
+
+// WithCPythonSourceRoot adds a trusted source root for CPython dispatch wrappers.
+func WithCPythonSourceRoot(root string) PrettifyOption {
+	root = strings.TrimRight(root, "/")
+	return func(o *prettifyOptions) {
+		if root != "" {
+			o.cpythonSourceRoots = append(o.cpythonSourceRoots, root)
+		}
+	}
 }
 
 // PrettifyProfile runs prettification on all samples that contain Python frames.
-func PrettifyProfile(p *pprof.Profile, level PrettifyLevel) {
+func PrettifyProfile(p *pprof.Profile, level PrettifyLevel, opts ...PrettifyOption) {
 	if level == PrettifyOff {
 		return
 	}
+	var o prettifyOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	for _, sample := range p.Sample {
 		if containsInterpretedPythonStack(sample) {
-			newPrettifier(sample, level).prettify()
+			samplePrettifier := newPrettifier(sample, level)
+			samplePrettifier.cpythonSourceRoots = o.cpythonSourceRoots
+			samplePrettifier.prettify()
 		}
 	}
 }

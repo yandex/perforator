@@ -97,6 +97,12 @@ func (c *FeaturesConfig) FillDefault() {
 	}
 }
 
+type PostprocessingConfig struct {
+	Python struct {
+		CPythonSourceRoots []string `yaml:"cpython_source_roots"`
+	} `yaml:"python"`
+}
+
 type Config struct {
 	ClusterTop                  cluster_top.Config    `yaml:"cluster_top"`
 	StorageConfig               bundle.Config         `yaml:"storage"`
@@ -112,6 +118,7 @@ type Config struct {
 	Tracing                     *tracing.Config       `yaml:"tracing"`
 	ProfileMerger               ProfileMergerConfig   `yaml:"profile_merger"`
 	SymbolizationConfig         SymbolizationConfig   `yaml:"symbolization"`
+	Postprocessing              PostprocessingConfig  `yaml:"postprocessing"`
 	ACL                         ACLConfig             `yaml:"acl"`
 	FeaturesConfig              FeaturesConfig        `yaml:"features"`
 	BinaryProcessorClientConfig *bpclient.Config      `yaml:"binary_processor_client"`

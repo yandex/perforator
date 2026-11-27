@@ -1056,3 +1056,61 @@ func TestPrettifyProfile_NonPythonProfile(t *testing.T) {
 		require.Equal(t, len(original), len(p.Sample[0].Location), "non-Python profile must not be modified at level %d", level)
 	}
 }
+
+func TestPrettifyProfile_MixedCPythonDispatch(t *testing.T) {
+	const pythonSource = "/build/cpython"
+	const previousPythonSource = "/build/cpython-prev"
+	native := func(name, file string) *pprof.Location {
+		loc := createSimpleLocationUserspace(name)
+		loc.Line[0].Function.SystemName = name
+		loc.Line[0].Function.Filename = file
+		return loc
+	}
+	leaf := native("PyObject_Vectorcall", pythonSource+"/Objects/call.c")
+	inline := native("_PyObject_VectorcallTstate", pythonSource+"/Include/internal/pycore_call.h")
+	inline.Line = append(inline.Line, native("PyObject_Vectorcall", pythonSource+"/Objects/call.c").Line...)
+	dispatch := native("_PyObject_MakeTpCall", previousPythonSource+"/Objects/call.c")
+	folded := native("_PyObject_MakeTpCall", pythonSource+"/Objects/call.c")
+	folded.IsFolded = true
+	compare := native("PyObject_RichCompare", pythonSource+"/Objects/object.c")
+	compare.Line[0].Function.SystemName = "PyObject_RichCompare.isra.0"
+	alloc := native("_PyObject_Malloc", pythonSource+"/Objects/obmalloc.c")
+	alloc.Line[0].Function.Name = "_PyObject_Malloc.constprop.0"
+	lookalike := native("PyObject_Vectorcall", pythonSource+"-other/Objects/call.c")
+	userOuter := native("_PyObject_VectorcallTstate", pythonSource+"/Include/internal/pycore_call.h")
+	userOuter.Line = append(userOuter.Line, native("extension", "/src/ext.c").Line...)
+	userInner := native("_Py_CheckFunctionResult", pythonSource+"/Objects/call.c")
+	userInner.Line = append(userInner.Line, native("PyObject_Vectorcall", pythonSource+"/Objects/call.c").Line...)
+	unknown := native("PyObject_Vectorcall", pythonSource+"/Objects/call.c")
+	unknown.Line[0].Function.SystemName = ""
+	unattributed := native("_PyObject_VectorcallTstate", pythonSource+"/Include/internal/pycore_call.h")
+	caller := createSimpleLocationPython("run")
+	outerCaller := createSimpleLocationPython("outer")
+	legacyWrapper := native("PyObject_Vectorcall", pythonSource+"/Objects/call.c")
+	locations := []*pprof.Location{leaf, inline, dispatch, folded, lookalike, userOuter, userInner, unknown, unattributed, caller, compare, legacyWrapper, folded, alloc, outerCaller}
+	nativeOnly := locations[:9]
+	opts := []PrettifyOption{WithCPythonSourceRoot(pythonSource), WithCPythonSourceRoot(previousPythonSource + "/")}
+
+	for _, tc := range []struct {
+		name  string
+		level PrettifyLevel
+		opts  []PrettifyOption
+		stack []*pprof.Location
+		want  []*pprof.Location
+	}{
+		{"mixed", PrettifyMixed, opts, locations, []*pprof.Location{leaf, folded, lookalike, userOuter, userInner, unknown, unattributed, caller, compare, folded, alloc, outerCaller}},
+		{"no roots", PrettifyMixed, nil, []*pprof.Location{leaf, inline, dispatch, caller}, []*pprof.Location{leaf, inline, dispatch, caller}},
+		{"promoted leaf", PrettifyMixed, opts, []*pprof.Location{createUnsymbolizedLocation(), leaf, dispatch, caller}, []*pprof.Location{leaf, caller}},
+		{"off", PrettifyOff, opts, locations, locations},
+		{"python only", PrettifyPythonOnly, opts, locations, []*pprof.Location{caller, outerCaller}},
+		{"trampoline only", PrettifyMixed, opts, []*pprof.Location{leaf, dispatch, createSimpleLocationPython("<trampoline python frame>")}, []*pprof.Location{leaf, dispatch}},
+		{"native only", PrettifyMixed, opts, nativeOnly, nativeOnly},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sample := &pprof.Sample{Location: slices.Clone(tc.stack), Value: []int64{42}}
+			PrettifyProfile(&pprof.Profile{Sample: []*pprof.Sample{sample}}, tc.level, tc.opts...)
+			require.Equal(t, tc.want, sample.Location)
+			require.Equal(t, []int64{42}, sample.Value)
+		})
+	}
+}

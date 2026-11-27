@@ -12,6 +12,7 @@ type options struct {
 	mergePython               bool
 	mergePHP                  bool
 	pythonPrettificationLevel python.PrettifyLevel
+	pythonPrettifyOptions     []python.PrettifyOption
 }
 
 func defaultOptions() options {
@@ -29,6 +30,13 @@ type Option func(*options)
 func WithPythonPrettifyLevel(level python.PrettifyLevel) Option {
 	return func(o *options) {
 		o.pythonPrettificationLevel = level
+	}
+}
+
+// WithCPythonSourceRoot adds a trusted source root for CPython dispatch wrappers.
+func WithCPythonSourceRoot(root string) Option {
+	return func(o *options) {
+		o.pythonPrettifyOptions = append(o.pythonPrettifyOptions, python.WithCPythonSourceRoot(root))
 	}
 }
 
@@ -108,7 +116,7 @@ func Postprocess(p *pprof.Profile, opts ...Option) PostProcessResults {
 	php.Strip(p)
 
 	if o.pythonPrettificationLevel != python.PrettifyOff {
-		python.PrettifyProfile(p, o.pythonPrettificationLevel)
+		python.PrettifyProfile(p, o.pythonPrettificationLevel, o.pythonPrettifyOptions...)
 	}
 
 	return res
