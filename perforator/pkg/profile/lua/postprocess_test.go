@@ -52,14 +52,19 @@ func mergeFixture(lua, native []string, kernel bool, base uint64) *pprof.Profile
 	}
 	for i := len(native) - 1; i >= 0; i-- {
 		address := base + 0x3000 + uint64(i)*16
+		mapping := nativeMapping
 		switch {
+		case native[i] == "[JIT]":
+			mapping = &pprof.Mapping{ID: uint64(len(p.Mapping) + 1), Start: base + 0x10000, Limit: base + 0x20000, File: "[JIT]"}
+			p.Mapping = append(p.Mapping, mapping)
+			address = mapping.Start + uint64(i)*16
 		case strings.HasPrefix(native[i], "vm"):
 			address = base + 0x1000 + uint64(i)*16
 		case native[i] == "ffi trampoline":
 			header.Line[0].Function.StartLine = 0x100
 			address = base + 0x1f00 // First byte of the FFI tail.
 		}
-		locations = append(locations, add(native[i], "", nativeMapping, address))
+		locations = append(locations, add(native[i], "", mapping, address))
 	}
 	p.Sample = []*pprof.Sample{{Location: locations, Value: []int64{1}}}
 	return p
@@ -107,6 +112,10 @@ func TestPostprocess(t *testing.T) {
 		{"C entry before Lua", []string{"cp:C", "cp:B"}, []string{"main", "vm0", "C", "vm1"}, []string{"main", "C", "B", "kernel"}, false},
 		{"VM helper with lost root", []string{"A"}, []string{"vmhelper"}, []string{"vmhelper", "A", "kernel"}, true},
 		{"pure Lua", []string{"A", "B"}, []string{"main", "lua_pcall", "vm"}, []string{"main", "lua_pcall", "A", "B", "kernel"}, false},
+		{"JIT leaf", []string{"A", "B"}, []string{"main", "lua_pcall", "[JIT]"}, []string{"main", "lua_pcall", "A", "B", "kernel"}, false},
+		{"JIT leaf with ASM FF", []string{"A", "FF"}, []string{"main", "[JIT]"}, []string{"main", "A", "FF", "kernel"}, false},
+		{"native callee from JIT", []string{"A", "C"}, []string{"main", "[JIT]", "C"}, []string{"main", "A", "C", "kernel"}, false},
+		{"JIT root lost", []string{"A"}, []string{"[JIT]"}, []string{"[JIT]", "A", "kernel"}, true},
 		{"interleaved", []string{"A", "C", "B"}, []string{"main", "vm0", "C", "lua_pcall", "vm1"}, []string{"main", "A", "C", "lua_pcall", "B", "kernel"}, false},
 		{"GC finalizer", []string{"cp:C", "cp:chunk", "fn", "cp:finalizer", "hash_walk", "FF"},
 			[]string{"main", "lua_cpcall", "vm_funcc", "pmain", "lua_pcall", "vm_tnew", "lj_gc_step", "gc_call_finalizer", "vm_tostring", "lj_strfmt_num"},
@@ -188,7 +197,7 @@ func TestHeaderGuardsAndDisabledMerging(t *testing.T) {
 			assertNoHeader(t, p)
 		})
 	}
-	p := mergeFixture([]string{"cp:A", "C", "cp:B"}, []string{"main", "vm"}, false, 0x100000)
+	p := mergeFixture([]string{"cp:A", "C", "cp:B"}, []string{"main", "[JIT]"}, false, 0x100000)
 	want := rootNames(p.Sample[0])
 	want = want[:len(want)-1]
 	if res := Postprocess(p, false); res != (PostProcessResults{}) || !slices.Equal(rootNames(p.Sample[0]), want) {

@@ -183,8 +183,11 @@ func mergeSample(sample *pprof.Sample, header *pprof.Location, luaEnd, kernelEnd
 		return false
 	}
 	luaVMEnd := vmEnd - uint64(ffiCallSize)
+	isJITFrame := func(loc *pprof.Location) bool {
+		return loc != nil && loc.Mapping != nil && loc.Mapping.File == "[JIT]"
+	}
 	isLuaVMFrame := func(loc *pprof.Location) bool {
-		return loc != nil && loc.Mapping == header.Mapping && header.Address <= loc.Address && loc.Address < luaVMEnd
+		return isJITFrame(loc) || loc != nil && loc.Mapping == header.Mapping && header.Address <= loc.Address && loc.Address < luaVMEnd
 	}
 
 	// Each native C placeholder closes one Lua segment, including an empty one.
@@ -261,7 +264,7 @@ func mergeSample(sample *pprof.Sample, header *pprof.Location, luaEnd, kernelEnd
 		if isLuaVMFrame(loc) {
 			if segmentIndex < len(segments) {
 				segment := segments[segmentIndex]
-				if last := len(segment) - 1; last >= 0 && hasSystemName(segment[last], ASMFFSystemName) {
+				if last := len(segment) - 1; last >= 0 && hasSystemName(segment[last], ASMFFSystemName) && !isJITFrame(loc) {
 					// The VM activation already represents this leaf fast function.
 					segment[last] = loc
 				}
